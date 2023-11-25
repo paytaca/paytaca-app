@@ -143,7 +143,6 @@
     />
 </template>
 <script>
-// import FiatStoreForm from './FiatStoreForm.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
@@ -161,7 +160,6 @@ export default {
   },
   emits: ['orderCanceled'],
   components: {
-    // FiatStoreForm,
     FiatOrderForm,
     ProgressLoader,
     FiatProfileCard,

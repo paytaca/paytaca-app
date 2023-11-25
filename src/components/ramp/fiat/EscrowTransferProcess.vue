@@ -1,97 +1,99 @@
 <template>
-  <div class="q-pb-md">
-      <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
-      <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">(ORDER #{{ order.id }})</div>
-      <q-separator :dark="darkMode" class="q-mx-lg"/>
-      <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
-        <div class="q-mx-lg q-px-lg q-pt-md">
-          <div class="sm-font-size q-pl-sm q-pb-xs">Arbiter</div>
-          <q-select
-            class="q-pb-sm"
-            :dark="darkMode"
-            filled
-            dense
-            v-model="selectedArbiter"
-            :loading="!selectedArbiter"
-            :label="selectedArbiter ? selectedArbiter.address : ''"
-            :options="arbiterOptions"
-            :disable="!contractAddress || sendingBch"
-            behavior="dialog">
-              <template v-slot:option="scope">
-                <q-item v-bind="scope.itemProps">
-                  <q-item-section>
-                    <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                      {{ scope.opt.name }}
-                    </q-item-label>
-                    <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                      {{ formattedAddress(scope.opt.address) }}
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-              <template v-slot:selected v-if="selectedArbiter">
-                <span :style="darkMode ? 'color: white;' : 'color: black;'">
-                  {{ selectedArbiter.name }}
-                </span>
-              </template>
-          </q-select>
-          <!-- </div> -->
-          <!-- <div class="row q-mt-md"> -->
-
-          <div class="sm-font-size q-pl-sm q-pb-xs">Contract Address</div>
-          <q-input
-            class="q-pb-sm"
-            readonly
-            :dark="darkMode"
-            filled
-            dense
-            v-model="contractAddress"
-            :loading="!contractAddress">
-            <template v-slot:append v-if="contractAddress">
-              <div @click="copyToClipboard(contractAddress)">
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-              </div>
+  <div>
+    <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
+    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">(ORDER #{{ order.id }})</div>
+    <q-separator :dark="darkMode" class="q-mx-lg"/>
+    <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
+      <div class="q-mx-lg q-px-lg q-pt-md">
+        <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
+        <q-select
+          class="q-pb-sm"
+          :dark="darkMode"
+          filled
+          dense
+          v-model="selectedArbiter"
+          :loading="!selectedArbiter"
+          :label="selectedArbiter ? selectedArbiter.address : ''"
+          :options="arbiterOptions"
+          :disable="!contractAddress || sendingBch"
+          behavior="dialog">
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section>
+                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                    {{ scope.opt.name }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
             </template>
-          </q-input>
-
-          <div class="sm-font-size q-pl-sm q-pb-xs">Transfer Amount</div>
-          <q-input
-            readonly
-            filled
-            dense
-            :dark="darkMode"
-            v-model="transferAmount"
-            :error="balanceExceeded"
-            :error-message="balanceExceeded? $t('Insufficient balance') : ''">
-            <template #append>
-              <div class="sm-font-size">BCH</div>
+            <template v-slot:selected v-if="selectedArbiter">
+              <span :style="darkMode ? 'color: white;' : 'color: black;'">
+                {{ selectedArbiter.name }}
+              </span>
             </template>
-          </q-input>
-          <!-- </div> -->
+        </q-select>
+        <!-- </div> -->
+        <!-- <div class="row q-mt-md"> -->
+
+        <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
+        <q-input
+          class="q-pb-sm"
+          readonly
+          :dark="darkMode"
+          filled
+          dense
+          v-model="contractAddress"
+          :loading="!contractAddress">
+          <template v-slot:append v-if="contractAddress">
+            <div @click="copyToClipboard(contractAddress)">
+              <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+            </div>
+          </template>
+        </q-input>
+
+        <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
+        <q-input
+          class="q-pb-xs md-font-size"
+          readonly
+          filled
+          dense
+          :dark="darkMode"
+          v-model="transferAmount"
+          :error="balanceExceeded"
+          :error-message="balanceExceeded? $t('Insufficient balance') : ''">
+          <template #append>
+            <div class="md-font-size">BCH</div>
+          </template>
+        </q-input>
+        <div class="col text-right sm-font-size q-pl-sm">
+          = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
+        </div>
+        <!-- </div> -->
+        <div class="row q-mb-md" v-if="sendErrors.length > 0">
+          <div class="col">
+            <ul style="margin-left: -40px; list-style: none;">
+              <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
+                <q-icon name="error" left/>
+                {{ error }}
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div v-else>
           <div v-if="sendingBch" class="sm-font-size">
             <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
           </div>
           <div v-else class="sm-font-size q-mt-sm">
-            <div v-if="fees" class="row q-ml-md">
+            <div v-if="fees" class="row q-ml-xs">
               Fee: {{ fees.total / 100000000 }} BCH
             </div>
-            <div class="row q-ml-md q-mt-xs">
+            <div class="row q-ml-xs">
               Balance: {{ balance }} BCH
             </div>
           </div>
-          <div class="row q-mb-md" v-if="sendErrors.length > 0">
-            <div class="col">
-              <ul style="margin-left: -40px; list-style: none;">
-                <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-                  <q-icon name="error" left/>
-                  {{ error }}
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
-      </q-scroll-area>
-
+      </div>
+    </q-scroll-area>
     <RampDragSlide
       :key="dragSlideKey"
       v-if="showDragSlide && (!loading && contractAddress)"
@@ -107,11 +109,11 @@
       text="Swipe To Escrow"
     />
   </div>
-  <!-- else progress loader -->
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
+import { getRawWallet } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -126,7 +128,7 @@ export default {
       selectedArbiter: null,
       arbiterOptions: [],
       contractAddress: null,
-      transferAmount: ' ',
+      transferAmount: null,
       txid: null,
       fees: null,
       showDragSlide: true,
@@ -171,31 +173,43 @@ export default {
         return true
       }
       return false
+    },
+    fiatAmount () {
+      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      if (amount > 1) amount = amount.toFixed(2)
+      return this.$parent.formattedCurrency(amount)
     }
   },
   async mounted () {
     const vm = this
     vm.loading = true
     vm.transferAmount = vm.amount
-    await vm.fetchOrderDetail()
-    await vm.fetchArbiters()
-    if (vm.contract) {
-      vm.contractAddress = vm.contract.address
-    } else {
-      await vm.generateContractAddress()
-    }
-    if (vm.contractAddress) {
-      vm.loading = false
-    }
+    vm.fetchOrderDetail()
+    vm.fetchArbiters()
   },
   methods: {
     async completePayment () {
-      // Send crypto to smart contract
       const vm = this
-      await vm.escrowPendingOrder()
+      const status = vm.order.status.value
+      vm.sendErrors = []
+      if (status === 'CNF') {
+        vm.escrowPendingOrder()
+          .then(data => {
+            if (data && data.success) {
+              vm.escrowBch()
+            }
+          })
+      }
+      if (status === 'ESCRW_PN') {
+        vm.escrowBch()
+      }
+    },
+    async escrowBch () {
+      const vm = this
+      vm.sendingBch = true
       try {
-        vm.sendingBch = true
-        const result = await vm.wallet.wallet.sendBch(vm.transferAmount, vm.contractAddress)
+        const wallet = await getRawWallet(vm.$store.getters['global/getWalletIndex'])
+        const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
         console.log('sendBch:', result)
         if (result.success) {
           vm.txid = result.txid
@@ -207,6 +221,7 @@ export default {
             }
           }
           vm.$store.commit('ramp/saveTxid', txidData)
+          vm.$emit('success', vm.txid)
         } else {
           vm.sendErrors = []
           if (result.error.indexOf('not enough balance in sender') > -1) {
@@ -217,87 +232,103 @@ export default {
             vm.sendErrors.push(result.error)
           }
           vm.showDragSlide = true
+          vm.dragSlideKey++
         }
-      } catch (err) {
-        console.error(err.response)
+      } catch (error) {
+        console.error(error)
         vm.showDragSlide = true
+        vm.dragSlideKey++
       }
       vm.sendingBch = false
     },
-    async escrowPendingOrder () {
-      const vm = this
-      vm.loading = true
-      const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
-      try {
-        const response = await vm.$axios.post(url, null, { headers: vm.authHeaders })
-        console.log('response:', response)
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
+    escrowPendingOrder () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
+        vm.loading = true
+        vm.$axios.post(url, null, { headers: vm.authHeaders })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            }
+            reject(error)
+          })
+      })
     },
-    async fetchOrderDetail () {
+    fetchOrderDetail () {
       const vm = this
       vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id
-      try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
-        vm.fees = response.data.fees
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
+      vm.$axios.get(url, { headers: vm.authHeaders })
+        .then(response => {
+          vm.fees = response.data.fees
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        })
     },
-    async fetchArbiters () {
+    fetchArbiters () {
       const vm = this
       const url = vm.apiURL + '/arbiter'
-      try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
-        console.log('response:', response)
-        vm.arbiterOptions = response.data
-        vm.selectedArbiter = vm.order.arbiter
-        if (vm.arbiterOptions.length > 0) {
-          if (!vm.selectedArbiter) {
-            vm.selectedArbiter = vm.arbiterOptions[0]
-          } else {
-            vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
-              return obj.id === vm.selectedArbiter.id
-            })
+      vm.$axios.get(url, { headers: vm.authHeaders })
+        .then(response => {
+          vm.arbiterOptions = response.data
+          vm.selectedArbiter = vm.order.arbiter
+          if (vm.arbiterOptions.length > 0) {
+            if (!vm.selectedArbiter) {
+              vm.selectedArbiter = vm.arbiterOptions[0]
+            } else {
+              vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
+                return obj.id === vm.selectedArbiter.id
+              })
+            }
           }
-        }
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
+          if (vm.contract) {
+            vm.contractAddress = vm.contract.address
+          } else {
+            vm.generateContractAddress()
+          }
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+          vm.loading = false
+        })
     },
-    async generateContractAddress () {
-      // console.log('generateContractAddress')
+    generateContractAddress () {
       const vm = this
-      vm.loading = true
       const url = vm.apiURL + '/order/' + vm.order.id + '/generate-contract'
       const body = {
         arbiter: vm.selectedArbiter.id
       }
-      try {
-        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
-        if (response.data.data) {
-          const data = response.data.data
-          if (data.contract_address) {
-            vm.contractAddress = data.contract_address
+      vm.$axios.post(url, body, { headers: vm.authHeaders })
+        .then(response => {
+          if (response.data.data) {
+            const data = response.data.data
+            if (data.contract_address) {
+              vm.contractAddress = data.contract_address
+            }
           }
-        }
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        })
     },
     checkSufficientBalance () {
       if (this.transferAmount > parseFloat(this.balance)) {

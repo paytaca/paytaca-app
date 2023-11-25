@@ -23,6 +23,7 @@
       :ad-data="ad"
       @confirm="confirmingOrder"
       @cancel="cancellingOrder"
+      @refresh="$emit('refresh')"
     />
     <EscrowTransferProcess
       v-if="state === 'escrow-bch'"
@@ -44,31 +45,34 @@
       :ramp-contract="rampContract"
       @back="onBack"
       @success="onVerifyTxSuccess"
+      @refresh="$emit('refresh')"
     />
     <!-- Waiting Page -->
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
+        :key="standByDisplayKey"
         :order-id="order.id"
         :feedback-data="feedback"
-        :key="standByDisplayKey"
+        :ramp-contract="rampContract"
         @send-feedback="sendFeedback"
         @submit-appeal="submitAppeal"
+        @refresh="$emit('refresh')"
       />
     </div>
 
     <!-- Payment Confirmation -->
     <div v-if="state === 'payment-confirmation'">
       <PaymentConfirmation
+        :key="paymentConfirmationKey"
         :order-id="order.id"
         :type="confirmType"
-        @confirm="handleConfirmPayment"
+        :ramp-contract="rampContract"
+        :errors="errorMessages"
+        @expired="handleExpired"
+        @verify-release="handleVerifyRelease"
+        @refresh="$emit('refresh')"
       />
     </div>
-  </div>
-
-  <!-- Completed transaction -->
-  <div v-if="state === 'completed'">
-    Completed Page
   </div>
 
   <!-- Dialogs -->
@@ -85,7 +89,6 @@
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
 import RampContract from 'src/wallet/ramp/contract'
-
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
 import EscrowTransferProcess from './EscrowTransferProcess.vue'
@@ -125,9 +128,12 @@ export default {
       title: '',
       text: '',
       verifyAction: null,
+
       standByDisplayKey: 0,
       escrowTransferProcessKey: 0,
       verifyEscrowTxKey: 0,
+      paymentConfirmationKey: 0,
+
       errorMessages: [],
       selectedPaymentMethods: []
     }
@@ -152,6 +158,7 @@ export default {
       return Number(this.order.crypto_amount)
     },
     getAdLimits () {
+      if (!this.ad) return
       const floor = formatCurrency(this.ad.trade_floor)
       const ceiling = formatCurrency(this.ad.trade_amount)
       return {
@@ -166,7 +173,6 @@ export default {
       return (this.fiatAmount / this.order.locked_price).toFixed(8)
     },
     bchBalance () {
-      // console.log(this.$store.getters['assets/getAssets'][0].balance)
       return this.$store.getters['assets/getAssets'][0].balance
     },
     isExpired () {
@@ -184,40 +190,43 @@ export default {
       }
     }
   },
-  emits: ['back'],
-  async mounted () {
+  emits: ['back', 'refresh'],
+  mounted () {
     const vm = this
-    await vm.fetchOrderData()
-    if (!vm.order) {
-      vm.order = vm.orderData
-    }
-    await vm.fetchAdData()
-    vm.updateStatus(vm.order.status)
-
-    if (vm.order.status.value === 'RLS') {
-      await vm.getOrderFeedback()
-    }
-    vm.isloaded = true
-    vm.setupWebsocket()
-    // const orderTxids = vm.$store.getters['ramp/getOrderTxid'](vm.order.id)
-    // console.log('orderTxids:', orderTxids)
+    vm.fetchOrderData()
+      .then(() => {
+        if (vm.contract) {
+          vm.generateContract()
+        }
+        vm.fetchAdData()
+          .then(() => {
+            vm.isloaded = true
+          })
+        vm.setupWebsocket()
+      })
   },
   beforeUnmount () {
     this.closeWSConnection()
   },
   methods: {
-    // STEP CHECKER
     updateStatus (status) {
-      if (this.status && status && this.status.value === status.value) return
-      this.status = status
-      this.order.status = this.status
-      this.checkStep()
+      const vm = this
+      if (!status || vm.status === status) return
+      vm.status = status
+      vm.order.status = status
+      vm.checkStep()
     },
     checkStep () {
       const vm = this
       vm.openDialog = false
-      console.log('Checking step:', vm.status)
-      switch (vm.status.value) {
+      const status = vm.status.value
+      if (this.isExpired) {
+        if (!vm.isPdPendingRelease(status) && !vm.isStatusCompleted(status)) {
+          vm.state = 'standby-view'
+          return
+        }
+      }
+      switch (status) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
             vm.state = 'order-confirm-decline'
@@ -225,28 +234,31 @@ export default {
             vm.state = 'standby-view'
           }
           break
-        case 'CNF': // Confirmed
-          if (!this.rampContract) {
-            vm.generateContract()
-          }
+        case 'CNF': { // Confirmed
+          let state = null
           if (this.order.trade_type === 'BUY') {
-            vm.state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
+            state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
-            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
+            state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
           }
+          vm.state = state
           break
-        case 'ESCRW_PN': // Escrow Pending
+        }
+        case 'ESCRW_PN': { // Escrow Pending
+          vm.generateContract()
+          vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'ESCROW')
           vm.verifyAction = 'ESCROW'
-          vm.state = 'standby-view'
+          let state = 'standby-view'
+          let nextState = 'tx-confirmation'
+          if (!vm.txid) nextState = 'escrow-bch'
           if (this.order.trade_type === 'BUY') {
-            vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
+            state = vm.order.is_ad_owner ? nextState : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
-            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+            state = vm.order.is_ad_owner ? 'standby-view' : nextState
           }
-          if (!this.rampContract) {
-            vm.generateContract()
-          }
+          vm.state = state
           break
+        }
         case 'ESCRW': // Escrowed
           if (this.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'payment-confirmation'
@@ -256,27 +268,32 @@ export default {
           vm.confirmType = 'buyer'
           break
         case 'PD_PN': // Paid Pending
-          if (this.order.trade_type === 'BUY') {
+          vm.txid = null
+          if (vm.order.trade_type === 'BUY') {
             vm.state = vm.order.is_ad_owner ? 'payment-confirmation' : 'standby-view'
             vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
-          } else if (this.order.trade_type === 'SELL') {
+          } else if (vm.order.trade_type === 'SELL') {
             vm.state = vm.order.is_ad_owner ? 'standby-view' : 'payment-confirmation'
             vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
           break
-        case 'PD': // Paid
-          vm.state = 'standby-view'
+        case 'PD': { // Paid
+          vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
+          let state = 'standby-view'
           vm.verifyAction = 'RELEASE'
-          if (this.order.trade_type === 'BUY') {
-            vm.state = vm.order.is_ad_owner ? 'tx-confirmation' : 'standby-view'
-          } else if (this.order.trade_type === 'SELL') {
-            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'tx-confirmation'
+          let nextState = 'tx-confirmation'
+          if (!vm.txid) nextState = 'payment-confirmation'
+          if (vm.order.trade_type === 'BUY') {
+            state = vm.order.is_ad_owner ? nextState : 'standby-view'
+            vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
+          } else if (vm.order.trade_type === 'SELL') {
+            state = vm.order.is_ad_owner ? 'standby-view' : nextState
+            vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
-          this.txid = null
-          if (!this.rampContract) {
-            vm.generateContract()
-          }
+          vm.state = state
+          if (state === 'tx-confirmation') vm.verifyEscrowTxKey++
           break
+        }
         case 'RFN': // Refunded
           vm.state = 'standby-view'
           vm.standByDisplayKey++
@@ -293,220 +310,197 @@ export default {
           vm.standByDisplayKey++
           break
       }
-      if (this.isExpired) {
-        vm.state = 'standby-view'
+      if (vm.state === 'standby-view') {
+        vm.standByDisplayKey++
       }
     },
-
+    isStatusCompleted (status) {
+      return (status === 'CNCL' || status === 'RLS' || status === 'RFN')
+    },
+    isPdPendingRelease (status) {
+      return status === 'PD'
+    },
     // API CALLS
-    async fetchOrderData () {
+    fetchOrderData () {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.orderData.id}`
-      await vm.$axios.get(url, { headers: vm.authHeaders })
-        .then(response => {
-          // console.log('fetchOrderData:', response.data)
-          vm.order = response.data.order
-          vm.contract = response.data.contract
-          vm.fees = response.data.fees
-          // console.log('contract:', vm.contract)
-          vm.updateStatus(vm.order.status)
-        })
-        .catch(error => {
-          console.log(error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
+      return new Promise((resolve, reject) => {
+        vm.$axios.get(url, { headers: vm.authHeaders })
+          .then(response => {
+            vm.order = response.data.order
+            vm.contract = response.data.contract
+            vm.fees = response.data.fees
+            vm.updateStatus(vm.order.status)
+            if (vm.contract) {
+              vm.generateContract()
+            }
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            }
+            reject(error)
+          })
+      })
     },
-    async fetchAdData () {
+    fetchAdData () {
       const vm = this
       const adId = vm.order.ad.id
       const url = `${vm.apiURL}/ad/${adId}`
-      await vm.$axios.get(url, { headers: vm.authHeaders })
-        .then(response => {
-          vm.ad = response.data
-          // console.log('ad', vm.ad)
-        })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
+      return new Promise((resolve, reject) => {
+        vm.$axios.get(url, { headers: vm.authHeaders })
+          .then(response => {
+            vm.ad = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            }
+            reject(error)
+          })
+      })
     },
-    async confirmOrder () {
+    confirmOrder () {
       const vm = this
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/confirm`
-      await vm.$axios.post(url, {}, { headers: vm.authHeaders })
+      vm.$axios.post(url, {}, { headers: vm.authHeaders })
         .then(response => {
           if (response.data && response.data.status.value === 'CNF') {
-            vm.updateStatus(response.data.status)
+            vm.generateContract()
           }
         })
         .catch(error => {
-          console.log(error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     },
-    async cancelOrder () {
+    cancelOrder () {
       const vm = this
       const orderID = vm.order.id
       const url = `${vm.apiURL}/order/${orderID}/cancel`
-      await vm.$axios.post(url, {}, { headers: vm.authHeaders })
+      vm.$axios.post(url, {}, { headers: vm.authHeaders })
         .then(response => {
-          // console.log(response)
           if (response.data && response.data.status.value === 'CNCL') {
             vm.updateStatus(response.data.status)
           }
         })
         .catch(error => {
-          console.log(error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
-    },
-    async sendConfirmPayment (type) {
-      const vm = this
-      vm.isloaded = false
-      const url = `${this.apiURL}/order/${vm.order.id}/confirm-payment/${type}`
-      const body = {
-        payment_methods: this.selectedPaymentMethods
-      }
-      await vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          // console.log('sendConfirmPayment:', response.data)
-          // if (response.data && response.data.status.value === 'PD_PN') {
-          vm.updateStatus(response.data.status)
-          // }
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
-
-      // await this.fetchOrderData()
-      // this.checkStep()
-      vm.isloaded = true
-    },
-    async releaseCrypto () {
-      this.txid = null
-      if (!this.rampContract) {
-        await this.generateContract()
-      }
-      const feContractAddr = await this.rampContract.getAddress()
-      const beContractAddr = this.contract.address
-      if (feContractAddr !== beContractAddr) {
-        this.errorMessages.push('contract addresses mismatched')
-      }
-      await this.rampContract.release(this.wallet.privateKeyWif, this.order.crypto_amount)
-        .then(result => {
-          this.txid = result.txInfo.txid
-          this.verifyEscrowTxKey++
-
-          const txidData = {
-            id: this.order.id,
-            txidInfo: {
-              action: 'RELEASE',
-              txid: this.txid
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
           }
-          this.$store.commit('ramp/saveTxid', txidData)
-          console.log('rampContract:', this.rampContract)
-        })
-        .catch(error => {
-          console.error('release error:', error.response)
         })
     },
-    async verifyRelease () {
+    verifyRelease () {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
       const body = {
         txid: this.txid
       }
-      await vm.$axios.post(url, body, { headers: vm.authHeaders })
+      vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
-          // console.log('response:', response)
           vm.updateStatus(response.data.status)
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
-
-      // await this.fetchOrderData()
     },
-    async verifyEscrow () {
+    verifyEscrow () {
       const vm = this
-      console.log('Verifying escrow:', vm.txid)
       const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
       const body = {
         txid: vm.txid
       }
-      try {
-        const response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
-        console.log('verifyEscrow response:', response)
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-        const errorMsg = error.response.data.error
-        vm.errorMessages.push(errorMsg)
-        vm.verifyEscrowTxKey++
-      }
+      vm.$axios.post(url, body, { headers: vm.authHeaders })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
+          const errorMsg = error.response.data.error
+          vm.errorMessages.push(errorMsg)
+          vm.verifyEscrowTxKey++
+        })
     },
-    async generateContract () {
-      await this.fetchOrderData()
-      if (!this.contract) return
-      const publicKeys = {
-        arbiter: this.contract.arbiter.public_key,
-        seller: this.contract.seller.public_key,
-        buyer: this.contract.buyer.public_key,
-        servicer: this.contract.servicer.public_key
-      }
-      const addresses = {
-        arbiter: this.contract.arbiter.address,
-        seller: this.contract.seller.address,
-        buyer: this.contract.buyer.address,
-        servicer: this.contract.servicer.address
-      }
-      const fees = {
-        arbitrationFee: this.fees.fees.arbitration_fee,
-        serviceFee: this.fees.fees.service_fee,
-        contractFee: this.fees.fees.hardcoded_fee
-      }
-      const timestamp = this.contract.timestamp
-      this.rampContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
-      await this.rampContract.initialize()
-      console.log('address:', await this.rampContract.getAddress())
+    generateContract () {
+      const vm = this
+      if (vm.rampContract) return
+      vm.fetchOrderData()
+        .then(data => {
+          const contract = data.contract
+          const fees = data.fees
+          const publicKeys = {
+            arbiter: contract.arbiter.public_key,
+            seller: contract.seller.public_key,
+            buyer: contract.buyer.public_key,
+            servicer: contract.servicer.public_key
+          }
+          const addresses = {
+            arbiter: contract.arbiter.address,
+            seller: contract.seller.address,
+            buyer: contract.buyer.address,
+            servicer: contract.servicer.address
+          }
+          const fees_ = {
+            arbitrationFee: fees.fees.arbitration_fee,
+            serviceFee: fees.fees.service_fee,
+            contractFee: fees.fees.hardcoded_fee
+          }
+          const timestamp = contract.timestamp
+          vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+          vm.paymentConfirmationKey++
+          vm.standByDisplayKey++
+        })
+        .catch(error => {
+          console.error(error)
+        })
     },
-
-    async submitAppeal (data) {
-      console.log('onSubmitAppeal:', data)
+    submitAppeal (data) {
       const vm = this
       const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
       vm.$axios.post(url, data, { headers: vm.authHeaders })
         .then(response => {
-          console.log('response: ', response)
           this.updateStatus(response.data.status)
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     },
-    async sendFeedback (feedback) {
+    sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
       const url = `${vm.apiURL}/order/feedback/peer`
@@ -515,9 +509,8 @@ export default {
         rating: feedback.rating,
         comment: feedback.comment
       }
-      await vm.$axios.post(url, body, { headers: vm.authHeaders })
+      vm.$axios.post(url, body, { headers: vm.authHeaders })
         .then(response => {
-          // console.log(response)
           const data = response.data
           vm.feedback = {
             rating: data.rating,
@@ -526,21 +519,20 @@ export default {
           }
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
-
       vm.isloaded = true
     },
-    async getOrderFeedback () {
+    getOrderFeedback () {
       const vm = this
-      console.log('Get Feedback')
-
       const url = `${vm.apiURL}/order/feedback/peer`
-
-      await vm.$axios.get(url, {
+      vm.$axios.get(url, {
         params: {
           from_peer: vm.$store.getters['ramp/getUser'].id,
           order_id: vm.order.id
@@ -558,36 +550,33 @@ export default {
           }
         })
         .catch(error => {
-          console.log(error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     },
-
     // Recieve Dialogs
+    handleExpired () {
+      this.state = 'standby-view'
+    },
+    handleVerifyRelease (txid) {
+      this.txid = txid
+      this.checkStep()
+    },
     async handleDialogResponse () {
       const vm = this
       vm.isloaded = false
       switch (vm.dialogType) {
-        case 'confirmReleaseCrypto':
-          await this.releaseCrypto()
-          // await vm.verifyRelease()
-          break
         case 'confirmCancelOrder':
-          await vm.cancelOrder()
+          vm.cancelOrder()
           vm.$emit('back')
           break
         case 'confirmOrder':
-          await this.confirmOrder()
-          await this.fetchOrderData()
-          this.checkStep()
-          break
-        case 'confirmPayment':
-          await this.sendConfirmPayment(this.confirmType)
-          if (this.confirmType === 'buyer') {
-            await this.fetchOrderData()
-          }
+          vm.confirmOrder()
           break
       }
       vm.title = ''
@@ -597,41 +586,15 @@ export default {
 
     // Opening Dialog
     confirmingOrder () {
-      // console.log('confirming order')
-      // this.dialogType = 'genericDialog'
       this.dialogType = 'confirmOrder'
       this.title = 'Confirm Order?'
       this.openDialog = true
     },
     cancellingOrder () {
-      // console.log('cancelling order')
       this.dialogType = 'confirmCancelOrder'
-      // this.dialogType = 'genericDialog'
       this.openDialog = true
       this.title = 'Cancel this order?'
     },
-    releasingCrypto () {
-      // console.log('releasing crypto')
-      this.dialogType = 'confirmReleaseCrypto'
-      this.openDialog = true
-      this.title = 'Release crypto?'
-    },
-    async handleConfirmPayment (data) {
-      console.log('handleConfirmPayment:', data)
-      this.selectedPaymentMethods = data
-
-      if (this.confirmType === 'buyer') {
-        this.dialogType = 'confirmPayment'
-        this.title = this.confirmType === 'buyer' ? 'Confirm Payment?' : 'Release Crypto?'
-
-        this.text = this.confirmType === 'buyer' ? 'This will inform the seller that you already sent the fiat fee to one of their selected payment methods.' : 'This will release the crypto held by the escrow account to the buyer.'
-        this.openDialog = true
-      } else {
-        await this.sendConfirmPayment(this.confirmType)
-        await this.releaseCrypto()
-      }
-    },
-
     // Others
     formattedCurrency (value, currency = null) {
       if (currency) {
@@ -656,10 +619,10 @@ export default {
     onBack () {
       this.state = 'order-list'
     },
-    onEscrowSuccess (data) {
-      console.log('onEscrowSuccess:', data)
-      this.txid = data.txid
-      this.updateStatus(data.status.status)
+    onEscrowSuccess (txid) {
+      const vm = this
+      vm.txid = txid
+      vm.fetchOrderData()
     },
     copyToClipboard (value) {
       this.$copyText(value)
@@ -681,6 +644,11 @@ export default {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         if (data) {
+          if (data.success) {
+            if (data.status) {
+              this.updateStatus(data.status.status)
+            }
+          }
           if (data.error) {
             this.errorMessages.push(data.error)
             this.verifyEscrowTxKey++
@@ -690,10 +658,6 @@ export default {
           }
           if (data.txid) {
             this.txid = data.txid
-          }
-          console.log('data.status:', data.status)
-          if (data.status) {
-            this.updateStatus(data.status.status)
           }
           if (data.contract_address) {
             if (this.contract) {

@@ -240,30 +240,25 @@
   <q-dialog persistent v-model="editNickname">
     <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
       <q-card-section>
-        <div class="text-h6 text-center">Set Nickname</div>
-      </q-card-section>
-
-      <q-card-section class="q-pt-none">
-        <div class="text-center q-pt-sm=">
+        <div class="text-h6 text-center q-my-sm">Set Nickname</div>
+        <div class="text-center">
           <q-input
             dense
             filled
             :dark="darkMode"
             v-model="nickname"
-            @update:model-value="checkName()"
           >
-            <template v-slot:append>
+            <!-- <template v-slot:append>
               <q-icon size="xs" name="close" @click="nickname = ''"/>&nbsp;
-            </template>
+            </template> -->
           </q-input>
         </div>
-        <div v-if="!isNameValid" class="xs-font-size q-pt-sm q-pl-xs text-red-6">* Please enter nickname</div>
+        <div v-if="!isNameValid" class="xs-font-size q-pt-sm q-pl-xs text-red-6">Please enter nickname</div>
+        <q-card-actions class="text-center" align="center">
+          <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+          <q-btn :disable="!isNameValid" flat label="Confirm" @click="submitData()" color="blue-6" v-close-popup />
+        </q-card-actions>
       </q-card-section>
-
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn :disable="!isNameValid" flat label="Confirm" @click="submitData()" color="blue-6" v-close-popup />
-      </q-card-actions>
     </q-card>
   </q-dialog>
 
@@ -526,7 +521,6 @@ export default {
       authHeaders: this.$store.getters['ramp/authHeaders'],
       info: {},
       loading: false,
-      isNameValid: false,
       dialogType: '',
 
       // Data
@@ -596,6 +590,11 @@ export default {
       } else {
         vm.maxMethodReached = false
       }
+    }
+  },
+  computed: {
+    isNameValid () {
+      return this.nickname && this.nickname.length > 0
     }
   },
   async mounted () {
@@ -764,7 +763,7 @@ export default {
         case 'editNickname': {
           const user = vm.$store.getters['ramp/getUser']
           if (user) {
-            vm.nickname = user.nickname
+            vm.nickname = user.name
           }
           vm.editNickname = true
           break
@@ -786,7 +785,7 @@ export default {
           vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
           break
         case 'appeal':
-          vm.appeal = true
+          vm.appealForm = true
           break
         case 'genericDialog':
         case 'confirmPayment':
@@ -871,16 +870,9 @@ export default {
     submitData () {
       const vm = this
       const emitName = vm.stageData()
+      console.log('submitData:', emitName)
       this.$emit(emitName, vm.info)
     },
-    checkName: debounce(async function () {
-      const vm = this
-      this.isNameValid = false
-
-      if (vm.nickname !== '') {
-        this.isNameValid = true
-      }
-    }, 500),
     filterPaymentTypes (type = '') {
       let currentMethods = null
       if (type === 'ads') {
@@ -895,6 +887,7 @@ export default {
       this.paymentTypes = match
     },
     onProceedAppeal () {
+      console.log('onProceedAppeal')
       this.appeal = false
       this.appealForm = true
     },

@@ -169,6 +169,7 @@ export function fetchAds (context, { component = null, params = null, overwrite 
     // Build request headers
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
+
     return new Promise((resolve, reject) => {
       axiosInstance.get(apiURL, { params: parameters, headers: headers })
         .then((response) => {
@@ -238,23 +239,28 @@ export async function fetchOrders (context, { orderState = null, params = null, 
     params.limit = state.itemsPerPage
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
-    try {
-      const data = await axiosInstance.get(apiURL, { params: params, headers: headers })
-      switch (orderState) {
-        case 'ONGOING':
-          context.commit('updateOngoingOrders', { overwrite: overwrite, data: data.data })
-          context.commit('incOngoingOrdersPage')
-          break
-        case 'COMPLETED':
-          context.commit('updateCompletedOrders', { overwrite: overwrite, data: data.data })
-          context.commit('incCompletedOrdersPage')
-          break
-      }
-      return data
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-      throw error
-    }
+
+    return new Promise((resolve, reject) => {
+      axiosInstance.get(apiURL, { params: params, headers: headers })
+        .then((response) => {
+          switch (orderState) {
+            case 'ONGOING':
+              context.commit('updateOngoingOrders', { overwrite: overwrite, data: response.data })
+              context.commit('incOngoingOrdersPage')
+              break
+            case 'COMPLETED':
+              context.commit('updateCompletedOrders', { overwrite: overwrite, data: response.data })
+              context.commit('incCompletedOrdersPage')
+              break
+          }
+
+          resolve(response.data)
+        })
+        .catch(error => {
+          console.error('Error fetching user data:', error)
+          reject(error)
+        })
+    })
   }
 }
 

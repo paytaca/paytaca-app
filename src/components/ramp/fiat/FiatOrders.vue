@@ -7,10 +7,12 @@
     >
       <div v-if="state === 'order-list'">
         <div>
-          <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
-            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
-          </div>
+          <q-pull-to-refresh @refresh="refreshData">
+            <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
+              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
+              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
+            </div>
+          </q-pull-to-refresh>
         </div>
         <div v-if="loading">
           <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -18,8 +20,6 @@
           </div>
         </div>
         <div v-else class="q-mt-md">
-          <q-pull-to-refresh
-            @refresh="refreshData">
             <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
               <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
               <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
@@ -63,7 +63,6 @@
                                 <span class="q-pr-sm">Price</span>
                                 <span>{{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}/BCH</span>
                               </div>
-                              <!-- <div v-if="listing.last_modified_at" class="row xs-font-size" style="color: grey">Last updated {{ formattedDate(listing.last_modified_at) }}</div> -->
                               <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                             </div>
                             <div class="text-right">
@@ -78,9 +77,6 @@
                               <div class="bold-text subtext md-font-size" style=";">{{ listing.status ? listing.status.label : '' }}</div>
                             </div>
                           </div>
-                          <div class="q-gutter-sm q-pt-sm">
-                            <!-- <q-badge v-for="method in listing.paymentMethods" rounded outline :color="transactionType === 'BUY'? 'blue': 'red'" :label="method" /> -->
-                          </div>
                         </div>
                       </q-item-section>
                     </q-item>
@@ -88,13 +84,14 @@
                 </q-infinite-scroll>
               </q-list>
             </div>
-          </q-pull-to-refresh>
         </div>
       </div>
       <div v-if="state === 'view-order'">
         <FiatProcessOrder
+          :key="fiatProcessOrderKey"
           :order-data="selectedOrder"
           @back="returnOrderList()"
+          @refresh="refreshOrder"
         />
         <!-- check which step the order are in -->
       </div>
@@ -148,9 +145,9 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - this.$q.screen.height * 0.17,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      viewProfile: false
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      viewProfile: false,
+      fiatProcessOrderKey: 0
     }
   },
   watch: {
@@ -158,12 +155,7 @@ export default {
       const vm = this
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
-      if (vm.pageNumber === null || vm.totalPages === null) {
-        if (!vm.listings || vm.listings.length === 0) {
-          vm.loading = true
-          vm.fetchOrders()
-        }
-      }
+      vm.fetchOrders()
     }
   },
   computed: {
@@ -194,23 +186,21 @@ export default {
   },
   async mounted () {
     const vm = this
-    if (!vm.listings || vm.listings.length === 0) {
-      vm.loading = true
-    }
     vm.resetAndRefetchListings()
   },
   methods: {
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = { state: vm.statusType }
+      vm.loading = true
       vm.$store.dispatch('ramp/fetchOrders',
         {
           orderState: vm.statusType,
           params: params,
           overwrite: overwrite
         })
-        .then(response => {
-          // console.log('response:', response)
+        .then(() => {
+          vm.updatePaginationValues()
           vm.loading = false
         })
         .catch(error => {
@@ -220,7 +210,7 @@ export default {
           }
         })
     },
-    async loadMoreData (_, done) {
+    loadMoreData (_, done) {
       const vm = this
       if (!vm.hasMoreData || !vm.wallet) {
         done(true)
@@ -231,22 +221,18 @@ export default {
         vm.fetchOrders().then(done()).catch(done())
       }
     },
-    async refreshData (done) {
-      // console.log('refreshing orders')
+    refreshData (done) {
       this.resetAndRefetchListings()
       if (done) done()
     },
-    async resetAndRefetchListings () {
-      console.log('resetAndRefetchListings')
+    refreshOrder (done) {
+      this.fiatProcessOrderKey++
+      if (done) done()
+    },
+    resetAndRefetchListings () {
       const vm = this
-      // console.time('non-blocking-await')
       vm.$store.commit('ramp/resetOrdersPagination')
       vm.fetchOrders(true)
-        .then(function () {
-          vm.updatePaginationValues()
-          vm.loading = false
-        })
-      // console.timeEnd('non-blocking-await')
     },
     updatePaginationValues () {
       const vm = this
@@ -281,7 +267,6 @@ export default {
       vm.loading = false
     },
     selectOrder (data) {
-      // console.log('selectedOrder:', data)
       this.selectedOrder = data
       this.state = 'view-order'
     },
@@ -342,19 +327,14 @@ export default {
       }
     },
     orderFiatAmount (lockedPrice, cryptoAmount) {
-      // console.log('lockedPrice:', lockedPrice, 'cryptoAMount:', cryptoAmount)
       return lockedPrice * cryptoAmount
     },
     returnOrderList () {
       const vm = this
       vm.state = 'order-list'
-      // vm.refreshData()
-      // vm.loading = true
-      // await vm.resetAndRefetchListings()
-      // vm.loading = false
+      vm.resetAndRefetchListings()
     },
     viewUserProfile (data) {
-      // console.log(data)
       this.selectedUser = {
         id: data.ad.owner.id,
         name: data.ad.owner.name,
