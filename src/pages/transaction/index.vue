@@ -475,7 +475,7 @@ export default {
       }
 
       const asset = this.$store.getters['assets/getAssets'][0]
-      this.formatBCHCardBalance(this.denomination, asset.balance)
+      // this.formatBCHCardBalance(this.denomination, asset.balance)
       return asset
     },
     mainchainAssets () {
