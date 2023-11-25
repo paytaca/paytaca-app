@@ -309,7 +309,7 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>
-                    Payment might not be acknowledged as transaction was manually verified
+                    Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through.
                   </q-item-label>
                 </q-item-section>
               </q-item>
