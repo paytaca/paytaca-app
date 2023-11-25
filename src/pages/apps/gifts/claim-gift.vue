@@ -38,7 +38,7 @@
             <div class="text-center q-pt-md">
               <p v-if="bchAmount" style="font-size: 24px;">Amount:<br>{{ getAssetDenomination(denomination, bchAmount) }}</p>
               <p v-if="completed" style="color: green; font-size: 20px;">{{ action }} gift completed!</p>
-              <p v-if="error" style="color: red;">
+              <p v-if="error" style="color: red; font-size: 20px;">
                 {{ error }}
               </p>
             </div>
