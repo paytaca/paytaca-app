@@ -66,15 +66,15 @@ export function clearOrderTxids (state, id) {
 // ~ store mutations ~ //
 
 export function updateStoreBuyListings (state, { overwrite = false, data }) {
-  if (overwrite) state.storeBuyListings = []
-  state.storeBuyListings.push(...data.ads)
+  if (overwrite) state.storeBuyListings = data.ads
+  else state.storeBuyListings.push(...data.ads)
   state.storeBuyTotalPages = data.total_pages
   state.storeBuyItemsCount = data.count
 }
 
 export function updateStoreSellListings (state, { overwrite = false, data }) {
-  if (overwrite) state.storeSellListings = []
-  state.storeSellListings.push(...data.ads)
+  if (overwrite) state.storeSellListings = data.ads
+  else state.storeSellListings.push(...data.ads)
   state.storeSellTotalPages = data.total_pages
   state.storeSellItemsCount = data.count
 }

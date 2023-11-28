@@ -15,11 +15,9 @@
           </q-pull-to-refresh>
         </div>
         <div v-if="loading">
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader/>
-          </div>
+          <FooterLoading/>
         </div>
-        <div v-else class="q-mt-md">
+        <div class="q-mt-md">
             <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
               <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
               <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
@@ -104,9 +102,9 @@
     />
 </template>
 <script>
-import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
+import FooterLoading from './FooterLoading.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -121,9 +119,9 @@ export default {
     }
   },
   components: {
-    ProgressLoader,
     FiatProcessOrder,
-    FiatProfileCard
+    FiatProfileCard,
+    FooterLoading
   },
   props: {
     initStatusType: {
@@ -145,7 +143,8 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - this.$q.screen.height * 0.17 : this.$q.screen.height - this.$q.screen.height * 0.17,
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       viewProfile: false,
       fiatProcessOrderKey: 0
     }
@@ -154,8 +153,9 @@ export default {
     statusType () {
       const vm = this
       vm.resetAndScrollToTop()
-      vm.updatePaginationValues()
-      vm.fetchOrders()
+      // vm.updatePaginationValues()
+      // vm.fetchOrders()
+      vm.resetAndRefetchListings()
     }
   },
   computed: {

@@ -4,127 +4,127 @@
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`height: ${minHeight}px;`"
   >
-    <div v-if="state === 'initial' && isloaded">
-      <div>
-        <q-btn
-          flat
-          padding="md"
-          icon="arrow_back"
-          @click="$emit('back')"
-        />
-      </div>
-      <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
-        <div v-if="user">
-          <div class="text-center q-pt-none">
-            <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-            <div class="bold-text lg-font-size q-pt-sm">
-              {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
-            </div>
-          </div>
-          <!-- Edit Payment Methods -->
-          <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
-            <q-btn
-              rounded
-              no-caps
-              label="Edit Payment Methods"
-              color="blue-8"
-              class="q-space q-mx-lg"
-              @click="state= 'edit-pm'"
-              icon="o_payments"
-              >
-            </q-btn>
-          </div>
-
-          <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
-            <q-btn
-              rounded
-              no-caps
-              label="See User Ads"
-              color="blue-8"
-              class="q-space"
-              icon="sym_o_sell"
-              @click="fetchUserAds()"
-              >
-            </q-btn>
-          </div> -->
-
-          <!-- User Stats -->
-          <div class="row justify-center q-px-sm q-pt-sm">
-            <q-rating
-              readonly
-              :model-value="user.rating ? user.rating : 0"
-              :v-model="user.rating"
-              size="1.5em"
-              color="yellow-9"
-              icon="star"
-            />
-            <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
-          </div>
-          <div class="text-center sm-font-size q-pt-sm">
-              <span>{{ user.trade_count }} trades</span>&nbsp;&nbsp;
-              <span>|</span>&nbsp;&nbsp;
-              <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
-          </div>
-        </div>
-        <div class="q-px-sm q-pt-sm">
-          <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
-        </div>
-
-        <!-- Comments -->
-        <div>
-          <div v-if="reviewList.length === 0" class="text-center q-pt-md text-italized bold-text xm-font-size">
-            No Reviews Yet
-          </div>
-          <div v-else>
-            <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'to-peer-review' }" @click="switchReviewType('to-peer-review')">Ad Review</button>
-              <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
-            </div>
-            <div class="q-mx-lg q-px-md">
-              <!-- <q-scroll-area :style="`height: ${ minHeight - 350 }px`" style="overflow-y:auto;"> -->
-                <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
-                  <div class="sm-font-size bold-text">{{  review.from_peer.name }}</div>
-                  <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
-                  <div class="sm-font-text">
-                    <q-rating
-                      readonly
-                      v-model="review.rating"
-                      size="1.5em"
-                      color="yellow-9"
-                      icon="star"
-                    />
-                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating.toFixed(1) : 0}})</span>
-                  </div>
-                  <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
-                    {{ review.comment }}
-                  </div>
-                  <q-separator :dark="darkMode" class="q-mt-md"/>
-                </div>
-              <!-- </q-scroll-area> -->
-              <div class="row">
-                <q-btn
-                  flat
-                  class="col text-center text-blue sm-font-size q-mt-md"
-                  @click="openReviews=true">
-                  view more
-                  <!-- See All {{ reviewType === 'to-peer-review' ? 'Ad' : 'User' }} Reviews -->
-                </q-btn>
-              </div>
-            </div>
-          </div>
-        </div>
-      </q-scroll-area>
-    </div>
     <div v-if="!isloaded">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader/>
       </div>
     </div>
-    <div v-if="state === 'edit-pm'">
-      <AddPaymentMethods
-        :type="'Profile'"
-        v-on:back="state = 'initial'"
-      />
+    <div v-else>
+      <div v-if="state === 'initial'">
+        <div>
+          <q-btn
+            flat
+            padding="md"
+            icon="arrow_back"
+            @click="$emit('back')"
+          />
+        </div>
+        <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
+          <div v-if="user">
+            <div class="text-center q-pt-none">
+              <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+              <div class="bold-text lg-font-size q-pt-sm">
+                {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+              </div>
+            </div>
+            <!-- Edit Payment Methods -->
+            <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
+              <q-btn
+                rounded
+                no-caps
+                label="Edit Payment Methods"
+                color="blue-8"
+                class="q-space q-mx-md"
+                @click="state= 'edit-pm'"
+                icon="o_payments"
+                >
+              </q-btn>
+            </div>
+
+            <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
+              <q-btn
+                rounded
+                no-caps
+                label="See User Ads"
+                color="blue-8"
+                class="q-space"
+                icon="sym_o_sell"
+                @click="fetchUserAds()"
+                >
+              </q-btn>
+            </div> -->
+
+            <!-- User Stats -->
+            <div class="row justify-center q-px-sm q-pt-sm">
+              <q-rating
+                readonly
+                :model-value="user.rating ? user.rating : 0"
+                :v-model="user.rating"
+                size="1.5em"
+                color="yellow-9"
+                icon="star"
+              />
+              <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
+            </div>
+            <div class="text-center sm-font-size q-pt-sm">
+                <span>{{ user.trade_count }} trades</span>&nbsp;&nbsp;
+                <span>|</span>&nbsp;&nbsp;
+                <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
+            </div>
+          </div>
+          <div class="q-px-sm q-pt-sm">
+            <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
+          </div>
+          <!-- Feedbacks -->
+          <div>
+            <div v-if="!reviewList || reviewList.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+              No Reviews Yet
+            </div>
+            <div v-else>
+              <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
+                <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'to-peer-review' }" @click="switchReviewType('to-peer-review')">Ad Review</button>
+                <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
+              </div>
+              <div class="q-mx-lg q-px-md">
+                  <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
+                    <div class="sm-font-size bold-text">{{  review.from_peer.name }}</div>
+                    <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
+                    <div class="sm-font-text">
+                      <q-rating
+                        readonly
+                        v-model="review.rating"
+                        size="1.5em"
+                        color="yellow-9"
+                        icon="star"
+                      />
+                      <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating.toFixed(1) : 0}})</span>
+                    </div>
+                    <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
+                      {{ review.comment }}
+                    </div>
+                    <q-separator :dark="darkMode" class="q-mt-md"/>
+                  </div>
+                <!-- </q-scroll-area> -->
+                <div class="row">
+                  <q-btn
+                    flat
+                    class="col text-center text-blue sm-font-size q-mt-md"
+                    @click="openReviews=true">
+                    view more
+                    <!-- See All {{ reviewType === 'to-peer-review' ? 'Ad' : 'User' }} Reviews -->
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+          </div>
+        </q-scroll-area>
+      </div>
+      <div v-if="state === 'edit-pm'">
+        <AddPaymentMethods
+          :type="'Profile'"
+          v-on:back="state = 'initial'"
+        />
+      </div>
     </div>
   </q-card>
   <MiscDialogs
@@ -163,10 +163,8 @@ export default {
       userId: null,
       editNickname: false,
       state: 'initial',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - this.$q.screen.height * 0.17,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - this.$q.screen.height * 0.17 : this.$q.screen.height - this.$q.screen.height * 0.17,
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      rating: 3,
-      comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
       reviewList: [],
       reviewType: 'to-peer-review',
       statusType: 'ONGOING',
@@ -193,7 +191,6 @@ export default {
   mounted () {
     this.processUserData()
     this.fetchTopReview()
-    this.isloaded = true
   },
   methods: {
     formattedDate (value) {
@@ -213,6 +210,8 @@ export default {
       vm.$axios.get(vm.apiURL + '/peer/detail', { headers: vm.authHeaders, params: { id: vm.userId } })
         .then(response => {
           vm.user = response.data
+          console.log('vm.user:', vm.user)
+          vm.isloaded = true
         })
         .catch(error => {
           console.error(error)
@@ -222,6 +221,7 @@ export default {
               bus.emit('session-expired')
             }
           }
+          vm.isloaded = true
         })
     },
     async updateUserName (info) {
@@ -272,7 +272,7 @@ export default {
             console.log('response:', response)
             vm.reviewList = response.data.feedbacks
             // top 5 review
-            if (vm.reviewList.length !== 0) {
+            if (vm.reviewList && vm.reviewList.length !== 0) {
               vm.reviewList = vm.reviewList.slice(0, 5)
             }
           }
