@@ -30,7 +30,7 @@
         <div v-else class="q-mt-xl send-form-container">
           <div class="q-pa-md" style="padding-top: 20px;">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
-            <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
+            <div v-if="isNFT && !sent" style="width: 150px; margin: 0 auto;">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
               <div
@@ -46,7 +46,7 @@
               <q-icon name="error" left/>
               {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
+            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0].recipientAddress === ''">
               <div class="col-12" style="text-align: center;">
                 <q-input
                   bottom-slots
@@ -77,7 +77,8 @@
               {{ scanner.decodedContent }}
             </div>
           </div>
-          <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
+          <!-- adjust recipientAddress to use multiple client -->
+          <div class="q-px-lg" v-if="sent === false && sendDataMultiple[0].recipientAddress !== ''">
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
                 <q-expansion-item
@@ -220,7 +221,7 @@
               <div
                 class="row"
                 style="margin-top: -10px;"
-                v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'"
+                v-if="!sendDataMultiple[0].fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'"
               >
                 <div class="col q-mt-md">
                   <a
@@ -237,8 +238,7 @@
               <div class="add-recipient-button" v-if="showAddRecipientButton" @click.prevent="addAnotherRecipient">
                 <q-btn :label="$t('AddAnotherRecipient')" class="button" />
               </div>
-              <!-- TODO: adjust for multiple recipient -->
-              <div class="row" v-if="sendData.sending">
+              <div class="row" v-if="sending">
                 <div class="col-12 text-center">
                   <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
                 </div>
@@ -280,8 +280,7 @@
             <footer-menu />
           </template>
 
-          <!-- TODO adjust for multiple recipient -->
-          <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
+          <div class="q-px-md" v-if="sent" style="text-align: center; margin-top: -70px;">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
             <div
               :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
@@ -292,7 +291,9 @@
                 <p style="font-size: 28px; margin-top: -10px;">{{ $route.query.name }}</p>
               </template>
               <template v-else>
-                <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
+                <p style="font-size: 28px; margin-top: -10px;">
+                  {{ isCashToken ? ctTokenAmount : totalAmountSent }} {{ asset.symbol }}
+                </p>
                 <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
                   ({{ parseFiatCurrency(sendAmountInFiat, currentSendPageCurrency()) }})
                 </p>
@@ -306,17 +307,17 @@
               </template>
               <div class="text-center q-mt-lg">
                 <div class="text-grey">{{ $t('ReferenceId')}}</div>
-                <div class="text-h4" style="letter-spacing: 6px;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
+                <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
                 <q-separator color="grey"/>
               </div>
               <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
-                txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
+                txid: {{ txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
                 <template v-if="walletType === 'SmartBCH'">
                   <a
                     style="text-decoration: none; color: #3b7bf6;"
                     class="button button-text-primary"
                     :class="getDarkModeClass(darkMode)"
-                    :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
+                    :href="'https://sonar.cash/tx/' + txid" target="_blank"
                   >
                     {{ $t('ViewInExplorer') }}
                   </a>
@@ -326,21 +327,21 @@
                     style="text-decoration: none; color: #3b7bf6;"
                     class="button button-text-primary"
                     :class="getDarkModeClass(darkMode)"
-                    :href="getExplorerLink(sendData.txid)" target="_blank"
+                    :href="getExplorerLink(txid)" target="_blank"
                   >
                     {{ $t('ViewInExplorer') }}
                   </a>
                 </template>
               </div>
 
-              <div v-if="sendData.paymentAckMemo" class="row justify-center">
+              <div v-if="sendDataMultiple[0].paymentAckMemo" class="row justify-center">
                 <div
                   class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1"
                   style="min-width:50vw;border: 1px solid grey;background-color: inherit;"
                   :class="getDarkModeClass(darkMode, 'text-white', '')"
                 >
                   <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">Memo:</span>
-                  {{ sendData.paymentAckMemo }}
+                  {{ sendDataMultiple[0].paymentAckMemo }}
                 </div>
               </div>
               <q-item
@@ -498,36 +499,27 @@ export default {
 
       jpp: null,
 
-      sendData: { //
-        sent: false,
-        sending: false,
-        success: false,
-        txid: '',
-        amount: null,
-        fixedAmount: false,
-        recipientAddress: '',
-        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
-        rawPaymentUri: '', // for scanning qr data
-        responseOTP: '',
-        paymentAckMemo: '',
-        fixedRecipientAddress: false,
-      },
-
       sendDataMultiple: [{
-        sent: false, // transfer as a single variable
-        sending: false, // transfer as a single variable
-        success: false, // remove
-        txid: '', // transfer as a single variable
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
-        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 }, // remove
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         paymentAckMemo: '',
         fixedRecipientAddress: false
       }],
 
+      inputExtras: [{
+        amountFormatted: 0,
+        sendAmountInFiat: 0,
+        balanceExceeded: false,
+        scannedRecipientAddress: false,
+        setMax: false
+      }],
+
+      sent: false,
+      sending: false,
+      txid: '',
       pinDialogAction: '',
       leftX: 0,
       slider: 0,
@@ -543,23 +535,14 @@ export default {
       sliderStatus: false,
       showQrScanner: false,
       setAmountInFiat: false,
-      sendAmountInFiat: null, //
-      balanceExceeded: false, //
-      setMax: false, //
+      balanceExceeded: false,
       computingMax: false,
-      amountFormatted: null, //
       selectedDenomination: 'BCH',
       paymentCurrency: null,
       payloadAmount: 0,
       expandedItems: {},
       currentActiveRecipientIndex: 0,
-      inputExtras: [{
-        amountFormatted: 0,
-        sendAmountInFiat: 0,
-        balanceExceeded: false,
-        scannedRecipientAddress: false,
-        setMax: false
-      }]
+      totalAmountSent: 0
     }
   },
 
@@ -586,7 +569,7 @@ export default {
         if (this.showSlider) {
           return false
         }
-        if (this.sendData.sending || this.sendData.sent) {
+        if (this.sending || this.sent) {
           return false
         }
       }
@@ -633,16 +616,16 @@ export default {
 
     //   return computedBalance.toFixed(2)
     // },
-    disableRecipientInput () {
-      return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
-    },
-    disableAmountInput () {
-      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
-    },
+    // disableRecipientInput () {
+    //   return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
+    // },
+    // disableAmountInput () {
+    //   return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
+    // },
     showSlider () {
       return (
-        !this.sendData.sending &&
-        !this.sendData.sent &&
+        !this.sending &&
+        !this.sent &&
         this.sliderStatus &&
         this.sendDataMultiple
           .map(data => data.amount > 0)
@@ -652,11 +635,11 @@ export default {
           .findIndex(i => i) < 0
       )
     },
-    paymentOTP () {
-      if (this.sendData.responseOTP) return this.sendData.responseOTP
+    // paymentOTP () {
+    //   if (this.sendData.responseOTP) return this.sendData.responseOTP
 
-      return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
-    },
+    //   return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
+    // },
     showAddRecipientButton () {
       return (this.showSlider && this.sendDataMultiple.length < 5)
     }
@@ -664,13 +647,13 @@ export default {
 
   watch: {
     'sendData.recipientAddress': function (address) {
-      // TODO adjust for multiple recipients
-      let amount = this.getBIP21Amount(address)
+      // TODO retest
+      const amount = this.getBIP21Amount(address)
       if (!Number.isNaN(amount)) {
-        this.sendData.amount = amount
-        this.sendData.fixedAmount = true
-        this.sendData.recipientAddress = address.split('?')[0]
-        this.sendData.fixedRecipientAddress = true
+        this.sendDataMultiple[0].amount = amount
+        this.sendDataMultiple[0].fixedAmount = true
+        this.sendDataMultiple[0].recipientAddress = address.split('?')[0]
+        this.sendDataMultiple[0].fixedRecipientAddress = true
         this.sliderStatus = true
       }
 
@@ -881,13 +864,13 @@ export default {
     },
     onJppPaymentSucess() {
       this.$forceUpdate()
-      this.sendData.txid = this.jpp?.txids?.[0]
-      this.sendData.amount = this.jpp.total / 10 ** 8
-      this.sendData.recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
-      this.sendData.paymentAckMemo = this.jpp.paymentAckMemo || ''
+      this.txid = this.jpp?.txids?.[0]
+      this.sendDataMultiple[0].amount = this.jpp.total / 10 ** 8
+      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
+      this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
-      this.sendData.sending = false
-      this.sendData.sent = true
+      this.sending = false
+      this.sent = true
     },
     readonlyState (state) {
       this.amountInputState = state
@@ -1127,7 +1110,8 @@ export default {
           this.computingMax = true
           const spendable = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
-            this.sendData.recipient
+            // readjust index
+            this.sendDataMultiple[0].recipient
           )
           // this.sendData.amount = spendable
           currentRecipient.amount = spendable
@@ -1155,12 +1139,12 @@ export default {
       } else {
         // TODO additional testing + multiple recipients
         if (this.asset.id.startsWith('ct/')) {
-          this.sendData.amount = this.asset.balance / (10 ** this.asset.decimals)
+          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
         } else {
-          this.sendData.amount = this.asset.balance
+          currentRecipient.amount = this.asset.balance
         }
-        this.amountFormatted = this.sendData.amount
-        currentInputExtras.amountFormatted = this.sendData.amount
+        // this.amountFormatted = this.sendData.amount
+        currentInputExtras.amountFormatted = currentRecipient.amount
       }
       this.sliderStatus = true
     },
@@ -1173,19 +1157,19 @@ export default {
       return NaN
     },
     checkAddress (address) {
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      
       if (address.indexOf('?') > -1) {
         const amount = this.getBIP21Amount(address)
         address = address.split('?')[0]
 
-        if (!Number.isNaN(amount))
-          this.sendData.amount = amount
+        if (!Number.isNaN(amount)) currentRecipient.amount = amount
 
-        if (amount > 0)
-          this.sliderStatus = true
+        if (amount > 0) this.sliderStatus = true
       }
       const addressValidation = this.validateAddress(address)
       if (addressValidation.valid) {
-        this.sendData.recipientAddress = addressValidation.address
+        currentRecipient.recipientAddress = addressValidation.address
         return true
       } else {
         this.$q.notify({
@@ -1270,7 +1254,6 @@ export default {
     },
 
     async handleSubmit () {
-      // TODO adjust for multiple recipients
       const vm = this
       const toSendData = vm.sendDataMultiple
       const toSendBCHRecipients = []
@@ -1287,6 +1270,8 @@ export default {
         return
       }
 
+      vm.totalAmountSent = parseFloat(totalAmount)
+
       let token // bch token
       toSendData.forEach(async sendData => {
         const address = sendData.recipientAddress
@@ -1295,7 +1280,7 @@ export default {
         const amountIsValid = this.validateAmount(sendData.amount)
 
         if (addressIsValid && amountIsValid) {
-          sendData.sending = true
+          vm.sending = true
 
           switch (vm.walletType) {
             case sBCHWalletType: {
@@ -1362,18 +1347,18 @@ export default {
                     tokenId: vm.assetId.split('/')[1]
                   })
                 ])
-                vm.sendData.txid = txId // TODO adjust to single variable
-                vm.sendData.sent = true // TODO adjust to single variable
+                vm.txid = txId
+                vm.sent = true
                 vm.playSound(true)
               } catch (e) {
                 vm.raiseNotifyError(e.message)
               }
-              vm.sendData.sending = false
+              vm.sending = false
 
               break
           }
         } else {
-          sendData.sending = false
+          vm.sending = false
           if (!addressIsValid) {
             vm.raiseNotifyError(vm.$t(
               'InvalidRecipient',
@@ -1633,17 +1618,17 @@ export default {
     },
     promiseResponseHandler (result, walletType) {
       const vm = this
-      vm.sendData.sending = false
+      vm.sending = false
 
       if (result.success) {
-        vm.sendData.txid = result.txid // TODO move to single variable
+        vm.txid = result.txid
         vm.playSound(true)
-        vm.sendData.sending = false // TODO: adjust for multiple recipients
-        vm.sendData.sent = true // TODO: adjust for multiple recipients
-        if (!vm.sendAmountInFiat) { // remove entirely
-          // replace with total amount or move to before sending part
-          vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
-        }
+        vm.sending = false
+        vm.sent = true
+        // if (!vm.sendAmountInFiat) { // remove entirely or
+        //   // replace with total amount or move to before sending part
+        //   vm.sendAmountInFiat = vm.convertToFiatAmount(vm.amount)
+        // }
       } else {
         if (result.error.indexOf('not enough balance in sender') > -1) {
           if (walletType === 'bch') vm.raiseNotifyError(vm.$t('NotEnoughForBoth'))
@@ -1698,14 +1683,9 @@ export default {
 
       if (recipientsLength < 5) {
         this.sendDataMultiple.push({
-          sent: false, //
-          sending: false, //
-          success: false, //
-          txid: '',
           amount: 0,
           fixedAmount: false,
           recipientAddress: '',
-          posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 }, //
           rawPaymentUri: '', // for scanning qr data
           responseOTP: '',
           paymentAckMemo: '',
@@ -1811,16 +1791,16 @@ export default {
   created () {
     const vm = this
     if (vm.assetId && vm.amount && vm.recipient) {
-      vm.sendData.amount = vm.amount
-      vm.sendData.fixedAmount = vm.fixed
-      vm.sendData.recipientAddress = vm.recipient
-      vm.sendData.fixedRecipientAddress = true
+      vm.sendDataMultiple[0].amount = vm.amount
+      vm.sendDataMultiple[0].fixedAmount = vm.fixed
+      vm.sendDataMultiple[0].recipientAddress = vm.recipient
+      vm.sendDataMultiple[0].fixedRecipientAddress = true
       vm.scanner.show = false
       vm.sliderStatus = true
     }
 
     if (this.isNFT) {
-      vm.sendData.amount = 1
+      vm.sendDataMultiple[0].amount = 1
     }
   }
 }
