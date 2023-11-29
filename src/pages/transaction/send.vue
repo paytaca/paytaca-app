@@ -521,6 +521,13 @@ export default {
         emptyRecipient: false
       }],
 
+      // TODO reconsult
+      balance: {
+        walletBalance: 0,
+        previousBalance: 0,
+        currentBalance: 0
+      },
+
       sent: false,
       sending: false,
       txid: '',
@@ -654,8 +661,8 @@ export default {
   },
 
   watch: {
-    'sendData.recipientAddress': function (address) {
-      // TODO retest
+    // TODO recheck and test this
+    'sendDataMultiple[0].recipientAddress': function (address) {
       const amount = this.getBIP21Amount(address)
       if (!Number.isNaN(amount)) {
         this.sendDataMultiple[0].amount = amount
@@ -1167,7 +1174,7 @@ export default {
     },
     checkAddress (address) {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
-      
+
       if (address.indexOf('?') > -1) {
         const amount = this.getBIP21Amount(address)
         address = address.split('?')[0]
@@ -1796,7 +1803,9 @@ export default {
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
-    this.selectedDenomination = this.denomination
+    vm.selectedDenomination = vm.denomination
+    vm.balance.walletBalance = vm.asset.balance
+    vm.balance.currentBalance = vm.asset.balance
   },
 
   unmounted () {

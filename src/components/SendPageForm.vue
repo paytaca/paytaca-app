@@ -112,7 +112,7 @@
         v-if="!computingMax || (setAmountInFiat && !recipient.sending)"
         class="max-button button button-text-primary"
         :class="getDarkModeClass(darkMode)"
-        @click.prevent="onInputFocus(index), setMaximumSendAmount()"
+        @click.prevent="onInputFocus(index), handleMaxClick()"
       >
         {{ $t('MAX') }}
       </a>
@@ -122,6 +122,7 @@
 
 <script>
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
+import ConfirmSetMax from 'src/pages/transaction/dialog/ConfirmSetMax.vue'
 
 import {
   parseAssetDenomination,
@@ -132,7 +133,9 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
-    DenominatorTextDropdown
+    DenominatorTextDropdown,
+    // eslint-disable-next-line vue/no-unused-components
+    ConfirmSetMax
   },
 
   props: {
@@ -235,6 +238,12 @@ export default {
     },
     readonlyState (value) {
       this.$emit('read-only-state', value)
+    },
+    handleMaxClick () {
+      this.$q.dialog({ component: ConfirmSetMax })
+        .onOk(() => {
+          this.setMaximumSendAmount()
+        })
     },
     onInputFocus (value) {
       this.$emit('on-input-focus', value)
