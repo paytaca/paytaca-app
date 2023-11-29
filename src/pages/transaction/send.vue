@@ -77,7 +77,7 @@
               {{ scanner.decodedContent }}
             </div>
           </div>
-          <!-- adjust recipientAddress to use multiple client -->
+          <!-- TODO adjust recipientAddress to use multiple client -->
           <div class="q-px-lg" v-if="sent === false && sendDataMultiple[0].recipientAddress !== ''">
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
@@ -648,6 +648,7 @@ export default {
     //   return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
     // },
     showAddRecipientButton () {
+      if (this.walletType === sBCHWalletType) return false
       return (this.showSlider && this.sendDataMultiple.length < 5)
     }
   },
