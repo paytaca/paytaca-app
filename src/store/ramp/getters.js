@@ -1,5 +1,13 @@
 import { getCookie } from 'src/wallet/ramp'
 
+export function ongoingOrderFilters (state) {
+  return state.ongoingOrderFilters
+}
+
+export function completedOrderFilters (state) {
+  return state.completedOrderFilters
+}
+
 export function storeBuyFilters (state) {
   return state.storeBuyFilters
 }
@@ -130,7 +138,7 @@ export function getOngoingOrders (state) {
   return state.ongoingOrders
 }
 
-export function getCompletedOrders(state) {
+export function getCompletedOrders (state) {
   return state.completedOrders
 }
 

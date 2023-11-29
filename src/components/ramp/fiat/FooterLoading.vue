@@ -4,7 +4,7 @@
     :class="{'pt-dark-card': darkMode}"
     :style="{'padding-bottom': $q.platform.is.ios ? '80px' : '0'}">
     <div class="col row justify-center footer-container">
-        <q-spinner-dots class="q-my-xs" size="md" :color="darkMode? 'white': 'blue'"/>
+        <q-spinner-dots class="q-my-xs" size="lg" :color="darkMode? 'white': 'blue'"/>
     </div>
   </div>
 </template>

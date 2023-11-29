@@ -6,6 +6,14 @@ export function updateStoreSellFilters (state, filters) {
   state.storeSellFilters = filters
 }
 
+export function updateOngoingOrderFilters (state, filters) {
+  state.ongoingOrderFilters = filters
+}
+
+export function updateCompletedOrderFilters (state, filters) {
+  state.completedOrderFilters = filters
+}
+
 export function updateFilterPaymentTypes (state, paymentTypes) {
   updateSellFilterPaymentTypes(state, paymentTypes)
   updateBuyFilterPaymentTypes(state, paymentTypes)
