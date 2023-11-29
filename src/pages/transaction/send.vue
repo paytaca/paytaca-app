@@ -88,6 +88,7 @@
                   class="q-expansion-item-recipient"
                   v-model="expandedItems[`R${index + 1}`]"
                   :label="`Recipient #${index + 1}`"
+                  :class="getDarkModeClass(darkMode)"
                 >
                   <SendPageForm
                     :recipient="sendDataMultiple[index]"
@@ -2037,6 +2038,10 @@ export default {
   }
   .q-expansion-item-recipient {
     font-size: 18px;
+
+    &.light {
+      color: black
+    }
   }
   .send-form-container {
     max-height: 65vh;

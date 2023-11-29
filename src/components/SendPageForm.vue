@@ -282,3 +282,14 @@ export default {
     }
   }
 </style>
+
+<style lang="scss">
+  .q-field--dark.q-field--error {
+    .text-negative,
+    .q-field__messages,
+    .q-field__label,
+    .q-field__control.text-negative {
+      color: #e57373 !important
+    }
+  }
+</style>
