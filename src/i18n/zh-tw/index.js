@@ -128,6 +128,7 @@ export default {
   Dismiss: "解僱",
   Done: "完畢",
   Duration: "期間",
+  EmptyRecipient: "收件人不能為空",
   EnableSmartBCH: "啟用SmartBch",
   English: "英語",
   EnterAmount: "輸入金額",

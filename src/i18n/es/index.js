@@ -119,6 +119,7 @@ export default {
   Dismiss: "Despedir",
   Done: "Hecho",
   Duration: "Duración",
+  EmptyRecipient: "El destinatario no puede estar vacío",
   EnableSmartBCH: "Habilitar SmartBCH",
   English: "Inglés",
   EnterAmount: "Ingresar la cantidad",

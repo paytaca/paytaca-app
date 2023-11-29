@@ -119,6 +119,7 @@ export default {
   Dismiss: "解雇",
   Done: "完毕",
   Duration: "期间",
+  EmptyRecipient: "收件人不能为空",
   EnableSmartBCH: "启用SmartBch",
   English: "英语",
   EnterAmount: "输入金额",

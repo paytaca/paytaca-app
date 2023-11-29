@@ -119,6 +119,7 @@ export default {
   Dismiss: "Zurückweisen",
   Done: "Erledigt",
   Duration: "Dauer",
+  EmptyRecipient: "Der Empfänger kann nicht leer sein",
   EnableSmartBCH: "Aktivieren Sie SmartBch",
   English: "Englisch",
   EnterAmount: "Menge eingeben",

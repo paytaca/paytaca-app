@@ -106,6 +106,8 @@
                     @read-only-state="readonlyState"
                     @on-input-focus="onInputFocus"
                     @on-balance-exceeded="onBalanceExceeded"
+                    @on-recipient-input="onRecipientInput"
+                    @on-empty-recipient="onEmptyRecipient"
                     :key="generateKeys(index)"
                   />
                 </q-expansion-item>
@@ -514,7 +516,8 @@ export default {
         sendAmountInFiat: 0,
         balanceExceeded: false,
         scannedRecipientAddress: false,
-        setMax: false
+        setMax: false,
+        emptyRecipient: false
       }],
 
       sent: false,
@@ -632,6 +635,9 @@ export default {
           .findIndex(i => !i) < 0 &&
         this.inputExtras
           .map(data => data.balanceExceeded)
+          .findIndex(i => i) < 0 &&
+        this.inputExtras
+          .map(data => data.emptyRecipient)
           .findIndex(i => i) < 0
       )
     },
@@ -788,6 +794,7 @@ export default {
         currentRecipient.recipientAddress = address
         currentRecipient.rawPaymentUri = rawPaymentUri
         currentInputExtras.scannedRecipientAddress = true
+        currentInputExtras.emptyRecipient = false
 
         if (typeof currency === 'string') {
           const newSelectedCurrency = this.currencyOptions
@@ -1696,7 +1703,8 @@ export default {
           sendAmountInFiat: 0,
           balanceExceeded: false,
           scannedRecipientAddress: false,
-          setMax: false
+          setMax: false,
+          emptyRecipient: true
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
@@ -1737,6 +1745,13 @@ export default {
     },
     onBalanceExceeded (value) {
       this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+    },
+    onRecipientInput (value) {
+      this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value === ''
+    },
+    onEmptyRecipient (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
     }
   },
 

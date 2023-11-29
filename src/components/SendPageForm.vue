@@ -4,11 +4,14 @@
       <q-input
         filled
         label-slot
-        class="recipient-input"
         v-model="recipientAddress"
-        @focus="readonlyState(false)"
+        @focus="onInputFocus(index)"
+        @blur="onEmptyRecipient"
+        class="recipient-input"
         :disabled="disableRecipientInput || setAmountInFiat"
         :readonly="disableRecipientInput || setAmountInFiat"
+        :error="emptyRecipient"
+        :error-message="emptyRecipient ? $t('EmptyRecipient') : ''"
         :dark="darkMode"
         :key="[
           recipient.recipientAddress,
@@ -161,22 +164,25 @@ export default {
     'on-qr-scanner-click',
     'read-only-state',
     'on-input-focus',
-    'on-balance-exceeded'
+    'on-balance-exceeded',
+    'on-recipient-input',
+    'on-empty-recipient'
   ],
 
   data () {
     return {
-      recipientAddress: '',
+      // recipientAddress: '',
       amount: 0,
       amountFormatted: 0,
       sendAmountInFiat: 0,
       balanceExceeded: false,
+      emptyRecipient: false,
       selectedDenomination: 'BCH'
     }
   },
 
   mounted () {
-    this.recipientAddress = this.recipient.recipientAddress
+    // this.recipientAddress = this.recipient.recipientAddress
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
     this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
@@ -184,6 +190,15 @@ export default {
   },
 
   computed: {
+    recipientAddress: {
+      get () {
+        return this.recipient.recipientAddress
+      },
+      set (value) {
+        this.emptyRecipient = value === ''
+        this.$emit('on-recipient-input', value)
+      }
+    },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
@@ -197,9 +212,7 @@ export default {
       return this.$store.getters['global/denomination']
     },
     disableRecipientInput () {
-      return this.recipient.sent ||
-        this.recipient.fixedRecipientAddress ||
-        this.inputExtras.scannedRecipientAddress
+      return this.recipient.fixedRecipientAddress || this.inputExtras.scannedRecipientAddress
     },
     sendAmountMarketValue () {
       const parsedAmount = Number(this.amount)
@@ -229,12 +242,16 @@ export default {
     onSelectedDenomination (value) {
       this.selectedDenomination = value
       this.amountFormatted = parseFloat(getAssetDenomination(value, this.amount || 0, true))
+    },
+    onEmptyRecipient () {
+      this.emptyRecipient = this.recipientAddress === ''
+      this.$emit('on-empty-recipient', this.emptyRecipient)
     }
   },
 
   watch: {
     amount: function (value) {
-      // adjust balance from previously-entered amounts
+      // TODO adjust balance from previously-entered amounts
       this.balanceExceeded = value > this.asset.balance
       this.$emit('on-balance-exceeded', this.balanceExceeded)
     }

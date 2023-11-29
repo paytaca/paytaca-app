@@ -128,6 +128,7 @@ export default {
   Dismiss: "Dismiss",
   Done: "Done",
   Duration: "Duration",
+  EmptyRecipient: "Recipient cannot be empty",
   EnableSmartBCH: "Enable SmartBCH",
   English: "English",
   EnterAmount: "Enter amount",
