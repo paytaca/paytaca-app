@@ -500,7 +500,9 @@ const additional = [
     UnknownError: "Unknown error",
     CannotAddRecipient: "Cannot add more than 5 recipients.",
     TotalAmountError: "Total amount being sent is greater than your current balance",
-    EmptyRecipient: "Recipient cannot be empty"
+    EmptyRecipient: "Recipient cannot be empty",
+    Warning: "Warning",
+    SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?"
   }
 ]
 

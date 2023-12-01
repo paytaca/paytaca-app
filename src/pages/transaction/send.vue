@@ -638,12 +638,15 @@ export default {
         !this.sending &&
         !this.sent &&
         this.sliderStatus &&
+        // check if amount is greater than zero
         this.sendDataMultiple
           .map(data => data.amount > 0)
           .findIndex(i => !i) < 0 &&
+        // check if there are any amount that exceeded current balance
         this.inputExtras
           .map(data => data.balanceExceeded)
           .findIndex(i => i) < 0 &&
+        // check if there are any empty recipients
         this.inputExtras
           .map(data => data.emptyRecipient)
           .findIndex(i => i) < 0
@@ -656,7 +659,14 @@ export default {
     // },
     showAddRecipientButton () {
       if (this.walletType === sBCHWalletType) return false
-      return (this.showSlider && this.sendDataMultiple.length < 5)
+      return (
+        this.showSlider &&
+        this.sendDataMultiple.length < 5 &&
+        // check if user clicked MAX on any recipient (disable button if yes)
+        this.inputExtras
+          .map(data => data.setMax)
+          .findIndex(i => i) < 0
+      )
     }
   },
 
@@ -1117,6 +1127,7 @@ export default {
     async setMaximumSendAmount () {
       // TODO adjust balance from previously-entered amounts (reconfirm)
       // this.setMax = true
+
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       currentInputExtras.setMax = true
@@ -1162,7 +1173,17 @@ export default {
         // this.amountFormatted = this.sendData.amount
         currentInputExtras.amountFormatted = currentRecipient.amount
       }
-      this.sliderStatus = true
+
+      // remove recipients except for the one where MAX was clicked
+      const remainingRecipient = this.sendDataMultiple.filter((_a, i) => i === this.currentActiveRecipientIndex)
+      const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentActiveRecipientIndex)
+
+      this.sendDataMultiple = remainingRecipient
+      this.inputExtras = remainingInputExtras
+      this.currentActiveRecipientIndex = 0
+      this.expandedItems = { R1: true }
+
+      this.sliderStatus = true // TODO readjust when recipient field is empty
     },
     getBIP21Amount (bip21Uri) {
       const addressParse = new URLSearchParams(bip21Uri.split('?')[1])

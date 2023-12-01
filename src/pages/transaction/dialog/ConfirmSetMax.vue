@@ -6,12 +6,8 @@
     <q-card
       :class="getDarkModeClass(darkMode, 'text-white pt-dark modal', 'text-black')"
     >
-      <q-card-section style="font-size: 20px">
-        Warning!
-      </q-card-section>
-      <q-card-section>
-        This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?
-      </q-card-section>
+      <q-card-section style="font-size: 20px">{{ $t('Warning') }}</q-card-section>
+      <q-card-section>{{ $t('SetMaxWarning') }}</q-card-section>
       <q-card-actions align="right">
         <q-btn
           flat
@@ -36,7 +32,6 @@
 <script>
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-// TODO add translation; add warning text and/or icon at top?
 export default {
   data () {
     return {}
