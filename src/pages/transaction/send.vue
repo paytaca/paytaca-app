@@ -114,113 +114,6 @@
                 </q-expansion-item>
               </q-list>
 
-              <!-- <div class="row">
-                <div class="col q-mt-sm se recipient-input-qr">
-                  <q-input
-                    filled
-                    v-model="sendData.recipientAddress"
-                    label-slot
-                    :disabled="disableRecipientInput"
-                    :readonly="disableRecipientInput"
-                    :dark="darkMode"
-                    class="recipient-input"
-                  >
-                    <template v-slot:label>
-                      {{ $t('Recipient') }}
-                    </template>
-                  </q-input>
-                  <q-btn
-                    round
-                    size="lg"
-                    class="btn-scan button text-white bg-grad"
-                    icon="mdi-qrcode"
-                    @click="showQrScanner = true"
-                  />
-                </div>
-              </div>
-              <template v-if="$store.state.global.online !== false">
-                <div class="row" v-if="!isNFT">
-                  <div class="col q-mt-md">
-                    <q-input
-                      type="text"
-                      inputmode="none"
-                      @focus="readonlyState(true), onInputFocus(index)"
-                      @blur="readonlyState(false)"
-                      filled
-                      v-model="amountFormatted"
-                      :label="$t('Amount')"
-                      :loading="computingMax"
-                      :disabled="disableAmountInput || setAmountInFiat"
-                      :readonly="disableAmountInput || setAmountInFiat"
-                      :dark="darkMode"
-                      :error="balanceExceeded"
-                      :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
-                    >
-                      <template v-slot:append>
-                        {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
-                        <DenominatorTextDropdown
-                          v-if="!sendData.fixedAmount"
-                          @on-selected-denomination="onSelectedDenomination"
-                          :selectedNetwork="asset.symbol"
-                          :darkMode="darkMode"
-                          :theme="theme"
-                          :currentCountry="currentCountry"
-                        />
-                      </template>
-                    </q-input>
-                    <div
-                      v-if="sendAmountMarketValue && !setAmountInFiat"
-                      class="text-body2 text-grey q-mt-sm q-px-sm"
-                    >
-                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-                    </div>
-                  </div>
-                </div>
-                <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
-                  <div class="col q-mt-md">
-                    <q-input
-                      type="text"
-                      inputmode="none"
-                      @focus="readonlyState(true), onInputFocus(index)"
-                      @blur="readonlyState(false)"
-                      filled
-                      v-model="sendAmountInFiat"
-                      :label="$t('Amount')"
-                      :disabled="disableAmountInput"
-                      :readonly="disableAmountInput"
-                      :dark="darkMode"
-                    >
-                      <template v-slot:append>
-                        {{ String(currentSendPageCurrency()).toUpperCase() }}
-                      </template>
-                    </q-input>
-                    <div
-                      v-if="sendAmountMarketValue && !setAmountInFiat"
-                      class="text-body2 text-grey q-mt-sm q-px-sm"
-                    >
-                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-                    </div>
-                  </div>
-                </div>
-              </template>
-              <div class="row" v-if="!isNFT && !sendData.fixedAmount" style="padding-bottom: 15px">
-                <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                  {{ parseAssetDenomination(selectedDenomination, asset) }}
-                  <template v-if="asset.id === 'bch' && setAmountInFiat">
-                    {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
-                  </template>
-                  <a
-                    href="#"
-                    v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
-                    @click.prevent="setMaximumSendAmount(), onInputFocus(index)"
-                    style="float: right; text-decoration: none; color: #3b7bf6;"
-                    class="button button-text-primary"
-                    :class="getDarkModeClass(darkMode)"
-                  >
-                    {{ $t('MAX') }}
-                  </a>
-                </div>
-              </div> -->
               <div
                 class="row"
                 style="margin-top: -10px;"
@@ -616,23 +509,6 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    // sendAmountMarketValue () {
-    //   // const parsedAmount = Number(this.sendData.amount)
-    //   console.log(this.selectedAssetMarketPrice)
-    //   const parsedAmount = Number(this.sendDataMultiple[this.currentActiveRecipientIndex].amount)
-    //   if (!parsedAmount) return ''
-    //   if (!this.selectedAssetMarketPrice) return ''
-    //   const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
-    //   if (!computedBalance) return ''
-
-    //   return computedBalance.toFixed(2)
-    // },
-    // disableRecipientInput () {
-    //   return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
-    // },
-    // disableAmountInput () {
-    //   return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
-    // },
     showSlider () {
       return (
         !this.sending &&
@@ -652,11 +528,6 @@ export default {
           .findIndex(i => i) < 0
       )
     },
-    // paymentOTP () {
-    //   if (this.sendData.responseOTP) return this.sendData.responseOTP
-
-    //   return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
-    // },
     showAddRecipientButton () {
       if (this.walletType === sBCHWalletType) return false
       return (
@@ -686,13 +557,6 @@ export default {
         this.sliderStatus = true
       }
     },
-    // 'sendData.amount': function (amount) {
-    //   if (amount > parseFloat(this.asset.balance)) {
-    //     this.balanceExceeded = true
-    //   } else {
-    //     this.balanceExceeded = false
-    //   }
-    // },
     setAmountInFiat: function (value) {
       if (value) {
         this.balanceExceeded = false
@@ -701,11 +565,9 @@ export default {
     sendAmountInFiat: function (amount) {
       if (!this.inputExtras[this.currentActiveRecipientIndex].setMax) {
         const fiatToAsset = this.convertFiatToSelectedAsset(amount) || 0
-        // this.sendData.amount = fiatToAsset
         this.sendDataMultiple[this.currentActiveRecipientIndex].amount = fiatToAsset
 
         const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
-        // this.amountFormatted = fiatAsset
         this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = fiatAsset
       }
     },
@@ -718,8 +580,6 @@ export default {
         this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
         this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
         this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
-        // this.sendAmountInFiat = this.payloadAmount
-        // this.amountFormatted = this.sendData.amount
       }
     }
   },
@@ -797,7 +657,6 @@ export default {
         amountValue = paymentUriData.outputs[0].amount?.value
         this.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
-        // this.sendData.fixedRecipientAddress = true
         currentRecipient.fixedRecipientAddress = true
       }
 
@@ -806,10 +665,6 @@ export default {
 
       const valid = this.checkAddress(address)
       if (valid) {
-        // this.sendData.recipientAddress = address
-        // this.sendData.rawPaymentUri = rawPaymentUri
-        // this.scannedRecipientAddress = true
-
         currentRecipient.recipientAddress = address
         currentRecipient.rawPaymentUri = rawPaymentUri
         currentInputExtras.scannedRecipientAddress = true
@@ -827,9 +682,6 @@ export default {
               timeout: 3000,
               message: this.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
             })
-            // reset some data updated above on error
-            // this.sendData.recipientAddress = ''
-            // this.sendData.rawPaymentUri = ''
 
             currentRecipient.recipientAddress = ''
             currentRecipient.rawPaymentUri = ''
@@ -842,16 +694,12 @@ export default {
 
         if (amountValue !== null) {
           this.sliderStatus = true
-          // this.amountFormatted = amount
           currentInputExtras.amountFormatted = amount
           if (this.setAmountInFiat) {
-            // this.sendAmountInFiat = amount
             currentInputExtras.sendAmountInFiat = amount
           } else {
-            // this.sendData.amount = amount
             currentRecipient.amount = amount
           }
-          // this.sendData.fixedAmount = true
           currentRecipient.fixedAmount = true
         }
       }
@@ -927,46 +775,13 @@ export default {
     setAmount (key) {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
-      // let sendAmount, amount, tempAmountFormatted = ''
       let currentSendAmount, currentAmount
 
       if (this.setAmountInFiat) {
-        // sendAmount = this.sendAmountInFiat
         currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
       } else {
-        // sendAmount = this.sendData.amount
-        // tempAmountFormatted = this.amountFormatted ?? ''
         currentSendAmount = currentInputExtras.amountFormatted ?? ''
       }
-
-      // sendAmount = sendAmount === null ? '' : sendAmount
-      // currentSendAmount = currentSendAmount ?? ''
-
-      // remove
-      // if (key === '.' && sendAmount === '') {
-      //   amount = '0.'
-      //   tempAmountFormatted = '0.'
-      // } else {
-      //   amount = this.setAmountInFiat ? sendAmount.toString() : tempAmountFormatted.toString()
-      //   const hasPeriod = amount.indexOf('.')
-      //   if (hasPeriod < 1) {
-      //     if (Number(amount) === 0) {
-      //       if (Number(key) > 0) {
-      //         amount = key
-      //         tempAmountFormatted = key
-      //       } else if (Number(amount) === Number(key)) { // Check amount if still zero
-      //         amount = 0
-      //         tempAmountFormatted = 0
-      //       }
-      //     } else {
-      //       amount += key.toString()
-      //       tempAmountFormatted += key.toString()
-      //     }
-      //   } else {
-      //     amount += key !== '.' ? key.toString() : ''
-      //     tempAmountFormatted += key !== '.' ? key.toString() : ''
-      //   }
-      // }
 
       if (key === '.' && currentSendAmount === '') {
         currentAmount = '0.'
@@ -997,8 +812,6 @@ export default {
         currentRecipient.amount = converted
         currentInputExtras.amountFormatted = converted
       } else {
-        // this.sendData.amount = convertToBCH(this.denomination, amount)
-        // this.amountFormatted = tempAmountFormatted
         currentRecipient.amount = convertToBCH(this.selectedDenomination, currentAmount)
         currentInputExtras.amountFormatted = currentAmount
       }
@@ -1010,22 +823,16 @@ export default {
       if (action === 'backspace') {
         // Backspace
         if (this.setAmountInFiat) {
-          // this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
           currentInputExtras.sendAmountInFiat = String(currentInputExtras.sendAmountInFiat).slice(0, -1)
         } else {
-          // this.sendData.amount = String(this.sendData.amount).slice(0, -1)
-          // this.amountFormatted = String(this.amountFormatted).slice(0, -1)
           currentRecipient.amount = String(currentRecipient.amount).slice(0, -1)
           currentInputExtras.amountFormatted = String(currentInputExtras.amountFormatted).slice(0, -1)
         }
       } else if (action === 'delete') {
         // Delete
         if (this.setAmountInFiat) {
-          // this.sendAmountInFiat = ''
           currentInputExtras.sendAmountInFiat = ''
         } else {
-          // this.sendData.amount = ''
-          // this.amountFormatted = ''
           currentRecipient.amount = ''
           currentInputExtras.amountFormatted = ''
         }
@@ -1126,8 +933,6 @@ export default {
     },
     async setMaximumSendAmount () {
       // TODO adjust balance from previously-entered amounts (reconfirm)
-      // this.setMax = true
-
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       currentInputExtras.setMax = true
@@ -1137,10 +942,9 @@ export default {
           this.computingMax = true
           const spendable = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
-            // readjust index
+            // TODO readjust index(?)
             this.sendDataMultiple[0].recipient
           )
-          // this.sendData.amount = spendable
           currentRecipient.amount = spendable
           this.computingMax = false
           if (spendable < 0) {
@@ -1153,14 +957,11 @@ export default {
           }
         } else {
           const spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
-          // this.amountFormatted = spendableAsset
           currentInputExtras.amountFormatted = spendableAsset
-          // this.sendData.amount = this.asset.spendable
           currentRecipient.amount = this.asset.spendable
         }
         if (this.setAmountInFiat) {
           const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
-          // this.sendAmountInFiat = convertedFiat
           currentInputExtras.sendAmountInFiat = convertedFiat
         }
       } else {
@@ -1170,7 +971,6 @@ export default {
         } else {
           currentRecipient.amount = this.asset.balance
         }
-        // this.amountFormatted = this.sendData.amount
         currentInputExtras.amountFormatted = currentRecipient.amount
       }
 
@@ -1434,224 +1234,6 @@ export default {
           .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
       }
-
-      /**
-      let address = this.sendData.recipientAddress
-      const addressObj = new Address(address)
-      const addressValidation = this.validateAddress(address)
-      const addressIsValid = addressValidation.valid
-      const amountIsValid = this.validateAmount(this.sendData.amount)
-      if (addressIsValid && amountIsValid) {
-        vm.sendData.sending = true
-        if (vm.walletType === sBCHWalletType) {
-          await vm.wallet.sBCH.getOrInitWallet()
-          let promise = null
-          if (sep20IdRegexp.test(vm.assetId)) {
-            const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
-            promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
-          } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
-            const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
-            const tokenId = vm.assetId.match(erc721IdRegexp)[2]
-            promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
-          } else {
-            promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
-          }
-          if (promise) {
-            promise.then(function (result) {
-              if (result.success) {
-                vm.sendData.txid = result.txid
-                vm.playSound(true)
-                vm.sendData.sending = false
-                vm.sendData.sent = true
-                if (!vm.sendAmountInFiat) {
-                  vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
-                }
-              } else {
-                if (result.error) {
-                  vm.$q.notify({
-                    type: 'negative',
-                    color: 'red-4',
-                    timeout: 3000,
-                    message: result.error
-                  })
-                } else {
-                  vm.$q.notify({
-                    type: 'negative',
-                    color: 'red-4',
-                    timeout: 3000,
-                    message: vm.$t('UnknownError')
-                  })
-                }
-              }
-            })
-          }
-        } else if (vm.walletType === 'slp') {
-          const tokenId = vm.assetId.split('slp/')[1]
-          const bchWallet = vm.getWallet('bch')
-          const feeFunder = {
-            walletHash: bchWallet.walletHash,
-            mnemonic: vm.wallet.mnemonic,
-            derivationPath: bchWallet.derivationPath
-          }
-          address = addressObj.toSLPAddress()
-          const changeAddresses = {
-            bch: vm.getChangeAddress('bch'),
-            slp: vm.getChangeAddress('slp')
-          }
-          // TODO change to recipients array
-          vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, this.tokenType, address, feeFunder, changeAddresses).then(function (result) {
-            if (result.success) {
-              vm.sendData.txid = result.txid
-              vm.playSound(true)
-              vm.sendData.sending = false
-              vm.sendData.sent = true
-            } else {
-              if (result.error.indexOf('not enough balance in sender') > -1) {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: vm.$t('NotEnoughForSendAmount')
-                })
-              } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
-                this.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: this.$t('NotEnoughBchForFee')
-                })
-              } else {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: vm.$t('result.error')
-                })
-              }
-              vm.sendData.sending = false
-            }
-          })
-        } else if (vm.walletType === 'bch') { // check
-          address = addressObj.toCashAddress()
-          const tokenId = vm.assetId.split('ct/')[1]
-          const changeAddress = vm.getChangeAddress('bch')
-          let sendPromise
-          if (vm.sendData?.posDevice?.posId >= 0) {
-            sendPromise = vm.wallet.BCH.sendBchToPOS(
-              vm.sendData.amount,address, changeAddress,
-              vm.sendData.posDevice,
-            )
-          } else {
-            if (tokenId) {
-              vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
-              // TODO change to recipients array
-              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
-                tokenId: tokenId,
-                commitment: vm.commitment || undefined,
-                capability: vm.capability || undefined
-              }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
-            } else {
-              // TODO change to recipients array
-              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
-                tokenId: tokenId,
-                commitment: undefined,
-                capability: undefined
-              }, undefined)
-            }
-          }
-          sendPromise.then(function (result) {
-            vm.sendData.sending = false
-            if (result.success) {
-              vm.sendData.txid = result.txid
-              vm.playSound(true)
-              vm.sendData.sending = false
-              vm.sendData.sent = true
-              if (result.otp) vm.sendData.responseOTP = result.otp
-              if (!vm.sendAmountInFiat) {
-                vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
-              }
-
-              if (result?.otp) {
-                vm.$store.commit('paytacapos/saveOTPCache', {
-                  txid: result.txid,
-                  otp: result.otp,
-                  otpTimestamp: result?.otpTimestamp,
-                  rawPaymentUri: vm.sendData?.rawPaymentUri,
-                })
-                vm.$store.commit('paytacapos/removeOldPaymentOTPCache')
-              }
-            } else {
-              if (result.error.indexOf('not enough balance in sender') > -1) {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: vm.$t('NotEnoughForBoth')
-                })
-              } else if (result.error.indexOf('has insufficient priority') > -1) {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: vm.$t('NotEnoughForTransactionFee')
-                })
-              } else {
-                vm.$q.notify({
-                  type: 'negative',
-                  color: 'red-4',
-                  timeout: 3000,
-                  message: result.error
-                })
-              }
-            }
-          })
-        } else {
-          try {
-            const w = await window.TestNetWallet.named("mywallet")
-            const { txId } = await w.send([
-              new TokenSendRequest({
-                cashaddr: address,
-                amount: vm.sendData.amount,
-                tokenId: vm.assetId.split('/')[1],
-              }),
-            ])
-            vm.sendData.txid = txId
-            vm.sendData.sent = true
-            vm.playSound(true)
-          } catch (e) {
-            vm.$q.notify({
-              type: 'negative',
-              color: 'red-4',
-              timeout: 3000,
-              message: e.message
-            })
-          }
-          vm.sendData.sending = false
-        }
-      } else {
-        vm.sendData.sending = false
-        if (!addressIsValid) {
-          vm.$q.notify({
-            type: 'negative',
-            color: 'red-4',
-            timeout: 3000,
-            message: this.$t(
-              'InvalidRecipient',
-              { walletType: vm.walletType.toUpperCase() },
-              `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
-            )
-          })
-        }
-        if (!amountIsValid) {
-          vm.$q.notify({
-            type: 'negative',
-            color: 'red-4',
-            timeout: 3000,
-            message: vm.$t('SendAmountGreaterThanZero')
-          })
-        }
-      }
-      */
     },
     promiseResponseHandler (result, walletType) {
       const vm = this
@@ -1662,10 +1244,6 @@ export default {
         vm.playSound(true)
         vm.sending = false
         vm.sent = true
-        // if (!vm.sendAmountInFiat) { // remove entirely or
-        //   // replace with total amount or move to before sending part
-        //   vm.sendAmountInFiat = vm.convertToFiatAmount(vm.amount)
-        // }
       } else {
         if (result.error.indexOf('not enough balance in sender') > -1) {
           if (walletType === 'bch') vm.raiseNotifyError(vm.$t('NotEnoughForBoth'))
@@ -1704,14 +1282,6 @@ export default {
         offlineNotif()
       }
     },
-    // onSelectedDenomination (value) {
-    //   const [newDenom, currentIndex] = value
-    //   const newAmount = parseFloat(getAssetDenomination(newDenom, this.sendData.amount, true))
-
-    //   this.selectedDenomination = newDenom
-    //   this.amountFormatted = newAmount
-    //   this.inputExtras[currentIndex].amountFormatted = newAmount
-    // },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
     },
@@ -1756,8 +1326,6 @@ export default {
       this.showQrScanner = value
     },
     onSetAmountToFiatClick () {
-      // this.sendData.amount = 0
-      // this.amountFormatted = 0
       this.setAmountInFiat = true
       this.sliderStatus = false
       this.sendDataMultiple.forEach((data) => {
