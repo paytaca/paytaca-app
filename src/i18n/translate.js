@@ -504,7 +504,8 @@ const additional = [
     Warning: "Warning",
     SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?",
     Yes: "YES",
-    No: "NO"
+    No: "NO",
+    SetAmountIn: "Set amount in"
   }
 ]
 

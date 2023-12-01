@@ -325,6 +325,7 @@ export default {
   Senders: "Remitente",
   Sent: "Enviado",
   Set: "Colocar",
+  SetAmountIn: "Establecer la cantidad en",
   SetCoordinates: "Establecer coordenadas",
   SetMaxWarning: "Esto establecerá la cantidad máxima de este destinatario.Se eliminarán otros destinatarios agregados.Quieres proceder?",
   SetName: "Escoger un nombre",

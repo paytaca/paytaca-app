@@ -352,6 +352,7 @@ export default {
   Senders: "發件人",
   Sent: "發送",
   Set: "放",
+  SetAmountIn: "設置金額",
   SetCoordinates: "設置坐標",
   SetMaxWarning: "這將為此收件人設置最大金額。其他添加的收件人將被刪除。你想繼續嗎？",
   SetName: "設置名稱",

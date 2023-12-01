@@ -325,6 +325,7 @@ export default {
   Senders: "Absender",
   Sent: "Gesendet",
   Set: "Satz",
+  SetAmountIn: "Betrag einstellen",
   SetCoordinates: "Koordinaten festlegen",
   SetMaxWarning: "Dadurch wird dieser Empfänger maximal eingestellt.Andere hinzugefügte Empfänger werden entfernt.Möchten Sie fortfahren?",
   SetName: "Name einsetzen",

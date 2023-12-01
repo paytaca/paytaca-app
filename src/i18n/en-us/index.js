@@ -352,6 +352,7 @@ export default {
   Senders: "Senders",
   Sent: "Sent",
   Set: "Set",
+  SetAmountIn: "Set amount in",
   SetCoordinates: "Set coordinates",
   SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?",
   SetName: "Set name",

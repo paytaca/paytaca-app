@@ -234,7 +234,7 @@
                     :class="getDarkModeClass(darkMode)"
                     @click.prevent="onSetAmountToFiatClick"
                   >
-                    Set amount in {{ String(currentSendPageCurrency()).toUpperCase() }}
+                    {{ `${$t('SetAmountIn')} ${String(currentSendPageCurrency()).toUpperCase()}` }}
                   </a>
                 </div>
               </div>
