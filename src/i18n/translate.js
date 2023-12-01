@@ -502,7 +502,9 @@ const additional = [
     TotalAmountError: "Total amount being sent is greater than your current balance",
     EmptyRecipient: "Recipient cannot be empty",
     Warning: "Warning",
-    SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?"
+    SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?",
+    Yes: "YES",
+    No: "NO"
   }
 ]
 

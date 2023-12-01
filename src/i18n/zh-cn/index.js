@@ -200,6 +200,7 @@ export default {
   MnemonicBackupPhraseDescription1: "仔细检查这是否与您的助记符备份短语匹配",
   MnemonicBackupPhraseDescription2: "在纸上写或屏幕截图并将其保存在安全的地方",
   MultipleRecipientsUnsupported: "多个尚未支持的收件人",
+  No: "不",
   SkipVerification: "跳过验证",
   SkipVerificationMessage: "您确定要跳过验证步骤吗？",
   Name: "姓名",
@@ -429,6 +430,7 @@ export default {
   Wallets: "钱包",
   Warning: "警告",
   XpubKey: "XPUB键",
+  Yes: "是的",
   YouReceive: "你收到",
   YouSend: "您发送",
   or: "或者"

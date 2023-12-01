@@ -12,17 +12,17 @@
         <q-btn
           flat
           v-close-popup
-          label="NO"
           class="max-button button button-text-primary"
           :class="getDarkModeClass(darkMode)"
+          :label="$t('No')"
         />
         <q-btn
           flat
           v-close-popup
-          label="YES"
           class="max-button button button-text-primary"
           @click="onOKClick()"
           :class="getDarkModeClass(darkMode)"
+          :label="$t('Yes')"
         />
       </q-card-actions>
     </q-card>

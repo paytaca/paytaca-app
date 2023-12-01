@@ -200,6 +200,7 @@ export default {
   MnemonicBackupPhraseDescription1: "Compruebe dos veces si esto coincide con su frase de copia de seguridad mnemónica",
   MnemonicBackupPhraseDescription2: "Escribe en papel o toma una captura de pantalla y manténgala en algún lugar seguro",
   MultipleRecipientsUnsupported: "Múltiples destinatarios aún no admitidos",
+  No: "NO",
   SkipVerification: "Saltar verificación",
   SkipVerificationMessage: "¿Está seguro de que desea omitir el paso de verificación?",
   Name: "Nombre",
@@ -429,6 +430,7 @@ export default {
   Wallets: "Billeteras",
   Warning: "Advertencia",
   XpubKey: "clave XPUB",
+  Yes: "SÍ",
   YouReceive: "Recibes",
   YouSend: "Usted envía",
   or: "o"

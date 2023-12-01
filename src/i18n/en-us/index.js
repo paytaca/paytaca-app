@@ -216,6 +216,7 @@ export default {
   MnemonicBackupPhraseDescription1: "Double check if this matches your mnemonic backup phrase",
   MnemonicBackupPhraseDescription2: "Write on paper or take a screenshot and keep it somewhere safe",
   MultipleRecipientsUnsupported: "Multiple recipients not yet supported",
+  No: "NO",
   SkipVerification: "Skip Verification",
   SkipVerificationMessage: "Are you sure you want to skip the verification step?",
   Name: "Name",
@@ -462,6 +463,7 @@ export default {
   Wallets: "Wallets",
   Warning: "Warning",
   XpubKey: "xPub Key",
+  Yes: "YES",
   YouReceive: "You receive",
   YouSend: "You send",
   or: "or"

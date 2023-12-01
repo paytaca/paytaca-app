@@ -200,6 +200,7 @@ export default {
   MnemonicBackupPhraseDescription1: "Überprüfen Sie, ob dies mit Ihrem Mnemonik -Backup -Phrase übereinstimmt",
   MnemonicBackupPhraseDescription2: "Schreiben Sie auf Papier oder machen Sie einen Screenshot und bewahren Sie es an einem sicheren Ort auf",
   MultipleRecipientsUnsupported: "Mehrere Empfänger, die noch nicht unterstützt werden",
+  No: "NEIN",
   SkipVerification: "Überprüfung überspringen",
   SkipVerificationMessage: "Sind Sie sicher, dass Sie den Verifizierungsschritt überspringen möchten?",
   Name: "Name",
@@ -429,6 +430,7 @@ export default {
   Wallets: "Geldbörsen",
   Warning: "Warnung",
   XpubKey: "XPUB -Schlüssel",
+  Yes: "JA",
   YouReceive: "Du erhältst",
   YouSend: "Du sendest",
   or: "oder"
