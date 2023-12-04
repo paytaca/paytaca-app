@@ -1,35 +1,59 @@
 <template>
   <div v-if="isloaded">
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-h5 text-center lg-font-size" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-        ORDER #{{ order.id }}
-      </div>
-      <q-scroll-area :style="`height: ${minHeight - 145}px`" style="overflow-y:auto;">
-        <div class="q-pt-md sm-font-size q-px-md  ">
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-            <span>Locked Price</span>
-            <span class="text-nowrap q-ml-xs">{{ price }}/{{ order.crypto_currency.symbol }}</span>
+      <q-scroll-area
+        style="overflow-y:auto;"
+        :style="`height: ${ minHeight }px;`">
+        <div class="q-mx-lg text-center">
+          <div class="lg-font-size bold-text">
+            <span>{{ order?.status?.label?.toUpperCase() }}</span>
           </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-            <span>Min Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">
-              {{ parseFloat($parent.getAdLimits.floor) }} BCH
-            </span>
-          </div>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
-            <span>Max Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">
-              {{ parseFloat($parent.getAdLimits.ceiling) }} BCH
-            </span>
-          </div>
-          <div class="row justify-between no-wrap q-mx-lg" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-            <span>Time Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedPlt(order.ad.time_duration).label }} </span>
-          </div>
-          <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-            <span>Status</span>
-            <span class="text-nowrap q-ml-xs" :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status.label }}</span>
-          </div>
+          <div class="text-center subtext md-font-size">ORDER #{{ order.id }}</div>
+        </div>
+        <div class="q-mx-sm">
+          <q-card class="br-15 q-mx-md q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+            <div class="q-mx-lg q-my-xs row justify-between">
+              <div>
+                <div class="md-font-size">{{ order?.owner?.name }}</div>
+                <q-rating
+                  readonly
+                  :model-value="order?.owner?.rating"
+                  :v-model="order.owner?.rating"
+                  size="1.1em"
+                  color="yellow-9"
+                  icon="star"/>
+                <span class="q-mx-xs sm-font-size">({{ order.owner.rating ? parseFloat(order.owner.rating).toFixed(1) : 0 }})</span>
+              </div>
+              <div class="q-my-sm">
+                <q-btn unelevated ripple dense size="md" icon="message"/>
+              </div>
+            </div>
+            <q-separator class="q-my-sm" :dark="darkMode"/>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Locked Price</span>
+              <span class="text-nowrap q-ml-xs">{{ price }}/{{ order.crypto_currency.symbol }}</span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Min Trade Limit</span>
+              <span class="text-nowrap q-ml-xs">
+                {{ parseFloat($parent.getAdLimits.floor) }} BCH
+              </span>
+            </div>
+            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+              <span>Max Trade Limit</span>
+              <span class="text-nowrap q-ml-xs">
+                {{ parseFloat($parent.getAdLimits.ceiling) }} BCH
+              </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+              <span>Time Limit</span>
+              <span class="text-nowrap q-ml-xs">{{ formattedPlt(order.ad.time_duration).label }} </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+              <span>Status</span>
+              <span class="text-nowrap q-ml-xs" :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status.label }}</span>
+            </div>
+          </q-card>
         </div>
 
         <div class="q-mt-md q-mx-lg q-px-md">
@@ -44,7 +68,6 @@
               <span class="lg-font-size">{{ byFiat ? order.fiat_currency.symbol : order.crypto_currency.symbol }}</span>
             </template>
           </q-input>
-          <!-- <div class="text-right subtext sm-font-size"> {{ $parent.formattedCurrency($parent.cryptoAmount) }} BCH</div> -->
           <q-btn
             class="sm-font-size"
             padding="none"
@@ -54,7 +77,6 @@
             @click="byFiat = !byFiat">
             View amount in {{ byFiat ? 'BCH' : order.fiat_currency.symbol }}
           </q-btn>
-          <!-- <q-separator :dark="darkMode" class="q-mt-md"/> -->
           <div class="no-wrap sm-font-size subtext q-pt-sm">
             <span>Balance: </span>
             <span class="text-nowrap q-ml-xs">
@@ -62,8 +84,6 @@
             </span>
           </div>
         </div>
-        <!-- <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/> -->
-
         <div class="row q-pt-md q-mx-lg q-px-md">
           <q-btn
             rounded
@@ -103,7 +123,7 @@ export default {
       byFiat: false,
       amount: null,
       price: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 235 : this.$q.screen.height - 170
     }
   },
   props: {
@@ -129,6 +149,8 @@ export default {
     this.price = this.$parent.formattedCurrency(this.order.locked_price, this.order.fiat_currency.symbol)
     this.updateInput()
     this.isloaded = true
+    console.log('order:', this.order)
+    console.log('this.$q.screen.height:', this.$q.screen.height)
   },
   methods: {
     formattedPlt (value) {

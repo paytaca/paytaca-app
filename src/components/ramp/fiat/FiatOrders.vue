@@ -53,21 +53,21 @@
                               class="q-mb-none sm-font-size">
                               ORDER #{{ listing.id }}
                             </div>
-                            <span
+                            <!-- <span
                               :class="{'pt-dark-label': darkMode}"
                               class="md-font-size"
                               @click.stop.prevent="viewUserProfile(listing)">
                               {{ listing.ad.owner.name }} <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
-                            </span>
+                            </span> -->
                             <div :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase lg-font-size" :style="amountColor(listing.trade_type)">
                               {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
                             </div>
                             <div class="sm-font-size">
                               {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                            <div class="sm-font-size">
+                            <!-- <div class="sm-font-size">
                               <span class="q-pr-sm">Price</span>
                               <span>{{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}/BCH</span>
-                            </div>
+                            </div> -->
                             <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                           </div>
                           <div class="text-right">
