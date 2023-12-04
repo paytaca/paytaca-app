@@ -143,7 +143,6 @@
           </div>
 
           <customKeyboard
-            v-if="!showSlider"
             :custom-keyboard-state="customKeyboardState"
             v-on:addKey="setAmount"
             v-on:makeKeyAction="makeKeyAction"
@@ -750,7 +749,7 @@ export default {
       this.amountInputState = state
       if (this.amountInputState && this.$store.getters['global/getConnectivityStatus']) {
         this.customKeyboardState = 'show'
-      }
+      } else this.customKeyboardState = 'dismiss'
     },
     convertToFiatAmount (amount) {
       const parsedAmount = Number(amount)

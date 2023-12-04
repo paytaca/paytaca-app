@@ -102,7 +102,7 @@
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container">
-      <!-- adjust balance from previously-entered amounts -->
+      <!-- TODO adjust balance from previously-entered amounts -->
       {{ parseAssetDenomination(selectedDenomination, asset) }}
       <template v-if="asset.id === 'bch' && setAmountInFiat">
         {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
