@@ -10,6 +10,7 @@
         selectAsset(event, asset)
       }"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
+      v-touch-pan="handlePan"
     >
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
@@ -82,7 +83,8 @@ export default {
       assetClickCounter: 0,
       assetClickTimer: null,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      scrollContainer: null
+      scrollContainer: null,
+      scrollContainerClientX: null
     }
   },
   computed: {
@@ -165,17 +167,17 @@ export default {
         vm.$store.commit('assets/removeAsset', asset.id)
       }).onCancel(() => {
       })
+    },
+    handlePan (evt) {
+      if (!this.$q.platform.is.mobile) {
+        this.scrollContainer = document.querySelector('#asset-container')
+        if (this.scrollContainerClientX) {
+          const deltaX = evt.evt.clientX - this.scrollContainerClientX
+          this.scrollContainer.scrollLeft -= deltaX
+        }
+        this.scrollContainerClientX = evt.evt.clientX
+      }
     }
-  },
-  async mounted () {
-    // if (!this.$q.platform.is.mobile) {
-    this.scrollContainer = document.querySelector('#asset-container')
-
-    this.scrollContainer.addEventListener('wheel', (evt) => {
-      evt.preventDefault()
-      this.scrollContainer.scrollLeft += evt.deltaY
-    })
-    // }
   }
 }
 </script>
@@ -207,6 +209,8 @@ export default {
     height: 78px;
     min-width: 150px;
     border-radius: 16px;
+    overflow-y: hidden;
+    overflow-x: scroll;
   }
 
   .text-num-lg {
