@@ -337,6 +337,22 @@
               All
             </q-badge>
             <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="!isFilterAllSelected('status')"
+              @click="filterSelectAll('status')">
+              Expired
+            </q-badge>
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="!isFilterAllSelected('status')"
+              @click="filterSelectAll('status')">
+              Appealed
+            </q-badge>
+            <q-badge
               v-for="(status, index) in ongoingStatuses"
               :key="index"
               rounded
@@ -841,6 +857,7 @@ export default {
     },
     updateOrderFilters (filters) {
       if (!filters) return
+      console.log('fileters:', filters)
       this.orderFilters = filters
     },
     addFilterInfo (data, type = '') {

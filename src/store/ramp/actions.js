@@ -208,16 +208,17 @@ export function fetchAds (context, { component = null, params = null, overwrite 
   }
 }
 
-export async function fetchOrders (context, { orderState = null, params = null, overwrite = false }) {
+export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   const state = context.state
-
+  console.log('statusType:', statusType)
+  console.log('params:', params)
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
   }
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
   let totalPages = null
-  switch (orderState) {
+  switch (statusType) {
     case 'ONGOING':
       pageNumber = state.ongoingOrdersPageNumber
       totalPages = state.ongoingOrdersTotalPages
@@ -234,16 +235,47 @@ export async function fetchOrders (context, { orderState = null, params = null, 
     // Increment page by 1 if not fetching data for the first time
     if (pageNumber !== null) pageNumber++
 
-    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
-    params.page = pageNumber
-    params.limit = state.itemsPerPage
+    let apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
+
+    // Build request parameters
+    let owned = params.ownership.owned
+    if (params.ownership.owned === params.ownership.notOwned) {
+      owned = null
+    }
+    const parameters = {
+      page: pageNumber,
+      limit: state.itemsPerPage,
+      status_type: statusType,
+      sort_type: params.sort_type,
+      sort_by: params.sort_by,
+      owned: owned
+    }
+    let listParams = false
+    if (params.payment_types?.length > 0) {
+      const paymentTypes = params.payment_types.join('&payment_types=')
+      apiURL = `${apiURL}?payment_types=${paymentTypes}`
+      listParams = true
+    }
+    if (params.time_limits?.length > 0) {
+      const timeLimits = params.time_limits.join('&time_limits=')
+      const prefix = listParams ? '&' : '?'
+      apiURL = `${apiURL}${prefix}time_limits=${timeLimits}`
+      listParams = true
+    }
+    if (params.status?.length > 0) {
+      const status = params.status.join('&status=')
+      const prefix = listParams ? '&' : '?'
+      apiURL = `${apiURL}${prefix}status=${status}`
+    }
+
+    // Build request headers
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
 
     return new Promise((resolve, reject) => {
-      axiosInstance.get(apiURL, { params: params, headers: headers })
+      axiosInstance.get(apiURL, { params: parameters, headers: headers })
         .then((response) => {
-          switch (orderState) {
+          switch (statusType) {
             case 'ONGOING':
               context.commit('updateOngoingOrders', { overwrite: overwrite, data: response.data })
               context.commit('incOngoingOrdersPage')

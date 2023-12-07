@@ -223,11 +223,11 @@ export default {
   methods: {
     async fetchOrders (overwrite = false) {
       const vm = this
-      const params = { state: vm.statusType }
+      const params = vm.filters
       vm.loading = true
       vm.$store.dispatch('ramp/fetchOrders',
         {
-          orderState: vm.statusType,
+          statusType: vm.statusType,
           params: params,
           overwrite: overwrite
         })
@@ -262,7 +262,7 @@ export default {
       vm.openDialog = false
       vm.$store.commit(mutationName, data)
       vm.updateFilters()
-      // vm.filterOrders()
+      vm.resetAndRefetchListings()
       console.log('proceed to filter orders')
     },
     updateFilters () {
