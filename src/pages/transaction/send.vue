@@ -545,6 +545,7 @@ export default {
     selectedAssetMarketPrice () {
       if (!this.assetId) return
 
+      console.log(this.assetId)
       return this.$store.getters['market/getAssetPrice'](this.assetId, this.currentSendPageCurrency())
     },
     currencyOptions () {
