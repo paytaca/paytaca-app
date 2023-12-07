@@ -350,7 +350,8 @@ import {
   parseAssetDenomination,
   getAssetDenomination,
   parseFiatCurrency,
-  convertToBCH
+  convertToBCH,
+  customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
@@ -638,6 +639,7 @@ export default {
     getAssetDenomination,
     parseFiatCurrency,
     convertToBCH,
+    customNumberFormatting,
     getDarkModeClass,
     isDefaultTheme,
     getExplorerLink (txid) {
@@ -718,15 +720,15 @@ export default {
             return
           }
         } else {
-          amount = amountValue
+          amount = this.customNumberFormatting(amountValue)
         }
         if (amountValue !== null) {
           this.sliderStatus = true
-          this.amountFormatted = amount
+          this.amountFormatted = this.customNumberFormatting(amount)
           if (this.setAmountInFiat) {
-            this.sendAmountInFiat = amount
+            this.sendAmountInFiat = this.customNumberFormatting(amount)
           } else {
-            this.sendData.amount = amount
+            this.sendData.amount = this.customNumberFormatting(amount)
           }
           this.sendData.fixedAmount = true
         }
@@ -1249,7 +1251,7 @@ export default {
     },
     onSelectedDenomination (value) {
       this.selectedDenomination = value
-      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount || 0, true))
+      this.amountFormatted = this.customNumberFormatting(getAssetDenomination(value, this.sendData.amount || 0, true))
     },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
