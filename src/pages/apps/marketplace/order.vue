@@ -667,7 +667,7 @@ function fetchPayments() {
     })
 }
 
-const creatingPayment = ref(true)
+const creatingPayment = ref(false)
 const payment = computed(() => {
   return payments.value.find(payment => {
     return payment.status == 'pending' && payment?.totalAmount == order.value.balanceToPay
@@ -801,7 +801,6 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     funding_vout: txData.index,
     funding_sats: txData.value,
   }
-  creatingPayment.value = true
   const dialog = $q.dialog({
     title: 'Verifying payment',
     message: 'Payment received',
@@ -811,6 +810,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     cancel: false,
     class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
   })
+  creatingPayment.value = true
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
     .then(response => {
       fetchOrder()
