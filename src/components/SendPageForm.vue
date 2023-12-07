@@ -156,8 +156,8 @@ export default {
     computingMax: { type: Boolean },
     setAmountInFiat: { type: Boolean },
     selectedAssetMarketPrice: { type: Number },
+    isNFT: { type: Boolean },
 
-    isNFT: { type: Function },
     currentSendPageCurrency: { type: Function },
     convertToFiatAmount: { type: Function },
     setMaximumSendAmount: { type: Function }
