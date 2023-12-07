@@ -160,18 +160,21 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - this.$q.screen.height * 0.17 : this.$q.screen.height - this.$q.screen.height * 0.17,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - this.$q.screen.height * 0.17 : this.$q.screen.height - this.$q.screen.height * 0.17,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (70 + 120) : this.$q.screen.height - (70 + 100),
       viewProfile: false,
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,
       defaultFilters: {
-        sort_type: 'ascending',
-        sort_by: 'created_at',
+        sortType: 'ascending',
+        sortBy: 'created_at',
         status: [],
-        payment_types: [],
-        time_limits: [5, 15, 30, 60, 300, 720, 1440],
-        owned: false
+        selectedPaymentTypes: [],
+        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
+        ownership: {
+          owned: true,
+          notOwned: true
+        }
       },
       filters: {},
       openDialog: false,
@@ -214,7 +217,8 @@ export default {
     }
   },
   async mounted () {
-    this.updateFilters().then(() => { this.resetAndRefetchListings() })
+    this.updateFilters()
+    this.resetAndRefetchListings()
   },
   methods: {
     async fetchOrders (overwrite = false) {
@@ -239,8 +243,8 @@ export default {
         })
     },
     isdefaultFiltersOn (filters) {
-      if (JSON.stringify(this.defaultFilters.payment_types.sort()) !== JSON.stringify(filters.payment_types.sort()) ||
-          JSON.stringify(this.defaultFilters.time_limits.sort()) !== JSON.stringify(filters.time_limits.sort())) {
+      if (JSON.stringify(this.defaultFilters?.payment_types?.sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
+          JSON.stringify(this.defaultFilters?.time_limits?.sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
         return false
       }
       return true
@@ -251,63 +255,29 @@ export default {
     },
     receiveDialog (data) {
       const vm = this
-      const mutationName = vm.statusType === 'ONGOING' ? 'ramp/updateOngoingOrderFilters' : 'ramp/updateCompletedOrderFilters'
+      const mutationName = (
+        vm.statusType === 'ONGOING'
+          ? 'ramp/updateOngoingOrderFilters'
+          : 'ramp/updateCompletedOrderFilters')
       vm.openDialog = false
       vm.$store.commit(mutationName, data)
-      vm.updateFilters().then(() => {
-        // vm.filterOrders()
-        console.log('proceed to filter orders')
-      })
-    },
-    fetchPaymentTypes () {
-      const vm = this
-      return new Promise((resolve, reject) => {
-        vm.$store.dispatch('ramp/fetchPaymentTypes')
-          .then(() => {
-            const paymentTypes = vm.$store.getters['ramp/paymentTypes']
-            vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
-            resolve(paymentTypes)
-          })
-          .catch(error => {
-            reject(error)
-          })
-      })
+      vm.updateFilters()
+      // vm.filterOrders()
+      console.log('proceed to filter orders')
     },
     updateFilters () {
       const vm = this
-      return new Promise((resolve, reject) => {
-        vm.fetchPaymentTypes()
-          .then(() => {
-            const vm = this
-            const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'
-            const savedFilters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
-            console.log('savedFilters:', vm.$store.getters[getterName])
-            let paymentTypes = savedFilters.payment_types
-            if (paymentTypes && paymentTypes.length === 0) {
-              paymentTypes = Array.from(vm.defaultFilters.payment_types)
-            }
-            const filters = {
-              owned: false,
-              status: savedFilters.status,
-              payment_types: paymentTypes,
-              time_limits: savedFilters.time_limits,
-              sort_type: savedFilters.sort_type,
-              sort_by: savedFilters.sort_by
-            }
-            vm.filters = filters
-            vm.defaultFiltersOn = vm.isdefaultFiltersOn(filters)
-            resolve(filters)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            }
-            reject(error)
-          })
-      })
+      const defaultPaymentTypes = vm.$store.getters['ramp/paymentTypes']
+      vm.defaultFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
+
+      const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'
+      const savedFilters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
+      const filters = savedFilters
+      if (filters.paymentTypes?.length === 0) {
+        filters.paymentTypes = Array.from(vm.defaultFilters.payment_types)
+      }
+      vm.filters = filters
+      vm.defaultFiltersOn = vm.isdefaultFiltersOn(filters)
     },
     loadMoreData (_, done) {
       const vm = this

@@ -66,7 +66,10 @@ export default function () {
       status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RFN_PN'],
       payment_types: [],
       time_limits: [5, 15, 30, 60, 300, 720, 1440],
-      owned: false
+      ownership: {
+        owned: true,
+        notOwned: true
+      }
     },
     completedOrderFilters: {
       sort_type: 'descending',
@@ -74,7 +77,10 @@ export default function () {
       status: ['CNCL', 'RLS', 'RFN'],
       payment_types: [],
       time_limits: [5, 15, 30, 60, 300, 720, 1440],
-      owned: false
+      ownership: {
+        owned: true,
+        notOwned: true
+      }
     }
   }
 }

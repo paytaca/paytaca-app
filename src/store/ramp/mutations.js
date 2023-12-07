@@ -14,6 +14,39 @@ export function updateCompletedOrderFilters (state, filters) {
   state.completedOrderFilters = filters
 }
 
+export function resetOrderFilters (state) {
+  resetOngoingOrderFilters(state)
+  resetCompletedOrderFilters(state)
+}
+
+export function resetOngoingOrderFilters (state) {
+  state.ongoingOrderFilters = {
+    sort_type: 'ascending',
+    sort_by: 'created_at',
+    status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RFN_PN'],
+    payment_types: state.paymentTypes.map(p => p.id),
+    time_limits: [5, 15, 30, 60, 300, 720, 1440],
+    ownership: {
+      owned: true,
+      notOwned: true
+    }
+  }
+}
+
+export function resetCompletedOrderFilters (state) {
+  state.completedOrderFilters = {
+    sort_type: 'descending',
+    sort_by: 'resolved_at',
+    status: ['CNCL', 'RLS', 'RFN'],
+    payment_types: state.paymentTypes.map(p => p.id),
+    time_limits: [5, 15, 30, 60, 300, 720, 1440],
+    ownership: {
+      owned: true,
+      notOwned: true
+    }
+  }
+}
+
 export function updateFilterPaymentTypes (state, paymentTypes) {
   updateSellFilterPaymentTypes(state, paymentTypes)
   updateBuyFilterPaymentTypes(state, paymentTypes)
