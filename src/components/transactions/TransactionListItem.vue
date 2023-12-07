@@ -64,7 +64,7 @@
         </span>
         <q-popup-proxy :breakpoint="0">
           <div
-            :class="['q-px-sm q-py-xs', darkMode ? 'pt-dark-label pt-dark' : 'text-black']"
+            :class="['q-px-sm q-py-xs', darkMode ? 'pt-dark-label pt-dark-card' : 'text-black']"
             class="text-caption"
           >
             {{ badge?.text }}
@@ -160,7 +160,7 @@ const badges = computed(() => {
   }
 
   props.transaction?.attributes.forEach(attribute => {
-    const key = attribute?.key.includes('anyhedge') ? 'anyhedge' : attribute?.key
+    const key = attribute?.key
     const value = attribute?.value
     const icon = icons[key]
     

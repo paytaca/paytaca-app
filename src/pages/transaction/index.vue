@@ -475,7 +475,7 @@ export default {
       }
 
       const asset = this.$store.getters['assets/getAssets'][0]
-      // this.formatBCHCardBalance(this.denomination, asset.balance)
+      this.formatBCHCardBalance(this.denomination, asset?.balance || 0)
       return asset
     },
     mainchainAssets () {
@@ -1159,7 +1159,7 @@ export default {
       }
     },
     formatBCHCardBalance (currentDenomination, currentBalance = 0) {
-      const balance = currentBalance || this.bchAsset.balance
+      const balance = currentBalance || this.bchAsset?.balance || 0
       this.parsedBCHBalance = parseAssetDenomination(currentDenomination, {
         id: '',
         balance,
