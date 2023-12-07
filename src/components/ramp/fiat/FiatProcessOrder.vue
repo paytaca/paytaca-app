@@ -74,6 +74,9 @@
       />
     </div>
   </div>
+  <div class="fixed-bottom" style="padding-bottom: 110px; padding-left: 30px;">
+    <q-btn size="md" round color="primary" icon="o_chat" @click="openChat = true"/>
+  </div>
 
   <!-- Dialogs -->
   <div v-if="openDialog" >
@@ -85,6 +88,12 @@
       v-on:submit="handleDialogResponse()"
     />
   </div>
+  <div v-if="openChat">
+    <ChatDialog
+      :openDialog="openChat"
+      v-on:close="openChat = false"
+    />
+  </div>
 </template>
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
@@ -94,6 +103,7 @@ import ReceiveOrder from './ReceiveOrder.vue'
 import EscrowTransferProcess from './EscrowTransferProcess.vue'
 import VerifyEscrowTx from './VerifyEscrowTx.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import ChatDialog from './dialogs/ChatDialog.vue'
 import StandByDisplay from './StandByDisplay.vue'
 import PaymentConfirmation from './PaymentConfirmation.vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -114,6 +124,7 @@ export default {
 
       dialogType: '',
       openDialog: false,
+      openChat: false,
 
       ad: null,
       order: null,
@@ -145,7 +156,8 @@ export default {
     MiscDialogs,
     EscrowTransferProcess,
     VerifyEscrowTx,
-    PaymentConfirmation
+    PaymentConfirmation,
+    ChatDialog
   },
   props: {
     orderData: {
