@@ -127,7 +127,8 @@ import ConfirmSetMax from 'src/pages/transaction/dialog/ConfirmSetMax.vue'
 import {
   parseAssetDenomination,
   getAssetDenomination,
-  parseFiatCurrency
+  parseFiatCurrency,
+  customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
@@ -233,6 +234,7 @@ export default {
     getAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
+    customNumberFormatting,
     onQRScannerClick (value) {
       this.$emit('on-qr-scanner-click', value)
     },
@@ -250,7 +252,7 @@ export default {
     },
     onSelectedDenomination (value) {
       this.selectedDenomination = value
-      this.amountFormatted = parseFloat(getAssetDenomination(value, this.amount || 0, true))
+      this.amountFormatted = this.customNumberFormatting(getAssetDenomination(value, this.amount || 0, true))
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''

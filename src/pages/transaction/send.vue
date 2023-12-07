@@ -290,7 +290,8 @@ import {
   parseAssetDenomination,
   getAssetDenomination,
   parseFiatCurrency,
-  convertToBCH
+  convertToBCH,
+  customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
@@ -590,6 +591,7 @@ export default {
     getAssetDenomination,
     parseFiatCurrency,
     convertToBCH,
+    customNumberFormatting,
     getDarkModeClass,
     isDefaultTheme,
     getExplorerLink (txid) {
@@ -689,16 +691,16 @@ export default {
             return
           }
         } else {
-          amount = amountValue
+          amount = this.customNumberFormatting(amountValue)
         }
 
         if (amountValue !== null) {
           this.sliderStatus = true
-          currentInputExtras.amountFormatted = amount
+          currentInputExtras.amountFormatted = this.customNumberFormatting(amount)
           if (this.setAmountInFiat) {
-            currentInputExtras.sendAmountInFiat = amount
+            currentInputExtras.sendAmountInFiat = this.customNumberFormatting(amount)
           } else {
-            currentRecipient.amount = amount
+            currentRecipient.amount = this.customNumberFormatting(amount)
           }
           currentRecipient.fixedAmount = true
         }
