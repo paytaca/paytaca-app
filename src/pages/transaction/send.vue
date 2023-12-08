@@ -27,8 +27,12 @@
             @paid="onJppPaymentSucess()"
           />
         </div>
-        <div v-else class="q-mt-xl send-form-container">
-          <div class="q-pa-md" style="padding-top: 20px;">
+        <div
+          v-else
+          class="send-form-container"
+          :class="sent ? 'q-mt-md sent' : 'q-mt-xl'"
+        >
+          <div class="q-pa-md">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
             <div v-if="isNFT && !sent" style="width: 150px; margin: 0 auto;">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
@@ -78,7 +82,7 @@
             </div>
           </div>
           <!-- TODO adjust recipientAddress to use multiple client -->
-          <div class="q-px-lg" v-if="sent === false && sendDataMultiple[0].recipientAddress !== ''">
+          <div class="q-px-lg" v-if="!sent && sendDataMultiple[0].recipientAddress !== ''">
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
                 <q-expansion-item
@@ -181,12 +185,12 @@
               :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
               :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}"
             >
-              <p style="font-size: 26px;">{{ $t('SuccessfullySent') }}</p>
+              <p style="font-size: 22px;">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
-                <p style="font-size: 28px; margin-top: -10px;">{{ $route.query.name }}</p>
+                <p style="font-size: 25px; margin-top: -10px;">{{ $route.query.name }}</p>
               </template>
               <template v-else>
-                <p style="font-size: 28px; margin-top: -10px;">
+                <p style="font-size: 25px; margin-top: -10px;">
                   {{ isCashToken ? ctTokenAmount : totalAmountSent }} {{ asset.symbol }}
                 </p>
                 <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
@@ -194,9 +198,9 @@
                 </p>
               </template>
 
-              <p style="font-size: 24px;">to</p>
+              <p style="font-size: 22px; margin: -10px 0 5px 0">to</p>
               <template v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
-                <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
+                <div style="overflow-wrap: break-word; font-size: 16px;" class="q-px-xs">
                   {{ recipient.recipientAddress }}
                 </div>
               </template>
@@ -205,8 +209,8 @@
                 <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
                 <q-separator color="grey"/>
               </div>
-              <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
-                txid: {{ txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
+              <div style="overflow-wrap: break-word; font-size: 16px; margin-top: 20px;" class="q-px-xs">
+                txid: {{ txid.slice(0, 8) }}<span style="font-size: 18px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
                 <template v-if="walletType === 'SmartBCH'">
                   <a
                     style="text-decoration: none; color: #3b7bf6;"
@@ -1647,6 +1651,10 @@ export default {
   .send-form-container {
     max-height: 65vh;
     overflow-y: scroll;
+
+    &.sent {
+      max-height: 80vh;
+    }
 
     .send-form {
       font-size: 26px !important;
