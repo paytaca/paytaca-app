@@ -505,7 +505,10 @@ const additional = [
     SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?",
     Yes: "YES",
     No: "NO",
-    SetAmountIn: "Set amount in"
+    SetAmountIn: "Set amount in",
+    Recipient: "Recipient",
+    To: "to",
+    PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through."
   }
 ]
 

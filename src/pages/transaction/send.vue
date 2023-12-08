@@ -91,7 +91,7 @@
                   dense-toggle
                   class="q-expansion-item-recipient"
                   v-model="expandedItems[`R${index + 1}`]"
-                  :label="`Recipient #${index + 1}`"
+                  :label="`${$t('Recipient')} #${index + 1}`"
                   :class="getDarkModeClass(darkMode)"
                 >
                   <SendPageForm
@@ -198,7 +198,7 @@
                 </p>
               </template>
 
-              <p style="font-size: 22px; margin: -10px 0 5px 0">to</p>
+              <p style="font-size: 22px; margin: -10px 0 5px 0">{{ $t('To') }}</p>
               <template v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
                 <div style="overflow-wrap: break-word; font-size: 16px;" class="q-px-xs">
                   {{ recipient.recipientAddress }}
@@ -250,11 +250,8 @@
                 <q-item-section avatar style="min-width:unset;">
                   <q-icon name="warning" size="1.5em"/>
                 </q-item-section>
-                <!-- TODO add translation -->
                 <q-item-section>
-                  <q-item-label>
-                    Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through.
-                  </q-item-label>
+                  <q-item-label>{{ $t('PaymentNotYetAcknowledged') }}</q-item-label>
                 </q-item-section>
               </q-item>
             </div>

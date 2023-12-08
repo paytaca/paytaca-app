@@ -257,6 +257,7 @@ export default {
   PaymentAcknowledged: "Payment acknowledged",
   PaymentDetails: "Payment Details",
   PaymentDetailsNotFound: "Payment details not found",
+  PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through.",
   PaymentOTP: "Payment OTP",
   PaymentRequestIsExpired: "Payment request is expired",
   PaytacaMotto: "YOUR MONEY. YOUR CONTROL.",

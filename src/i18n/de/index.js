@@ -239,6 +239,7 @@ export default {
   PaymentAcknowledged: "Zahlung bestätigt",
   PaymentDetails: "Zahlungsdetails",
   PaymentDetailsNotFound: "Zahlungsdetails nicht gefunden",
+  PaymentNotYetAcknowledged: "Zahlung noch nicht vom Zahlungsserver bestätigt.Stellen Sie sicher, dass Sie sich mit dem Empfänger erkundigen, ob es durchgeht.",
   PaymentOTP: "Zahlung OTP",
   PaymentRequestIsExpired: "Die Zahlungsanfrage ist abgelaufen",
   PaytacaMotto: "DEIN GELD.Ihre Kontrolle.",

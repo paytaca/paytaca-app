@@ -257,6 +257,7 @@ export default {
   PaymentAcknowledged: "付款已確認",
   PaymentDetails: "付款詳情",
   PaymentDetailsNotFound: "找不到付款細節",
+  PaymentNotYetAcknowledged: "付款服務器尚未確認付款。確保與收件人進行檢查是否通過。",
   PaymentOTP: "付款OTP",
   PaymentRequestIsExpired: "付款請求已過期",
   PaytacaMotto: "你的錢。您的控制。",

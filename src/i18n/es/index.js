@@ -239,6 +239,7 @@ export default {
   PaymentAcknowledged: "Pago reconocido",
   PaymentDetails: "Detalles del pago",
   PaymentDetailsNotFound: "Detalles de pago no encontrados",
+  PaymentNotYetAcknowledged: "Pago aún no reconocido por el servidor de pago.Asegúrese de consultar con el destinatario si pasó.",
   PaymentOTP: "Pago OTP",
   PaymentRequestIsExpired: "La solicitud de pago está expirada",
   PaytacaMotto: "TU DINERO.Tu control.",
