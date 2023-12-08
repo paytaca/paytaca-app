@@ -721,6 +721,12 @@ export default {
         } else {
           amount = amountValue
         }
+
+        if (content.includes('?')) {
+          amountValue = content.split('?')[1]
+          amount = amountValue
+        }
+        console.log(amountValue)
         if (amountValue !== null) {
           this.sliderStatus = true
           this.amountFormatted = amount

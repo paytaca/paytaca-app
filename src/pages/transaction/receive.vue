@@ -300,6 +300,7 @@ export default {
       } else {
         // Enabled submit slider
         this.customKeyboardState = 'dismiss'
+        this.readonlyState = false
       }
     },
     getDarkModeClass,
