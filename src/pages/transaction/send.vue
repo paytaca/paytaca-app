@@ -113,6 +113,7 @@
                     @on-balance-exceeded="onBalanceExceeded"
                     @on-recipient-input="onRecipientInput"
                     @on-empty-recipient="onEmptyRecipient"
+                    @on-selected-denomination-change="onSelectedDenomination"
                     :key="generateKeys(index)"
                   />
                 </q-expansion-item>
@@ -191,7 +192,11 @@
               </template>
               <template v-else>
                 <p style="font-size: 25px; margin-top: -10px;">
-                  {{ isCashToken ? ctTokenAmount : totalAmountSent }} {{ asset.symbol }}
+                  {{
+                    isCashToken
+                      ? ctTokenAmount
+                      : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
+                  }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
                 <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
                   ({{ parseFiatCurrency(sendAmountInFiat, currentSendPageCurrency()) }})
@@ -413,7 +418,8 @@ export default {
         balanceExceeded: false,
         scannedRecipientAddress: false,
         setMax: false,
-        emptyRecipient: false
+        emptyRecipient: false,
+        selectedDenomination: 'BCH'
       }],
 
       // TODO reconsult
@@ -811,11 +817,13 @@ export default {
       // Set the new amount
       if (this.setAmountInFiat) {
         currentInputExtras.sendAmountInFiat = currentAmount
-        const converted = convertToBCH(this.denomination, this.convertFiatToSelectedAsset(currentAmount))
+        const converted = convertToBCH(currentInputExtras.selectedDenomination, this.convertFiatToSelectedAsset(currentAmount))
         currentRecipient.amount = converted
-        currentInputExtras.amountFormatted = converted
+        currentInputExtras.amountFormatted = this.customNumberFormatting(
+          getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
+        )
       } else {
-        currentRecipient.amount = convertToBCH(this.selectedDenomination, currentAmount)
+        currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
         currentInputExtras.amountFormatted = currentAmount
       }
     },
@@ -1353,6 +1361,9 @@ export default {
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
+    },
+    onSelectedDenomination (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
     }
   },
 

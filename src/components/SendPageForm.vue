@@ -170,7 +170,8 @@ export default {
     'on-input-focus',
     'on-balance-exceeded',
     'on-recipient-input',
-    'on-empty-recipient'
+    'on-empty-recipient',
+    'on-selected-denomination-change'
   ],
 
   data () {
@@ -265,6 +266,9 @@ export default {
       // TODO adjust balance from previously-entered amounts
       this.balanceExceeded = value > this.asset.balance
       this.$emit('on-balance-exceeded', this.balanceExceeded)
+    },
+    selectedDenomination: function (value) {
+      this.$emit('on-selected-denomination-change', this.denomination)
     }
   }
 }
