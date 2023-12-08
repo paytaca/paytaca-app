@@ -27,6 +27,7 @@
         round
         size="lg"
         class="btn-scan button text-white bg-grad"
+        style="margin-bottom: 20px;"
         icon="mdi-qrcode"
         @click="onQRScannerClick(true), onInputFocus(index)"
       />

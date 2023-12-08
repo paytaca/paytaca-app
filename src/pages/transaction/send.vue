@@ -81,19 +81,49 @@
               {{ scanner.decodedContent }}
             </div>
           </div>
-          <!-- TODO adjust recipientAddress to use multiple client -->
-          <div class="q-px-lg" v-if="!sent && sendDataMultiple[0].recipientAddress !== ''">
+          <div
+            v-if="!sent && sendDataMultiple[0].recipientAddress !== ''"
+            class="q-px-lg"
+            :style="isNFT ? 'margin-top: 25px' : ''"
+          >
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
-                <q-expansion-item
-                  default-opened
-                  dense
-                  dense-toggle
-                  class="q-expansion-item-recipient"
-                  v-model="expandedItems[`R${index + 1}`]"
-                  :label="`${$t('Recipient')} #${index + 1}`"
-                  :class="getDarkModeClass(darkMode)"
-                >
+                <template v-if="isMultipleRecipient">
+                  <q-expansion-item
+                    default-opened
+                    dense
+                    dense-toggle
+                    class="q-expansion-item-recipient"
+                    v-model="expandedItems[`R${index + 1}`]"
+                    :label="`${$t('Recipient')} #${index + 1}`"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <SendPageForm
+                      :recipient="sendDataMultiple[index]"
+                      :inputExtras="inputExtras[index]"
+                      :asset="asset"
+                      :index="index"
+                      :showQrScanner="showQrScanner"
+                      :computingMax="computingMax"
+                      :setAmountInFiat="setAmountInFiat"
+                      :selectedAssetMarketPrice="selectedAssetMarketPrice"
+                      :isNFT="isNFT"
+                      :currentSendPageCurrency="currentSendPageCurrency"
+                      :convertToFiatAmount="convertToFiatAmount"
+                      :setMaximumSendAmount="setMaximumSendAmount"
+                      @on-qr-scanner-click="onQRScannerClick"
+                      @read-only-state="readonlyState"
+                      @on-input-focus="onInputFocus"
+                      @on-balance-exceeded="onBalanceExceeded"
+                      @on-recipient-input="onRecipientInput"
+                      @on-empty-recipient="onEmptyRecipient"
+                      @on-selected-denomination-change="onSelectedDenomination"
+                      :key="generateKeys(index)"
+                    />
+                  </q-expansion-item>
+                </template>
+
+                <template v-else>
                   <SendPageForm
                     :recipient="sendDataMultiple[index]"
                     :inputExtras="inputExtras[index]"
@@ -116,7 +146,7 @@
                     @on-selected-denomination-change="onSelectedDenomination"
                     :key="generateKeys(index)"
                   />
-                </q-expansion-item>
+                </template>
               </q-list>
 
               <div
@@ -518,6 +548,7 @@ export default {
       return currency && currency.symbol
     },
     showSlider () {
+      if (this.sliderStatus && this.isNFT) return true
       return (
         !this.sending &&
         !this.sent &&
@@ -540,31 +571,20 @@ export default {
       if (this.walletType === sBCHWalletType) return false
       return (
         this.showSlider &&
+        !this.isNFT &&
         this.sendDataMultiple.length < 5 &&
         // check if user clicked MAX on any recipient (disable button if yes)
         this.inputExtras
           .map(data => data.setMax)
           .findIndex(i => i) < 0
       )
+    },
+    isMultipleRecipient () {
+      return !(this.isNFT || this.walletType === sBCHWalletType)
     }
   },
 
   watch: {
-    // TODO recheck and test this
-    'sendDataMultiple[0].recipientAddress': function (address) {
-      const amount = this.getBIP21Amount(address)
-      if (!Number.isNaN(amount)) {
-        this.sendDataMultiple[0].amount = amount
-        this.sendDataMultiple[0].fixedAmount = true
-        this.sendDataMultiple[0].recipientAddress = address.split('?')[0]
-        this.sendDataMultiple[0].fixedRecipientAddress = true
-        this.sliderStatus = true
-      }
-
-      if (address && this.isNFT) {
-        this.sliderStatus = true
-      }
-    },
     setAmountInFiat: function (value) {
       if (value) {
         this.balanceExceeded = false
@@ -711,6 +731,10 @@ export default {
           }
           currentRecipient.fixedAmount = true
         }
+
+        // check for BIP21
+        // TODO recheck and test this part
+        this.onBIP21Amount(address)
       }
     },
     handleJPP(paymentUri) {
@@ -1364,6 +1388,20 @@ export default {
     },
     onSelectedDenomination (value) {
       this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
+    },
+    onBIP21Amount (value) {
+      const amount = this.getBIP21Amount(value)
+      if (!Number.isNaN(amount)) {
+        this.sendDataMultiple[0].amount = amount
+        this.sendDataMultiple[0].fixedAmount = true
+        this.sendDataMultiple[0].recipientAddress = value.split('?')[0]
+        this.sendDataMultiple[0].fixedRecipientAddress = true
+        this.sliderStatus = true
+      }
+
+      if (value && this.isNFT) {
+        this.sliderStatus = true
+      }
     }
   },
 
