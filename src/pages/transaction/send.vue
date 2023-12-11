@@ -543,7 +543,7 @@ export default {
       return currency && currency.symbol
     },
     showSlider () {
-      if (this.sliderStatus && this.isNFT) return true
+      if (this.sliderStatus && this.isNFT && !this.sending) return true
       return (
         !this.sending &&
         !this.sent &&
@@ -1267,6 +1267,8 @@ export default {
           .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
       }
+
+      vm.sending = false
     },
     promiseResponseHandler (result, walletType) {
       const vm = this
