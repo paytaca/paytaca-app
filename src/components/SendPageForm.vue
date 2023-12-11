@@ -8,8 +8,8 @@
         @focus="onInputFocus(index)"
         @blur="onEmptyRecipient"
         class="recipient-input"
-        :disabled="disableRecipientInput || setAmountInFiat"
-        :readonly="disableRecipientInput || setAmountInFiat"
+        :disabled="disableRecipientInput"
+        :readonly="disableRecipientInput"
         :error="emptyRecipient"
         :error-message="emptyRecipient ? $t('EmptyRecipient') : ''"
         :dark="darkMode"
@@ -103,10 +103,12 @@
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container">
-      <!-- TODO adjust balance from previously-entered amounts -->
-      {{ parseAssetDenomination(selectedDenomination, asset) }}
+      {{ parseAssetDenomination(selectedDenomination, {
+        ...asset,
+        balance: currentWalletBalance
+      }) }}
       <template v-if="asset.id === 'bch' && setAmountInFiat">
-        {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
+        {{ `= ${parseFiatCurrency(convertToFiatAmount(currentWalletBalance), currentSendPageCurrency())}` }}
       </template>
       <a
         href="#"
@@ -159,6 +161,7 @@ export default {
     setAmountInFiat: { type: Boolean },
     selectedAssetMarketPrice: { type: Number },
     isNFT: { type: Boolean },
+    currentWalletBalance: { type: Number },
 
     currentSendPageCurrency: { type: Function },
     convertToFiatAmount: { type: Function },
@@ -264,11 +267,10 @@ export default {
 
   watch: {
     amount: function (value) {
-      // TODO adjust balance from previously-entered amounts
-      this.balanceExceeded = value > this.asset.balance
+      this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
       this.$emit('on-balance-exceeded', this.balanceExceeded)
     },
-    selectedDenomination: function (value) {
+    selectedDenomination: function (_value) {
       this.$emit('on-selected-denomination-change', this.denomination)
     }
   }

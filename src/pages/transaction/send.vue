@@ -108,6 +108,7 @@
                       :setAmountInFiat="setAmountInFiat"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
+                      :currentWalletBalance="currentWalletBalance"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :convertToFiatAmount="convertToFiatAmount"
                       :setMaximumSendAmount="setMaximumSendAmount"
@@ -452,13 +453,6 @@ export default {
         selectedDenomination: 'BCH'
       }],
 
-      // TODO reconsult
-      balance: {
-        walletBalance: 0,
-        previousBalance: 0,
-        currentBalance: 0
-      },
-
       sent: false,
       sending: false,
       txid: '',
@@ -484,7 +478,8 @@ export default {
       payloadAmount: 0,
       expandedItems: {},
       currentActiveRecipientIndex: 0,
-      totalAmountSent: 0
+      totalAmountSent: 0,
+      currentWalletBalance: 0
     }
   },
 
@@ -781,8 +776,12 @@ export default {
     },
     readonlyState (state) {
       this.amountInputState = state
-      if (this.amountInputState && this.$store.getters['global/getConnectivityStatus']) {
-        this.customKeyboardState = 'show'
+      if (this.amountInputState) {
+        if (this.$store.getters['global/getConnectivityStatus']) {
+          this.customKeyboardState = 'show'
+        }
+      } else {
+        this.adjustWalletBalance()
       }
     },
     convertToFiatAmount (amount) {
@@ -875,6 +874,7 @@ export default {
         // Enabled submit slider
         this.sliderStatus = !currentInputExtras.balanceExceeded
         this.customKeyboardState = 'dismiss'
+        this.adjustWalletBalance()
       }
     },
     slideToSubmit ({ reset }) {
@@ -967,7 +967,6 @@ export default {
       }
     },
     async setMaximumSendAmount () {
-      // TODO adjust balance from previously-entered amounts (reconfirm)
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       currentInputExtras.setMax = true
@@ -1000,7 +999,6 @@ export default {
           currentInputExtras.sendAmountInFiat = convertedFiat
         }
       } else {
-        // TODO additional testing + multiple recipients
         if (this.asset.id.startsWith('ct/')) {
           currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
         } else {
@@ -1017,8 +1015,8 @@ export default {
       this.inputExtras = remainingInputExtras
       this.currentActiveRecipientIndex = 0
       this.expandedItems = { R1: true }
-
-      this.sliderStatus = true // TODO readjust when recipient field is empty
+      this.adjustWalletBalance()
+      this.sliderStatus = true
     },
     getBIP21Amount (bip21Uri) {
       const addressParse = new URLSearchParams(bip21Uri.split('?')[1])
@@ -1339,7 +1337,8 @@ export default {
           balanceExceeded: false,
           scannedRecipientAddress: false,
           setMax: false,
-          emptyRecipient: true
+          emptyRecipient: true,
+          selectedDenomination: 'BCH'
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
@@ -1370,25 +1369,6 @@ export default {
         input.amountFormatted = 0
       })
     },
-    generateKeys (index) {
-      const keys = []
-      keys.push(...Object.entries(this.sendDataMultiple[index]))
-      keys.push(...Object.entries(this.inputExtras[index]))
-      return keys
-    },
-    onBalanceExceeded (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
-    },
-    onRecipientInput (value) {
-      this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
-      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value === ''
-    },
-    onEmptyRecipient (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
-    },
-    onSelectedDenomination (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
-    },
     onBIP21Amount (value) {
       const amount = this.getBIP21Amount(value)
       if (!Number.isNaN(amount)) {
@@ -1402,6 +1382,39 @@ export default {
       if (value && this.isNFT) {
         this.sliderStatus = true
       }
+    },
+    generateKeys (index) {
+      const keys = []
+      keys.push(...Object.entries(this.sendDataMultiple[index]))
+      keys.push(...Object.entries(this.inputExtras[index]))
+      return keys
+    },
+    adjustWalletBalance () {
+      const isToken = this.asset.id.startsWith('ct/')
+      const tokenDenominator = 10 ** this.asset.decimals
+
+      const totalAmount = this.sendDataMultiple
+        .map(a => Number(a.amount))
+        .reduce((acc, curr) => acc + curr, 0)
+        .toFixed(8)
+      const walletBalance = isToken ? this.asset.balance / tokenDenominator : this.asset.balance
+
+      this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
+      // for tokens ('ct/'), convert back to original decimals
+      if (isToken) this.currentWalletBalance *= tokenDenominator
+    },
+    onBalanceExceeded (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+    },
+    onRecipientInput (value) {
+      this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value === ''
+    },
+    onEmptyRecipient (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
+    },
+    onSelectedDenomination (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
     }
   },
 
@@ -1445,8 +1458,7 @@ export default {
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
     vm.selectedDenomination = vm.denomination
-    vm.balance.walletBalance = vm.asset.balance
-    vm.balance.currentBalance = vm.asset.balance
+    vm.currentWalletBalance = vm.asset.balance
   },
 
   unmounted () {
