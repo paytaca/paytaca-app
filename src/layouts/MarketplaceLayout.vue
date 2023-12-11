@@ -178,6 +178,13 @@ export default {
       loadAppPromise.value = new Promise(async resolve => {
         try {
           loadingApp.value = true
+
+          await $store.dispatch('marketplace/refetchCustomerData')
+            .then(() => {
+              const customerId = $store.getters['marketplace/customer']?.id
+              marketplacePushNotificationsManager.subscribe(customerId)
+            })
+
           const signerData = await getSignerData()
           const walletHash = signerData?.value?.split(':')[0]
           const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
@@ -187,12 +194,6 @@ export default {
               return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
             })
           }
-  
-          await $store.dispatch('marketplace/refetchCustomerData')
-            .then(() => {
-              const customerId = $store.getters['marketplace/customer']?.id
-              marketplacePushNotificationsManager.subscribe(customerId)
-            })
           $store.dispatch('marketplace/refetchCustomerLocations')
           resolve()
         } catch(error) {
