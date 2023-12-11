@@ -116,13 +116,6 @@
           >
             <template v-slot:append>
               <div style="font-size: 15px;" class="q-pr-sm">{{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}</div>
-              <q-icon
-                name="arrow_forward_ios"
-                style="color: #3b7bf6;"
-                class="button button-icon"
-                :class="getDarkModeClass(darkMode)"
-                @click.prevent="setReceiveAmount('gen')"
-              />
             </template>
           </q-input>
         </div>
@@ -137,7 +130,7 @@
     :custom-keyboard-state="customKeyboardState"
     v-on:addKey="setAmount"
     v-on:makeKeyAction="makeKeyAction"
-          />
+  />
 </template>
 
 <script>
@@ -301,6 +294,9 @@ export default {
         this.tempAmount = ''
       } else {
         // Enabled submit slider
+        if (this.tempAmount) {
+          this.setReceiveAmount('gen')
+        }
         this.customKeyboardState = 'dismiss'
         this.readonlyState = false
       }
