@@ -545,7 +545,6 @@ export default {
     selectedAssetMarketPrice () {
       if (!this.assetId) return
 
-      console.log(this.assetId)
       return this.$store.getters['market/getAssetPrice'](this.assetId, this.currentSendPageCurrency())
     },
     currencyOptions () {
@@ -722,11 +721,10 @@ export default {
           amount = amountValue
         }
 
-        if (content.includes('?')) {
-          amountValue = content.split('?')[1]
+        if (content.includes('?amount')) {
+          amountValue = content.split('?amount=')[1]
           amount = amountValue
         }
-        console.log(amountValue)
         if (amountValue !== null) {
           this.sliderStatus = true
           this.amountFormatted = amount

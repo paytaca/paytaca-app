@@ -70,12 +70,16 @@
                 />
               </div>
             </span>
-            <div v-if="amount" class="text-center" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
-              <div  style="font-size: 18px; letter-spacing: 1px;">
-                You Will Receive
-              </div>
-              <div style="font-size: 15px; letter-spacing: 1px">
-                {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
+
+            <div v-if="amount" class="text-center">
+              <q-separator class="q-mb-sm q-mx-md" style="height: 2px;"/>
+              <div :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+                <div style="font-size: 15px; letter-spacing: 1px;">
+                  You Will Receive
+                </div>
+                <div class="text-weight-light" style="font-size: 18px; letter-spacing: 1px">
+                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
+                </div>
               </div>
             </div>
             <div v-if="asset.symbol === 'BCH'" @click="amountDialog = true" class="text-center" style="font-size: 18px ;color: #3b7bf6;">
@@ -225,7 +229,7 @@ export default {
         tempAmount = this.convertFiatToSelectedAsset(this.amount)
       }
 
-      tempAddress += this.amount ? '?' + tempAmount : ''
+      tempAddress += this.amount ? '?amount=' + tempAmount : ''
 
       return tempAddress
     }
@@ -239,7 +243,6 @@ export default {
       return computedBalance.toFixed(8)
     },
     setReceiveAmount (state) {
-      console.log(state)
       if (state !== 'close') {
         this.amount = this.tempAmount
       }
@@ -295,7 +298,6 @@ export default {
         this.tempAmount = String(this.tempAmount).slice(0, -1)
       } else if (action === 'delete') {
         // Delete
-        console.log('delete')
         this.tempAmount = ''
       } else {
         // Enabled submit slider
@@ -416,11 +418,7 @@ export default {
         tempAmount = this.convertFiatToSelectedAsset(this.amount)
       }
 
-      tempAddress += this.amount ? '?' + tempAmount : ''
-      console.log(tempAddress)
-      // if (this.setAmountInFiat && this.amount) {
-      //   console.log(this.convertFiatToSelectedAsset(this.amount))
-      // }
+      tempAddress += this.amount ? '?amount=' + tempAmount : ''
 
       this.$copyText(tempAddress)
       this.$q.notify({
