@@ -10,24 +10,7 @@
           </div>
           <div class="text-center subtext md-font-size">ORDER #{{ order.id }}</div>
         </div>
-        <div class="q-mx-sm">
-          <q-card class="br-15 q-mx-md q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
-            <div class="q-mx-lg q-my-xs row justify-between">
-              <div>
-                <div class="md-font-size">{{ order?.owner?.name }}</div>
-                <q-rating
-                  readonly
-                  :model-value="order?.owner?.rating"
-                  :v-model="order.owner?.rating"
-                  size="1.1em"
-                  color="yellow-9"
-                  icon="star"/>
-                <span class="q-mx-xs sm-font-size">({{ order.owner.rating ? parseFloat(order.owner.rating).toFixed(1) : 0 }})</span>
-              </div>
-              <div class="q-my-sm">
-                <q-btn unelevated ripple dense size="md" icon="message"/>
-              </div>
-            </div>
+        <div class="q-mx-md">
             <q-separator class="q-my-sm" :dark="darkMode"/>
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
               <span>Locked Price</span>
@@ -53,7 +36,7 @@
               <span>Status</span>
               <span class="text-nowrap q-ml-xs" :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status.label }}</span>
             </div>
-          </q-card>
+          <!-- </q-card> -->
         </div>
 
         <div class="q-mt-md q-mx-lg q-px-md">
@@ -89,7 +72,7 @@
             rounded
             no-caps
             label='CONFIRM'
-            class="q-space text-white"
+            class="q-space text-white q-mx-md"
             color="blue-6"
             @click="$emit('confirm')"
           />
@@ -99,7 +82,7 @@
             rounded
             no-caps
             label='DECLINE'
-            class="q-space text-white"
+            class="q-space text-white q-mx-md"
             color="white"
             text-color="black"
             @click="$emit('cancel')"
@@ -123,7 +106,7 @@ export default {
       byFiat: false,
       amount: null,
       price: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 235 : this.$q.screen.height - 170
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (145 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   props: {

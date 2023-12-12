@@ -24,11 +24,17 @@ export function resetOngoingOrderFilters (state) {
     sort_type: 'ascending',
     sort_by: 'created_at',
     status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RFN_PN'],
+    appealed: true,
+    expired: true,
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440],
     ownership: {
       owned: true,
       notOwned: true
+    },
+    trade_type: {
+      buy: true,
+      sell: true
     }
   }
 }
@@ -43,6 +49,10 @@ export function resetCompletedOrderFilters (state) {
     ownership: {
       owned: true,
       notOwned: true
+    },
+    trade_type: {
+      buy: true,
+      sell: true
     }
   }
 }

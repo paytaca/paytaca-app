@@ -377,8 +377,8 @@ export default {
     },
     paymentCountdown () {
       const vm = this
-      if (vm.order.expiration_date) {
-        const expiryDate = new Date(vm.order.expiration_date)
+      if (vm.order.expires_at) {
+        const expiryDate = new Date(vm.order.expires_at)
         vm.timer = setInterval(function () {
           const now = new Date().getTime()
           const distance = expiryDate - now

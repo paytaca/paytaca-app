@@ -346,8 +346,7 @@ export default {
     },
     paymentCountdown () {
       const vm = this
-
-      const expiryDate = new Date(vm.order.expiration_date)
+      const expiryDate = new Date(vm.order.expires_at)
 
       vm.timer = setInterval(function () {
         const now = new Date().getTime()

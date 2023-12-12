@@ -238,6 +238,7 @@ export async function fetchOrders (context, { statusType = null, params = null, 
     let apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
 
     // Build request parameters
+    console.log('params:', params)
     let owned = params.ownership.owned
     if (params.ownership.owned === params.ownership.notOwned) {
       owned = null
@@ -248,8 +249,19 @@ export async function fetchOrders (context, { statusType = null, params = null, 
       status_type: statusType,
       sort_type: params.sort_type,
       sort_by: params.sort_by,
-      owned: owned
+      owned: owned,
+      appealed: params.appealed,
+      expired: params.expired
     }
+    if (params.trade_type.buy !== params.trade_type.sell) {
+      if (params.trade_type.buy) {
+        parameters.trade_type = 'BUY'
+      }
+      if (params.trade_type.sell) {
+        parameters.trade_type = 'SELL'
+      }
+    }
+
     let listParams = false
     if (params.payment_types?.length > 0) {
       const paymentTypes = params.payment_types.join('&payment_types=')
@@ -266,6 +278,7 @@ export async function fetchOrders (context, { statusType = null, params = null, 
       const status = params.status.join('&status=')
       const prefix = listParams ? '&' : '?'
       apiURL = `${apiURL}${prefix}status=${status}`
+      listParams = true
     }
 
     // Build request headers

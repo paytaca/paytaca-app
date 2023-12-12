@@ -71,11 +71,11 @@
                             <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                           </div>
                           <div class="text-right">
-                            <span class="row subtext" v-if="listing.status && isCompleted(listing.status.label) == false && listing.expiration_date != null">
-                              <span v-if="isExpired(listing.expiration_date) == false" class="q-mr-xs">Expires in {{ formatExpiration(listing.expiration_date) }}</span>
+                            <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                              <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
                             </span>
                             <div
-                              v-if="listing.expiration_date && isExpired(listing.expiration_date) && statusType === 'ONGOING'"
+                              v-if="listing.expires_at && isExpired(listing.expires_at) && statusType === 'ONGOING'"
                               class="bold-text subtext md-font-size" style="color: red">
                               EXPIRED
                             </div>
@@ -108,7 +108,7 @@
       v-on:back="viewProfile = false"
     />
     <div v-if="openDialog">
-      <MiscDialogs
+      <FilterDialog
         :type="dialogType"
         :filters="filters"
         @back="openDialog = false"
@@ -120,7 +120,7 @@
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import FooterLoading from './FooterLoading.vue'
-import MiscDialogs from './dialogs/MiscDialogs.vue'
+import FilterDialog from './dialogs/FilterDialog.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -137,8 +137,8 @@ export default {
   components: {
     FiatProcessOrder,
     FiatProfileCard,
-    MiscDialogs,
-    FooterLoading
+    FooterLoading,
+    FilterDialog
   },
   props: {
     initStatusType: {
@@ -236,9 +236,12 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
           }
         })
     },

@@ -74,8 +74,8 @@
       />
     </div>
   </div>
-  <div class="fixed-bottom" style="padding-bottom: 110px; padding-left: 30px;">
-    <q-btn size="md" round color="primary" icon="o_chat" @click="openChat = true"/>
+  <div class="fixed" style="right: 23px; bottom: 100px;">
+    <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
   </div>
 
   <!-- Dialogs -->
@@ -189,13 +189,10 @@ export default {
     },
     isExpired () {
       const vm = this
-
       const now = new Date().getTime()
-      const expiryDate = new Date(vm.order.expiration_date)
-
+      const expiryDate = new Date(vm.order.expires_at)
       const exception = ['Released', 'Canceled']
-
-      if (expiryDate < now && vm.order.expiration_date && !exception.includes(vm.order.status.label)) {
+      if (expiryDate < now && vm.order.expires_at && !exception.includes(vm.order.status.label)) {
         return true
       } else {
         return false

@@ -325,6 +325,13 @@
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not Owned</q-badge>
           </div>
         </div>
+        <div class="q-pt-md">
+          <div class="sm-font-size bold-text">Trade Type</div>
+          <div class="q-pt-xs q-gutter-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.buy" @click="setOrderFilter('tradeBuy', !orderFilters.tradeType?.buy)">Buy</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.sell" @click="setOrderFilter('tradeSell', !orderFilters.tradeType?.sell)">Sell</q-badge>
+          </div>
+        </div>
         <div v-if="orderFilters.status" class="q-pt-md">
           <div class="sm-font-size bold-text">Status</div>
           <div class="q-gutter-sm q-pt-sm">
@@ -712,6 +719,10 @@ export default {
         ownership: {
           owned: true,
           notOwned: true
+        },
+        trade_type: {
+          buy: true,
+          sell: true
         }
       },
 
