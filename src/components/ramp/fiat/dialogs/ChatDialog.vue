@@ -6,8 +6,11 @@
   >
    <!--Title  -->
   <q-card class="br-15" :style="`height: ${maxHeight}px;`">
-    <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
-      <div class="q-pl-lg" style="font-size: 25px; font-weight: 500;">Chat</div>
+    <div class="row items-center justify-between q-mr-lg q-pb-xs">
+      <div class="q-pl-lg q-mt-md">
+        <div style="font-size: 25px; font-weight: 500;">Chat</div>
+        <div style="font-size: 12px;" class="text-grey-5">(You, Ellie)</div>
+      </div>
       <q-btn
         rounded
         no-caps
@@ -21,7 +24,7 @@
 
     <!-- Convo -->
     <q-pull-to-refresh @refresh="refreshData">
-      <q-list ref="scrollTargetRef" :style="`height: ${maxHeight - 120}px`" style="overflow: auto;" >
+      <q-list ref="scrollTargetRef" :style="`height: ${maxHeight - 140}px`" style="overflow: auto;" >
         <q-infinite-scroll
             ref="infiniteScroll"
             :items="convo"
@@ -59,6 +62,18 @@
               </q-item>
             </div>
           </div>
+          <div v-if="message" class="q-px-sm q-mx-lg">
+            <div style="width: 100%;">
+              <q-chat-message
+                name="me"
+                sent
+                :avatar="`https://ui-avatars.com/api/?background=random&name=${owner.name}&color=fffff`"
+                bg-color="blue-5"
+              >
+                <q-spinner-dots color="white" size="2rem" />
+              </q-chat-message>
+            </div>
+          </div>
         </q-infinite-scroll>
       </q-list>
     </q-pull-to-refresh>
@@ -77,7 +92,7 @@
             typingMessage()
           }"
         ></q-input>
-      <q-icon color="grey-7" size="lg" name='sym_o_send' @click="sendMessage"/>&nbsp;
+      <q-icon :color="darkMode ? 'grey-3' : 'primary'" size="lg" name='sym_o_send' @click="sendMessage"/>&nbsp;
     </div>
   </q-card>
   </q-dialog>
@@ -87,12 +102,29 @@ import { ref } from 'vue'
 import { debounce } from 'quasar'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    const addrRef = ref(null)
+    return {
+      scrollTargetRef,
+      addrRef,
+
+      reset () {
+        addrRef.value.resetValidation()
+      },
+      blur () {
+        addrRef.value.blur()
+      }
+    }
+  },
   data () {
     return {
       openChat: this.openDialog,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
 
+      message: '',
+      owner: { id: 1, name: 'Nikki' },
       isloaded: false,
       isTyping: false,
       convo: {
@@ -139,7 +171,14 @@ export default {
             text: 'Weeekldkalkd',
             stamp: '50 minutes ago',
             owner: false
-          }
+          },
+          {
+            id: 7,
+            sender: { id: 3, name: 'GOda' },
+            text: 'Greetings!!',
+            stamp: '10 minutes ago',
+            owner: false
+          },
         ]
       },
     }
@@ -149,7 +188,7 @@ export default {
   },
   emits: ['close'],
   async mounted () {
-    console.log('Hello World')
+    // Set Data Here
 
     this.isloaded = true
   },
@@ -168,7 +207,25 @@ export default {
       const scrollElement = this.$refs.scrollTargetRef.$el
       const test = this.$refs.infiniteScroll.$el
       scrollElement.scrollTop = test.clientHeight
-    }, 500),
+    }, 100),
+    async sendMessage () {
+      // send message
+
+      this.convo.messages.push({
+        id: 8,
+        sender: { id: 8, name: 'Nikki' },
+        text: this.message,
+        stamp: 'Now',
+        owner: true
+      })
+
+      this.message = ''
+
+      await this.$refs.infiniteScroll.reset()
+      const scrollElement = this.$refs.scrollTargetRef.$el
+      const test = this.$refs.infiniteScroll.$el
+      scrollElement.scrollTop = test.clientHeight
+    }
   }
 }
 </script>
