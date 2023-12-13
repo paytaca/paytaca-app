@@ -26,7 +26,7 @@
                 All
               </q-badge>
               <q-badge
-                v-for="(status, index) in ongoingStatuses"
+                v-for="(status, index) in statuses"
                 :key="index"
                 rounded
                 color="blue-grey-6"
@@ -92,27 +92,6 @@
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not Owned</q-badge>
             </div>
           </div>
-          <div class="q-pt-md">
-            <div class="sm-font-size bold-text">Others</div>
-            <div class="q-pt-xs q-gutter-sm">
-              <q-badge
-                rounded
-                color="blue-grey-6"
-                class="q-pa-sm"
-                :outline="!orderFilters.expired"
-                @click="orderFilters.expired = !orderFilters.expired">
-                Expired
-              </q-badge>
-              <q-badge
-                rounded
-                color="blue-grey-6"
-                class="q-pa-sm"
-                :outline="!orderFilters.appealed"
-                @click="orderFilters.appealed = !orderFilters.appealed">
-                Appealed
-              </q-badge>
-            </div>
-          </div>
           <div v-if="orderFilters.sort_type" class="q-pt-md">
             <div class="sm-font-size bold-text">Sort Type</div>
             <div class="q-pt-xs q-gutter-sm">
@@ -127,7 +106,19 @@
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">Last Modified</q-badge>
             </div>
           </div>
-
+          <div class="q-pt-md" v-if="type !== 'filterCompletedOrder'">
+            <div class="sm-font-size bold-text">Misc</div>
+            <div class="q-pt-xs q-gutter-sm">
+              <q-badge
+                rounded
+                color="blue-grey-6"
+                class="q-pa-sm"
+                :outline="!orderFilters.expired_only"
+                @click="orderFilters.expired_only = !orderFilters.expired_only">
+                Expired Only
+              </q-badge>
+            </div>
+          </div>
           <div class="text-center q-pt-sm q-px-sm q-pb-lg">
             <div class="row q-gutter-sm q-pt-md">
               <q-btn
@@ -295,8 +286,7 @@ export default {
         sort_type: 'ascending',
         sort_by: 'created_at',
         status: [],
-        expired: true,
-        appealed: true,
+        expired_only: false,
         payment_types: [],
         time_limits: [5, 15, 30, 60, 300, 720, 1440],
         ownership: {
@@ -315,16 +305,33 @@ export default {
         { value: 'ESCRW', label: 'Escrowed' },
         { value: 'PD_PN', label: 'Paid Pending' },
         { value: 'PD', label: 'Paid' },
+        { value: 'APL', label: 'Appealed' },
         { value: 'RLS_PN', label: 'Release Pending' },
         { value: 'RFN_PN', label: 'Refund Pending' }
       ],
-      completedStatuses: ['CNCL', 'RLS', 'RFN']
+      completedStatuses: [
+        { value: 'CNCL', label: 'Canceled' },
+        { value: 'RLS', label: 'Released' },
+        { value: 'RFN', label: 'Refunded' }
+      ]
     }
   },
   emits: ['back', 'submit'],
   props: {
     type: String,
     filters: {}
+  },
+  computed: {
+    statuses () {
+      const vm = this
+      if (vm.type === 'filterOngoingOrder') {
+        return vm.ongoingStatuses
+      }
+      if (vm.type === 'filterCompletedOrder') {
+        return vm.completedStatuses
+      }
+      return []
+    }
   },
   async mounted () {
     this.checkDialogType()
@@ -337,7 +344,8 @@ export default {
           vm.filterAd = true
           vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
           break
-        case 'filterOrder':
+        case 'filterOngoingOrder':
+        case 'filterCompletedOrder':
           vm.filterOrder = true
           vm.updateOrderFilters(JSON.parse(JSON.stringify(vm.filters)))
           break
@@ -360,7 +368,8 @@ export default {
             vm.info.price_types = vm.storeFilters.priceTypes
           }
           break
-        case 'filterOrder':
+        case 'filterOngoingOrder':
+        case 'filterCompletedOrder':
           vm.info = vm.orderFilters
           break
       }
@@ -370,7 +379,12 @@ export default {
       const vm = this
       switch (type) {
         case 'status':
-          vm.orderFilters.status = vm.ongoingStatuses.map(e => e.value)
+          if (vm.type === 'filterOngoingOrder') {
+            vm.orderFilters.status = vm.ongoingStatuses.map(e => e.value)
+          }
+          if (vm.type === 'filterCompletedOrder') {
+            vm.orderFilters.status = vm.completedStatuses.map(e => e.value)
+          }
           break
         case 'payment-type':
           vm.orderFilters.payment_types = vm.paymentTypes.map(e => e.id)
@@ -386,7 +400,7 @@ export default {
         case 'ownership':
           return vm.orderFilters.ownership.owned && vm.orderFilters.ownership.notOwned
         case 'status':
-          return vm.orderFilters.status.length === vm.ongoingStatuses.length
+          return vm.orderFilters.status.length === vm.statuses.length
         case 'payment-type':
           return vm.orderFilters.payment_types.length === vm.paymentTypes.length
         case 'time-limit':
@@ -438,7 +452,6 @@ export default {
     },
     updateOrderFilters (filters) {
       if (!filters) return
-      console.log('fileters:', filters)
       this.orderFilters = filters
     },
     addFilterInfo (data, type = '') {
@@ -516,7 +529,7 @@ export default {
           filters = this.$store.getters['ramp/ongoingOrderFilters']
         }
         if (this.$parent.statusType === 'COMPLETED') {
-          this.$store.commit('ramp/resetCompletedFilters')
+          this.$store.commit('ramp/resetCompletedOrderFilters')
           filters = this.$store.getters['ramp/completedOrderFilters']
         }
         this.updateOrderFilters(filters)

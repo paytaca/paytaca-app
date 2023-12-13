@@ -74,7 +74,9 @@
       />
     </div>
   </div>
-  <div class="fixed" style="right: 23px; bottom: 100px;">
+
+  <!-- Chat button -->
+  <div class="fixed" style="right: 25px; bottom: 95px;">
     <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
   </div>
 

@@ -14,7 +14,7 @@
                 <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
               </div>
               <div class="col-auto q-mt-sm q-pr-md">
-                <q-btn unelevated ripple dense size="md" icon="tune" @click="openFilter()">
+                <q-btn unelevated ripple dense size="md" icon="sym_o_filter_list" @click="openFilter()">
                   <q-badge v-if="!defaultFiltersOn" floating color="red"/>
                 </q-btn>
               </div>
@@ -184,9 +184,8 @@ export default {
   watch: {
     statusType () {
       const vm = this
+      vm.updateFilters()
       vm.resetAndScrollToTop()
-      // vm.updatePaginationValues()
-      // vm.fetchOrders()
       vm.resetAndRefetchListings()
     }
   },
@@ -254,7 +253,7 @@ export default {
     },
     openFilter () {
       this.openDialog = true
-      this.dialogType = 'filterOrder'
+      this.dialogType = this.statusType === 'ONGOING' ? 'filterOngoingOrder' : 'filterCompletedOrder'
     },
     receiveDialog (data) {
       const vm = this
@@ -266,7 +265,6 @@ export default {
       vm.$store.commit(mutationName, data)
       vm.updateFilters()
       vm.resetAndRefetchListings()
-      console.log('proceed to filter orders')
     },
     updateFilters () {
       const vm = this

@@ -23,9 +23,8 @@ export function resetOngoingOrderFilters (state) {
   state.ongoingOrderFilters = {
     sort_type: 'ascending',
     sort_by: 'created_at',
-    status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RFN_PN'],
-    appealed: true,
-    expired: true,
+    status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
+    expired_only: false,
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440],
     ownership: {
@@ -42,7 +41,7 @@ export function resetOngoingOrderFilters (state) {
 export function resetCompletedOrderFilters (state) {
   state.completedOrderFilters = {
     sort_type: 'descending',
-    sort_by: 'resolved_at',
+    sort_by: 'last_modified_at',
     status: ['CNCL', 'RLS', 'RFN'],
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440],
