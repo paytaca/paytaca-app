@@ -65,7 +65,7 @@
 </template>
 <script>
 import { rampWallet } from 'src/wallet/ramp/wallet'
-// import { signMessage } from 'src/wallet/ramp/wallet'
+import { updateSignerData } from 'src/wallet/ramp/backend'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
 import { getCookie, getWalletKeypair } from 'src/wallet/ramp'
@@ -105,6 +105,7 @@ export default {
   },
   mounted () {
     // check if has Biometric
+    updateSignerData()
     this.checkBiometric()
     this.dialog = true
     if (this.error) {

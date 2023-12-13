@@ -2,13 +2,14 @@ import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256 } from '@bi
 import { IncorrectWIFError } from '@generalprotocols/anyhedge'
 import { loadWallet } from 'src/wallet'
 import { markRaw } from 'vue'
-import { Store } from '../../store'
+import { Store } from 'src/store'
 
 export class RampWallet {
-  constructor (walletHash, walletIndex, addressIndex, address, isChipnet = false) {
+  constructor (walletHash, walletIndex, connectedAddressIndex, lastAddressIndex, address, isChipnet = false) {
     this.walletHash = walletHash
     this.walletIndex = walletIndex
-    this.addressIndex = addressIndex
+    this.connectedAddressIndex = connectedAddressIndex
+    this.lastAddressIndex = lastAddressIndex
     this.addresss = address
     this.isChipnet = isChipnet
   }
@@ -31,13 +32,13 @@ export class RampWallet {
 
   async pubkey () {
     const raw = await this.raw()
-    const publicKey = await raw.getPublicKey(this.addressIndex)
+    const publicKey = await raw.getPublicKey(this.connectedAddressIndex)
     return publicKey
   }
 
   async privkey () {
     const raw = await this.raw()
-    const privateKeyWif = await raw.getPrivateKey(this.addressIndex)
+    const privateKeyWif = await raw.getPrivateKey(this.connectedAddressIndex)
     return privateKeyWif
   }
 
@@ -62,5 +63,6 @@ const walletIndex = Store.getters['global/getWalletIndex']
 const wallet = Store.getters['global/getWallet']('bch')
 const { connectedAddressIndex } = Store.getters['global/getWallet']('bch')
 const address = Store.getters['global/getAddress']('bch')
+const lastAddressIndex = Store.getters['global/getLastAddressIndex']('bch')
 
-export const rampWallet = new RampWallet(wallet.walletHash, walletIndex, connectedAddressIndex, address, isChipnet)
+export const rampWallet = new RampWallet(wallet.walletHash, walletIndex, connectedAddressIndex, lastAddressIndex, address, isChipnet)
