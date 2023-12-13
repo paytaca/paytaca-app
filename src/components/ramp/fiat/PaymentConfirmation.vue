@@ -128,7 +128,7 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { getWalletPrivateKey } from 'src/wallet/ramp'
+import { rampWallet } from 'src/wallet/ramp/wallet'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 
 export default {
@@ -271,7 +271,7 @@ export default {
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
       }
-      const privateKeyWif = await getWalletPrivateKey()
+      const privateKeyWif = await rampWallet.privkey()
       vm.rampContract.release(privateKeyWif, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {

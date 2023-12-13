@@ -83,7 +83,7 @@
 import AppealProcess from './AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
-import { signMessage } from 'src/wallet/ramp/signature'
+import { rampWallet } from 'src/wallet/ramp/wallet'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
@@ -165,9 +165,9 @@ export default {
     async login () {
       try {
         const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/arbiter`, { headers: { 'wallet-hash': this.wallet.walletHash } })
-        const signature = await signMessage(this.wallet.privateKeyWif, data.otp)
+        const signature = await rampWallet.signMessage(this.wallet.privateKeyWif, data.otp)
         const body = {
-          wallet_hash: this.wallet.walletHash,
+          wallet_hash: rampWallet.walletHash,
           signature: signature,
           public_key: this.wallet.publicKey
         }

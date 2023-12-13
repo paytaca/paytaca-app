@@ -1,7 +1,6 @@
 import { axiosInstance } from '../../boot/axios'
-import { signMessage } from 'src/wallet/ramp/signature'
 import { Store } from '..'
-import { loadP2PWalletInfo, getCookie } from 'src/wallet/ramp'
+import { getCookie } from 'src/wallet/ramp'
 
 export async function loadAuthHeaders (context) {
   if (!context.state.wallet) {
@@ -62,36 +61,6 @@ export async function fetchUser (context, walletHash) {
   } catch (error) {
     console.error('Error fetching user data:', error)
     throw error
-  }
-}
-
-export async function createUser (context, data) {
-  if (!context.state.wallet) {
-    throw new Error('Ramp wallet not initialized')
-  }
-  const wallet = context.state.wallet
-  const nickname = data.nickname
-  const timestamp = Date.now()
-  const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/peer/'
-  try {
-    const signature = await signMessage(wallet.privateKeyWif, 'PEER_CREATE', timestamp)
-    const headers = {
-      'wallet-hash': wallet.walletHash,
-      timestamp: timestamp,
-      signature: signature,
-      'public-key': wallet.publicKey
-    }
-    const body = {
-      name: nickname,
-      address: wallet.address
-    }
-    const response = await axiosInstance.post(url, body, { headers: headers })
-    const user = response.data
-    context.commit('updateUser', user)
-    return user
-  } catch (error) {
-    console.error(error)
-    console.error(error.response)
   }
 }
 
@@ -210,8 +179,6 @@ export function fetchAds (context, { component = null, params = null, overwrite 
 
 export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   const state = context.state
-  console.log('statusType:', statusType)
-  console.log('params:', params)
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
   }
@@ -238,7 +205,6 @@ export async function fetchOrders (context, { statusType = null, params = null, 
     let apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
 
     // Build request parameters
-    console.log('params:', params)
     let owned = params.ownership.owned
     if (params.ownership.owned === params.ownership.notOwned) {
       owned = null
