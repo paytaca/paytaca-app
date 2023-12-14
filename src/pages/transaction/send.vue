@@ -840,7 +840,7 @@ export default {
       // Set the new amount
       if (this.setAmountInFiat) {
         currentInputExtras.sendAmountInFiat = currentAmount
-        const converted = convertToBCH(currentInputExtras.selectedDenomination, this.convertFiatToSelectedAsset(currentAmount))
+        const converted = this.convertFiatToSelectedAsset(currentAmount)
         currentRecipient.amount = converted
         currentInputExtras.amountFormatted = this.customNumberFormatting(
           getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
@@ -1151,6 +1151,7 @@ export default {
 
         if (addressIsValid && amountIsValid) {
           vm.sending = true
+          vm.sliderStatus = false
 
           switch (vm.walletType) {
             case sBCHWalletType: {
@@ -1229,6 +1230,8 @@ export default {
           }
         } else {
           vm.sending = false
+          vm.sliderStatus = true
+
           if (!addressIsValid) {
             vm.raiseNotifyError(vm.$t(
               'InvalidRecipient',
@@ -1267,12 +1270,9 @@ export default {
           .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
       }
-
-      vm.sending = false
     },
     promiseResponseHandler (result, walletType) {
       const vm = this
-      vm.sending = false
 
       if (result.success) {
         vm.txid = result.txid
