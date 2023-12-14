@@ -422,18 +422,6 @@ export default {
       type: String,
       required: false,
     },
-    txid: {
-      type: String,
-      required: false,
-    },
-    vout: {
-      type: Number,
-      required: false,
-    },
-    capability: {
-      type: String,
-      required: false,
-    },
     paymentUrl: {
       type: String,
       required: false,
