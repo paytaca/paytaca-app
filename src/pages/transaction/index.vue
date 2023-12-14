@@ -432,6 +432,11 @@ export default {
         this.handleOpenedNotification()
       }
     },
+    balanceLoaded (val) {
+      if (val) {
+        this.formatBCHCardBalance(this.denomination)
+      }
+    }
   },
 
   computed: {
