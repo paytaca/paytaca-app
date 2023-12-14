@@ -1185,12 +1185,12 @@ export default {
             if (tokenId) {
               vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
               // change to recipients array
-              const ww = getWalletByNetwork(vm.wallet, 'bch')
-              console.log('WW', ww)
-              sendPromise = ww.sendBch(undefined, address, changeAddress, {
+              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: vm.commitment || undefined,
-                capability: vm.capability || undefined
+                capability: vm.capability || undefined,
+                txid: vm.$route.query.txid,
+                vout: vm.$route.query.vout
               }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
             } else {
               // change to recipients array
