@@ -422,6 +422,18 @@ export default {
       type: String,
       required: false,
     },
+    txid: {
+      type: String,
+      required: false,
+    },
+    vout: {
+      type: Number,
+      required: false,
+    },
+    capability: {
+      type: String,
+      required: false,
+    },
     paymentUrl: {
       type: String,
       required: false,
@@ -1173,7 +1185,9 @@ export default {
             if (tokenId) {
               vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
               // change to recipients array
-              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
+              const ww = getWalletByNetwork(vm.wallet, 'bch')
+              console.log('WW', ww)
+              sendPromise = ww.sendBch(undefined, address, changeAddress, {
                 tokenId: tokenId,
                 commitment: vm.commitment || undefined,
                 capability: vm.capability || undefined
