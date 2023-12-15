@@ -722,6 +722,11 @@ export default {
         } else {
           amount = this.customNumberFormatting(amountValue)
         }
+
+        if (content.includes('?amount')) {
+          amountValue = content.split('?amount=')[1]
+          amount = amountValue
+        }
         if (amountValue !== null) {
           this.sliderStatus = true
           this.amountFormatted = this.customNumberFormatting(amount)
