@@ -108,6 +108,7 @@
                       :setAmountInFiat="setAmountInFiat"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
+                      :isBIP21="isBIP21"
                       :currentWalletBalance="currentWalletBalance"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :convertToFiatAmount="convertToFiatAmount"
@@ -135,6 +136,7 @@
                     :setAmountInFiat="setAmountInFiat"
                     :selectedAssetMarketPrice="selectedAssetMarketPrice"
                     :isNFT="isNFT"
+                    :isBIP21="isBIP21"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :convertToFiatAmount="convertToFiatAmount"
                     :setMaximumSendAmount="setMaximumSendAmount"
@@ -479,7 +481,8 @@ export default {
       expandedItems: {},
       currentActiveRecipientIndex: 0,
       totalAmountSent: 0,
-      currentWalletBalance: 0
+      currentWalletBalance: 0,
+      isBIP21: false
     }
   },
 
@@ -567,6 +570,7 @@ export default {
       return (
         this.showSlider &&
         !this.isNFT &&
+        !this.isBIP21 &&
         this.sendDataMultiple.length < 5 &&
         // check if user clicked MAX on any recipient (disable button if yes)
         this.inputExtras
@@ -575,7 +579,7 @@ export default {
       )
     },
     isMultipleRecipient () {
-      return !(this.isNFT || this.walletType === sBCHWalletType)
+      return !(this.isNFT || this.walletType === sBCHWalletType || this.isBIP21)
     }
   },
 
@@ -638,6 +642,7 @@ export default {
     },
     onScannerDecode (content) {
       this.showQrScanner = false
+      this.sliderStatus = false
       let address = content
       let amount = null
       let amountValue = null
@@ -645,6 +650,9 @@ export default {
       const rawPaymentUri = ''
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+
+      // check for BIP21
+      if (this.onBIP21Amount(address)) return
 
       let paymentUriData
       try {
@@ -726,10 +734,6 @@ export default {
           }
           currentRecipient.fixedAmount = true
         }
-
-        // check for BIP21
-        // TODO recheck and test this part
-        this.onBIP21Amount(address)
       }
     },
     handleJPP(paymentUri) {
@@ -976,7 +980,6 @@ export default {
           this.computingMax = true
           const spendable = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
-            // TODO readjust index(?)
             this.sendDataMultiple[0].recipient
           )
           currentRecipient.amount = spendable
@@ -1048,6 +1051,7 @@ export default {
           timeout: 3000,
           message: this.$t('InvalidAddress')
         })
+        this.sliderStatus = false
         return false
       }
     },
@@ -1378,12 +1382,20 @@ export default {
         this.sendDataMultiple[0].fixedAmount = true
         this.sendDataMultiple[0].recipientAddress = value.split('?')[0]
         this.sendDataMultiple[0].fixedRecipientAddress = true
+        this.inputExtras[0].amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
+          this.denomination, amount
+        ))
+        this.isBIP21 = true
         this.sliderStatus = true
+
+        return true
       }
 
       if (value && this.isNFT) {
         this.sliderStatus = true
       }
+
+      return false
     },
     generateKeys (index) {
       const keys = []

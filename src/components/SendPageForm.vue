@@ -47,8 +47,8 @@
           :label="$t('Amount')"
           :dark="darkMode"
           :loading="computingMax"
-          :disabled="setAmountInFiat"
-          :readonly="setAmountInFiat"
+          :disabled="setAmountInFiat || isBIP21"
+          :readonly="setAmountInFiat || isBIP21"
           :error="balanceExceeded"
           :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
           :key="inputExtras.amountFormatted"
@@ -161,6 +161,7 @@ export default {
     setAmountInFiat: { type: Boolean },
     selectedAssetMarketPrice: { type: Number },
     isNFT: { type: Boolean },
+    isBIP21: { type: Boolean },
     currentWalletBalance: { type: Number },
 
     currentSendPageCurrency: { type: Function },
