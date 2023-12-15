@@ -9,7 +9,7 @@
     <div class="row items-center justify-between q-mr-lg q-pb-xs">
       <div class="q-pl-lg q-mt-md">
         <div style="font-size: 25px; font-weight: 500;">Chat</div>
-        <div style="font-size: 12px;" class="text-grey-5">(You, Ellie)</div>
+        <div style="font-size: 13px; letter-spacing: 1px;" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">You({{ senderName() }}), {{ senderName(false) }}</div>
       </div>
       <q-btn
         rounded
@@ -45,12 +45,13 @@
                   <div class="q-px-md row justify-center">
                     <div style="width: 100%;">
                       <q-chat-message
-                        :name="message.owner ? 'me' : message.sender.name"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.sender.name }&color=fffff`"
+                        :name="message.owner ? 'me' : senderName(message.owner)"
+                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ senderName(message.owner) }&color=fffff`"
                         :stamp="message.stamp"
                         :sent="message.owner"
-                        :bg-color="message.owner ? 'blue-5' : 'blue-grey-3'"
+                        :bg-color="message.owner ? 'blue-5' : 'blue-grey-2'"
                         :text-color="message.owner ? 'white' : 'black'"
+                        size="6"
                       >
                         <div style="font-size: 13px; font-weight: 400;">
                           {{ message.text }}
@@ -67,10 +68,13 @@
               <q-chat-message
                 name="me"
                 sent
-                :avatar="`https://ui-avatars.com/api/?background=random&name=${owner.name}&color=fffff`"
+                :avatar="`https://ui-avatars.com/api/?background=random&name=${senderName()}&color=fffff`"
                 bg-color="blue-5"
+                size="6"
               >
-                <q-spinner-dots color="white" size="2rem" />
+                <div class="text-center">
+                  <q-spinner-dots color="white" size="2rem" />
+                </div>
               </q-chat-message>
             </div>
           </div>
@@ -123,8 +127,13 @@ export default {
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
 
+      users: {
+        ad_owner: null,
+        order_owner: null,
+        arbiter: null
+      },
       message: '',
-      owner: { id: 1, name: 'Nikki' },
+      owner: { id: 1, name: 'Nikki'},
       isloaded: false,
       isTyping: false,
       convo: {
@@ -184,15 +193,43 @@ export default {
     }
   },
   props: {
-    openDialog: Boolean
+    openDialog: Boolean,
+    data: {
+      type: Object,
+      default: null
+    }
   },
   emits: ['close'],
   async mounted () {
     // Set Data Here
-
+    this.loadData()
     this.isloaded = true
   },
   methods: {
+    senderName (owner = true) {
+      if (owner) {
+        return this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
+      } else {
+        return !this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
+      }
+    },
+    loadData () {
+      let user = this.data.ad.owner
+      this.users.ad_owner = {
+        id: user.id,
+        name: user.name,
+        is_user: this.data.is_ad_owner
+      }
+
+      user = this.data.owner
+      this.users.order_owner = {
+        id: user.id,
+        name: user.name,
+        is_user: !this.data.is_ad_owner
+      }
+
+      // arbiter here
+    },
     refreshData (done) {
       console.log('refreshing data')
       setTimeout(() => {
