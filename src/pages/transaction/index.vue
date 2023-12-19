@@ -78,36 +78,57 @@
             </div>
             <div class="row q-mt-sm">
               <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-                <img
-                  :src="
-                    selectedNetwork === 'sBCH'
-                      ? 'sep20-logo.png'
-                      : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
-                        ? 'assets/img/theme/payhero/deem-logo.png'
-                        : 'bch-logo.png'
-                  "
-                  style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"
-                />
                 <q-card id="bch-card">
-                  <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
-                    <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
-                    <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
-                      <q-skeleton style="font-size: 22px;" type="rect"/>
-                    </div>
-                    <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                      <p>
-                        <span style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
-                          {{
-                            selectedNetwork === 'sBCH'
-                              ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
-                              : parsedBCHBalance
-                          }}
-                        </span>
-                      </p>
-                      <div style="padding: 0; margin-top: -15px;">
-                        {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
+                  <q-card-section horizontal>
+                    <q-card-section class="col" style="padding: 10px 5px 10px 16px">
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="height: 53px;">
+                        <q-skeleton style="font-size: 24px;" type="rect"/>
                       </div>
-                    </div>
+                      <div v-else style="z-index: 20; position: relative;">
+                        <p>
+                          <span ellipsis style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                            {{
+                              selectedNetwork === 'sBCH'
+                                ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
+                                : parsedBCHBalance
+                            }}
+                          </span>
+                        </p>
+                        <div style="padding: 0; margin-top: -15px;">
+                          {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
+                        </div>
+                        <template v-if="isDefaultTheme(theme)">
+                          <div class="flex justify-start items-center">
+                            <q-icon name="arrow_drop_up" color="green-5" size="sm" />
+                            <span class="earnings negative text-weight-bold">15.68 PHP</span>
+                          </div>
+                        </template>
+                        <template v-else>
+                          <q-badge
+                            rounded
+                            class="flex justify-start items-center"
+                            style="margin-top: 5px"
+                            :style="{ 'background-color': darkMode ? '#273746' : '#ecf3f3' }"
+                          >
+                            <q-icon name="arrow_drop_up" color="green-5" size="sm" />
+                            <span class="earnings negative text-weight-bold" style="padding-right: 5px">15.68 PHP</span>
+                          </q-badge>
+                        </template>
+                      </div>
+                    </q-card-section>
+                    <q-card-section class="col-4 flex flex-center" style="padding: 10px 16px">
+                      <img
+                        :src="
+                          selectedNetwork === 'sBCH'
+                            ? 'sep20-logo.png'
+                            : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
+                              ? 'assets/img/theme/payhero/deem-logo.png'
+                              : 'bch-logo.png'
+                        "
+                        alt="Asset logo"
+                        style="height: 75px;"
+                      />
+                    </q-card-section>
                   </q-card-section>
                 </q-card>
               </div>
@@ -1248,7 +1269,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
@@ -1316,6 +1337,14 @@ export default {
   }
   .q-tab__icon {
     font-size: 14px !important;
+  }
+  .earnings {
+    &.positive {
+      color: $green-5;
+    }
+    &.negative {
+      color: $red-5;
+    }
   }
 </style>
 

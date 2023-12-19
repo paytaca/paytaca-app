@@ -19,12 +19,13 @@
         </div>
         <q-card-section class="amount q-pb-none">
           <q-item class="q-px-none">
-            <q-item-section side top>
+            <q-item-section side top class="asset-logo">
               <img
                 :src="denomination === $t('DEEM') && transaction.asset.symbol === 'BCH'
                   ? 'assets/img/theme/payhero/deem-logo.png'
                   : transaction.asset.logo || fallbackAssetLogo
                 "
+                alt="Asset logo"
                 height="30"
               />
             </q-item-section>
@@ -59,6 +60,12 @@
                     </div>
                   </q-popup-proxy>
                 </q-icon>
+              </q-item-label>
+              <q-item-label class="row items-center text-caption" style="margin-top: 0;">
+                <template v-if="transaction.record_type !== 'outgoing'">
+                  <q-icon name="arrow_drop_down" color="red-5" size="sm" />
+                  <span class="earnings negative">15.68 PHP</span>
+                </template>
               </q-item-label>
               <div v-if="!transaction.asset.id.startsWith('bch')">
                 <TokenTypeBadge :assetId="transaction.asset.id" abbreviate />
@@ -416,7 +423,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   .pt-card{
     padding: 20px 10px 5px 0;
   }
@@ -439,5 +446,18 @@ export default {
   .record-type-icon {
     font-size: 30px;
     border-radius: 20px;
+  }
+  .asset-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .earnings {
+    &.positive {
+      color: $green-5;
+    }
+    &.negative {
+      color: $red-5;
+    }
   }
 </style>
