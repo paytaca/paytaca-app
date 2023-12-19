@@ -97,23 +97,14 @@
                         <div style="padding: 0; margin-top: -15px;">
                           {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
                         </div>
-                        <template v-if="isDefaultTheme(theme)">
-                          <div class="flex justify-start items-center">
-                            <q-icon name="arrow_drop_up" color="green-5" size="sm" />
-                            <span class="earnings negative text-weight-bold">15.68 PHP</span>
-                          </div>
-                        </template>
-                        <template v-else>
-                          <q-badge
-                            rounded
-                            class="flex justify-start items-center"
-                            style="margin-top: 5px"
-                            :style="{ 'background-color': darkMode ? '#273746' : '#ecf3f3' }"
-                          >
-                            <q-icon name="arrow_drop_up" color="green-5" size="sm" />
-                            <span class="earnings negative text-weight-bold" style="padding-right: 5px">15.68 PHP</span>
-                          </q-badge>
-                        </template>
+                        <q-badge
+                          rounded
+                          class="flex justify-start items-center"
+                          style="margin-top: 5px; background-color: #ecf3f3;"
+                        >
+                          <q-icon name="arrow_drop_up" color="green-5" size="sm" />
+                          <span class="earnings negative text-weight-bold" style="padding-right: 5px">15.68 PHP</span>
+                        </q-badge>
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex flex-center" style="padding: 10px 16px">

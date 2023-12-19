@@ -63,8 +63,14 @@
               </q-item-label>
               <q-item-label class="row items-center text-caption" style="margin-top: 0;">
                 <template v-if="transaction.record_type !== 'outgoing'">
-                  <q-icon name="arrow_drop_down" color="red-5" size="sm" />
-                  <span class="earnings negative">15.68 PHP</span>
+                  <q-badge
+                    rounded
+                    class="flex justify-start items-center"
+                    style="margin-top: 5px; background-color: #ecf3f3;"
+                  >
+                    <q-icon name="arrow_drop_down" color="red-5" size="sm" />
+                    <span class="earnings negative text-weight-bold" style="padding-right: 5px">15.68 PHP</span>
+                  </q-badge>
                 </template>
               </q-item-label>
               <div v-if="!transaction.asset.id.startsWith('bch')">
