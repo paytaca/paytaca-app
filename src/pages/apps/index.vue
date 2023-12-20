@@ -247,4 +247,10 @@ export default {
   .pt-black {
     color: #212F3C !important;
   }
+
+  .pt-app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 </style>

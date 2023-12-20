@@ -1,0 +1,31 @@
+/* This file hosts classes that are used on multiple components
+ * with properties that are the same all throughout different themes.
+*/
+
+/* ----- VARIABLES ----- */
+$brand_blue: rgb(60, 100, 246);
+
+/* ----- CLASSES ----- */
+.br-15 {
+  border-radius: 15px !important;
+}
+
+.br-40 {
+  border-radius: 40px !important;
+}
+
+.text-brandblue {
+  color: $brand_blue !important;
+}
+
+.bg-brandblue {
+  background: $brand_blue !important;
+}
+
+.pp-fcolor {
+  color: #000 !important;
+}
+
+.bex.q-body--prevent-scroll {
+  position: unset !important;
+}

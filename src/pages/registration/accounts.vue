@@ -673,4 +673,19 @@ li pre {
   padding: 30px;
   color: gray;
 }
+.pt-brand {
+  text-align: center;
+  padding: 20px 0px 0px 0px;
+}
+.pt-brandname {
+  color: #eaeeff;
+  font-size: 28px;
+}
+.pt-get-started {
+  width: 100%;
+  min-height: calc(100vh - 152px);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  background-color: #f9f8ff;
+}
 </style>

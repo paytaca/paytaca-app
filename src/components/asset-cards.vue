@@ -217,4 +217,7 @@ export default {
     font-size: 18px;
     color: #DBE7E7;
   }
+  .pt-dark-box-shadow {
+    box-shadow: 2px 2px 2px 2px #212f3d !important;
+  }
 </style>

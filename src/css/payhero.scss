@@ -1,11 +1,11 @@
 @import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
 
 body.theme-payhero {
-  $color_1: #eaeeff;
-  $color_2: rgb(60, 100, 246);
-  $color_3: #ecf3f3;
+  $color_1: #eaeeff; // remove
+  $color_2: rgb(60, 100, 246); // remove
+  $color_3: #ecf3f3; // remove
   $color_4: #fff;
-  $color_5: #000;
+  $color_5: #000; // remove
   $color_9: #ececec;
 
   $brand_yellow: #ffbf00;
@@ -22,8 +22,8 @@ body.theme-payhero {
   $font-family_1: "Rubik", sans-serif;
 
   $background-color_1: #012121;
-  $background-color_2: #f9f8ff;
-  $background-color_3: #ecf3f3;
+  $background-color_2: #f9f8ff; // remove
+  $background-color_3: #ecf3f3; // remove
   $background-blue: #4872b8;
   $bg_info_banner: #273746;
   $bg_container_dark: #1a2a43;
@@ -197,40 +197,6 @@ body.theme-payhero {
     }
   }
 
-  .pt-brand {
-    text-align: center;
-    padding: 20px 0px 0px 0px;
-  }
-  .pt-brandname {
-    color: $color_1;
-    font-size: 28px;
-  }
-  .pt-get-started {
-    width: 100%;
-    min-height: calc(100vh - 152px);
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: $background-color_2;
-  }
-  .br-15 {
-    border-radius: 15px !important;
-  }
-  .br-40 {
-    border-radius: 40px !important;
-  }
-  .text-brandblue {
-    color: $color_2 !important;
-  }
-  .bg-brandblue {
-    background: rgb(60, 100, 246) !important;
-  }
-  .text-brandlight {
-    color: $color_3 !important;
-  }
-  .bg-brandlight {
-    background-color: $background-color_3 !important;
-  }
-
   .pt-dark {
     background: linear-gradient(
       180deg,
@@ -349,20 +315,7 @@ body.theme-payhero {
   }
 
   .pt-app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     border-radius: 999px;
-  }
-
-  .pt-dark-box-shadow {
-    box-shadow: 2px 2px 2px 2px #212f3d !important;
-  }
-  .bex.q-body--prevent-scroll {
-    position: unset !important;
-  }
-  .pp-fcolor {
-    color: $color_5 !important;
   }
 
   .fixed-container {

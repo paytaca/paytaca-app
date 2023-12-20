@@ -1,16 +1,16 @@
 body.theme-default {
-  $color_1: #eaeeff;
+  $color_1: #eaeeff; // remove
   $brand_blue: rgb(60, 100, 246);
-  $color_3: #ecf3f3;
+  $color_3: #ecf3f3; // remove
   $color_4: #fff;
-  $color_5: #000;
+  $color_5: #000; // remove
   $color_6: #42a5f5;
 
   $text_blue_9: #1565c0;
 
   $background-color_1: #012121;
-  $background-color_2: #f9f8ff;
-  $background-color_3: #ecf3f3;
+  $background-color_2: #f9f8ff; // remove
+  $background-color_3: #ecf3f3; // remove
   $bg_card_dark: #1c2833;
 
   $font-family_1: "Rubik", sans-serif;
@@ -110,39 +110,6 @@ body.theme-default {
     }
   }
 
-  .pt-brand {
-    text-align: center;
-    padding: 20px 0px 0px 0px;
-  }
-  .pt-brandname {
-    color: $color_1;
-    font-size: 28px;
-  }
-  .pt-get-started {
-    width: 100%;
-    min-height: calc(100vh - 152px);
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: $background-color_2;
-  }
-  .br-15 {
-    border-radius: 15px !important;
-  }
-  .br-40 {
-    border-radius: 40px !important;
-  }
-  .text-brandblue {
-    color: $brand_blue !important;
-  }
-  .bg-brandblue {
-    background: $brand_blue !important;
-  }
-  .text-brandlight {
-    color: $color_3 !important;
-  }
-  .bg-brandlight {
-    background-color: $background-color_3 !important;
-  }
   .pt-dark {
     background: #273746 !important;
   }
@@ -202,16 +169,6 @@ body.theme-default {
     }
   }
 
-  .pt-dark-box-shadow {
-    box-shadow: 2px 2px 2px 2px #212f3d !important;
-  }
-  .bex.q-body--prevent-scroll {
-    position: unset !important;
-  }
-  .pp-fcolor {
-    color: $color_5 !important;
-  }
-
   .method-cards {
     height: 78px;
     min-width: 150px;
@@ -244,9 +201,6 @@ body.theme-default {
   }
 
   .pt-app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     border-radius: 10px;
   }
 
@@ -327,7 +281,7 @@ body.theme-default {
       }
 
       &.light {
-        color: $color_5 !important;
+        color: #000 !important;
       }
     }
   }
