@@ -1,6 +1,6 @@
 {
   "name": "paytaca",
-  "version": "0.17.5",
+  "version": "0.17.6",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "productName": "Paytaca",
   "author": "joemar@paytaca.com",
@@ -75,7 +75,7 @@
     "vuex": "^4.0.2",
     "vuex-persist": "^3.1.3",
     "vuex-persistedstate": "^4.0.0-beta.2",
-    "watchtower-cash-js": "^0.1.46"
+    "watchtower-cash-js": "^0.1.47"
   },
   "overrides": {
     "@generalprotocols/anyhedge@1.0.0-next.3670337504": {
