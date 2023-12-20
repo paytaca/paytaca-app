@@ -19,7 +19,7 @@
           v-close-popup
         />
       </q-card-section>
-      
+
       <q-img
         fit="fill"
         width="75"
@@ -132,7 +132,7 @@
             </div>
             <div
               v-if="nft?.currentTxid"
-              style="word-break: break-all;position:relative;" 
+              style="word-break: break-all;position:relative;"
               v-ripple
               @click="copyToClipboard(nft?.currentTxid)"
             >
@@ -162,6 +162,8 @@
                 commitment: nft?.commitment,
                 capability: nft?.capability,
                 amount: 0,
+                txid: nft?.currentTxid,
+                vout: nft?.currentIndex,
                 fixed: true,
                 backPath: '/apps/collectibles'
               }

@@ -1199,7 +1199,9 @@ export default {
                 token = {
                   tokenId: tokenId,
                   commitment: vm.commitment || undefined,
-                  capability: vm.capability || undefined
+                  capability: vm.capability || undefined,
+                  txid: vm.$route.query.txid,
+                  vout: vm.$route.query.vout
                 }
                 toSendBCHRecipients.push({
                   address: recipientAddress,
