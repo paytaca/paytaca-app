@@ -439,6 +439,8 @@ const phrases = {
       UpdateDeviceIDNo: "Update device #{ID}",
       UpdatedDeviceIDNo: "Updated device #{ID}",
       UpdatingDeviceIDNo: "Updating device #{ID}",
+      DetectedUnknownCurrency: "Detected unknown currency: #{currency}",
+      InvalidRecipient: "Recipient should be a valid #{walletType} address"
     }
   ]
 }
@@ -446,7 +448,6 @@ const phrases = {
 // token to point
 const hongKongSpecific = [
   {
-    CashPoints: "CashPoints",
     Points: "Points",
     ApprovePoint: "Approve point",
     Add_SEP20_Point: "Add SEP20 Point",
@@ -467,7 +468,6 @@ const hongKongSpecific = [
     PointId: "Point ID",
     PointAdded: "Point added",
     PointAlreadyInList: "Point already exists in list",
-    SLPPoints: "SLP Points",
     AddFungibleCashPoint: "Add Fungible CashPoint",
     EnterCashPointCategoryID: "Enter CashPoint category ID",
     ManageIgnoredPoints: "Manage Ignored Points",
@@ -479,10 +479,36 @@ const hongKongSpecific = [
     ViewPoints: "View Points",
     Waiting_SEP20_PointSent: "Waiting for SEP20 point to be sent",
     Add_SEP721_Point: "Add SEP721 Point",
-    DEEM: "DEEM",
+    DEEM: "DEEM"
+  }
+]
+
+const additional = [
+  {
     Theme: "Theme",
     Default: "Default",
-    ReferenceId: "Reference ID"
+    ReferenceId: "Reference ID",
+    SendPageOffline: "You cannot send funds while offline. Please connect to the internet.",
+    AddAnotherRecipient: "Add Another Recipient",
+    InvalidAddressFormat: "Invalid address format",
+    MultipleRecipientsUnsupported: "Multiple recipients not yet supported",
+    NotEnoughForGasFee: "Not enough balance to cover the gas fee",
+    NotEnoughForSendAmount: "Not enough balance to cover the send amount",
+    NotEnoughForTransactionFee: "Not enough balance to cover the transaction fee",
+    NotEnoughForBoth: "Not enough balance to cover the send amount and transaction fee",
+    SendAmountGreaterThanZero: "Send amount should be greater than zero",
+    UnknownError: "Unknown error",
+    CannotAddRecipient: "Cannot add more than 5 recipients.",
+    TotalAmountError: "Total amount being sent is greater than your current balance",
+    EmptyRecipient: "Recipient cannot be empty",
+    Warning: "Warning",
+    SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?",
+    Yes: "YES",
+    No: "NO",
+    SetAmountIn: "Set amount in",
+    Recipient: "Recipient",
+    To: "to",
+    PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through."
   }
 ]
 
@@ -490,7 +516,8 @@ const TEXT_GROUPS = [
   ...words,
   ...phrases.static,
   ...phrases.dynamic,
-  ...hongKongSpecific
+  ...hongKongSpecific,
+  ...additional
 ]
 
 // check for supported language codes here
