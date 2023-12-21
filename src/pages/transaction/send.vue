@@ -1206,7 +1206,7 @@ export default {
                 toSendBCHRecipients.push({
                   address: recipientAddress,
                   amount: sendData.amount,
-                  tokenAmount: tokenAmount * (10 ** vm.asset.decimals)
+                  tokenAmount: tokenAmount * (10 ** vm.asset.decimals) || 0
                 })
               } else {
                 toSendBCHRecipients.push({
@@ -1499,7 +1499,7 @@ export default {
     }
 
     if (this.isNFT) {
-      vm.sendDataMultiple[0].amount = 1
+      vm.sendDataMultiple[0].amount = 0.00001
     }
   }
 }
