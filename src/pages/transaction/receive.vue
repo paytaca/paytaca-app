@@ -88,7 +88,7 @@
           </div>
         </div>
       </template>
-      <footer-menu />
+      <!-- <footer-menu /> -->
     </div>
     <div v-if="amountDialog">
       <div class="text-right">
