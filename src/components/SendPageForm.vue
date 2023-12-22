@@ -47,8 +47,8 @@
           :label="$t('Amount')"
           :dark="darkMode"
           :loading="computingMax"
-          :disabled="setAmountInFiat || isBIP21"
-          :readonly="setAmountInFiat || isBIP21"
+          :disabled="setAmountInFiat || inputExtras.isBip21"
+          :readonly="setAmountInFiat || inputExtras.isBip21"
           :error="balanceExceeded"
           :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
           :key="inputExtras.amountFormatted"
@@ -83,6 +83,8 @@
           v-model="sendAmountInFiat"
           @focus="readonlyState(true), onInputFocus(index)"
           @blur="readonlyState(false)"
+          :disabled="inputExtras.isBip21"
+          :readonly="inputExtras.isBip21"
           :label="$t('Amount')"
           :dark="darkMode"
           :key="inputExtras.sendAmountInFiat"
@@ -161,7 +163,6 @@ export default {
     setAmountInFiat: { type: Boolean },
     selectedAssetMarketPrice: { type: Number },
     isNFT: { type: Boolean },
-    isBIP21: { type: Boolean },
     currentWalletBalance: { type: Number },
 
     currentSendPageCurrency: { type: Function },
