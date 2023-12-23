@@ -506,8 +506,10 @@ const additional = [
     Yes: "YES",
     No: "NO",
     SetAmountIn: "Set amount in",
+    RemoveRecipient: "Remove recipient",
     Recipient: "Recipient",
     To: "to",
+    SetReceiveAmount: "Set Receive Amount",
     PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through."
   }
 ]

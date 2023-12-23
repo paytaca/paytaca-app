@@ -151,7 +151,9 @@
               </q-list>
 
               <div class="row" v-if="sendDataMultiple.length > 1">
-                <p style="font-size: 14px; color: red; margin-top: 10px;" @click="removeLastRecipient">Remove recipient #{{ sendDataMultiple.length }}</p>
+                <p style="font-size: 14px; color: red; margin-top: 10px;" @click="removeLastRecipient">
+                  {{ $t('RemoveRecipient') }} #{{ sendDataMultiple.length }}
+                </p>
               </div>
 
               <div
