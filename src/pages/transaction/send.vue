@@ -150,6 +150,10 @@
                 </template>
               </q-list>
 
+              <div class="row" v-if="sendDataMultiple.length > 1">
+                <p style="font-size: 14px; color: red; margin-top: 10px;" @click="removeLastRecipient">Remove recipient #{{ sendDataMultiple.length }}</p>
+              </div>
+
               <div
                 class="row"
                 style="margin-top: -10px;"
@@ -1363,6 +1367,14 @@ export default {
         })
       }
     },
+    removeLastRecipient () {
+      console.log(this.expandedItems)
+      this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
+      delete this.expandedItems[`R${this.sendDataMultiple.length}`]
+      this.sendDataMultiple.pop()
+      this.inputExtras.pop()
+      this.sliderStatus = true
+    },
     onInputFocus (value) {
       this.currentActiveRecipientIndex = value
     },
@@ -1431,7 +1443,9 @@ export default {
       if (isToken) this.currentWalletBalance *= tokenDenominator
     },
     onBalanceExceeded (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+      try {
+        this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+      } catch {}
     },
     onRecipientInput (value) {
       this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
