@@ -259,6 +259,7 @@ export default {
   PaymentRequestIsExpired: "La solicitud de pago está expirada",
   PaytacaMotto: "TU DINERO.Tu control.",
   Personalize: "Personalizar",
+  Pin: "ALFILER",
   PinLocation: "Ubicación del alfiler",
   PinMismatched: "Pasador no coincidente",
   PinSubtext1: "Ingrese su PIN para continuar.",

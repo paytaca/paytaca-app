@@ -259,6 +259,7 @@ export default {
   PaymentRequestIsExpired: "Payment request is expired",
   PaytacaMotto: "YOUR MONEY. YOUR CONTROL.",
   Personalize: "Personalize",
+  Pin: "PIN",
   PinLocation: "Pin location",
   PinMismatched: "PIN mismatched",
   PinSubtext1: "Enter your PIN to proceed.",
