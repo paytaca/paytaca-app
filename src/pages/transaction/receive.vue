@@ -83,7 +83,7 @@
               </div>
             </div>
             <div v-if="asset.symbol === 'BCH'" @click="amountDialog = true" class="text-center" style="font-size: 18px ;color: #3b7bf6;">
-              {{ amount ? 'Update' : 'Set' }} Amount
+              {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
             </div>
           </div>
         </div>
@@ -102,7 +102,7 @@
         />
       </div>
       <div :style="`margin-top: ${$q.screen.height * .15}px`">
-        <div class="text-center" style="font-size: 18px ;color: #3b7bf6;">Set Receive Amount</div>
+        <div class="text-center" style="font-size: 18px ;color: #3b7bf6;">{{ $t('SetReceiveAmount') }}</div>
         <div class="col q-mt-md q-px-lg text-center">
           <q-input
             type="text"
@@ -120,7 +120,7 @@
           </q-input>
         </div>
         <div class="q-pt-md" style="margin-left: 35px; font-size: 15px ;font-weight: 500; color: #3b7bf6;" @click="setAmountInFiat = !setAmountInFiat">
-          Set Amount in {{ setAmountInFiat ? 'BCH' : String(selectedMarketCurrency()).toUpperCase() }}
+          {{ $t('SetAmountIn') }} {{ setAmountInFiat ? 'BCH' : String(selectedMarketCurrency()).toUpperCase() }}
         </div>
       </div>
     </div>

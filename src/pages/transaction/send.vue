@@ -108,7 +108,6 @@
                       :setAmountInFiat="setAmountInFiat"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
-                      :isBIP21="isBIP21"
                       :currentWalletBalance="currentWalletBalance"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :convertToFiatAmount="convertToFiatAmount"
@@ -136,7 +135,6 @@
                     :setAmountInFiat="setAmountInFiat"
                     :selectedAssetMarketPrice="selectedAssetMarketPrice"
                     :isNFT="isNFT"
-                    :isBIP21="isBIP21"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :convertToFiatAmount="convertToFiatAmount"
                     :setMaximumSendAmount="setMaximumSendAmount"
@@ -151,6 +149,12 @@
                   />
                 </template>
               </q-list>
+
+              <div class="row" v-if="sendDataMultiple.length > 1">
+                <p style="font-size: 14px; color: red; margin-top: 10px;" @click="removeLastRecipient">
+                  {{ $t('RemoveRecipient') }} #{{ sendDataMultiple.length }}
+                </p>
+              </div>
 
               <div
                 class="row"
@@ -452,7 +456,8 @@ export default {
         scannedRecipientAddress: false,
         setMax: false,
         emptyRecipient: false,
-        selectedDenomination: 'BCH'
+        selectedDenomination: 'BCH',
+        isBip21: false
       }],
 
       sent: false,
@@ -481,8 +486,7 @@ export default {
       expandedItems: {},
       currentActiveRecipientIndex: 0,
       totalAmountSent: 0,
-      currentWalletBalance: 0,
-      isBIP21: false
+      currentWalletBalance: 0
     }
   },
 
@@ -570,7 +574,6 @@ export default {
       return (
         this.showSlider &&
         !this.isNFT &&
-        !this.isBIP21 &&
         this.sendDataMultiple.length < 5 &&
         // check if user clicked MAX on any recipient (disable button if yes)
         this.inputExtras
@@ -579,7 +582,7 @@ export default {
       )
     },
     isMultipleRecipient () {
-      return !(this.isNFT || this.walletType === sBCHWalletType || this.isBIP21)
+      return !(this.isNFT || this.walletType === sBCHWalletType)
     }
   },
 
@@ -1350,7 +1353,8 @@ export default {
           scannedRecipientAddress: false,
           setMax: false,
           emptyRecipient: true,
-          selectedDenomination: 'BCH'
+          selectedDenomination: 'BCH',
+          isBip21: false
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
@@ -1364,6 +1368,14 @@ export default {
           message: this.$t('CannotAddRecipient')
         })
       }
+    },
+    removeLastRecipient () {
+      console.log(this.expandedItems)
+      this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
+      delete this.expandedItems[`R${this.sendDataMultiple.length}`]
+      this.sendDataMultiple.pop()
+      this.inputExtras.pop()
+      this.sliderStatus = true
     },
     onInputFocus (value) {
       this.currentActiveRecipientIndex = value
@@ -1384,15 +1396,24 @@ export default {
     onBIP21Amount (value) {
       const amount = this.getBIP21Amount(value)
       if (!Number.isNaN(amount)) {
-        this.sendDataMultiple[0].amount = amount
-        this.sendDataMultiple[0].fixedAmount = true
-        this.sendDataMultiple[0].recipientAddress = value.split('?')[0]
-        this.sendDataMultiple[0].fixedRecipientAddress = true
-        this.inputExtras[0].amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
+        const currentSendData = this.sendDataMultiple[this.currentActiveRecipientIndex]
+        const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+
+        currentSendData.amount = amount
+        currentSendData.fixedAmount = true
+        currentSendData.recipientAddress = value.split('?')[0]
+        currentSendData.fixedRecipientAddress = true
+
+        currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
           this.denomination, amount
         ))
-        this.isBIP21 = true
+        currentInputExtras.isBip21 = true
+        currentInputExtras.emptyRecipient = false
         this.sliderStatus = true
+
+        if (this.setAmountInFiat) {
+          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
+        }
 
         return true
       }
@@ -1424,7 +1445,9 @@ export default {
       if (isToken) this.currentWalletBalance *= tokenDenominator
     },
     onBalanceExceeded (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+      try {
+        this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+      } catch {}
     },
     onRecipientInput (value) {
       this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value

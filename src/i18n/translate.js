@@ -70,6 +70,7 @@ const words = [
     MAX: "MAX",
     Name: "Name",
     or: "or",
+    Pin: "PIN",
     Personalize: "Personalize",
     ChangePin: "Change PIN",
     POSID: "POSID",
@@ -506,8 +507,10 @@ const additional = [
     Yes: "YES",
     No: "NO",
     SetAmountIn: "Set amount in",
+    RemoveRecipient: "Remove recipient",
     Recipient: "Recipient",
     To: "to",
+    SetReceiveAmount: "Set Receive Amount",
     PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through."
   }
 ]
@@ -519,6 +522,24 @@ const TEXT_GROUPS = [
   ...hongKongSpecific,
   ...additional
 ]
+
+const hardcodedTranslations = {
+  'zh-tw': {
+    Pin: '密碼',
+    ChangePin: '密碼',
+    Biometric: '生物認證',
+    ShowTokens: '顯示幣種',
+    ManageIgnoredTokens: '管理被忽略幣種',
+    ChineseTraditional: '中文繁體字',
+    Ramp: 'Ramp',
+    Sweep: 'Sweep',
+    Collectibles: 'NFT',
+    Home: '主頁',
+    Send: '發送',
+    Receive: '收取',
+    Apps: '應用程式'
+  }
+}
 
 // check for supported language codes here
 // https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
@@ -570,7 +591,7 @@ let jsonData = {};
 
 (async () => {
   for (let lang of supportedLangs) {
-    const codes = { from: 'en', to: lang }
+    let codes = { from: 'en', to: lang }
     if (lang === 'en-us') {
       codes.to = 'en'
     }
@@ -588,7 +609,15 @@ let jsonData = {};
       const label = getTextGroupLabel(index)
       console.log(`Translating ${label}...`)
 
-      const translatedObj = await translate(group, codes)
+      let _group
+      if (Object.keys(hardcodedTranslations).indexOf(lang) > -1) {
+        _group = {...group, ...hardcodedTranslations[lang]}
+        codes.except = Object.keys(hardcodedTranslations[lang])
+      } else {
+        _group = group
+      }
+
+      const translatedObj = await translate(_group, codes)
 
       // merge the previous and current objects
       Object.assign(jsonData, translatedObj)
