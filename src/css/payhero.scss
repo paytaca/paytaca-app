@@ -1,11 +1,7 @@
-@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+@use 'shared.scss';
 
 body.theme-payhero {
-  $color_1: #eaeeff; // remove
-  $color_2: rgb(60, 100, 246); // remove
-  $color_3: #ecf3f3; // remove
   $color_4: #fff;
-  $color_5: #000; // remove
   $color_9: #ececec;
 
   $brand_yellow: #ffbf00;
@@ -19,11 +15,7 @@ body.theme-payhero {
   $transactions-subtext: #7e7e7e;
   $black_opaque_50: rgba(0, 0, 0, 0.5);
 
-  $font-family_1: "Rubik", sans-serif;
-
   $background-color_1: #012121;
-  $background-color_2: #f9f8ff; // remove
-  $background-color_3: #ecf3f3; // remove
   $background-blue: #4872b8;
   $bg_info_banner: #273746;
   $bg_container_dark: #1a2a43;
@@ -31,39 +23,19 @@ body.theme-payhero {
   $bg_card_dark: #1c2833;
 
   body {
-    font-family: $font-family_1;
-    font-weight: 300 !important;
+    @include shared.body-prop;
   }
   body.body--light {
+    @include shared.body-transition;
     background-color: $background-color_1;
-    -webkit-transition: 0.1s;
-    -moz-transition: 0.1s;
-    -o-transition: 0.1s;
-    transition: 0.1s;
   }
   body.body--dark {
+    @include shared.body-transition;
     background-color: $background-color_1 !important;
-    -webkit-transition: 0.1s;
-    -moz-transition: 0.1s;
-    -o-transition: 0.1s;
-    transition: 0.1s;
   }
 
-  p {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-  }
-  a {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  p, a {
+    @include shared.user-select-none;
   }
 
   #registration-container {

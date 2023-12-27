@@ -2,8 +2,33 @@
  * with properties that are the same all throughout different themes.
 */
 
+@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+
 /* ----- VARIABLES ----- */
 $brand_blue: rgb(60, 100, 246);
+$font-family_1: "Rubik", sans-serif;
+
+/* ----- MIXINS ----- */
+@mixin body-prop {
+  font-family: $font-family_1;
+  font-weight: 300 !important;
+}
+
+@mixin user-select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@mixin body-transition {
+  -webkit-transition: 0.1s;
+  -moz-transition: 0.1s;
+  -o-transition: 0.1s;
+  transition: 0.1s;
+}
 
 /* ----- CLASSES ----- */
 .br-15 {
