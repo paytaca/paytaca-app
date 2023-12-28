@@ -1,5 +1,5 @@
 <template>
-  <div id="connected-dialog" class="text-white" :class="{'pt-dark': darkMode}">
+  <div id="connected-dialog" :class="getDarkModeClass(darkMode, 'pt-dark text-white', 'text-black')">
     <div style="display: flex; justify-content: center; margin-top: 5px;">Connected Addresses</div>
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
       <q-card ref="card" style="padding: 20px 10px 5px 0;" :class="{'pt-dark-card': darkMode}" class="pp-text br-15">
@@ -33,6 +33,8 @@
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 export default {
   name: 'connected-dialog',
   props: {
@@ -58,9 +60,12 @@ export default {
     });
   },
   computed: {
-
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    }
   },
   methods: {
+    getDarkModeClass,
     async switchAddress (address) {
       const network = this.$store.getters['global/network'].toLowerCase();
       const connectedAddresses = this.$store.getters['global/getConnectedSites'](network)[this.origin] || {};
