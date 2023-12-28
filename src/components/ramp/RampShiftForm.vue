@@ -177,7 +177,7 @@
   />
 
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded && !error">
-    <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
@@ -215,7 +215,7 @@ import { debounce } from 'quasar'
 import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
 import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -267,7 +267,7 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({

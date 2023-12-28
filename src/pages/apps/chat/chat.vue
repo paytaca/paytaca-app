@@ -82,7 +82,7 @@
         </div>
       </template>
       <div v-if="connecting">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
     <div v-if="connected" id="messages-container" ref="messagesContainer" style="width: 100%;">
@@ -129,7 +129,7 @@ import * as mqtt from 'mqtt'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import BCHJS from '@psf/bch-js'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 const ago = require('s-ago')
@@ -215,7 +215,7 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     onScannerDecode (content) {
       this.showQrScanner = false
       this.recipientAddress = content

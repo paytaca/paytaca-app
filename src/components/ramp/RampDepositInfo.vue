@@ -62,7 +62,7 @@
           Sending <b>{{ shiftInfo.shift_info.deposit.amount }}</b> BCH to <b>{{ shiftInfo.shift_info.settle.address }}</b>
         </div>
         <div class="row justify-center q-py-lg">
-          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
       </div>
       <div v-if="!sendFailed && !processing">
@@ -89,7 +89,7 @@ import ProgressLoader from '../ProgressLoader.vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import { getMemoedVNodeCall } from '@vue/compiler-core'
 // import { getNetwork } from '@ethersproject/networks'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -131,7 +131,7 @@ export default {
     },
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({

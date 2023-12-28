@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="fetchingNfts" class="row items-center justify-center">
-      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div class="row items-start q-pa-md">
       <q-card
@@ -56,7 +56,7 @@ import { useStore } from "vuex";
 import { computed, onMounted, ref, watch } from "vue";
 import ProgressLoader from 'components/ProgressLoader'
 import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 defineExpose({
   fetchNfts,

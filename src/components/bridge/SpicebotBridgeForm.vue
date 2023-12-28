@@ -259,7 +259,7 @@
           </q-item-section>
         </q-item>
         <div v-if="stagedSwapInfo.loading" class="row items-center justify-center">
-          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <q-btn
           v-else
@@ -301,7 +301,7 @@ import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SpicebotBridgeTokenSelectDialog from './SpicebotBridgeTokenSelectDialog.vue'
 import SpicebotBridgeSwapListenerDialog from './SpicebotBridgeSwapListenerDialog.vue'
-import { isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SpicebotBridgeForm',
@@ -462,7 +462,7 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     shortenSlpAddress (value = '', keepPrefix = false) {
       if (!value) return value

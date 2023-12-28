@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <template v-if="collectibles.length > 0">
       <div class="q-pa-md row items-start">
@@ -52,7 +52,7 @@
 <script>
 import ERC721CollectibleDetail from 'components/collectibles/ERC721CollectibleDetail.vue'
 import ProgressLoader from 'components/ProgressLoader'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'ERC721Collectibles',
@@ -104,7 +104,7 @@ export default {
   },
 
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     getImageUrl (collectible) {
       if (!collectible || !collectible.metadata) return ''
       return collectible.metadata.image || ''

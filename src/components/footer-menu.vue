@@ -7,7 +7,7 @@
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ path: '/' }">
-          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-home.png" size="30px" />
+          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-home.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-home.svg#icon"></use>
@@ -19,7 +19,7 @@
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
-          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-send.png" size="30px" />
+          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-send.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-send.svg#icon"></use>
@@ -31,7 +31,7 @@
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-receive-select-asset' }">
-          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-receive.png" size="30px" />
+          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-receive.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-receive.svg#icon"></use>
@@ -43,7 +43,7 @@
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'apps-dashboard' }">
-          <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-apps.png" size="30px" />
+          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-apps.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="apps.svg#icon"></use>
@@ -54,7 +54,7 @@
         <span @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
       </button>
       <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="getDarkModeClass()" @click="openWalletDialog">
-        <q-icon v-if="isDefaultTheme" name="img:assets/img/theme/payhero/app-wallet.png" size="30px" />
+        <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-wallet.png" size="30px" />
         <q-icon v-else class="default-text-color mb-2" size="30px">
           <svg>
             <use xlink:href="wallet.svg#icon"></use>
@@ -83,7 +83,7 @@ export default {
     }
   },
   computed: {
-    isDefaultTheme () {
+    isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
     }
   },

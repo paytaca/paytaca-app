@@ -326,7 +326,7 @@
       </div>
       <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div class="row justify-center" style="margin-top: 20px; color: gray;">
         <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
@@ -390,9 +390,9 @@
             <q-btn-toggle
               v-model="formData.slippageTolerance"
               rounded
-              :toggle-color="isDefaultTheme(theme) ? 'toggle-active' : 'grad'"
+              :toggle-color="isNotDefaultTheme(theme) ? 'toggle-active' : 'grad'"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
-              :color="isDefaultTheme(theme) ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
+              :color="isNotDefaultTheme(theme) ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
               :text-color="darkMode ? 'pt-dark-label' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
@@ -455,7 +455,7 @@ import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
 import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SmartSwapForm',
@@ -616,7 +616,7 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))

@@ -8,7 +8,7 @@
     <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-          <div :class="{'pt-header home-header' : isDefaultTheme(theme)}">
+          <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange" />
             <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
@@ -18,7 +18,7 @@
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="(isDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
+                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
                 >
                   <q-tab
                     name="BCH"
@@ -42,7 +42,7 @@
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
                   style="margin-top: -15px;"
-                  :indicator-color="isDefaultTheme(theme) && 'transparent'"
+                  :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
                 >
                   <q-tab
                     :name="$t('DEEM')"
@@ -96,7 +96,7 @@
                     </div>
                     <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
                       <p>
-                        <span style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                        <span style="font-size: 24px;" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                           {{
                             selectedNetwork === 'sBCH'
                               ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
@@ -231,7 +231,7 @@
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
               <q-btn
-                v-if="isDefaultTheme(theme) && darkMode"
+                v-if="isNotDefaultTheme(theme) && darkMode"
                 unelevated
                 @click="openPriceChart"
                 icon="img:assets/img/theme/payhero/price-chart.png"
@@ -337,7 +337,7 @@ import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -462,7 +462,7 @@ export default {
       return this.$store.getters['notification/openedNotification']
     },
     isDenominationTabEnabled () {
-      return (isDefaultTheme(this.theme) &&
+      return (isNotDefaultTheme(this.theme) &&
         (this.denomination === this.$t('DEEM') || this.denomination === 'DEEM') &&
         this.selectedNetwork !== 'sBCH')
     },
@@ -528,7 +528,7 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     openPriceChart () {
       this.$q.dialog({
@@ -1187,7 +1187,7 @@ export default {
   async mounted () {
     const vm = this
 
-    if (isDefaultTheme(vm.theme) && vm.darkMode) {
+    if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
       vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
       vm.assetsCloseButtonColor = 'color: #ffbf00;'
     } else {

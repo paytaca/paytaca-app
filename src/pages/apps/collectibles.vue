@@ -32,8 +32,8 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isDefaultTheme(theme) && 'transparent'"
+      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
@@ -230,7 +230,7 @@ import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
 import { convertCashAddress } from 'src/wallet/chipnet'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'app-wallet-info',
@@ -302,7 +302,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     filterTokens (isCashToken) {
       this.bchNftType = isCashToken ? 'ct' : 'slp'
     },

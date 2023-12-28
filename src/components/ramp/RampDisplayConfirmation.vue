@@ -21,7 +21,7 @@
     </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
-    <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
     <div class="q-px-lg">{{error_msg }} &#128533;</div>
@@ -47,7 +47,7 @@ import { getMnemonic, Wallet } from '../../wallet'
 import ProgressLoader from '../ProgressLoader.vue'
 import DragSlide from '../drag-slide.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -82,7 +82,7 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     rampType () {
       const vm = this
       if (vm.rampData.settle.coin === 'BCH') {

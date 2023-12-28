@@ -17,8 +17,8 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
-      :indicator-color="isDefaultTheme(theme) ? 'transparent' : undefined"
+      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
+      :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : undefined"
       class="col-12 q-px-lg pp-fcolor"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
@@ -61,7 +61,7 @@ import HeaderNav from "src/components/header-nav.vue";
 import QrScanner from "src/components/qr-scanner.vue";
 import WalletConnectV1 from "src/components/walletconnect/WalletConnectV1.vue"
 import WalletConnectV2 from "src/components/walletconnect/WalletConnectV2.vue"
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({
   uri: String,

@@ -16,7 +16,7 @@
         <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
         <p
           class="col q-pl-sm"
-          :class="{'text-grad' : isDefaultTheme}"
+          :class="{'text-grad' : isNotDefaultTheme}"
           style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;"
         >
           {{ asset.symbol }}
@@ -95,7 +95,7 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    isDefaultTheme () {
+    isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
     }
   },

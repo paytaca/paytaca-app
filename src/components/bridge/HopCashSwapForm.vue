@@ -241,7 +241,7 @@
             </div>
             <div class="row justify-center q-mt-sm" style="color: gray;">{{ $t('PoweredBy') }} hop.cash</div>
             <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
-              <ProgressLoader v-if="loading" :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+              <ProgressLoader v-if="loading" :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
               <q-btn
                 v-else
                 no-caps
@@ -299,7 +299,7 @@ import BiometricWarningAttempt from 'components/authOption/biometric-warning-att
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -433,7 +433,7 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     formatAmount (value) {
       const parsedNum = Number(value)
       if (isNaN(parsedNum)) return ''

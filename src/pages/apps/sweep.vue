@@ -11,7 +11,7 @@
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="fetching && tokens.length === 0" style="text-align: center; margin-top: 25px;">
               <p>{{ $t('Scanning') }}...</p>
-              <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+              <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
             </div>
             <q-form v-if="!submitted" class="text-center" style="margin-top: 25px;">
               <textarea
@@ -55,7 +55,7 @@
                     <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
                   </span>
                   <div v-if="sweeping && selectedToken === 'bch'">
-                    <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+                    <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
                   </div>
                 </div>
               </div>
@@ -99,7 +99,7 @@
                       </q-btn>&nbsp;&nbsp;&nbsp; <span class="text-uppercase">{{ $t('or') }}</span> <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
                     </template>
                     <div v-if="sweeping && selectedToken === token.token_id">
-                      <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+                      <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
                     </div>
                   </div>
                 </div>
@@ -119,7 +119,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey from '../../wallet/sweep'
 import QrScanner from '../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../wallet'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'sweep',
@@ -188,7 +188,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''

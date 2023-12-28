@@ -13,7 +13,7 @@
         class="col-12 q-px-sm q-pb-md pp-fcolor"
         v-model="selectedNetwork"
         style="margin-top: -20px; padding-bottom: 16px;"
-        :indicator-color="isDefaultTheme(theme) && 'transparent'"
+        :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
       >
         <q-tab
           name="BCH"
@@ -87,7 +87,7 @@
 </template>
 <script>
 import HeaderNav from '../../components/header-nav'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'IgnoredTokensList',
@@ -145,7 +145,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {

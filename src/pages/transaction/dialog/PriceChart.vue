@@ -18,7 +18,7 @@
         </div>
       </div>
       <div class="row justify-center q-pb-lg q-pt-lg" v-if="!isloaded">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
         {{ $t('NoInternetConnectionNotice') }} &#128533;
@@ -47,7 +47,7 @@ import { load } from 'dotenv'
 import Chart from 'chart.js/auto'
 import ProgressLoader from '../../../components/ProgressLoader'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -69,7 +69,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     parseFiatCurrency,
     async loadData () {
       const vm = this

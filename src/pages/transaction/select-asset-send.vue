@@ -5,7 +5,7 @@
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
-      :indicator-color="isDefaultTheme(theme) && 'transparent'"
+      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg pp-fcolor"
       :modelValue="selectedNetwork"
@@ -58,7 +58,7 @@
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
-                  :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+                  :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
                 >
                   {{ asset.name }}
                 </p>
@@ -87,7 +87,7 @@ import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Send-select-asset',
@@ -169,7 +169,7 @@ export default {
   methods: {
     convertTokenAmount,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     parseAssetDenomination,
     getFallbackAssetLogo (asset) {

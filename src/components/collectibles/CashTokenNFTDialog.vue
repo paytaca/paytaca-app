@@ -35,8 +35,8 @@
       <q-tabs
         v-model="tab"
         style="padding-left: 3px; padding-right: 3px;"
-        :active-color="isDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-        :indicator-color="isDefaultTheme() && 'transparent'"
+        :active-color="isNotDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+        :indicator-color="isNotDefaultTheme() && 'transparent'"
       >
         <q-tab
           name="details"
@@ -252,7 +252,7 @@ function copyToClipboard(value, message) {
   })
 }
 
-function isDefaultTheme () {
+function isNotDefaultTheme () {
   return $store.getters['global/theme'] !== 'default'
 }
 

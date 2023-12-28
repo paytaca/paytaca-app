@@ -30,7 +30,7 @@
           </q-card-section>
 
           <div v-if="loading" class="flex justify-center">
-            <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
           </div>
           <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
             <div class="row" v-for="val, key in asset" :key="key">
@@ -94,7 +94,7 @@
 <script>
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ProgressLoader from '../../../components/ProgressLoader.vue'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -167,7 +167,7 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     show () {
       this.$refs.dialog.show()

@@ -43,7 +43,7 @@
       </div>
     </div>
     <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
-      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="importSeedPhrase && mnemonic.length === 0">
       <div class="col-12 q-px-lg">
@@ -60,7 +60,7 @@
 
     <div class="row" v-if="mnemonic.length > 0">
       <div class="pt-get-started q-mt-sm" :class="{ 'pt-dark': darkMode, 'registration' : theme }">
-        <div :class="{'logo-splash-bg' : isDefaultTheme(theme)}">
+        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
             <div class="row" v-if="openSettings">
               <div class="col">
@@ -198,7 +198,7 @@ import { Device } from '@capacitor/device'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 function countWords(str) {
@@ -263,7 +263,7 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
         return utils.isValidMnemonic(this.seedPhraseBackup)

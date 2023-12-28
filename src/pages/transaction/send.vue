@@ -178,7 +178,7 @@
               </div>
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
-                  <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+                  <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
                 </div>
               </div>
             </form>
@@ -336,7 +336,7 @@ import {
   convertToBCH,
   customNumberFormatting
 } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
 
@@ -622,7 +622,7 @@ export default {
     convertToBCH,
     customNumberFormatting,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 

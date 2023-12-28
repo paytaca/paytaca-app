@@ -19,7 +19,7 @@
         <div
           clickable
           class="q-pr-md text-blue-9"
-          :class="{'text-grad': isDefaultTheme(theme)}"
+          :class="{'text-grad': isNotDefaultTheme(theme)}"
           style="margin-top: 10px;"
           @click="$router.push('/accounts')"
         >
@@ -38,7 +38,7 @@
               >
                 <q-item-section style="overflow-wrap: break-word;">
                   <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
-                    <span class="text-h5" :class="{'text-grad' : isDefaultTheme(theme)}" style="font-size: 15px;">
+                    <span class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}" style="font-size: 15px;">
                       {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
                     </span>
                     <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
@@ -75,7 +75,7 @@
 <script>
 import renameDialog from './renameDialog.vue'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -95,7 +95,7 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     processVaultName () {
       const vm = this
       let count = 1

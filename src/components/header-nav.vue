@@ -11,7 +11,7 @@
           <router-link
             :to="{ path: backnavpath }"
             class="pt-arrow-left-link"
-            :class="{'text-grad': isDefaultTheme || darkMode}"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
             :style="{width: $q.platform.is.bex ? '375px' : '95%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           >
             <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
@@ -20,7 +20,7 @@
           </router-link>
           <p
             class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': isDefaultTheme || darkMode}"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           >
             {{ title }}
@@ -48,7 +48,7 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    isDefaultTheme () {
+    isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
     }
   }

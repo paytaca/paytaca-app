@@ -25,7 +25,7 @@
         </q-menu>
       </q-icon>
       <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <template v-else>
         <div class="row">
@@ -147,7 +147,7 @@ import {
   convertCashAddress,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -302,7 +302,7 @@ export default {
       }
     },
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     updateLnsName () {
       if (!this.isSep20) return
       if (!this.address) return

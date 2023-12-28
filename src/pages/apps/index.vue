@@ -2,22 +2,22 @@
   <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode, 'pt-dark', '')">
     <div id="apps" ref="apps" class="text-center">
       <div>
-        <div :class="{'pt-header apps-header': isDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
+        <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
           <p
             class="section-title"
-            :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme(theme)}"
+            :class="{'text-blue-5': darkMode, 'text-grad': isNotDefaultTheme(theme)}"
             :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
           >
             {{ $t('Applications') }}
           </p>
         </div>
-        <div class="row" :class="isDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+        <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div
               class="pt-app bg-grad"
               :class="[
                 buttonClassByState(app.active),
-                {'apps-border' : isDefaultTheme(theme)}
+                {'apps-border' : isNotDefaultTheme(theme)}
               ]"
               @click="openApp(app)"
             >
@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'apps',
@@ -154,7 +154,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     buttonClassByState (active) {
       return active ? '' : 'disabled'
     },
@@ -167,9 +167,9 @@ export default {
   created () {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
-    const themedIconPath = isDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
+    const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
     this.filteredApps.forEach(app => {
-      if (isDefaultTheme(this.theme)) {
+      if (isNotDefaultTheme(this.theme)) {
         const iconFileName = app.path.split('/')[2]
         const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
         app.iconName = themedIconLoc
