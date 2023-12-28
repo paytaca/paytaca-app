@@ -1,13 +1,22 @@
 @use 'shared.scss';
 
 body.theme-default {
+  /* ----- VARIABLES ----- */
   $color_4: #fff;
   $color_6: #42a5f5;
 
   $text_blue_9: #1565c0;
-
   $bg_card_dark: #1c2833;
+  $bg_gradient: linear-gradient(
+    to right bottom,
+    #3b7bf6,
+    #a866db,
+    #da53b2,
+    #ef4f84,
+    #ed5f59
+  );
   
+  /* ----- GLOBAL ----- */
   body {
     @include shared.body-prop;
   }
@@ -16,16 +25,53 @@ body.theme-default {
     @include shared.user-select-none;
   }
 
-  .bg-grad,
-  .bg-grad.button {
+  /* ----- IDS ----- */
+  #registration-container {
+    min-height: 100vh;
+    background-image: $bg_gradient;
+    position: relative !important;
+
+    .q-field--dark {
+      .q-field__control {
+        color: shared.$brand_blue !important;
+      }
+
+      .q-field__native {
+        color: black !important;
+      }
+    }
+  }
+
+  #bch-card {
     background-image: linear-gradient(
       to right bottom,
       #3b7bf6,
-      #a866db,
-      #da53b2,
+      #5f94f8,
+      #df68bb,
       #ef4f84,
       #ed5f59
-    ) !important;
+    );
+  }
+  
+  #apps {
+    padding: 20px 20px 80px 20px;
+    color: #3b7bf6;
+  }
+
+  #app-container {
+    &.dark {
+      background: #273746 !important;
+    }
+
+    &.light {
+      background-color: #ecf3f3 !important;
+    }
+  }
+
+  /* ----- CLASSES ----- */
+  .bg-grad,
+  .bg-grad.button {
+    background-image: $bg_gradient !important;
   }
   .text-grad {
     background: -webkit-linear-gradient(
@@ -40,52 +86,7 @@ body.theme-default {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     -webkit-box-decoration-break: clone;
-  }
-  #registration-container {
-    min-height: 100vh;
-    background-image: linear-gradient(
-      to right bottom,
-      #3b7bf6,
-      #a866db,
-      #da53b2,
-      #ef4f84,
-      #ed5f59
-    );
-    position: relative !important;
-
-    .q-field--dark {
-      .q-field__control {
-        color: shared.$brand_blue !important;
-      }
-
-      .q-field__native {
-        color: black !important;
-      }
-    }
-  }
-  #bch-card {
-    background-image: linear-gradient(
-      to right bottom,
-      #3b7bf6,
-      #5f94f8,
-      #df68bb,
-      #ef4f84,
-      #ed5f59
-    );
-  }
-  #apps {
-    padding: 20px 20px 80px 20px;
-    color: #3b7bf6;
-  }
-
-  #app-container {
-    &.dark {
-      background: #273746 !important;
-    }
-
-    &.light {
-      background-color: #ecf3f3 !important;
-    }
+    box-decoration-break: clone;
   }
 
   .pt-dark {
@@ -170,8 +171,6 @@ body.theme-default {
       #9c3356,
       #a5403d
     );
-    /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
-    /* background: #717D7E; */
   }
 
   .selected {
@@ -206,14 +205,7 @@ body.theme-default {
   }
 
   .btn-scan {
-    background-image: linear-gradient(
-      to right bottom,
-      #3b7bf6,
-      #a866db,
-      #da53b2,
-      #ef4f84,
-      #ed5f59
-    );
+    background-image: $bg_gradient;
   }
 
   .group-currency {
