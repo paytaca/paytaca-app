@@ -199,7 +199,7 @@ body.theme-payhero {
     }
   }
 
-  .pt-dark-card {
+  .pt-dark-card { // remove
     background: $bg_card_dark !important;
 
     &.registration-card {
@@ -218,7 +218,35 @@ body.theme-payhero {
     }
 
     &.light {
-      background-color: white !important;
+      background-color: white;
+
+      &.btn-transaction-bg {
+        background-color: transparent !important;
+      }
+    }
+  }
+
+  .pt-dark-card-2 {
+    background: transparent !important;
+  }
+
+  .pt-dark-label { // remove
+    color: $label-white !important;
+
+    &.label-text {
+      color: $color_9 !important;
+      font-size: 14px;
+      font-weight: 300;
+    }
+  }
+
+  .pt-label {
+    &.dark {
+      color: $label-white;
+    }
+
+    &.light {
+      color: black;
     }
   }
 
@@ -250,29 +278,6 @@ body.theme-payhero {
       &.light {
         color: $footer-bar;
       }
-    }
-  }
-
-  .pt-dark-card-2 {
-    background: transparent !important;
-  }
-  .pt-dark-label {
-    color: $label-white !important;
-
-    &.label-text {
-      color: $color_9 !important;
-      font-size: 14px;
-      font-weight: 300;
-    }
-  }
-
-  .pt-label {
-    &.dark {
-      color: $label-white;
-    }
-
-    &.light {
-      color: #444655;
     }
   }
 

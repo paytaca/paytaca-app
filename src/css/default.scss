@@ -92,7 +92,8 @@ body.theme-default {
   .pt-dark {
     background: #273746 !important;
   }
-  .pt-dark-card {
+
+  .pt-dark-card { // remove
     background: $bg_card_dark !important;
   }
 
@@ -103,6 +104,28 @@ body.theme-default {
 
     &.light {
       background-color: white !important;
+
+      &.btn-transaction-bg {
+        background-color: #f2f3fc !important;
+      }
+    }
+  }
+
+  .pt-dark-card-2 {
+    background: #212f3d !important;
+  }
+
+  .pt-dark-label { // remove
+    color: $color_4 !important;
+  }
+
+  .pt-label {
+    &.dark {
+      color: $color_4;
+    }
+
+    &.light {
+      color: black;
     }
   }
 
@@ -128,23 +151,6 @@ body.theme-default {
     .address,
     .market-currency {
       color: gray;
-    }
-  }
-
-  .pt-dark-card-2 {
-    background: #212f3d !important;
-  }
-  .pt-dark-label {
-    color: $color_4 !important;
-  }
-
-  .pt-label {
-    &.dark {
-      color: $color_4;
-    }
-
-    &.light {
-      color: #444655;
     }
   }
 

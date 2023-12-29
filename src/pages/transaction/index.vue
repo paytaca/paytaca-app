@@ -149,8 +149,12 @@
                   :class="getDarkModeClass(darkMode)"
                   @click="updateTokenMenuPosition"
                 >
-                  <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
-                    <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px;">
+                  <q-menu
+                    ref="tokenMenu"
+                    class="text-bow token-menu"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <q-list class="pt-card token-menu-list" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">
                           {{ $t(isHongKong(currentCountry) ? 'ManagePoints' : 'ManageTokens') }}
@@ -172,7 +176,7 @@
               </p>
             </div>
 
-            <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
+            <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
               <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
             </div>
           </div>
@@ -223,10 +227,7 @@
         />
         <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
           <div class="row no-wrap justify-between">
-            <p
-              class="q-ma-lg section-title transaction-wallet"
-              :class="getDarkModeClass(darkMode)"
-            >
+            <p class="q-ma-lg section-title transaction-wallet" :class="getDarkModeClass(darkMode)">
               {{ selectedAsset.symbol }} {{ $t('Transactions') }}
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
@@ -248,7 +249,10 @@
               />
             </div>
           </div>
-          <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+          <div
+            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"
+            :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')"
+          >
             <button
               class="btn-custom q-mt-none btn-all"
               :class="[getDarkModeClass(darkMode), {'active-transaction-btn border': transactionsFilter == 'all'}]"
@@ -283,12 +287,16 @@
               />
               <div ref="bottom-transactions-list"></div>
               <TransactionListItemSkeleton v-if="transactionsAppending"/>
-              <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+              <div
+                v-else-if="transactionsPageHasNext"
+                class="pt-label show-more-label"
+                :class="getDarkModeClass(darkMode, '', isNotDefaultTheme(theme) ? '' : 'default')"
+              >
                 <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
-                <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-                <p :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">{{ $t('NoTransactionsToDisplay') }}</p>
+                <q-img class="vertical-top q-my-md no-transaction-img" src="empty-wallet.svg" />
+                <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
               </div>
             </template>
             <div v-else>
@@ -1248,7 +1256,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
@@ -1316,6 +1324,28 @@ export default {
   }
   .q-tab__icon {
     font-size: 14px !important;
+  }
+  .token-menu {
+    position: fixed;
+    left: 0;
+    &.token-menu-list {
+      min-width: 100px;
+    }
+  }
+  .asset-filter-container {
+    position: relative;
+    margin-top: -5px;
+  }
+  .show-more-label {
+    margin-top: 20px;
+    width: 100%;
+    text-align: center;
+    &.light.default {
+      color: #3b7bf6 !important;
+    }
+  }
+  .no-transaction-img {
+    width: 75px; fill: gray;
   }
 </style>
 

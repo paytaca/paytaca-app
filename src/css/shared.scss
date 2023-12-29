@@ -54,3 +54,12 @@ $font-family_1: "Rubik", sans-serif;
 .bex.q-body--prevent-scroll {
   position: unset !important;
 }
+
+.text-bow { // black or white
+  &.dark {
+    color: white;
+  }
+  &.light {
+    color: black
+  }
+}

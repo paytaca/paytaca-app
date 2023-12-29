@@ -46,8 +46,7 @@ export default {
     return {
       origin: "",
       connectedAddresses: [],
-      activeAddress: "",
-      darkMode: this.$store.getters['darkmode/getStatus']
+      activeAddress: ""
     }
   },
   mounted () {
