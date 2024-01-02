@@ -1333,8 +1333,7 @@ export default {
     }
   }
   .asset-filter-container {
-    position: relative;
-    margin-top: -5px;
+    margin-top: -5px !important;
   }
   .show-more-label {
     margin-top: 20px;
@@ -1345,7 +1344,8 @@ export default {
     }
   }
   .no-transaction-img {
-    width: 75px; fill: gray;
+    width: 75px;
+    fill: gray;
   }
 </style>
 

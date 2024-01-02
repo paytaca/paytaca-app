@@ -495,11 +495,11 @@ body.theme-payhero {
     border-radius: 6px;
 
     &.dark {
-      background: $bg_container_dark !important;
+      background: $bg_container_dark;
     }
 
     &.light {
-      background: $bg_container_light !important;
+      background: $bg_container_light;
     }
 
     .text-token.light {

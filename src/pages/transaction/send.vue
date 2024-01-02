@@ -12,14 +12,13 @@
       <q-banner
         v-if="assetId.startsWith('slp/')"
         inline-actions
-        class="text-white bg-red text-center q-mt-lg"
-        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
-        style="width: 90%; margin-left: auto; margin-right: auto;"
+        class="bg-red text-center q-mt-lg text-bow slp-disabled-banner"
+        :class="getDarkModeClass(darkMode)"
       >
         Sending of SLP tokens is temporarily disabled until further notice.
       </q-banner>
       <template v-else>
-        <div v-if="jpp && !jpp.txids?.length" style="padding-top:5.5rem;padding-bottom:5.5rem">
+        <div v-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel
             :jpp="jpp"
             :wallet="wallet"
@@ -32,14 +31,14 @@
           class="send-form-container"
           :class="sent ? 'q-mt-md sent' : 'q-mt-xl'"
         >
-          <div class="q-pa-md">
-            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
-            <div v-if="isNFT && !sent" style="width: 150px; margin: 0 auto;">
+          <div class="q-pa-md enter-address-container">
+            <v-offline @detected-condition="onConnectivityChange" class="offine-banner" />
+            <div v-if="isNFT && !sent" class="nft-container">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
               <div
-                class="q-mt-md text-center"
-                :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+                class="q-mt-md text-center text-bow"
+                :class="getDarkModeClass(darkMode)"
                 v-if="$route.query.tokenType === 'CT-NFT'"
               >
                 <span>Name: {{ $route.query.name }}</span>
@@ -51,7 +50,7 @@
               {{ scanner.error }}
             </div>
             <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0].recipientAddress === ''">
-              <div class="col-12" style="text-align: center;">
+              <div class="col-12">
                 <q-input
                   bottom-slots
                   filled
@@ -62,7 +61,6 @@
                   <template v-slot:append>
                     <q-icon
                       name="arrow_forward_ios"
-                      style="color: #3b7bf6;"
                       class="button button-icon"
                       :class="getDarkModeClass(darkMode)"
                       @click="onScannerDecode(manualAddress)"
@@ -70,11 +68,17 @@
                   </template>
                 </q-input>
               </div>
-              <div class="col-12 text-uppercase" style="text-align: center; font-size: 15px; color: grey;">
+              <div class="col-12 text-uppercase text-center or-label">
                 {{ $t('or') }}
               </div>
               <div class="col-12 q-mt-lg text-center">
-                <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="mdi-qrcode" @click.once="showQrScanner = true" />
+                <q-btn
+                  round
+                  size="lg"
+                  class="btn-scan button text-white bg-grad"
+                  icon="mdi-qrcode"
+                  @click.once="showQrScanner = true"
+                />
               </div>
             </div>
             <div class="q-pa-md text-center text-weight-medium">
@@ -151,21 +155,19 @@
               </q-list>
 
               <div class="row" v-if="sendDataMultiple.length > 1">
-                <p style="font-size: 14px; color: red; margin-top: 10px;" @click="removeLastRecipient">
+                <p class="remove-recipient-button" @click="removeLastRecipient">
                   {{ $t('RemoveRecipient') }} #{{ sendDataMultiple.length }}
                 </p>
               </div>
 
               <div
-                class="row"
-                style="margin-top: -10px;"
+                class="row other-functions-container"
                 v-if="!sendDataMultiple[0].fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'"
               >
                 <div class="col q-mt-md">
                   <a
-                    style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                     href="#"
-                    class="button button-text-primary"
+                    class="button button-text-primary set-amount-button"
                     :class="getDarkModeClass(darkMode)"
                     @click.prevent="onSetAmountToFiatClick"
                   >
@@ -190,11 +192,11 @@
             v-on:makeKeyAction="makeKeyAction"
           />
 
-          <q-list v-if="showSlider" class="absolute-bottom">
-            <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
-              <q-slide-item left-color="blue" @left="slideToSubmit" style="background-color: transparent; border-radius: 40px;">
+          <q-list v-if="showSlider" class="absolute-bottom slider-list-container">
+            <div class="slider-container">
+              <q-slide-item left-color="blue" @left="slideToSubmit" class="security-check-slide-item">
                 <template v-slot:left>
-                  <div style="font-size: 15px" class="text-body1">
+                  <div class="text-body1">
                   <q-icon class="material-icons q-mr-md" size="lg">
                     task_alt
                   </q-icon>
@@ -204,10 +206,10 @@
 
               <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass(darkMode)">
                 <q-item-section avatar>
-                  <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+                  <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue chevron-double-right" />
                 </q-item-section>
                 <q-item-section class="text-right">
-                  <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ $t('SwipeToSend') }}</h5>
+                  <h5 class="q-my-sm text-grey-4 text-uppercase swipe-label">{{ $t('SwipeToSend') }}</h5>
                 </q-item-section>
               </q-item>
             </q-slide-item>
@@ -217,46 +219,46 @@
             <footer-menu />
           </template>
 
-          <div class="q-px-md" v-if="sent" style="text-align: center; margin-top: -70px;">
+          <div class="q-px-md text-center sent-success-container" v-if="sent">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
             <div
-              :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
+              class="text-bow"
+              :class="getDarkModeClass(darkMode)"
               :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}"
             >
-              <p style="font-size: 22px;">{{ $t('SuccessfullySent') }}</p>
+              <p class="successfully-sent-label">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
-                <p style="font-size: 25px; margin-top: -10px;">{{ $route.query.name }}</p>
+                <p class="amount-label">{{ $route.query.name }}</p>
               </template>
               <template v-else>
-                <p style="font-size: 25px; margin-top: -10px;">
+                <p class="amount-label">
                   {{
                     isCashToken
                       ? ctTokenAmount
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
                   }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
-                <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
+                <p v-if="sendAmountInFiat && asset.id === 'bch'" class="amount-fiat-label">
                   ({{ parseFiatCurrency(sendAmountInFiat, currentSendPageCurrency()) }})
                 </p>
               </template>
 
-              <p style="font-size: 22px; margin: -10px 0 5px 0">{{ $t('To') }}</p>
+              <p class="to-label">{{ $t('To') }}</p>
               <template v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
-                <div style="overflow-wrap: break-word; font-size: 16px;" class="q-px-xs">
+                <div class="q-px-xs recipient-address">
                   {{ recipient.recipientAddress }}
                 </div>
               </template>
               <div class="text-center q-mt-lg">
                 <div class="text-grey">{{ $t('ReferenceId')}}</div>
-                <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
+                <div class="text-h4 reference-id">{{ txid.substring(0, 6).toUpperCase() }}</div>
                 <q-separator color="grey"/>
               </div>
-              <div style="overflow-wrap: break-word; font-size: 16px; margin-top: 20px;" class="q-px-xs">
-                txid: {{ txid.slice(0, 8) }}<span style="font-size: 18px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
+              <div class="q-px-xs tx-id">
+                txid: {{ txid.slice(0, 8) }}<span class="tx-id-hidden">***</span>{{ txid.substr(txid.length - 8) }}<br>
                 <template v-if="walletType === 'SmartBCH'">
                   <a
-                    style="text-decoration: none; color: #3b7bf6;"
-                    class="button button-text-primary"
+                    class="button button-text-primary view-explorer-button"
                     :class="getDarkModeClass(darkMode)"
                     :href="'https://sonar.cash/tx/' + txid" target="_blank"
                   >
@@ -265,8 +267,7 @@
                 </template>
                 <template v-else>
                   <a
-                    style="text-decoration: none; color: #3b7bf6;"
-                    class="button button-text-primary"
+                    class="button button-text-primary view-explorer-button"
                     :class="getDarkModeClass(darkMode)"
                     :href="getExplorerLink(txid)" target="_blank"
                   >
@@ -277,8 +278,7 @@
 
               <div v-if="sendDataMultiple[0].paymentAckMemo" class="row justify-center">
                 <div
-                  class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1"
-                  style="min-width:50vw;border: 1px solid grey;background-color: inherit;"
+                  class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
                   :class="getDarkModeClass(darkMode, 'text-white', '')"
                 >
                   <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">Memo:</span>
@@ -289,7 +289,7 @@
                 v-if="jpp?.paymentManuallyVerified"
                 class="text-left bg-warning rounded-borders text-black text-subtitle1 q-mt-sm"
               >
-                <q-item-section avatar style="min-width:unset;">
+                <q-item-section avatar class="payment-not-yet-ack-container">
                   <q-icon name="warning" size="1.5em"/>
                 </q-item-section>
                 <q-item-section>
@@ -1370,7 +1370,6 @@ export default {
       }
     },
     removeLastRecipient () {
-      console.log(this.expandedItems)
       this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
       delete this.expandedItems[`R${this.sendDataMultiple.length}`]
       this.sendDataMultiple.pop()
@@ -1532,210 +1531,13 @@ export default {
   .q-field--outlined .q-field__control:before {
     border: 2px solid #3b7bf6;
   }
-  .btn-scan {
-    color: white;
-  }
-  .btn-scan-dark {
-    background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
-    color: white;
-  }
-  .swipe-confrim-label {
-    position: absolute;
-    color: #fff !important;
-    margin-top: 5px;
-    display: block;
-    font-size: 18px;
-    top: 12px;
-    right: 16px;
-  }
-  .confirmation-slider {
-    position: fixed;
-    bottom: 0px;
-    border: 0;
-    text-align: center;
-  }
-  #status {
-    height:62px;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-  }
-
   @keyframes fadein {
     from{ opacity:0; }
     to{ opacity:1; }
   }
-
-  .delete-notice { display:none; user-select:none; font-size:20px; line-height:50px; color:#ED4545; animation:fadein 4s ease; }
-
-  #confirm {
-    appearance: none !important;
-    background: transparent;
-    height: 62px;
-    padding: 0 5px;
-    width: 100%;
-  }
-
-  #confirm::-webkit-slider-thumb {
-    appearance:none!important;
-    height:48px;
-    width:160px;
-    border:3px solid rgba(60, 100, 246, .6);
-    border-radius: 18px;
-    cursor: e-resize;
-    background: no-repeat no-repeat;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-   }
-
-  #confirm:hover::-webkit-slider-thumb {
-    border:3px solid rgba(60, 100, 246, .5);
-  }
-  #slider-arrow {
-    z-index: 2000 !important;
-    position: fixed;
-    width: 40px;
-    bottom: 13px;
-    left: 175px;
-  }
-  .form-input {
-    width: 100%;
-    height: 38px;
-    border-radius: 18px;
-    border: 1px solid #008BF1;
-    outline: 0;
-    text-overflow: ellipsis;
-  }
-  .form-input:focus {
-    border-color: #89BFF4;
-    box-shadow: 0px 0px 2px 2px rgba(137, 191, 244, .5);
-  }
-  .form-input-amount {
-    padding-right: 14px;
-  }
-  .send-input-fields {
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: #fff;
-    /*display: none;*/
-  }
-  .color-light-gray {
-    color: #444646;
-  }
-  .icon-size {
-    font-size: 18px;
-  }
-  .token-name-container {
-    padding-top: 2px;
-  }
-  .asset {
-    color: #B4BABA;
-    position: absolute;
-  }
-  .icon-arrow-left {
-    position: absolute;
-    left: 20px;
-    color: #3992EA;
-  }
-  .icon-size-1 {
-    font-size: 26px;
-  }
-  .slp_tokens {
-    color: #636767;
-  }
-  .token-link {
-    color: #000;
-    text-decoration: none;
-  }
-  .text-token {
-    color: #444646;
-  }
-  .pt-submit-container {
-    position: fixed;
-    display: flex;
-    align-items: center;
-    height: 80px;
-    width: 100%;
-    bottom: 0pt;
-    // background: #da53b2;
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84);
-  }
-  .pt-animate-submit {
-    position: absolute;
-    width: 150px;
-    height: 65px;
-    width: 65px;
-    left: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #3b7bf6;
-    border: 2px solid #346ddc;
-    overflow: hidden;
-    // border: 3px solid rgba(60, 100, 246, .5);
-    -webkit-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
-    -moz-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
-    -o-transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
-    transition: background 0.3s ease, left 0.3s ease, width 0.3s ease;
-  }
-  .pt-animate-submit .pt-arrow-right-icon {
-    font-size: 38px;
-  }
-  .pt-check-icon {
-    font-size: 28px;
-  }
-  .animate-left {
-    left: 30px !important;
-  }
-  .animate-full-width {
-    width: 100%;
-    left: 0px !important;
-    height: 100% !important;
-    border: none;
-    border-radius: 0px !important;
-    // background: #3b7bf6;
-    background: transparent;
-  }
-  .pt-send-text {
-    position: absolute;
-    right: 20px;
-  }
-  .pt-on-process {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    left: 0;
-    width: 100%;
-    opacity: 0;
-  }
-  .pt-process-text {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    height: 100%;
-  }
-  .animate-opacity {
-    opacity: 10 !important;
-  }
-  .animate-process {
-    opacity: 10 !important;
-    -webkit-transition: all 1s ease;
-    -moz-transition: all 1s ease;
-    -o-transition: all 1s ease;
-    transition: all 1s ease;
-  }
-  .pt-invisible {
-    opacity: 0;
-  }
-  .recipient-input-qr {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-
-    .recipient-input {
-      flex: 1;
-      margin-right: 10px;
-    }
+  .jpp-panel-container {
+    padding-top:5.5rem;
+    padding-bottom:5.5rem;
   }
   .add-recipient-button {
     display: flex;
@@ -1744,7 +1546,6 @@ export default {
   }
   .q-expansion-item-recipient {
     font-size: 18px;
-
     &.light {
       color: black
     }
@@ -1752,15 +1553,100 @@ export default {
   .send-form-container {
     max-height: 65vh;
     overflow-y: scroll;
-
     &.sent {
       max-height: 80vh;
     }
-
+    .enter-address-container {
+      .offine-banner {
+        margin-bottom: 15px;
+      }
+      .nft-container {
+        width: 150px;
+        margin: 0 auto;
+      }
+      .or-label {
+        font-size: 15px;
+        color: grey;
+      }
+    }
     .send-form {
       font-size: 26px !important;
       margin-top: -100px;
       padding-top: 20px;
+      .remove-recipient-button {
+        font-size: 14px;
+        color: red;
+        margin-top: 10px;
+      }
+      .other-functions-container {
+        margin-top: -10px;
+      }
+      .set-amount-button {
+        font-size: 16px;
+        text-decoration: none;
+      }
+    }
+    .slider-list-container {
+      .slider-container {
+        margin: 0 10% 20px 10%;
+      }
+      .security-check-slide-item {
+        background-color: transparent;
+        border-radius: 40px;
+      }
+      .text-body1 {
+        font-size: 15px;
+      }
+      .chevron-double-right {
+        border-radius: 50%;
+      }
+      .swipe-label {
+        font-size: large;
+      }
+    }
+  }
+  .sent-success-container {
+    margin-top: -70px;
+    .successfully-sent-label {
+      font-size: 22px;
+    }
+    .amount-label {
+      font-size: 25px;
+      margin-top: -10px;
+    }
+    .amount-fiat-label {
+      font-size: 28px;
+      margin-top: -15px;
+    }
+    .to-label {
+      font-size: 22px;
+      margin: -10px 0 5px 0
+    }
+    .recipient-address {
+      overflow-wrap: break-word;
+      font-size: 16px;
+    }
+    .reference-id {
+      letter-spacing: 6px;
+    }
+    .tx-id {
+      overflow-wrap: break-word;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    .tx-id-hidden {
+      font-size: 18px;
+    }
+    .view-explorer-button {
+      text-decoration: none;
+    }
+    .memo-container {
+      min-width: 50vw;
+      border: 1px solid grey;
+      background-color: inherit;
+    }
+    .payment-not-yet-ack-container {
+      min-width: unset;
     }
   }
 </style>

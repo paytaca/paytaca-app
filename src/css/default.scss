@@ -216,7 +216,11 @@ body.theme-default {
 
   .group-currency {
     &.dark {
-      background: $bg_card_dark !important;
+      background: $bg_card_dark;
+    }
+
+    &.light {
+      background: white;
     }
 
     .text-token {

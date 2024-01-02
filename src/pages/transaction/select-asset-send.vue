@@ -28,24 +28,24 @@
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
-          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
+          <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
             {{ $t('SelectAssetToSend') }}
           </p>
         </div>
-        <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
+        <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
-      <div style="overflow-y: scroll;">
+      <div class="group-currency-container">
         <div
           v-for="(asset, index) in assets"
           :key="index"
           @click="redirectToSend(asset)"
           role="button"
-          class="row q-pl-lg q-pr-lg token-link"
+          class="row q-pl-lg q-pr-lg"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode, '', 'bg-white')">
-            <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
+            <div class="row q-pt-sm q-pb-xs q-pl-md">
               <div>
                 <img
                   :src="denomination === $t('DEEM') && asset.symbol === 'BCH'
@@ -53,6 +53,7 @@
                     : asset.logo || getFallbackAssetLogo(asset)
                   "
                   width="50"
+                  alt=""
                 />
               </div>
               <div class="col q-pl-sm q-pr-sm">
@@ -70,7 +71,7 @@
           </div>
         </div>
       </div>
-      <div style="height: 90px;" v-if="assets.length > 5"></div>
+      <div class="vertical-space" v-if="assets.length > 5"></div>
     </template>
     <div
       v-else
@@ -200,21 +201,18 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   .group-currency {
     width: 100%;
     border-radius: 7px;
     margin-top: 5px;
     margin-bottom: 5px;
   }
-  .text-token {
-    font-size: 18px;
-  }
-  .pp-fcolor {
-    color: #000 !important;
-  }
   .pt-label {
     font-size: 16px;
     font-weight: 300;
+  }
+  .group-currency-container {
+    overflow-y: scroll;
   }
 </style>
