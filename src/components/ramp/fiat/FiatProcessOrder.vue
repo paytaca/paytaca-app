@@ -73,11 +73,11 @@
         @refresh="$emit('refresh')"
       />
     </div>
-  </div>
 
-  <!-- Chat button -->
-  <div class="fixed" style="right: 25px; bottom: 95px;">
-    <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
+    <!-- Chat button -->
+    <div class="fixed" style="right: 25px; bottom: 95px;" v-if="status.value !== 'RLS'">
+      <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
+    </div>
   </div>
 
   <!-- Dialogs -->
@@ -93,6 +93,7 @@
   <div v-if="openChat">
     <ChatDialog
       :openDialog="openChat"
+      :data="order"
       v-on:close="openChat = false"
     />
   </div>
@@ -213,6 +214,8 @@ export default {
           .then(() => {
             vm.isloaded = true
           })
+        vm.getOrderFeedback()
+
         vm.setupWebsocket()
       })
   },
@@ -545,6 +548,8 @@ export default {
       const url = `${vm.apiURL}/order/feedback/peer`
       vm.$axios.get(url, {
         params: {
+          limit: 7,
+          page: 1,
           from_peer: vm.$store.getters['ramp/getUser'].id,
           order_id: vm.order.id
         },
@@ -552,7 +557,8 @@ export default {
       })
         .then(response => {
           if (response.data) {
-            const data = response.data[0]
+            const data = response.data.feedbacks[0]
+            console.log('data: ', data)
             vm.feedback = {
               rating: data.rating,
               comment: data.comment,

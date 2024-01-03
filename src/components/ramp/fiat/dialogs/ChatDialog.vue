@@ -9,7 +9,7 @@
     <div class="row items-center justify-between q-mr-lg q-pb-xs">
       <div class="q-pl-lg q-mt-md">
         <div style="font-size: 25px; font-weight: 500;">Chat</div>
-        <div style="font-size: 12px;" class="text-grey-5">(You, Ellie)</div>
+        <div style="font-size: 13px; letter-spacing: 1px;" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">You({{ senderName() }}), {{ senderName(false) }}</div>
       </div>
       <q-btn
         rounded
@@ -24,7 +24,7 @@
 
     <!-- Convo -->
     <q-pull-to-refresh @refresh="refreshData">
-      <q-list ref="scrollTargetRef" :style="`height: ${maxHeight - 140}px`" style="overflow: auto;" >
+      <q-list ref="scrollTargetRef" :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`" style="overflow: auto;" >
         <q-infinite-scroll
             ref="infiniteScroll"
             :items="convo"
@@ -42,15 +42,38 @@
             <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
               <q-item>
                 <q-item-section>
-                  <div class="q-px-md row justify-center">
-                    <div style="width: 100%;">
+                  <div class="q-px-md justify-center" v-if="'attachment' in message">
+                    <div v-if="message.text">
                       <q-chat-message
-                        :name="message.owner ? 'me' : message.sender.name"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.sender.name }&color=fffff`"
+                        :name="message.owner ? 'me' : senderName(message.owner)"
+                        :avatar="`https://ui-avatars.com/api/?background=random&name=${senderName(message.owner) }&color=fffff`"
                         :stamp="message.stamp"
                         :sent="message.owner"
-                        :bg-color="message.owner ? 'blue-5' : 'blue-grey-3'"
+                        :bg-color="message.owner ? 'blue-5' : 'blue-grey-2'"
                         :text-color="message.owner ? 'white' : 'black'"
+                        size="6"
+                      >
+                        <div style="font-size: 13px; font-weight: 400;">
+                          {{ message.text }}
+                        </div>
+                      </q-chat-message>
+                    </div>
+                    <div v-else class="text-right">
+                      <q-avatar size="6">
+                        <img :src="`https://ui-avatars.com/api/?background=random&name=${senderName(message.owner) }&color=fffff`">
+                      </q-avatar>
+                    </div>
+                  </div>
+                  <div class="q-px-md row justify-center" v-else>
+                    <div style="width: 100%;">
+                      <q-chat-message
+                        :name="message.owner ? 'me' : senderName(message.owner)"
+                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ senderName(message.owner) }&color=fffff`"
+                        :stamp="message.stamp"
+                        :sent="message.owner"
+                        :bg-color="message.owner ? 'blue-5' : 'blue-grey-2'"
+                        :text-color="message.owner ? 'white' : 'black'"
+                        size="6"
                       >
                         <div style="font-size: 13px; font-weight: 400;">
                           {{ message.text }}
@@ -67,10 +90,13 @@
               <q-chat-message
                 name="me"
                 sent
-                :avatar="`https://ui-avatars.com/api/?background=random&name=${owner.name}&color=fffff`"
+                :avatar="`https://ui-avatars.com/api/?background=random&name=${senderName()}&color=fffff`"
                 bg-color="blue-5"
+                size="6"
               >
-                <q-spinner-dots color="white" size="2rem" />
+                <div class="text-center">
+                  <q-spinner-dots color="white" size="2rem" />
+                </div>
               </q-chat-message>
             </div>
           </div>
@@ -91,24 +117,69 @@
         @update:modelValue="function(){
             typingMessage()
           }"
-        ></q-input>
+      >
+        <template v-slot:append>
+          <q-icon
+            class="q-pr-sm"
+            flat
+            name="attach_file"
+            padding="sm"
+            @click="openFileAttachementField"
+          />
+        </template>
+      </q-input>
       <q-icon :color="darkMode ? 'grey-3' : 'primary'" size="lg" name='sym_o_send' @click="sendMessage"/>&nbsp;
+    </div>
+    <q-file
+      v-show="false"
+      ref="fileAttachmentField"
+      :dark="darkMode"
+      borderless
+      v-model="attachment"
+      :filter="files => files.filter(file => file.type?.match(/image\/.*/))"
+      @update:modelValue="function() {
+        resizeAttachment()
+      }"
+    />
+    <div v-if="attachmentUrl" class="row items-start no-wrap q-my-sm q-mx-md">
+      <img
+        :src="attachmentUrl"
+        :style="{
+          'cursor': 'pointer',
+          'border-radius': '10px',
+          'max-height': '150px',
+        }"
+        @click="openFileAttachementField"
+      >
+      <q-btn
+        flat icon="cancel"
+        padding="sm"
+        @click.prevent="attachment = null"
+      />
     </div>
   </q-card>
   </q-dialog>
 </template>
 <script>
+import { resizeImage } from 'src/marketplace/chat/attachment'
+import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
+import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 
 export default {
   setup () {
+    const fileAttachmentField = ref()
     const scrollTargetRef = ref(null)
     const addrRef = ref(null)
     return {
       scrollTargetRef,
       addrRef,
+      fileAttachmentField,
 
+      openFileAttachementField (evt) {
+        fileAttachmentField.value?.pickFiles?.(evt)
+      },
       reset () {
         addrRef.value.resetValidation()
       },
@@ -123,10 +194,21 @@ export default {
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
 
+      users: {
+        ad_owner: null,
+        order_owner: null,
+        arbiter: null
+      },
+      keypair: {},
+
       message: '',
-      owner: { id: 1, name: 'Nikki' },
+      owner: { id: 1, name: 'Nikki'},
       isloaded: false,
       isTyping: false,
+
+      attachment: null,
+      attachmentUrl: '',
+
       convo: {
         chat_id: 1,
         messages: [
@@ -184,15 +266,62 @@ export default {
     }
   },
   props: {
-    openDialog: Boolean
+    openDialog: Boolean,
+    data: {
+      type: Object,
+      default: null
+    }
+  },
+  watch: {
+    attachment (newVal, oldVal) {
+      if (newVal) this.attachmentUrl = URL.createObjectURL(newVal)
+      else this.attachmentUrl = ''
+      if (oldVal) URL.revokeObjectURL(oldVal)
+
+      this.resetScroll()
+    }
   },
   emits: ['close'],
   async mounted () {
     // Set Data Here
-
+    this.loadKeyPair()
+    this.loadData()
     this.isloaded = true
   },
   methods: {
+    async loadKeyPair () {
+      this.keypair = await updateOrCreateKeypair().catch(console.error)
+    },
+    async resizeAttachment() {
+      this.attachment = await resizeImage({
+        file: this.attachment,
+        maxWidthHeight: 640,
+      })
+    },
+    senderName (owner = true) {
+      if (owner) {
+        return this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
+      } else {
+        return !this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
+      }
+    },
+    loadData () {
+      let user = this.data.ad.owner
+      this.users.ad_owner = {
+        id: user.id,
+        name: user.name,
+        is_user: this.data.is_ad_owner
+      }
+
+      user = this.data.owner
+      this.users.order_owner = {
+        id: user.id,
+        name: user.name,
+        is_user: !this.data.is_ad_owner
+      }
+
+      // arbiter here
+    },
     refreshData (done) {
       console.log('refreshing data')
       setTimeout(() => {
@@ -202,25 +331,37 @@ export default {
     typingMessage: debounce(async function () {
       this.isTyping = true
 
-      await this.$refs.infiniteScroll.reset()
-
-      const scrollElement = this.$refs.scrollTargetRef.$el
-      const test = this.$refs.infiniteScroll.$el
-      scrollElement.scrollTop = test.clientHeight
+      this.resetScroll()
     }, 100),
     async sendMessage () {
-      // send message
+      if (this.message || this.attachment) {
+        // send message
+        console.log('sending message')
+        //arrange data
+        let temp = {}
 
-      this.convo.messages.push({
-        id: 8,
-        sender: { id: 8, name: 'Nikki' },
-        text: this.message,
-        stamp: 'Now',
-        owner: true
-      })
+        temp = {
+          id: 8,
+          sender: { id: 8, name: 'Nikki' },
+          text: this.message,
+          stamp: 'Now',
+          owner: true
+        }
+        //encrypt image
 
-      this.message = ''
+        if (this.attachment) {
+          temp.attachment = this.attachment
+          this.attachment = null
+        }
 
+        //sending
+        this.convo.messages.push(temp)
+
+        this.message = ''
+        this.resetScroll()
+      }
+    },
+    async resetScroll () {
       await this.$refs.infiniteScroll.reset()
       const scrollElement = this.$refs.scrollTargetRef.$el
       const test = this.$refs.infiniteScroll.$el
