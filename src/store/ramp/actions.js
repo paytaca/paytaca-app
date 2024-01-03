@@ -1,6 +1,6 @@
 import { axiosInstance } from '../../boot/axios'
-import { Store } from '..'
 import { getCookie } from 'src/wallet/ramp'
+import { Store } from '..'
 
 export async function loadAuthHeaders (context) {
   if (!context.state.wallet) {
