@@ -57,11 +57,36 @@
                           {{ message.text }}
                         </div>
                       </q-chat-message>
+                      <div class="row justify-end q-px-lg q-mx-lg q-pt-sm">
+                        <img
+                          class="q-px-sm"
+                          :src="message.attachmentUrl"
+                          :style="{
+                            'cursor': 'pointer',
+                            'border-radius': '10px',
+                            'max-width': '250px',
+                            'max-height': '250px',
+                          }"
+                        />
+                      </div>
                     </div>
-                    <div v-else class="text-right">
-                      <q-avatar size="6">
-                        <img :src="`https://ui-avatars.com/api/?background=random&name=${senderName(message.owner) }&color=fffff`">
-                      </q-avatar>
+                    <div v-else>
+                      <div class="text-right" style="font-size: 13px; padding-right: 55px;">{{ message.owner ? 'me' : senderName(message.owner) }}</div>
+                      <div class="row justify-end">
+                        <img
+                          class="q-px-sm"
+                          :src="message.attachmentUrl"
+                          :style="{
+                            'cursor': 'pointer',
+                            'border-radius': '10px',
+                            'max-width': '250px',
+                            'max-height': '250px',
+                          }"
+                        />
+                        <q-avatar size="6">
+                          <img :src="`https://ui-avatars.com/api/?background=random&name=${senderName(message.owner) }&color=fffff`">
+                        </q-avatar>
+                      </div>
                     </div>
                   </div>
                   <div class="q-px-md row justify-center" v-else>
@@ -147,7 +172,8 @@
         :style="{
           'cursor': 'pointer',
           'border-radius': '10px',
-          'max-height': '150px',
+          'max-height': '250px',
+          'max-width': '250px',
         }"
         @click="openFileAttachementField"
       >
@@ -352,6 +378,7 @@ export default {
         if (this.attachment) {
           temp.attachment = this.attachment
           this.attachment = null
+          temp.attachmentUrl = this.attachmentUrl
         }
 
         //sending
