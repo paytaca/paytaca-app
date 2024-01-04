@@ -93,11 +93,6 @@ export function enableSmartBCH (state) {
   state.enableSmartBCH = !state.enableSmartBCH
 }
 
-export function updatePurelypeerVaultSigner (state, details) {
-  const wallet = getWalletData(state, details)
-  wallet.purelypeerVaultSigner = details.purelypeerVaultSigner
-}
-
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
 

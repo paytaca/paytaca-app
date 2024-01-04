@@ -988,11 +988,11 @@ export default {
         // Create change addresses if nothing is set yet
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
-        getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({
-          addresses,
-          purelypeerVaultSigner
-        }) {
-          if (bchChangeAddress.length === 0) {
+        if (bchChangeAddress.length === 0) {
+          getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({
+            addresses,
+            purelypeerVaultSigner
+          }) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
               walletHash: getWalletByNetwork(vm.wallet, 'bch').walletHash,
@@ -1002,17 +1002,8 @@ export default {
               lastAddressIndex: 0,
               purelypeerVaultSigner
             })
-          }
-          const ppvs = vm.$store.getters['global/getPurelypeerVaultSigner']
-          const ppvsData = ppvs.receiving && ppvs.change
-          if (!ppvsData) {
-            vm.$store.commit('global/updatePurelypeerVaultSigner', {
-              type: 'bch',
-              purelypeerVaultSigner,
-            })
-          }
-        })
-
+          })
+        }
         const slpChangeAddress = vm.getChangeAddress('slp')
         if (slpChangeAddress.length === 0) {
           getWalletByNetwork(vm.wallet, 'slp').getNewAddressSet(0).then(function (addresses) {
@@ -1230,8 +1221,6 @@ export default {
 
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
-    } else {
-      vm.loadWallets()
     }
 
     // If asset prices array is empty, immediately fetch asset prices
