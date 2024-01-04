@@ -1,21 +1,39 @@
 import { updatePubkey, savePrivkey, generateKeypair, sha256 } from './keys'
 import { loadWallet } from 'src/wallet'
 import { Store } from 'src/store'
-import { chatBackend } from './backend'
+import { chatBackend, backend } from './backend'
 
-export async function createChatIdentity (payload) {
-  console.log('Creating chat identity')
+export async function updatePeerChatIdentityId (id) {
   return new Promise((resolve, reject) => {
-    chatBackend.post('chat/identities/', payload)
+    const payload = { chat_identity_id: id }
+    backend.put('/ramp-p2p/peer/detail', payload, { authorize: true })
       .then(response => {
-        console.log('new chat identity:', response.data)
+        console.log('Updated chat identity id:', response.data)
         resolve(response)
       })
       .catch(error => {
         if (error.response) {
-          console.error(error.response)
+          console.error('Failed to update chat identity id:', error.response)
         } else {
-          console.error(error)
+          console.error('Failed to update chat identity id:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export async function createChatIdentity (payload) {
+  return new Promise((resolve, reject) => {
+    chatBackend.post('chat/identities/', payload)
+      .then(response => {
+        console.log('New chat identity:', response.data)
+        resolve(response.data)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('New chat identity:', error.response)
+        } else {
+          console.error('New chat identity:', error)
         }
         reject(error)
       })
@@ -23,11 +41,15 @@ export async function createChatIdentity (payload) {
 }
 
 export async function fetchChatIdentity (ref) {
-  console.log('Fetching chat identity')
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/identities/?ref=${ref}`)
       .then(response => {
-        resolve(response)
+        let identity = null
+        if (response.results.length > 0) {
+          identity = response.data?.results[0]
+          console.log('Chat identity:', identity)
+        }
+        resolve(identity)
       })
       .catch(error => {
         if (error.response) {
@@ -53,6 +75,48 @@ export async function updateChatIdentity (payload) {
           console.error(error.response)
         } else {
           console.error(error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export async function createChatSession (orderId) {
+  console.log('Creating chat session')
+  const payload = {
+    ref: `order-${orderId}-chat`,
+    title: `Order #${orderId} chat`,
+    order_id: orderId
+  }
+  return new Promise((resolve, reject) => {
+    chatBackend.post('chat/sessions/', payload, { forceSign: true })
+      .then(response => {
+        console.log('created chat session:', response.data)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error(error.response)
+        } else {
+          console.error(error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export async function checkChatSessionAdmin (chatRef) {
+  return new Promise((resolve, reject) => {
+    chatBackend.get(`chat/sessions/${chatRef}/chat_member`, { forceSign: true })
+      .then(response => {
+        console.log('Checking chat session admin:', response.data)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Checking chat session admin:', error.response)
+        } else {
+          console.error('Checking chat session admin:', error)
         }
         reject(error)
       })

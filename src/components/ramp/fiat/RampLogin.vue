@@ -67,7 +67,7 @@
 import { rampWallet } from 'src/wallet/ramp/wallet'
 
 import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
-import { fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
+import { updatePeerChatIdentityId, fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
 import { chatBackend, updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -92,7 +92,8 @@ export default {
       loggingIn: false,
       errorMessage: null,
       hasBiometric: false,
-      securityDialogUp: false
+      securityDialogUp: false,
+      chatIdentityId: null
     }
   },
   components: {
@@ -124,31 +125,17 @@ export default {
         ref: rampWallet.walletHash,
         name: vm.user.name
       }
-      let genChatIdentity = false
-      await updateSignerData()
-      await fetchChatIdentity(data.ref)
-        .then(response => {
-          if (response.data?.results.length > 0) {
-            // store identity to state
-            console.log('existing chat identity:', response.data?.results[0])
-          } else {
-            genChatIdentity = true
+      updateSignerData()
+        .then(fetchChatIdentity(data.ref)).catch(() => { return null })
+        .then(identity => {
+          if (!identity) {
+            vm.buildChatIdentityPayload(data)
+              .then(payload => createChatIdentity(payload))
+              .then(identity => updatePeerChatIdentityId(identity.id))
           }
         })
-        .catch(error => {
-          console.error(error)
-          genChatIdentity = true
-        })
-      if (genChatIdentity) {
-        await vm.buildChatIdentityPayload(data)
-          .then(payload => {
-            createChatIdentity(payload)
-          })
-          .catch(error => {
-            console.error(error)
-          })
-      }
-      await updateOrCreateKeypair()
+        .then(updateOrCreateKeypair())
+        .catch(error => { console.error(error) })
     },
     async buildChatIdentityPayload (data) {
       const wallet = data.rampWallet
@@ -229,6 +216,7 @@ export default {
                       .then((response) => {
                         // save token as cookie and set to expire 1h later
                         document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
+                        this.loadChatIdentity()
                         this.user = response.data.user
                         if (this.user) {
                           this.$store.commit('ramp/updateUser', this.user)
@@ -272,8 +260,9 @@ export default {
               }
               this.$axios.post(url, body, { headers: headers })
                 .then((response) => {
-                  this.user = response.data.user
+                  this.user = response.data
                   this.$store.commit('ramp/updateUser', this.user)
+                  console.log('user:', this.user)
                   this.login()
                 })
             })
