@@ -35,7 +35,7 @@
               flat
               :round="Boolean(customer?.fullName)"
               padding="sm"
-              :to="{ name: 'app-marketplace-customer' }"
+              :to="{ name: 'app-marketplace-customer', query: { returnOnSave: true } }"
               v-close-popup
             >
               <div class="row items-center">
@@ -176,24 +176,29 @@ export default {
     async function loadApp() {
       if (loadAppPromise.value) return loadAppPromise.value
       loadAppPromise.value = new Promise(async resolve => {
-        loadingApp.value = true
-        const signerData = await getSignerData()
-        const walletHash = signerData?.value?.split(':')[0]
-        const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
-        if (!customer.value?.id || !signerData?.value || !walletHashMatch) {
-          await $store.dispatch('marketplace/updatePrivkey').catch(error => {
-            console.error(error)
-            return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
-          })
-        }
+        try {
+          loadingApp.value = true
 
-        await $store.dispatch('marketplace/refetchCustomerData')
-          .then(() => {
-            const customerId = $store.getters['marketplace/customer']?.id
-            marketplacePushNotificationsManager.subscribe(customerId)
-          })
-        $store.dispatch('marketplace/refetchCustomerLocations')
-        resolve()
+          await $store.dispatch('marketplace/refetchCustomerData')
+            .then(() => {
+              const customerId = $store.getters['marketplace/customer']?.id
+              marketplacePushNotificationsManager.subscribe(customerId)
+            })
+
+          const signerData = await getSignerData()
+          const walletHash = signerData?.value?.split(':')[0]
+          const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
+          if (!customer.value?.id || !signerData?.value || !walletHashMatch) {
+            await $store.dispatch('marketplace/updatePrivkey').catch(error => {
+              console.error(error)
+              return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
+            })
+          }
+          $store.dispatch('marketplace/refetchCustomerLocations')
+          resolve()
+        } catch(error) {
+          reject(error)
+        }
       })
 
       return loadAppPromise.value
@@ -226,7 +231,7 @@ export default {
           cancel: { noCaps: true, flat: true, label: 'Skip', color: 'grey' },
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         }).onOk(() => {
-          $router.push({ name: 'app-marketplace-customer' })
+          $router.push({ name: 'app-marketplace-customer', params: { returnOnSave: true } })
           resolve('go')
         })
         .onCancel(() => resolve('skipped'))

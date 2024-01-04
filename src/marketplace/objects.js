@@ -1385,19 +1385,23 @@ export class ChatMessage {
     this.encryptedAttachmentUrl = data?.encrypted_attachment_url
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
-    this.user = {
-      id: data?.user?.id,
-      firstName: data?.user?.first_name,
-      lastName: data?.user?.last_name,
-    }
-    this.customer = Customer.parse(data?.customer)
+    this.chatIdentity = ChatIdentity.parse(data?.chat_identity)
+  }
+
+  get user() {
+    return this.chatIdentity?.user
+  }
+
+  get customer() {
+    return this.chatIdentity?.customer
   }
 
   get name() {
     if (this?.user?.id) {
       return [this.user.firstName, this.user.lastName].filter(Boolean).join(' ')
     }
-    return this?.customer?.fullName
+    if (this?.customer?.fullName) return this?.customer?.fullName
+    return this.chatIdentity?.name
   }
 
   get decryptedMessage() {
@@ -1543,6 +1547,8 @@ export class ChatIdentity {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} data.name
+   * @param {String} data.ref
    * @param {{ pubkey:String, device_id:String }[]} data.pubkeys
    * @param {{ id:Number, first_name: String, last_name:String }} [data.user]
    * @param {{ id:Number, first_name: String, last_name:String }} [data.customer]
@@ -1550,6 +1556,8 @@ export class ChatIdentity {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.name = data?.name
+    this.ref = data?.ref
     this.pubkeys = (Array.isArray(data?.pubkeys) ? data?.pubkeys : [])
       .map(pubkeyData => {
         return { pubkey: pubkeyData?.pubkey, deviceId: pubkeyData?.device_id }

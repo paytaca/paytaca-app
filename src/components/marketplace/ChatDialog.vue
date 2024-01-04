@@ -72,12 +72,14 @@
                 <img
                   v-if="message?.attachmentUrl" :src="message?.attachmentUrl"
                   style="max-width:75%;border-radius:4px;"
+                  @click="() => openImage(message?.attachmentUrl)"
                 />
                 <template v-else-if="message?.encryptedAttachmentUrl">
                   <img
                     v-if="message?.decryptedAttachmentFile?.url"
                     :src="message?.decryptedAttachmentFile?.url"
                     style="max-width:75%;border-radius:4px;"
+                    @click="() => openImage(message?.decryptedAttachmentFile?.url)"
                   />
                   <div v-else class="row items-center">
                     <div
@@ -165,6 +167,8 @@ import { useDialogPluginComponent, debounce } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { vElementVisibility } from '@vueuse/components'
+import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
+import { useQuasar } from 'quasar'
 
 export default defineComponent({
   name: 'ChatDialog',
@@ -526,6 +530,18 @@ export default defineComponent({
         .then(() => fetchMembersPubkeys())
     }
 
+    const $q = useQuasar()
+    function openImage(img) {
+      if (!img) return
+      $q.dialog({
+        component: ImageViewerDialog,
+        componentProps: {
+          image: img
+        }
+      })  
+    }
+
+
     return {
       darkMode,
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
@@ -558,6 +574,7 @@ export default defineComponent({
       fetchChatMember,
       updateLastRead,
       onMessageVisibility,
+      openImage,
 
       formatDateRelative,
       formatTimestampToText,
