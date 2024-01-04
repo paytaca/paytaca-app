@@ -319,34 +319,35 @@ export class BchWallet {
     } 
   }
 
-  async _sendBch (amount, recipient, changeAddress, token, tokenAmount, broadcast=true) {
+  async _sendBch (changeAddress, token, recipients, broadcast = true) {
     const data = {
       sender: {
         walletHash: this.walletHash,
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath
       },
-      recipients: [
-        {
-          address: recipient,
-          amount: amount,
-          tokenAmount: tokenAmount
-        }
-      ],
-      changeAddress: changeAddress,
+      recipients,
+      changeAddress,
       wallet: {
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath
       },
       token,
-      broadcast: Boolean(broadcast),
+      broadcast
     }
     const result = await this.watchtower.BCH.send(data)
     return result
   }
 
-  async sendBch(amount, recipient, changeAddress, token, tokenAmount) {
-    return this._sendBch(amount, recipient, changeAddress, token, tokenAmount, true)
+  async sendBch (amount, address, changeAddress, token, tokenAmount, recipients = []) {
+    const finalRecipients = []
+    if (recipients.length > 0) {
+      finalRecipients.push(...recipients)
+    } else {
+      finalRecipients.push({ address, amount, tokenAmount })
+    }
+
+    return this._sendBch(changeAddress, token, finalRecipients)
   }
 
   /**
@@ -356,9 +357,16 @@ export class BchWallet {
    * @param {String} changeAddress
    * @param {{ posId: Number, paymentTimestamp: Number }} posDevice
    */
-  async sendBchToPOS(amount, recipient, changeAddress, posDevice) {
+  async sendBchToPOS(amount, recipient, changeAddress, posDevice, recipients = []) {
     const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
-    const sendResponse = await this._sendBch(amount, recipient, changeAddress, undefined, undefined, false)
+    const finalRecipients = []
+    if (recipients.length > 0) {
+      finalRecipients.push(...recipients)
+    } else {
+      finalRecipients.push({ address: recipient, amount, tokenAmount: 0 })
+    }
+
+    const sendResponse = await this._sendBch(changeAddress, undefined, finalRecipients, false)
 
     if (!sendResponse?.success) {
       response.success = false

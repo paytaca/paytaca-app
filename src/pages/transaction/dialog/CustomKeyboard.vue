@@ -106,6 +106,7 @@ export default {
   justify-content: center;
   width: 100%;
   bottom: 0pt !important;
+  z-index: 1;
 }
 .pt-keyboard-container {
   height: 300px;
