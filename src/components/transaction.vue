@@ -68,8 +68,26 @@
                     class="flex justify-start items-center"
                     style="margin-top: 5px; background-color: #ecf3f3;"
                   >
-                    <q-icon name="arrow_drop_down" color="red-5" size="sm" />
-                    <span class="earnings negative text-weight-bold" style="padding-right: 5px">15.68 PHP</span>
+                    <template v-if="computeYield() > 0">
+                      <q-icon
+                        size="sm"
+                        name="arrow_drop_up"
+                        color="green-5"
+                      />
+                      <span class="yield positive text-weight-bold">
+                        {{ parseFiatCurrency(computeYield(), selectedMarketCurrency) }}
+                      </span>
+                    </template>
+                    <template v-else>
+                      <q-icon
+                        size="sm"
+                        name="arrow_drop_down"
+                        color="red-5"
+                      />
+                      <span class="yield negative text-weight-bold">
+                        {{ parseFiatCurrency(computeYield(), selectedMarketCurrency) }}
+                      </span>
+                    </template>
                   </q-badge>
                 </template>
               </q-item-label>
@@ -312,13 +330,20 @@ export default {
       return null
     },
     marketAssetPrice () {
-      if (this.historicalMarketPrice) return this.historicalMarketPrice
       return this.$store.getters['market/getAssetPrice'](this.transaction.asset.id, this.selectedMarketCurrency)
     },
     transactionAmountMarketValue () {
-      if (!this.transaction) return ''
+      const transaction = this.transaction
+      if (!transaction) return ''
       if (!this.marketAssetPrice) return ''
-      return (Number(this.transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
+      if (transaction.usd_price || Object.keys(transaction.market_prices).length > 0) {
+        const currentFiatMarketPrice = transaction.market_prices[this.selectedMarketCurrency]
+        if (currentFiatMarketPrice) {
+          return (Number(transaction.amount) * Number(currentFiatMarketPrice)).toFixed(5)
+        }
+      }
+
+      return (Number(transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
     },
     txFeeMarketValue () {
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
@@ -424,6 +449,14 @@ export default {
           console.error(error)
           dialog.update({ message: 'Unable to fetch contract data' })
         })
+    },
+    computeYield () {
+      const fiatAmount = this.transactionAmountMarketValue
+      const currentFiatPrice = this.transaction.amount * this.marketAssetPrice
+      const currentYield = currentFiatPrice - fiatAmount
+      return Number(currentYield.toFixed(2)) === 0.00 || Number(currentYield.toFixed(2)) === 0
+        ? Math.abs(currentYield)
+        : currentYield
     }
   }
 }
@@ -458,7 +491,8 @@ export default {
     align-items: center;
     justify-content: center;
   }
-  .earnings {
+  .yield {
+    padding-right: 5px;
     &.positive {
       color: $green-5;
     }

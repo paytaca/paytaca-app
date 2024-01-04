@@ -80,8 +80,8 @@
               <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
                 <q-card id="bch-card">
                   <q-card-section horizontal>
-                    <q-card-section class="col" style="padding: 10px 5px 10px 16px">
-                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="height: 53px;">
+                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="height: 53px; width: 100%">
                         <q-skeleton style="font-size: 24px;" type="rect"/>
                       </div>
                       <div v-else style="z-index: 20; position: relative;">
@@ -101,13 +101,20 @@
                           rounded
                           class="flex justify-start items-center"
                           style="margin-top: 5px; background-color: #ecf3f3;"
+                          v-if="walletYield"
                         >
-                          <q-icon name="arrow_drop_up" color="green-5" size="sm" />
-                          <span class="earnings negative text-weight-bold" style="padding-right: 5px">15.68 PHP</span>
+                          <q-icon
+                            size="sm"
+                            :name="walletYield > 0 ? 'arrow_drop_up' : 'arrow_drop_down'"
+                            :color="walletYield > 0 ? 'green-5' : 'red-5'"
+                          />
+                          <span class="yield text-weight-bold" :class="walletYield > 0 ? 'positive' : 'negative'">
+                            {{ `${walletYield} ${selectedMarketCurrency}` }}
+                          </span>
                         </q-badge>
                       </div>
                     </q-card-section>
-                    <q-card-section class="col-4 flex flex-center" style="padding: 10px 16px">
+                    <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
                       <img
                         :src="
                           selectedNetwork === 'sBCH'
@@ -116,7 +123,7 @@
                               ? 'assets/img/theme/payhero/deem-logo.png'
                               : 'bch-logo.png'
                         "
-                        alt="Asset logo"
+                        alt=""
                         style="height: 75px;"
                       />
                     </q-card-section>
@@ -413,7 +420,8 @@ export default {
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
       denominationTabSelected: this.$t('DEEM'),
-      parsedBCHBalance: '0'
+      parsedBCHBalance: '0',
+      walletYield: null
     }
   },
 
@@ -620,6 +628,7 @@ export default {
       if (!assetPrice) return ''
 
       const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
+      this.computeWalletYield()
 
       return computedBalance.toFixed(2)
     },
@@ -1187,6 +1196,18 @@ export default {
     onDenominationTabSelected (value) {
       this.denominationTabSelected = value
       this.formatBCHCardBalance(value)
+    },
+    computeWalletYield () {
+      if (this.bchAsset.yield) {
+        const payloadYield = this.bchAsset.yield[this.selectedMarketCurrency]
+        if (payloadYield) {
+          this.walletYield = Number(payloadYield.toFixed(2)) === 0.00 || Number(payloadYield.toFixed(2)) === 0
+            ? Math.abs(payloadYield)
+            : payloadYield
+          return
+        }
+      }
+      this.walletYield = null
     }
   },
 
@@ -1256,6 +1277,7 @@ export default {
     })
 
     this.formatBCHCardBalance(this.denomination)
+    this.computeWalletYield()
   }
 }
 </script>
@@ -1329,7 +1351,8 @@ export default {
   .q-tab__icon {
     font-size: 14px !important;
   }
-  .earnings {
+  .yield {
+    padding-right: 5px;
     &.positive {
       color: $green-5;
     }
