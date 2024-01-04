@@ -19,15 +19,16 @@ export async function getDeviceId () {
  * @param {String} pubkey
  */
 export async function updatePubkey (pubkey) {
-  console.log('updatePubkey:pubkey=', pubkey)
   const pubkeyBytes = Buffer.from(pubkey, 'hex')
   if (pubkeyBytes.length !== 33) throw new Error('Pubkey is not a 33 byte hex')
 
   const data = {
-    pubkey: { pubkey: pubkey, device_id: await getDeviceId().catch(console.error) }
+    pubkey: {
+      pubkey: pubkey,
+      device_id: await getDeviceId().catch(console.error)
+    }
   }
-  console.log('data:', data)
-  return chatBackend.post('chat/identities/', data)
+  return chatBackend.post('chat/identities/', data, { forceSign: true })
 }
 
 export async function getKeypair () {

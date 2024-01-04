@@ -145,12 +145,14 @@
   </div>
 </template>
 <script>
+import { updateChatIdentity } from 'src/wallet/ramp/chat'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
+import { rampWallet } from 'src/wallet/ramp/wallet'
 
 export default {
   data () {
@@ -229,6 +231,11 @@ export default {
       vm.$axios.put(vm.apiURL + '/peer/detail', { name: info.nickname }, { headers: vm.authHeaders })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
+          const payload = {
+            ref: rampWallet.walletHash,
+            name: response.data.name
+          }
+          updateChatIdentity(payload)
           this.processUserData()
         })
         .catch(error => {

@@ -62,7 +62,6 @@ export async function getSignerData () {
 }
 
 export async function setSignerData (value = '') {
-  console.log('setSignerData:', value)
   try {
     if (value === undefined) {
       const removeResp = await SecureStoragePlugin.remove({ key: SIGNER_STORAGE_KEY })
@@ -78,6 +77,7 @@ export async function setSignerData (value = '') {
 }
 
 export async function updateSignerData (_context) {
+  console.log('Updating signer data')
   const walletHash = rampWallet?.walletHash
   const privkey = await rampWallet.privkey()
   const verifyingPubkey = await rampWallet.pubkey()
@@ -94,6 +94,4 @@ export async function updateSignerData (_context) {
   if (!valid) return Promise.reject('invalid signature')
 
   setSignerData(`${walletHash}:${privkey}`)
-
-  //   TODO: generate the encryption keypair
 }
