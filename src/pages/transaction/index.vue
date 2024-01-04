@@ -105,7 +105,7 @@
                         </span>
                       </p>
                       <div style="padding: 0; margin-top: -15px;">
-                        {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
+                        {{ getAssetMarketBalance(bchAsset) }}
                       </div>
                     </div>
                   </q-card-section>
@@ -602,14 +602,14 @@ export default {
       vm.manageAssets = !vm.manageAssets
     },
     getAssetMarketBalance (asset) {
-      if (!asset || !asset.id) return ''
+      if (!asset?.id) return ''
 
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
       if (!assetPrice) return ''
 
       const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
 
-      return computedBalance.toFixed(2)
+      return parseFiatCurrency(computedBalance.toFixed(2), this.selectedMarketCurrency)
     },
     showAssetInfo (asset) {
       const vm = this
@@ -1243,7 +1243,8 @@ export default {
       vm.transactionsLoaded = true
     })
 
-    this.formatBCHCardBalance(this.denomination)
+    vm.formatBCHCardBalance(vm.denomination)
+    vm.$store.dispatch('market/updateAssetPrices', {})
   }
 }
 </script>
