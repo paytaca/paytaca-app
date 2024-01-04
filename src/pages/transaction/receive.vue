@@ -5,14 +5,22 @@
       backnavpath="/receive/select-asset"
     ></header-nav>
     <div v-if="!amountDialog">
-      <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
+      <q-icon
+        v-if="!isSep20"
+        id="context-menu"
+        size="35px"
+        name="more_vert"
+        :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}"
+      >
         <q-menu anchor="bottom right" self="top end">
-          <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
+          <q-list class="pt-card" :class="getDarkModeClass(darkMode)">
             <q-item clickable v-close-popup>
-              <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">{{ $t('GenerateNewAddress') }}</q-item-section>
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="generateNewAddress">
+                {{ $t('GenerateNewAddress') }}
+              </q-item-section>
             </q-item>
             <q-item clickable v-close-popup>
-              <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="copyPrivateKey">
                 <template v-if="copying">
                   {{ $t('Copying') }}...
                 </template>
@@ -24,7 +32,7 @@
           </q-list>
         </q-menu>
       </q-icon>
-      <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
+      <div class="text-center progress-loader-container" v-if="generatingAddress">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <template v-else>
@@ -33,7 +41,7 @@
             <div class="col col-qr-code q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
+                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" alt="" class="receive-icon-asset">
                   <qr-code :text="addressAmountFormat" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
@@ -42,20 +50,24 @@
         </div>
         <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
           <q-toggle
-            style="margin: auto;"
             v-model="legacy"
-            :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'"
+            class="text-bow legacy-address"
+            :class="getDarkModeClass(darkMode)"
             keep-color
             color="blue-9"
             :label="$t('LegacyAddress')"
           />
         </div>
         <div class="row">
-          <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
+          <div class="col copy-container">
             <span class="qr-code-text text-weight-light text-center">
-              <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+              <div
+                class="text-nowrap text-bow address"
+                @click="copyToClipboard(address)"
+                :class="getDarkModeClass(darkMode)"
+              >
                 {{ address }}
-                <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
+                <p class="copy-address-button">{{ $t('ClickToCopyAddress') }}</p>
               </div>
               <div v-if="lnsName" class="text-center text-caption pp-text">
                 {{ lnsName }}
@@ -72,23 +84,27 @@
             </span>
 
             <div v-if="amount" class="text-center">
-              <q-separator class="q-mb-sm q-mx-md" style="height: 2px;"/>
-              <div :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
-                <div style="font-size: 15px; letter-spacing: 1px;">
+              <q-separator class="q-mb-sm q-mx-md separator"/>
+              <div class="text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="receive-label">
                   You Will Receive
                 </div>
-                <div class="text-weight-light" style="font-size: 18px; letter-spacing: 1px">
+                <div class="text-weight-light receive-amount-label">
                   {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
                 </div>
               </div>
             </div>
-            <div v-if="asset.symbol === 'BCH'" @click="amountDialog = true" class="text-center" style="font-size: 18px ;color: #3b7bf6;">
+            <div
+              v-if="asset.symbol === 'BCH'"
+              @click="amountDialog = true"
+              class="text-center button button-text-primary update-set-amount"
+              :class="getDarkModeClass(darkMode)"
+            >
               {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
             </div>
           </div>
         </div>
       </template>
-      <!-- <footer-menu /> -->
     </div>
     <div v-if="amountDialog">
       <div class="text-right">
@@ -97,12 +113,12 @@
           padding="lg"
           size="lg"
           icon="close"
-          style="color: #3b7bf6;"
+          class="close-button"
           @click="setReceiveAmount('close')"
         />
       </div>
       <div :style="`margin-top: ${$q.screen.height * .15}px`">
-        <div class="text-center" style="font-size: 18px ;color: #3b7bf6;">{{ $t('SetReceiveAmount') }}</div>
+        <div class="text-center text-bow text-h6" :class="getDarkModeClass(darkMode)">{{ $t('SetReceiveAmount') }}</div>
         <div class="col q-mt-md q-px-lg text-center">
           <q-input
             type="text"
@@ -115,11 +131,17 @@
             :dark="darkMode"
           >
             <template v-slot:append>
-              <div style="font-size: 15px;" class="q-pr-sm">{{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}</div>
+              <div class="q-pr-sm text-weight-bold currency-label">
+                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}
+              </div>
             </template>
           </q-input>
         </div>
-        <div class="q-pt-md" style="margin-left: 35px; font-size: 15px ;font-weight: 500; color: #3b7bf6;" @click="setAmountInFiat = !setAmountInFiat">
+        <div
+          class="q-pt-md text-subtitle1 button button-text-primary set-amount-button"
+          :class="getDarkModeClass(darkMode)"
+          @click="setAmountInFiat = !setAmountInFiat"
+        >
           {{ $t('SetAmountIn') }} {{ setAmountInFiat ? 'BCH' : String(selectedMarketCurrency()).toUpperCase() }}
         </div>
       </div>
@@ -625,9 +647,6 @@ export default {
     color: #3b7bf6;
     z-index: 150;
   }
-  .receive {
-    color: #636767;
-  }
   .qr-code-container {
     margin-top: 40px;
     padding-left: 28px;
@@ -655,66 +674,9 @@ export default {
     padding: 25px 10px 32px 10px;
     background: white;
   }
-  .receive-add-amount {
-    color: #3992EA;
-  }
-  .qr-code {
-    height: 205px;
-    width: 205px;
-    background-color: #464747;
-    margin: auto;
-  }
   .qr-code-text {
     font-size: 18px;
     color: #000;
-  }
-  .currencies {
-    position: fixed;
-    height: 100px;
-    width: 100%;
-    bottom: 0pt;
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: #fff;
-    padding-top: 28px;
-  }
-  .btn-bch {
-    margin-left: 0px;
-  }
-  .btn-custom {
-    height: 40px;
-    width: 32%;
-    border-radius: 20px;
-    border: none;
-    color: #444646;
-    background-color: transparent;
-    outline:0;
-    cursor: pointer;
-    transition: .2s;
-  }
-  .btn-custom:hover {
-    background-color: #fff;
-  }
-  .btn-custom.active-btn {
-    background-color: #fff !important;
-    color: #3992EA;
-  }
-  .btn-transaction {
-    background-color: rgba(43, 126, 209, .04);
-    border-radius: 24px;
-    padding: 4px;
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-  .receive__to {
-    color: #636767;
-  }
-  .receive-wallet {
-    color: #373939;
-  }
-  .icon-copy {
-    color: #3992EA;
-    font-size: 26px;
   }
   .receive-icon-asset {
     position: absolute;
@@ -723,7 +685,48 @@ export default {
     border-radius: 50%;
     padding: 4px;
   }
-  .pp-text {
+  .pp-text { // remove
     color: #000 !important;
+  }
+  .pt-card {
+    min-width: 100px
+  }
+  .progress-loader-container {
+    padding-top: 80px;
+  }
+  .legacy-address {
+    margin: auto;
+  }
+  .copy-container {
+    padding: 20px 40px 0px 40px;
+    overflow-wrap: break-word;
+    .address {
+      letter-spacing: 1px;
+    }
+    .copy-address-button {
+      font-size: 12px;
+      margin-top: 7px;
+    }
+    .separator {
+      height: 2px;
+    }
+    .receive-label{
+      font-size: 15px;
+      letter-spacing: 1px;
+    }
+    .receive-amount-label {
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+    .update-set-amount {
+      font-size: 18px;
+    }
+  }
+  .currency-label {
+    font-size: 15px;
+  }
+  .set-amount-button {
+    margin-left: 35px;
+    font-weight: 500;
   }
 </style>

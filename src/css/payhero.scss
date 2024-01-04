@@ -10,7 +10,6 @@ body.theme-payhero {
   $label-white: #e0e2e5;
   $wallet_card: #111c2c;
   $wallet_address: #949494;
-  $close_button: red;
   $footer-bar: #1f1f1f;
   $transactions-text: #cecece;
   $transactions-subtext: #7e7e7e;
@@ -321,10 +320,6 @@ body.theme-payhero {
     color: $brand_yellow !important;
   }
 
-  .close-button {
-    color: $close_button !important;
-  }
-
   .btn-transaction {
     background: transparent !important;
   }
@@ -412,6 +407,13 @@ body.theme-payhero {
     > .q-toggle__inner--truthy,
     > .q-toggle__inner--falsy {
       color: $brand_yellow !important;
+    }
+
+    &.legacy-address.light {
+      > .q-toggle__inner--truthy,
+      > .q-toggle__inner--falsy {
+        color: shared.$brand_blue !important;
+      }
     }
   }
 
