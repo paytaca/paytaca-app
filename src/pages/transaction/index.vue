@@ -95,7 +95,7 @@
                           </span>
                         </p>
                         <div style="padding: 0; margin-top: -15px;">
-                          {{ parseFiatCurrency(getAssetMarketBalance(bchAsset), selectedMarketCurrency) }}
+                          {{ getAssetMarketBalance(bchAsset) }}
                         </div>
                         <q-badge
                           rounded
@@ -630,7 +630,7 @@ export default {
       vm.manageAssets = !vm.manageAssets
     },
     getAssetMarketBalance (asset) {
-      if (!asset || !asset.id) return ''
+      if (!asset?.id) return ''
 
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
       if (!assetPrice) return ''
@@ -638,7 +638,7 @@ export default {
       const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
       this.computeWalletYield()
 
-      return computedBalance.toFixed(2)
+      return parseFiatCurrency(computedBalance.toFixed(2), this.selectedMarketCurrency)
     },
     showAssetInfo (asset) {
       const vm = this
@@ -1019,11 +1019,11 @@ export default {
         // Create change addresses if nothing is set yet
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
-        if (bchChangeAddress.length === 0) {
-          getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({
-            addresses,
-            purelypeerVaultSigner
-          }) {
+        getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({
+          addresses,
+          purelypeerVaultSigner
+        }) {
+          if (bchChangeAddress.length === 0) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
               walletHash: getWalletByNetwork(vm.wallet, 'bch').walletHash,
@@ -1033,8 +1033,17 @@ export default {
               lastAddressIndex: 0,
               purelypeerVaultSigner
             })
-          })
-        }
+          }
+
+          const ppvs = vm.$store.getters['global/getPurelypeerVaultSigner']
+          const ppvsData = ppvs.receiving && ppvs.change
+          if (!ppvsData) {
+            vm.$store.commit('global/updatePurelypeerVaultSigner', {
+              type: 'bch',
+              purelypeerVaultSigner,
+            })
+          }
+        })
         const slpChangeAddress = vm.getChangeAddress('slp')
         if (slpChangeAddress.length === 0) {
           getWalletByNetwork(vm.wallet, 'slp').getNewAddressSet(0).then(function (addresses) {
@@ -1264,6 +1273,8 @@ export default {
 
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
+    } else {
+      vm.loadWallets()
     }
 
     // If asset prices array is empty, immediately fetch asset prices
@@ -1284,8 +1295,9 @@ export default {
       vm.transactionsLoaded = true
     })
 
-    this.formatBCHCardBalance(this.denomination)
-    this.computeWalletYield()
+    vm.formatBCHCardBalance(vm.denomination)
+    vm.$store.dispatch('market/updateAssetPrices', {})
+    vm.computeWalletYield()
   }
 }
 </script>

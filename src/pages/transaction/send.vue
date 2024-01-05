@@ -238,8 +238,8 @@
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
                   }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
-                <p v-if="sendAmountInFiat && asset.id === 'bch'" class="amount-fiat-label">
-                  ({{ parseFiatCurrency(sendAmountInFiat, currentSendPageCurrency()) }})
+                <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
+                  ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
                 </p>
               </template>
 
@@ -486,6 +486,7 @@ export default {
       expandedItems: {},
       currentActiveRecipientIndex: 0,
       totalAmountSent: 0,
+      totalFiatAmountSent: 0,
       currentWalletBalance: 0
     }
   },
@@ -1152,6 +1153,13 @@ export default {
       }
 
       vm.totalAmountSent = parseFloat(totalAmount)
+
+      if (vm.asset.id === 'bch') {
+        vm.totalFiatAmountSent = vm.inputExtras
+          .map(a => Number(a.sendAmountInFiat))
+          .reduce((acc, curr) => acc + curr, 0)
+          .toFixed(2)
+      }
 
       let token // bch token
       toSendData.forEach(async sendData => {
