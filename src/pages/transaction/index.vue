@@ -78,36 +78,55 @@
             </div>
             <div class="row q-mt-sm">
               <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
-                <img
-                  :src="
-                    selectedNetwork === 'sBCH'
-                      ? 'sep20-logo.png'
-                      : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
-                        ? 'assets/img/theme/payhero/deem-logo.png'
-                        : 'bch-logo.png'
-                  "
-                  style="height: 75px; position: absolute; right: 34px; margin-top: 15px; z-index: 1;"
-                />
                 <q-card id="bch-card">
-                  <q-card-section style="padding-top: 10px; padding-bottom: 12px;">
-                    <div class="text-h6">{{ { BCH: 'Bitcoin Cash', sBCH: 'Smart Bitcoin Cash'}[selectedNetwork] }}</div>
-                    <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="width: 60%; height: 53px;">
-                      <q-skeleton style="font-size: 22px;" type="rect"/>
-                    </div>
-                    <div v-else style="margin-top: -5px; z-index: 20; position: relative;">
-                      <p>
-                        <span style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
-                          {{
-                            selectedNetwork === 'sBCH'
-                              ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
-                              : parsedBCHBalance
-                          }}
-                        </span>
-                      </p>
-                      <div style="padding: 0; margin-top: -15px;">
-                        {{ getAssetMarketBalance(bchAsset) }}
+                  <q-card-section horizontal>
+                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="height: 53px; width: 100%">
+                        <q-skeleton style="font-size: 24px;" type="rect"/>
                       </div>
-                    </div>
+                      <div v-else style="z-index: 20; position: relative;">
+                        <p>
+                          <span ellipsis style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                            {{
+                              selectedNetwork === 'sBCH'
+                                ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
+                                : parsedBCHBalance
+                            }}
+                          </span>
+                        </p>
+                        <div style="padding: 0; margin-top: -15px;">
+                          {{ getAssetMarketBalance(bchAsset) }}
+                        </div>
+                        <q-badge
+                          rounded
+                          class="flex justify-start items-center"
+                          style="margin-top: 5px; background-color: #ecf3f3;"
+                          v-if="walletYield"
+                        >
+                          <q-icon
+                            size="sm"
+                            :name="walletYield > 0 ? 'arrow_drop_up' : 'arrow_drop_down'"
+                            :color="walletYield > 0 ? 'green-5' : 'red-5'"
+                          />
+                          <span class="yield text-weight-bold" :class="walletYield > 0 ? 'positive' : 'negative'">
+                            {{ `${walletYield} ${selectedMarketCurrency}` }}
+                          </span>
+                        </q-badge>
+                      </div>
+                    </q-card-section>
+                    <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
+                      <img
+                        :src="
+                          selectedNetwork === 'sBCH'
+                            ? 'sep20-logo.png'
+                            : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
+                              ? 'assets/img/theme/payhero/deem-logo.png'
+                              : 'bch-logo.png'
+                        "
+                        alt=""
+                        style="height: 75px;"
+                      />
+                    </q-card-section>
                   </q-card-section>
                 </q-card>
               </div>
@@ -401,7 +420,8 @@ export default {
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
       denominationTabSelected: this.$t('DEEM'),
-      parsedBCHBalance: '0'
+      parsedBCHBalance: '0',
+      walletYield: null
     }
   },
 
@@ -608,6 +628,7 @@ export default {
       if (!assetPrice) return ''
 
       const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
+      this.computeWalletYield()
 
       return parseFiatCurrency(computedBalance.toFixed(2), this.selectedMarketCurrency)
     },
@@ -1175,6 +1196,18 @@ export default {
     onDenominationTabSelected (value) {
       this.denominationTabSelected = value
       this.formatBCHCardBalance(value)
+    },
+    computeWalletYield () {
+      if (this.bchAsset.yield) {
+        const payloadYield = this.bchAsset.yield[this.selectedMarketCurrency]
+        if (payloadYield) {
+          this.walletYield = Number(payloadYield.toFixed(2)) === 0.00 || Number(payloadYield.toFixed(2)) === 0
+            ? Math.abs(payloadYield)
+            : payloadYield
+          return
+        }
+      }
+      this.walletYield = null
     }
   },
 
@@ -1245,11 +1278,12 @@ export default {
 
     vm.formatBCHCardBalance(vm.denomination)
     vm.$store.dispatch('market/updateAssetPrices', {})
+    vm.computeWalletYield()
   }
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
@@ -1317,6 +1351,15 @@ export default {
   }
   .q-tab__icon {
     font-size: 14px !important;
+  }
+  .yield {
+    padding-right: 5px;
+    &.positive {
+      color: $green-5;
+    }
+    &.negative {
+      color: $red-5;
+    }
   }
 </style>
 

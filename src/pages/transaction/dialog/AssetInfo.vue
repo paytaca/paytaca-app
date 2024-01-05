@@ -18,6 +18,9 @@
         <div style="text-align: center;">
           <img :src="asset.logo || fallbackAssetLogo" height="50" class="q-mr-xs">
         </div>
+        <div style="text-align: center;">
+          {{ formatBalance(asset) }}
+        </div>
         <div style="text-align: center; margin-top: 10px;" v-if="asset.id !== 'bch'">
           <a
             :href="assetLink"
@@ -53,6 +56,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 export default {
   name: 'AssetInfo',
@@ -77,6 +81,9 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
     isSep20 () {
       return this.network === 'sBCH'
     },
@@ -97,6 +104,7 @@ export default {
 
   methods: {
     getDarkModeClass,
+    parseAssetDenomination,
     show (asset) {
       try {
         this.asset = asset
@@ -133,6 +141,16 @@ export default {
           assetId: this.asset.id
         }
       })
+    },
+    formatBalance (asset) {
+      if (asset.id.includes('ct') || asset.id.includes('sep20')) {
+        const convertedBalance = asset.balance / 10 ** asset.decimals
+        return `${convertedBalance || 0} ${asset.symbol}`
+      } else if (asset.id.includes('bch')) {
+        return this.parseAssetDenomination(this.denomination, asset)
+      }
+
+      return `${asset.balance || 0} ${asset.symbol}`
     }
   }
 }
