@@ -226,14 +226,6 @@ export default {
   .bex-app {
     width: 107px;
   }
-
-  /* New */
-  .pt-light-app {
-     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-  }
-  .pt-dark-app {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-  }
   .pt-app-name {
     color: #000;
     font-size: 13px
@@ -244,10 +236,6 @@ export default {
     width: 50%;
     height: 50%;
   }
-  .pt-black {
-    color: #212F3C !important;
-  }
-
   .pt-app {
     display: flex;
     justify-content: center;

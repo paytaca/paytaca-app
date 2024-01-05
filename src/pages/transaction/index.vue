@@ -86,7 +86,7 @@
                       </div>
                       <div v-else style="z-index: 20; position: relative;">
                         <p>
-                          <span ellipsis style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                          <span ellipsis style="font-size: 24px;" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{
                               selectedNetwork === 'sBCH'
                                 ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`

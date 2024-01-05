@@ -10,7 +10,6 @@
           padding="sm"
           icon="close"
           v-close-popup
-          color="red-9"
           class="close-button"
         />
       </div>
@@ -18,9 +17,8 @@
         <div class="text-h5 q-space q-mt-sm"></div>
         <div
           clickable
-          class="q-pr-md text-blue-9"
+          class="q-pr-md text-blue-9 create-import-button"
           :class="{'text-grad': isNotDefaultTheme(theme)}"
-          style="margin-top: 10px; cursor: pointer;"
           @click="$router.push('/accounts')"
         >
           {{ $t('CreateOrImportWallet') }}
@@ -37,7 +35,7 @@
                 @click="selectedIndex = index"
               >
                 <q-item-section style="overflow-wrap: break-word;">
-                  <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
+                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
                     <span class="text-h5" :class="{'text-grad text-weight-bold' : isNotDefaultTheme(theme)}" style="font-size: 15px;">
                       {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
                     </span>
@@ -45,7 +43,7 @@
                       {{ parseAssetDenomination(denomination, getAssetData(index), false, 10) }}
                     </span>
                   </div>
-                  <div :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')" class="row justify-between no-wrap">
+                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
                     <span class="address" :class="getDarkModeClass(darkMode)">
                       {{ arrangeAddressText(wallet) }}
                     </span>
@@ -56,10 +54,22 @@
                   <q-menu anchor="bottom right" self="top end" >
                     <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
-                        <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="switchWallet(selectedIndex)">{{ $t('SwitchWallet') }}</q-item-section>
+                        <q-item-section
+                        class="pt-label"
+                          :class="getDarkModeClass(darkMode)"
+                          @click="switchWallet(selectedIndex)"
+                        >
+                          {{ $t('SwitchWallet') }}
+                      </q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
-                        <q-item-section :class="[darkMode ? 'pt-dark-label' : 'pp-text']" @click="openRenameDialog()">{{ $t('Rename') }}</q-item-section>
+                        <q-item-section
+                        class="pt-label"
+                          :class="getDarkModeClass(darkMode)"
+                          @click="openRenameDialog()"
+                        >
+                          {{ $t('Rename') }}
+                      </q-item-section>
                       </q-item>
                     </q-list>
                   </q-menu>
@@ -239,5 +249,9 @@ export default {
 .pt-card {
   min-width: 150px;
   font-size: 15px;
+}
+.create-import-button {
+  margin-top: 10px;
+  cursor: pointer;
 }
 </style>
