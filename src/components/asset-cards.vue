@@ -209,8 +209,6 @@ export default {
     height: 78px;
     min-width: 150px;
     border-radius: 16px;
-    overflow-y: hidden;
-    overflow-x: scroll;
   }
 
   .text-num-lg {

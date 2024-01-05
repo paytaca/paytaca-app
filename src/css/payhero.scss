@@ -515,6 +515,7 @@ body.theme-payhero {
 
     .amount-text {
       font-size: 16px;
+      overflow-wrap: anywhere;
 
       &.dark {
         color: $label-white;
