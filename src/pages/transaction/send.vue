@@ -32,7 +32,7 @@
           :class="sent ? 'q-mt-md sent' : 'q-mt-xl'"
         >
           <div class="q-pa-md enter-address-container">
-            <v-offline @detected-condition="onConnectivityChange" class="offine-banner" />
+            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
             <div v-if="isNFT && !sent" class="nft-container">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
@@ -161,7 +161,8 @@
               </div>
 
               <div
-                class="row other-functions-container"
+                class="row"
+                style="margin-top: -10px;"
                 v-if="!sendDataMultiple[0].fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'"
               >
                 <div class="col q-mt-md">
@@ -193,10 +194,10 @@
           />
 
           <q-list v-if="showSlider" class="absolute-bottom slider-list-container">
-            <div class="slider-container">
+            <div style="margin: 0 10% 20px 10%;">
               <q-slide-item left-color="blue" @left="slideToSubmit" class="security-check-slide-item">
                 <template v-slot:left>
-                  <div class="text-body1">
+                  <div class="text-body1" style="font-size: 15px;">
                   <q-icon class="material-icons q-mr-md" size="lg">
                     task_alt
                   </q-icon>
@@ -206,10 +207,10 @@
 
               <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass(darkMode)">
                 <q-item-section avatar>
-                  <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue chevron-double-right" />
+                  <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%;" />
                 </q-item-section>
                 <q-item-section class="text-right">
-                  <h5 class="q-my-sm text-grey-4 text-uppercase swipe-label">{{ $t('SwipeToSend') }}</h5>
+                  <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ $t('SwipeToSend') }}</h5>
                 </q-item-section>
               </q-item>
             </q-slide-item>
@@ -226,7 +227,7 @@
               :class="getDarkModeClass(darkMode)"
               :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}"
             >
-              <p class="successfully-sent-label">{{ $t('SuccessfullySent') }}</p>
+              <p style="font-size: 22px;">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
                 <p class="amount-label">{{ $route.query.name }}</p>
               </template>
@@ -251,11 +252,11 @@
               </template>
               <div class="text-center q-mt-lg">
                 <div class="text-grey">{{ $t('ReferenceId')}}</div>
-                <div class="text-h4 reference-id">{{ txid.substring(0, 6).toUpperCase() }}</div>
+                <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
                 <q-separator color="grey"/>
               </div>
               <div class="q-px-xs tx-id">
-                txid: {{ txid.slice(0, 8) }}<span class="tx-id-hidden">***</span>{{ txid.substr(txid.length - 8) }}<br>
+                txid: {{ txid.slice(0, 8) }}<span style="font-size: 18px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
                 <template v-if="walletType === 'SmartBCH'">
                   <a
                     class="button button-text-primary view-explorer-button"
@@ -289,7 +290,7 @@
                 v-if="jpp?.paymentManuallyVerified"
                 class="text-left bg-warning rounded-borders text-black text-subtitle1 q-mt-sm"
               >
-                <q-item-section avatar class="payment-not-yet-ack-container">
+                <q-item-section avatar style="min-width: unset;">
                   <q-icon name="warning" size="1.5em"/>
                 </q-item-section>
                 <q-item-section>
@@ -1565,9 +1566,6 @@ export default {
       max-height: 80vh;
     }
     .enter-address-container {
-      .offine-banner {
-        margin-bottom: 15px;
-      }
       .nft-container {
         width: 150px;
         margin: 0 auto;
@@ -1586,38 +1584,20 @@ export default {
         color: red;
         margin-top: 10px;
       }
-      .other-functions-container {
-        margin-top: -10px;
-      }
       .set-amount-button {
         font-size: 16px;
         text-decoration: none;
       }
     }
     .slider-list-container {
-      .slider-container {
-        margin: 0 10% 20px 10%;
-      }
       .security-check-slide-item {
         background-color: transparent;
         border-radius: 40px;
-      }
-      .text-body1 {
-        font-size: 15px;
-      }
-      .chevron-double-right {
-        border-radius: 50%;
-      }
-      .swipe-label {
-        font-size: large;
       }
     }
   }
   .sent-success-container {
     margin-top: -70px;
-    .successfully-sent-label {
-      font-size: 22px;
-    }
     .amount-label {
       font-size: 25px;
       margin-top: -10px;
@@ -1634,17 +1614,12 @@ export default {
       overflow-wrap: break-word;
       font-size: 16px;
     }
-    .reference-id {
-      letter-spacing: 6px;
-    }
     .tx-id {
       overflow-wrap: break-word;
       font-size: 16px;
       margin-top: 20px;
     }
-    .tx-id-hidden {
-      font-size: 18px;
-    }
+    
     .view-explorer-button {
       text-decoration: none;
     }
@@ -1652,9 +1627,6 @@ export default {
       min-width: 50vw;
       border: 1px solid grey;
       background-color: inherit;
-    }
-    .payment-not-yet-ack-container {
-      min-width: unset;
     }
   }
 </style>

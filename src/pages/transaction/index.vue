@@ -195,7 +195,7 @@
               </p>
             </div>
 
-            <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
+            <div class="col-3 q-mt-sm" style="margin-top: -5px !important;" v-show="selectedNetwork === networks.BCH.name">
               <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
             </div>
           </div>
@@ -1377,9 +1377,6 @@ export default {
     &.token-menu-list {
       min-width: 100px;
     }
-  }
-  .asset-filter-container {
-    margin-top: -5px !important;
   }
   .show-more-label {
     margin-top: 20px;

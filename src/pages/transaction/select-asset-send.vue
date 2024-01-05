@@ -36,7 +36,7 @@
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
-      <div class="group-currency-container">
+      <div style="overflow-y: scroll;">
         <div
           v-for="(asset, index) in assets"
           :key="index"
@@ -211,8 +211,5 @@ export default {
   .pt-label {
     font-size: 16px;
     font-weight: 300;
-  }
-  .group-currency-container {
-    overflow-y: scroll;
   }
 </style>

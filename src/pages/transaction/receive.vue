@@ -13,7 +13,7 @@
         :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}"
       >
         <q-menu anchor="bottom right" self="top end">
-          <q-list class="pt-card" :class="getDarkModeClass(darkMode)">
+          <q-list class="pt-card" style="min-width: 100px" :class="getDarkModeClass(darkMode)">
             <q-item clickable v-close-popup>
               <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="generateNewAddress">
                 {{ $t('GenerateNewAddress') }}
@@ -32,7 +32,7 @@
           </q-list>
         </q-menu>
       </q-icon>
-      <div class="text-center progress-loader-container" v-if="generatingAddress">
+      <div class="text-center" style="padding-top: 80px;" v-if="generatingAddress">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <template v-else>
@@ -51,7 +51,8 @@
         <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
           <q-toggle
             v-model="legacy"
-            class="text-bow legacy-address"
+            class="text-bow"
+            style="margin: auto;"
             :class="getDarkModeClass(darkMode)"
             keep-color
             color="blue-9"
@@ -62,14 +63,15 @@
           <div class="col copy-container">
             <span class="qr-code-text text-weight-light text-center">
               <div
-                class="text-nowrap text-bow address"
+                class="text-nowrap text-bow"
+                style="letter-spacing: 1px;"
                 @click="copyToClipboard(address)"
                 :class="getDarkModeClass(darkMode)"
               >
                 {{ address }}
                 <p class="copy-address-button">{{ $t('ClickToCopyAddress') }}</p>
               </div>
-              <div v-if="lnsName" class="text-center text-caption pp-text">
+              <div v-if="lnsName" class="text-center text-caption" style="color: #000 !important;">
                 {{ lnsName }}
                 <q-btn
                   type="a"
@@ -84,7 +86,7 @@
             </span>
 
             <div v-if="amount" class="text-center">
-              <q-separator class="q-mb-sm q-mx-md separator"/>
+              <q-separator class="q-mb-sm q-mx-md" style="height: 2px;" />
               <div class="text-bow" :class="getDarkModeClass(darkMode)">
                 <div class="receive-label">
                   You Will Receive
@@ -97,7 +99,8 @@
             <div
               v-if="asset.symbol === 'BCH'"
               @click="amountDialog = true"
-              class="text-center button button-text-primary update-set-amount"
+              class="text-center button button-text-primary"
+              style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
             >
               {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
@@ -131,7 +134,7 @@
             :dark="darkMode"
           >
             <template v-slot:append>
-              <div class="q-pr-sm text-weight-bold currency-label">
+              <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
                 {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}
               </div>
             </template>
@@ -685,32 +688,14 @@ export default {
     border-radius: 50%;
     padding: 4px;
   }
-  .pp-text { // remove
-    color: #000 !important;
-  }
-  .pt-card {
-    min-width: 100px
-  }
-  .progress-loader-container {
-    padding-top: 80px;
-  }
-  .legacy-address {
-    margin: auto;
-  }
   .copy-container {
     padding: 20px 40px 0px 40px;
     overflow-wrap: break-word;
-    .address {
-      letter-spacing: 1px;
-    }
     .copy-address-button {
       font-size: 12px;
       margin-top: 7px;
     }
-    .separator {
-      height: 2px;
-    }
-    .receive-label{
+    .receive-label {
       font-size: 15px;
       letter-spacing: 1px;
     }
@@ -718,12 +703,6 @@ export default {
       font-size: 18px;
       letter-spacing: 1px;
     }
-    .update-set-amount {
-      font-size: 18px;
-    }
-  }
-  .currency-label {
-    font-size: 15px;
   }
   .set-amount-button {
     margin-left: 35px;
