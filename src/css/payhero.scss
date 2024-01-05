@@ -225,6 +225,15 @@ body.theme-payhero {
     }
   }
 
+  .pt-dialog {
+    &.dark {
+      background: $wallet_card;
+    }
+    &.light {
+      background: #ECF3F3
+    }
+  }
+
   .pt-dark-card-2 {
     background: transparent !important;
   }
@@ -415,10 +424,6 @@ body.theme-payhero {
         color: shared.$brand_blue !important;
       }
     }
-  }
-
-  .pt-internet-required {
-    color: $label-white !important;
   }
 
   .button,

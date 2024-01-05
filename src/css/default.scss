@@ -111,6 +111,15 @@ body.theme-default {
     }
   }
 
+  .pt-dialog {
+    &.dark {
+      background: #273746;
+    }
+    &.light {
+      background: #ECF3F3
+    }
+  }
+
   .pt-dark-card-2 {
     background: #212f3d !important;
   }

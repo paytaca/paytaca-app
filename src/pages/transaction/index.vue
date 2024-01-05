@@ -2,7 +2,6 @@
   <div
     id="app-container"
     class="scroll-y"
-    style="background-color: #ECF3F3;"
     :class="getDarkModeClass(darkMode)"
   >
     <div>
@@ -11,7 +10,11 @@
           <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange" />
-            <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
+            <div
+              class="row q-pb-xs"
+              :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'"
+              :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
+            >
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
@@ -77,16 +80,16 @@
               </template>
             </div>
             <div class="row q-mt-sm">
-              <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
+              <div class="col text-white" @click="selectBch">
                 <q-card id="bch-card">
                   <q-card-section horizontal>
                     <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
-                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="height: 53px; width: 100%">
-                        <q-skeleton style="font-size: 24px;" type="rect"/>
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" class="bch-skeleton">
+                        <q-skeleton class="text-h5" type="rect"/>
                       </div>
-                      <div v-else style="z-index: 20; position: relative;">
+                      <div v-else>
                         <p>
-                          <span ellipsis style="font-size: 24px;" :class="{'text-grad' : isNotDefaultTheme(theme)}">
+                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{
                               selectedNetwork === 'sBCH'
                                 ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
@@ -94,13 +97,12 @@
                             }}
                           </span>
                         </p>
-                        <div style="padding: 0; margin-top: -15px;">
+                        <div style="margin-top: -15px;">
                           {{ getAssetMarketBalance(bchAsset) }}
                         </div>
                         <q-badge
                           rounded
-                          class="flex justify-start items-center"
-                          style="margin-top: 5px; background-color: #ecf3f3;"
+                          class="flex justify-start items-center yield-container"
                           v-if="walletYield"
                         >
                           <q-icon
@@ -135,16 +137,16 @@
           <div
             v-if="!showTokens"
             class="text-center button button-text-primary show-tokens-label"
-            :class="getDarkModeClass(darkMode, '', 'text-black')"
+            :class="getDarkModeClass(darkMode)"
             @click.native="toggleShowTokens"
-            style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
             {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
               <p
-                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary payment-methods"
+                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary"
+                style="font-size: 20px;"
                 :class="getDarkModeClass(darkMode)"
               >
                 {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
@@ -1306,6 +1308,10 @@ export default {
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
+    .bch-skeleton {
+      height: 53px;
+      width: 100%
+    }
   }
   .fixed-container {
     position: fixed;
@@ -1329,9 +1335,6 @@ export default {
     .transaction-list {
       height: 430px;
     }
-  }
-  .payment-methods {
-    font-size: 20px;
   }
   .transaction-container {
     min-height: 80vh;
@@ -1390,14 +1393,23 @@ export default {
     width: 75px;
     fill: gray;
   }
-  .yield {
-    padding-right: 5px;
-    &.positive {
-      color: $green-5;
+  .yield-container {
+    margin-top: 5px;
+    background-color: #ecf3f3;
+    .yield {
+      padding-right: 5px;
+      &.positive {
+        color: $green-5;
+      }
+      &.negative {
+        color: $red-5;
+      }
     }
-    &.negative {
-      color: $red-5;
-    }
+  }
+  .show-tokens-label {
+    margin-top: 0px;
+    font-size: 13px;
+    padding-bottom: 15px;
   }
 </style>
 
