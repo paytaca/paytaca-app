@@ -1,6 +1,7 @@
 <template>
   <q-dialog
     persistent
+    seamless
     ref="dialogRef"
   >
     <q-card
