@@ -76,7 +76,7 @@
             <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
           </div>
           <!-- Feedbacks -->
-          <div>
+          <div v-if="userId">
             <div v-if="!reviewList || reviewList.length === 0" class="text-center q-pt-md text-italized xm-font-size">
               No Reviews Yet
             </div>
@@ -203,28 +203,38 @@ export default {
       if (this.type === 'self') {
         this.userId = this.$store.getters['ramp/getUser'].id
       } else {
-        this.userId = this.userInfo.id
+        if (this.userInfo.is_owner) {
+          this.userId = this.$store.getters['ramp/getUser'].id
+        } else {
+          this.userId = this.userInfo.id
+        }
       }
       this.getUserInfo()
     },
     getUserInfo () {
       const vm = this
-      vm.$axios.get(vm.apiURL + '/peer/detail', { headers: vm.authHeaders, params: { id: vm.userId } })
-        .then(response => {
-          vm.user = response.data
-          console.log('vm.user:', vm.user)
-          vm.isloaded = true
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
+      if (vm.userId) {
+        vm.$axios.get(vm.apiURL + '/peer/detail', { headers: vm.authHeaders, params: { id: vm.userId } })
+          .then(response => {
+            vm.user = response.data
+            // console.log('vm.user:', vm.user)
+            vm.isloaded = true
+          })
+          .catch(error => {
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
             }
-          }
-          vm.isloaded = true
-        })
+            vm.isloaded = true
+          })
+      } else {
+        // temporary
+        vm.user = vm.userInfo.name
+        vm.isloaded = true
+      }
     },
     async updateUserName (info) {
       const vm = this
