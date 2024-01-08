@@ -5,11 +5,20 @@
     full-width
   >
    <!--Title  -->
-  <q-card class="br-15" :style="`height: ${maxHeight}px;`">
+  <q-card class="br-15" :style="`height: ${maxHeight}px;`" :dark="darkMode">
     <div class="row items-center justify-between q-mr-lg q-pb-xs">
       <div class="q-pl-lg q-mt-md">
-        <div style="font-size: 25px; font-weight: 500;">Chat</div>
-        <div style="font-size: 13px; letter-spacing: 1px;" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">You({{ senderName() }}), {{ senderName(false) }}</div>
+        <div
+          style="font-size: 25px; font-weight: 500;"
+          :class="darkMode ? 'text-grey-5' : 'text-black'">
+          Chat
+        </div>
+        <div
+          v-if="chatMembers?.length > 0" style="font-size: 13px; letter-spacing: 1px;" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+          <span v-for="(member, index) in chatMembers" :key="index">
+            {{ member.is_user ? `You (${member.name})` : member.name}}{{ index < chatMembers.length-1 ? ', ' : ''}}
+          </span>
+        </div>
       </div>
       <q-btn
         rounded
@@ -38,7 +47,7 @@
             </div>
           </template>
 
-          <div v-if="convo.messages.length !== 0">
+          <!-- <div v-if="convo.messages.length !== 0">
             <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
               <q-item>
                 <q-item-section>
@@ -109,8 +118,8 @@
                 </q-item-section>
               </q-item>
             </div>
-          </div>
-          <div v-if="message" class="q-px-sm q-mx-lg">
+          </div> -->
+          <!-- <div v-if="message" class="q-px-sm q-mx-lg">
             <div style="width: 100%;">
               <q-chat-message
                 name="me"
@@ -124,7 +133,7 @@
                 </div>
               </q-chat-message>
             </div>
-          </div>
+          </div> -->
         </q-infinite-scroll>
       </q-list>
     </q-pull-to-refresh>
@@ -189,9 +198,11 @@
 <script>
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
-import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
+// import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
+import { fetchChatMembers } from 'src/wallet/ramp/chat'
+import { updateOrCreateKeypair, sha256 } from 'src/wallet/ramp/chat/keys'
 
 export default {
   setup () {
@@ -289,6 +300,8 @@ export default {
           },
         ]
       },
+
+      chatMembers: []
     }
   },
   props: {
@@ -318,35 +331,32 @@ export default {
     async loadKeyPair () {
       this.keypair = await updateOrCreateKeypair().catch(console.error)
     },
-    async resizeAttachment() {
+    async resizeAttachment () {
       this.attachment = await resizeImage({
         file: this.attachment,
         maxWidthHeight: 640,
       })
     },
-    senderName (owner = true) {
-      if (owner) {
-        return this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
-      } else {
-        return !this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
-      }
-    },
+    // senderName (owner = true) {
+    //   if (owner) {
+    //     return this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
+    //   } else {
+    //     return !this.users.ad_owner.is_user ? this.users.ad_owner.name : this.users.order_owner.name
+    //   }
+    // },
     loadData () {
-      let user = this.data.ad.owner
-      this.users.ad_owner = {
-        id: user.id,
-        name: user.name,
-        is_user: this.data.is_ad_owner
-      }
-
-      user = this.data.owner
-      this.users.order_owner = {
-        id: user.id,
-        name: user.name,
-        is_user: !this.data.is_ad_owner
-      }
-
-      // arbiter here
+      const vm = this
+      const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+      fetchChatMembers(`ramp-order-${this.data.id}-chat`)
+        .then(members => {
+          vm.chatMembers = members.map(member => {
+            return {
+              id: member.chat_identity.id,
+              name: member.chat_identity.name,
+              is_user: member.chat_identity.name === username
+            }
+          })
+        })
     },
     refreshData (done) {
       console.log('refreshing data')

@@ -142,6 +142,24 @@ export async function addChatMembers (chatRef, members) {
   })
 }
 
+export async function fetchChatMembers (chatRef) {
+  return new Promise((resolve, reject) => {
+    console.log('chatRef:', chatRef)
+    chatBackend.get(`chat/members/?chat_ref=${chatRef}`, { forceSign: true })
+      .then(response => {
+        console.log('Fetched chat members:', response)
+        resolve(response.data.results)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to fetch chat members:', error.response)
+        } else {
+          console.error('Failed to fetch chat members:', error)
+        }
+        reject(error)
+      })
+  })
+}
 
 async function getKeypairSeed () {
   const wallet = await loadWallet('BCH', Store.getters['global/getWalletIndex'])
