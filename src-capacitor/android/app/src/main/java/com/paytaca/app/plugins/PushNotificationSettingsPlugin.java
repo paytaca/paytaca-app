@@ -1,4 +1,4 @@
-package com.paytaca.plugins;
+package com.paytaca.app.plugins;
 
 import android.app.AlertDialog;
 import android.content.Context;
