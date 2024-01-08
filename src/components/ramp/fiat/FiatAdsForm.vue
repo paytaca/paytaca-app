@@ -305,7 +305,7 @@ export default {
         tradeFloor: 0.02,
         tradeCeiling: 100,
         tradeAmount: 100,
-        timeDurationChoice: 5,
+        timeDurationChoice: 1440,
         paymentMethods: [],
         isPublic: true
       },
@@ -426,6 +426,7 @@ export default {
     },
     async onSubmit () {
       const vm = this
+      vm.loading = true
       const url = vm.apiURL + '/ad/'
       const body = vm.transformPostData()
       try {

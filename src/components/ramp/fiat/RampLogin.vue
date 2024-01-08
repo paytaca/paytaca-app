@@ -201,7 +201,11 @@ export default {
               }
             })
             .then(vm.loadChatIdentity())
-          vm.isLoading = false
+
+          // added delay to accomodate security dialog animation
+          setTimeout(() => {
+            this.isLoading = false
+          }, 1500)
         })
         .catch(error => {
           if (error.response) {
@@ -263,6 +267,7 @@ export default {
       }
     },
     createRampUser () {
+      this.isLoading = true
       const timestamp = Date.now()
       const url = `${this.apiURL}/ramp-p2p/peer/create`
       document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
