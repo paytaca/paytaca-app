@@ -4,82 +4,140 @@
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
     ></header-nav>
-    <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
-      <q-menu anchor="bottom right" self="top end">
-        <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
-          <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">{{ $t('GenerateNewAddress') }}</q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">
-              <template v-if="copying">
-                {{ $t('Copying') }}...
-              </template>
-              <template v-else>
-                {{ $t('CopyPrivateKey') }}
-              </template>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-menu>
-    </q-icon>
-    <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
-      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
-    <template v-else>
-      <div class="row">
-        <div class="col qr-code-container" @click="copyToClipboard(address)">
-          <div class="col col-qr-code q-pl-sm q-pr-sm">
-            <div class="row text-center">
-              <div class="col row justify-center q-pt-md">
-                <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
-                <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+    <div v-if="!amountDialog">
+      <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
+        <q-menu anchor="bottom right" self="top end">
+          <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
+            <q-item clickable v-close-popup>
+              <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">{{ $t('GenerateNewAddress') }}</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup>
+              <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">
+                <template v-if="copying">
+                  {{ $t('Copying') }}...
+                </template>
+                <template v-else>
+                  {{ $t('CopyPrivateKey') }}
+                </template>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-icon>
+      <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
+        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+      <template v-else>
+        <div class="row">
+          <div class="col qr-code-container" @click="copyToClipboard(address)">
+            <div class="col col-qr-code q-pl-sm q-pr-sm">
+              <div class="row text-center">
+                <div class="col row justify-center q-pt-md">
+                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
+                  <qr-code :text="addressAmountFormat" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
-        <q-toggle
-          style="margin: auto;"
-          v-model="legacy"
-          :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'"
-          keep-color
-          color="blue-9"
-          :label="$t('LegacyAddress')"
+        <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
+          <q-toggle
+            style="margin: auto;"
+            v-model="legacy"
+            :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'"
+            keep-color
+            color="blue-9"
+            :label="$t('LegacyAddress')"
+          />
+        </div>
+        <div class="row">
+          <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
+            <span class="qr-code-text text-weight-light text-center">
+              <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+                {{ address }}
+                <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
+              </div>
+              <div v-if="lnsName" class="text-center text-caption pp-text">
+                {{ lnsName }}
+                <q-btn
+                  type="a"
+                  size="sm"
+                  flat
+                  padding="none"
+                  icon="open_in_new"
+                  :href="`https://app.bch.domains/name/${lnsName}/details`"
+                  target="_blank"
+                />
+              </div>
+            </span>
+
+            <div v-if="amount" class="text-center">
+              <q-separator class="q-mb-sm q-mx-md" style="height: 2px;"/>
+              <div :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+                <div style="font-size: 15px; letter-spacing: 1px;">
+                  You Will Receive
+                </div>
+                <div class="text-weight-light" style="font-size: 18px; letter-spacing: 1px">
+                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
+                </div>
+              </div>
+            </div>
+            <div v-if="asset.symbol === 'BCH'" @click="amountDialog = true" class="text-center" style="font-size: 18px ;color: #3b7bf6;">
+              {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
+            </div>
+          </div>
+        </div>
+      </template>
+      <!-- <footer-menu /> -->
+    </div>
+    <div v-if="amountDialog">
+      <div class="text-right">
+        <q-btn
+          flat
+          padding="lg"
+          size="lg"
+          icon="close"
+          style="color: #3b7bf6;"
+          @click="setReceiveAmount('close')"
         />
       </div>
-      <div class="row">
-        <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
-          <span class="qr-code-text text-weight-light text-center">
-            <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
-              {{ address }}
-              <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
-            </div>
-            <div v-if="lnsName" class="text-center text-caption pp-text">
-              {{ lnsName }}
-              <q-btn
-                type="a"
-                size="sm"
-                flat
-                padding="none"
-                icon="open_in_new"
-                :href="`https://app.bch.domains/name/${lnsName}/details`"
-                target="_blank"
-              />
-            </div>
-          </span>
+      <div :style="`margin-top: ${$q.screen.height * .15}px`">
+        <div class="text-center" style="font-size: 18px ;color: #3b7bf6;">{{ $t('SetReceiveAmount') }}</div>
+        <div class="col q-mt-md q-px-lg text-center">
+          <q-input
+            type="text"
+            inputmode="none"
+            @focus="openCustomKeyboard(true)"
+            filled
+            v-model="tempAmount"
+            :label="$t('Amount')"
+            :readonly="readonlyState"
+            :dark="darkMode"
+          >
+            <template v-slot:append>
+              <div style="font-size: 15px;" class="q-pr-sm">{{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}</div>
+            </template>
+          </q-input>
+        </div>
+        <div class="q-pt-md" style="margin-left: 35px; font-size: 15px ;font-weight: 500; color: #3b7bf6;" @click="setAmountInFiat = !setAmountInFiat">
+          {{ $t('SetAmountIn') }} {{ setAmountInFiat ? 'BCH' : String(selectedMarketCurrency()).toUpperCase() }}
         </div>
       </div>
-    </template>
-    <footer-menu />
+    </div>
   </div>
+
+  <customKeyboard
+    :custom-keyboard-state="customKeyboardState"
+    v-on:addKey="setAmount"
+    v-on:makeKeyAction="makeKeyAction"
+  />
 </template>
 
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
+import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 import { NativeAudio } from '@capacitor-community/native-audio'
@@ -99,7 +157,7 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav, ProgressLoader },
+  components: { HeaderNav, ProgressLoader, customKeyboard },
   data () {
     return {
       sBCHListener: null,
@@ -110,7 +168,13 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
-      copying: false
+      copying: false,
+      amount: '',
+      tempAmount: '',
+      readonlyState: false,
+      amountDialog: false,
+      customKeyboardState: 'dismiss',
+      setAmountInFiat: false
     }
   },
   props: {
@@ -146,9 +210,97 @@ export default {
       } else {
         return address
       }
+    },
+    selectedAssetMarketPrice() {
+      return this.$store.getters['market/getAssetPrice'](this.asset.id, this.selectedMarketCurrency())
+    },
+    addressAmountFormat () {
+      let tempAddress = this.address
+      let tempAmount = this.amount
+
+      if (this.setAmountInFiat && this.amount) {
+        tempAmount = this.convertFiatToSelectedAsset(this.amount)
+      }
+
+      tempAddress += this.amount ? '?amount=' + tempAmount : ''
+
+      return tempAddress
     }
   },
   methods: {
+    convertFiatToSelectedAsset (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
+      return computedBalance.toFixed(8)
+    },
+    setReceiveAmount (state) {
+      if (state !== 'close') {
+        this.amount = this.tempAmount
+      }
+      this.readonlyState = false
+      this.amountDialog = false
+      this.customKeyboardState = 'dismiss'
+    },
+    selectedMarketCurrency () {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
+    },
+    openCustomKeyboard (state) {
+      this.readonlyState = state
+
+      if (state) {
+        this.customKeyboardState = 'show'
+      } else {
+        this.customKeyboardState = 'dismiss'
+      }
+    },
+    setAmount (key) {
+      let receiveAmount, finalAmount, tempAmountFormatted = ''
+
+      receiveAmount = this.tempAmount
+
+      receiveAmount = receiveAmount === null ? '' : receiveAmount
+      if (key === '.' && receiveAmount === '') {
+        finalAmount = '0.'
+      } else {
+        finalAmount = receiveAmount.toString()
+        const hasPeriod = finalAmount.indexOf('.')
+        if (hasPeriod < 1) {
+          if (Number(finalAmount) === 0 && Number(key) > 0) {
+            finalAmount = key
+          } else {
+            // Check amount if still zero
+            if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
+              finalAmount = 0
+            } else {
+              finalAmount += key.toString()
+            }
+          }
+        } else {
+          finalAmount += key !== '.' ? key.toString() : ''
+        }
+      }
+      // // Set the new amount
+      this.tempAmount = finalAmount
+    },
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        // Backspace
+        this.tempAmount = String(this.tempAmount).slice(0, -1)
+      } else if (action === 'delete') {
+        // Delete
+        this.tempAmount = ''
+      } else {
+        // Enabled submit slider
+        if (this.tempAmount) {
+          this.setReceiveAmount('gen')
+        }
+        this.customKeyboardState = 'dismiss'
+        this.readonlyState = false
+      }
+    },
     getDarkModeClass,
     isDefaultTheme,
     updateLnsName () {
@@ -239,7 +391,7 @@ export default {
       } else {
         this.walletType = 'bch'
       }
-    
+
       let address = this.$store.getters['global/getAddress'](this.walletType)
       if (this.assetId.indexOf('ct/') > -1 && !forListener) {
         address = convertCashAddress(address, this.isChipnet, true)
@@ -255,7 +407,16 @@ export default {
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyToClipboard (value) {
-      this.$copyText(value)
+      let tempAddress = value
+      let tempAmount = this.amount
+
+      if (this.setAmountInFiat && this.amount) {
+        tempAmount = this.convertFiatToSelectedAsset(this.amount)
+      }
+
+      tempAddress += this.amount ? '?amount=' + tempAmount : ''
+
+      this.$copyText(tempAddress)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
         timeout: 800,
@@ -293,7 +454,7 @@ export default {
         dropRate: 3
       })
       if (!vm.$q.platform.is.mobile) {
-        if (isCashToken) 
+        if (isCashToken)
           amount = convertTokenAmount(amount, decimals)
 
         vm.$q.notify({
@@ -329,7 +490,7 @@ export default {
         assetType = 'bch'
         url = `${wsURL}/watch/bch/${address}/`
       }
-      
+
       vm.$connect(url)
       vm.$options.sockets.onmessage = function (message) {
         const data = JSON.parse(message.data)
@@ -400,6 +561,9 @@ export default {
     address () {
       this.lnsName = ''
       this.updateLnsName()
+    },
+    amountDialog () {
+      this.tempAmount = this.amount
     }
   },
 

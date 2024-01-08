@@ -19,19 +19,20 @@
         </div>
         <q-card-section class="amount q-pb-none">
           <q-item class="q-px-none">
-            <q-item-section side top>
+            <q-item-section side top class="asset-logo">
               <img
                 :src="denomination === $t('DEEM') && transaction.asset.symbol === 'BCH'
                   ? 'assets/img/theme/payhero/deem-logo.png'
                   : transaction.asset.logo || fallbackAssetLogo
                 "
+                alt="Asset logo"
                 height="30"
               />
             </q-item-section>
             <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
               <q-item-label>
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ `-${parseAssetDenomination(
+                  {{ `${parseAssetDenomination(
                     denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                     ...transaction.asset,
                     balance: transaction.amount
@@ -47,7 +48,7 @@
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
                 <template v-if="transaction.record_type === 'outgoing'">
-                  {{ `-${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                  {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
                 </template>
                 <template v-else>
                   {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
@@ -59,6 +60,36 @@
                     </div>
                   </q-popup-proxy>
                 </q-icon>
+              </q-item-label>
+              <q-item-label class="row items-center text-caption" style="margin-top: 0;">
+                <template v-if="transaction.record_type !== 'outgoing'">
+                  <q-badge
+                    rounded
+                    class="flex justify-start items-center"
+                    style="margin-top: 5px; background-color: #ecf3f3;"
+                  >
+                    <template v-if="computeYield() > 0">
+                      <q-icon
+                        size="sm"
+                        name="arrow_drop_up"
+                        color="green-5"
+                      />
+                      <span class="yield positive text-weight-bold">
+                        {{ parseFiatCurrency(computeYield(), selectedMarketCurrency) }}
+                      </span>
+                    </template>
+                    <template v-else>
+                      <q-icon
+                        size="sm"
+                        name="arrow_drop_down"
+                        color="red-5"
+                      />
+                      <span class="yield negative text-weight-bold">
+                        {{ parseFiatCurrency(computeYield(), selectedMarketCurrency) }}
+                      </span>
+                    </template>
+                  </q-badge>
+                </template>
               </q-item-label>
               <div v-if="!transaction.asset.id.startsWith('bch')">
                 <TokenTypeBadge :assetId="transaction.asset.id" abbreviate />
@@ -299,13 +330,20 @@ export default {
       return null
     },
     marketAssetPrice () {
-      if (this.historicalMarketPrice) return this.historicalMarketPrice
       return this.$store.getters['market/getAssetPrice'](this.transaction.asset.id, this.selectedMarketCurrency)
     },
     transactionAmountMarketValue () {
-      if (!this.transaction) return ''
+      const transaction = this.transaction
+      if (!transaction) return ''
       if (!this.marketAssetPrice) return ''
-      return (Number(this.transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
+      if (transaction.usd_price || Object.keys(transaction.market_prices).length > 0) {
+        const currentFiatMarketPrice = transaction.market_prices[this.selectedMarketCurrency]
+        if (currentFiatMarketPrice) {
+          return (Number(transaction.amount) * Number(currentFiatMarketPrice)).toFixed(5)
+        }
+      }
+
+      return (Number(transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
     },
     txFeeMarketValue () {
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
@@ -411,12 +449,20 @@ export default {
           console.error(error)
           dialog.update({ message: 'Unable to fetch contract data' })
         })
+    },
+    computeYield () {
+      const fiatAmount = this.transactionAmountMarketValue
+      const currentFiatPrice = this.transaction.amount * this.marketAssetPrice
+      const currentYield = currentFiatPrice - fiatAmount
+      return Number(currentYield.toFixed(2)) === 0.00 || Number(currentYield.toFixed(2)) === 0
+        ? Math.abs(currentYield)
+        : currentYield
     }
   }
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   .pt-card{
     padding: 20px 10px 5px 0;
   }
@@ -439,5 +485,19 @@ export default {
   .record-type-icon {
     font-size: 30px;
     border-radius: 20px;
+  }
+  .asset-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .yield {
+    padding-right: 5px;
+    &.positive {
+      color: $green-5;
+    }
+    &.negative {
+      color: $red-5;
+    }
   }
 </style>

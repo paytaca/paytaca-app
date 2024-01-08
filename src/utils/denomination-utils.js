@@ -8,7 +8,7 @@ const denomDecimalPlaces = {
 }
 
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {
-  const balanceCheck = Math.abs(asset.balance ?? 0)
+  const balanceCheck = asset.balance ?? 0
   const isBCH = asset.symbol === 'BCH'
   const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
   let completeAsset = ''
@@ -24,7 +24,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
 
-    const newBalance = String(parseFloat(calculatedBalance)).substring(0, setSubStringMaxLength)
+    const newBalance = String(customNumberFormatting(calculatedBalance)).substring(0, setSubStringMaxLength)
 
     completeAsset = `${newBalance} ${denomination}`
   } else {
@@ -60,4 +60,26 @@ export function parseFiatCurrency (amount, currency) {
 export function convertToBCH (denomination, amount) {
   const { convert } = denomDecimalPlaces[denomination] ?? denomDecimalPlaces.DEEM
   return denomination === 'BCH' ? amount : (amount / convert).toFixed(8)
+}
+
+/**
+ * For very small numbers, use `toFixed()`. For large numbers, use `parseFloat()`
+ * @param {String} number
+ */
+export function customNumberFormatting (number) {
+  // remove dangling denomination then convert back to string
+  const num = parseFloat(number).toString()
+
+  // check if number is already on exponential notation
+  if (num.includes('e')) {
+    const fixedDecimals = parseInt(num.split('').pop()) + 1
+    return parseFloat(num).toFixed(fixedDecimals)
+  }
+
+  // fallback for non-exponential notation
+  const decimals = num.toString().split('.')[1]
+  if (!decimals) return parseFloat(num).toString()
+  return decimals.length > 6
+    ? parseFloat(num).toFixed(decimals.length)
+    : parseFloat(num).toString()
 }

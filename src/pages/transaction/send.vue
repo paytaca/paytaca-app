@@ -27,17 +27,14 @@
             @paid="onJppPaymentSucess()"
           />
         </div>
-        <div v-else class="q-mt-xl">
-          <div class="q-pa-md" style="padding-top: 20px;">
-            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;">
-              <q-banner v-if="$store.state.global.online === false" class="bg-red-4">
-                <template v-slot:avatar>
-                  <q-icon name="signal_wifi_off" color="primary" />
-                </template>
-                You cannot send funds while offline. Please connect to the internet.
-              </q-banner>
-            </v-offline>
-            <div v-if="isNFT && !sendData.sent" style="width: 150px; margin: 0 auto;">
+        <div
+          v-else
+          class="send-form-container"
+          :class="sent ? 'q-mt-md sent' : 'q-mt-xl'"
+        >
+          <div class="q-pa-md">
+            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
+            <div v-if="isNFT && !sent" style="width: 150px; margin: 0 auto;">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
               <div
@@ -53,7 +50,7 @@
               <q-icon name="error" left/>
               {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendData.recipientAddress === ''">
+            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0].recipientAddress === ''">
               <div class="col-12" style="text-align: center;">
                 <q-input
                   bottom-slots
@@ -84,115 +81,102 @@
               {{ scanner.decodedContent }}
             </div>
           </div>
-          <div class="q-px-lg" v-if="sendData.sent === false && sendData.recipientAddress !== ''">
-            <form class="q-pa-sm" @submit.prevent="handleSubmit" style="font-size: 26px !important; margin-top: -50px;">
-              <div class="row">
-                <div class="col q-mt-sm se">
-                  <q-input
-                    filled
-                    v-model="sendData.recipientAddress"
-                    label-slot
-                    :disabled="disableRecipientInput"
-                    :readonly="disableRecipientInput"
-                    :dark="darkMode"
-                  >
-                    <template v-slot:label>
-                      {{ $t('Recipient') }}
-                    </template>
-                  </q-input>
-                </div>
-              </div>
-              <template v-if="$store.state.global.online !== false">
-                <div class="row" v-if="!isNFT">
-                  <div class="col q-mt-md">
-                    <q-input
-                      type="text"
-                      inputmode="none"
-                      @focus="readonlyState(true)"
-                      @blur="readonlyState(false)"
-                      filled
-                      v-model="amountFormatted"
-                      :label="$t('Amount')"
-                      :loading="computingMax"
-                      :disabled="disableAmountInput || setAmountInFiat"
-                      :readonly="disableAmountInput || setAmountInFiat"
-                      :dark="darkMode"
-                      :error="balanceExceeded"
-                      :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
-                    >
-                      <template v-slot:append>
-                        {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
-                        <DenominatorTextDropdown
-                          v-if="!sendData.fixedAmount"
-                          @on-selected-denomination="onSelectedDenomination"
-                          :selectedNetwork="asset.symbol"
-                          :darkMode="darkMode"
-                          :theme="theme"
-                          :currentCountry="currentCountry"
-                        />
-                      </template>
-                    </q-input>
-                    <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-                    </div>
-                  </div>
-                </div>
-                <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
-                  <div class="col q-mt-md">
-                    <q-input
-                      type="text"
-                      inputmode="none"
-                      @focus="readonlyState(true)"
-                      @blur="readonlyState(false)"
-                      filled
-                      v-model="sendAmountInFiat"
-                      :label="$t('Amount')"
-                      :disabled="disableAmountInput"
-                      :readonly="disableAmountInput"
-                      :dark="darkMode"
-                    >
-                      <template v-slot:append>
-                        {{ String(currentSendPageCurrency()).toUpperCase() }}
-                      </template>
-                    </q-input>
-                    <div v-if="sendAmountMarketValue && !setAmountInFiat" class="text-body2 text-grey q-mt-sm q-px-sm">
-                      {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-                    </div>
-                  </div>
-                </div>
-              </template>
-              <div class="row" v-if="!isNFT && !sendData.fixedAmount">
-                <div class="col q-mt-md" style="font-size: 18px; color: gray;">
-                  {{ parseAssetDenomination(selectedDenomination, asset) }}
-                  <template v-if="asset.id === 'bch' && setAmountInFiat">
-                    {{ `= ${parseFiatCurrency(convertToFiatAmount(asset.balance), currentSendPageCurrency())}` }}
-                  </template>
-                  <a
-                    href="#"
-                    v-if="!computingMax && !disableAmountInput || (setAmountInFiat && !sendData.sending)"
-                    @click.prevent="setMaximumSendAmount"
-                    style="float: right; text-decoration: none; color: #3b7bf6;"
-                    class="button button-text-primary"
+          <div
+            v-if="!sent && sendDataMultiple[0].recipientAddress !== ''"
+            class="q-px-lg"
+            :style="isNFT ? 'margin-top: 25px' : ''"
+          >
+            <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
+              <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
+                <template v-if="isMultipleRecipient">
+                  <q-expansion-item
+                    default-opened
+                    dense
+                    dense-toggle
+                    class="q-expansion-item-recipient"
+                    v-model="expandedItems[`R${index + 1}`]"
+                    :label="`${$t('Recipient')} #${index + 1}`"
                     :class="getDarkModeClass(darkMode)"
                   >
-                    {{ $t('MAX') }}
-                  </a>
-                </div>
+                    <SendPageForm
+                      :recipient="sendDataMultiple[index]"
+                      :inputExtras="inputExtras[index]"
+                      :asset="asset"
+                      :index="index"
+                      :showQrScanner="showQrScanner"
+                      :computingMax="computingMax"
+                      :setAmountInFiat="setAmountInFiat"
+                      :selectedAssetMarketPrice="selectedAssetMarketPrice"
+                      :isNFT="isNFT"
+                      :currentWalletBalance="currentWalletBalance"
+                      :currentSendPageCurrency="currentSendPageCurrency"
+                      :convertToFiatAmount="convertToFiatAmount"
+                      :setMaximumSendAmount="setMaximumSendAmount"
+                      @on-qr-scanner-click="onQRScannerClick"
+                      @read-only-state="readonlyState"
+                      @on-input-focus="onInputFocus"
+                      @on-balance-exceeded="onBalanceExceeded"
+                      @on-recipient-input="onRecipientInput"
+                      @on-empty-recipient="onEmptyRecipient"
+                      @on-selected-denomination-change="onSelectedDenomination"
+                      :key="generateKeys(index)"
+                    />
+                  </q-expansion-item>
+                </template>
+
+                <template v-else>
+                  <SendPageForm
+                    :recipient="sendDataMultiple[index]"
+                    :inputExtras="inputExtras[index]"
+                    :asset="asset"
+                    :index="index"
+                    :showQrScanner="showQrScanner"
+                    :computingMax="computingMax"
+                    :setAmountInFiat="setAmountInFiat"
+                    :selectedAssetMarketPrice="selectedAssetMarketPrice"
+                    :isNFT="isNFT"
+                    :currentSendPageCurrency="currentSendPageCurrency"
+                    :convertToFiatAmount="convertToFiatAmount"
+                    :setMaximumSendAmount="setMaximumSendAmount"
+                    @on-qr-scanner-click="onQRScannerClick"
+                    @read-only-state="readonlyState"
+                    @on-input-focus="onInputFocus"
+                    @on-balance-exceeded="onBalanceExceeded"
+                    @on-recipient-input="onRecipientInput"
+                    @on-empty-recipient="onEmptyRecipient"
+                    @on-selected-denomination-change="onSelectedDenomination"
+                    :key="generateKeys(index)"
+                  />
+                </template>
+              </q-list>
+
+              <div class="row" v-if="sendDataMultiple.length > 1">
+                <p style="font-size: 14px; color: red; margin-top: 10px;" @click="removeLastRecipient">
+                  {{ $t('RemoveRecipient') }} #{{ sendDataMultiple.length }}
+                </p>
               </div>
-              <div class="row" v-if="!sendData.fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'" style="margin-top: -10px;">
+
+              <div
+                class="row"
+                style="margin-top: -10px;"
+                v-if="!sendDataMultiple[0].fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'"
+              >
                 <div class="col q-mt-md">
                   <a
                     style="font-size: 16px; text-decoration: none; color: #3b7bf6;"
                     href="#"
                     class="button button-text-primary"
                     :class="getDarkModeClass(darkMode)"
-                    @click.prevent="() => {sendData.amount = 0; amountFormatted = 0; setAmountInFiat = true}"
+                    @click.prevent="onSetAmountToFiatClick"
                   >
-                    Set amount in {{ String(currentSendPageCurrency()).toUpperCase() }}
+                    {{ `${$t('SetAmountIn')} ${String(currentSendPageCurrency()).toUpperCase()}` }}
                   </a>
                 </div>
               </div>
-              <div class="row" v-if="sendData.sending">
+              <div class="add-recipient-button" v-if="showAddRecipientButton" @click.prevent="addAnotherRecipient">
+                <q-btn :label="$t('AddAnotherRecipient')" class="button" />
+              </div>
+              <div class="row" v-if="sending">
                 <div class="col-12 text-center">
                   <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
                 </div>
@@ -201,7 +185,6 @@
           </div>
 
           <customKeyboard
-            v-if="!showSlider"
             :custom-keyboard-state="customKeyboardState"
             v-on:addKey="setAmount"
             v-on:makeKeyAction="makeKeyAction"
@@ -234,48 +217,48 @@
             <footer-menu />
           </template>
 
-          <div class="row" v-if="sendErrors.length > 0">
-            <div class="col">
-              <ul style="margin-left: -40px; list-style: none;">
-                <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-                  <q-icon name="error" left/>
-                  {{ error }}
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div class="q-px-md" v-if="sendData.sent" style="text-align: center; margin-top: -70px;">
+          <div class="q-px-md" v-if="sent" style="text-align: center; margin-top: -70px;">
             <q-icon size="70px" name="check_circle" color="green-5"></q-icon>
             <div
               :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
               :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '20px'}"
             >
-              <p style="font-size: 26px;">{{ $t('SuccessfullySent') }}</p>
+              <p style="font-size: 22px;">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
-                <p style="font-size: 28px; margin-top: -10px;">{{ $route.query.name }}</p>
+                <p style="font-size: 25px; margin-top: -10px;">{{ $route.query.name }}</p>
               </template>
               <template v-else>
-                <p style="font-size: 28px; margin-top: -10px;">{{ isCashToken ? ctTokenAmount : sendData.amount }} {{ asset.symbol }}</p>
-                <p v-if="sendAmountInFiat && asset.id === 'bch'" style="font-size: 28px; margin-top: -15px;">
-                  ({{ parseFiatCurrency(sendAmountInFiat, currentSendPageCurrency()) }})
+                <p style="font-size: 25px; margin-top: -10px;">
+                  {{
+                    isCashToken
+                      ? ctTokenAmount
+                      : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
+                  }} {{ isCashToken ? asset.symbol : denomination }}
+                </p>
+                <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" style="font-size: 25px; margin-top: -15px;">
+                  ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
                 </p>
               </template>
 
-              <p style="font-size: 24px;">to</p>
-              <div style="overflow-wrap: break-word; font-size: 18px;" class="q-px-xs">
-                {{ this.sendData.recipientAddress }}
-              </div>
+              <p style="font-size: 22px; margin: -10px 0 5px 0">{{ $t('To') }}</p>
+              <template v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
+                <div style="overflow-wrap: break-word; font-size: 16px;" class="q-px-xs">
+                  {{ recipient.recipientAddress }}
+                </div>
+              </template>
               <div class="text-center q-mt-lg">
                 <div class="text-grey">{{ $t('ReferenceId')}}</div>
-                <div class="text-h4" style="letter-spacing: 6px;">{{ sendData.txid.substring(0, 6).toUpperCase() }}</div>
+                <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
                 <q-separator color="grey"/>
               </div>
-              <div style="overflow-wrap: break-word; font-size: 18px; margin-top: 20px;" class="q-px-xs">
-                txid: {{ sendData.txid.slice(0, 8) }}<span style="font-size: 20px;">***</span>{{ sendData.txid.substr(sendData.txid.length - 8) }}<br>
+              <div style="overflow-wrap: break-word; font-size: 16px; margin-top: 20px;" class="q-px-xs">
+                txid: {{ txid.slice(0, 8) }}<span style="font-size: 18px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
                 <template v-if="walletType === 'SmartBCH'">
                   <a
                     style="text-decoration: none; color: #3b7bf6;"
-                    :href="'https://sonar.cash/tx/' + sendData.txid" target="_blank"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :href="'https://sonar.cash/tx/' + txid" target="_blank"
                   >
                     {{ $t('ViewInExplorer') }}
                   </a>
@@ -283,21 +266,23 @@
                 <template v-else>
                   <a
                     style="text-decoration: none; color: #3b7bf6;"
-                    :href="getExplorerLink(sendData.txid)" target="_blank"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :href="getExplorerLink(txid)" target="_blank"
                   >
                     {{ $t('ViewInExplorer') }}
                   </a>
                 </template>
               </div>
 
-              <div v-if="sendData.paymentAckMemo" class="row justify-center">
+              <div v-if="sendDataMultiple[0].paymentAckMemo" class="row justify-center">
                 <div
                   class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1"
                   style="min-width:50vw;border: 1px solid grey;background-color: inherit;"
                   :class="getDarkModeClass(darkMode, 'text-white', '')"
                 >
                   <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">Memo:</span>
-                  {{ sendData.paymentAckMemo }}
+                  {{ sendDataMultiple[0].paymentAckMemo }}
                 </div>
               </div>
               <q-item
@@ -308,9 +293,7 @@
                   <q-icon name="warning" size="1.5em"/>
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>
-                    Payment might not be acknowledged as transaction was manually verified
-                  </q-item-label>
+                  <q-item-label>{{ $t('PaymentNotYetAcknowledged') }}</q-item-label>
                 </q-item-section>
               </q-item>
             </div>
@@ -350,10 +333,12 @@ import {
   parseAssetDenomination,
   getAssetDenomination,
   parseFiatCurrency,
-  convertToBCH
+  convertToBCH,
+  customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
+import SendPageForm from 'src/components/SendPageForm.vue'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -372,7 +357,8 @@ export default {
     customKeyboard,
     QrScanner,
     VOffline,
-    DenominatorTextDropdown
+    DenominatorTextDropdown,
+    SendPageForm
   },
   props: {
     network: {
@@ -453,22 +439,30 @@ export default {
 
       jpp: null,
 
-      sendData: {
-        sent: false,
-        sending: false,
-        success: false,
-        error: '',
-        txid: '',
+      sendDataMultiple: [{
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
-        posDevice: { walletHash: '', posId: -1, paymentTimestamp: -1 },
         rawPaymentUri: '', // for scanning qr data
         responseOTP: '',
         paymentAckMemo: '',
         fixedRecipientAddress: false
-      },
-      sendErrors: [],
+      }],
+
+      inputExtras: [{
+        amountFormatted: 0,
+        sendAmountInFiat: 0,
+        balanceExceeded: false,
+        scannedRecipientAddress: false,
+        setMax: false,
+        emptyRecipient: false,
+        selectedDenomination: 'BCH',
+        isBip21: false
+      }],
+
+      sent: false,
+      sending: false,
+      txid: '',
       pinDialogAction: '',
       leftX: 0,
       slider: 0,
@@ -484,14 +478,16 @@ export default {
       sliderStatus: false,
       showQrScanner: false,
       setAmountInFiat: false,
-      sendAmountInFiat: null,
       balanceExceeded: false,
-      setMax: false,
       computingMax: false,
-      amountFormatted: null,
       selectedDenomination: 'BCH',
       paymentCurrency: null,
-      payloadAmount: 0
+      payloadAmount: 0,
+      expandedItems: {},
+      currentActiveRecipientIndex: 0,
+      totalAmountSent: 0,
+      totalFiatAmountSent: 0,
+      currentWalletBalance: 0
     }
   },
 
@@ -518,7 +514,7 @@ export default {
         if (this.showSlider) {
           return false
         }
-        if (this.sendData.sending || this.sendData.sent) {
+        if (this.sending || this.sent) {
           return false
         }
       }
@@ -554,70 +550,56 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    sendAmountMarketValue () {
-      const parsedAmount = Number(this.sendData.amount)
-      if (!parsedAmount) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
-      if (!computedBalance) return ''
-
-      return computedBalance.toFixed(2)
-    },
-    disableRecipientInput () {
-      return this.sendData.sent || this.sendData.fixedRecipientAddress || this.scannedRecipientAddress
-    },
-    disableAmountInput () {
-      return this.sendData.sending || this.sendData.sent || this.sendData.fixedAmount || this.amountInputState
-    },
     showSlider () {
+      if (this.sliderStatus && this.isNFT && !this.sending) return true
       return (
-        this.sendData.sending !== true &&
-        this.sendData.sent !== true &&
-        this.sendErrors.length === 0 &&
-        this.sliderStatus === true &&
-        this.sendData.amount > 0
+        !this.sending &&
+        !this.sent &&
+        this.sliderStatus &&
+        // check if amount is greater than zero
+        this.sendDataMultiple
+          .map(data => data.amount > 0)
+          .findIndex(i => !i) < 0 &&
+        // check if there are any amount that exceeded current balance
+        this.inputExtras
+          .map(data => data.balanceExceeded)
+          .findIndex(i => i) < 0 &&
+        // check if there are any empty recipients
+        this.inputExtras
+          .map(data => data.emptyRecipient)
+          .findIndex(i => i) < 0
       )
     },
-    paymentOTP () {
-      if (this.sendData.responseOTP) return this.sendData.responseOTP
-
-      return this.$store.getters['paytacapos/paymentOTPCache'](this.sendData?.txid)?.otp || ''
+    showAddRecipientButton () {
+      if (this.walletType === sBCHWalletType) return false
+      return (
+        this.showSlider &&
+        !this.isNFT &&
+        this.sendDataMultiple.length < 5 &&
+        // check if user clicked MAX on any recipient (disable button if yes)
+        this.inputExtras
+          .map(data => data.setMax)
+          .findIndex(i => i) < 0
+      )
+    },
+    isMultipleRecipient () {
+      return !(this.isNFT || this.walletType === sBCHWalletType)
     }
   },
 
   watch: {
-    'sendData.recipientAddress': function (address) {
-      let amount = this.getBIP21Amount(address)
-      if (!Number.isNaN(amount)) {
-        this.sendData.amount = amount
-        this.sendData.fixedAmount = true
-        this.sendData.recipientAddress = address.split('?')[0]
-        this.sendData.fixedRecipientAddress = true
-        this.sliderStatus = true
-      }
-
-      if (address && this.isNFT) {
-        this.sliderStatus = true
-      }
-    },
-    'sendData.amount': function (amount) {
-      if (amount > parseFloat(this.asset.balance)) {
-        this.balanceExceeded = true
-      } else {
-        this.balanceExceeded = false
-      }
-    },
     setAmountInFiat: function (value) {
-      if (value === true) {
+      if (value) {
         this.balanceExceeded = false
       }
     },
     sendAmountInFiat: function (amount) {
-      if (!this.setMax) {
-        let fiatToAsset = this.convertFiatToSelectedAsset(amount)
-        fiatToAsset = fiatToAsset || 0
-        this.sendData.amount = fiatToAsset
-        this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
+      if (!this.inputExtras[this.currentActiveRecipientIndex].setMax) {
+        const fiatToAsset = this.convertFiatToSelectedAsset(amount) || 0
+        this.sendDataMultiple[this.currentActiveRecipientIndex].amount = fiatToAsset
+
+        const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
+        this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = fiatAsset
       }
     },
     selectedAssetMarketPrice () {
@@ -625,9 +607,10 @@ export default {
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
       }
       if (this.payloadAmount && this.payloadAmount > 0) {
-        this.sendAmountInFiat = this.payloadAmount
-        this.sendData.amount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
-        this.amountFormatted = this.sendData.amount
+        const finalAmount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
+        this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
+        this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
+        this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
       }
     }
   },
@@ -638,6 +621,7 @@ export default {
     getAssetDenomination,
     parseFiatCurrency,
     convertToBCH,
+    customNumberFormatting,
     getDarkModeClass,
     isDefaultTheme,
     getExplorerLink (txid) {
@@ -662,12 +646,17 @@ export default {
     },
     onScannerDecode (content) {
       this.showQrScanner = false
+      this.sliderStatus = false
       let address = content
       let amount = null
-      let rawPaymentUri = ''
-      let posDevice = { posId: -1, paymentTimestamp: -1 }
       let amountValue = null
       let currency = null
+      const rawPaymentUri = ''
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+
+      // check for BIP21
+      if (this.onBIP21Amount(address)) return
 
       let paymentUriData
       try {
@@ -677,11 +666,21 @@ export default {
       } catch (error) {
         console.error(error)
         if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
-          this.sendErrors.push('Invalid address format')
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('InvalidAddressFormat')
+          })
           return
         }
         if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
-          this.sendErrors.push('Multiple recipients not yet supported')
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('MultipleRecipientsUnsupported')
+          })
           return
         }
       }
@@ -694,7 +693,7 @@ export default {
         amountValue = paymentUriData.outputs[0].amount?.value
         this.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
-        this.sendData.fixedRecipientAddress = true
+        currentRecipient.fixedRecipientAddress = true
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -702,33 +701,46 @@ export default {
 
       const valid = this.checkAddress(address)
       if (valid) {
-        this.sendData.recipientAddress = address
-        this.sendData.rawPaymentUri = rawPaymentUri
-        this.scannedRecipientAddress = true
+        currentRecipient.recipientAddress = address
+        currentRecipient.rawPaymentUri = rawPaymentUri
+        currentInputExtras.scannedRecipientAddress = true
+        currentInputExtras.emptyRecipient = false
+
         if (typeof currency === 'string') {
           const newSelectedCurrency = this.currencyOptions
             .find(_currency => _currency?.symbol === currency)
           if (newSelectedCurrency?.symbol) {
             amount = (amountValue / this.selectedAssetMarketPrice).toFixed(8)
           } else if (!newSelectedCurrency?.symbol && amount) {
-            this.sendErrors.push(`Detected unknown currency: ${currency}`)
-            // reset some data updated above on error
-            this.sendData.recipientAddress = ''
-            this.sendData.rawPaymentUri = ''
+            this.$q.notify({
+              type: 'negative',
+              color: 'red-4',
+              timeout: 3000,
+              message: this.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
+            })
+
+            currentRecipient.recipientAddress = ''
+            currentRecipient.rawPaymentUri = ''
+
             return
           }
         } else {
+          amount = this.customNumberFormatting(amountValue)
+        }
+
+        if (content.includes('?amount')) {
+          amountValue = content.split('?amount=')[1]
           amount = amountValue
         }
         if (amountValue !== null) {
           this.sliderStatus = true
-          this.amountFormatted = amount
+          currentInputExtras.amountFormatted = this.customNumberFormatting(amount)
           if (this.setAmountInFiat) {
-            this.sendAmountInFiat = amount
+            currentInputExtras.sendAmountInFiat = this.customNumberFormatting(amount)
           } else {
-            this.sendData.amount = amount
+            currentRecipient.amount = this.customNumberFormatting(amount)
           }
-          this.sendData.fixedAmount = true
+          currentRecipient.fixedAmount = true
         }
       }
     },
@@ -766,18 +778,22 @@ export default {
     },
     onJppPaymentSucess() {
       this.$forceUpdate()
-      this.sendData.txid = this.jpp?.txids?.[0]
-      this.sendData.amount = this.jpp.total / 10 ** 8
-      this.sendData.recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
-      this.sendData.paymentAckMemo = this.jpp.paymentAckMemo || ''
+      this.txid = this.jpp?.txids?.[0]
+      this.sendDataMultiple[0].amount = this.jpp.total / 10 ** 8
+      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
+      this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
-      this.sendData.sending = false
-      this.sendData.sent = true
+      this.sending = false
+      this.sent = true
     },
     readonlyState (state) {
       this.amountInputState = state
-      if (this.amountInputState && this.$store.getters['global/getConnectivityStatus']) {
-        this.customKeyboardState = 'show'
+      if (this.amountInputState) {
+        if (this.$store.getters['global/getConnectivityStatus']) {
+          this.customKeyboardState = 'show'
+        }
+      } else {
+        this.adjustWalletBalance()
       }
     },
     convertToFiatAmount (amount) {
@@ -801,67 +817,76 @@ export default {
       return computedBalance.toFixed(8)
     },
     setAmount (key) {
-      let sendAmount, amount, tempAmountFormatted = ''
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      let currentSendAmount, currentAmount
+
       if (this.setAmountInFiat) {
-        sendAmount = this.sendAmountInFiat
+        currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
       } else {
-        sendAmount = this.sendData.amount
-        tempAmountFormatted = this.amountFormatted === null ? '' : this.amountFormatted
+        currentSendAmount = currentInputExtras.amountFormatted ?? ''
       }
-      sendAmount = sendAmount === null ? '' : sendAmount
-      if (key === '.' && sendAmount === '') {
-        amount = '0.'
-        tempAmountFormatted = '0.'
+
+      if (key === '.' && currentSendAmount === '') {
+        currentAmount = '0.'
       } else {
-        amount = this.setAmountInFiat ? sendAmount.toString() : tempAmountFormatted.toString()
-        const hasPeriod = amount.indexOf('.')
+        currentAmount = currentSendAmount.toString()
+        const hasPeriod = currentAmount.indexOf('.')
         if (hasPeriod < 1) {
-          if (Number(amount) === 0 && Number(key) > 0) {
-            amount = key
-            tempAmountFormatted = key
-          } else {
-            // Check amount if still zero
-            if (Number(amount) === 0 && Number(amount) === Number(key)) {
-              amount = 0
-              tempAmountFormatted = 0
+          if (Number(currentAmount) === 0) {
+            if (Number(key) > 0) {
+              currentAmount = key
+            } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
+              currentAmount = 0
             } else {
-              amount += key.toString()
-              tempAmountFormatted += key.toString()
+              currentAmount += key.toString()
             }
+          } else {
+            currentAmount += key.toString()
           }
         } else {
-          amount += key !== '.' ? key.toString() : ''
-          tempAmountFormatted += key !== '.' ? key.toString() : ''
+          currentAmount += key !== '.' ? key.toString() : ''
         }
       }
+
       // Set the new amount
       if (this.setAmountInFiat) {
-        this.sendAmountInFiat = amount
+        currentInputExtras.sendAmountInFiat = currentAmount
+        const converted = this.convertFiatToSelectedAsset(currentAmount)
+        currentRecipient.amount = converted
+        currentInputExtras.amountFormatted = this.customNumberFormatting(
+          getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
+        )
       } else {
-        this.sendData.amount = convertToBCH(this.selectedDenomination, amount)
-        this.amountFormatted = tempAmountFormatted
+        currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
+        currentInputExtras.amountFormatted = currentAmount
       }
     },
     makeKeyAction (action) {
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex] ?? ''
+
       if (action === 'backspace') {
         // Backspace
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = String(this.sendAmountInFiat).slice(0, -1)
+          currentInputExtras.sendAmountInFiat = String(currentInputExtras.sendAmountInFiat).slice(0, -1)
         } else {
-          this.sendData.amount = String(this.sendData.amount).slice(0, -1)
-          this.amountFormatted = String(this.amountFormatted).slice(0, -1)
+          currentRecipient.amount = String(currentRecipient.amount).slice(0, -1)
+          currentInputExtras.amountFormatted = String(currentInputExtras.amountFormatted).slice(0, -1)
         }
       } else if (action === 'delete') {
         // Delete
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = ''
+          currentInputExtras.sendAmountInFiat = ''
         } else {
-          this.sendData.amount = ''
-          this.amountFormatted = ''
+          currentRecipient.amount = ''
+          currentInputExtras.amountFormatted = ''
         }
       } else {
         // Enabled submit slider
-        this.sliderStatus = true
+        this.sliderStatus = !currentInputExtras.balanceExceeded
+        this.customKeyboardState = 'dismiss'
+        this.adjustWalletBalance()
       }
     },
     slideToSubmit ({ reset }) {
@@ -954,33 +979,54 @@ export default {
       }
     },
     async setMaximumSendAmount () {
-      this.setMax = true
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      currentInputExtras.setMax = true
+
       if (this.asset.id === 'bch') {
         if (this.isSep20) {
           this.computingMax = true
           const spendable = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
-            this.sendData.recipient
+            this.sendDataMultiple[0].recipient
           )
-          this.sendData.amount = spendable
+          currentRecipient.amount = spendable
           this.computingMax = false
           if (spendable < 0) {
-            this.sendErrors.push('Not enough balance to cover the gas fee')
+            this.$q.notify({
+              type: 'negative',
+              color: 'red-4',
+              timeout: 3000,
+              message: this.$t('NotEnoughForGasFee')
+            })
           }
         } else {
-          this.amountFormatted = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
-          this.sendData.amount = this.asset.spendable
+          const spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+          currentInputExtras.amountFormatted = spendableAsset
+          currentRecipient.amount = this.asset.spendable
         }
         if (this.setAmountInFiat) {
-          this.sendAmountInFiat = this.convertToFiatAmount(this.asset.spendable)
+          const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
+          currentInputExtras.sendAmountInFiat = convertedFiat
         }
       } else {
         if (this.asset.id.startsWith('ct/')) {
-          this.sendData.amount = this.asset.balance / (10 ** this.asset.decimals)
+          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
         } else {
-          this.sendData.amount = this.asset.balance
+          currentRecipient.amount = this.asset.balance
         }
+        currentInputExtras.amountFormatted = currentRecipient.amount
       }
+
+      // remove recipients except for the one where MAX was clicked
+      const remainingRecipient = this.sendDataMultiple.filter((_a, i) => i === this.currentActiveRecipientIndex)
+      const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentActiveRecipientIndex)
+
+      this.sendDataMultiple = remainingRecipient
+      this.inputExtras = remainingInputExtras
+      this.currentActiveRecipientIndex = 0
+      this.expandedItems = { R1: true }
+      this.adjustWalletBalance()
       this.sliderStatus = true
     },
     getBIP21Amount (bip21Uri) {
@@ -992,23 +1038,28 @@ export default {
       return NaN
     },
     checkAddress (address) {
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+
       if (address.indexOf('?') > -1) {
         const amount = this.getBIP21Amount(address)
         address = address.split('?')[0]
 
-        if (!Number.isNaN(amount))
-          this.sendData.amount = amount
+        if (!Number.isNaN(amount)) currentRecipient.amount = amount
 
-        if (amount > 0)
-          this.sliderStatus = true
+        if (amount > 0) this.sliderStatus = true
       }
       const addressValidation = this.validateAddress(address)
       if (addressValidation.valid) {
-        this.sendData.recipientAddress = addressValidation.address
-        this.sendErrors = []
+        currentRecipient.recipientAddress = addressValidation.address
         return true
       } else {
-        this.sendErrors.push(this.$t('InvalidAddress'))
+        this.$q.notify({
+          type: 'negative',
+          color: 'red-4',
+          timeout: 3000,
+          message: this.$t('InvalidAddress')
+        })
+        this.sliderStatus = false
         return false
       }
     },
@@ -1086,172 +1137,335 @@ export default {
 
     async handleSubmit () {
       const vm = this
-      let address = this.sendData.recipientAddress
-      const addressObj = new Address(address)
-      const addressValidation = this.validateAddress(address)
-      const addressIsValid = addressValidation.valid
-      const amountIsValid = this.validateAmount(this.sendData.amount)
-      if (addressIsValid && amountIsValid) {
-        vm.sendData.sending = true
-        if (vm.walletType === sBCHWalletType) {
-          await vm.wallet.sBCH.getOrInitWallet()
-          let promise = null
-          if (sep20IdRegexp.test(vm.assetId)) {
-            const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
-            promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
-          } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
-            const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
-            const tokenId = vm.assetId.match(erc721IdRegexp)[2]
-            promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
-          } else {
-            // change to recipients array
-            promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
-          }
-          if (promise) {
-            promise.then(function (result) {
-              if (result.success) {
-                vm.sendData.txid = result.txid
-                vm.playSound(true)
-                vm.sendData.sending = false
-                vm.sendData.sent = true
-                if (!vm.sendAmountInFiat) {
-                  vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
-                }
+      const toSendData = vm.sendDataMultiple
+      const toSendBCHRecipients = []
+      const toSendSLPRecipients = []
+
+      // check if total amount being sent is greater than current wallet amount
+      const totalAmount = toSendData
+        .map(a => Number(a.amount))
+        .reduce((acc, curr) => acc + curr, 0)
+        .toFixed(8)
+
+      if (totalAmount > vm.asset.balance) {
+        vm.raiseNotifyError(vm.$t('TotalAmountError'))
+        return
+      }
+
+      vm.totalAmountSent = parseFloat(totalAmount)
+
+      if (vm.asset.id === 'bch') {
+        vm.totalFiatAmountSent = vm.inputExtras
+          .map(a => Number(a.sendAmountInFiat))
+          .reduce((acc, curr) => acc + curr, 0)
+          .toFixed(2)
+      }
+
+      let token // bch token
+      toSendData.forEach(async sendData => {
+        const address = sendData.recipientAddress
+        const addressObj = new Address(address)
+        const addressIsValid = this.validateAddress(address).valid
+        const amountIsValid = this.validateAmount(sendData.amount)
+
+        if (addressIsValid && amountIsValid) {
+          vm.sending = true
+          vm.sliderStatus = false
+
+          switch (vm.walletType) {
+            case sBCHWalletType: {
+              await vm.wallet.sBCH.getOrInitWallet()
+              let promise = null
+              if (sep20IdRegexp.test(vm.assetId)) {
+                const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
+                promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
+              } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
+                const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
+                const tokenId = vm.assetId.match(erc721IdRegexp)[2]
+                promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
               } else {
-                if (result.error) {
-                  vm.sendErrors.push(result.error)
-                } else {
-                  vm.sendErrors.push('Unknown error')
-                }
-              }
-            })
-          }
-        } else if (vm.walletType === 'slp') {
-          const tokenId = vm.assetId.split('slp/')[1]
-          const bchWallet = vm.getWallet('bch')
-          const feeFunder = {
-            walletHash: bchWallet.walletHash,
-            mnemonic: vm.wallet.mnemonic,
-            derivationPath: bchWallet.derivationPath
-          }
-          address = addressObj.toSLPAddress()
-          const changeAddresses = {
-            bch: vm.getChangeAddress('bch'),
-            slp: vm.getChangeAddress('slp')
-          }
-          vm.wallet.SLP.sendSlp(vm.sendData.amount, tokenId, this.tokenType, address, feeFunder, changeAddresses).then(function (result) {
-            if (result.success) {
-              vm.sendData.txid = result.txid
-              vm.playSound(true)
-              vm.sendData.sending = false
-              vm.sendData.sent = true
-            } else {
-              if (result.error.indexOf('not enough balance in sender') > -1) {
-                vm.sendErrors.push('Not enough balance to cover the send amount')
-              } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
-                vm.sendErrors.push('Not enough BCH to cover for transaction fee')
-              } else {
-                vm.sendErrors.push(result.error)
-              }
-              vm.sendData.sending = false
-            }
-          })
-        } else if (vm.walletType === 'bch') {
-          address = addressObj.toCashAddress()
-          const tokenId = vm.assetId.split('ct/')[1]
-          const changeAddress = vm.getChangeAddress('bch')
-          let sendPromise
-          if (vm.sendData?.posDevice?.posId >= 0) {
-            sendPromise = vm.wallet.BCH.sendBchToPOS(
-              vm.sendData.amount,address, changeAddress,
-              vm.sendData.posDevice,
-            )
-          } else {
-            if (tokenId) {
-              vm.ctTokenAmount = (vm.commitment && vm.capability) ? 0 : vm.sendData.amount
-              // change to recipients array
-              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(undefined, address, changeAddress, {
-                tokenId: tokenId,
-                commitment: vm.commitment || undefined,
-                capability: vm.capability || undefined
-              }, (vm.ctTokenAmount * (10 ** vm.asset.decimals)))
-            } else {
-              // change to recipients array
-              sendPromise = getWalletByNetwork(vm.wallet, 'bch').sendBch(vm.sendData.amount, address, changeAddress, {
-                tokenId: tokenId,
-                commitment: undefined,
-                capability: undefined
-              }, undefined)
-            }
-          }
-          sendPromise.then(function (result) {
-            vm.sendData.sending = false
-            if (result.success) {
-              vm.sendData.txid = result.txid
-              vm.playSound(true)
-              vm.sendData.sending = false
-              vm.sendData.sent = true
-              if (result.otp) vm.sendData.responseOTP = result.otp
-              if (!vm.sendAmountInFiat) {
-                vm.sendAmountInFiat = vm.convertToFiatAmount(vm.sendData.amount)
+                promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
               }
 
-              if (result?.otp) {
-                vm.$store.commit('paytacapos/saveOTPCache', {
-                  txid: result.txid,
-                  otp: result.otp,
-                  otpTimestamp: result?.otpTimestamp,
-                  rawPaymentUri: vm.sendData?.rawPaymentUri,
+              if (promise) {
+                promise.then(result => vm.promiseResponseHandler(result, vm.walletType))
+              }
+
+              break
+            } case 'slp': {
+              const recipientAddress = addressObj.toSLPAddress()
+
+              toSendSLPRecipients.push({
+                address: recipientAddress,
+                amount: sendData.amount
+              })
+
+              break
+            } case 'bch': {
+              const recipientAddress = addressObj.toCashAddress()
+              const tokenId = vm.assetId.split('ct/')[1]
+
+              if (tokenId) {
+                const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
+                token = {
+                  tokenId: tokenId,
+                  commitment: vm.commitment || undefined,
+                  capability: vm.capability || undefined,
+                  txid: vm.$route.query.txid,
+                  vout: vm.$route.query.vout
+                }
+                toSendBCHRecipients.push({
+                  address: recipientAddress,
+                  amount: sendData.amount,
+                  tokenAmount: tokenAmount * (10 ** vm.asset.decimals) || 0
                 })
-                vm.$store.commit('paytacapos/removeOldPaymentOTPCache')
-              }
-            } else {
-              if (result.error.indexOf('not enough balance in sender') > -1) {
-                vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
-              } else if (result.error.indexOf('has insufficient priority') > -1) {
-                vm.sendErrors.push('Not enough balance to cover the transaction fee')
               } else {
-                vm.sendErrors.push(result.error)
+                toSendBCHRecipients.push({
+                  address: recipientAddress,
+                  amount: sendData.amount,
+                  tokenAmount: undefined
+                })
               }
-            }
-          })
-        } else {
-          try {
-            const w = await window.TestNetWallet.named("mywallet")
-            const { txId } = await w.send([
-              new TokenSendRequest({
-                cashaddr: address,
-                amount: vm.sendData.amount,
-                tokenId: vm.assetId.split('/')[1],
-              }),
-            ])
-            vm.sendData.txid = txId
-            vm.sendData.sent = true
-            vm.playSound(true)
-          } catch (e) {
-            vm.sendErrors.push(e.message)
+
+              break
+            } default:
+              try {
+                const w = await window.TestNetWallet.named('mywallet')
+                const { txId } = await w.send([
+                  // eslint-disable-next-line no-undef
+                  new TokenSendRequest({
+                    cashaddr: address,
+                    amount: vm.sendData.amount,
+                    tokenId: vm.assetId.split('/')[1]
+                  })
+                ])
+                vm.txid = txId
+                vm.sent = true
+                vm.playSound(true)
+              } catch (e) {
+                vm.raiseNotifyError(e.message)
+              }
+              vm.sending = false
+
+              break
           }
-          vm.sendData.sending = false
+        } else {
+          vm.sending = false
+          vm.sliderStatus = true
+
+          if (!addressIsValid) {
+            vm.raiseNotifyError(vm.$t(
+              'InvalidRecipient',
+              { walletType: vm.walletType.toUpperCase() },
+              `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
+            ))
+            throw new Error('Invalid recipient')
+          }
+          if (!amountIsValid) {
+            vm.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
+            throw new Error('Send amount greater than zero')
+          }
+          throw new Error('Error in sending to recipient(s)')
         }
+      })
+
+      if (toSendBCHRecipients.length > 0) {
+        const changeAddress = vm.getChangeAddress('bch')
+        vm.wallet.BCH
+          .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
+          .then(result => vm.promiseResponseHandler(result, vm.walletType))
+      } else if (toSendSLPRecipients.length > 0) {
+        const tokenId = vm.assetId.split('slp/')[1]
+        const bchWallet = vm.getWallet('bch')
+        const feeFunder = {
+          walletHash: bchWallet.walletHash,
+          mnemonic: vm.wallet.mnemonic,
+          derivationPath: bchWallet.derivationPath
+        }
+        const changeAddresses = {
+          bch: vm.getChangeAddress('bch'),
+          slp: vm.getChangeAddress('slp')
+        }
+
+        vm.wallet.SLP
+          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
+          .then(result => vm.promiseResponseHandler(result, vm.walletType))
+      }
+    },
+    promiseResponseHandler (result, walletType) {
+      const vm = this
+
+      if (result.success) {
+        vm.txid = result.txid
+        vm.playSound(true)
+        vm.sending = false
+        vm.sent = true
       } else {
-        vm.sendData.sending = false
-        if (!addressIsValid) {
-          vm.sendErrors.push(`Recipient should be a valid ${vm.walletType.toUpperCase()} address`)
-        }
-        if (!amountIsValid) {
-          vm.sendErrors.push('Send amount should be greater than zero')
+        if (result.error.indexOf('not enough balance in sender') > -1) {
+          if (walletType === 'bch') vm.raiseNotifyError(vm.$t('NotEnoughForBoth'))
+          else if (walletType === 'slp') vm.raiseNotifyError(vm.$t('NotEnoughForSendAmount'))
+        } else if (result.error.indexOf('has insufficient priority') > -1) {
+          vm.raiseNotifyError(vm.$t('NotEnoughForTransactionFee'))
+        } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
+          vm.raiseNotifyError(vm.$t('NotEnoughBchForFee'))
+        } else if (result.error) {
+          vm.raiseNotifyError(result.error)
+        } else {
+          vm.raiseNotifyError(vm.$t('UnknownError'))
         }
       }
     },
+    raiseNotifyError (message) {
+      this.$q.notify({
+        type: 'negative',
+        color: 'red-4',
+        timeout: 3000,
+        message: message
+      })
+    },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
-    },
-    onSelectedDenomination (value) {
-      this.selectedDenomination = value
-      this.amountFormatted = parseFloat(getAssetDenomination(value, this.sendData.amount || 0, true))
+      const offlineNotif = this.$q.notify({
+        type: 'negative',
+        icon: 'signal_wifi_off',
+        iconColor: 'primary',
+        color: 'red-4',
+        timeout: 0,
+        message: this.$t('SendPageOffline')
+      })
+
+      if (online) {
+        offlineNotif()
+      }
     },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
+    },
+    addAnotherRecipient () {
+      const recipientsLength = this.sendDataMultiple.length
+
+      if (recipientsLength < 5) {
+        this.sendDataMultiple.push({
+          amount: 0,
+          fixedAmount: false,
+          recipientAddress: '',
+          rawPaymentUri: '', // for scanning qr data
+          responseOTP: '',
+          paymentAckMemo: '',
+          fixedRecipientAddress: false
+        })
+        this.inputExtras.push({
+          amountFormatted: 0,
+          sendAmountInFiat: 0,
+          balanceExceeded: false,
+          scannedRecipientAddress: false,
+          setMax: false,
+          emptyRecipient: true,
+          selectedDenomination: 'BCH',
+          isBip21: false
+        })
+        for (let i = 1; i <= recipientsLength; i++) {
+          this.expandedItems[`R${i}`] = false
+        }
+        this.sliderStatus = false
+      } else {
+        this.$q.notify({
+          type: 'negative',
+          color: 'red-4',
+          timeout: 3000,
+          message: this.$t('CannotAddRecipient')
+        })
+      }
+    },
+    removeLastRecipient () {
+      console.log(this.expandedItems)
+      this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
+      delete this.expandedItems[`R${this.sendDataMultiple.length}`]
+      this.sendDataMultiple.pop()
+      this.inputExtras.pop()
+      this.sliderStatus = true
+    },
+    onInputFocus (value) {
+      this.currentActiveRecipientIndex = value
+    },
+    onQRScannerClick (value) {
+      this.showQrScanner = value
+    },
+    onSetAmountToFiatClick () {
+      this.setAmountInFiat = true
+      this.sliderStatus = false
+      this.sendDataMultiple.forEach((data) => {
+        data.amount = 0
+      })
+      this.inputExtras.forEach((input) => {
+        input.amountFormatted = 0
+      })
+    },
+    onBIP21Amount (value) {
+      const amount = this.getBIP21Amount(value)
+      if (!Number.isNaN(amount)) {
+        const currentSendData = this.sendDataMultiple[this.currentActiveRecipientIndex]
+        const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+
+        currentSendData.amount = amount
+        currentSendData.fixedAmount = true
+        currentSendData.recipientAddress = value.split('?')[0]
+        currentSendData.fixedRecipientAddress = true
+
+        currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
+          this.denomination, amount
+        ))
+        currentInputExtras.isBip21 = true
+        currentInputExtras.emptyRecipient = false
+        this.sliderStatus = true
+
+        if (this.setAmountInFiat) {
+          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
+        }
+
+        return true
+      }
+
+      if (value && this.isNFT) {
+        this.sliderStatus = true
+      }
+
+      return false
+    },
+    generateKeys (index) {
+      const keys = []
+      keys.push(...Object.entries(this.sendDataMultiple[index]))
+      keys.push(...Object.entries(this.inputExtras[index]))
+      return keys
+    },
+    adjustWalletBalance () {
+      const isToken = this.asset.id.startsWith('ct/')
+      const tokenDenominator = 10 ** this.asset.decimals
+
+      const totalAmount = this.sendDataMultiple
+        .map(a => Number(a.amount))
+        .reduce((acc, curr) => acc + curr, 0)
+        .toFixed(8)
+      const walletBalance = isToken ? this.asset.balance / tokenDenominator : this.asset.balance
+
+      this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
+      // for tokens ('ct/'), convert back to original decimals
+      if (isToken) this.currentWalletBalance *= tokenDenominator
+    },
+    onBalanceExceeded (value) {
+      try {
+        this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+      } catch {}
+    },
+    onRecipientInput (value) {
+      this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value === ''
+    },
+    onEmptyRecipient (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
+    },
+    onSelectedDenomination (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
     }
   },
 
@@ -1294,7 +1508,8 @@ export default {
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
-    this.selectedDenomination = this.denomination
+    vm.selectedDenomination = vm.denomination
+    vm.currentWalletBalance = vm.asset.balance
   },
 
   unmounted () {
@@ -1306,16 +1521,16 @@ export default {
   created () {
     const vm = this
     if (vm.assetId && vm.amount && vm.recipient) {
-      vm.sendData.amount = vm.amount
-      vm.sendData.fixedAmount = vm.fixed
-      vm.sendData.recipientAddress = vm.recipient
-      vm.sendData.fixedRecipientAddress = true
+      vm.sendDataMultiple[0].amount = vm.amount
+      vm.sendDataMultiple[0].fixedAmount = vm.fixed
+      vm.sendDataMultiple[0].recipientAddress = vm.recipient
+      vm.sendDataMultiple[0].fixedRecipientAddress = true
       vm.scanner.show = false
       vm.sliderStatus = true
     }
 
     if (this.isNFT) {
-      vm.sendData.amount = 1
+      vm.sendDataMultiple[0].amount = 0.00001
     }
   }
 }
@@ -1518,5 +1733,42 @@ export default {
   }
   .pt-invisible {
     opacity: 0;
+  }
+  .recipient-input-qr {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+
+    .recipient-input {
+      flex: 1;
+      margin-right: 10px;
+    }
+  }
+  .add-recipient-button {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px
+  }
+  .q-expansion-item-recipient {
+    font-size: 18px;
+
+    &.light {
+      color: black
+    }
+  }
+  .send-form-container {
+    max-height: 65vh;
+    overflow-y: scroll;
+
+    &.sent {
+      max-height: 80vh;
+    }
+
+    .send-form {
+      font-size: 26px !important;
+      margin-top: -100px;
+      padding-top: 20px;
+    }
   }
 </style>
