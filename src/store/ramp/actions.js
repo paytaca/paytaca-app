@@ -13,12 +13,11 @@ export async function loadAuthHeaders (context) {
   context.commit('updateAuthHeaders', headers)
 }
 
-export async function loadWallet (context) {
+export function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
-  const { connectedAddressIndex } = Store.getters['global/getWallet']('bch')
   const walletInfo = {
     walletHash: wallet.walletHash,
-    connectedAddressIndex: connectedAddressIndex,
+    connectedAddressIndex: wallet.connectedAddressIndex,
     address: Store.getters['global/getAddress']('bch')
   }
   context.commit('updateWallet', walletInfo)

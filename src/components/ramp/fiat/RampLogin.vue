@@ -31,7 +31,7 @@
             dense
             :placeholder="register ? 'Enter nickname' : ''"
             v-model="usernickname"
-            :loading="loggingIn || (!usernickname && !register)"
+            :loading="isLoading || loggingIn || (!usernickname && !register)"
             class="row q-mx-md">
             <template v-slot:append>
               <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
@@ -69,6 +69,7 @@ import { rampWallet } from 'src/wallet/ramp/wallet'
 import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
 import { updatePeerChatIdentityId, fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
 import { chatBackend, updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
+import { backend } from 'src/wallet/ramp/backend'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
@@ -109,33 +110,41 @@ export default {
     }
   },
   mounted () {
-    // check if has Biometric
-    this.checkBiometric()
     this.dialog = true
     if (this.error) {
       this.errorMessage = this.error
     }
+    const walletInfo = this.loadWallet()
+    console.log('walletInfo: ', walletInfo)
     this.getProfile()
   },
   methods: {
-    async loadChatIdentity () {
-      const vm = this
-      const data = {
-        rampWallet: rampWallet,
-        ref: rampWallet.walletHash,
-        name: vm.user.name
-      }
-      updateSignerData()
-        .then(fetchChatIdentity(data.ref)).catch(() => { return null })
-        .then(identity => {
-          if (!identity) {
-            vm.buildChatIdentityPayload(data)
-              .then(payload => createChatIdentity(payload))
-              .then(identity => updatePeerChatIdentityId(identity.id))
-          }
-        })
-        .then(updateOrCreateKeypair())
-        .catch(error => { console.error(error) })
+    loadChatIdentity () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const data = {
+          rampWallet: rampWallet,
+          ref: vm.wallet.walletHash,
+          name: vm.user.name
+        }
+        updateSignerData()
+          .then(
+            fetchChatIdentity(data.ref)
+              .then(identity => {
+                if (!identity) {
+                  vm.buildChatIdentityPayload(data)
+                    .then(payload => createChatIdentity(payload))
+                    .then(identity => updatePeerChatIdentityId(identity.id))
+                }
+              })
+          )
+          .then(updateOrCreateKeypair())
+          .finally(resolve())
+          .catch(error => {
+            console.error(error)
+            reject(error)
+          })
+      })
     },
     async buildChatIdentityPayload (data) {
       const wallet = data.rampWallet
@@ -152,45 +161,58 @@ export default {
       }
       return payload
     },
+    loadWallet () {
+      const vm = this
+      const wallet = vm.$store.getters['global/getWallet']('bch')
+      const walletInfo = {
+        walletHash: wallet.walletHash,
+        connectedAddressIndex: wallet.connectedAddressIndex,
+        address: vm.$store.getters['global/getAddress']('bch')
+      }
+      vm.$store.commit('ramp/updateWallet', walletInfo)
+      vm.wallet = walletInfo
+      return walletInfo
+    },
     getProfile () {
-      this.$store.dispatch('ramp/loadWallet')
+      const vm = this
+      backend.get('/ramp-p2p/user')
+        .then(response => {
+          console.log('getProfile: ', response.data)
+          if (response.data && response.data.user) {
+            vm.isArbiter = response.data.is_arbiter
+            vm.user = response.data.user
+            vm.usernickname = vm.user?.name
+            if (vm.user) {
+              this.$store.commit('ramp/updateUser', vm.user)
+              this.$store.dispatch('ramp/loadAuthHeaders')
+            }
+          } else {
+            vm.register = true
+          }
+        })
         .then(() => {
-          this.wallet = this.$store.getters['ramp/wallet']
-          const url = `${this.apiURL}/ramp-p2p/user`
-          this.$axios.get(url, { headers: { 'wallet-hash': this.wallet.walletHash } })
-            .then(response => {
-              if (response.data && response.data.user) {
-                this.isArbiter = response.data.is_arbiter
-                this.user = response.data.user
-                this.usernickname = this.user.name
-                if (this.user) {
-                  this.$store.commit('ramp/updateUser', this.user)
-                  this.$store.dispatch('ramp/loadAuthHeaders')
-                }
+          // check if has Biometric
+          vm.checkBiometric()
+            .then(hasBiometric => {
+              if (hasBiometric) {
+                vm.verifyBiometric()
               } else {
-                this.register = true
+                vm.showSecurityDialog()
               }
             })
-            .catch(error => {
-              console.error(error)
-              this.errorMessage = String(error)
-              if (error.response) {
-                console.log('error.response:', JSON.stringify(error.response))
-                console.error(error.response)
-                this.errorMessage = error.response.data
-              }
-            })
-            .finally(() => {
-              this.isLoading = false
-              if (this.user) {
-                if (this.hasBiometric) {
-                  this.verifyBiometric()
-                } else {
-                  this.showSecurityDialog()
-                }
-              }
-              this.loadChatIdentity()
-            })
+            .then(vm.loadChatIdentity())
+          vm.isLoading = false
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 401) {
+              vm.errorMessage = `${error.response.status}:  Unauthorized`
+            }
+          } else {
+            console.error(error)
+          }
+          vm.isLoading = false
         })
     },
     login () {
@@ -216,7 +238,7 @@ export default {
                       .then((response) => {
                         // save token as cookie and set to expire 1h later
                         document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
-                        this.loadChatIdentity()
+                        // this.loadChatIdentity()
                         this.user = response.data.user
                         if (this.user) {
                           this.$store.commit('ramp/updateUser', this.user)
@@ -292,13 +314,17 @@ export default {
       }
     },
     checkBiometric () {
-      NativeBiometric.isAvailable()
-        .then(() => {
-          this.hasBiometric = true
-        })
-        .catch((error) => {
-          console.error('Implementation error: ', error)
-        })
+      return new Promise((resolve) => {
+        NativeBiometric.isAvailable()
+          .then(() => {
+            this.hasBiometric = true
+            resolve(true)
+          })
+          .catch((error) => {
+            console.error('Implementation error: ', error)
+            resolve(false)
+          })
+      })
     },
     onLoginClick (type) {
       if (this.securityDialogUp) return

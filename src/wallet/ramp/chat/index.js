@@ -31,9 +31,9 @@ export async function createChatIdentity (payload) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('New chat identity:', error.response)
+          console.error('Failed to create new chat identity:', error.response)
         } else {
-          console.error('New chat identity:', error)
+          console.error('Failed to create new chat identity:', error)
         }
         reject(error)
       })
@@ -45,7 +45,7 @@ export async function fetchChatIdentity (ref) {
     chatBackend.get(`chat/identities/?ref=${ref}`)
       .then(response => {
         let identity = null
-        if (response.results.length > 0) {
+        if (response.data?.results?.length > 0) {
           identity = response.data?.results[0]
           console.log('Chat identity:', identity)
         }
@@ -53,9 +53,9 @@ export async function fetchChatIdentity (ref) {
       })
       .catch(error => {
         if (error.response) {
-          console.error(error.response)
+          console.error('Failed to fetch chat identity:', error.response)
         } else {
-          console.error(error)
+          console.error('Failed to fetch chat identity:', error)
         }
         reject(error)
       })
@@ -63,18 +63,17 @@ export async function fetchChatIdentity (ref) {
 }
 
 export async function updateChatIdentity (payload) {
-  console.log('Updating chat identity')
   return new Promise((resolve, reject) => {
     chatBackend.post('chat/identities/', payload, { forceSign: true })
       .then(response => {
-        console.log('updated chat identity:', response.data)
+        console.log('Updated chat identity:', response.data)
         resolve(response)
       })
       .catch(error => {
         if (error.response) {
-          console.error(error.response)
+          console.error('Failed to update chat identity:', error.response)
         } else {
-          console.error(error)
+          console.error('Failed to update chat identity:', error)
         }
         reject(error)
       })

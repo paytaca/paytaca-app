@@ -15,7 +15,6 @@ backend.interceptors.request.use(async (config) => {
     config.headers['wallet-hash'] = rampWallet.walletHash
     config.headers.Authorization = `Token ${getCookie('token')}`
   }
-  console.log('config:', config.headers)
   return config
 })
 
