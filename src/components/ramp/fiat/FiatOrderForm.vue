@@ -220,7 +220,8 @@ import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { createChatSession, checkChatSessionAdmin } from 'src/wallet/ramp/chat'
+import { createChatSession, addChatMembers } from 'src/wallet/ramp/chat'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -335,30 +336,52 @@ export default {
         const temp = this.paymentMethods.map(p => p.id)
         body.payment_methods = temp
       }
-      try {
-        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: vm.authHeaders })
-        console.log('response:', response)
-        vm.order = response.data.order
-        vm.state = 'order-process'
-        vm.createGroupChat(vm.order.id)
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
-    },
-    createGroupChat (orderId) {
-      createChatSession(orderId)
+      backend.post('/ramp-p2p/order/', body, { authorize: true })
         .then(response => {
-          checkChatSessionAdmin(response.data.ref)
-            .then(response => {
-              console.log(response)
-              // if (response.data.is_admin) {
-
-              // }
+          console.log(response)
+          vm.order = response.data.order
+          vm.state = 'order-process'
+          return vm.order.id
+        })
+        .then(orderId => {
+          vm.fetchOrderMembers(orderId)
+            .then(members => {
+              vm.createGroupChat(vm.order.id, members)
             })
         })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
+        })
+    },
+    fetchOrderMembers (orderId) {
+      return new Promise((resolve, reject) => {
+        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+          .then(response => {
+            console.log(response)
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
+    createGroupChat (orderId, members) {
+      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+      createChatSession(orderId)
+        .then(chatRef => addChatMembers(chatRef, chatMembers))
+        .catch(console.error)
     },
     formattedCurrency (value, currency = null) {
       if (currency) {

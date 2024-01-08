@@ -81,23 +81,21 @@ export async function updateChatIdentity (payload) {
 }
 
 export async function createChatSession (orderId) {
-  console.log('Creating chat session')
-  const payload = {
-    ref: `order-${orderId}-chat`,
-    title: `Order #${orderId} chat`,
-    order_id: orderId
-  }
   return new Promise((resolve, reject) => {
+    const payload = {
+      ref: `ramp-order-${orderId}-chat`,
+      title: `Ramp Order #${orderId} chat`
+    }
     chatBackend.post('chat/sessions/', payload, { forceSign: true })
       .then(response => {
-        console.log('created chat session:', response.data)
-        resolve(response)
+        console.log('Created chat session:', response.data)
+        resolve(response.data.ref)
       })
       .catch(error => {
         if (error.response) {
-          console.error(error.response)
+          console.error('Failed to create chat session:', error.response)
         } else {
-          console.error(error)
+          console.error('Failed to create chat session:', error)
         }
         reject(error)
       })
@@ -108,19 +106,42 @@ export async function checkChatSessionAdmin (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/chat_member`, { forceSign: true })
       .then(response => {
-        console.log('Checking chat session admin:', response.data)
+        console.log('Check chat admin:', response.data)
         resolve(response)
       })
       .catch(error => {
         if (error.response) {
-          console.error('Checking chat session admin:', error.response)
+          console.error('Failed to check chat admin:', error.response)
         } else {
-          console.error('Checking chat session admin:', error)
+          console.error('Failed to check chat admin:', error)
         }
         reject(error)
       })
   })
 }
+
+export async function addChatMembers (chatRef, members) {
+  return new Promise((resolve, reject) => {
+    const body = {
+      chat_session_ref: chatRef,
+      members: members
+    }
+    chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
+      .then(response => {
+        console.log('Added chat members:', response)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to add chat members:', error.response)
+        } else {
+          console.error('Failed to add chat members:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
 
 async function getKeypairSeed () {
   const wallet = await loadWallet('BCH', Store.getters['global/getWalletIndex'])
