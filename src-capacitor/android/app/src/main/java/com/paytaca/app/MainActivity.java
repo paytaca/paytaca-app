@@ -13,11 +13,13 @@ import android.os.Bundle;
 
 import com.google.firebase.FirebaseApp;
 import com.getcapacitor.BridgeActivity;
+import com.paytaca.plugins.PushNotificationSettingsPlugin;
 
 public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    registerPlugin(PushNotificationSettingsPlugin.class);
 
     // Initializes the Bridge
     // Removed to enable auto registration of plugins

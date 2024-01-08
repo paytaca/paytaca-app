@@ -182,7 +182,7 @@ export default {
           await $store.dispatch('marketplace/refetchCustomerData')
             .then(() => {
               const customerId = $store.getters['marketplace/customer']?.id
-              marketplacePushNotificationsManager.subscribe(customerId)
+              subscribePushNotifications(customerId)
             })
 
           const signerData = await getSignerData()
@@ -206,6 +206,32 @@ export default {
           loadingApp.value = false
           loadAppPromise.value = null
         })
+    }
+
+    async function subscribePushNotifications(id) {
+      console.log('window.promptedPushNotificationsSettings', window.promptedPushNotificationsSettings)
+      if (!window.promptedPushNotificationsSettings) {
+        const promptResponse = await promptEnablePushNotificationSetting(
+          'Enable notifications to receive updates'
+        ).catch(console.error)
+        window.promptedPushNotificationsSettings = promptResponse.prompted
+        console.log('promptResponse', promptResponse)
+      }
+      return marketplacePushNotificationsManager.subscribe(id)
+    }
+
+    async function promptEnablePushNotificationSetting(message='') {
+      const response = { isPushNotificationEnabled: null, prompted: false }
+      const pushNotificationsStatusResponse = await marketplacePushNotificationsManager.isPushNotificationEnabled()
+      response.isPushNotificationEnabled = pushNotificationsStatusResponse?.isEnabled
+      if (response.isPushNotificationEnabled === false) {
+        const openSettingsResponse = await marketplacePushNotificationsManager.openPushNotificationsSettingsPrompt({
+          message: message || undefined,
+        })
+        response.isPushNotificationEnabled = openSettingsResponse?.isEnabled
+        response.prompted = true
+      }
+      return response
     }
 
     onMounted(() => setTimeout(async () => {
