@@ -515,24 +515,39 @@ export default {
     let langsFromIP = 'en-us'
     const apiKey = process.env.IPGEO_API_KEY
     const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`
-    await this.$axios.get(url).then(response => {
-      if (response.data?.country_name) {
+    await this.$axios
+      .get(url)
+      .then(response => {
+        if (response.data?.country_name) {
+          countryFromIP = {
+            name: response.data?.country_name,
+            code: response.data?.country_code2
+          }
+        }
+        if (response.data?.currency.code) {
+          currencyFromIP = {
+            symbol: response.data?.currency.code,
+            name: response.data?.currency?.name
+          }
+        }
+        if (response.data?.languages) {
+          langsFromIP = response.data?.languages?.toLowerCase().split(',')
+        }
+      })
+      .catch((error) => {
+        console.error(error)
+        // use default values
         countryFromIP = {
-          name: response.data?.country_name,
-          code: response.data?.country_code2
+          name: 'United States',
+          code: 'US'
         }
-      }
-      if (response.data?.currency.code) {
         currencyFromIP = {
-          symbol: response.data?.currency.code,
-          name: response.data?.currency?.name
+          symbol: 'USD',
+          name: 'United States Dollar'
         }
-      }
-      if (response.data?.languages) {
-        langsFromIP = response.data?.languages?.toLowerCase().split(',')
-      }
-    })
-    
+        langsFromIP = ['en-us']
+      })
+
     setTimeout(function () {
       // set country
       vm.$store.commit('global/setCountry', countryFromIP)
