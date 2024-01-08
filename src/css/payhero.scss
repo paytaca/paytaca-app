@@ -193,7 +193,7 @@ body.theme-payhero {
       background: $wallet_card !important;
     }
 
-    &.info-banner {
+    &.info-banner { // remove
       background: $bg_info_banner !important;
     }
   }
@@ -225,12 +225,13 @@ body.theme-payhero {
     }
   }
 
-  .pt-dialog {
+  .pt-card-2 {
     &.dark {
-      background: $wallet_card;
+      background: $bg_info_banner;
     }
+    
     &.light {
-      background: #ECF3F3
+      background-color: white;
     }
   }
 
@@ -255,6 +256,15 @@ body.theme-payhero {
 
     &.light {
       color: black;
+    }
+  }
+
+  .price-chart-card {
+    &.dark {
+      background: $wallet_card;
+    }
+    &.light {
+      background: #ECF3F3
     }
   }
 
@@ -339,14 +349,6 @@ body.theme-payhero {
     .footer-icon-btn {
       color: $transactions-text;
       font-weight: 300;
-    }
-  }
-
-  .price-chart {
-    background: #212f3d !important;
-
-    &.light {
-      background: #f9f8ff !important;
     }
   }
 

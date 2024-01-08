@@ -111,12 +111,13 @@ body.theme-default {
     }
   }
 
-  .pt-dialog {
+  .pt-card-2 {
     &.dark {
       background: #273746;
     }
+
     &.light {
-      background: #ECF3F3
+      background-color: white;
     }
   }
 
@@ -135,6 +136,15 @@ body.theme-default {
 
     &.light {
       color: black;
+    }
+  }
+
+  .price-chart-card {
+    &.dark {
+      background: #273746;
+    }
+    &.light {
+      background: #ECF3F3
     }
   }
 

@@ -6,7 +6,7 @@
       </div>
       <q-icon v-if="contract?.cancelled?.at" name="block" color="red" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
             Contract was cancelled
             <template v-if="contract?.cancelled?.by">
               by {{ contract?.cancelled?.by }}
@@ -21,7 +21,7 @@
 
       <q-icon v-if="matured || settled" name="handshake" :color="settled ? 'green': 'amber'" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
             <template v-if="settled">
               Contract has been settled.
               <div v-if="settlementMetadata.settlementTimestamp > 0" class="text-grey">
@@ -35,7 +35,7 @@
 
       <q-icon :name="funding === 'complete' ? 'credit_score': 'credit_card'" :color="fundingIconColor" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
             {{ fundingIconTooltip }}
           </div>
         </q-popup-proxy>
@@ -127,6 +127,7 @@ import { formatUnits, formatDate, ellipsisText, parseSettlementMetadata } from '
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({ contract: Object })
 const $store = useStore()

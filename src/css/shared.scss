@@ -87,3 +87,11 @@ $font-family_1: "Rubik", sans-serif;
 .close-button {
   color: $close_button !important;
 }
+
+.price-chart {
+  background: #212f3d !important;
+
+  &.light {
+    background: #f9f8ff !important;
+  }
+}

@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialog" full-width seamless>
     <q-card
-      class="br-15 pt-dialog text-bow"
+      class="br-15 price-chart-card text-bow"
       :class="getDarkModeClass(darkMode)"
       style="padding-bottom: 10px"
     >
@@ -34,11 +34,8 @@
             <q-icon size="sm" :name="ishigher ? 'mdi-menu-up':'mdi-menu-down'"/><b>{{ percentage }} %</b>
           </span>
         </div>
-        <q-card
-          class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 price-chart"
-          :class="getDarkModeClass(darkMode, 'pt-dark-card-2', '')"
-        >
-          <div id="chart-container" >
+        <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 price-chart" :class="getDarkModeClass(darkMode)">
+          <div id="chart-container">
             <canvas ref="chart"></canvas>
           </div>
         </q-card>

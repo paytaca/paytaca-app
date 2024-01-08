@@ -28,8 +28,8 @@
     </q-tabs>
 
     <q-card
-      class="br-15 q-mx-md q-mb-md q-mt-sm pt-card"
-      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+      class="br-15 q-mx-md q-mb-md q-mt-sm pt-card text-bow"
+      :class="getDarkModeClass(darkMode)"
       style="transition: height 0.5s"
     >
       <template v-if="selectedAccountType === 'hedge'">
@@ -57,7 +57,11 @@
                           name="help"
                         >
                           <q-popup-proxy :breakpoint="0">
-                            <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption" style="word-break:break-all;">
+                            <div
+                              style="word-break:break-all;"
+                              class="q-px-md q-py-sm text-caption pt-label pt-card"
+                              :class="getDarkModeClass(darkMode)"
+                            >
                               <div class="text-subtitle1">{{ $t('UnknownAsset') }}</div>
                               {{ $t('OraclePubkey') }}: {{ summary.oraclePubkey }}
                             </div>
@@ -141,45 +145,12 @@
             />
           </q-card-section>
         </q-slide-transition>
-        <!-- <q-separator :color="darkMode ? 'white' : 'grey'" inset/>
-        <q-card-section class="text-h5">
-          <div>
-            <div class="text-caption text-grey">Liquidity Allowance</div>
-            <div class="row items-center">
-              <div class="q-space">
-                <q-skeleton v-if="fetchingLongAccount" class="q-mr-sm"/>
-                <div v-else class="row items-center">
-                  {{ (longAccount?.auto_accept_allowance | 0) / 10 ** 8 }} BCH
-                </div>
-              </div>
-              <q-btn
-                v-if="!showAddLiquidityForm"
-                icon="add"
-                padding="xs"
-                round
-                :color="darkMode ? 'grad' : 'brandblue'"
-                @click="showAddLiquidityForm = true"
-              />
-            </div>
-          </div>
-        </q-card-section>
-        <q-slide-transition>
-          <q-card-section v-if="showAddLiquidityForm" style="border-top: 1px solid gray">
-            <AddLiquidityForm
-              :wallet="wallet"
-              :long-account="longAccount"
-              @cancel="showAddLiquidityForm = false"
-              @new-long-account="updateLongAccount"
-              @update-long-account="updateLongAccount"
-            />
-          </q-card-section>
-        </q-slide-transition> -->
       </template>
     </q-card>
 
     <q-card
-      class="br-15 q-mx-md q-mb-md pt-card"
-      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+      class="br-15 q-mx-md q-mb-md pt-card text-bow"
+      :class="getDarkModeClass(darkMode)"
     >
       <template v-if="selectedAccountType === 'hedge'">
         <q-expansion-item ref="offersDrawerRef" :label="$t('HedgeOffers')">
@@ -781,7 +752,7 @@ function onHedgeFormCreate(data) {
     $q.dialog({
       title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position Offer`,
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position offer created`,
-      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
       seamless: true,
       style: 'word-break:break-all;',
     })
@@ -800,7 +771,7 @@ function onHedgeFormCreate(data) {
       message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position created.<br/>Address: ` + contractAddress,
       html: true,
       seamless: true,
-      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
       style: 'word-break:break-all;',
     }).onDismiss(() => {
       fetchHedgeContractsResponse.then(() => {
@@ -1139,7 +1110,7 @@ async function displayContractFromNotification(data={address: '', position: '' }
       message: 'Unable to find contract',
       seamless: true,
       ok: true,
-      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
     })
   }
   return contract

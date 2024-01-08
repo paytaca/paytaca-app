@@ -4,20 +4,21 @@
       <q-card
         ref="card"
         v-if="transaction && transaction.asset"
-        class="pp-text br-15 pt-card"
+        style="padding: 20px 10px 5px 0;"
+        class="br-15 pt-card text-bow"
         :class="getDarkModeClass(darkMode)"
       >
-        <div style="right: 10px; top: 10px; position: absolute; z-index: 100;">
-          <q-btn icon="close" flat round dense v-close-popup class="close-button" :color="darkMode ? 'grey' : ''" />
+        <div class="close-button-container">
+          <q-btn icon="close" flat round dense v-close-popup class="close-button" />
         </div>
-        <div class="text-h6 text-uppercase" :class="darkMode ? 'text-white' : 'pp-text'" style="text-align: center !important;">
+        <div class="text-h6 text-uppercase text-center">
           {{ actionMap[transaction.record_type] }}
         </div>
-        <div class="text-h6" style="text-align: center !important; margin: 10px 0;">
+        <div class="text-h6 text-center" style="margin: 10px 0;">
           <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="button record-type-icon"></q-icon>
           <q-icon v-if="transaction.record_type === 'outgoing'" name="arrow_upward" class="button record-type-icon"></q-icon>
         </div>
-        <q-card-section class="amount q-pb-none">
+        <q-card-section class="amount-section q-pb-none">
           <q-item class="q-px-none">
             <q-item-section side top class="asset-logo">
               <img
@@ -25,11 +26,11 @@
                   ? 'assets/img/theme/payhero/deem-logo.png'
                   : transaction.asset.logo || fallbackAssetLogo
                 "
-                alt="Asset logo"
+                alt=""
                 height="30"
               />
             </q-item-section>
-            <q-item-section :class="darkMode ? 'text-white' : 'pp-text'">
+            <q-item-section>
               <q-item-label>
                 <template v-if="transaction.record_type === 'outgoing'">
                   {{ `${parseAssetDenomination(
@@ -55,7 +56,7 @@
                 </template>
                 <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                   <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
-                    <div class="q-px-md q-py-sm pt-label text-caption" :class="getDarkModeClass(darkMode, '', 'text-black')">
+                    <div class="q-px-md q-py-sm pt-label text-caption" :class="getDarkModeClass(darkMode)">
                       {{ $t('AssetValueNote') }}
                     </div>
                   </q-popup-proxy>
@@ -65,8 +66,7 @@
                 <template v-if="transaction.record_type !== 'outgoing'">
                   <q-badge
                     rounded
-                    class="flex justify-start items-center"
-                    style="margin-top: 5px; background-color: #ecf3f3;"
+                    class="flex justify-start items-center yield-container"
                   >
                     <template v-if="computeYield() > 0">
                       <q-icon
@@ -102,7 +102,7 @@
             <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.tx_timestamp || transaction.date_created))">
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('Date') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                <q-item-label>
                   <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
                   <template v-else>{{ formatDate(transaction.date_created) }}</template>
                 </q-item-label>
@@ -111,7 +111,7 @@
             <q-item v-if="cachedPaymentOTP" clickable v-ripple @click="copyToClipboard(cachedPaymentOTP)">
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('PaymentOTP', {}, 'Payment OTP') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                <q-item-label>
                   {{ cachedPaymentOTP }}
                 </q-item-label>
               </q-item-section>
@@ -125,16 +125,20 @@
             >
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('ReferenceId') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                <q-item-label>
                   {{ transaction.txid.substring(0, 6).toUpperCase() }}
                 </q-item-label>
               </q-item-section>
             </q-item>
-            <q-item clickable v-ripple @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)" style="overflow-wrap: anywhere;">
+            <q-item
+              clickable
+              v-ripple
+              @click="copyToClipboard(isSep20Tx ? transaction.hash : transaction.txid)" style="overflow-wrap: anywhere;"
+            >
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('TransactionId') }}</q-item-label>
-                <q-item-label v-if="isSep20Tx" :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.hash }}</q-item-label>
-                <q-item-label v-else :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.txid }}</q-item-label>
+                <q-item-label v-if="isSep20Tx">{{ transaction.hash }}</q-item-label>
+                <q-item-label v-else>{{ transaction.txid }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item clickable v-ripple v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
@@ -142,14 +146,14 @@
                 <q-item-label class="text-gray" caption>
                   <span>{{ $t('Sender') }}</span>
                 </q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.from }}</q-item-label>
+                <q-item-label>{{ transaction.from }}</q-item-label>
               </q-item-section>
               <q-item-section v-else @click="copyToClipboard(concatenate(transaction.senders))">
                 <q-item-label class="text-gray" caption>
                   <span v-if="transaction.senders.length === 1">{{ $t('Sender') }}</span>
                   <span v-if="transaction.senders.length > 1">{{ $t('Senders') }}</span>
                 </q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ concatenate(transaction.senders) }}</q-item-label>
+                <q-item-label>{{ concatenate(transaction.senders) }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item clickable v-ripple v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
@@ -157,36 +161,36 @@
                 <q-item-label class="text-gray" caption>
                   <span>{{ $t('Recipient') }}</span>
                 </q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ transaction.to }}</q-item-label>
+                <q-item-label>{{ transaction.to }}</q-item-label>
               </q-item-section>
               <q-item-section v-else @click="copyToClipboard(concatenate(transaction.recipients))">
                 <q-item-label class="text-gray" caption>
                   <span v-if="transaction.recipients.length === 1">{{ $t('Recipient') }}</span>
                   <span v-if="transaction.recipients.length > 1">{{ $t('Recipients') }}</span>
                 </q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">{{ concatenate(transaction.recipients) }}</q-item-label>
+                <q-item-label>{{ concatenate(transaction.recipients) }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item>
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('GasFee') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                <q-item-label>
                   {{ getAssetDenomination(
                     denomination === $t('DEEM') ? denominationTabSelected : denomination,
                     transaction.gas) }}
                 </q-item-label>
-                <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
+                <q-item-label v-if="txFeeMarketValue" caption>
                   {{ parseFiatCurrency(txFeeMarketValue, selectedMarketCurrency) }}
                 </q-item-label>
               </q-item-section>
               <q-item-section v-else>
                 <q-item-label class="text-gray" caption>{{ $t('MinerFee') }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-white' : 'pp-text'">
+                <q-item-label>
                   {{ getAssetDenomination(
                     denomination === $t('DEEM') ? denominationTabSelected : denomination,
                     transaction.tx_fee / (10**8)) }}
                 </q-item-label>
-                <q-item-label v-if="txFeeMarketValue" :class="darkMode ? 'text-white' : 'pp-text'" caption>
+                <q-item-label v-if="txFeeMarketValue" caption>
                   {{ parseFiatCurrency(txFeeMarketValue, selectedMarketCurrency) }}
                 </q-item-label>
               </q-item-section>
@@ -194,16 +198,9 @@
             <q-item v-if="anyhedgeContracts?.length">
               <q-item-section>
                 <q-item-label class="text-gray" caption>AnyHedge</q-item-label>
-                <q-item-label
-                  v-for="(contractInfo, index) in anyhedgeContracts"
-                  :key="index"
-                  :class="darkMode ? 'text-white' : 'pp-text'"
-                >
+                <q-item-label v-for="(contractInfo, index) in anyhedgeContracts" :key="index">
                   <q-popup-proxy :breakpoint="0">
-                    <div
-                      class="q-px-sm q-py-xs text-caption pt-label"
-                      :class="getDarkModeClass(darkMode, '', 'text-black')"
-                    >
+                    <div class="q-px-sm q-py-xs text-caption pt-label" :class="getDarkModeClass(darkMode)">
                       {{ contractInfo.label }}
                     </div>
                   </q-popup-proxy>
@@ -423,7 +420,7 @@ export default {
         ok: false,
         seamless: true,
         progress: true,
-        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
       anyhedgeBackend.get(`anyhedge/hedge-positions/${contractAddress}/`)
         .then(async (response) => {
@@ -463,41 +460,39 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  .pt-card{
-    padding: 20px 10px 5px 0;
-  }
-  .amount {
-    /* height: 50px; */
-    font-size: 20px;
-    margin-left: 16px;
-  }
-  .text-gray {
-    color: gray;
-  }
-  .amount-label {
-    position: relative;
-    margin-top: -38px;
-    margin-left: 35px;
-  }
-  .q-dialog__backdrop {
-    background: black;
+  .close-button-container {
+    right: 10px;
+    top: 10px;
+    position: absolute;
+    z-index: 100;
   }
   .record-type-icon {
     font-size: 30px;
     border-radius: 20px;
   }
-  .asset-logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .amount-section {
+    font-size: 20px;
+    margin-left: 16px;
+    .asset-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .yield-container {
+      margin-top: 5px;
+      background-color: #ecf3f3;
+      .yield {
+        padding-right: 5px;
+        &.positive {
+          color: $green-5;
+        }
+        &.negative {
+          color: $red-5;
+        }
+      }
+    }
   }
-  .yield {
-    padding-right: 5px;
-    &.positive {
-      color: $green-5;
-    }
-    &.negative {
-      color: $red-5;
-    }
+  .text-gray {
+    color: gray;
   }
 </style>
