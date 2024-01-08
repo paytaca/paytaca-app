@@ -181,7 +181,6 @@ export default {
               }
             })
             .finally(() => {
-              this.isLoading = false
               if (this.user) {
                 if (this.hasBiometric) {
                   this.verifyBiometric()
@@ -189,6 +188,11 @@ export default {
                   this.showSecurityDialog()
                 }
               }
+
+              // added delay to accomodate security dialog animation
+              setTimeout(() => {
+                this.isLoading = false
+              }, 1500)
               this.loadChatIdentity()
             })
         })
@@ -241,6 +245,7 @@ export default {
       }
     },
     createRampUser () {
+      this.isLoading = true
       const timestamp = Date.now()
       const url = `${this.apiURL}/ramp-p2p/peer/create`
       document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
