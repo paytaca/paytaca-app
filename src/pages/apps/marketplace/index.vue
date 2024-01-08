@@ -199,6 +199,7 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
     limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
     distance: '',
+    active: true,
   }
   if (!isNaN(customerCoordinates?.lat) && !isNaN(customerCoordinates.lon)) {
     params.distance = btoa(JSON.stringify({
