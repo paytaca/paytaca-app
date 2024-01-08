@@ -188,24 +188,29 @@ export default {
             }
           } else {
             vm.register = true
+            console.log('register')
           }
         })
-        .then(() => {
-          // check if has Biometric
-          vm.checkBiometric()
-            .then(hasBiometric => {
-              if (hasBiometric) {
-                vm.verifyBiometric()
-              } else {
-                vm.showSecurityDialog()
-              }
-            })
-            .then(vm.loadChatIdentity())
+        .then(async () => {
+          if (!vm.register) {
+            // check if has Biometric
+            await vm.checkBiometric()
+              .then(hasBiometric => {
+                if (hasBiometric) {
+                  vm.verifyBiometric()
+                } else {
+                  vm.showSecurityDialog()
+                }
+              })
+              .then(vm.loadChatIdentity())
 
-          // added delay to accomodate security dialog animation
-          setTimeout(() => {
+            // added delay to accomodate security dialog animation
+            setTimeout(() => {
+              this.isLoading = false
+            }, 1500)
+          } else {
             this.isLoading = false
-          }, 1500)
+          }
         })
         .catch(error => {
           if (error.response) {

@@ -195,6 +195,7 @@
         :adsState="'edit'"
         :transactionType="ad.trade_type"
         :selectedAdId="ad.id"
+        @submit="$emit('back')"
       />
     </div>
     <!-- Process Order -->

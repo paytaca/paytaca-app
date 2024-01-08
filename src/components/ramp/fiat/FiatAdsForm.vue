@@ -240,6 +240,11 @@
         @submit="onSubmit()"
       />
     </div>
+    <div v-if="step > 3">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader/>
+      </div>
+    </div>
   </div>
 </template>
 <script>
@@ -426,7 +431,7 @@ export default {
     },
     async onSubmit () {
       const vm = this
-      vm.loading = true
+      vm.step++
       const url = vm.apiURL + '/ad/'
       const body = vm.transformPostData()
       try {

@@ -531,8 +531,10 @@ export default {
       if (response.data?.languages) {
         langsFromIP = response.data?.languages?.toLowerCase().split(',')
       }
+    }).catch(() => {
+      console.log('geo error here')
     })
-    
+
     setTimeout(function () {
       // set country
       vm.$store.commit('global/setCountry', countryFromIP)
