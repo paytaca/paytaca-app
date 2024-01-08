@@ -220,6 +220,7 @@ import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
+import { createChatSession, checkChatSessionAdmin } from 'src/wallet/ramp/chat'
 
 export default {
   data () {
@@ -258,7 +259,6 @@ export default {
     AddPaymentMethods,
     FiatAdsForm,
     FeedbackDialog,
-    // FiatStoreBuyProcess,
     FiatProcessOrder,
     MiscDialogs
   },
@@ -340,12 +340,25 @@ export default {
         console.log('response:', response)
         vm.order = response.data.order
         vm.state = 'order-process'
+        vm.createGroupChat(vm.order.id)
       } catch (error) {
         console.error(error.response)
         if (error.response && error.response.status === 403) {
           bus.emit('session-expired')
         }
       }
+    },
+    createGroupChat (orderId) {
+      createChatSession(orderId)
+        .then(response => {
+          checkChatSessionAdmin(response.data.ref)
+            .then(response => {
+              console.log(response)
+              // if (response.data.is_admin) {
+
+              // }
+            })
+        })
     },
     formattedCurrency (value, currency = null) {
       if (currency) {

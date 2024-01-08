@@ -73,6 +73,11 @@
         @refresh="$emit('refresh')"
       />
     </div>
+
+    <!-- Chat button -->
+    <div class="fixed" style="right: 35px; bottom: 100px;" v-if="status.value !== 'RLS'">
+      <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
+    </div>
   </div>
 
   <!-- Dialogs -->
@@ -85,6 +90,13 @@
       v-on:submit="handleDialogResponse()"
     />
   </div>
+  <div v-if="openChat">
+    <ChatDialog
+      :openDialog="openChat"
+      :data="order"
+      v-on:close="openChat = false"
+    />
+  </div>
 </template>
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
@@ -94,6 +106,7 @@ import ReceiveOrder from './ReceiveOrder.vue'
 import EscrowTransferProcess from './EscrowTransferProcess.vue'
 import VerifyEscrowTx from './VerifyEscrowTx.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import ChatDialog from './dialogs/ChatDialog.vue'
 import StandByDisplay from './StandByDisplay.vue'
 import PaymentConfirmation from './PaymentConfirmation.vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -114,6 +127,7 @@ export default {
 
       dialogType: '',
       openDialog: false,
+      openChat: false,
 
       ad: null,
       order: null,
@@ -145,7 +159,8 @@ export default {
     MiscDialogs,
     EscrowTransferProcess,
     VerifyEscrowTx,
-    PaymentConfirmation
+    PaymentConfirmation,
+    ChatDialog
   },
   props: {
     orderData: {
@@ -177,13 +192,10 @@ export default {
     },
     isExpired () {
       const vm = this
-
       const now = new Date().getTime()
-      const expiryDate = new Date(vm.order.expiration_date)
-
+      const expiryDate = new Date(vm.order.expires_at)
       const exception = ['Released', 'Canceled']
-
-      if (expiryDate < now && vm.order.expiration_date && !exception.includes(vm.order.status.label)) {
+      if (expiryDate < now && vm.order.expires_at && !exception.includes(vm.order.status.label)) {
         return true
       } else {
         return false
@@ -202,6 +214,8 @@ export default {
           .then(() => {
             vm.isloaded = true
           })
+        vm.getOrderFeedback()
+
         vm.setupWebsocket()
       })
   },
@@ -534,6 +548,8 @@ export default {
       const url = `${vm.apiURL}/order/feedback/peer`
       vm.$axios.get(url, {
         params: {
+          limit: 7,
+          page: 1,
           from_peer: vm.$store.getters['ramp/getUser'].id,
           order_id: vm.order.id
         },
@@ -541,7 +557,8 @@ export default {
       })
         .then(response => {
           if (response.data) {
-            const data = response.data[0]
+            const data = response.data.feedbacks[0]
+            console.log('data: ', data)
             vm.feedback = {
               rating: data.rating,
               comment: data.comment,

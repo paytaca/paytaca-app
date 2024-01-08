@@ -53,7 +53,7 @@ export default {
     this.isloaded = true
   },
   methods: {
-    handleSessionEvent (data) {
+    handleSessionEvent (_data) {
       this.loggedIn = false
       this.errorMessage = 'Session expired'
       document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:01 GMT;'

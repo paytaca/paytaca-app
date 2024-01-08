@@ -12,13 +12,12 @@ const bchjs = new BCHJS()
 export class RampContract {
   /**
    * Creates a new RampContract instance.
-   * @param {Object} publicKeys - An object containing the public keys of the parties involved in the contract.
-   * @param {Object} fees - An object containing the fees associated with the contract.
-   * @param {Object} addresses - An object containing the addresses of the parties involved in the contract.
+   * @param {Object} publicKeys - The public keys of the parties involved in the contract.
+   * @param {Object} fees - The fees associated with the contract.
+   * @param {Object} addresses - The addresses of the parties involved in the contract.
    * @param {boolean} [isChipnet=true] - A boolean indicating whether the contract is on the Chipnet network or not. Defaults to true.
    */
   constructor (publicKeys, fees, addresses, timestamp, isChipnet = true) {
-    this.contractPath = '.src/wallet/ramp/escrow.cash'
     this.timestamp = timestamp
     this.publicKeys = publicKeys
     this.addresses = addresses

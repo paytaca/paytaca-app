@@ -1,43 +1,49 @@
 <template>
     <q-card
-      class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg"
+      class="br-15 q-pt-sm q-mx-md q-mb-lg"
       :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
       style="overflow:hidden;"
       :style="`height: ${minHeight}px;`"
       v-if="state === 'SELECT' && !viewProfile">
       <div class="q-mb-lg q-pb-lg">
         <q-pull-to-refresh @refresh="refreshData">
-        <div class="row no-wrap items-center q-pa-sm q-pt-md">
-          <div>
-            <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
-              {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
+          <div class="row no-wrap items-center q-pa-sm q-pt-md">
+            <!-- currency dropdown -->
+            <div>
+              <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
+                {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
+              </div>
+              <q-menu anchor="bottom left" self="top left" >
+                <q-list class="md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px">
+                  <q-item
+                    v-for="(currency, index) in fiatCurrencies"
+                    :key="index"
+                    clickable
+                    v-close-popup
+                    @click="selectCurrency(index)">
+                    <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
             </div>
-            <q-menu anchor="bottom left" self="top left" >
-              <q-list class="md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px">
-                <q-item
-                  v-for="(currency, index) in fiatCurrencies"
-                  :key="index"
-                  clickable
-                  v-close-popup
-                  @click="selectCurrency(index)">
-                  <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
+            <q-space />
+            <!-- filters -->
+            <div class="q-pr-md">
+              <q-btn unelevated ripple dense size="md" icon="filter_list" @click="openFilter()">
+                <q-badge v-if="!defaultFiltersOn" floating color="red"/>
+              </q-btn>
+            </div>
           </div>
-          <q-space />
-          <div class="q-pr-md">
-            <q-btn unelevated ripple dense size="md" icon="filter_list" @click="openFilter()">
-              <q-badge v-if="!defaultFiltersOn" floating color="red"/>
-            </q-btn>
+          <!-- transaction type tabs -->
+          <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
+            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
+            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
           </div>
-        </div>
-        <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-          <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
-          <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
-        </div>
         </q-pull-to-refresh>
-        <div v-if="!loading" class="q-mt-md">
+        <div class="q-mt-md">
+          <div v-if="loading">
+            <FooterLoading/>
+          </div>
           <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
@@ -112,11 +118,6 @@
             </q-list>
           </div>
         </div>
-        <div v-else>
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader/>
-          </div>
-        </div>
       </div>
     </q-card>
     <!-- Buy/Sell Form Here -->
@@ -144,12 +145,12 @@
 </template>
 <script>
 import FiatOrderForm from './FiatOrderForm.vue'
-import ProgressLoader from '../../ProgressLoader.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
+import FooterLoading from './FooterLoading.vue'
 
 export default {
   setup () {
@@ -161,9 +162,9 @@ export default {
   emits: ['orderCanceled'],
   components: {
     FiatOrderForm,
-    ProgressLoader,
     FiatProfileCard,
-    MiscDialogs
+    MiscDialogs,
+    FooterLoading
   },
   data () {
     return {
@@ -183,8 +184,8 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - this.$q.screen.height * 0.17,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - this.$q.screen.height * 0.17 : this.$q.screen.height - this.$q.screen.height * 0.17,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       defaultFilters: {
         price_order: 'ascending',
         price_types: ['FIXED', 'FLOATING'],
@@ -200,10 +201,7 @@ export default {
       const vm = this
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
-      if (vm.pageNumber === null || vm.totalPages === null) {
-        vm.loading = true
-        vm.resetAndRefetchListings()
-      }
+      vm.resetAndRefetchListings()
       vm.defaultFilters.price_order = val === 'SELL' ? 'ascending' : 'descending'
       vm.updateFilters()
     },

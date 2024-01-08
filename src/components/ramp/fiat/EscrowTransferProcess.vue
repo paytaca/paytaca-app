@@ -113,7 +113,7 @@
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import { getRawWallet } from 'src/wallet/ramp'
+import { rampWallet } from 'src/wallet/ramp/wallet'
 
 export default {
   data () {
@@ -208,7 +208,7 @@ export default {
       const vm = this
       vm.sendingBch = true
       try {
-        const wallet = await getRawWallet(vm.$store.getters['global/getWalletIndex'])
+        const wallet = await rampWallet.raw()
         const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
         console.log('sendBch:', result)
         if (result.success) {

@@ -311,6 +311,153 @@
     </q-card>
   </q-dialog>
 
+  <!-- Filter orders -->
+  <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
+    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="q-mt-md text-center bold-text lg-font-size">Filter Orders</div>
+      <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
+      <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+        <div class="q-pt-md">
+          <div class="sm-font-size bold-text">Ownership</div>
+          <div class="q-pt-xs q-gutter-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!isFilterAllSelected('ownership')" @click="filterSelectAll('ownership')">All</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Owned</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not Owned</q-badge>
+          </div>
+        </div>
+        <div class="q-pt-md">
+          <div class="sm-font-size bold-text">Trade Type</div>
+          <div class="q-pt-xs q-gutter-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.buy" @click="setOrderFilter('tradeBuy', !orderFilters.tradeType?.buy)">Buy</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.sell" @click="setOrderFilter('tradeSell', !orderFilters.tradeType?.sell)">Sell</q-badge>
+          </div>
+        </div>
+        <div v-if="orderFilters.status" class="q-pt-md">
+          <div class="sm-font-size bold-text">Status</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="!isFilterAllSelected('status')"
+              @click="filterSelectAll('status')">
+              All
+            </q-badge>
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="!isFilterAllSelected('status')"
+              @click="filterSelectAll('status')">
+              Expired
+            </q-badge>
+            <q-badge
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="!isFilterAllSelected('status')"
+              @click="filterSelectAll('status')">
+              Appealed
+            </q-badge>
+            <q-badge
+              v-for="(status, index) in ongoingStatuses"
+              :key="index"
+              rounded
+              color="blue-grey-6"
+              class="q-pa-sm"
+              :outline="!orderFilters.status.includes(status.value)"
+              @click="setOrderFilter('status', status?.value)">
+              {{ status.label }}
+            </q-badge>
+          </div>
+        </div>
+        <div v-if="orderFilters.payment_types" class="q-pt-md">
+          <div class="sm-font-size bold-text">Payment Type</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="!isFilterAllSelected('payment-type')"
+              @click="filterSelectAll('payment-type')">
+              All
+            </q-badge>
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              v-for="payment in paymentTypes"
+              :outline="!orderFilters.payment_types.includes(payment.id)"
+              @click="setOrderFilter('payment-type', payment.id)"
+              :key="payment.id">
+              {{ payment.name }}
+            </q-badge>
+          </div>
+        </div>
+        <div v-if="orderFilters.time_limits" class="q-pt-md">
+          <div class="sm-font-size bold-text">Time Limit</div>
+          <div class="q-gutter-sm q-pt-sm">
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              :outline="!isFilterAllSelected('time-limit')"
+              @click="filterSelectAll('time-limit')">
+              All
+            </q-badge>
+            <q-badge
+              class="q-pa-sm"
+              color="blue-grey-6"
+              rounded
+              v-for="(value, index) in ptl"
+              :outline="!orderFilters.time_limits?.includes(value)"
+              @click="setOrderFilter('time-limit', value)"
+              :key="index">
+              {{ paymentTimeLimit(value) }}
+            </q-badge>
+          </div>
+        </div>
+        <div v-if="orderFilters.sort_type" class="q-pt-md">
+          <div class="sm-font-size bold-text">Sort Type</div>
+          <div class="q-pt-xs q-gutter-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">Ascending</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">Descending</q-badge>
+          </div>
+        </div>
+        <div v-if="orderFilters.sort_by" class="q-pt-md">
+          <div class="sm-font-size bold-text">Sort By</div>
+          <div class="q-pt-xs q-gutter-sm">
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">Created</q-badge>
+            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">Last Modified</q-badge>
+          </div>
+        </div>
+
+        <div class="text-center q-pt-sm q-px-sm q-pb-lg">
+          <div class="row q-gutter-sm q-pt-md">
+            <q-btn
+              rounded
+              no-caps
+              label='Reset'
+              class="q-space text-white"
+              color="blue-6"
+              outline
+              @click="resetFilters('orders')"
+            />
+            <q-btn
+              rounded
+              no-caps
+              label='Filter'
+              class="q-space text-white"
+              color="blue-6"
+              @click="submitData()"
+              v-close-popup
+            />
+          </div>
+        </div>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <!-- Filter Ads -->
   <q-dialog v-model="filterAd" @before-hide="$emit('back')">
     <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
@@ -407,7 +554,7 @@
               class="q-space text-white"
               color="blue-6"
               outline
-              @click="resetFilters()"
+              @click="resetFilters('store')"
             />
             <q-btn
               rounded
@@ -539,6 +686,7 @@ export default {
       submitAppeal: false,
       maxMethodReached: false,
       filterAd: false,
+      filterOrder: false,
       appeal: false,
       appealForm: false,
 
@@ -562,6 +710,21 @@ export default {
         priceOrder: null,
         priceTypes: ['FIXED', 'FLOATING']
       },
+      orderFilters: {
+        sort_type: 'ascending',
+        sort_by: 'created_at',
+        status: [],
+        payment_types: [],
+        time_limits: [5, 15, 30, 60, 300, 720, 1440],
+        ownership: {
+          owned: true,
+          notOwned: true
+        },
+        trade_type: {
+          buy: true,
+          sell: true
+        }
+      },
 
       appealTypeOpts: [
         {
@@ -579,7 +742,18 @@ export default {
         'Payment failed',
         'I changed my mind'
       ],
-      selectedReasons: []
+      selectedReasons: [],
+      ongoingStatuses: [
+        { value: 'SBM', label: 'Submitted' },
+        { value: 'CNF', label: 'Confirmed' },
+        { value: 'ESCRW_PN', label: 'Escrow Pending' },
+        { value: 'ESCRW', label: 'Escrowed' },
+        { value: 'PD_PN', label: 'Paid Pending' },
+        { value: 'PD', label: 'Paid' },
+        { value: 'RLS_PN', label: 'Release Pending' },
+        { value: 'RFN_PN', label: 'Refund Pending' }
+      ],
+      completedStatuses: ['CNCL', 'RLS', 'RFN']
     }
   },
   watch: {
@@ -614,12 +788,88 @@ export default {
     vm.fetchPaymentMethod()
   },
   methods: {
+    filterSelectAll (type) {
+      const vm = this
+      switch (type) {
+        case 'ownership':
+          vm.orderFilters.ownership.owned = true
+          vm.orderFilters.ownership.notOwned = true
+          break
+        case 'status':
+          vm.orderFilters.status = vm.ongoingStatuses.map(e => e.value)
+          break
+        case 'payment-type':
+          vm.orderFilters.payment_types = vm.paymentTypes.map(e => e.id)
+          break
+        case 'time-limit':
+          vm.orderFilters.time_limits = vm.ptl
+          break
+      }
+    },
+    isFilterAllSelected (type) {
+      const vm = this
+      switch (type) {
+        case 'ownership':
+          return vm.orderFilters.ownership.owned && vm.orderFilters.ownership.notOwned
+        case 'status':
+          return vm.orderFilters.status.length === vm.ongoingStatuses.length
+        case 'payment-type':
+          return vm.orderFilters.payment_types.length === vm.paymentTypes.length
+        case 'time-limit':
+          return vm.orderFilters.time_limits.length === vm.ptl.length
+      }
+    },
+    setOrderFilter (type, value) {
+      const vm = this
+      switch (type) {
+        case 'owned':
+          vm.orderFilters.ownership.owned = value
+          break
+        case 'notOwned':
+          vm.orderFilters.ownership.notOwned = value
+          break
+        case 'status':
+          if (vm.orderFilters.status.includes(value)) {
+            this.orderFilters.status = this.orderFilters.status.filter(e => e !== value)
+          } else {
+            this.orderFilters.status.push(value)
+          }
+          break
+        case 'payment-type': {
+          const paymentTypes = vm.orderFilters.payment_types
+          if (paymentTypes.includes(value)) {
+            if (paymentTypes?.length > 1) {
+              vm.orderFilters.payment_types = paymentTypes.filter(e => e !== value)
+            }
+          } else {
+            vm.orderFilters.payment_types.push(value)
+          }
+          break
+        }
+        case 'time-limit': {
+          const timeLimits = vm.orderFilters.time_limits
+          if (timeLimits.includes(value)) {
+            if (timeLimits?.length > 1) {
+              vm.orderFilters.time_limits = timeLimits.filter(e => e !== value)
+            }
+          } else {
+            vm.orderFilters.time_limits.push(value)
+          }
+          break
+        }
+      }
+    },
     updateStoreFilters (filters) {
       if (!filters) return
       this.storeFilters.priceOrder = filters.price_order
       this.storeFilters.priceTypes = filters.price_types
       this.storeFilters.selectedPaymentTypes = filters.payment_types
       this.storeFilters.selectedPTL = filters.time_limits
+    },
+    updateOrderFilters (filters) {
+      if (!filters) return
+      console.log('fileters:', filters)
+      this.orderFilters = filters
     },
     addFilterInfo (data, type = '') {
       let temp = null
@@ -717,7 +967,7 @@ export default {
       const vm = this
 
       if (paymentMethod.selected) {
-        if (vm.selectedPaymentMethods.length >= 5) {
+        if (vm.selectedPaymentMethods?.length >= 5) {
           paymentMethod.selected = !paymentMethod.selected
           vm.maxMethodReached = true
           return
@@ -784,6 +1034,10 @@ export default {
           vm.filterAd = true
           vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
           break
+        case 'filterOrder':
+          vm.filterOrder = true
+          vm.updateOrderFilters(JSON.parse(JSON.stringify(vm.filters)))
+          break
         case 'appeal':
           vm.appealForm = true
           break
@@ -840,6 +1094,9 @@ export default {
             vm.info.price_types = vm.storeFilters.priceTypes
           }
           return 'submit'
+        case 'filterOrder':
+          vm.info = vm.orderFilters
+          return 'submit'
         case 'confirmCancelOrder':
         case 'confirmOrderCreate':
           return 'submit'
@@ -855,22 +1112,35 @@ export default {
         // TODO: Add case for 'filterAd'
       }
     },
-    resetFilters () {
+    resetFilters (type) {
       let filters = null
-      if (this.$parent.transactionType === 'SELL') {
-        this.$store.commit('ramp/resetStoreSellFilters')
-        filters = this.$store.getters['ramp/storeSellFilters']
+      if (type === 'store') {
+        if (this.$parent.transactionType === 'SELL') {
+          this.$store.commit('ramp/resetStoreSellFilters')
+          filters = this.$store.getters['ramp/storeSellFilters']
+        }
+        if (this.$parent.transactionType === 'BUY') {
+          this.$store.commit('ramp/resetStoreBuyFilters')
+          filters = this.$store.getters['ramp/storeBuyFilters']
+        }
+        this.updateStoreFilters(filters)
       }
-      if (this.$parent.transactionType === 'BUY') {
-        this.$store.commit('ramp/resetStoreBuyFilters')
-        filters = this.$store.getters['ramp/storeBuyFilters']
+
+      if (type === 'orders') {
+        if (this.$parent.statusType === 'ONGOING') {
+          this.$store.commit('ramp/resetOngoingOrderFilters')
+          filters = this.$store.getters['ramp/ongoingOrderFilters']
+        }
+        if (this.$parent.statusType === 'COMPLETED') {
+          this.$store.commit('ramp/resetCompletedFilters')
+          filters = this.$store.getters['ramp/completedOrderFilters']
+        }
+        this.updateOrderFilters(filters)
       }
-      this.updateStoreFilters(filters)
     },
     submitData () {
       const vm = this
       const emitName = vm.stageData()
-      console.log('submitData:', emitName)
       this.$emit(emitName, vm.info)
     },
     filterPaymentTypes (type = '') {
@@ -887,7 +1157,6 @@ export default {
       this.paymentTypes = match
     },
     onProceedAppeal () {
-      console.log('onProceedAppeal')
       this.appeal = false
       this.appealForm = true
     },

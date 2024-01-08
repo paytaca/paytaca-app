@@ -226,7 +226,6 @@ export default {
     const vm = this
     // get payment type list
     // const walletInfo = vm.$store.getters['global/getWallet']('bch')
-    // vm.wallet = await loadP2PWalletInfo(walletInfo, vm.walletIndex)
 
     switch (vm.type) {
       case 'General':

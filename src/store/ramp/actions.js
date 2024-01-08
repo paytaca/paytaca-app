@@ -1,7 +1,6 @@
 import { axiosInstance } from '../../boot/axios'
-import { signMessage } from 'src/wallet/ramp/signature'
+import { getCookie } from 'src/wallet/ramp'
 import { Store } from '..'
-import { loadP2PWalletInfo, getCookie } from 'src/wallet/ramp'
 
 export async function loadAuthHeaders (context) {
   if (!context.state.wallet) {
@@ -14,12 +13,11 @@ export async function loadAuthHeaders (context) {
   context.commit('updateAuthHeaders', headers)
 }
 
-export async function loadWallet (context) {
+export function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
-  const { connectedAddressIndex } = Store.getters['global/getWallet']('bch')
   const walletInfo = {
     walletHash: wallet.walletHash,
-    connectedAddressIndex: connectedAddressIndex,
+    connectedAddressIndex: wallet.connectedAddressIndex,
     address: Store.getters['global/getAddress']('bch')
   }
   context.commit('updateWallet', walletInfo)
@@ -62,36 +60,6 @@ export async function fetchUser (context, walletHash) {
   } catch (error) {
     console.error('Error fetching user data:', error)
     throw error
-  }
-}
-
-export async function createUser (context, data) {
-  if (!context.state.wallet) {
-    throw new Error('Ramp wallet not initialized')
-  }
-  const wallet = context.state.wallet
-  const nickname = data.nickname
-  const timestamp = Date.now()
-  const url = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/peer/'
-  try {
-    const signature = await signMessage(wallet.privateKeyWif, 'PEER_CREATE', timestamp)
-    const headers = {
-      'wallet-hash': wallet.walletHash,
-      timestamp: timestamp,
-      signature: signature,
-      'public-key': wallet.publicKey
-    }
-    const body = {
-      name: nickname,
-      address: wallet.address
-    }
-    const response = await axiosInstance.post(url, body, { headers: headers })
-    const user = response.data
-    context.commit('updateUser', user)
-    return user
-  } catch (error) {
-    console.error(error)
-    console.error(error.response)
   }
 }
 
@@ -208,16 +176,15 @@ export function fetchAds (context, { component = null, params = null, overwrite 
   }
 }
 
-export async function fetchOrders (context, { orderState = null, params = null, overwrite = false }) {
+export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   const state = context.state
-
   if (!state.authHeaders) {
     throw new Error('Ramp authentication headers not initialized')
   }
   // Setup pagination parameters based on component & transaction type
   let pageNumber = null
   let totalPages = null
-  switch (orderState) {
+  switch (statusType) {
     case 'ONGOING':
       pageNumber = state.ongoingOrdersPageNumber
       totalPages = state.ongoingOrdersTotalPages
@@ -234,16 +201,58 @@ export async function fetchOrders (context, { orderState = null, params = null, 
     // Increment page by 1 if not fetching data for the first time
     if (pageNumber !== null) pageNumber++
 
-    const apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
-    params.page = pageNumber
-    params.limit = state.itemsPerPage
+    let apiURL = process.env.WATCHTOWER_BASE_URL + '/ramp-p2p/order'
+
+    // Build request parameters
+    let owned = params.ownership.owned
+    if (params.ownership.owned === params.ownership.notOwned) {
+      owned = null
+    }
+    const parameters = {
+      page: pageNumber,
+      limit: state.itemsPerPage,
+      status_type: statusType,
+      sort_type: params.sort_type,
+      sort_by: params.sort_by,
+      owned: owned,
+      expired_only: params.expired_only
+    }
+    if (params.trade_type.buy !== params.trade_type.sell) {
+      if (params.trade_type.buy) {
+        parameters.trade_type = 'BUY'
+      }
+      if (params.trade_type.sell) {
+        parameters.trade_type = 'SELL'
+      }
+    }
+
+    let listParams = false
+    if (params.payment_types?.length > 0) {
+      const paymentTypes = params.payment_types.join('&payment_types=')
+      apiURL = `${apiURL}?payment_types=${paymentTypes}`
+      listParams = true
+    }
+    if (params.time_limits?.length > 0) {
+      const timeLimits = params.time_limits.join('&time_limits=')
+      const prefix = listParams ? '&' : '?'
+      apiURL = `${apiURL}${prefix}time_limits=${timeLimits}`
+      listParams = true
+    }
+    if (params.status?.length > 0) {
+      const status = params.status.join('&status=')
+      const prefix = listParams ? '&' : '?'
+      apiURL = `${apiURL}${prefix}status=${status}`
+      listParams = true
+    }
+
+    // Build request headers
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
 
     return new Promise((resolve, reject) => {
-      axiosInstance.get(apiURL, { params: params, headers: headers })
+      axiosInstance.get(apiURL, { params: parameters, headers: headers })
         .then((response) => {
-          switch (orderState) {
+          switch (statusType) {
             case 'ONGOING':
               context.commit('updateOngoingOrders', { overwrite: overwrite, data: response.data })
               context.commit('incOngoingOrdersPage')

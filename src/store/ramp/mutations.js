@@ -6,6 +6,56 @@ export function updateStoreSellFilters (state, filters) {
   state.storeSellFilters = filters
 }
 
+export function updateOngoingOrderFilters (state, filters) {
+  state.ongoingOrderFilters = filters
+}
+
+export function updateCompletedOrderFilters (state, filters) {
+  state.completedOrderFilters = filters
+}
+
+export function resetOrderFilters (state) {
+  resetOngoingOrderFilters(state)
+  resetCompletedOrderFilters(state)
+}
+
+export function resetOngoingOrderFilters (state) {
+  state.ongoingOrderFilters = {
+    sort_type: 'ascending',
+    sort_by: 'created_at',
+    status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
+    expired_only: false,
+    payment_types: state.paymentTypes.map(p => p.id),
+    time_limits: [5, 15, 30, 60, 300, 720, 1440],
+    ownership: {
+      owned: true,
+      notOwned: true
+    },
+    trade_type: {
+      buy: true,
+      sell: true
+    }
+  }
+}
+
+export function resetCompletedOrderFilters (state) {
+  state.completedOrderFilters = {
+    sort_type: 'descending',
+    sort_by: 'last_modified_at',
+    status: ['CNCL', 'RLS', 'RFN'],
+    payment_types: state.paymentTypes.map(p => p.id),
+    time_limits: [5, 15, 30, 60, 300, 720, 1440],
+    ownership: {
+      owned: true,
+      notOwned: true
+    },
+    trade_type: {
+      buy: true,
+      sell: true
+    }
+  }
+}
+
 export function updateFilterPaymentTypes (state, paymentTypes) {
   updateSellFilterPaymentTypes(state, paymentTypes)
   updateBuyFilterPaymentTypes(state, paymentTypes)
@@ -66,15 +116,16 @@ export function clearOrderTxids (state, id) {
 // ~ store mutations ~ //
 
 export function updateStoreBuyListings (state, { overwrite = false, data }) {
-  if (overwrite) state.storeBuyListings = []
-  state.storeBuyListings.push(...data.ads)
+  if (overwrite) state.storeBuyListings = data.ads
+  else state.storeBuyListings.push(...data.ads)
+  console.log('storeBuyListings:', state.storeBuyListings)
   state.storeBuyTotalPages = data.total_pages
   state.storeBuyItemsCount = data.count
 }
 
 export function updateStoreSellListings (state, { overwrite = false, data }) {
-  if (overwrite) state.storeSellListings = []
-  state.storeSellListings.push(...data.ads)
+  if (overwrite) state.storeSellListings = data.ads
+  else state.storeSellListings.push(...data.ads)
   state.storeSellTotalPages = data.total_pages
   state.storeSellItemsCount = data.count
 }

@@ -30,11 +30,9 @@
         <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell Ads</button>
       </div>
       <div v-if="loading">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader/>
-        </div>
+        <FooterLoading/>
       </div>
-      <div v-else class="q-mt-md q-mx-md">
+      <div class="q-mt-md q-mx-md">
         <q-pull-to-refresh
           @refresh="refreshData">
           <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
@@ -116,7 +114,6 @@
       </div>
     </div>
   </q-card>
-
   <FiatAdsDialogs
     v-if="openDialog === true"
     :type="dialogName"
@@ -134,7 +131,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
+import FooterLoading from './FooterLoading.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -150,9 +147,9 @@ export default {
   },
   components: {
     FiatAdsForm,
-    ProgressLoader,
     FiatAdsDialogs,
-    MiscDialogs
+    MiscDialogs,
+    FooterLoading
   },
   data () {
     return {
@@ -171,8 +168,8 @@ export default {
       totalPages: null,
       pageNumber: null,
       selectedAdId: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - this.$q.screen.height * 0.17,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - this.$q.screen.height * 0.17 : this.$q.screen.height - this.$q.screen.height * 0.17,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   watch: {
@@ -184,7 +181,7 @@ export default {
     transactionType () {
       const vm = this
       vm.resetAndScrollToTop()
-      vm.fetchAds()
+      vm.resetAndRefetchListings()
     }
   },
   computed: {
@@ -224,8 +221,8 @@ export default {
     },
     fetchAds (overwrite = false) {
       const vm = this
-      vm.loading = true
       const params = { trade_type: vm.transactionType, owned: true }
+      vm.loading = true
       vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, overwrite: overwrite })
         .then(() => {
           vm.loading = false
