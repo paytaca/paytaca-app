@@ -33,11 +33,24 @@
             <q-select
               :disable="dialogType === 'addMethodFromAd' || dialogType === 'editPaymentMethod' || paymentTypes.length === 0"
               dense
+              borderless
               filled
               :dark="darkMode"
               v-model="paymentMethod.payment_type"
               :options="paymentTypes"
               option-label="name">
+
+              <template v-slot:option="scope">
+                <q-item
+                  v-bind="scope.itemProps"
+                >
+                  <q-item-section>
+                    <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+                      {{ String(scope.opt.name).toUpperCase() }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
               <!-- <template v-slot:append>
                 <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.payment_type = null"/>&nbsp;
               </template> -->

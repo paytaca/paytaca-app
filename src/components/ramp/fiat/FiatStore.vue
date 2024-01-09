@@ -6,7 +6,7 @@
       :style="`height: ${minHeight}px;`"
       v-if="state === 'SELECT' && !viewProfile">
       <div class="q-mb-lg q-pb-lg">
-        <q-pull-to-refresh @refresh="refreshData">
+        <!-- <q-pull-to-refresh @refresh="refreshData"> -->
           <div class="row no-wrap items-center q-pa-sm q-pt-md">
             <!-- currency dropdown -->
             <div>
@@ -39,84 +39,86 @@
             <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
             <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
           </div>
-        </q-pull-to-refresh>
+        <!-- </q-pull-to-refresh> -->
         <div class="q-mt-md">
-          <div v-if="loading">
-            <FooterLoading/>
-          </div>
-          <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
-          </div>
-          <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
-              <q-infinite-scroll
-                ref="infiniteScroll"
-                :items="listings"
-                @load="loadMoreData"
-                :offset="0"
-                :scroll-target="scrollTargetRef">
-                <template v-slot:loading>
-                  <div class="row justify-center q-my-md" v-if="hasMoreData">
-                    <q-spinner-dots color="primary" size="40px" />
-                  </div>
-                </template>
-                <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
-                  <q-item-section>
-                    <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <div class="row">
-                        <div class="col ib-text">
-                          <div class="">
-                            <span
-                              :class="{'pt-dark-label': darkMode}"
-                              class="md-font-size"
-                              @click.stop.prevent="viewUserProfile(listing.owner, listing)">
-                              {{ listing.owner.name }}
-                            </span>
-                            <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
-                          </div>
-                          <div class="row">
-                            <q-rating
-                              readonly
-                              :model-value="listing.owner.rating ? listing.owner.rating : 0"
-                              :v-model="listing.owner.rating"
-                              size="1.1em"
-                              color="yellow-9"
-                              icon="star"/>
-                            <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
-                          </div>
-                          <div class="sm-font-size">
-                            <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
-                            <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
-                          </div>
-                          <span :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase bold-text lg-font-size">
-                            {{ formattedCurrency(listing.price) }}
-                          </span>
-                          <span class="sm-font-size">/BCH</span><br>
-                          <div class="sm-font-size">
-                            <div class="row">
-                              <span class="col-3">Quantity</span>
-                              <span class="col">{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
+          <q-pull-to-refresh @refresh="refreshData">
+            <div v-if="loading">
+              <FooterLoading/>
+            </div>
+            <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+              <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+              <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
+            </div>
+            <div v-else>
+              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
+                <q-infinite-scroll
+                  ref="infiniteScroll"
+                  :items="listings"
+                  @load="loadMoreData"
+                  :offset="0"
+                  :scroll-target="scrollTargetRef">
+                  <template v-slot:loading>
+                    <div class="row justify-center q-my-md" v-if="hasMoreData">
+                      <q-spinner-dots color="primary" size="40px" />
+                    </div>
+                  </template>
+                  <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
+                    <q-item-section>
+                      <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                        <div class="row">
+                          <div class="col ib-text">
+                            <div class="">
+                              <span
+                                :class="{'pt-dark-label': darkMode}"
+                                class="md-font-size"
+                                @click.stop.prevent="viewUserProfile(listing.owner, listing)">
+                                {{ listing.owner.name }}
+                              </span>
+                              <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
                             </div>
                             <div class="row">
-                              <span class="col-3">Limit</span>
-                              <span class="col"> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
+                              <q-rating
+                                readonly
+                                :model-value="listing.owner.rating ? listing.owner.rating : 0"
+                                :v-model="listing.owner.rating"
+                                size="1.1em"
+                                color="yellow-9"
+                                icon="star"/>
+                              <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
+                            </div>
+                            <div class="sm-font-size">
+                              <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
+                              <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                            </div>
+                            <span :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase bold-text lg-font-size">
+                              {{ formattedCurrency(listing.price) }}
+                            </span>
+                            <span class="sm-font-size">/BCH</span><br>
+                            <div class="sm-font-size">
+                              <div class="row">
+                                <span class="col-3">Quantity</span>
+                                <span class="col">{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
+                              </div>
+                              <div class="row">
+                                <span class="col-3">Limit</span>
+                                <span class="col"> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
+                        <div class="q-gutter-sm q-pt-xs">
+                          <q-badge v-for="method in listing.payment_methods" :key="method.id"
+                          rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+                          {{ method.payment_type }}
+                          </q-badge>
+                        </div>
                       </div>
-                      <div class="q-gutter-sm q-pt-xs">
-                        <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                        rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
-                        {{ method.payment_type }}
-                        </q-badge>
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </q-infinite-scroll>
-            </q-list>
-          </div>
+                    </q-item-section>
+                  </q-item>
+                </q-infinite-scroll>
+              </q-list>
+            </div>
+          </q-pull-to-refresh>
         </div>
       </div>
     </q-card>
