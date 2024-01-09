@@ -1785,6 +1785,10 @@ async function completeCheckout() {
 }
 
 const checkoutStorefrontId = computed(() => checkout.value?.cart?.storefrontId)
+onActivated(() => {
+  if (!storefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+})
 watch(checkoutStorefrontId, () => {
   if (!checkout.value?.cart?.storefrontId) return
   $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)

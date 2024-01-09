@@ -154,7 +154,7 @@ import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 
@@ -189,6 +189,10 @@ watch(() => [props?.storefrontId], () => {
 
 const fetchingStorefront = ref(false)
 const storefront = ref(Storefront.parse())
+onActivated(() => {
+  if (!props.storefrontId) return
+  $store.commit('marketplace/setActiveStorefrontId', props.storefrontId)
+})
 function fetchStorefront() {
   fetchingStorefront.value = true
   return backend.get(`connecta/storefronts/${props.storefrontId}/`)
