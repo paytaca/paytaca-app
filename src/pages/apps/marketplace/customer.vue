@@ -220,6 +220,7 @@ import CustomerLocationsDialog from 'src/components/marketplace/CustomerLocation
 
 const props = defineProps({
   returnOnSave: [String, Boolean],
+  hideStayOnPageOpt: [String, Boolean],
 })
 
 const $router = useRouter()
@@ -236,9 +237,9 @@ const redirectRouteOnSave = computed(() => {
   if (props.returnOnSave === true || props.returnOnSave === 'true') return -1
   try {
     const routeParamObj = JSON.parse(props.returnOnSave)
-    return $router.resolve(routeParamObj)
+    return $router.resolve(routeParamObj) || routeParamObj
   } catch {
-    return $router.resolve(props.returnOnSave)
+    return $router.resolve(props.returnOnSave) || props.returnOnSave
   }
 })
 
@@ -369,16 +370,16 @@ async function updateCustomerData() {
         class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
       })
       if (redirectRouteOnSave.value) {
-        dialog.update({
-          ok: {
-            noCaps: true,
-            label: 'Return',
-          },
-          cancel: { noCaps: true, label: 'Stay on this page', flat: true, color: 'grey' }
-        }).onOk(() => {
+        const redirect = () => {
           if (typeof redirectRouteOnSave.value === 'number') $router.go(redirectRouteOnSave.value)
           else if (redirectRouteOnSave.value) $router.push(redirectRouteOnSave.value)
-        })
+        }
+        dialog.update({
+          ok: !props.hideStayOnPageOpt ? { noCaps: true, label: 'Stay on this page' } : false,
+          cancel: !props.hideStayOnPageOpt
+            ? { noCaps: true, label: 'Return', flat: true, color: 'grey' }
+            : { noCaps: true, label: 'Return', color: 'brandblue' },
+        }).onCancel(redirect)
       }
 
       return response
