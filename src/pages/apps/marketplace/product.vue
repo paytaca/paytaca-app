@@ -68,7 +68,7 @@
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
-              :disable="!available"
+              :disable="!available || !activeStorefrontIsActive"
               label="Quantity"
               dense outlined
               :dark="darkMode"
@@ -79,7 +79,7 @@
             />
             <q-btn
               v-else
-              :disable="!available"
+              :disable="!available || !activeStorefrontIsActive"
               no-caps label="Add to cart"
               color="brandblue"
               class="full-width q-mt-md"
@@ -125,6 +125,7 @@ watch(() => [props.productId], () => {
 watch(() => [props.variantId], () => selectVariantFromProps())
 
 const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
+const activeStorefrontIsActive = computed(() => activeStorefront.value?.active)
 
 const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
 const cartItem = computed(() => {
