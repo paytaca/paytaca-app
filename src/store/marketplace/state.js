@@ -39,6 +39,7 @@ export default function () {
     storefronts: [].map(() => {
       return {
         id: 0,
+        active: false,
         shop_id: 0,
         image_url: '',
         name: '',

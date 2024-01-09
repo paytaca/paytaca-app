@@ -45,25 +45,30 @@
             </q-btn>
           </div>
 
-          <div class="row items-center">
+          <div class="row no-wrap items-center">
             <q-btn
               v-if="activeStorefront?.id"
               no-caps flat
               padding="none"
-              class="text-underline"
+              class="text-underline ellipsis"
               :to="{ name: 'app-marketplace-storefront', params: { storefrontId: activeStorefront?.id } }"
             >
               {{ activeStorefront?.name }}
               #{{ activeStorefront?.id }}
             </q-btn>
+            <q-chip v-if="!activeStorefrontIsActive" class="text-white" color="grey" size="sm">
+              Inactive
+            </q-chip>
             <q-space/>
             <q-btn
               v-if="activeStorefrontCart?.items?.length"
+              :disable="!activeStorefrontIsActive"
               no-caps
               flat
               label="Clear cart"
               color="red"
               padding="xs md"
+              style="text-wrap:nowrap;"
               @click="$store.dispatch('marketplace/clearCart', activeStorefrontCart)"
             />
           </div>
@@ -106,7 +111,7 @@
                 <q-input
                   dense
                   outlined
-                  :disable="activeStorefrontCart?.$state?.updating"
+                  :disable="activeStorefrontCart?.$state?.updating || !activeStorefrontIsActive"
                   :dark="darkMode"
                   type="number"
                   v-model.number="cartItem.quantity"
@@ -128,6 +133,7 @@
             <q-btn
               v-close-popup
               no-caps
+              :disable="!activeStorefrontIsActive"
               label="Checkout"
               color="brandblue"
               class="full-width"
@@ -182,7 +188,7 @@ export default {
           await $store.dispatch('marketplace/refetchCustomerData')
             .then(() => {
               const customerId = $store.getters['marketplace/customer']?.id
-              marketplacePushNotificationsManager.subscribe(customerId)
+              subscribePushNotifications(customerId)
             })
 
           const signerData = await getSignerData()
@@ -206,6 +212,32 @@ export default {
           loadingApp.value = false
           loadAppPromise.value = null
         })
+    }
+
+    async function subscribePushNotifications(id) {
+      console.log('window.promptedPushNotificationsSettings', window.promptedPushNotificationsSettings)
+      if (!window.promptedPushNotificationsSettings) {
+        const promptResponse = await promptEnablePushNotificationSetting(
+          'Enable notifications to receive updates'
+        ).catch(console.error)
+        window.promptedPushNotificationsSettings = promptResponse.prompted
+        console.log('promptResponse', promptResponse)
+      }
+      return marketplacePushNotificationsManager.subscribe(id)
+    }
+
+    async function promptEnablePushNotificationSetting(message='') {
+      const response = { isPushNotificationEnabled: null, prompted: false }
+      const pushNotificationsStatusResponse = await marketplacePushNotificationsManager.isPushNotificationEnabled()
+      response.isPushNotificationEnabled = pushNotificationsStatusResponse?.isEnabled
+      if (response.isPushNotificationEnabled === false) {
+        const openSettingsResponse = await marketplacePushNotificationsManager.openPushNotificationsSettingsPrompt({
+          message: message || undefined,
+        })
+        response.isPushNotificationEnabled = openSettingsResponse?.isEnabled
+        response.prompted = true
+      }
+      return response
     }
 
     onMounted(() => setTimeout(async () => {
@@ -254,6 +286,7 @@ export default {
     const showCartsDialog = ref(false)
 
     const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
+    const activeStorefrontIsActive = computed(() => activeStorefront.value?.active)
     const activeStorefrontId = computed(() => activeStorefront.value?.id)
     watch(activeStorefrontId,() => {
       if (!activeStorefrontId.value) return
@@ -286,6 +319,7 @@ export default {
       activeStorefront,
 
       activeStorefrontCart,
+      activeStorefrontIsActive,
       getStorefrontCurrency,
       saveCart,
     }

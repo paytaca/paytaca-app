@@ -451,6 +451,10 @@ function fetchDelivery() {
 
 const order = ref(Order.parse())
 const storefrontId = computed(() => order.value?.storefrontId)
+onActivated(() => {
+  if (!storefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+})
 watch(storefrontId,() => {
   if (!storefrontId.value) return
   $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
@@ -547,6 +551,7 @@ function toggleAmountsDisplay() {
   }
   displayBch.value = !displayBch.value
 }
+
 
 
 const storefront = ref(Storefront.parse())
