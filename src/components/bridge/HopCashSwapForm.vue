@@ -4,13 +4,13 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" class="bridge-swap-form" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="bridge-swap-form pt-label" :class="getDarkModeClass(darkMode)">
       <div
         v-if="Array.isArray(errors) && errors.length"
         class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
       >
         <ul class="q-my-sm q-pl-lg">
-          <li :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-for="(error, index) in errors" :key="index">
+          <li class="pt-label" :class="getDarkModeClass(darkMode)" v-for="(error, index) in errors" :key="index">
             {{ error }}
           </li>
         </ul>
@@ -20,9 +20,10 @@
           <img
             height="40"
             :src="transferType === 'c2s' ? 'bch-logo.png' : 'sep20-logo.png'"
+            alt=""
           />
-          <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('From') }}</div>
-          <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div class="text-lowercase q-mt-sm">{{ $t('From') }}</div>
+          <div class="text-subtitle1 text-center">
             <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
             <template v-else>Smart Bitcoin Cash</template>
           </div>
@@ -39,9 +40,9 @@
         />
 
         <div class="col-5 column items-center">
-          <img height="40" :src="transferType === 'c2s' ? 'sep20-logo.png' : 'bch-logo.png'"/>
-          <div class="q-mt-sm text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('To') }}</div>
-          <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <img height="40" :src="transferType === 'c2s' ? 'sep20-logo.png' : 'bch-logo.png'" alt=""/>
+          <div class="q-mt-sm text-lowercase">{{ $t('To') }}</div>
+          <div class="text-subtitle1 text-center">
             <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
             <template v-else>Bitcoin Cash</template>
           </div>
@@ -56,34 +57,32 @@
             </q-banner>
           </q-card-section>
           <q-card-section>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+            <div>
               <span>{{ $t('BridgeBalance') }}:</span>
               <q-btn
                 padding="xs sm"
                 flat
                 :disable="lockInputs || bridgeDisabled"
                 :label="getAssetDenomination(denomination, maxBridgeBalance)"
-                :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 @click="amount = maxBridgeBalance"
               />
             </div>
             <div>
-              <span :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('WalletBalance') }}:</span>
+              <span>{{ $t('WalletBalance') }}:</span>
               <q-btn
                 padding="xs sm"
                 flat
                 :disable="lockInputs || bridgeDisabled"
                 :label="getAssetDenomination(denomination, sourceTransferBalance)"
-                :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 @click="amount = sourceTransferBalance"
               />
             </div>
             <div class="row no-wrap items-start">
-              <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-                <img height="40" :src="transferType === 'c2s' ? 'bch-logo.png' : 'sep20-logo.png'"/>
+              <div class="row items-center no-wrap q-my-sm custom-width">
+                <img height="40" :src="transferType === 'c2s' ? 'bch-logo.png' : 'sep20-logo.png'" alt=""/>
                 <div class="q-ml-sm">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouSend') }}:</div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? `${denomination}` : 'sBCH' }}</div>
+                  <div class="text-caption" style="margin-bottom:-6px">{{ $t('YouSend') }}:</div>
+                  <div>{{ transferType === 'c2s' ? `${denomination}` : 'sBCH' }}</div>
                 </div>
               </div>
               <CustomKeyboardInput
@@ -117,11 +116,11 @@
             </div>
 
             <div class="row no-wrap items-start" style="margin-top: -10px;">
-              <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
-                <img height="40" :src="transferType === 'c2s' ? 'sep20-logo.png' : 'bch-logo.png'"/>
+              <div class="row items-center no-wrap q-my-sm custom-width">
+                <img height="40" :src="transferType === 'c2s' ? 'sep20-logo.png' : 'bch-logo.png'" alt=""/>
                 <div class="q-ml-sm">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouReceive') }}:</div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ transferType === 'c2s' ? 'sBCH' : `${denomination}` }}</div>
+                  <div class="text-caption" style="margin-bottom:-6px">{{ $t('YouReceive') }}:</div>
+                  <div>{{ transferType === 'c2s' ? 'sBCH' : `${denomination}` }}</div>
                 </div>
               </div>
               <CustomKeyboardInput
@@ -148,7 +147,7 @@
             </div>
 
             <div class="row no-wrap items-start" style="margin-top: -10px;">
-              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+              <div class="row items-center no-wrap q-my-sm custom-width">
                 {{ $t('ReceivingAddress') }}:
               </div>
               <q-input
@@ -185,7 +184,6 @@
               <q-toggle
                 dense
                 v-model="manualAddress"
-                :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 class="q-mb-md"
                 keep-color
                 color="blue-9"
@@ -209,11 +207,11 @@
 
             <q-separator spaced/>
             <div v-if="!loading" class="q-pa-sm rounded-borders">
-              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+              <div class="row justify-between no-wrap">
                 <span>{{ $t('BchToSend') }}:</span>
                 <span class="text-nowrap q-ml-xs">{{ getAssetDenomination(denomination, amount || 0) }}</span>
               </div>
-              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+              <div class="row justify-between no-wrap">
                 <span>
                   {{ $t('EstimatedFee') }} (0.1%):
                   <!-- <q-icon :name="showSplitFees ? 'expand_less' : 'expand_more'"/> -->
@@ -224,17 +222,17 @@
               </div>
               <q-slide-transition>
                 <div v-if="showSplitFees">
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
+                  <div class="row justify-between no-wrap q-pl-sm">
                     <span>Paytaca:</span>
                     <span class="text-nowrap q-ml-xs">~{{ getAssetDenomination(denomination, formatAmount(fees.paytaca)) }}</span>
                   </div>
-                  <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-pl-sm">
+                  <div class="row justify-between no-wrap q-pl-sm">
                     <span>Hopcash:</span>
                     <span class="text-nowrap q-ml-xs">~{{ getAssetDenomination(denomination, formatAmount(fees.hopcash)) }}</span>
                   </div>
                 </div>
               </q-slide-transition>
-              <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap">
+              <div class="row justify-between no-wrap">
                 <span>{{ $t('BchToReceive') }}:</span>
                 <span class="text-nowrap q-ml-xs">~{{ getAssetDenomination(denomination, formatAmount(transferredAmount)) }}</span>
               </div>
@@ -665,13 +663,14 @@ export default {
 }
 </script>
 <style scoped>
-.text-nowrap {
-  white-space: nowrap;
-}
-.text-subtitle1 {
-  font-size: 14px;
-}
-.pp-text {
-  color: #000 !important;
-}
+  .text-nowrap {
+    white-space: nowrap;
+  }
+  .text-subtitle1 {
+    font-size: 14px;
+  }
+  .custom-width {
+    min-width: 130px;
+    max-width: 150px;
+  }
 </style>

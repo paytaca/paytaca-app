@@ -7,12 +7,11 @@
 
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
-        <q-list :class="{'pt-dark info-banner': darkMode}" style="min-width: 100px">
+        <q-list class="pt-card-2 pt-label" :class="getDarkModeClass(darkMode)" style="min-width: 100px">
           <q-item
             :disable="waiting"
             clickable
             v-close-popup
-            :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
             :active="mode.active === mode.opts.main"
             @click="mode.active = mode.opts.main"
           >
@@ -24,7 +23,6 @@
             :disable="waiting"
             clickable
             v-close-popup
-            :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
             :active="mode.active === mode.opts.spicebotSlp2Sep20"
             @click="mode.active = mode.opts.spicebotSlp2Sep20"
           >

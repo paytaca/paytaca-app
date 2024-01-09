@@ -23,8 +23,8 @@
       >
         <q-popup-proxy>
           <q-banner
-            :class="getDarkModeClass(darkMode,'pt-dark info-banner text-white', 'text-black')"
-            class="q-pa-md br-15 text-center"
+            class="q-pa-md br-15 text-center pt-card-2 text-bow"
+            :class="getDarkModeClass(darkMode)"
           >
             {{ $t(isHongKong(currentCountry) ? 'SmartSwapBchSoonPoints' : 'SmartSwapBchSoonTokens') }}
           </q-banner>

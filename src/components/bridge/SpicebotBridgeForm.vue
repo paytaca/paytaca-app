@@ -5,24 +5,25 @@
       class="q-my-sm q-pa-sm rounded-borders bg-red-2 text-red"
     >
       <ul class="q-my-sm q-pl-lg">
-        <li :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-for="(error, index) in errors" :key="index">
+        <li class="pt-label" :class="getDarkModeClass(darkMode)" v-for="(error, index) in errors" :key="index">
           {{ error }}
         </li>
       </ul>
     </div>
     <q-form v-if="!stagedSwapInfo.show" @submit="stageFormData()">
-      <q-card class="q-mt-sm" :class="{'pt-dark-card': darkMode, 'text-black': !darkMode }">
+      <q-card class="q-mt-sm br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center justify-center">
-          <div v-ripple class="text-center  q-pa-sm q-mx-md cursor-pointer relative-position" @click="selectToken()">
+          <div v-ripple class="text-center q-pa-sm q-mx-md cursor-pointer relative-position" @click="selectToken()">
             <template v-if="formData.token">
               <img
                 height="40"
                 :src="formData.token.image_url"
+                alt=""
               />
-              <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+              <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
                 {{ formData.token && formData.token.name || 'Token Name' }}
               </div>
-              <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+              <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
                 SLP
                 <q-icon name="arrow_right"/>
                 SEP20
@@ -35,11 +36,17 @@
         </q-card-section>
         <q-card-section>
           <div class="row no-wrap items-start">
-            <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+            <div class="row items-center no-wrap q-my-sm custom-width">
               <!-- <img height="40" :src="formData.token.image_url"/> -->
               <div class="q-ml-sm">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouSend') }}:</div>
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+                <div
+                  :class="getDarkModeClass(darkMode)"
+                  class="text-caption pt-label"
+                  style="margin-bottom:-6px"
+                >
+                  {{ $t('YouSend') }}:
+                </div>
+                <div class="pt-label" :class="getDarkModeClass(darkMode)">
                   {{ formData.token && formData.token.name }}
                 </div>
               </div>
@@ -63,8 +70,8 @@
               <template v-slot:hint>
                 <div
                   v-if="computedFormData.selectedTokenBalance !== null"
-                  class="text-caption ellipsis text-right"
-                  :class="darkMode ? 'text-white': 'text-black'"
+                  class="text-caption ellipsis text-right text-bow"
+                  :class="getDarkModeClass(darkMode)"
                   @click="formData.amount = computedFormData.selectedTokenBalance"
                 >
                   {{ $t('Balance') }}: {{ computedFormData.selectedTokenBalance }}
@@ -73,11 +80,17 @@
             </q-input>
           </div>
           <div class="row no-wrap items-start">
-            <div class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+            <div class="row items-center no-wrap q-my-sm custom-width">
               <!-- <img height="40" :src="formData.token.image_url"/> -->
               <div class="q-ml-sm">
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-caption" style="margin-bottom:-6px">{{ $t('YouReceive') }}:</div>
-                <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+                <div
+                  class="text-caption pt-label"
+                  :class="getDarkModeClass(darkMode)"
+                  style="margin-bottom:-6px"
+                >
+                  {{ $t('YouReceive') }}:
+                </div>
+                <div class="pt-label" :class="getDarkModeClass(darkMode)">
                   {{ formData.token && formData.token.name }}
                 </div>
               </div>
@@ -94,7 +107,7 @@
             />
           </div>
           <div class="row no-wrap items-start" style="margin-top: -10px;">
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row items-center no-wrap q-my-sm" style="min-width:130px;max-width:150px;">
+            <div class="row items-center no-wrap q-my-sm custom-width pt-label" :class="getDarkModeClass(darkMode)">
               {{ $t('Address') }}
             </div>
             <q-input
@@ -152,7 +165,11 @@
         </div>
         <div v-if="computedStagedSwapInfo.errors.length" class="q-my-sm q-pa-sm rounded-borders bg-red text-white">
           <ul class="q-my-sm q-pl-lg">
-            <li :class="[darkMode ? 'pt-dark-label' : 'pp-text']" v-for="(error, index) in computedStagedSwapInfo.errors" :key="index">
+            <li
+              class="pt-label"
+              :class="getDarkModeClass(darkMode)"
+              v-for="(error, index) in computedStagedSwapInfo.errors" :key="index"
+            >
               {{ error }}
             </li>
           </ul>
@@ -161,11 +178,12 @@
           <img
             height="40"
             :src="stagedSwapInfo.token.image_url"
+            alt=""
           />
-          <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
             {{ stagedSwapInfo.token && stagedSwapInfo.token.name || 'Token Name' }}
           </div>
-          <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
             SLP
             <q-icon name="arrow_right"/>
             SEP20
@@ -181,7 +199,7 @@
             <q-item-label>
               {{ shortenSlpAddress(senderAddress) }}
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                <div class="q-pa-md text-bow address-token-label" :class="getDarkModeClass(darkMode)">
                   {{ senderAddress }}
                 </div>
               </q-popup-proxy>
@@ -199,13 +217,13 @@
                 {{ shortenSlpAddress(stagedSwapInfo.spiceBotSwapRequest.from_address) }}
 
                 <q-popup-proxy :breakpoint="0">
-                  <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                  <div class="q-pa-md text-bow address-token-label" :class="getDarkModeClass(darkMode)">
                     {{ stagedSwapInfo.spiceBotSwapRequest.from_address }}
                   </div>
                 </q-popup-proxy>
               </template>
               <template>
-                &nbsp
+                &nbsp;
               </template>
             </q-item-label>
           </q-item-section>
@@ -220,7 +238,7 @@
             <q-item-label class="text-grey">
               {{ shortenSlpAddress(stagedSwapInfo.token && stagedSwapInfo.token.sep20_source_address) }}
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                <div class="q-pa-md text-bow address-token-label" :class="getDarkModeClass(darkMode)">
                   {{ stagedSwapInfo.token && stagedSwapInfo.token.sep20_source_address }}
                 </div>
               </q-popup-proxy>
@@ -237,7 +255,7 @@
             <q-item-label>
               {{ shortenSlpAddress(stagedSwapInfo.recipientAddress) }}
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-pa-md', darkMode ? 'text-white' : 'text-black' ]" style="word-break:break-all;max-width:80vw;">
+                <div class="q-pa-md text-bow address-token-label" :class="getDarkModeClass(darkMode)">
                   {{ stagedSwapInfo.recipientAddress }}
                 </div>
               </q-popup-proxy>
@@ -301,7 +319,7 @@ import ProgressLoader from '../ProgressLoader.vue'
 import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SpicebotBridgeTokenSelectDialog from './SpicebotBridgeTokenSelectDialog.vue'
 import SpicebotBridgeSwapListenerDialog from './SpicebotBridgeSwapListenerDialog.vue'
-import { isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SpicebotBridgeForm',
@@ -464,6 +482,7 @@ export default {
   methods: {
     isNotDefaultTheme,
     isHongKong,
+    getDarkModeClass,
     shortenSlpAddress (value = '', keepPrefix = false) {
       if (!value) return value
       let prefix = ''
@@ -715,3 +734,14 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .custom-width {
+    min-width: 130px;
+    max-width: 150px;
+  }
+  .address-token-label {
+    word-break: break-all;
+    max-width: 80vw;
+  }
+</style>

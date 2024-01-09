@@ -1,16 +1,17 @@
 <template>
-	<q-dialog ref="dialog" @hide="onDialogHide" full-width seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
+  <q-dialog ref="dialog" @hide="onDialogHide" full-width seamless>
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space q-mt-sm">{{ title }}</div>
         <q-btn
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
-      <q-tab-panels v-model="panel" animated :class="darkMode ? 'pt-dark info-banner' : 'text-black'">
+      <q-tab-panels v-model="panel" animated class="pt-card-2" :class="getDarkModeClass(darkMode)">
         <q-tab-panel name="list" class="q-pa-none">
           <q-card-section>
             <div class="row items-center justify-end q-mb-sm">
@@ -29,7 +30,6 @@
               outlined
               v-model="searchText"
               rounded
-              :input-class="darkMode ? 'text-white' : 'text-black'"
             >
                <template v-slot:append>
                 <q-icon name="search" color="grey-5" />
@@ -43,22 +43,21 @@
               v-model="showHasBalance"
             />
           </q-card-section>
-          <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none q-mb-sm q-mx-md">
+          <q-card-section class="q-pt-none q-mb-sm q-mx-md tokens-card-section">
             <q-virtual-scroll :items="filteredTokensList">
               <template v-slot="{ item: token, index }">
                 <q-item clickable @click="onOKClick(token)">
                   <q-item-section avatar>
-                    <img v-if="token.image_url" :src="token.image_url" height="30" class="q-mr-xs">
+                    <img v-if="token.image_url" :src="token.image_url" height="30" class="q-mr-xs" alt="">
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>{{ token.symbol }}</q-item-label>
-                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.name }}</q-item-label>
+                    <q-item-label :class="{'text-grey-6': darkMode}" style="overflow-wrap: anywhere;" caption>
+                      {{ token.name }}
+                    </q-item-label>
                   </q-item-section>
                   <q-item-section v-if="token.balance" side>
-                    <q-item-label
-                      :class="darkMode ? 'text-grey-6' : ''"
-                      caption
-                    >
+                    <q-item-label :class="{'text-grey-6': darkMode}" caption>
                       {{ formatNumber(token.balance) }}
                     </q-item-label>
                   </q-item-section>
@@ -86,11 +85,10 @@
               rounded
               placeholder="Input token address"
               v-model="customToken.address"
-              :input-class="darkMode ? 'text-white' : 'text-black'"
               @update:model-value="!matchedTokensListFromCustomAddress.length ? updateCustomTokenInfo() : null"
             />
           </q-card-section>
-          <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
+          <q-card-section class="q-pt-none tokens-card-section">
             <div v-if="customToken.fetchingInfo" class="row items-center justify-center">
               <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
             </div>
@@ -101,22 +99,34 @@
               @click="onOKClick(Object.assign({ customToken: true }, customToken.info))"
             >
               <q-item-section avatar>
-                <img v-if="customToken.info.image_url" :src="customToken.info.image_url" height="30" class="q-mr-xs">
+                <img v-if="customToken.info.image_url" :src="customToken.info.image_url" height="30" class="q-mr-xs" alt="">
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ customToken.info.symbol }}</q-item-label>
-                <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ customToken.info.name }}</q-item-label>
+                <q-item-label
+                  :class="{'text-grey-6': darkMode}"
+                  style="overflow-wrap: anywhere;"
+                  caption
+                >
+                  {{ customToken.info.name }}
+                </q-item-label>
               </q-item-section>
             </q-item>
             <q-virtual-scroll :items="matchedTokensListFromCustomAddress">
               <template v-slot="{ item: token, index }">
                 <q-item clickable @click="onOKClick(token)">
                   <q-item-section avatar>
-                    <img v-if="token.image_url" :src="token.image_url" height="30" class="q-mr-xs">
+                    <img v-if="token.image_url" :src="token.image_url" height="30" class="q-mr-xs" alt="">
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>{{ token.symbol }}</q-item-label>
-                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.name }}</q-item-label>
+                    <q-item-label
+                      :class="{'text-grey-6': darkMode}"
+                      style="overflow-wrap: anywhere;"
+                      caption
+                    >
+                      {{ token.name }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
@@ -132,7 +142,7 @@ import { debounce } from 'quasar'
 import { inject } from 'vue'
 import { getSep20ContractDetails } from '../../wallet/sbch/utils'
 import ProgressLoader from '../ProgressLoader.vue'
-import { isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const _customTokenInfoCache = {}
 
@@ -215,6 +225,7 @@ export default {
   methods: {
     isNotDefaultTheme,
     isHongKong,
+    getDarkModeClass,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },
@@ -295,3 +306,10 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .tokens-card-section {
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+</style>
