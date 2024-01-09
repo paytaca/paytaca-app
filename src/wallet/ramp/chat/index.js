@@ -161,6 +161,61 @@ export async function fetchChatMembers (chatRef) {
   })
 }
 
+export function sendChatMessage (data) {
+  return new Promise((resolve, reject) => {
+    chatBackend.post('chat/messages/', data, { forceSign: true })
+      .then(response => {
+        console.log('Sent message:', response)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to send message:', error.response)
+        } else {
+          console.error('Failed to send message:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export function fetchChatMessages (chatRef, limit = 10) {
+  return new Promise((resolve, reject) => {
+    chatBackend.get(`chat/messages/?chat_ref=${chatRef}&limit=${limit}`, { forceSign: true })
+      .then(response => {
+        console.log('Messages: ', response)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to fetch messages:', error.response)
+        } else {
+          console.error('Failed to fetch message:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export function fetchChatPubkeys (chatRef) {
+  return new Promise((resolve, reject) => {
+    chatBackend.get(`chat/sessions/${chatRef}/pubkeys/`)
+      .then(response => {
+        if (!Array.isArray(response?.data)) reject({ response })
+        console.log('Chat pubkeys:', response?.data)
+        resolve(response?.data)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to fetch pubkeys:', error.response)
+        } else {
+          console.error('Failed to fetch pubkeys:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
 async function getKeypairSeed () {
   const wallet = await loadWallet('BCH', Store.getters['global/getWalletIndex'])
   const privkey = await wallet.BCH.getPrivateKey('0')

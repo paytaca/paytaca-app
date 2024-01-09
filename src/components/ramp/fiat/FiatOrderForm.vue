@@ -346,6 +346,7 @@ export default {
         .then(orderId => {
           vm.fetchOrderMembers(orderId)
             .then(members => {
+              console.log('members:', members)
               vm.createGroupChat(vm.order.id, members)
             })
         })
@@ -379,6 +380,7 @@ export default {
     },
     createGroupChat (orderId, members) {
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+      console.log('chatMembers:', chatMembers)
       createChatSession(orderId)
         .then(chatRef => addChatMembers(chatRef, chatMembers))
         .catch(console.error)

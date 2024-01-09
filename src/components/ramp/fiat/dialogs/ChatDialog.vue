@@ -162,7 +162,7 @@
           />
         </template>
       </q-input>
-      <q-icon :color="darkMode ? 'grey-3' : 'primary'" size="lg" name='sym_o_send' @click="sendMessage"/>&nbsp;
+      <q-icon :color="darkMode ? 'grey-3' : 'primary'" size="lg" name='sym_o_send' @click="sendMessage(true)"/>&nbsp;
     </div>
     <q-file
       v-show="false"
@@ -198,11 +198,9 @@
 <script>
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
-// import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
-import { fetchChatMembers } from 'src/wallet/ramp/chat'
-import { updateOrCreateKeypair, sha256 } from 'src/wallet/ramp/chat/keys'
+import { fetchChatMembers, fetchChatPubkeys, sendChatMessage, fetchChatMessages, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
 
 export default {
   setup () {
@@ -246,62 +244,10 @@ export default {
       attachment: null,
       attachmentUrl: '',
 
-      convo: {
-        chat_id: 1,
-        messages: [
-          {
-            id: 1,
-            sender: { id: 1, name: 'Nikki' },
-            text: 'Hey there!',
-            stamp: '3 hours ago',
-            owner: true
-          },
-          {
-            id: 2,
-            sender: { id: 2, name: 'Ellie' },
-            text: 'Hey Whats up',
-            stamp: '3 hours ago',
-            owner: false
-          },
-          {
-            id: 3,
-            sender: { id: 1, name: 'Nikki' },
-            text: 'Great!',
-            stamp: '2 hours ago',
-            owner: true
-          },
-          {
-            id: 4,
-            sender: { id: 1, name: 'Nikki' },
-            text: 'You?',
-            stamp: '2 hours ago',
-            owner: true
-          },
-          {
-            id: 5,
-            sender: { id: 2, name: 'Ellie' },
-            text: 'Good',
-            stamp: '50 minutes ago',
-            owner: false
-          },
-          {
-            id: 6,
-            sender: { id: 2, name: 'Ellie' },
-            text: 'Weeekldkalkd',
-            stamp: '50 minutes ago',
-            owner: false
-          },
-          {
-            id: 7,
-            sender: { id: 3, name: 'GOda' },
-            text: 'Greetings!!',
-            stamp: '10 minutes ago',
-            owner: false
-          },
-        ]
-      },
-
-      chatMembers: []
+      convo: {},
+      chatRef: '',
+      chatMembers: [],
+      chatPubkeys: []
     }
   },
   props: {
@@ -334,7 +280,7 @@ export default {
     async resizeAttachment () {
       this.attachment = await resizeImage({
         file: this.attachment,
-        maxWidthHeight: 640,
+        maxWidthHeight: 640
       })
     },
     // senderName (owner = true) {
@@ -347,16 +293,23 @@ export default {
     loadData () {
       const vm = this
       const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
-      fetchChatMembers(`ramp-order-${this.data.id}-chat`)
+      vm.chatRef = `ramp-order-${this.data.id}-chat`
+      fetchChatMembers(vm.chatRef)
         .then(members => {
           vm.chatMembers = members.map(member => {
             return {
               id: member.chat_identity.id,
               name: member.chat_identity.name,
-              is_user: member.chat_identity.name === username
+              is_user: member.chat_identity.name === username,
+              pubkeys: member.chat_identity.pubkeys
             }
           })
         })
+      fetchChatPubkeys(vm.chatRef)
+        .then(pubkeys => {
+          vm.chatPubkeys = pubkeys
+        })
+      fetchChatMessages(vm.chatRef)
     },
     refreshData (done) {
       console.log('refreshing data')
@@ -369,34 +322,57 @@ export default {
 
       this.resetScroll()
     }, 100),
-    async sendMessage () {
-      if (this.message || this.attachment) {
-        // send message
-        console.log('sending message')
-        //arrange data
-        let temp = {}
-
-        temp = {
-          id: 8,
-          sender: { id: 8, name: 'Nikki' },
-          text: this.message,
-          stamp: 'Now',
-          owner: true
+    async sendMessage (encrypt = true) {
+      const vm = this
+      let useFormData = false
+      let message = vm.message
+      let attachment = vm.attachment
+      if (message) {
+        // encrypt message
+        if (encrypt) {
+          const encryptedMessage = encryptMessage({
+            data: message,
+            privkey: vm.keypair.privkey,
+            pubkeys: vm.chatPubkeys
+          })
+          const serializedEncryptedMessage = compressEncryptedMessage(encryptedMessage)
+          message = serializedEncryptedMessage
         }
-        //encrypt image
-
-        if (this.attachment) {
-          temp.attachment = this.attachment
-          this.attachment = null
-          temp.attachmentUrl = this.attachmentUrl
-        }
-
-        //sending
-        this.convo.messages.push(temp)
-
-        this.message = ''
-        this.resetScroll()
       }
+      if (attachment) {
+        if (encrypt) {
+          const attachmentFile = new File()
+          const encryptedAttachment = await encryptImage({
+            file: attachmentFile,
+            privkey: vm.keypair.privkey,
+            pubkeys: vm.chatPubkeys
+          })
+          const serializedEncryptedAttachment = compressEncryptedImage(encryptedAttachment)
+          attachment = serializedEncryptedAttachment
+        }
+        useFormData = true
+      }
+      let data = null
+      if (useFormData) {
+        const formdata = new FormData()
+        formdata.set('chat_session_ref', vm.chatRef)
+        formdata.set('encrypted', encrypt)
+        formdata.set('message', message)
+        formdata.set('attachment', attachment)
+        formdata.set('attachment_encrypted', encrypt)
+        data = formdata
+      } else {
+        data = {
+          chat_session_ref: vm.chatRef,
+          message: message,
+          encrypted: encrypt
+        }
+      }
+      sendChatMessage(data)
+        .finally(() => {
+          vm.message = ''
+          vm.resetScroll()
+        })
     },
     async resetScroll () {
       await this.$refs.infiniteScroll.reset()

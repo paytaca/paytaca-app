@@ -135,6 +135,8 @@ export default {
                   vm.buildChatIdentityPayload(data)
                     .then(payload => createChatIdentity(payload))
                     .then(identity => updatePeerChatIdentityId(identity.id))
+                } else if (!vm.user.chat_identity_id) {
+                  updatePeerChatIdentityId(identity.id)
                 }
               })
           )
