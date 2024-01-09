@@ -263,7 +263,10 @@ export default {
           cancel: { noCaps: true, flat: true, label: 'Skip', color: 'grey' },
           class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
         }).onOk(() => {
-          $router.push({ name: 'app-marketplace-customer', params: { returnOnSave: true } })
+          $router.push({
+            name: 'app-marketplace-customer',
+            query: { returnOnSave: true, hideStayOnPageOpt: true },
+          })
           resolve('go')
         })
         .onCancel(() => resolve('skipped'))
