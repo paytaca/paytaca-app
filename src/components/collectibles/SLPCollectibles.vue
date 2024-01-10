@@ -23,7 +23,6 @@
         <div v-for="group in groupedCollectibles" class="q-mt-md">
           <div
             class="text-h6 row no-wrap items-center q-px-md"
-            
             v-ripple style="position:relative;"
             @click="() => toggleExpandGroup(group.token.token_id)"
           >
@@ -64,7 +63,7 @@
       </div>
     </template>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
-      <p style="font-size: 18px; color: gray; text-align: center; margin-top: 50px;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+      <p class="text-center pt-label no-collectibles-label" :class="getDarkModeClass(darkMode)">
         {{ $t('NoCollectibles') }}
       </p>
     </template>
@@ -75,7 +74,7 @@
 import ProgressLoader from 'components/ProgressLoader'
 import Collectible from 'components/collectibles/SLPCollectibleDetail'
 import SLPCollectiblesItem from 'components/collectibles/SLPCollectiblesItem.vue'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SLPCollectibles',
@@ -134,6 +133,7 @@ export default {
 
   methods: {
     isNotDefaultTheme,
+    getDarkModeClass,
     toggleExpandGroup(groupId) {
       const index = this.expandedGroupIds.indexOf(groupId)
       if (index >= 0) this.expandedGroupIds.splice(index, 1)
@@ -188,12 +188,13 @@ export default {
   }
 }
 </script>
-<style scoped>
-.collectible-card {
-  width: 100%;
-  max-width: 130px;
-}
-.upsidedown {
-  transform: rotate(180deg);
-}
+<style lang="scss" scoped>
+  .upsidedown {
+    transform: rotate(180deg);
+  }
+  .no-collectibles-label {
+    font-size: 18px;
+    color: gray;
+    margin-top: 50px;
+  }
 </style>

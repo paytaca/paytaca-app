@@ -620,4 +620,24 @@ body.theme-payhero {
       background: $label-white !important;
     }
   }
+
+  .q-pagination {
+    &.dark {
+      [aria-current='true'] {
+        background: $brand_yellow !important;
+        color: black !important;
+      }
+      [aria-current='false'] {
+        color: $brand_yellow !important;
+      }
+    }
+    &.light {
+      [aria-current='true'] {
+        background: $footer-bar !important;
+      }
+      [aria-current='false'] {
+        color: $footer-bar !important;
+      }
+    }
+  }
 }

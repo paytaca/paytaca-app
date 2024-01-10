@@ -42,17 +42,19 @@
       </div>
     </template>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
-      <p style="font-size: 18px; color: gray; text-align: center;" class="q-py-md" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+      <p
+        class="q-py-md text-center pt-label no-collectibles-label"
+        :class="getDarkModeClass(darkMode)">
         {{ $t('NoCollectibles') }}
       </p>
     </template>
-    <ERC721CollectibleDetail v-model="collectibleDetail.show" :darkMode="$store.getters['darkmode/getStatus']" :collectible="collectibleDetail.collectible"/>
+    <ERC721CollectibleDetail v-model="collectibleDetail.show" :darkMode="darkMode" :collectible="collectibleDetail.collectible"/>
   </div>
 </template>
 <script>
 import ERC721CollectibleDetail from 'components/collectibles/ERC721CollectibleDetail.vue'
 import ProgressLoader from 'components/ProgressLoader'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'ERC721Collectibles',
@@ -84,6 +86,9 @@ export default {
   },
 
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     theme () {
       return this.$store.getters['global/theme']
     },
@@ -105,6 +110,7 @@ export default {
 
   methods: {
     isNotDefaultTheme,
+    getDarkModeClass,
     getImageUrl (collectible) {
       if (!collectible || !collectible.metadata) return ''
       return collectible.metadata.image || ''
@@ -158,5 +164,9 @@ export default {
 .collectible-card {
   width: 100%;
   max-width: 130px;
+}
+.no-collectibles-label {
+  font-size: 18px;
+  color: gray;
 }
 </style>

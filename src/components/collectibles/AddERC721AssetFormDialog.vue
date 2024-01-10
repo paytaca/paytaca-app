@@ -1,7 +1,7 @@
 <template>
   <q-dialog v-model="val" @hide="resetForm()" persistent seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-sm" :class="{'pt-dark info-banner': darkMode}">
-        <q-card-section class="pt-label" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+    <q-card class="q-dialog-plugin br-15 q-pb-sm pt-card-2" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
           <span class="text-weight-medium">{{$t(isHongKong(currentCountry) ? 'Add_SEP721_Point' : 'Add_SEP721_Token')}}</span>
         </q-card-section>
         <q-separator />
@@ -49,8 +49,16 @@
           <q-separator class="q-mt-none"/>
 
           <q-card-actions align="right">
-            <q-btn rounded class="text-white button" color="blue-9" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
-            <q-btn rounded padding="0.5em 2em 0.5em 2em" flat :class="[darkMode ? 'pt-bg-dark' : 'pp-text']" :label="$t('Close')" v-close-popup />
+            <q-btn rounded class="button" padding="0.5em 2em 0.5em 2em" :label="$t('Add')" type="submit" />
+            <q-btn
+              rounded
+              padding="0.5em 2em 0.5em 2em"
+              flat
+              v-close-popup
+              class="text-bow"
+              :class="getDarkModeClass(darkMode)"
+              :label="$t('Close')"
+            />
           </q-card-actions>
         </q-form>
     </q-card>
@@ -60,7 +68,7 @@
 import { utils } from 'ethers'
 import { debounce } from 'quasar'
 import { getERC721ContractDetails } from '../../wallet/sbch/utils'
-import { isHongKong } from 'src/utils/theme-darkmode-utils'
+import { isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'AddERC721AssetFormDialog',
@@ -93,6 +101,7 @@ export default {
   },
   methods: {
     isHongKong,
+    getDarkModeClass,
     isValidAddress (address) {
       return utils.isAddress(address)
     },

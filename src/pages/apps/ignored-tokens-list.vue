@@ -1,18 +1,11 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)" class="pt-settings">
     <header-nav :title="$t(isHongKong(currentCountry) ? 'IgnoredPoints' : 'IgnoredTokens')" :backnavpath="backNavPath" />
-    <div
-      style="padding-top:25px;height:100vh;"
-      :class="[
-        darkMode ? 'text-white' : 'text-black',
-        'q-px-md',
-      ]"
-    >
+    <div class="q-px-md text-bow tabs-container" :class="getDarkModeClass(darkMode)">
       <q-tabs
         v-if="enableSmartBCH"
-        class="col-12 q-px-sm q-pb-md pp-fcolor"
+        class="col-12 q-px-sm q-pb-md q-tabs-component"
         v-model="selectedNetwork"
-        style="margin-top: -20px; padding-bottom: 16px;"
         :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
       >
         <q-tab
@@ -30,13 +23,9 @@
       </q-tabs>
       <q-list v-if="ignoredAssets.length">
         <template v-for="(token, index) in ignoredAssets" :key="index">
-          <q-item
-            :class="[
-              darkMode ? 'text-white' : 'text-black',
-            ]"
-          >
+          <q-item class="text-bow" :class="getDarkModeClass(darkMode)">
             <q-item-section v-if="token.logo" side>
-              <img :src="token.logo" height="30">
+              <img :src="token.logo" height="30" alt="">
             </q-item-section>
             <q-item-section>
               <q-item-label>
@@ -74,10 +63,8 @@
       </q-list>
       <div
         v-else
-        :class="[
-          'text-center q-mt-md',
-          darkMode ? 'text-white' : 'text-grey'
-        ]"
+        class="q-mt-md text-center text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="font-size: 18px"
       >
         {{ $t(isHongKong(currentCountry) ? 'NoIgnoredPoints' : 'NoIgnoredTokens') }}
@@ -230,3 +217,14 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .tabs-container {
+    padding-top: 25px;
+    height: 100vh;
+    .q-tabs-component {
+      margin-top: -20px;
+      padding-bottom: 16px;
+    }
+  }
+</style>

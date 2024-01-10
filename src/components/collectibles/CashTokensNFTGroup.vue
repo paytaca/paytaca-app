@@ -6,8 +6,8 @@
     <div class="row items-start q-pa-md">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
-        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
-        class="q-ma-sm"
+        class="q-ma-sm text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="max-width:130px;width:100%;"
         @click.stop="() => $emit('openNft', nft)"
       >
@@ -27,7 +27,7 @@
       </q-card>
     </div>
     <template v-if="!nfts.length && !fetchingNfts">
-      <p style="font-size: 18px; color: gray; text-align: center; margin-top: 20px;" :class="{'pt-dark-label': $store.getters['darkmode/getStatus']}">
+      <p class="text-center pt-label no-nfts-label" :class="getDarkModeClass(darkMode)">
         You don't own any CashToken NFTs yet.
       </p>
     </template>
@@ -123,3 +123,11 @@ function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
   return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
 }
 </script>
+
+<style lang="scss" scoped>
+  .no-nfts-label {
+    font-size: 18px;
+    color: gray;
+    margin-top: 20px;
+  }
+</style>
