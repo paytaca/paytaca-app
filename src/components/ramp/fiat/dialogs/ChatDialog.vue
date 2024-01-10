@@ -47,11 +47,39 @@
             </div>
           </template>
 
+          <div v-if="convo.messages.length !== 0 && isloaded">
+            <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
+              <!-- {{ message.chatIdentity.name }} -->
+              <!-- {{ message.attachmentUrl }} -->
+              <q-item>
+                <q-item-section>
+                  <div class="q-px-md justify-center" v-if="message.attachmentUrl">
+                    <div v-if="message.message">
+                      {{ message.chatIdentity.id }}
+                      {{ getUser(message.chatIdentity.id) }}
+                      <!-- <q-chat-message
+                        :name=""
+                      ></q-chat-message> -->
+                    </div >
+                  </div>
+                  <div v-else>
+                    <div v-if="message.message">
+                      {{ getUser(message.chatIdentity.id) }}
+                        <!-- <q-chat-message
+                          :name=""
+                        ></q-chat-message> -->
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </div>
+          </div>
           <!-- <div v-if="convo.messages.length !== 0">
             <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
               <q-item>
                 <q-item-section>
                   <div class="q-px-md justify-center" v-if="'attachment' in message">
+
                     <div v-if="message.text">
                       <q-chat-message
                         :name="message.owner ? 'me' : senderName(message.owner)"
@@ -238,7 +266,7 @@ export default {
       keypair: {},
 
       message: '',
-      owner: { id: 1, name: 'Nikki'},
+      owner: null,
       isloaded: false,
       isTyping: false,
 
@@ -277,6 +305,11 @@ export default {
     this.isloaded = true
   },
   methods: {
+    getUser (id) {
+      const vm = this
+      console.log('here member: ', vm.chatMembers)
+      return vm.chatMembers.filter(member => member.id === id)
+    },
     async loadKeyPair () {
       this.keypair = await updateOrCreateKeypair().catch(console.error)
     },
@@ -401,6 +434,8 @@ export default {
           console.log('decryptedMessages:', decryptedMessages)
           vm.convo.messages = decryptedMessages
         })
+
+      console.log('convo here: ', vm.convo.messages[0]._decryptedMessage)
     },
     async resetScroll () {
       await this.$refs.infiniteScroll.reset()
