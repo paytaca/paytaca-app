@@ -84,7 +84,7 @@ export default {
       // txExists: false,
       // timer: null,
       // waitSeconds: null,
-      hideBtn: true,
+      hideBtn: false,
       errorMessages: [],
       state: '',
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
@@ -191,6 +191,9 @@ export default {
       const url = vm.apiURL + '/order/' + vm.orderId + '/verify-escrow'
       const body = { txid: vm.transactionId }
       vm.$axios.post(url, body, { headers: vm.authHeaders })
+        .then(response => {
+          console.log('verifyEscrow: ', response)
+        })
         .catch(error => {
           console.error(error)
           if (error.response) {
@@ -205,7 +208,7 @@ export default {
     },
     onVerify () {
       const vm = this
-      vm.hideBtn = true
+      // vm.hideBtn = true
       vm.errorMessages = []
       switch (vm.action) {
         case 'ESCROW':

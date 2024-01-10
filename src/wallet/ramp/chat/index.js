@@ -161,9 +161,9 @@ export async function fetchChatMembers (chatRef) {
   })
 }
 
-export function sendChatMessage (data) {
+export function sendChatMessage (data, signData) {
   return new Promise((resolve, reject) => {
-    chatBackend.post('chat/messages/', data, { forceSign: true })
+    chatBackend.post('chat/messages/', data, { forceSign: true, signData: sha256(signData) })
       .then(response => {
         console.log('Sent message:', response)
         resolve(response)
@@ -184,7 +184,7 @@ export function fetchChatMessages (chatRef, limit = 10) {
     chatBackend.get(`chat/messages/?chat_ref=${chatRef}&limit=${limit}`, { forceSign: true })
       .then(response => {
         console.log('Messages: ', response)
-        resolve(response)
+        resolve(response.data?.results)
       })
       .catch(error => {
         if (error.response) {

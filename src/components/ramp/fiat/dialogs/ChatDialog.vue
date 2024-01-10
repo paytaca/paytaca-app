@@ -201,6 +201,7 @@ import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encry
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { fetchChatMembers, fetchChatPubkeys, sendChatMessage, fetchChatMessages, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
+import { ChatMessage } from 'src/wallet/ramp/chat/objects'
 
 export default {
   setup () {
@@ -244,7 +245,9 @@ export default {
       attachment: null,
       attachmentUrl: '',
 
-      convo: {},
+      convo: {
+        messages: []
+      },
       chatRef: '',
       chatMembers: [],
       chatPubkeys: []
@@ -309,7 +312,15 @@ export default {
         .then(pubkeys => {
           vm.chatPubkeys = pubkeys
         })
+      this.fetchMessages()
+    },
+    fetchMessages () {
+      const vm = this
       fetchChatMessages(vm.chatRef)
+        .then(messages => {
+          vm.convo.messages = messages
+          vm.decryptMessages(messages)
+        })
     },
     refreshData (done) {
       console.log('refreshing data')
@@ -327,6 +338,7 @@ export default {
       let useFormData = false
       let message = vm.message
       let attachment = vm.attachment
+      console.log('attachment:', vm.attachment)
       if (message) {
         // encrypt message
         if (encrypt) {
@@ -341,18 +353,18 @@ export default {
       }
       if (attachment) {
         if (encrypt) {
-          const attachmentFile = new File()
           const encryptedAttachment = await encryptImage({
-            file: attachmentFile,
+            file: attachment,
             privkey: vm.keypair.privkey,
             pubkeys: vm.chatPubkeys
           })
-          const serializedEncryptedAttachment = compressEncryptedImage(encryptedAttachment)
+          const serializedEncryptedAttachment = await compressEncryptedImage(encryptedAttachment)
           attachment = serializedEncryptedAttachment
         }
         useFormData = true
       }
       let data = null
+      let signData = null
       if (useFormData) {
         const formdata = new FormData()
         formdata.set('chat_session_ref', vm.chatRef)
@@ -361,6 +373,7 @@ export default {
         formdata.set('attachment', attachment)
         formdata.set('attachment_encrypted', encrypt)
         data = formdata
+        signData = message
       } else {
         data = {
           chat_session_ref: vm.chatRef,
@@ -368,10 +381,27 @@ export default {
           encrypted: encrypt
         }
       }
-      sendChatMessage(data)
+      sendChatMessage(data, signData)
         .finally(() => {
           vm.message = ''
           vm.resetScroll()
+        })
+    },
+    async decryptMessage (message = ChatMessage.parse(), tryAllKeys = false) {
+      if (!this.keypair.privkey) await this.loadKeyPair()
+      if (!this.keypair.privkey) return
+      if (message.decryptedMessage) return
+      const decryptedMessage = message.decryptMessage(this.keypair?.privkey, tryAllKeys)
+      return decryptedMessage
+    },
+    async decryptMessages (messages) {
+      const vm = this
+      if (!vm.keypair.privkey) await vm.loadKeyPair()
+      if (!vm.keypair.privkey) return
+      await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
+        .then(decryptedMessages => {
+          console.log('decryptedMessages:', decryptedMessages)
+          vm.convo.messages = decryptedMessages
         })
     },
     async resetScroll () {
