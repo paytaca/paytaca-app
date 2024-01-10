@@ -1786,16 +1786,16 @@ async function completeCheckout() {
 
 const checkoutStorefrontId = computed(() => checkout.value?.cart?.storefrontId)
 onActivated(() => {
-  if (!storefrontId.value) return
-  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+  if (!checkoutStorefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', checkoutStorefrontId.value)
 })
 watch(checkoutStorefrontId, () => {
   if (!checkout.value?.cart?.storefrontId) return
-  $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)
+  $store.commit('marketplace/setActiveStorefrontId', checkoutStorefrontId.value)
   if (!checkoutStorefront.value?.id) fetchCheckoutStorefront()
 })
 
-const checkoutStorefront = computed(() => $store.getters['marketplace/getStorefront']?.(checkout.value?.cart?.storefrontId))
+const checkoutStorefront = computed(() => $store.getters['marketplace/getStorefront']?.(checkoutStorefrontId.value))
 function fetchCheckoutStorefront() {
   if (!checkoutStorefrontId.value) Promise.reject()
   backend.get(`connecta/storefronts/${checkoutStorefrontId.value}/`)
