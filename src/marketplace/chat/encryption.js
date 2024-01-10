@@ -171,13 +171,15 @@ export function compressEncryptedMessage(messagePayload) {
 
 export function decompressEncryptedMessage(data='') {
   const dataStr = Buffer.from(data, 'base64').toString('utf-8')
-  const deserialized = JSON.parse(dataStr)
-
   const response = { data: '', iv: '', authorPubkey: '', pubkeys: [].map(String) }
-  response.data = deserialized?.d
-  response.iv = deserialized?.iv
-  response.authorPubkey = deserialized?.pk
-  response.pubkeys = deserialized?.pks
+  if (dataStr) {
+    const deserialized = JSON.parse(dataStr)
+    response.data = deserialized?.d
+    response.iv = deserialized?.iv
+    response.authorPubkey = deserialized?.pk
+    response.pubkeys = deserialized?.pks
+  }
+
   return response
 }
 
