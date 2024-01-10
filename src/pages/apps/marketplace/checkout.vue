@@ -1519,12 +1519,13 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
   })
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
     .then(response => {
-      if (payment.value.escrowContractAddress == response?.data?.address) payment.value.fetchEscrowContract()
+      if (payment.value?.escrowContractAddress == response?.data?.address) payment.value.fetchEscrowContract()
       fetchCheckout()
       dialog.hide()
       return response
     })
     .catch(error => {
+      console.error(error)
       const data = error?.response?.data
       let errorMessage = errorParser.firstElementOrValue(data?.non_field_errors) ||
                         errorParser.firstElementOrValue(data?.detail)
@@ -1535,7 +1536,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
       return Promise.reject(error)
     })
     .finally(() => {
-      dialog.update({ persistent: false, ok: { color: 'brandblue' } })
+      dialog.update({ persistent: false, progress: false, ok: { color: 'brandblue' } })
       loadingState.value.payment = false
       loadingMsg.value = resolveLoadingMsg()
     })
