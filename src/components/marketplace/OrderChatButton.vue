@@ -3,7 +3,8 @@
     <slot name="button" v-bind="{ orderChatSession, fetchOrderChatSession, toggleChatDialog, openChatDialog }">
       <q-btn
         fab
-        padding="12px"
+        round
+        padding="18px"
         icon="message"
         color="brandblue"
         @click="() => toggleChatDialog()"
