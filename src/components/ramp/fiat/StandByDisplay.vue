@@ -3,13 +3,13 @@
     <q-pull-to-refresh @refresh="$emit('refresh')">
       <div class="q-mx-lg text-center bold-text">
         <div class="lg-font-size">
-          <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
+          <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
         <div class="text-center subtext md-font-size bold-text">ORDER #{{ order.id }}</div>
-        <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
+        <div v-if="order.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
-        <div v-if="order.status.value === 'APL'">
+        <div v-if="order.status?.value === 'APL'">
           <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
               <div class="bold-text md-font-size">Appeal reasons</div>
@@ -35,11 +35,11 @@
             :dark="darkMode"
             v-model="cryptoAmount">
             <template v-slot:append>
-              <span class="md-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
+              <span class="md-font-size bold-text">{{ order.crypto_currency?.symbol }}</span>
             </template>
           </q-input>
           <div class="col text-right sm-font-size q-pl-sm">
-            = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
+            = {{ fiatAmount }} {{ order.fiat_currency?.symbol }}
           </div>
         </div>
         <div v-if="displayContractInfo">
@@ -198,6 +198,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -228,7 +229,7 @@ export default {
     }
   },
   props: {
-    orderId: Number,
+    data: Object,
     feedbackData: Object,
     rampContract: Object
   },
@@ -255,7 +256,7 @@ export default {
       return (this.order.status.value === 'RLS' || this.order.status.value === 'RFN')
     },
     orderStatus () {
-      return this.order.status.label.toUpperCase()
+      return this.order.status?.label?.toUpperCase()
     },
     forRelease () {
       let release = false
@@ -314,9 +315,7 @@ export default {
     if (this.feedbackData) {
       this.feedback = this.feedbackData
     }
-    await this.fetchOrderDetail()
-    this.paymentCountdown()
-    this.checkStatus()
+    this.loadData()
     this.isloaded = true
   },
   beforeUnmount () {
@@ -324,6 +323,44 @@ export default {
     this.timer = null
   },
   methods: {
+    loadData () {
+      this.order = this.data
+      if (this.order.status?.value === 'APL') {
+        this.fetchAppeal()
+      } else {
+        this.fetchContract()
+      }
+      this.paymentCountdown()
+      this.checkStatus()
+    },
+    fetchAppeal () {
+      const vm = this
+      backend.get(`/ramp-p2p/order/${vm.order.id}/appeal`, { authorize: true })
+        .then(response => {
+          console.log(response)
+          vm.contract.address = response.data?.contract?.address
+          vm.appeal = response.data?.appeal
+          vm.getContractBalance()
+        })
+    },
+    fetchContract () {
+      const vm = this
+      backend.get(`/ramp-p2p/order/${vm.order.id}/contract`, { authorize: true })
+        .then(response => {
+          vm.contract.address = response.data?.contract?.address
+          vm.getContractBalance()
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
+        })
+    },
     getContractBalance () {
       const vm = this
       if (this.rampContract) {
@@ -334,29 +371,6 @@ export default {
           .catch(error => {
             console.error(error)
           })
-      }
-    },
-    async fetchOrderDetail () {
-      const vm = this
-      const url = vm.apiURL + '/order/' + vm.orderId
-      try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
-        vm.order = response.data.order
-        if (response.data.contract) {
-          vm.contract.address = response.data.contract.address
-        }
-        vm.appeal = response.data.appeal
-        if (vm.contract.address && vm.contract.balance === null) {
-          vm.getContractBalance()
-        }
-      } catch (error) {
-        console.error(error)
-        if (error.response) {
-          console.error(error.response)
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        }
       }
     },
     checkStatus () {

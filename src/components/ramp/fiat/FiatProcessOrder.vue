@@ -51,7 +51,7 @@
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
         :key="standByDisplayKey"
-        :order-id="order.id"
+        :data="order"
         :feedback-data="feedback"
         :ramp-contract="rampContract"
         @send-feedback="sendFeedback"
@@ -110,6 +110,8 @@ import ChatDialog from './dialogs/ChatDialog.vue'
 import StandByDisplay from './StandByDisplay.vue'
 import PaymentConfirmation from './PaymentConfirmation.vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
+import { addChatMembers } from 'src/wallet/ramp/chat'
 
 export default {
   data () {
@@ -224,6 +226,7 @@ export default {
   },
   methods: {
     updateStatus (status) {
+      console.log('Updating order status to:', status)
       const vm = this
       if (!status || vm.status === status) return
       vm.status = status
@@ -237,6 +240,7 @@ export default {
       if (this.isExpired) {
         if (!vm.isPdPendingRelease(status) && !vm.isStatusCompleted(status)) {
           vm.state = 'standby-view'
+          vm.standByDisplayKey++
           return
         }
       }
@@ -471,18 +475,8 @@ export default {
         .then(data => {
           const contract = data.contract
           const fees = data.fees
-          const publicKeys = {
-            arbiter: contract.arbiter.public_key,
-            seller: contract.seller.public_key,
-            buyer: contract.buyer.public_key,
-            servicer: contract.servicer.public_key
-          }
-          const addresses = {
-            arbiter: contract.arbiter.address,
-            seller: contract.seller.address,
-            buyer: contract.buyer.address,
-            servicer: contract.servicer.address
-          }
+          const publicKeys = contract.pubkeys
+          const addresses = contract.addresses
           const fees_ = {
             arbitrationFee: fees.fees.arbitration_fee,
             serviceFee: fees.fees.service_fee,
@@ -499,20 +493,46 @@ export default {
     },
     submitAppeal (data) {
       const vm = this
-      const url = `${vm.apiURL}/order/${vm.order.id}/appeal`
-      vm.$axios.post(url, data, { headers: vm.authHeaders })
-        .then(response => {
-          this.updateStatus(response.data.status)
-        })
+      backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
+        .then(response => vm.updateStatus(response.data.status))
+        .then(vm.addArbiterToChat())
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
         })
+    },
+    addArbiterToChat () {
+      const vm = this
+      const chatRef = `ramp-order-${vm.order.id}-chat`
+      vm.fetchOrderMembers(vm.order.id)
+        .then(members => {
+          const arbiter = members.filter(member => member.is_arbiter === true)
+          const arbiterMembers = arbiter.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+          addChatMembers(chatRef, arbiterMembers)
+        })
+    },
+    fetchOrderMembers (orderId) {
+      return new Promise((resolve, reject) => {
+        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+          .then(response => {
+            console.log(response)
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
     },
     sendFeedback (feedback) {
       const vm = this
@@ -558,7 +578,6 @@ export default {
         .then(response => {
           if (response.data) {
             const data = response.data.feedbacks[0]
-            console.log('data: ', data)
             vm.feedback = {
               rating: data.rating,
               comment: data.comment,
