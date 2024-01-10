@@ -338,7 +338,6 @@ export default {
       let useFormData = false
       let message = vm.message
       let attachment = vm.attachment
-      console.log('attachment:', vm.attachment)
       if (message) {
         // encrypt message
         if (encrypt) {
@@ -364,7 +363,7 @@ export default {
         useFormData = true
       }
       let data = null
-      let signData = null
+      const signData = message
       if (useFormData) {
         const formdata = new FormData()
         formdata.set('chat_session_ref', vm.chatRef)
@@ -373,7 +372,6 @@ export default {
         formdata.set('attachment', attachment)
         formdata.set('attachment_encrypted', encrypt)
         data = formdata
-        signData = message
       } else {
         data = {
           chat_session_ref: vm.chatRef,

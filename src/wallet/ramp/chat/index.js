@@ -163,7 +163,11 @@ export async function fetchChatMembers (chatRef) {
 
 export function sendChatMessage (data, signData) {
   return new Promise((resolve, reject) => {
-    chatBackend.post('chat/messages/', data, { forceSign: true, signData: sha256(signData) })
+    const config = { forceSign: true }
+    if (signData !== null) {
+      config.signData = sha256(signData)
+    }
+    chatBackend.post('chat/messages/', data, config)
       .then(response => {
         console.log('Sent message:', response)
         resolve(response)
