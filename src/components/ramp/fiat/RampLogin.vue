@@ -114,12 +114,12 @@ export default {
     if (this.error) {
       this.errorMessage = this.error
     }
-    const walletInfo = this.loadWallet()
-    console.log('walletInfo: ', walletInfo)
+    this.loadWallet()
     this.getProfile()
   },
   methods: {
-    loadChatIdentity () {
+    async loadChatIdentity () {
+      await updateSignerData()
       return new Promise((resolve, reject) => {
         const vm = this
         const data = {
@@ -127,19 +127,16 @@ export default {
           ref: vm.wallet.walletHash,
           name: vm.user.name
         }
-        updateSignerData()
-          .then(
-            fetchChatIdentity(data.ref)
-              .then(identity => {
-                if (!identity) {
-                  vm.buildChatIdentityPayload(data)
-                    .then(payload => createChatIdentity(payload))
-                    .then(identity => updatePeerChatIdentityId(identity.id))
-                } else if (!vm.user.chat_identity_id) {
-                  updatePeerChatIdentityId(identity.id)
-                }
-              })
-          )
+        fetchChatIdentity(data.ref)
+          .then(identity => {
+            if (!identity) {
+              vm.buildChatIdentityPayload(data)
+                .then(payload => createChatIdentity(payload))
+                .then(identity => updatePeerChatIdentityId(identity.id))
+            } else if (!vm.user.chat_identity_id) {
+              updatePeerChatIdentityId(identity.id)
+            }
+          })
           .then(updateOrCreateKeypair())
           .finally(resolve())
           .catch(error => {
@@ -179,7 +176,7 @@ export default {
       const vm = this
       backend.get('/ramp-p2p/user')
         .then(response => {
-          console.log('Profile:', response)
+          console.log('profile:', response.data)
           if (response.data && response.data.user) {
             vm.isArbiter = response.data.is_arbiter
             vm.user = response.data.user
@@ -225,7 +222,6 @@ export default {
       backend(`/auth/otp/${this.isArbiter ? 'arbiter' : 'peer'}`)
         .then(response => rampWallet.signMessage(response.data.otp))
         .then(signature => {
-          console.log('signature:', signature)
           rampWallet.pubkey()
             .then(pubkey => {
               const body = {
