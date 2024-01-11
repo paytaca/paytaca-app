@@ -226,18 +226,8 @@ export default {
     },
     async generateContract () {
       if (!this.contract || !this.fees) return
-      const publicKeys = {
-        arbiter: this.contract.arbiter.public_key,
-        seller: this.contract.seller.public_key,
-        buyer: this.contract.buyer.public_key,
-        servicer: this.contract.servicer.public_key
-      }
-      const addresses = {
-        arbiter: this.contract.arbiter.address,
-        seller: this.contract.seller.address,
-        buyer: this.contract.buyer.address,
-        servicer: this.contract.servicer.address
-      }
+      const publicKeys = this.contract.pubkeys
+      const addresses = this.contract.addresses
       const fees = {
         arbitrationFee: this.fees.fees.arbitration_fee,
         serviceFee: this.fees.fees.service_fee,
