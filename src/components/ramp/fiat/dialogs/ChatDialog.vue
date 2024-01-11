@@ -48,30 +48,107 @@
           </template>
 
           <div v-if="convo.messages.length !== 0 && isloaded">
-            <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
-              <!-- {{ message.chatIdentity.name }} -->
-              <!-- {{ message.attachmentUrl }} -->
+            <div v-for="(message, index) in convo.messages.reverse()" :key="index" :set="user = getUser(message.chatIdentity.id)" class="q-pt-xs">
               <q-item>
                 <q-item-section>
-                  <div class="q-px-md justify-center" v-if="message.attachmentUrl">
+                  <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
                     <div v-if="message.message">
-                      {{ message.chatIdentity.id }}
-                      {{ getUser(message.chatIdentity.id) }}
-                      <!-- <q-chat-message
-                        :name=""
-                      ></q-chat-message> -->
-                    </div >
+                      <q-chat-message
+                        :name="user.is_user? 'You': user.name"
+                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ user.name }&color=fffff`"
+                        :stamp="new Date(message.createdAt).toLocaleString"
+                        :sent="user.is_user"
+                        :bg-color="user.is_user ? 'blue-5': 'blue-grey-2'"
+                        :text-color="user.is_user ? 'white' : 'black'"
+                        size="6"
+                      >
+                        <div style="font-size: 13px; font-weight: 400;">
+                          {{ message.text }}
+                        </div>
+                      </q-chat-message>
+                      <div class="row q-px-lg q-mx-lg q-pt-sm" :class="user.is_user ? 'justify-end' : ''">
+                        <img
+                          class="q-px-sm"
+                          v-if="message?.decryptedAttachmentFile?.url"
+                          :src="message?.decryptedAttachmentFile?.url"
+                          style="max-width:75%;border-radius:4px;"
+                        />
+                        <div v-else class="row items-center">
+                          <div
+                            class="text-grey encrypted-attachment-text"
+                            @click="() => decryptMessageAttachment(message, true)"
+                            v-element-visibility="() => decryptMessageAttachment(message)"
+                            >
+                              Attachment encrypted
+                              <q-spinner v-if="message?.$state?.decryptingAttachment"/>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else>
+                      <div :class="user.is_user? 'text-right' : ''" style="font-size: 13px;" :style="user.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'">{{ user.is_user ? 'me' : user.name }}</div>
+                      <div class="row" :class="user.is_user ? 'justify-end' : ''">
+                        <q-avatar size="6" v-if="!user.is_user">
+                          <img :src="`https://ui-avatars.com/api/?background=random&name=${user.name}&color=fffff`">
+                        </q-avatar>
+                        <div class="q-px-lg q-mx-lg q-pt-sm">
+                          <img
+                            class="q-px-sm"
+                            v-if="message?.decryptedAttachmentFile?.url"
+                            :src="message?.decryptedAttachmentFile?.url"
+                            style="max-width:75%;border-radius:4px;"
+                          />
+                          <div v-else class="row items-center">
+                            <div
+                              class="text-grey encrypted-attachment-text"
+                              @click="() => decryptMessageAttachment(message, true)"
+                              v-element-visibility="() => decryptMessageAttachment(message)"
+                              >
+                                Attachment encrypted
+                                <q-spinner v-if="message?.$state?.decryptingAttachment"/>
+                            </div>
+                          </div>
+                        </div>
+                        <q-avatar size="6" v-if="user.is_user">
+                          <img :src="`https://ui-avatars.com/api/?background=random&name=${user.name}&color=fffff`">
+                        </q-avatar>
+                      </div>
+                    </div>
                   </div>
-                  <div v-else>
-                    <div v-if="message.message">
-                      {{ getUser(message.chatIdentity.id) }}
-                        <!-- <q-chat-message
-                          :name=""
-                        ></q-chat-message> -->
+                  <div class="q-px-md row justify-center" v-else>
+                    <div style="width: 100%;">
+                      <q-chat-message
+                        :name="user.is_user ? 'me' : user.name"
+                        :avatar="`https://ui-avatars.com/api/?background=random&name=${user.name}&color=fffff`"
+                        :stamp="new Date(message.createdAt).toLocaleString()"
+                        :sent="user.is_user"
+                        :bg-color="user.is_user ? 'blue-5' : 'blue-grey-2'"
+                        :text-color="user.is_user ? 'white' : 'black'"
+                        size="6"
+                      >
+                        <div style="font-size: 13px; font-weight: 400;">
+                          {{ message._decryptedMessage }}
+                        </div>
+                      </q-chat-message>
                     </div>
                   </div>
                 </q-item-section>
               </q-item>
+            </div>
+          </div>
+          <div v-if="message" class="q-px-sm q-mx-lg">
+            <div style="width: 100%;">
+              <q-chat-message
+                name="me"
+                sent
+                :avatar="`https://ui-avatars.com/api/?background=random&name=${getUser().name}&color=fffff`"
+                bg-color="blue-5"
+                size="6"
+              >
+                <div class="text-center">
+                  <q-spinner-dots color="white" size="2rem" />
+                </div>
+              </q-chat-message>
             </div>
           </div>
           <!-- <div v-if="convo.messages.length !== 0">
@@ -79,7 +156,6 @@
               <q-item>
                 <q-item-section>
                   <div class="q-px-md justify-center" v-if="'attachment' in message">
-
                     <div v-if="message.text">
                       <q-chat-message
                         :name="message.owner ? 'me' : senderName(message.owner)"
@@ -300,15 +376,25 @@ export default {
   emits: ['close'],
   async mounted () {
     // Set Data Here
+
     this.loadKeyPair()
     this.loadData()
-    this.isloaded = true
+    // console.log('done')
+    // this.isloaded = true
   },
   methods: {
-    getUser (id) {
+    getUser (userid = null) {
       const vm = this
-      console.log('here member: ', vm.chatMembers)
-      return vm.chatMembers.filter(member => member.id === id)
+      console.log('id: ', userid)
+
+      let user = null
+
+      if (userid) {
+        user = vm.chatMembers.filter(member => member.id === userid)[0]
+      } else {
+        user = vm.chatMembers.filter(member => member.is_user === true)[0]
+      }
+      return user
     },
     async loadKeyPair () {
       this.keypair = await updateOrCreateKeypair().catch(console.error)
@@ -350,14 +436,16 @@ export default {
     fetchMessages () {
       const vm = this
       fetchChatMessages(vm.chatRef)
-        .then(messages => {
+        .then(async (messages) => {
           vm.convo.messages = messages
-          vm.decryptMessages(messages)
+          await vm.decryptMessages(messages)
+          this.isloaded = true
         })
     },
     refreshData (done) {
       console.log('refreshing data')
       setTimeout(() => {
+        this.fetchMessages()
         done()
       }, 1000)
     },
@@ -365,7 +453,7 @@ export default {
       this.isTyping = true
 
       this.resetScroll()
-    }, 100),
+    }, 500),
     async sendMessage (encrypt = true) {
       const vm = this
       let useFormData = false
@@ -437,7 +525,14 @@ export default {
 
       console.log('convo here: ', vm.convo.messages[0]._decryptedMessage)
     },
+    async decryptMessageAttachment(chatMessage = ChatMessage.parse(), tryAllKeys=false) {
+      if (!this.keypair.value?.privkey) await this.loadKeyPair()
+      if (!this.keypair.value?.privkey) return
+      if (this.chatMessage?.decryptedAttachmentFile?.url) return
+      return chatMessage.decryptAttachment(this.keypair.value?.privkey, tryAllKeys)
+    },
     async resetScroll () {
+      console.log(this.$refs.infiniteScroll.$el.clientHeight)
       await this.$refs.infiniteScroll.reset()
       const scrollElement = this.$refs.scrollTargetRef.$el
       const test = this.$refs.infiniteScroll.$el
@@ -446,3 +541,12 @@ export default {
   }
 }
 </script>
+<style lang="scss">
+.encrypted-attachment-text {
+  max-width: 75%;
+  text-decoration: underline;
+  border: 0.5px solid $grey;
+  border-radius: map-get($space-xs, 'x');
+  padding: map-get($space-xs, 'y') map-get($space-sm, 'x');
+}
+</style>
