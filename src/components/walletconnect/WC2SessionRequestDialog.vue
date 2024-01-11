@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogCancel" seamless>
-    <q-card :class="getDarkModeClass(darkMode, 'text-white pt-dark-card', 'text-black')">
+    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pb-sm q-px-sm q-pt-sm">
         <div class="text-h5 q-space">
           {{ title }}
@@ -11,7 +11,7 @@
       <q-card-section class="q-pt-none" style="max-height:calc(80vh - 6rem);overflow:auto;">
         <q-item dense class="q-mb-md">
           <q-item-section v-if="session?.peer?.metadata?.icons?.[0]" avatar>
-            <img :src="session?.peer?.metadata?.icons?.[0]" width="50"/>
+            <img :src="session?.peer?.metadata?.icons?.[0]" width="50" alt=""/>
           </q-item-section>
           <q-item-section>
             <q-item-label>{{ session?.peer?.metadata?.name }}</q-item-label>
@@ -31,7 +31,8 @@
         <template v-if="sessionRequest?.params?.request?.method === 'bch_signTransaction'">
           <q-banner
             v-if="sessionRequest?.params?.request?.params?.userPrompt"
-            :class="getDarkModeClass(darkMode, 'pt-dark info-banner', 'text-black')" class="rounded-borders"
+            class=" rounded-borders pt-card-2 text-bow"
+            :class="getDarkModeClass(darkMode)"
           >
             {{ sessionRequest?.params?.request?.params?.userPrompt }}
           </q-banner>
@@ -42,7 +43,7 @@
         </template>
         <template v-else-if="sessionRequest?.params?.request?.method === 'bch_signMessage'">
           <div class="text-grey">Message</div>
-          <q-banner :class="getDarkModeClass(darkMode, 'pt-dark info-banner', 'text-black')" class="rounded-borders">
+          <q-banner class=" rounded-borders pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             <div style="word-break: break-all;">
               {{ sessionRequest?.params?.request?.params?.message }}
             </div>

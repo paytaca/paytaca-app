@@ -5,22 +5,28 @@
       <div class="col-12 q-px-lg q-mt-lg">
         <p class="section-title">{{ $t('BchAddresses') }}</p>
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
-          <q-item clickable v-ripple>
+          <q-item clickable v-ripple style="padding-top: 15px">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('bch').derivationPath }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                {{ getWallet('bch').derivationPath }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').xPubKey }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWallet('bch').xPubKey }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('bch').walletHash }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWallet('bch').walletHash }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item>
@@ -29,33 +35,28 @@
               <q-banner
                 v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
                 dense
-                :class="[
-                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2 text-dark',
-                  'rounded-borders q-mt-sm q-mb-md',
-                ]"
+                class="rounded-borders q-mt-sm q-mb-md pt-card-2 text-bow"
+                :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
               >
                 UTXO scan completed at {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
-                    color="blue-9"
-                    class="dismiss-text"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
                     :label="$t('Dismiss')"
                     @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
                   />
                 </template>
               </q-banner>
               <q-item-label
-                :class="[
-                  darkMode ? 'pt-dark-label' : 'pp-text',
-                  'row items-center justify-around q-mb-sm',
-                ]"
+                class="row items-center justify-around q-mb-sm pt-label"
+                :class="getDarkModeClass(darkMode)"
                 style="word-wrap: break-word;"
               >
                 <q-btn-group rounded spread class="q-space">
                   <q-btn
                     no-caps
-                    color="blue-9"
                     padding="xs sm"
                     class="button"
                     :disable="bchUtxoScanOngoing"
@@ -65,7 +66,6 @@
                   />
                   <q-btn
                     no-caps
-                    color="blue-9"
                     padding="xs sm"
                     class="button"
                     :disable="scanningBchAddresses"
@@ -98,22 +98,28 @@
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SlpAddresses') }}</p>
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
-          <q-item clickable v-ripple>
+          <q-item clickable v-ripple style="padding-top: 15px">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('slp').derivationPath }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                {{ getWallet('slp').derivationPath }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').xPubKey)">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').xPubKey }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWallet('slp').xPubKey }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple @click="copyToClipboard(getWallet('slp').walletHash)">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('slp').walletHash }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWallet('slp').walletHash }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item>
@@ -122,33 +128,28 @@
               <q-banner
                 v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.completedAt"
                 dense
-                :class="[
-                  darkMode ? 'pt-dark text-white info-banner' : 'bg-grey-2 text-dark',
-                  'rounded-borders q-mt-sm q-mb-md',
-                ]"
+                class="rounded-borders q-mt-sm q-mb-md pt-card-2 text-bow"
+                :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
               >
                 UTXO scan completed at {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
-                    color="blue-9"
-                    class="dismiss-text"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
                     :label="$t('Dismiss')"
                     @click="$store.commit('global/removeUtxoScanTask', slpUtxoScanTaskInfo?.walletHash)"
                   />
                 </template>
               </q-banner>
               <q-item-label
-                :class="[
-                  darkMode ? 'pt-dark-label' : 'pp-text',
-                  'row items-center justify-around q-mb-sm',
-                ]"
+                class="row items-center justify-around q-mb-sm pt-label"
+                :class="getDarkModeClass(darkMode)"
                 style="word-wrap: break-word;"
               >
                 <q-btn-group rounded spread class="q-space">
                   <q-btn
                     no-caps
-                    color="blue-9"
                     padding="xs sm"
                     class="button"
                     :disable="slpUtxoScanOngoing"
@@ -158,7 +159,6 @@
                   />
                   <q-btn
                     no-caps
-                    color="blue-9"
                     padding="xs sm"
                     class="button"
                     :disable="scanningSlpAddresses"
@@ -190,23 +190,29 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('SmartBchAddresses') }}</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
           <q-item clickable v-ripple>
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ getWallet('sbch').derivationPath }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                {{ getWallet('sbch').derivationPath }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple @click="copyToClipboard(getWallet('sbch').walletHash)">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ getWallet('sbch').walletHash }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWallet('sbch').walletHash }}
+              </q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-if="sbchLnsName" clickable v-ripple @click="copyToClipboard(sbchLnsName)">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>LNS Name</q-item-label>
-              <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="word-wrap: break-word;">{{ sbchLnsName }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ sbchLnsName }}
+              </q-item-label>
             </q-item-section>
             <q-item-section side>
               <q-btn
@@ -224,11 +230,11 @@
       </div>
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)">
+        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
           <q-item clickable @click="executeSecurityChecking">
-            <q-item-section class="text-black">
-              <q-item-label :class="{'text-white': darkMode}" v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
-              <q-item-label class="text-center" :class="{'text-white': darkMode}" v-else>{{ $t('ClickToReveal') }}</q-item-label>
+            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+              <q-item-label v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
+              <q-item-label class="text-center" v-else>{{ $t('ClickToReveal') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -739,9 +745,6 @@ export default {
     z-index: 1 !important;
     min-height: 100vh;
   }
-  .text-gray {
-    color: gray;
-  }
   .section-title {
     font-size: 18px;
     margin-left: 10px;
@@ -752,19 +755,5 @@ export default {
     background-color: #fff;
     border-radius: 12px;
     z-index: 1 !important;
-  }
-  .blurry-text {
-    color: transparent;
-    text-shadow: 0 0 5px rgba(0,0,0,0.5);
-  }
-  .blurry-text-d {
-    color: transparent;
-    text-shadow: 0 0 5px rgba(255,255,255,0.5);
-  }
-  .pp-text {
-    color: #000 !important;
-  }
-  .pp-text-d {
-    color: #fff !important;
   }
 </style>

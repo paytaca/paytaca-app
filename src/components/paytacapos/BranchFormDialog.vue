@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:min(350px, 90vw)">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(350px, 90vw)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm">
           <template v-if="newBranch">
@@ -167,6 +167,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 const emit = defineEmits([

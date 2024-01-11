@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
         <q-btn
@@ -8,6 +8,7 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <q-card-section class="q-gutter-y-sm">
@@ -71,7 +72,8 @@
             padding="none"
             flat
             no-caps
-            :color="darkMode? 'white': 'brandblue'"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             label="Generate new code"
             @click="generateLinkCode()"
             style="text-decoration:underline;"
@@ -89,6 +91,7 @@ import { padPosId, aes } from 'src/wallet/pos'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
 import { useStore } from 'vuex';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 

@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" :persistent="persistent" seamless>
-    <q-card style="max-width:90vw; min-width:300px;" class="br-15 q-pb-xs" :class="{'pt-dark-card': darkMode, 'text-white': darkMode, 'text-black': !darkMode }">
+    <q-card class="br-15 q-pb-xs pt-card text-bow call-request-container" :class="getDarkModeClass(darkMode)">
       <q-card-section class="row no-wrap items-center q-pb-xs">
         <div>
           <div class="text-subtitle1 text-grad text-weight-medium">{{ $t('CallRequest') }}</div>
@@ -16,7 +16,7 @@
           round
           dense
           v-close-popup
-          :color="darkMode ? 'grey' : ''"
+          class="close-button"
         />
       </q-card-section>
 
@@ -163,6 +163,7 @@
 <script>
 import JSONRenderer from 'components/JSONRenderer.vue'
 import { BigNumber } from 'ethers'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'WalletConnectCallRequestDialog',
@@ -224,6 +225,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     decodeHex (value) {
       if (!/(0x)?[0-9a-f]*/i.test(value)) return ''
       return Buffer.from(value.replace('0x', ''), 'hex').toString('utf8')
@@ -251,6 +253,10 @@ export default {
 }
 </script>
 <style scoped lang="scss">
+.call-request-container {
+  min-width: 300px;
+  max-width: 90vw;
+}
 .break-word {
   word-break: break-all;
 }

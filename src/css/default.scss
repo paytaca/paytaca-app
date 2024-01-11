@@ -379,4 +379,8 @@ body.theme-default {
   .q-btn.q-btn--rounded.bg-amber {
     background-color: shared.$brand_blue !important;
   }
+
+  .pin-icon {
+    color: shared.$brand_blue;
+  }
 }

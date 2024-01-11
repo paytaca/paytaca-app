@@ -179,7 +179,7 @@ export default {
         cancel: true,
         persistent: true,
         seamless: true,
-        class: this.darkMode ? 'pt-dark info-banner text-white' : 'text-black'
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
@@ -202,7 +202,7 @@ export default {
         },
         persistent: true,
         seamless: true,
-        class: this.darkMode ? 'pt-dark text-white' : 'text-black'
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => this.removeAddedIgnoredAssets())
         .onDismiss(next)

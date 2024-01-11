@@ -6,7 +6,7 @@
   />
   <q-pull-to-refresh
     id="app-container"
-    style="background-color: #ECF3F3; min-height: 100vh;padding-bottom:50px;"
+    class="wallet-connect-container"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
@@ -19,8 +19,8 @@
       v-if="enableSmartBCH"
       :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
       :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : undefined"
-      class="col-12 q-px-lg pp-fcolor"
-      :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
+      class="col-12 q-px-lg"
+      :style="{'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
@@ -143,7 +143,12 @@ async function refreshPage(done=() => {}) {
   }
 }
 </script>
-<style>
+<style lang="scss" scoped>
+.wallet-connect-container {
+  background-color: #ECF3F3;
+  min-height: 100vh;
+  padding-bottom: 50px;
+}
 .q-tab-panels {
   margin-top: 10px;
   background: transparent;
