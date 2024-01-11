@@ -9,6 +9,9 @@
       backnavpath="/apps"
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
+    <div class="q-mx-sm">
+      <SessionLocationWidget />
+    </div>
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="row items-center">
         <div class="text-h5 q-px-xs">Shops</div>
@@ -137,6 +140,7 @@ import { useStore } from 'vuex'
 import { computed, ref, onMounted, watch, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
 
 
 const $q = useQuasar()
@@ -152,22 +156,35 @@ function resetPage() {
   initialized.value = false
 }
 
+
 onMounted(() => refreshPage())
 onActivated(() => {
   if (!initialized.value) return
   fetchOrders()
 })
 
+const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
+onMounted(() => {
+  if(!sessionLocation.value?.isDeviceLocation) return
+  updateLocation()
+})
+const updateLocationPromise = ref()
+async function updateLocation() {
+  if (!updateLocationPromise.value) {
+    updateLocationPromise.value = $store.dispatch('marketplace/updateLocation', { maxAge: 60 * 1000 })
+      .finally(() => updateLocationPromise.value = undefined)
+  }
+
+  return updateLocationPromise.value
+}
+
+
+const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
+watch(customerCoordinates, () => fetchStorefronts())
+
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
 const storefrontsPagination = ref({ count: 0, limit: 0, offset: 0 })
-const updateLocationPromise = ref()
-onMounted(() => {
-  updateLocationPromise.value = $store.dispatch('marketplace/updateLocation').catch(err => {
-    console.error(err)
-    return err
-  })
-})
 const storefrontListOpts = computed(() => {
   const data = {
     radius: ($store.getters['marketplace/shopListOpts']?.radius || 30) * 1000,
@@ -194,17 +211,16 @@ function openStorefrontListOptsForm() {
 }
 async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
   await updateLocationPromise.value
-  const customerCoordinates = $store.getters['marketplace/customerCoordinates']
   const params = {
     limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
     distance: '',
     active: true,
   }
-  if (!isNaN(customerCoordinates?.lat) && !isNaN(customerCoordinates.lon)) {
+  if (!isNaN(customerCoordinates.value?.latitude) && !isNaN(customerCoordinates.value.longitude)) {
     params.distance = btoa(JSON.stringify({
-      lat: customerCoordinates?.lat,
-      lon: customerCoordinates?.lon,
+      lat: customerCoordinates.value?.latitude,
+      lon: customerCoordinates.value?.longitude,
       radius: storefrontListOpts.value?.radius,
     }))
   }
