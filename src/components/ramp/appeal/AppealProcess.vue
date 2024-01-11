@@ -9,10 +9,11 @@
       />
     </div>
 
-    <div v-if="state === 'verify-transfer'">
+    <div v-if="state === 'tx-transfer'">
       <VerifyTransfer
         :key="verifyTransferKey"
         :order-id="appeal.order.id"
+        :amount="amount"
         :wallet="wallet"
         :action="selectedAction"
         :ramp-contract="rampContract"
@@ -35,8 +36,9 @@
 <script>
 import RampContract from 'src/wallet/ramp/contract'
 import ReleaseForm from './AppealDetail.vue'
-import VerifyTransfer from './VerifyTransfer.vue'
+import VerifyTransfer from './AppealTransfer.vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { rampWallet } from 'src/wallet/ramp/wallet'
 
 export default {
   data () {
@@ -58,7 +60,8 @@ export default {
       selectedAction: null,
       errorMessages: [],
       verifyTransferKey: 0,
-      txid: null
+      txid: null,
+      amount: 0
     }
   },
   props: {
@@ -107,10 +110,10 @@ export default {
           vm.state = 'release-form'
           break
         case 'RFN_PN':
-          vm.state = 'verify-transfer'
+          vm.state = 'tx-transfer'
           break
         case 'RLS_PN':
-          vm.state = 'verify-transfer'
+          vm.state = 'tx-transfer'
           break
         case 'RLS':
           vm.state = 'completed-appeal'
@@ -127,6 +130,7 @@ export default {
     },
     async onSubmit (action, amount) {
       const vm = this
+      vm.amount = amount
       vm.selectedAction = action.toUpperCase()
       let url = `${vm.apiURL}/order/${vm.appeal.order.id}/appeal/`
       switch (action) {
@@ -171,33 +175,23 @@ export default {
       }
     },
     async releaseBch (contract, amount) {
-      this.state = 'verify-transfer'
       this.actionState = 'sending'
+      this.state = 'tx-transfer'
       this.verifyTransferKey++
-      const result = await contract.release(this.wallet.privateKeyWif, amount)
-      this.saveTxid(result)
-      this.actionState = 'verifying'
-      this.verifyTransferKey++
-      // this.verifyTxn('RELEASE')
     },
     async refundBch (contract, amount) {
-      this.state = 'verify-transfer'
       this.actionState = 'sending'
+      this.state = 'tx-transfer'
       this.verifyTransferKey++
-      const result = await contract.refund(this.wallet.privateKeyWif, amount)
-      this.saveTxid(result)
-      this.actionState = 'verifying'
-      this.verifyTransferKey++
-      // this.verifyTxn('REFUND')
     },
     async verifyTxn (action) {
       const vm = this
       vm.state = 'verifying'
       let url = `${vm.apiURL}/order/${vm.appeal.order.id}/`
       if (action === 'RELEASE') {
-        url = `${url}verify-release`
+        url = `${url}tx-release`
       } else {
-        url = `${url}verify-refund`
+        url = `${url}tx-refund`
       }
       await vm.$axios.post(url, { txid: this.txid }, { headers: vm.authHeaders })
         .catch(error => {
@@ -215,6 +209,7 @@ export default {
       const url = vm.apiURL + '/order/' + id
       try {
         const response = await vm.$axios.get(url, { headers: vm.authHeaders })
+        vm.amount = response.data?.order?.crypto_amount
         vm.contract = response.data.contract
         vm.fees = response.data.fees
       } catch (error) {
