@@ -1150,11 +1150,16 @@ function saveCart() {
   $store.dispatch('marketplace/saveCart', checkout.value.cart)
 }
 
+const updateBchPricePromise = ref()
 function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
-  loadingState.value.price = true
-  return checkout.value.updateBchPrice(opts)
-    .then(() => resetFormData())
-    .finally(() => loadingState.value.price = false)
+  if (!updateBchPricePromise.value) {
+    loadingState.value.price = true
+    updateBchPricePromise.value = checkout.value.updateBchPrice(opts)
+      .then(() => resetFormData())
+      .finally(() => loadingState.value.price = false)
+      .finally(() => updateBchPricePromise.value = undefined)
+  }
+  return updateBchPricePromise.value
 }
 
 const customerLocationsDialog = ref({ show: false })
@@ -1251,7 +1256,8 @@ function findRiders() {
 }
 
 const updateDeliveryFeePromise = ref()
-function updateDeliveryFee() {
+async function updateDeliveryFee() {
+  await updateBchPricePromise.value?.catch?.(console.error)
   loadingState.value.deliveryFee = true
   loadingMsg.value = 'Calculating delivery fee'
   updateDeliveryFeePromise.value = backend.post(`connecta/checkouts/${checkout.value.id}/update_delivery_fee/`)
@@ -1382,6 +1388,7 @@ watch(() => [tabs.value.active], async () => {
 
   if (checkout.value.totalPayable < 0) return
   await fetchPaymentPromise.value
+  await updateBchPricePromise.value?.catch?.(console.error)
   await updateDeliveryFeePromise.value
   await createPaymentPromise.value?.catch?.(console.error)
   if (!payment.value) return createPayment()
@@ -1403,7 +1410,7 @@ function fetchPayments() {
 }
 
 const createPaymentPromise = ref()
-const createPayment = debounce(() => {
+const createPayment = debounce(async () => {
   if (checkout.value.balanceToPay <= 0) return Promise.resolve('Checkout paid')
   const data = {
     checkout_id: checkout.value.id,
