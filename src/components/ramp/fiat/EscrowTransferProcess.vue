@@ -235,7 +235,7 @@ export default {
           vm.dragSlideKey++
         }
       } catch (error) {
-        console.error(error)
+        vm.sendErrors.push(error)
         vm.showDragSlide = true
         vm.dragSlideKey++
       }

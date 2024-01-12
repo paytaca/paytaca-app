@@ -52,14 +52,12 @@
         class="q-pb-xs"
         dense
         filled
-        :disable="disableTxidInput"
+        :readonly="disableTxidInput"
         :dark="darkMode"
         :loading="!txidLoaded"
         v-model="transactionId">
           <template v-slot:append v-if="transactionId && disableTxidInput">
-            <div @click="copyToClipboard(transactionId)">
-              <q-icon size="sm" name="content_copy"/>
-            </div>
+            <q-icon size="sm" name="content_copy" @click="copyToClipboard(transactionId)"/>
           </template>
       </q-input>
       <div v-if="errorMessage" class="q-mx-sm q-my-sm">
