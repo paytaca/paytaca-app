@@ -18,7 +18,14 @@
               </template>
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="contract.balance">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :loading="!balanceLoaded || retryBalance(contract.balance)"
+              :dark="darkMode"
+              v-model="contract.balance">
               <template v-slot:append>
                 <span class="sm-font-size bold-text md-font-size">BCH</span>
               </template>
@@ -26,39 +33,41 @@
           </div>
           <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
           <q-input
-            readonly
-            :dark="darkMode"
             filled
             dense
+            :readonly="disableTxidInput"
+            :dark="darkMode"
             :loading="!transactionId"
             v-model="transactionId">
-            <template v-slot:append v-if="transactionId">
-              <div @click="$parent.copyToClipboard(transactionId)">
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-              </div>
+            <template v-slot:append v-if="transactionId && disableTxidInput">
+              <q-icon
+                size="sm"
+                name='o_content_copy'
+                color="blue-grey-6"
+                @click="copyToClipboard(transactionId)"/>
             </template>
           </q-input>
-          <div class="row" v-if="errorMessages.length > 0">
-            <div class="col">
-              <ul style="margin-left: -40px; list-style: none;">
-                <li v-for="(error, index) in errorMessages" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-                  <q-icon name="error" left/>
-                  {{ error }}
-                </li>
-              </ul>
-            </div>
+          <div v-if="errorMessage" class="q-mx-sm q-my-sm">
+            <q-card flat class="col q-pa-md" :class="[ darkMode ? 'text-white pt-dark-card-1' : 'text-black',]">
+                <q-icon name="error" left/>
+                {{ errorMessage }}
+            </q-card>
           </div>
-          <div class="row q-mb-md">
+          <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-md">
             <q-btn
-              v-if="!hideBtn"
-              :loading="loading"
-              :disable="loading || !transactionId"
               rounded
-              label="Verify"
+              :loading="loading"
+              :disable="disableBtn"
+              :label=btnLabel
               color="blue-6"
               class="col q-mx-lg q-mb-md q-py-sm q-my-md"
-              @click="onVerify">
+              @click="submitAction">
             </q-btn>
+          </div>
+          <div v-if="loading && !errorMessage" class="q-mt-md">
+            <span v-if="state === 'verifying'">
+              <q-spinner class="q-mr-sm"/>Verifying, please wait...
+            </span>
           </div>
         </div>
       </q-scroll-area>
@@ -67,6 +76,7 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -81,13 +91,16 @@ export default {
         address: ' '
       },
       transactionId: '',
-      // txExists: false,
-      // timer: null,
-      // waitSeconds: null,
+      disableBtn: true,
       hideBtn: false,
-      errorMessages: [],
-      state: '',
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2
+      errorMessage: null,
+      state: null,
+      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
+
+      btnLabel: '',
+      txidLoaded: false,
+      balanceLoaded: false,
+      disableTxidInput: true
     }
   },
   emits: ['back', 'success', 'refresh'],
@@ -103,121 +116,203 @@ export default {
     errors: Array
   },
   watch: {
-    transactionId () {
-      if (!this.transactionId) {
-        this.state = 'sending'
-      } else {
-        this.state = 'verifying'
-      }
+    txidLoaded () {
+      this.checkTransferStatus()
+    },
+    balanceLoaded () {
+      this.checkTransferStatus()
     }
   },
-  computed: {},
+  computed: {
+    // pollingBalance () {
+    //   this.retryBalance(this.contract.balance)
+    // }
+  },
   async mounted () {
     const vm = this
-    vm.errorMessages.push(...vm.errors)
-    if (vm.txid && vm.txid.length > 0) {
-      vm.transactionId = vm.txid
-    }
-    if (!vm.transactionId) {
-      vm.transactionId = this.$store.getters['ramp/getOrderTxid'](vm.orderId, vm.action)
-    }
-    vm.fetchOrderDetail()
-    vm.loading = false
+    vm.loadTransactionId()
+    vm.loadContract()
   },
   beforeUnmount () {
     clearInterval(this.timer)
   },
   methods: {
-    async getContractBalance () {
-      this.contract.balance = await this.rampContract.getBalance()
+    loadTransactionId () {
+      if (this.txid) {
+        this.transactionId = this.txid
+      }
+      if (!this.transactionId) {
+        this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.orderId, this.action)
+      }
     },
-    fetchOrderDetail () {
+    loadContract () {
+      this.fetchContractBalance()
+      this.fetchContract()
+    },
+    fetchContractBalance () {
+      return new Promise((resolve, reject) => {
+        if (!this.rampContract) return 0
+        this.rampContract.getBalance()
+          .then(balance => {
+            this.contract.balance = balance
+            this.balanceLoaded = true
+            resolve(balance)
+          })
+          .catch(error => reject(error))
+      })
+    },
+    async fetchContract () {
       const vm = this
       vm.loading = true
-      const url = vm.apiURL + '/order/' + vm.orderId
-      vm.$axios.get(url, { headers: vm.authHeaders })
+      backend.get(`/ramp-p2p/order/${vm.orderId}/contract`, { authorize: true })
         .then(response => {
-          if (vm.rampContract) vm.getContractBalance()
-          vm.contract.address = response.data.contract.address
-          const transactions = response.data.contract.transactions
+          console.log(response.data)
+          const data = response.data
+          vm.contract.address = data.contract.address
 
-          let pendingTxExists = false
-          if (transactions) {
-            for (let i = 0; i < transactions.length; i++) {
-              const tx = transactions[i]
-              if (tx.action === vm.action) {
-                if (!tx.txid) {
-                  pendingTxExists = true
-                }
-                break
-              }
-            }
+          if (!vm.transactionId) {
+            const transactions = data.transactions
+            const tx = transactions.filter(transaction => transaction.action === vm.action)
+            console.log('tx:', tx)
           }
-          if (pendingTxExists) {
-            vm.onVerify()
-          }
+          vm.txidLoaded = true
         })
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
         })
     },
     verifyRelease () {
       const vm = this
-      vm.state = 'verifying'
-      const url = `${vm.apiURL}/order/${vm.orderId}/verify-release`
       const body = { txid: this.transactionId }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
+      backend.post(`/ramp-p2p/order/${vm.orderId}/verify-release`, body, { authorize: true })
+        .then(response => console.log(response.data))
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
-            vm.errorMessages.push(error.response.data.error)
+            vm.errorMessage = error.response.data.error
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
           vm.hideBtn = false
         })
+        .finally(vm.loading = false)
     },
     verifyEscrow () {
       const vm = this
-      vm.state = 'verifying'
-      const url = vm.apiURL + '/order/' + vm.orderId + '/verify-escrow'
       const body = { txid: vm.transactionId }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          console.log('verifyEscrow: ', response)
-        })
+      backend.post(`/ramp-p2p/order/${vm.orderId}/verify-escrow`, body, { authorize: true })
+        .then(response => console.log(response.data))
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
-            vm.errorMessages.push(error.response.data.error)
+            vm.errorMessage = error.response.data.error
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
           vm.hideBtn = false
         })
+        .finally(vm.loading = false)
     },
-    onVerify () {
+    submitAction () {
       const vm = this
-      // vm.hideBtn = true
-      vm.errorMessages = []
-      switch (vm.action) {
-        case 'ESCROW':
-          vm.verifyEscrow()
-          break
-        case 'RELEASE':
-          vm.verifyRelease()
-          break
+      vm.hideBtn = true
+      vm.errorMessage = null
+      vm.loading = true
+      vm.state = 'verifying'
+      setTimeout(function () {
+        switch (vm.action) {
+          case 'ESCROW':
+            vm.verifyEscrow()
+            break
+          case 'RELEASE':
+            vm.verifyRelease()
+            break
+        }
+      }, 3000)
+    },
+    checkTransferStatus () {
+      if (this.balanceLoaded && this.txidLoaded) {
+        switch (this.action) {
+          case 'RELEASE':
+            if (this.contract.balance === 0) {
+              if (!this.transactionId) {
+                this.disableTxidInput = false
+              }
+              this.disableBtn = false
+            } else {
+              // poll for balance with exponential backoff
+              this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
+            }
+            break
+          case 'ESCROW':
+            if (this.contract.balance > 0) {
+              if (!this.transactionId) {
+                this.disableTxidInput = false
+              }
+              this.disableBtn = false
+            } else {
+              // poll for balance with exponential backoff
+              this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
+            }
+            break
+        }
+        this.state = 'verifying'
+        this.btnLabel = 'VERIFY TRANSFER'
+        this.loading = false
       }
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
+    },
+    retryBalance (balance) {
+      switch (this.action) {
+        case 'RELEASE':
+          if (balance > 0) return true
+          break
+        case 'ESCROW':
+          if (balance <= 0) return true
+          break
+        default:
+          return false
+      }
+    },
+    exponentialBackoff (fn, retries, delayDuration) {
+      return fn()
+        .then(balance => {
+          console.log('balance:', balance)
+          if (this.retryBalance(balance)) {
+            if (retries > 0) {
+              console.log(`Attempt failed. Retrying in ${delayDuration / 1000} seconds...`)
+              return this.delay(delayDuration)
+                .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
+            }
+          } else {
+            this.disableBtn = false
+          }
+        })
+        .catch(error => console.error(error))
     }
   }
 }
