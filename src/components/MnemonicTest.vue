@@ -48,7 +48,6 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $store = useStore()
 const $emit = defineEmits(['matched'])

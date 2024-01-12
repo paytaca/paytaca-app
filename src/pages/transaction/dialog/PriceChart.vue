@@ -311,4 +311,10 @@ export default {
     width: 100%;
     padding: 30px;
   }
+  .dec-text-color {
+    color: #ed5e59;
+  }
+  .inc-text-color {
+    color: #8ec351
+  }
 </style>
