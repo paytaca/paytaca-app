@@ -135,6 +135,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
+import { getISOWithTimezone } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, ref, onMounted, watch, onActivated } from 'vue'
@@ -216,6 +217,8 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
     offset: opts?.offset || undefined,
     distance: '',
     active: true,
+    annotate_is_open_at: getISOWithTimezone(new Date()),
+    ordering: '-is_open',
   }
   if (!isNaN(customerCoordinates.value?.latitude) && !isNaN(customerCoordinates.value.longitude)) {
     params.distance = btoa(JSON.stringify({
