@@ -1101,8 +1101,28 @@ function toggleAmountsDisplay() {
 
 function fetchCheckout() {
   let request
-  if (props.checkoutId) request = backend.get(`connecta/checkouts/${props.checkoutId}`)
-  else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`)
+
+  const sessionLocation = $store.getters['marketplace/sessionLocation']
+  const parsedSessionLocationData = {
+    address1: sessionLocation?.address1,
+    address2: sessionLocation?.address2,
+    street: sessionLocation?.street,
+    city: sessionLocation?.city,
+    state: sessionLocation?.state,
+    country: sessionLocation?.country,
+    zip_code: sessionLocation?.zip_code,
+    longitude: parseFloat(sessionLocation?.longitude),
+    latitude: parseFloat(sessionLocation?.latitude),
+  }
+
+  if (!initialized.value && !Number.isNaN(parsedSessionLocationData?.longitude) && !Number.isNaN(parsedSessionLocationData?.latitude)) {  
+    const data = { delivery_address: { location: parsedSessionLocationData } }
+    if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
+    else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
+  } else {
+    if (props.checkoutId) request = backend.get(`connecta/checkouts/${props.checkoutId}/`)
+    else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`)
+  }
 
   if (!request) return Promise.reject()
   fetchingCheckout.value = true
