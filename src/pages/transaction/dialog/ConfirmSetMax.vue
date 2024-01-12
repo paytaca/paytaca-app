@@ -4,10 +4,8 @@
     seamless
     ref="dialogRef"
   >
-    <q-card
-      :class="getDarkModeClass(darkMode, 'text-white pt-dark modal', 'text-black')"
-    >
-      <q-card-section style="font-size: 20px">{{ $t('Warning') }}</q-card-section>
+    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card-section class="text-h6">{{ $t('Warning') }}</q-card-section>
       <q-card-section>{{ $t('SetMaxWarning') }}</q-card-section>
       <q-card-actions align="right">
         <q-btn

@@ -22,7 +22,7 @@
         :label="$t('Fiat')"
       >
         <q-popup-proxy seamless>
-          <q-banner :class="darkMode ? 'pt-dark info-banner text-white' : 'text-black'" class="q-pa-md br-15 text-center">
+          <q-banner class="q-pa-md br-15 text-center pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             {{ $t('RampFiatNotice') }}
           </q-banner>
         </q-popup-proxy>

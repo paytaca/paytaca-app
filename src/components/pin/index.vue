@@ -378,7 +378,4 @@ export default {
 .pt-radio-dark {
   color: #fff !important;
 }
-.pt-dark {
-  background: #273746 !important;
-}
 </style>

@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom" seamless full-height full-width>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" style="height:100%;width:100%;">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="height:100%;width:100%;">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ headerText || $t('PinLocation', {}, 'Pin location') }}</div>
         <q-btn
@@ -8,11 +8,12 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <div :id="mapUid" style="height:75vh;width:100%;">
       </div>
-      <div class="text-center row items-center  justify-center text-subtitle1 ellipsis">
+      <div class="text-center row items-center justify-center text-subtitle1 ellipsis">
         <q-icon name="location_on"/> {{ coordinates?.lat }}, {{ coordinates?.lng }}
       </div>
       <q-card-actions>
@@ -27,7 +28,6 @@
         <q-btn
           no-caps
           label="OK"
-          color="brandblue"
           class="col button"
           @click="onDialogOK(coordinates)"
         />
@@ -40,6 +40,7 @@ import { computed, getCurrentInstance, inject, markRaw, onMounted, ref } from 'v
 import { useStore } from 'vuex';
 import { useDialogPluginComponent } from 'quasar'
 import { useI18n } from 'vue-i18n'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 defineEmits([

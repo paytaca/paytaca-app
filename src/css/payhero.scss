@@ -174,30 +174,6 @@ body.theme-payhero {
     }
   }
 
-  .pt-dark {
-    background: linear-gradient(
-      180deg,
-      $background-blue 0%,
-      #000 100%
-    ) !important;
-
-    &.registration {
-      background: linear-gradient(
-        165.26deg,
-        rgba(69, 110, 177, 0.95) -18.47%,
-        rgba(0, 0, 0, 0.95) 65.31%
-      ) !important;
-    }
-
-    &.modal {
-      background: $wallet_card !important;
-    }
-
-    &.info-banner { // remove
-      background: $bg_info_banner !important;
-    }
-  }
-
   .pt-dark-card { // remove
     background: $bg_card_dark !important;
 
@@ -241,6 +217,14 @@ body.theme-payhero {
     &.light {
       background-color: white;
     }
+  }
+
+  .pt-card-3 {
+    background: linear-gradient(
+      180deg,
+      $background-blue 0%,
+      #000 100%
+    ) !important;
   }
 
   .pt-dark-card-2 {

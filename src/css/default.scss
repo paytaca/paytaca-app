@@ -89,10 +89,6 @@ body.theme-default {
     box-decoration-break: clone;
   }
 
-  .pt-dark {
-    background: #273746 !important;
-  }
-
   .pt-dark-card { // remove
     background: $bg_card_dark !important;
   }
@@ -119,6 +115,10 @@ body.theme-default {
     &.light {
       background-color: white;
     }
+  }
+
+  .pt-card-3 {
+    background: #273746 !important;
   }
 
   .pt-dark-card-2 {
