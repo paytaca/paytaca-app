@@ -36,7 +36,7 @@
       <q-list ref="scrollTargetRef" :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`" style="overflow: auto;" >
         <q-infinite-scroll
             ref="infiniteScroll"
-            :items="convo"
+            :items="convo.messages"
             :offset="0"
             :scroll-target="scrollTargetRef"
             reverse
@@ -48,30 +48,35 @@
           </template>
 
           <div v-if="convo.messages.length !== 0 && isloaded">
-            <div v-for="(message, index) in convo.messages.reverse()" :key="index" :set="user = getUser(message.chatIdentity.id)" class="q-pt-xs">
+            <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
               <q-item>
                 <q-item-section>
                   <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
                     <div v-if="message.message">
                       <q-chat-message
-                        :name="user.is_user? 'You': user.name"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ user.name }&color=fffff`"
+                        :name="message.chatIdentity.is_user? 'You': message.chatIdentity.name"
+                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
                         :stamp="new Date(message.createdAt).toLocaleString"
-                        :sent="user.is_user"
-                        :bg-color="user.is_user ? 'blue-5': 'blue-grey-2'"
-                        :text-color="user.is_user ? 'white' : 'black'"
+                        :sent="message.chatIdentity.is_user"
+                        :bg-color="message.chatIdentity.is_user ? 'blue-5': 'blue-grey-2'"
+                        :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
                         size="6"
                       >
                         <div style="font-size: 13px; font-weight: 400;">
                           {{ message.text }}
                         </div>
                       </q-chat-message>
-                      <div class="row q-px-lg q-mx-lg q-pt-sm" :class="user.is_user ? 'justify-end' : ''">
+                      <div class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
                         <img
                           class="q-px-sm"
                           v-if="message?.decryptedAttachmentFile?.url"
                           :src="message?.decryptedAttachmentFile?.url"
-                          style="max-width:75%;border-radius:4px;"
+                          :style="{
+                            'cursor': 'pointer',
+                            'border-radius': '10px',
+                            'max-width': '250px',
+                            'max-height': '250px',
+                          }"
                         />
                         <div v-else class="row items-center">
                           <div
@@ -86,17 +91,22 @@
                       </div>
                     </div>
                     <div v-else>
-                      <div :class="user.is_user? 'text-right' : ''" style="font-size: 13px;" :style="user.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'">{{ user.is_user ? 'me' : user.name }}</div>
-                      <div class="row" :class="user.is_user ? 'justify-end' : ''">
-                        <q-avatar size="6" v-if="!user.is_user">
-                          <img :src="`https://ui-avatars.com/api/?background=random&name=${user.name}&color=fffff`">
+                      <div :class="message.chatIdentity.is_user? 'text-right' : ''" style="font-size: 13px;" :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'">{{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}</div>
+                      <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
+                        <q-avatar size="6" v-if="!message.chatIdentity.is_user">
+                          <img :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`">
                         </q-avatar>
                         <div class="q-px-lg q-mx-lg q-pt-sm">
                           <img
                             class="q-px-sm"
                             v-if="message?.decryptedAttachmentFile?.url"
                             :src="message?.decryptedAttachmentFile?.url"
-                            style="max-width:75%;border-radius:4px;"
+                            :style="{
+                                'cursor': 'pointer',
+                                'border-radius': '10px',
+                                'max-width': '250px',
+                                'max-height': '250px',
+                              }"
                           />
                           <div v-else class="row items-center">
                             <div
@@ -109,8 +119,8 @@
                             </div>
                           </div>
                         </div>
-                        <q-avatar size="6" v-if="user.is_user">
-                          <img :src="`https://ui-avatars.com/api/?background=random&name=${user.name}&color=fffff`">
+                        <q-avatar size="6" v-if="message.chatIdentity.is_user">
+                          <img :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`">
                         </q-avatar>
                       </div>
                     </div>
@@ -118,12 +128,12 @@
                   <div class="q-px-md row justify-center" v-else>
                     <div style="width: 100%;">
                       <q-chat-message
-                        :name="user.is_user ? 'me' : user.name"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${user.name}&color=fffff`"
+                        :name="message.chatIdentity.is_user ? 'me' : message.chatIdentity.name"
+                        :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
                         :stamp="new Date(message.createdAt).toLocaleString()"
-                        :sent="user.is_user"
-                        :bg-color="user.is_user ? 'blue-5' : 'blue-grey-2'"
-                        :text-color="user.is_user ? 'white' : 'black'"
+                        :sent="message.chatIdentity.is_user"
+                        :bg-color="message.chatIdentity.is_user ? 'blue-5' : 'blue-grey-2'"
+                        :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
                         size="6"
                       >
                         <div style="font-size: 13px; font-weight: 400;">
@@ -141,7 +151,7 @@
               <q-chat-message
                 name="me"
                 sent
-                :avatar="`https://ui-avatars.com/api/?background=random&name=${getUser().name}&color=fffff`"
+                :avatar="`https://ui-avatars.com/api/?background=random&name=${getMember().name}&color=fffff`"
                 bg-color="blue-5"
                 size="6"
               >
@@ -151,93 +161,6 @@
               </q-chat-message>
             </div>
           </div>
-          <!-- <div v-if="convo.messages.length !== 0">
-            <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
-              <q-item>
-                <q-item-section>
-                  <div class="q-px-md justify-center" v-if="'attachment' in message">
-                    <div v-if="message.text">
-                      <q-chat-message
-                        :name="message.owner ? 'me' : senderName(message.owner)"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${senderName(message.owner) }&color=fffff`"
-                        :stamp="message.stamp"
-                        :sent="message.owner"
-                        :bg-color="message.owner ? 'blue-5' : 'blue-grey-2'"
-                        :text-color="message.owner ? 'white' : 'black'"
-                        size="6"
-                      >
-                        <div style="font-size: 13px; font-weight: 400;">
-                          {{ message.text }}
-                        </div>
-                      </q-chat-message>
-                      <div class="row justify-end q-px-lg q-mx-lg q-pt-sm">
-                        <img
-                          class="q-px-sm"
-                          :src="message.attachmentUrl"
-                          :style="{
-                            'cursor': 'pointer',
-                            'border-radius': '10px',
-                            'max-width': '250px',
-                            'max-height': '250px',
-                          }"
-                        />
-                      </div>
-                    </div>
-                    <div v-else>
-                      <div class="text-right" style="font-size: 13px; padding-right: 55px;">{{ message.owner ? 'me' : senderName(message.owner) }}</div>
-                      <div class="row justify-end">
-                        <img
-                          class="q-px-sm"
-                          :src="message.attachmentUrl"
-                          :style="{
-                            'cursor': 'pointer',
-                            'border-radius': '10px',
-                            'max-width': '250px',
-                            'max-height': '250px',
-                          }"
-                        />
-                        <q-avatar size="6">
-                          <img :src="`https://ui-avatars.com/api/?background=random&name=${senderName(message.owner) }&color=fffff`">
-                        </q-avatar>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="q-px-md row justify-center" v-else>
-                    <div style="width: 100%;">
-                      <q-chat-message
-                        :name="message.owner ? 'me' : senderName(message.owner)"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ senderName(message.owner) }&color=fffff`"
-                        :stamp="message.stamp"
-                        :sent="message.owner"
-                        :bg-color="message.owner ? 'blue-5' : 'blue-grey-2'"
-                        :text-color="message.owner ? 'white' : 'black'"
-                        size="6"
-                      >
-                        <div style="font-size: 13px; font-weight: 400;">
-                          {{ message.text }}
-                        </div>
-                      </q-chat-message>
-                    </div>
-                  </div>
-                </q-item-section>
-              </q-item>
-            </div>
-          </div> -->
-          <!-- <div v-if="message" class="q-px-sm q-mx-lg">
-            <div style="width: 100%;">
-              <q-chat-message
-                name="me"
-                sent
-                :avatar="`https://ui-avatars.com/api/?background=random&name=${senderName()}&color=fffff`"
-                bg-color="blue-5"
-                size="6"
-              >
-                <div class="text-center">
-                  <q-spinner-dots color="white" size="2rem" />
-                </div>
-              </q-chat-message>
-            </div>
-          </div> -->
         </q-infinite-scroll>
       </q-list>
     </q-pull-to-refresh>
@@ -302,29 +225,25 @@
 <script>
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
-import { ref } from 'vue'
-import { debounce } from 'quasar'
 import { fetchChatMembers, fetchChatPubkeys, sendChatMessage, fetchChatMessages, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
 import { ChatMessage } from 'src/wallet/ramp/chat/objects'
+import { ref } from 'vue'
+import { debounce } from 'quasar'
+import { vElementVisibility } from '@vueuse/components'
 
 export default {
+  directives: {
+    'element-visibility': vElementVisibility,
+  },
   setup () {
     const fileAttachmentField = ref()
     const scrollTargetRef = ref(null)
-    const addrRef = ref(null)
     return {
       scrollTargetRef,
-      addrRef,
       fileAttachmentField,
 
       openFileAttachementField (evt) {
         fileAttachmentField.value?.pickFiles?.(evt)
-      },
-      reset () {
-        addrRef.value.resetValidation()
-      },
-      blur () {
-        addrRef.value.blur()
       }
     }
   },
@@ -379,21 +298,22 @@ export default {
 
     this.loadKeyPair()
     this.loadData()
-    // console.log('done')
+    this.resetScroll()
     // this.isloaded = true
   },
   methods: {
-    getUser (userid = null) {
+    getMember (userid = null) {
       const vm = this
-      console.log('id: ', userid)
-
       let user = null
 
       if (userid) {
+        console.log('id: ', userid)
         user = vm.chatMembers.filter(member => member.id === userid)[0]
       } else {
-        user = vm.chatMembers.filter(member => member.is_user === true)[0]
+        console.log('is user')
+        user = this.chatMembers.filter(member => member.is_user === true)[0]
       }
+
       return user
     },
     async loadKeyPair () {
@@ -426,6 +346,8 @@ export default {
               pubkeys: member.chat_identity.pubkeys
             }
           })
+
+          console.log('chat members: ', vm.chatMembers)
         })
       fetchChatPubkeys(vm.chatRef)
         .then(pubkeys => {
@@ -437,9 +359,14 @@ export default {
       const vm = this
       fetchChatMessages(vm.chatRef)
         .then(async (messages) => {
-          vm.convo.messages = messages
+          vm.convo.messages = messages.reverse()
           await vm.decryptMessages(messages)
           this.isloaded = true
+        })
+        .finally(() => {
+          setTimeout(() => {
+            this.resetScroll()
+          }, 1000)
         })
     },
     refreshData (done) {
@@ -447,7 +374,7 @@ export default {
       setTimeout(() => {
         this.fetchMessages()
         done()
-      }, 1000)
+      }, 500)
     },
     typingMessage: debounce(async function () {
       this.isTyping = true
@@ -500,10 +427,21 @@ export default {
           encrypted: encrypt
         }
       }
+      vm.isloaded = false
       sendChatMessage(data, signData)
+        .then(async(data) => {
+          console.log('new chat: ', data)
+          await Promise(vm.decryptMessage(new ChatMessage(data.data), false))
+            .then(decMessage => {
+              console.log('new dec chat', decMessage)
+              vm.convo.messages.push(decMessage)
+            })
+        })
         .finally(() => {
           vm.message = ''
           vm.resetScroll()
+        }).catch(()=>{
+          console.log('error')
         })
     },
     async decryptMessage (message = ChatMessage.parse(), tryAllKeys = false) {
@@ -521,18 +459,22 @@ export default {
         .then(decryptedMessages => {
           console.log('decryptedMessages:', decryptedMessages)
           vm.convo.messages = decryptedMessages
-        })
 
-      console.log('convo here: ', vm.convo.messages[0]._decryptedMessage)
+          const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+
+          vm.convo.messages.map(item => {
+            item.chatIdentity.is_user = item.chatIdentity.name === username
+          })
+          console.log('convo:', vm.convo.messages)
+        })
     },
-    async decryptMessageAttachment(chatMessage = ChatMessage.parse(), tryAllKeys=false) {
-      if (!this.keypair.value?.privkey) await this.loadKeyPair()
-      if (!this.keypair.value?.privkey) return
-      if (this.chatMessage?.decryptedAttachmentFile?.url) return
-      return chatMessage.decryptAttachment(this.keypair.value?.privkey, tryAllKeys)
+    async decryptMessageAttachment (message = ChatMessage.parse(), tryAllKeys=false) {
+      if (!this.keypair.privkey) await this.loadKeyPair()
+      if (!this.keypair.privkey) return
+      if (this.message.decryptedAttachmentFile?.url) return
+      return message.decryptAttachment(this.keypair.privkey, tryAllKeys)
     },
     async resetScroll () {
-      console.log(this.$refs.infiniteScroll.$el.clientHeight)
       await this.$refs.infiniteScroll.reset()
       const scrollElement = this.$refs.scrollTargetRef.$el
       const test = this.$refs.infiniteScroll.$el
