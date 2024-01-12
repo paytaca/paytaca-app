@@ -114,12 +114,12 @@ export default {
     if (this.error) {
       this.errorMessage = this.error
     }
-    const walletInfo = this.loadWallet()
-    console.log('walletInfo: ', walletInfo)
+    this.loadWallet()
     this.getProfile()
   },
   methods: {
-    loadChatIdentity () {
+    async loadChatIdentity () {
+      await updateSignerData()
       return new Promise((resolve, reject) => {
         const vm = this
         const data = {
@@ -127,17 +127,16 @@ export default {
           ref: vm.wallet.walletHash,
           name: vm.user.name
         }
-        updateSignerData()
-          .then(
-            fetchChatIdentity(data.ref)
-              .then(identity => {
-                if (!identity) {
-                  vm.buildChatIdentityPayload(data)
-                    .then(payload => createChatIdentity(payload))
-                    .then(identity => updatePeerChatIdentityId(identity.id))
-                }
-              })
-          )
+        fetchChatIdentity(data.ref)
+          .then(identity => {
+            if (!identity) {
+              vm.buildChatIdentityPayload(data)
+                .then(payload => createChatIdentity(payload))
+                .then(identity => updatePeerChatIdentityId(identity.id))
+            } else if (!vm.user.chat_identity_id) {
+              updatePeerChatIdentityId(identity.id)
+            }
+          })
           .then(updateOrCreateKeypair())
           .finally(resolve())
           .catch(error => {
@@ -177,7 +176,7 @@ export default {
       const vm = this
       backend.get('/ramp-p2p/user')
         .then(response => {
-          console.log('getProfile: ', response.data)
+          console.log('profile:', response.data)
           if (response.data && response.data.user) {
             vm.isArbiter = response.data.is_arbiter
             vm.user = response.data.user
@@ -225,51 +224,48 @@ export default {
         })
     },
     login () {
-      const token = getCookie('token')
-      if (token) {
-        return this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
+      const vm = this
+      if (getCookie('token')) {
+        vm.loadChatIdentity()
+        return vm.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
       }
-      try {
-        const otpUrl = `${this.apiURL}/auth/otp/${this.isArbiter ? 'arbiter' : 'peer'}`
-        const loginUrl = `${this.apiURL}/auth/login/${this.isArbiter ? 'arbiter' : 'peer'}`
-        this.$axios.get(otpUrl, { headers: { 'wallet-hash': rampWallet.walletHash } })
-          .then((response) => {
-            rampWallet.signMessage(response.data.otp)
-              .then((signature) => {
-                rampWallet.pubkey()
-                  .then((pubkey) => {
-                    const body = {
-                      wallet_hash: rampWallet.walletHash,
-                      signature: signature,
-                      public_key: pubkey
-                    }
-                    this.$axios.post(loginUrl, body)
-                      .then((response) => {
-                        // save token as cookie and set to expire 1h later
-                        document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
-                        // this.loadChatIdentity()
-                        this.user = response.data.user
-                        if (this.user) {
-                          this.$store.commit('ramp/updateUser', this.user)
-                          this.$store.dispatch('ramp/loadAuthHeaders')
-                        }
-                        let userType
-                        if (this.isArbiter) userType = 'arbiter'
-                        else userType = 'peer'
-                        this.$emit('loggedIn', userType)
-                      })
-                  })
-              })
-          })
-      } catch (error) {
-        console.error(error)
-        if (error.response) {
-          console.log(error.response)
-          if (!('data' in error.response)) {
-            console.log('network error')
+      backend(`/auth/otp/${this.isArbiter ? 'arbiter' : 'peer'}`)
+        .then(response => rampWallet.signMessage(response.data.otp))
+        .then(signature => {
+          rampWallet.pubkey()
+            .then(pubkey => {
+              const body = {
+                wallet_hash: rampWallet.walletHash,
+                signature: signature,
+                public_key: pubkey
+              }
+              backend.post(`/auth/login/${this.isArbiter ? 'arbiter' : 'peer'}`, body)
+                .then((response) => {
+                  // save token as cookie and set to expire 1h later
+                  document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
+                  vm.user = response.data.user
+                  if (vm.user) {
+                    vm.$store.commit('ramp/updateUser', this.user)
+                    vm.$store.dispatch('ramp/loadAuthHeaders')
+                  }
+                  let userType
+                  if (vm.isArbiter) userType = 'arbiter'
+                  else userType = 'peer'
+                  vm.$emit('loggedIn', userType)
+                })
+                .then(vm.loadChatIdentity())
+            })
+        })
+        .catch(error => {
+          if (error.response) {
+            console.log(error.response)
+            if (!('data' in error.response)) {
+              console.log('network error')
+            }
+          } else {
+            console.error(error)
           }
-        }
-      }
+        })
     },
     createRampUser () {
       this.isLoading = true

@@ -235,7 +235,7 @@ export default {
           vm.dragSlideKey++
         }
       } catch (error) {
-        console.error(error)
+        vm.sendErrors.push(error)
         vm.showDragSlide = true
         vm.dragSlideKey++
       }
@@ -269,6 +269,10 @@ export default {
       vm.$axios.get(url, { headers: vm.authHeaders })
         .then(response => {
           vm.fees = response.data.fees
+          console.log('contract?.address:', response.data?.contract?.address)
+          if (!response.data?.contract?.address) {
+            vm.generateContractAddress()
+          }
         })
         .catch(error => {
           console.error(error.response)
