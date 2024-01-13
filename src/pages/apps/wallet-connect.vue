@@ -61,7 +61,7 @@
           </template>
         </div>
         <div v-else>
-          <q-card style="max-width: 320px;" :class="{'pt-dark-card': darkMode }" class="shadow-2 br-15">
+          <q-card style="max-width: 320px;" class="shadow-2 br-15 pt-card" :class="getDarkModeClass(darkMode)">
             <q-card-section>
               <div class="row items-start q-mb-sm">
                 <div class="text-grey">
@@ -134,7 +134,7 @@
                   @click="confirmClearCallRequests()"
                 />
               </div>
-              <q-list separator :class="darkMode ? 'pt-dark-card-2' : ''">
+              <q-list separator class="pt-card" :class="getDarkModeClass(darkMode)">
                 <q-item
                   v-for="(request, index) in callRequests"
                   :key="index"
@@ -143,7 +143,7 @@
                   @click="showCallRequestInDialog(request)"
                 >
                   <q-item-section>
-                    <q-item-label class="row" :class="darkMode ? 'text-white' : 'text-black'">
+                    <q-item-label class="row text-bow" :class="getDarkModeClass(darkMode)">
                       <span class="q-mt-xs">{{ request.payload.method }}</span>
                       <q-space/>
                       <span class="text-grey text-caption">
@@ -526,7 +526,7 @@ export default {
           flat: true
         },
         seamless: true,
-        class: this.darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => {
           if (Array.isArray(this.callRequests)) {

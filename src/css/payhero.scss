@@ -174,22 +174,18 @@ body.theme-payhero {
     }
   }
 
-  .pt-dark-card { // remove
-    background: $bg_card_dark !important;
-
-    &.registration-card {
-      background: $button_yellow !important;
-      border: 2px solid #13212c !important;
-
-      .divider {
-        border-bottom: 2px solid #13212c;
-      }
-    }
-  }
-
   .pt-card {
     &.dark {
       background: $bg_card_dark !important;
+
+      &.registration-card {
+        background: $button_yellow !important;
+        border: 2px solid #13212c !important;
+  
+        .divider {
+          border-bottom: 2px solid #13212c;
+        }
+      }
     }
 
     &.light {
@@ -225,20 +221,6 @@ body.theme-payhero {
       $background-blue 0%,
       #000 100%
     ) !important;
-  }
-
-  .pt-dark-card-2 {
-    background: transparent !important;
-  }
-
-  .pt-dark-label { // remove
-    color: $label-white !important;
-
-    &.label-text {
-      color: $color_9 !important;
-      font-size: 14px;
-      font-weight: 300;
-    }
   }
 
   .pt-label {
@@ -341,10 +323,6 @@ body.theme-payhero {
       color: $transactions-text;
       font-weight: 300;
     }
-  }
-
-  .add-asset-card.dark {
-    background: rgba(17, 28, 44, 0.95) !important;
   }
 
   .collectibles-panel {

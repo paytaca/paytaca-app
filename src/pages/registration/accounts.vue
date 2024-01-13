@@ -12,7 +12,7 @@
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
       <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
-        <div class="q-py-lg" style="padding-top: 28px;">
+        <div class="q-py-lg">
           <div v-if="serverOnline" v-cloak>
             <div class="col-12 q-mt-md q-px-lg q-py-none">
               <div class="row">
@@ -75,21 +75,25 @@
     </div>
     <div
       class="row pt-wallet q-mt-sm pt-card-2"
-      :class="getDarkModeClass(darkMode)"
+      :class="getDarkModeClass(darkMode, 'registration')"
       v-if="importSeedPhrase && mnemonic.length === 0"
     >
       <div class="col-12 q-px-lg">
-        <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
-          {{ $t('RestoreWalletDescription') }}
-        </p>
-        <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-        <q-btn
-          rounded
-          class="full-width q-mt-md button"
-          @click="initCreateWallet()"
-          :disable="!validateSeedPhrase()"
-          :label="$t('RestoreWallet')"
-        />
+        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+          <div class="q-py-lg">
+            <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
+              {{ $t('RestoreWalletDescription') }}
+            </p>
+            <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+            <q-btn
+              rounded
+              class="full-width q-mt-md button"
+              @click="initCreateWallet()"
+              :disable="!validateSeedPhrase()"
+              :label="$t('RestoreWallet')"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -108,7 +112,13 @@
                   </p>
                 </div>
                 <div class="row justify-center q-mt-md">
-                  <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode, 'registration-card' : theme}">
+                  <q-list
+                    bordered
+                    separator
+                    style="border-radius: 14px;"
+                    class="pt-card registration-card"
+                    :class="getDarkModeClass(darkMode)"
+                  >
                     <q-item :class="{'divider' : theme}">
                       <q-item-section>
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
@@ -323,7 +333,7 @@ export default {
         ok: true,
         cancel: true,
         seamless: true,
-        class: 'text-white br-15 pt-dark-card'
+        class: 'text-white br-15 pt-card dark'
       }).onOk(() => { vm.openSettings = true })
     },
     saveToVault () {
@@ -539,7 +549,6 @@ export default {
     }
 
     const vm = this
-    /*
     await vm.$store.dispatch('market/updateSupportedCurrencies', {})
     // auto-detect country
     let countryFromIP = {
@@ -622,7 +631,6 @@ export default {
     this.$store.commit('global/setLanguage', newLocale)
 
     this.currencySelectorRerender = true
-    */
 
     vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
       if (response.status !== 200) return Promise.reject()

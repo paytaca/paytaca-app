@@ -248,7 +248,7 @@
           <div class="q-mt-sm pt-label" :class="getDarkModeClass(darkMode)">
             {{ computedStagedSwapDetails.formattedAmount }}
           </div>
-          <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div class="text-center pt-label" :class="getDarkModeClass(darkMode)">
             {{ stagedSwapDetails.sourceToken.symbol }}
           </div>
         </div>
@@ -399,7 +399,7 @@
               :toggle-color="isNotDefaultTheme(theme) ? 'toggle-active' : 'grad'"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
               :color="isNotDefaultTheme(theme) ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
-              :text-color="darkMode ? 'pt-dark-label' : 'dark'"
+              :text-color="darkMode ? 'white' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
                 {label: '1%', value: 1},
@@ -638,7 +638,7 @@ export default {
         cancel: {
           rounded: true
         },
-        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black'
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => {
           this.approveSourceToken()
@@ -664,7 +664,7 @@ export default {
         seamless: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
-        class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
 
       const onApproveSuccess = () => {
@@ -894,7 +894,7 @@ export default {
           },
           persisted: true,
           seamless: true,
-          class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
       } catch (err) {
         console.error(err)

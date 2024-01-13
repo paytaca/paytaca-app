@@ -302,7 +302,7 @@ async function confirmMutualRedemption(data) {
     html: true,
     ok: true,
     cancel: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
 }
@@ -448,7 +448,7 @@ async function createMutualRedemption() {
           title: 'Mutual redemption submitted',
           seamless: true,
           ok: true,
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         }).onDismiss(() => onDialogHide())
         return Promise.resolve(response)
       }

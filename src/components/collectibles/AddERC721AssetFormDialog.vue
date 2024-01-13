@@ -164,8 +164,4 @@ export default {
 .pp-text {
   color: #000 !important;
 }
-.pt-bg-dark-2 {
-  color: #fff !important;
-  background: #5D6D7E !important;
-}
 </style>

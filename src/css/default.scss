@@ -57,8 +57,10 @@ body.theme-default {
     padding: 20px 20px 80px 20px;
     color: #3b7bf6;
   }
+  
 
-  #app-container {
+  #app-container,
+  #apps-page-container {
     &.dark {
       background: #273746 !important;
     }
@@ -89,10 +91,6 @@ body.theme-default {
     box-decoration-break: clone;
   }
 
-  .pt-dark-card { // remove
-    background: $bg_card_dark !important;
-  }
-
   .pt-card {
     &.dark {
       background: $bg_card_dark !important;
@@ -119,14 +117,6 @@ body.theme-default {
 
   .pt-card-3 {
     background: #273746 !important;
-  }
-
-  .pt-dark-card-2 {
-    background: #212f3d !important;
-  }
-
-  .pt-dark-label { // remove
-    color: $color_4 !important;
   }
 
   .pt-label {

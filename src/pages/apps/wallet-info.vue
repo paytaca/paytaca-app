@@ -497,7 +497,7 @@ export default {
                 ].join(''),
                 ok: true,
                 seamless: true,
-                class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+                class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
                 style: 'word-break:break-word;',
               })
             }
@@ -565,7 +565,7 @@ export default {
                 ].join(''),
                 ok: true,
                 seamless: true,
-                class: this.darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+                class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
                 style: 'word-break:break-word;',
               })
             }

@@ -61,7 +61,7 @@
                                   <div class="text-grey">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</div>
                                   <div
                                     class="subtext text-grey"
-                                    :class="{'pt-dark-label': darkMode}"
+                                    :class="{'pt-label dark': darkMode}"
                                     style="font-size: 11px; padding-top: 10px;"
                                   >
                                     {{ transaction.shift_status.toUpperCase() }}
@@ -69,10 +69,14 @@
                                 </p>
                               </div>
                               <div class="col">
-                                <span class="q-pb-sm float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;" v-if="transaction.shift_status === 'settled'">
+                                <span
+                                  class="q-pb-sm float-left pt-label subtext"
+                                  :class="getDarkModeClass(darkMode)"
+                                  v-if="transaction.shift_status === 'settled'"
+                                >
                                   {{ getDate(transaction.date_shift_completed) }}
                                 </span>
-                                <span class="q-pb-sm float-left subtext" :class="{'pt-dark-label': darkMode}" style="font-size: 12px;" v-else>
+                                <span class="q-pb-sm float-left pt-label subtext" :class="getDarkModeClass(darkMode)" v-else>
                                   {{ getDate(transaction.date_shift_created) }}
                                 </span>
                               </div>

@@ -116,11 +116,6 @@ export default {
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
     z-index: 6;
     margin: 0 auto;
-
-    .footer-icon {
-      font-size: 30px !important;
-      color: rgb(60, 100, 246) !important;
-    }
     .footer-icon-btn {
       border-radius: 20px;
       border: none;
@@ -134,12 +129,6 @@ export default {
     }
     .footer-btn-container {
       margin-top: 1px !important;
-    }
-    .active-switch {
-      color: #69CB51;
-    }
-    .pt-dark-label {
-      color: #fff !important;
     }
     .default-text-color {
       color: rgb(60, 100, 246) !important;

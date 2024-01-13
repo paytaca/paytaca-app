@@ -1,9 +1,5 @@
 <template>
-  <div
-    id="app-container"
-    class="scroll-y"
-    :class="getDarkModeClass(darkMode)"
-  >
+  <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
     <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
@@ -1150,7 +1146,7 @@ export default {
           message: 'Transaction not found',
           seamless: true,
           ok: true,
-          class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
         return
       }

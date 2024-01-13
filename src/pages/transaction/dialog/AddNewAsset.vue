@@ -1,13 +1,7 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
-    <q-card
-      class="q-dialog-plugin br-15 q-pb-sm add-asset-card"
-      :class="getDarkModeClass(darkMode, 'pt-dark-card-2', '')"
-    >
-        <q-card-section
-          class="pt-label text-weight-medium"
-          :class="getDarkModeClass(darkMode, 'pt-dark-label', 'pp-text')"
-        >
+    <q-card class="q-dialog-plugin br-15 q-pb-sm pt-card" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="text-weight-medium pt-label" :class="getDarkModeClass(darkMode)">
           <span>{{ addTokenTitle }}</span>
         </q-card-section>
 
@@ -52,22 +46,23 @@
           </div>
 
           <q-separator class="q-mt-none" />
-          
+
           <q-card-actions align="right">
             <q-btn
               rounded
               flat
               :label="$t('Close')"
               padding="0.5em 2em 0.5em 2em"
-              :class="getDarkModeClass(darkMode, 'text-white', 'pp-text')"
+              class="text-bow"
+              :class="getDarkModeClass(darkMode)"
               @click="onCancelClick"
             />
             <template v-if="asset">
               <template v-if="asset.is_nft">
                 <q-btn
                   rounded
-                  class="text-white"
-                  color="blue-9"
+                  class="text-white button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
                   padding="0.5em 2em 0.5em 2em"
                   :label="$t('View at Collectibles')"
                   @click="$router.push('/apps/collectibles'); hide()"
@@ -76,8 +71,8 @@
               <template v-else>
                 <q-btn
                   rounded
-                  class="text-white"
-                  color="blue-9"
+                  class="text-white button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
                   padding="0.5em 2em 0.5em 2em"
                   :label="$t('Add')"
                   type="submit"

@@ -108,7 +108,7 @@ export default {
       let message = this.$t('TransactionSent') + '! '
       if (info && info.transferType === 'c2s') message += this.$t('WaitingSmartBchTransaction')
       if (info && info.transferType === 's2c') message += this.$t('WaitingBchTransaction')
-      const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
+      const dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       this.$q.dialog({
         title: this.$t('SwapUpdate'),
         message: message,
@@ -129,7 +129,7 @@ export default {
   },
   beforeRouteLeave (to, from, next) {
     if (!this.waiting) return next()
-    const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
+    const dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
     this.$q.dialog({
       title: this.$t('LeavingPage'),
       message: this.$t('BridgeLeavingPageMsg'),

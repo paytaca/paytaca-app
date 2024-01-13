@@ -84,7 +84,10 @@
             {{ $t('SendTransaction') }}
           </template>
         </div>
-        <div class="q-gutter-y-sm params-section q-px-md q-pb-md br-15" :class="darkMode ? 'pt-dark-card-2' : 'bg-grey-4'">
+        <div
+          class="q-gutter-y-sm params-section q-px-md q-pb-md br-15 pt-card"
+          :class="getDarkModeClass(darkMode, '', 'bg-grey-4')"
+        >
           <div>
             <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">{{ $t('From') }}:</div>
             <div class="break-word">{{ parsedCallRequest.payload.params[0].from }}</div>

@@ -1,5 +1,5 @@
 <template>
-  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode, 'pt-dark', '')">
+  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)">
     <div id="apps" ref="apps" class="text-center">
       <div>
         <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">

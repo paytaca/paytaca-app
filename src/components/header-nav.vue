@@ -6,7 +6,7 @@
           class="pt-header"
           style="height: 200px;"
           :style="{ 'padding-top': $q.platform.is.ios ? '60px' : '18px', 'height': $q.platform.is.ios ? '100px' : '70px',}"
-          :class="{'pt-dark': darkMode}"
+          :class="{'pt-card-3': darkMode}"
         >
           <router-link
             :to="{ path: backnavpath }"

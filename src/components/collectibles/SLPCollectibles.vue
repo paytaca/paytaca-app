@@ -1,5 +1,5 @@
 <template>
-  <div :class="[darkMode ? 'pt-dark-label' : 'text-grey-8']">
+  <div class="pt-label" :class="getDarkModeClass(darkMode, '', 'text-grey-8')">
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>

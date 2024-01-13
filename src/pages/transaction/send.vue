@@ -753,7 +753,7 @@ export default {
         persistent: true,
         seamless: true,
         ok: false,
-        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class:`pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
 
       JSONPaymentProtocol.fetch(paymentUri)

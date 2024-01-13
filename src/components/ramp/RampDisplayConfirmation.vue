@@ -1,7 +1,7 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md"
-    :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
+    class="br-15 q-pt-sm q-mx-md pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
     v-if="isloaded && !networkError"
   >
     <div class="q-pl-sm q-pt-sm">
@@ -47,7 +47,7 @@ import { getMnemonic, Wallet } from '../../wallet'
 import ProgressLoader from '../ProgressLoader.vue'
 import DragSlide from '../drag-slide.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -82,6 +82,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     isNotDefaultTheme,
     rampType () {
       const vm = this

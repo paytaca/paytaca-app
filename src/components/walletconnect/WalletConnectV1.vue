@@ -131,7 +131,7 @@
               @click="confirmClearCallRequests()"
             />
           </div>
-          <q-list separator :class="darkMode ? 'pt-dark-card-2' : ''">
+          <q-list separator class="pt-card" :class="getDarkModeClass(darkMode)">
             <q-item
               v-for="(request, index) in callRequests"
               :key="index"
@@ -357,7 +357,7 @@ function confirmClearCallRequests () {
       flat: true
     },
     seamless: true,
-    class: darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
     .onOk(() => {
       callRequests.value.forEach?.(rejectCallRequest)

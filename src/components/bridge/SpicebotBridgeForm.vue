@@ -151,7 +151,7 @@
         </q-card-section>
       </q-card>
     </q-form>
-    <q-card v-else class="q-mt-sm" :class="{'pt-dark-card': darkMode, 'text-black': !darkMode }">
+    <q-card v-else class="q-mt-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center justify-start">
           <q-btn
@@ -580,7 +580,7 @@ export default {
           if (result.success) {
             this.swapFulfillmentListener.sentTxid = result.txid
 
-            const dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
+            const dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
             this.$q.dialog({
               title: this.$t('TransactionSent') + '!',
               message: this.$t(isHongKong(this.currentCountry) ? 'Waiting_SEP20_PointSent' : 'Waiting_SEP20_TokenSent'),

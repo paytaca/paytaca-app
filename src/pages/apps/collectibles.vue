@@ -313,7 +313,7 @@ export default {
     confirmRemoveERC721Asset (asset) {
       const title = this.$t('RemoveAsset')
       const message = 'Remove asset "' + asset.name + '". Are you sure?'
-      let dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
+      let dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       dialogStyleClass += ' br-15'
 
       this.$q.dialog({

@@ -50,7 +50,7 @@
       </div>
 
       <q-form ref="form" @submit="onSwapSubmit()">
-        <q-card class="q-mt-sm br-15" :class="{'pt-dark-card': darkMode}">
+        <q-card class="q-mt-sm br-15 pt-card" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <q-banner v-if="bridgeDisabled" inline-actions class="text-white bg-red text-center">
               The bridge is temporarily disabled until further notice
