@@ -609,4 +609,13 @@ body.theme-payhero {
       }
     }
   }
+
+  .product-q-item {
+    &.q-item.q-item--active {
+      color: shared.$brand_blue !important;
+    }
+    &.q-item.q-item--dark.q-item--active {
+      color: $brand_yellow !important;
+    }
+  }
 }
