@@ -93,7 +93,7 @@
                     <div v-else>
                       <div :class="message.chatIdentity.is_user? 'text-right' : ''" style="font-size: 13px;" :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'">{{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}</div>
                       <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
-                        <q-avatar size="6" v-if="!message.chatIdentity.is_user">
+                        <q-avatar size="6">
                           <img :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`">
                         </q-avatar>
                         <div class="q-px-lg q-mx-lg q-pt-sm">
@@ -119,9 +119,9 @@
                             </div>
                           </div>
                         </div>
-                        <q-avatar size="6" v-if="message.chatIdentity.is_user">
+                        <!-- <q-avatar size="6" v-if="message.chatIdentity.is_user">
                           <img :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`">
-                        </q-avatar>
+                        </q-avatar> -->
                       </div>
                     </div>
                   </div>
@@ -146,12 +146,12 @@
               </q-item>
             </div>
           </div>
-          <div v-if="message" class="q-px-sm q-mx-lg">
+          <div v-if="isTyping" class="q-px-sm q-mx-lg">
             <div style="width: 100%;">
               <q-chat-message
                 name="me"
                 sent
-                :avatar="`https://ui-avatars.com/api/?background=random&name=${getMember().name}&color=fffff`"
+                :avatar="`https://ui-avatars.com/api/?background=random&name=${userName}&color=fffff`"
                 bg-color="blue-5"
                 size="6"
               >
@@ -208,8 +208,8 @@
         :style="{
           'cursor': 'pointer',
           'border-radius': '10px',
-          'max-height': '250px',
-          'max-width': '250px',
+          'max-height': '200px',
+          'max-width': '200px',
         }"
         @click="openFileAttachementField"
       >
@@ -290,6 +290,11 @@ export default {
       if (oldVal) URL.revokeObjectURL(oldVal)
 
       this.resetScroll()
+    },
+    message (val) {
+      if (val === '') {
+        this.isTyping = false
+      }
     }
   },
   emits: ['close'],
@@ -301,21 +306,13 @@ export default {
     this.resetScroll()
     // this.isloaded = true
   },
-  methods: {
-    getMember (userid = null) {
+  computed: {
+    userName () {
       const vm = this
-      let user = null
-
-      if (userid) {
-        console.log('id: ', userid)
-        user = vm.chatMembers.filter(member => member.id === userid)[0]
-      } else {
-        console.log('is user')
-        user = this.chatMembers.filter(member => member.is_user === true)[0]
-      }
-
-      return user
-    },
+      return vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+    }
+  },
+  methods: {
     async loadKeyPair () {
       this.keypair = await updateOrCreateKeypair().catch(console.error)
     },
@@ -347,7 +344,7 @@ export default {
             }
           })
 
-          console.log('chat members: ', vm.chatMembers)
+          // console.log('chat members: ', vm.chatMembers)/
         })
       fetchChatPubkeys(vm.chatRef)
         .then(pubkeys => {
@@ -377,10 +374,11 @@ export default {
       }, 500)
     },
     typingMessage: debounce(async function () {
-      this.isTyping = true
-
-      this.resetScroll()
-    }, 500),
+      if (this.message !== '') {
+        this.isTyping = true
+        this.resetScroll()
+      }
+    }, 100),
     async sendMessage (encrypt = true) {
       const vm = this
       let useFormData = false
@@ -427,20 +425,22 @@ export default {
           encrypted: encrypt
         }
       }
-      vm.isloaded = false
       sendChatMessage(data, signData)
-        .then(async(data) => {
-          console.log('new chat: ', data)
-          await Promise(vm.decryptMessage(new ChatMessage(data.data), false))
-            .then(decMessage => {
-              console.log('new dec chat', decMessage)
-              vm.convo.messages.push(decMessage)
+        .then(async (data) => {
+          await new Promise((resolve, reject) => {
+            const decMes = vm.decryptMessage(new ChatMessage(data.data), false)
+            resolve(decMes)
+          })
+            .then(item => {
+              item.chatIdentity.is_user = item.chatIdentity.name === this.userName
+              this.convo.messages.push(item)
             })
         })
         .finally(() => {
           vm.message = ''
+          vm.attachment = null
           vm.resetScroll()
-        }).catch(()=>{
+        }).catch(() => {
           console.log('error')
         })
     },
@@ -465,7 +465,6 @@ export default {
           vm.convo.messages.map(item => {
             item.chatIdentity.is_user = item.chatIdentity.name === username
           })
-          console.log('convo:', vm.convo.messages)
         })
     },
     async decryptMessageAttachment (message = ChatMessage.parse(), tryAllKeys=false) {
