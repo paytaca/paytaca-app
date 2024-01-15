@@ -85,9 +85,10 @@
   </div>
 </template>
 <script>
-import ProgressLoader from '../ProgressLoader.vue'
-import { getMnemonic, Wallet } from '../../wallet'
-import { getMemoedVNodeCall } from '@vue/compiler-core'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { getMnemonic, Wallet } from 'src/wallet'
+// import { getMnemonic, Wallet } from '../../../wallet'
+// import { getMemoedVNodeCall } from '@vue/compiler-core'
 // import { getNetwork } from '@ethersproject/networks'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 

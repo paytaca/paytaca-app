@@ -8,6 +8,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
 import { useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
+import Watchtower from 'watchtower-cash-js'
 
 // Handle JSON serialization of BigInt
 // Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
@@ -39,6 +40,7 @@ export default {
   },
   data () {
     return {
+      promptedPushNotifications: false,
       subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null
     }
@@ -52,6 +54,16 @@ export default {
         getWalletByNetwork(wallet, 'slp').getWalletHash(),
         wallet.sBCH.getWalletHash(),
       ]
+
+      await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+      if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
+        await this.$pushNotifications.openPushNotificationsSettingsPrompt({
+          message: 'Enable push notifications to receive updates from the app',
+        }).catch(console.log)
+        this.promptedPushNotifications = true
+      }
+
+      this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
       await this.$pushNotifications.subscribe(walletHashes)
       this.subscribedPushNotifications = true
     },

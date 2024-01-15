@@ -63,6 +63,7 @@ module.exports = function (/* ctx */) {
 
       'roboto-font', // optional, you are not bound to it
       'material-icons', // optional, you are not bound to it
+      'material-icons-outlined',
       'material-symbols-outlined'
     ],
 
@@ -99,6 +100,11 @@ module.exports = function (/* ctx */) {
         //   loader: 'eslint-loader',
         //   exclude: /node_modules/
         // })
+
+        cfg.module.rules.push({
+          test: /\.cash$/, // Adjust the file extension as needed
+          use: 'raw-loader'
+        })
 
         cfg.experiments = {
           topLevelAwait: true

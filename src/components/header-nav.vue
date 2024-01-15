@@ -12,7 +12,7 @@
             :to="{ path: backnavpath }"
             class="pt-arrow-left-link"
             :class="{'text-grad': isNotDefaultTheme || darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '95%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+            :style="{width: $q.platform.is.bex ? '375px' : '94%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           >
             <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
                 arrow_back
@@ -41,7 +41,7 @@ export default {
     },
     backnavpath: {
       type: String,
-      default: '/apps/settings'
+      default: '',
     }
   },
   computed: {

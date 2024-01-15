@@ -1,11 +1,16 @@
 import { reactive, markRaw } from 'vue'
 import { boot } from 'quasar/wrappers'
 import { PushNotifications } from '@capacitor/push-notifications';
+import { App } from '@capacitor/app'
+import { registerPlugin } from '@capacitor/core'
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
 import { BigNumber } from 'ethers'
 import { Platform } from 'quasar'
+
+
+const PushNotificationSettings = registerPlugin('PushNotificationSettings'); 
 
 /**
  * This is a proxy events emitter for PushNotification plugin's events
@@ -73,7 +78,9 @@ class PushNotificationsEventEmitter {
       .forEach(callback => {
         try {
           callback(data)
-        } catch(error) {}
+        } catch(error) {
+          console.error(error)
+        }
       })
   }
 }
@@ -84,8 +91,10 @@ class PushNotificationsManager {
     this.events = PushNotificationsEventEmitter.getInstance()
     this.registrationToken = ''
     this.deviceId = ''
+    this.appInfo = null
     this.registrationTokenError= 'no error'
     this.permissionStatus = null
+    this.isEnabled = null
 
     this.fetchRegistrationToken()
       .catch(error => {
@@ -94,6 +103,71 @@ class PushNotificationsManager {
     this.fetchDeviceId()
 
     this.subscriptionInfo = {}
+  }
+
+  fetchAppInfo() {
+    return App.getInfo()
+      .then(response => {
+        this.appInfo = response
+        return response
+      })
+  }
+
+  /**
+   * @returns {Promise<{ isEnabled:Boolean }>}
+   */
+  async isPushNotificationEnabled() {
+    return PushNotificationSettings.getNotificationStatus()
+      .catch(error => {
+        if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
+        return Promise.reject(error)
+      })
+      .then(response => {
+        this.isEnabled = response?.isEnabled
+        return response
+      })
+  }
+
+  /**
+   * @param {{message: String, title: String}} opts
+   * @returns {Promise<{ resultCode:Number, isEnabled:Boolean, data:any }>}
+   */
+  async openPushNotificationsSettings() {
+    if (this._openSettingsPromise) return this._openSettingsPromise
+    this._openSettingsPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
+    return PushNotificationSettings.openNotificationSettings()
+      .catch(error => {
+        if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
+        return Promise.reject(error)
+      })
+      .then(response => {
+        this.isEnabled = response?.isEnabled
+        return response
+      })
+      .finally(() => {
+        this._openSettingsPromise = undefined
+      })
+  }
+
+  /**
+   * @param {{message: String, title: String}} opts
+   * @returns {Promise<{ resultCode:Number, isEnabled:Boolean, data:any } | null>}
+   */
+  async openPushNotificationsSettingsPrompt(opts) {
+    if (this._openSettingsPromptPromise) return this._openSettingsPromptPromise
+    this._openSettingsPromptPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
+    return this._openSettingsPromptPromise
+      .catch(error => {
+        if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
+        return Promise.reject(error)
+      })
+      .then(response => {
+        this.isEnabled = response?.isEnabled
+        return response
+      })
+      .finally(() => {
+        this._openSettingsPromptPromise = undefined
+      })
   }
 
   checkPermissions() {
@@ -188,16 +262,26 @@ class PushNotificationsManager {
       '/push-notifications/subscribe/',
       data,
     )
+
     this.subscriptionInfo = response?.data
     return response
   }
 }
 
+export const pushNotificationsManager = new PushNotificationsManager()
+
 export default boot(({ app, store }) => {
 
   if (Platform.is.mobile) {
     const manager = reactive(
-      markRaw(new PushNotificationsManager())
+      markRaw(pushNotificationsManager)
+    )
+
+    manager.events.addEventListener(
+      'pushNotificationReceived',
+      (notification) => {
+        console.log('Notification:', notification)
+      }
     )
   
     // Vuex notification module will act as the event bus for events when user opens app using

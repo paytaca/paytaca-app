@@ -28,19 +28,33 @@
         </div>
       </div>
     </div>
-
     <footer-menu />
   </div>
+  <appSelectionDialog
+    v-if="rampAppSelection"
+    @back="rampAppSelection=false"
+    @submit="rampSelectApp"
+  />
 </template>
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import appSelectionDialog from 'src/components/ramp/appSelectionDialog.vue'
 
 export default {
   name: 'apps',
+  components: {
+    appSelectionDialog
+  },
   data () {
     return {
       apps: [
+        {
+          name: 'Marketplace',
+          iconName: 'storefront',
+          path: '/apps/marketplace',
+          active: true
+        },
         {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
@@ -68,7 +82,7 @@ export default {
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/ramp',
           iconStyle: 'width:50%',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true, // !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
         {
@@ -135,7 +149,9 @@ export default {
         }
       ],
       filteredApps: [],
-      appHeight: null
+      appHeight: null,
+      rampAppSelection: false,
+      disableRampSelection: false
     }
   },
   computed: {
@@ -153,6 +169,16 @@ export default {
     }
   },
   methods: {
+    rampSelectApp (app) {
+      this.rampAppSelection = false
+      this.rampSelectedApp = app
+      if (app === 'fiat') {
+        this.$router.push('/apps/ramp/fiat')
+      }
+      if (app === 'crypto') {
+        this.$router.push('/apps/ramp/crypto')
+      }
+    },
     getDarkModeClass,
     isNotDefaultTheme,
     buttonClassByState (active) {
@@ -160,7 +186,11 @@ export default {
     },
     openApp (app) {
       if (app.active) {
-        this.$router.push(app.path)
+        if (app.name === 'Ramp') {
+          this.rampAppSelection = true
+        } else {
+          this.$router.push(app.path)
+        }
       }
     }
   },
