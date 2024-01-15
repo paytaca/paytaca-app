@@ -28,10 +28,7 @@
     <EscrowTransferProcess
       v-if="state === 'escrow-bch'"
       :key="escrowTransferProcessKey"
-      :action="state"
-      :order="order"
-      :contract="contract"
-      :amount="transferAmount"
+      :data="escrowTransferData"
       @back="onBack"
       @success="onEscrowSuccess"
     />
@@ -39,10 +36,9 @@
       v-if="state === 'tx-confirmation'"
       :key="verifyEscrowTxKey"
       :order-id="order.id"
+      :contract-id="order.contract"
       :action="verifyAction"
-      :txid="txid"
-      :errors="errorMessages"
-      :ramp-contract="rampContract"
+      :escrow="rampContract"
       @back="onBack"
       @success="onVerifyTxSuccess"
       @refresh="$emit('refresh')"
@@ -51,9 +47,10 @@
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
         :key="standByDisplayKey"
-        :data="order"
-        :feedback-data="feedback"
-        :ramp-contract="rampContract"
+        :escrow="rampContract"
+        :order="order"
+        :feedback="feedback"
+        :contract-address="contract.address"
         @send-feedback="sendFeedback"
         @submit-appeal="submitAppeal"
         @refresh="$emit('refresh')"
@@ -68,6 +65,7 @@
         :type="confirmType"
         :ramp-contract="rampContract"
         :errors="errorMessages"
+        :contract-address="contract.address"
         @expired="handleExpired"
         @verify-release="handleVerifyRelease"
         @refresh="$emit('refresh')"
@@ -118,9 +116,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: this.$store.getters['ramp/wallet'],
       websocket: null,
       state: '',
@@ -171,6 +167,15 @@ export default {
     }
   },
   computed: {
+    escrowTransferData () {
+      return {
+        order: this.order,
+        arbiter: this.order.arbiter,
+        contractAddress: this.contract.address,
+        transferAmount: this.transferAmount,
+        fees: this.fees
+      }
+    },
     transferAmount () {
       return Number(this.order.crypto_amount)
     },
@@ -207,16 +212,18 @@ export default {
   emits: ['back', 'refresh'],
   mounted () {
     const vm = this
-    vm.fetchOrderData()
-      .then(() => {
-        if (vm.contract) {
-          vm.generateContract()
-        }
-        vm.fetchAdData()
+    vm.fetchOrder()
+      .then(order => {
+        vm.fetchFees().then(fees => {
+          if (order.contract) {
+            vm.fetchContract().then(contract => vm.generateContract(contract, fees))
+          }
+        })
+        vm.fetchAd()
           .then(() => {
             vm.isloaded = true
           })
-        vm.getOrderFeedback()
+        vm.fetchFeedback()
 
         vm.setupWebsocket()
       })
@@ -263,7 +270,7 @@ export default {
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
-          vm.generateContract()
+          // vm.generateContract()
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'ESCROW')
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
@@ -338,51 +345,47 @@ export default {
     isPdPendingRelease (status) {
       return status === 'PD'
     },
-    // API CALLS
-    fetchOrderData () {
-      const vm = this
-      const url = `${vm.apiURL}/order/${vm.orderData.id}`
+    fetchOrder () {
       return new Promise((resolve, reject) => {
-        vm.$axios.get(url, { headers: vm.authHeaders })
+        const vm = this
+        const url = `/ramp-p2p/order/${vm.orderData.id}`
+        backend.get(url, { authorize: true })
           .then(response => {
-            vm.order = response.data.order
-            vm.contract = response.data.contract
-            vm.fees = response.data.fees
+            console.log(response)
+            vm.order = response.data
             vm.updateStatus(vm.order.status)
-            if (vm.contract) {
-              vm.generateContract()
-            }
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error)
             if (error.response) {
               console.error(error.response)
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              console.error(error)
             }
             reject(error)
           })
       })
     },
-    fetchAdData () {
-      const vm = this
-      const adId = vm.order.ad.id
-      const url = `${vm.apiURL}/ad/${adId}`
+    fetchAd () {
       return new Promise((resolve, reject) => {
-        vm.$axios.get(url, { headers: vm.authHeaders })
+        const vm = this
+        const url = `/ramp-p2p/ad/${vm.order.ad.id}`
+        backend.get(url, { authorize: true })
           .then(response => {
             vm.ad = response.data
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error)
             if (error.response) {
               console.error(error.response)
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              console.error(error)
             }
             reject(error)
           })
@@ -390,106 +393,103 @@ export default {
     },
     confirmOrder () {
       const vm = this
-      const orderID = vm.order.id
-      const url = `${vm.apiURL}/order/${orderID}/confirm`
-      vm.$axios.post(url, {}, { headers: vm.authHeaders })
+      const url = `/ramp-p2p/order/${vm.order.id}/confirm`
+      backend.post(url, {}, { authorize: true })
         .then(response => {
-          if (response.data && response.data.status.value === 'CNF') {
-            vm.generateContract()
-          }
+          console.log(response)
+          vm.updateStatus(response.data.status)
+          vm.generateContract()
         })
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
         })
     },
     cancelOrder () {
       const vm = this
-      const orderID = vm.order.id
-      const url = `${vm.apiURL}/order/${orderID}/cancel`
-      vm.$axios.post(url, {}, { headers: vm.authHeaders })
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      backend.post(url, {}, { authorize: true })
         .then(response => {
           if (response.data && response.data.status.value === 'CNCL') {
             vm.updateStatus(response.data.status)
           }
         })
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
         })
     },
-    verifyRelease () {
-      const vm = this
-      const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
-      const body = {
-        txid: this.txid
-      }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          vm.updateStatus(response.data.status)
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
+    fetchFees () {
+      return new Promise((resolve, reject) => {
+        const url = '/ramp-p2p/order/contracts/fees'
+        backend.get(url, { authorize: true })
+          .then(response => {
+            console.log(response)
+            this.fees = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
             }
-          }
-        })
+            reject(error)
+          })
+      })
     },
-    verifyEscrow () {
-      const vm = this
-      const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
-      const body = {
-        txid: vm.txid
-      }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
+    fetchContract () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const url = `/ramp-p2p/order/contracts/${vm.order.contract}`
+        backend.get(url, { authorize: true })
+          .then(response => {
+            vm.contract = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
             }
-          }
-          const errorMsg = error.response.data.error
-          vm.errorMessages.push(errorMsg)
-          vm.verifyEscrowTxKey++
-        })
+            reject(error)
+          })
+      })
     },
-    generateContract () {
+    generateContract (contract, fees) {
       const vm = this
       if (vm.rampContract) return
-      vm.fetchOrderData()
-        .then(data => {
-          const contract = data.contract
-          const fees = data.fees
-          const publicKeys = contract.pubkeys
-          const addresses = contract.addresses
-          const fees_ = {
-            arbitrationFee: fees.fees.arbitration_fee,
-            serviceFee: fees.fees.service_fee,
-            contractFee: fees.fees.hardcoded_fee
-          }
-          const timestamp = contract.timestamp
-          vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
-          vm.paymentConfirmationKey++
-          vm.standByDisplayKey++
-        })
-        .catch(error => {
-          console.error(error)
-        })
+      const publicKeys = contract.pubkeys
+      const addresses = contract.addresses
+      const fees_ = {
+        arbitrationFee: fees.breakdown.arbitration_fee,
+        serviceFee: fees.breakdown.service_fee,
+        contractFee: fees.breakdown.hardcoded_fee
+      }
+      const timestamp = contract.timestamp
+      vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+      vm.paymentConfirmationKey++
+      vm.standByDisplayKey++
+      vm.verifyEscrowTxKey++
     },
     submitAppeal (data) {
       const vm = this
@@ -507,14 +507,68 @@ export default {
           }
         })
     },
-    addArbiterToChat () {
+    sendFeedback (feedback) {
       const vm = this
-      const chatRef = `ramp-order-${vm.order.id}-chat`
-      vm.fetchOrderMembers(vm.order.id)
-        .then(members => {
-          const arbiter = members.filter(member => member.is_arbiter === true)
-          const arbiterMembers = arbiter.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-          addChatMembers(chatRef, arbiterMembers)
+      vm.isloaded = false
+      const url = '/ramp-p2p/order/feedback/peer'
+      const body = {
+        order_id: vm.order.id,
+        rating: feedback.rating,
+        comment: feedback.comment
+      }
+      backend.post(url, body, { authorize: true })
+        .then(response => {
+          const data = response.data
+          vm.feedback = {
+            rating: data.rating,
+            comment: data.comment,
+            is_posted: true
+          }
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
+        })
+      vm.isloaded = true
+    },
+    fetchFeedback () {
+      const vm = this
+      const url = '/ramp-p2p/order/feedback/peer'
+      backend.get(url, {
+        params: {
+          limit: 7,
+          page: 1,
+          from_peer: vm.$store.getters['ramp/getUser'].id,
+          order_id: vm.order.id
+        },
+        authorize: true
+      })
+        .then(response => {
+          console.log(response.data)
+          if (response.data) {
+            const data = response.data.feedbacks[0]
+            vm.feedback = {
+              rating: data.rating,
+              comment: data.comment,
+              is_posted: true
+            }
+          }
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
         })
     },
     fetchOrderMembers (orderId) {
@@ -534,65 +588,14 @@ export default {
           })
       })
     },
-    sendFeedback (feedback) {
+    addArbiterToChat () {
       const vm = this
-      vm.isloaded = false
-      const url = `${vm.apiURL}/order/feedback/peer`
-      const body = {
-        order_id: vm.order.id,
-        rating: feedback.rating,
-        comment: feedback.comment
-      }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          const data = response.data
-          vm.feedback = {
-            rating: data.rating,
-            comment: data.comment,
-            is_posted: true
-          }
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          }
-        })
-      vm.isloaded = true
-    },
-    getOrderFeedback () {
-      const vm = this
-      const url = `${vm.apiURL}/order/feedback/peer`
-      vm.$axios.get(url, {
-        params: {
-          limit: 7,
-          page: 1,
-          from_peer: vm.$store.getters['ramp/getUser'].id,
-          order_id: vm.order.id
-        },
-        headers: vm.authHeaders
-      })
-        .then(response => {
-          if (response.data) {
-            const data = response.data.feedbacks[0]
-            vm.feedback = {
-              rating: data.rating,
-              comment: data.comment,
-              is_posted: true
-            }
-          }
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          }
+      const chatRef = `ramp-order-${vm.order.id}-chat`
+      vm.fetchOrderMembers(vm.order.id)
+        .then(members => {
+          const arbiter = members.filter(member => member.is_arbiter === true)
+          const arbiterMembers = arbiter.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+          addChatMembers(chatRef, arbiterMembers)
         })
     },
     // Recieve Dialogs
@@ -631,6 +634,7 @@ export default {
       this.openDialog = true
       this.title = 'Cancel this order?'
     },
+
     // Others
     formattedCurrency (value, currency = null) {
       if (currency) {
@@ -650,6 +654,7 @@ export default {
       return true
     },
     onVerifyTxSuccess (status) {
+      // TODO: Add and handle emit event
       this.updateStatus(status)
     },
     onBack () {
@@ -658,7 +663,7 @@ export default {
     onEscrowSuccess (txid) {
       const vm = this
       vm.txid = txid
-      vm.fetchOrderData()
+      vm.fetchOrder()
     },
     copyToClipboard (value) {
       this.$copyText(value)

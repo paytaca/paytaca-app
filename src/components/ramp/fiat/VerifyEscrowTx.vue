@@ -106,14 +106,10 @@ export default {
   emits: ['back', 'success', 'refresh'],
   components: {},
   props: {
-    orderId: {
-      type: Number,
-      default: null
-    },
-    rampContract: Object,
+    orderId: Number,
+    contractId: Number,
     action: String,
-    txid: String,
-    errors: Array
+    escrow: Object
   },
   watch: {
     txidLoaded () {
@@ -138,12 +134,10 @@ export default {
   },
   methods: {
     loadTransactionId () {
-      if (this.txid) {
-        this.transactionId = this.txid
-      }
       if (!this.transactionId) {
         this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.orderId, this.action)
       }
+      this.fetchTransactions()
     },
     loadContract () {
       this.fetchContractBalance()
@@ -151,8 +145,8 @@ export default {
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
-        if (!this.rampContract) return 0
-        this.rampContract.getBalance()
+        if (!this.escrow) return 0
+        this.escrow.getBalance()
           .then(balance => {
             this.contract.balance = balance
             this.balanceLoaded = true
@@ -161,17 +155,13 @@ export default {
           .catch(error => reject(error))
       })
     },
-    async fetchContract () {
+    fetchTransactions () {
       const vm = this
       vm.loading = true
-      backend.get(`/ramp-p2p/order/${vm.orderId}/contract`, { authorize: true })
+      backend.get(`/ramp-p2p/order/contracts/${vm.contractId}/transactions`, { authorize: true })
         .then(response => {
-          console.log(response.data)
-          const data = response.data
-          vm.contract.address = data.contract.address
-
           if (!vm.transactionId) {
-            const transactions = data.transactions
+            const transactions = response.data
             const tx = transactions.filter(transaction => transaction.action === vm.action)
             console.log('tx:', tx)
           }
@@ -187,6 +177,29 @@ export default {
             console.error(error)
           }
         })
+    },
+    fetchContract () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        vm.loading = true
+        backend.get(`/ramp-p2p/order/contracts/${vm.contractId}`, { authorize: true })
+          .then(response => {
+            console.log(response.data)
+            vm.contract = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
     },
     verifyRelease () {
       const vm = this
@@ -301,7 +314,6 @@ export default {
     exponentialBackoff (fn, retries, delayDuration) {
       return fn()
         .then(balance => {
-          console.log('balance:', balance)
           if (this.retryBalance(balance)) {
             if (retries > 0) {
               console.log(`Attempt failed. Retrying in ${delayDuration / 1000} seconds...`)

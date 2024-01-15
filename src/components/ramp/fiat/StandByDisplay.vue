@@ -45,15 +45,15 @@
         <div v-if="displayContractInfo">
           <div class="q-mx-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="contractAddress">
               <template v-slot:append>
-                <div v-if="contract.address" @click="copyToClipboard(contract.address)">
+                <div v-if="contractAddress" @click="copyToClipboard(contractAddress)">
                   <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
                 </div>
               </template>
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="contract.balance">
+            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" :label="contractBalance">
               <template v-slot:append>
                 <span class="sm-font-size bold-text md-font-size">BCH</span>
               </template>
@@ -113,15 +113,15 @@
         <!-- Feedback -->
         <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
           <div class="md-font-size text-center">
-            <span v-if="!feedback.is_posted">Rate your experience</span>
+            <span v-if="!feedbackForm.is_posted">Rate your experience</span>
             <span v-else>Your Review</span>
           </div>
           <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
           <div>
             <div class="q-py-xs text-center">
               <q-rating
-                :readonly="feedback.is_posted"
-                v-model="feedback.rating"
+                :readonly="feedbackForm.is_posted"
+                v-model="feedbackForm.rating"
                 size="2em"
                 color="yellow-9"
                 icon="star"
@@ -129,22 +129,22 @@
             </div>
             <div class="q-pt-sm q-px-xs">
               <q-input
-                v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
-                v-model="feedback.comment"
+                v-if="!feedbackForm.is_posted || (feedbackForm.is_posted && feedbackForm.comment)"
+                v-model="feedbackForm.comment"
                 :dark="darkMode"
-                :readonly="feedback.is_posted"
+                :readonly="feedbackForm.is_posted"
                 placeholder="Add comment here..."
                 dense
                 outlined
                 autogrow
-                :counter="!feedback.is_posted"
+                :counter="!feedbackForm.is_posted"
                 maxlength="200"
               />
             </div>
             <div class="row q-pt-xs q-px-xs">
               <q-btn
-                v-if="!feedback.is_posted"
-                :disable="!feedback.rating"
+                v-if="!feedbackForm.is_posted"
+                :disable="!feedbackForm.rating"
                 rounded
                 label='Post Review'
                 class="q-space text-white"
@@ -207,31 +207,28 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
       nickname: this.$store.getters['ramp/getUser'].name,
-      order: null,
       appeal: null,
-      contract: {
-        address: null,
-        balance: null
-      },
       isloaded: false,
       countDown: '',
       timer: null,
       type: 'ongoing',
       openDialog: false,
       openReviews: false,
-      feedback: {
+      feedbackForm: {
         rating: 0,
         comment: '',
         is_posted: false
       },
+      contractBalance: null,
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.25
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   props: {
-    data: Object,
-    feedbackData: Object,
-    rampContract: Object
+    escrow: Object,
+    order: Object,
+    feedback: Object,
+    contractAddress: String
   },
   emits: ['sendFeedback', 'submitAppeal', 'refresh'],
   components: {
@@ -312,8 +309,8 @@ export default {
     }
   },
   async mounted () {
-    if (this.feedbackData) {
-      this.feedback = this.feedbackData
+    if (this.feedback) {
+      this.feedbackForm = this.feedback
     }
     this.loadData()
     this.isloaded = true
@@ -324,49 +321,27 @@ export default {
   },
   methods: {
     loadData () {
-      this.order = this.data
       if (this.order.status?.value === 'APL') {
         this.fetchAppeal()
-      } else {
-        this.fetchContract()
       }
       this.paymentCountdown()
       this.checkStatus()
+      this.fetchContractBalance()
     },
     fetchAppeal () {
       const vm = this
       backend.get(`/ramp-p2p/order/${vm.order.id}/appeal`, { authorize: true })
         .then(response => {
           console.log(response)
-          vm.contract.address = response.data?.contract?.address
           vm.appeal = response.data?.appeal
-          vm.getContractBalance()
         })
     },
-    fetchContract () {
+    fetchContractBalance () {
       const vm = this
-      backend.get(`/ramp-p2p/order/${vm.order.id}/contract`, { authorize: true })
-        .then(response => {
-          vm.contract.address = response.data?.contract?.address
-          vm.getContractBalance()
-        })
-        .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-          }
-        })
-    },
-    getContractBalance () {
-      const vm = this
-      if (this.rampContract) {
-        vm.rampContract.getBalance()
+      if (this.escrow) {
+        vm.escrow.getBalance()
           .then(balance => {
-            vm.contract.balance = balance
+            vm.contractBalance = balance.toString()
           })
           .catch(error => {
             console.error(error)
@@ -380,7 +355,7 @@ export default {
       }
     },
     postingFeedback () {
-      this.$emit('sendFeedback', this.feedback)
+      this.$emit('sendFeedback', this.feedbackForm)
     },
     async onSubmitAppeal (data) {
       this.openDialog = false

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
-    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">(ORDER #{{ order.id }})</div>
+    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">(ORDER #{{ order?.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
       <div class="q-mx-lg q-px-lg q-pt-md">
@@ -42,7 +42,7 @@
           :dark="darkMode"
           filled
           dense
-          v-model="contractAddress"
+          :label="contractAddress"
           :loading="!contractAddress">
           <template v-slot:append v-if="contractAddress">
             <div @click="copyToClipboard(contractAddress)">
@@ -66,7 +66,7 @@
           </template>
         </q-input>
         <div class="col text-right sm-font-size q-pl-sm">
-          = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
+          = {{ fiatAmount }} {{ order?.fiat_currency.symbol }}
         </div>
         <!-- </div> -->
         <div class="row q-mb-md" v-if="sendErrors.length > 0">
@@ -114,6 +114,7 @@
 import { bus } from 'src/wallet/event-bus.js'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { rampWallet } from 'src/wallet/ramp/wallet'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -123,14 +124,15 @@ export default {
       wsURL: process.env.RAMP_WS_URL + 'order/',
       authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: this.$store.getters['ramp/wallet'],
-      adData: null,
       loading: false,
+      order: null,
+      adData: null,
       selectedArbiter: null,
       arbiterOptions: [],
       contractAddress: null,
+      fees: null,
       transferAmount: null,
       txid: null,
-      fees: null,
       showDragSlide: true,
       sendErrors: [],
       sendingBch: false,
@@ -143,25 +145,13 @@ export default {
     RampDragSlide
   },
   props: {
-    order: {
-      type: Object,
-      default: null
-    },
-    amount: {
-      type: Number,
-      default: 0
-    },
-    contract: Object
+    data: Object
   },
   watch: {
     selectedArbiter (_, oldValue) {
       if (oldValue === null) return
       this.contractAddress = null
       this.generateContractAddress()
-    },
-    fees (value) {
-      const totalFees = value.total / 100000000
-      this.transferAmount += totalFees
     }
   },
   computed: {
@@ -175,7 +165,7 @@ export default {
       return false
     },
     fiatAmount () {
-      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      let amount = Number(parseFloat(this.order?.crypto_amount) * parseFloat(this.order?.locked_price))
       if (amount > 1) amount = amount.toFixed(2)
       return this.$parent.formattedCurrency(amount)
     }
@@ -183,14 +173,35 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-    vm.transferAmount = vm.amount
-    vm.fetchOrderDetail()
-    vm.fetchArbiters()
+    vm.loadData()
+    vm.loadContract()
   },
   methods: {
+    loadContract () {
+      const vm = this
+      vm.fetchArbiters().then(() => {
+        if (!vm.contractAddress) {
+          vm.generateContractAddress()
+        }
+      })
+    },
+    loadData () {
+      const vm = this
+      vm.order = vm.data.order
+      vm.contractAddress = vm.data.contractAddress
+      vm.selectedArbiter = vm.data.arbiter
+      vm.fees = vm.data.fees
+      vm.updateTransferAmount(vm.data.transferAmount)
+    },
+    updateTransferAmount (transferAmount) {
+      this.transferAmount = transferAmount
+      if (this.fees) {
+        this.transferAmount += this.fees.total / 100000000
+      }
+    },
     async completePayment () {
       const vm = this
-      const status = vm.order.status.value
+      const status = vm.order?.status?.value
       vm.sendErrors = []
       if (status === 'CNF') {
         vm.escrowPendingOrder()
@@ -214,7 +225,7 @@ export default {
         if (result.success) {
           vm.txid = result.txid
           const txidData = {
-            id: vm.order.id,
+            id: vm.order?.id,
             txidInfo: {
               action: 'ESCROW',
               txid: this.txid
@@ -244,7 +255,7 @@ export default {
     escrowPendingOrder () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
+        const url = vm.apiURL + '/order/' + vm.order?.id + '/pending-escrow'
         vm.loading = true
         vm.$axios.post(url, null, { headers: vm.authHeaders })
           .then(response => {
@@ -262,64 +273,44 @@ export default {
           })
       })
     },
-    fetchOrderDetail () {
-      const vm = this
-      vm.loading = true
-      const url = vm.apiURL + '/order/' + vm.order.id
-      vm.$axios.get(url, { headers: vm.authHeaders })
-        .then(response => {
-          vm.fees = response.data.fees
-          console.log('contract?.address:', response.data?.contract?.address)
-          if (!response.data?.contract?.address) {
-            vm.generateContractAddress()
-          }
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
-    },
     fetchArbiters () {
-      const vm = this
-      const url = vm.apiURL + '/arbiter'
-      vm.$axios.get(url, { headers: vm.authHeaders })
-        .then(response => {
-          vm.arbiterOptions = response.data
-          vm.selectedArbiter = vm.order.arbiter
-          if (vm.arbiterOptions.length > 0) {
-            if (!vm.selectedArbiter) {
-              vm.selectedArbiter = vm.arbiterOptions[0]
-            } else {
-              vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
-                return obj.id === vm.selectedArbiter.id
-              })
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('ramp-p2p/arbiter', { authorize: true })
+          .then(response => {
+            console.log(response)
+            vm.arbiterOptions = response.data
+            if (vm.arbiterOptions.length > 0) {
+              if (!vm.selectedArbiter) {
+                vm.selectedArbiter = vm.arbiterOptions[0]
+              } else {
+                vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
+                  return obj.id === vm.selectedArbiter.id
+                })
+              }
             }
-          }
-          if (vm.contract) {
-            vm.contractAddress = vm.contract.address
-          } else {
-            vm.generateContractAddress()
-          }
-          vm.loading = false
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-          vm.loading = false
-        })
+            resolve(response.data)
+            vm.loading = false
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+            vm.loading = false
+            reject(error)
+          })
+      })
     },
     generateContractAddress () {
       const vm = this
-      const url = vm.apiURL + '/order/' + vm.order.id + '/generate-contract'
       const body = {
-        arbiter: vm.selectedArbiter.id
+        order_id: vm.order?.id,
+        arbiter_id: vm.selectedArbiter.id
       }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
+      backend.post('/ramp-p2p/order/contracts/create', body, { authorize: true })
         .then(response => {
+          console.log(response)
           if (response.data.data) {
             const data = response.data.data
             if (data.contract_address) {

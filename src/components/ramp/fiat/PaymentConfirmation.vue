@@ -11,10 +11,10 @@
         <div class="q-mt-md q-mx-lg q-px-md">
           <div class="q-my-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="contractAddress">
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="contract.balance">
+            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" :label="contractBalance">
               <template v-slot:append>
                 <span class="md-font-size bold-text">BCH</span>
               </template>
@@ -137,10 +137,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
-      contract: {
-        address: null,
-        balance: null
-      },
+      contractBalance: null,
       order: null,
       txid: null,
       isloaded: false,
@@ -161,7 +158,8 @@ export default {
     orderId: Number,
     type: String,
     rampContract: Object,
-    errors: Array
+    errors: Array,
+    contractAddress: String
   },
   components: {
     RampDragSlide
@@ -209,12 +207,12 @@ export default {
     this.timer = null
   },
   methods: {
-    getContractBalance () {
+    fetchContractBalance () {
       const vm = this
       if (vm.rampContract) {
         vm.rampContract.getBalance()
           .then(balance => {
-            vm.contract.balance = balance
+            vm.contractBalance = balance
           })
           .catch(error => {
             console.error(error)
@@ -267,7 +265,7 @@ export default {
       const vm = this
       vm.sendErrors = []
       const feContractAddr = await vm.rampContract.getAddress()
-      const beContractAddr = vm.contract.address
+      const beContractAddr = vm.contractAddress
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
       }
@@ -301,13 +299,10 @@ export default {
         const url = vm.apiURL + '/order/' + vm.orderId
         vm.$axios.get(url, { headers: vm.authHeaders })
           .then(response => {
-            vm.order = response.data.order
-            vm.contract.address = response.data.contract.address
+            console.log(response)
+            vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-            if (vm.contract.address) {
-              vm.getContractBalance()
-            }
-            vm.paymentMethods = response.data.order.ad.payment_methods.map(method => {
+            vm.paymentMethods = vm.order.ad.payment_methods.map(method => {
               return { ...method, selected: false }
             })
             resolve(response)
