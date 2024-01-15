@@ -226,15 +226,11 @@ export default {
                     backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
                       .then((response) => {
                         setAuthCookie(response.data.token, response.data.expires_at)
-                        vm.user = response.data.user
                         if (vm.user) {
                           vm.$store.commit('ramp/updateUser', vm.user)
                           vm.$store.dispatch('ramp/loadAuthHeaders')
                         }
-                        let userType
-                        if (vm.user.is_arbiter) userType = 'arbiter'
-                        else userType = 'peer'
-                        vm.$emit('loggedIn', userType)
+                        vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                       })
                       .then(vm.loadChatIdentity().then(vm.loggingIn = false))
                   })
