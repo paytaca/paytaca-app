@@ -1,6 +1,6 @@
 <template>
   <div class="pt-custom-keyboard" v-if="keyboard">
-    <div class="pt-keyboard-container shadow-2 br-top-15" :class="getDarkModeClass('pt-dark-card-2')">
+    <div class="pt-keyboard-container shadow-2 br-top-15 pt-card" :class="getDarkModeClass(darkMode)">
       <div class="row q-px-sm q-mb-none q-py-sm pt-custom-keyboard-row br-top-15 full-height bg-grad q-pb-lg q-pt-md">
         <div class="col-3 pt-col-key" v-for="(key, index) in 15" :key="index">
           <q-btn
@@ -143,9 +143,5 @@ export default {
 .pt-bg-dark {
   color: #fff !important;
   background: #273746 !important;
-}
-.pt-bg-dark-2 {
-  color: #fff !important;
-  background: #5D6D7E !important;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div
     style="background-color: #ECF3F3; min-height: 100vh;"
-    :class="{'pt-dark': $store.getters['darkmode/getStatus']}"
+    :class="{'pt-card-3': $store.getters['darkmode/getStatus']}"
   >
     <header-nav
       title="Connecta"
@@ -143,7 +143,7 @@
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
           <div v-if="paymentRequestStatus.executing" class="q-mt-md row justify-center">
-            <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
           </div>
           <div v-else class="q-mt-md row justify-end">
             <q-btn
@@ -233,7 +233,7 @@ import { Plugins } from '@capacitor/core'
 const { SecureStoragePlugin } = Plugins
 
 import { PaymentRequest } from './payment-request'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'connecta',
@@ -312,7 +312,7 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     playSound (success) {
       let path = 'send-success.mp3'
       if (this.$q.platform.is.ios) {

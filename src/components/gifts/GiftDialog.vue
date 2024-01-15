@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom" seamless>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'" style="height:100%;width:100%;max-height:90vh;">
+    <q-card :class="darkMode ? 'pt-card-3' : 'text-black'" style="height:100%;width:100%;max-height:90vh;">
       <div class="row no-wrap items-center justify-center q-pl-md q-mt-sm">
         <div class="text-h6 q-space q-mt-sm">Gift</div>
         <q-btn

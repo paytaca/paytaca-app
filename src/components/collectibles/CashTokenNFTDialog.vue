@@ -1,15 +1,8 @@
 <template>
   <q-dialog v-model="innerVal" full-width seamless>
-    <q-card style="max-width:90vw;" class="pt-card" :class="getDarkModeClass('text-white', 'text-black')">
-      <q-card-section
-        class="row items-start no-wrap"
-        style="position:sticky;top:0;z-index:1;max-width:100%;background:inherit;"
-        :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-      >
-        <div
-          class="text-h6 q-space" :class="darkMode ? 'text-grad' : ''"
-          style="text-overflow:clip"
-        >
+    <q-card style="max-width:90vw;" class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card-section class="row items-start no-wrap nft-dialog-header" >
+        <div class="text-h6 q-space" :class="{'text-grad': darkMode}" style="text-overflow:clip">
           {{ nft?.parsedMetadata?.name || fallbackName }}
         </div>
         <q-btn
@@ -17,6 +10,7 @@
           icon="close"
           round dense
           v-close-popup
+          class="close-button"
         />
       </q-card-section>
 
@@ -34,9 +28,9 @@
 
       <q-tabs
         v-model="tab"
-        style="padding-left: 3px; padding-right: 3px;"
-        :active-color="isDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-        :indicator-color="isDefaultTheme() && 'transparent'"
+        style="padding: 0 3px;"
+        :active-color="isNotDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+        :indicator-color="isNotDefaultTheme() && 'transparent'"
       >
         <q-tab
           name="details"
@@ -62,7 +56,6 @@
         animated
         v-model="tab"
         class="pt-card"
-        :class="getDarkModeClass('', 'text-black')"
       >
         <q-tab-panel name="details">
           <!-- <q-btn
@@ -125,6 +118,8 @@
                 padding="none"
                 no-caps
                 :label="$t('ViewInExplorer')"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 icon="link"
                 target="_blank"
                 :href="transactionUrl"
@@ -150,7 +145,6 @@
           <q-btn
             :label="$t('Send')"
             icon="send"
-            color="brandblue"
             class="button"
             :to="{
               name: 'transaction-send',
@@ -252,7 +246,7 @@ function copyToClipboard(value, message) {
   })
 }
 
-function isDefaultTheme () {
+function isNotDefaultTheme () {
   return $store.getters['global/theme'] !== 'default'
 }
 
@@ -261,11 +255,12 @@ function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
 }
 </script>
 
-<style scoped>
-.nft-img-btn {
-  position: absolute;
-  z-index: 1000;
-  left: 85%;
-  top: 70%;
-}
+<style lang="scss" scoped>
+  .nft-dialog-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    max-width: 100%;
+    background: inherit;
+  }
 </style>

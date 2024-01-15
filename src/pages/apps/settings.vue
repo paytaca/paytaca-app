@@ -7,7 +7,9 @@
             <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SecurityAuthenticationSetup') }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('SecurityAuthenticationSetup') }}
+                      </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                       <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
@@ -15,10 +17,12 @@
               </q-item>
               <q-item :disable="!pinStatus" clickable v-ripple @click="setNewPin">
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('ChangePin') }} {{ !pinStatus ? '(disabled)' : '' }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('ChangePin') }} {{ !pinStatus ? '(disabled)' : '' }}
+                      </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                      <q-icon name="mdi-pin" class="q-pr-sm pin-icon" :class="darkMode ? 'text-blue-7' : 'text-grey'"></q-icon>
+                      <q-icon name="mdi-pin" class="q-pr-sm pin-icon"></q-icon>
                   </q-item-section>
               </q-item>
             </q-list>
@@ -29,7 +33,9 @@
             <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
               <q-item>
                   <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                      {{ $t('Currency') }}
+                    </q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <CurrencySelector :darkMode="darkMode" />
@@ -37,7 +43,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                     {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
                   </q-item-label>
                 </q-item-section>
@@ -51,7 +57,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                     {{ $t(isHongKong(currentCountry) ? 'ManageIgnoredPoints' : 'ManageIgnoredTokens') }}
                   </q-item-label>
                 </q-item-section>
@@ -70,7 +76,9 @@
 
               <q-item clickable v-ripple @click="isChipnet = !isChipnet">
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('UseChipnetNetwork') }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('UseChipnetNetwork') }}
+                      </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                     <q-toggle
@@ -82,7 +90,9 @@
               </q-item>
               <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                   <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('EnableSmartBCH') }}</q-item-label>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('EnableSmartBCH') }}
+                      </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                     <q-toggle
@@ -94,7 +104,9 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('SelectBCHDenomination') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                    {{ $t('SelectBCHDenomination') }}
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <DenominatorSelector :darkMode="darkMode" />
@@ -108,7 +120,7 @@
           <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
             <q-item>
               <q-item-section>
-                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <CountrySelector :darkMode="darkMode" />
@@ -117,7 +129,7 @@
 
             <q-item>
               <q-item-section>
-                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Language') }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <LanguageSelector :darkMode="darkMode" />
@@ -127,7 +139,7 @@
             <!-- <# Temporarily disable the theme switcher #>
             <q-item>
               <q-item-section>
-                <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Theme') }}</q-item-label>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Theme') }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <ThemeSelector :darkMode="darkMode" />
@@ -136,7 +148,7 @@
 
             <q-item clickable v-ripple @click="darkMode = !darkMode">
                 <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('DarkMode') }}</q-item-label>
+                    <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('DarkMode') }}</q-item-label>
                 </q-item-section>
                 <q-item-section avatar>
                   <q-toggle
@@ -154,14 +166,19 @@
               <q-item>
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
-                  <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">v{{ appVersion }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
                   <q-item-label>
-                    <a :href="repoUrl" target="_blank" :class="darkMode ? 'text-grad' : 'text-blue-9'" style="text-decoration: none;">
+                    <a
+                      :href="repoUrl"
+                      target="_blank"
+                      :class="darkMode ? 'text-grad' : 'text-blue-9'"
+                      style="text-decoration: none;"
+                    >
                       {{ repoUrl }}
                     </a>
                   </q-item-label>
@@ -329,26 +346,23 @@ export default {
 }
 </script>
 
-<style>
-.pt-settings {
-    background-color: #ECF3F3;
-    min-height: 100vh;
-}
-.pt-item {
-    border-bottom-right-radius: 14px;
-    border-bottom-left-radius: 14px;
-}
-.dim-text {
+<style lang="scss" scoped>
+  .dim-text {
     color: #ed5f59;
-}
-.pt-setting-menu {
-    color: #3B7BF6;
+  }
+  .pt-setting-menu {
     font-weight: 400;
-}
-.pt-setting-avatar-dark {
+    &.dark {
+      color: #e0e2e5;
+    }
+    &.light {
+      color: #3B7BF6;
+    }
+  }
+  .pt-setting-avatar-dark {
     color: #A6ACAF;
-}
-.pt-card {
-  border-radius: 14px;
-}
+  }
+  .pt-card {
+    border-radius: 14px;
+  }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div :class="[darkMode ? 'pt-dark-label' : 'text-grey-8']">
+  <div class="pt-label" :class="getDarkModeClass(darkMode, '', 'text-grey-8')">
     <div class="q-mx-md q-px-sm row items-center">
       <div class="row justify-end">
         <q-btn-toggle
@@ -70,6 +70,7 @@ import { useStore } from 'vuex';
 import { computed, onMounted, ref, watch } from 'vue';
 import CashTokenNFTDialog from './CashTokenNFTDialog.vue';
 import CashTokensNFTGroup from './CashTokensNFTGroup.vue';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 defineExpose({
   refresh,

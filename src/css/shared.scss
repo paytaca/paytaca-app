@@ -1,0 +1,97 @@
+/* This file hosts classes that are used on multiple components
+ * with properties that are the same all throughout different themes.
+*/
+
+@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+
+/* ----- VARIABLES ----- */
+$brand_blue: rgb(60, 100, 246);
+$close_button: red;
+$font-family_1: "Rubik", sans-serif;
+
+/* ----- MIXINS ----- */
+@mixin body-prop {
+  font-family: $font-family_1;
+  font-weight: 300 !important;
+}
+
+@mixin user-select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@mixin body-transition {
+  -webkit-transition: 0.1s;
+  -moz-transition: 0.1s;
+  -o-transition: 0.1s;
+  transition: 0.1s;
+}
+
+/* ----- CLASSES ----- */
+.br-15 {
+  border-radius: 15px !important;
+}
+
+.br-40 {
+  border-radius: 40px !important;
+}
+
+.text-brandblue {
+  color: $brand_blue !important;
+}
+
+.bg-brandblue {
+  background: $brand_blue !important;
+}
+
+.pp-fcolor {
+  color: #000 !important;
+}
+
+.bex.q-body--prevent-scroll {
+  position: unset !important;
+}
+
+.text-bow { // black or white
+  &.dark {
+    color: white;
+  }
+  &.light {
+    color: black
+  }
+}
+
+.vertical-space {
+  height: 90px;
+}
+
+.asset-filter-container {
+  position: relative;
+  margin-top: 45px;
+}
+
+.slp-disabled-banner {
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.text-token {
+  font-size: 18px;
+}
+
+.close-button {
+  color: $close_button !important;
+}
+
+.price-chart {
+  background: #212f3d !important;
+
+  &.light {
+    background: #f9f8ff !important;
+  }
+}

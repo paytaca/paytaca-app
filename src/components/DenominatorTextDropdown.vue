@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   props: {
@@ -46,7 +46,7 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
     selectDenomination (value) {
       this.$emit('on-selected-denomination', value)
     }

@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless>
-    <q-card :class="darkMode ? 'text-white br-15 pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">Mutual Redemption Proposal</div>
         <q-btn
@@ -159,6 +159,7 @@ import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const manager = new AnyHedgeManager()
 // dialog plugins requirement
@@ -301,7 +302,7 @@ async function confirmMutualRedemption(data) {
     html: true,
     ok: true,
     cancel: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
 }
@@ -447,7 +448,7 @@ async function createMutualRedemption() {
           title: 'Mutual redemption submitted',
           seamless: true,
           ok: true,
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         }).onDismiss(() => onDialogHide())
         return Promise.resolve(response)
       }

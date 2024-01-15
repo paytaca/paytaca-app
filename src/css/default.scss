@@ -1,53 +1,79 @@
+@use 'shared.scss';
+
 body.theme-default {
-  $color_1: #eaeeff;
-  $brand_blue: rgb(60, 100, 246);
-  $color_3: #ecf3f3;
+  /* ----- VARIABLES ----- */
   $color_4: #fff;
-  $color_5: #000;
   $color_6: #42a5f5;
 
   $text_blue_9: #1565c0;
-
-  $background-color_1: #012121;
-  $background-color_2: #f9f8ff;
-  $background-color_3: #ecf3f3;
   $bg_card_dark: #1c2833;
-
-  $font-family_1: "Rubik", sans-serif;
-
-  @import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
-
+  $bg_gradient: linear-gradient(
+    to right bottom,
+    #3b7bf6,
+    #a866db,
+    #da53b2,
+    #ef4f84,
+    #ed5f59
+  );
+  
+  /* ----- GLOBAL ----- */
   body {
-    font-family: $font-family_1;
-    font-weight: 300 !important;
+    @include shared.body-prop;
   }
 
-  p {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  p, a {
+    @include shared.user-select-none;
   }
-  a {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+
+  /* ----- IDS ----- */
+  #registration-container {
+    min-height: 100vh;
+    background-image: $bg_gradient;
+    position: relative !important;
+
+    .q-field--dark {
+      .q-field__control {
+        color: shared.$brand_blue !important;
+      }
+
+      .q-field__native {
+        color: black !important;
+      }
+    }
   }
-  .bg-grad,
-  .bg-grad.button {
+
+  #bch-card {
     background-image: linear-gradient(
       to right bottom,
       #3b7bf6,
-      #a866db,
-      #da53b2,
+      #5f94f8,
+      #df68bb,
       #ef4f84,
       #ed5f59
-    ) !important;
+    );
+  }
+  
+  #apps {
+    padding: 20px 20px 80px 20px;
+    color: #3b7bf6;
+  }
+  
+
+  #app-container,
+  #apps-page-container {
+    &.dark {
+      background: #273746 !important;
+    }
+
+    &.light {
+      background-color: #ecf3f3 !important;
+    }
+  }
+
+  /* ----- CLASSES ----- */
+  .bg-grad,
+  .bg-grad.button {
+    background-image: $bg_gradient !important;
   }
   .text-grad {
     background: -webkit-linear-gradient(
@@ -62,92 +88,7 @@ body.theme-default {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     -webkit-box-decoration-break: clone;
-  }
-  #registration-container {
-    min-height: 100vh;
-    background-image: linear-gradient(
-      to right bottom,
-      #3b7bf6,
-      #a866db,
-      #da53b2,
-      #ef4f84,
-      #ed5f59
-    );
-    position: relative !important;
-
-    .q-field--dark {
-      .q-field__control {
-        color: $brand_blue !important;
-      }
-
-      .q-field__native {
-        color: black !important;
-      }
-    }
-  }
-  #bch-card {
-    background-image: linear-gradient(
-      to right bottom,
-      #3b7bf6,
-      #5f94f8,
-      #df68bb,
-      #ef4f84,
-      #ed5f59
-    );
-  }
-  #apps {
-    padding: 20px 20px 80px 20px;
-    color: #3b7bf6;
-  }
-
-  #app-container {
-    &.dark {
-      background: #273746 !important;
-    }
-
-    &.light {
-      background-color: #ecf3f3 !important;
-    }
-  }
-
-  .pt-brand {
-    text-align: center;
-    padding: 20px 0px 0px 0px;
-  }
-  .pt-brandname {
-    color: $color_1;
-    font-size: 28px;
-  }
-  .pt-get-started {
-    width: 100%;
-    min-height: calc(100vh - 152px);
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: $background-color_2;
-  }
-  .br-15 {
-    border-radius: 15px !important;
-  }
-  .br-40 {
-    border-radius: 40px !important;
-  }
-  .text-brandblue {
-    color: $brand_blue !important;
-  }
-  .bg-brandblue {
-    background: $brand_blue !important;
-  }
-  .text-brandlight {
-    color: $color_3 !important;
-  }
-  .bg-brandlight {
-    background-color: $background-color_3 !important;
-  }
-  .pt-dark {
-    background: #273746 !important;
-  }
-  .pt-dark-card {
-    background: $bg_card_dark !important;
+    box-decoration-break: clone;
   }
 
   .pt-card {
@@ -157,6 +98,43 @@ body.theme-default {
 
     &.light {
       background-color: white !important;
+
+      &.btn-transaction-bg {
+        background-color: #f2f3fc !important;
+      }
+    }
+  }
+
+  .pt-card-2 {
+    &.dark {
+      background: #273746;
+    }
+
+    &.light {
+      background-color: white;
+    }
+  }
+
+  .pt-card-3 {
+    background: #273746 !important;
+  }
+
+  .pt-label {
+    &.dark {
+      color: $color_4;
+    }
+
+    &.light {
+      color: black;
+    }
+  }
+
+  .price-chart-card {
+    &.dark {
+      background: #273746;
+    }
+    &.light {
+      background: #ECF3F3
     }
   }
 
@@ -185,33 +163,6 @@ body.theme-default {
     }
   }
 
-  .pt-dark-card-2 {
-    background: #212f3d !important;
-  }
-  .pt-dark-label {
-    color: $color_4 !important;
-  }
-
-  .pt-label {
-    &.dark {
-      color: $color_4;
-    }
-
-    &.light {
-      color: #444655;
-    }
-  }
-
-  .pt-dark-box-shadow {
-    box-shadow: 2px 2px 2px 2px #212f3d !important;
-  }
-  .bex.q-body--prevent-scroll {
-    position: unset !important;
-  }
-  .pp-fcolor {
-    color: $color_5 !important;
-  }
-
   .method-cards {
     height: 78px;
     min-width: 150px;
@@ -235,8 +186,6 @@ body.theme-default {
       #9c3356,
       #a5403d
     );
-    /* background-image: linear-gradient(to right bottom, #CACFD2, #A6ACAF, #717D7E, #5F6A6A, #515A5A); */
-    /* background: #717D7E; */
   }
 
   .selected {
@@ -244,9 +193,6 @@ body.theme-default {
   }
 
   .pt-app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     border-radius: 10px;
   }
 
@@ -274,19 +220,16 @@ body.theme-default {
   }
 
   .btn-scan {
-    background-image: linear-gradient(
-      to right bottom,
-      #3b7bf6,
-      #a866db,
-      #da53b2,
-      #ef4f84,
-      #ed5f59
-    );
+    background-image: $bg_gradient;
   }
 
   .group-currency {
     &.dark {
-      background: $bg_card_dark !important;
+      background: $bg_card_dark;
+    }
+
+    &.light {
+      background: white;
     }
 
     .text-token {
@@ -318,7 +261,7 @@ body.theme-default {
       }
 
       &.light {
-        color: $brand_blue !important;
+        color: shared.$brand_blue !important;
       }
     }
 
@@ -328,28 +271,28 @@ body.theme-default {
       }
 
       &.light {
-        color: $color_5 !important;
+        color: #000 !important;
       }
     }
   }
 
   .button {
-    background: $brand_blue !important;
+    background: shared.$brand_blue !important;
     color: white !important;
 
     &.button-text-primary {
       background: transparent !important;
-      color: $brand_blue !important;
+      color: shared.$brand_blue !important;
     }
 
     &.button-text-secondary {
       background: transparent !important;
-      color: $brand_blue !important;
+      color: shared.$brand_blue !important;
     }
 
     &.button-icon {
       background: transparent !important;
-      color: $brand_blue !important;
+      color: shared.$brand_blue !important;
     }
   }
 
@@ -359,7 +302,7 @@ body.theme-default {
 
   .ignored-tokens-button {
     &.dark {
-      background: $brand_blue !important;
+      background: shared.$brand_blue !important;
     }
 
     &.light {
@@ -420,10 +363,14 @@ body.theme-default {
   }
 
   .bg-button-toggle {
-    background: $brand_blue !important;
+    background: shared.$brand_blue !important;
   }
 
   .q-btn.q-btn--rounded.bg-amber {
-    background-color: $brand_blue !important;
+    background-color: shared.$brand_blue !important;
+  }
+
+  .pin-icon {
+    color: shared.$brand_blue;
   }
 }

@@ -1,7 +1,7 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm pt-card"
-    :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+    class="br-15 q-pt-sm pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
   >
     <q-card-section v-if="!stagedSwapDetails.show">
       <div class="row items-center justify-end q-mb-md">
@@ -46,7 +46,13 @@
 
       <q-item clickable>
         <q-item-section avatar @click="selectSourceToken()" class="items-center">
-          <img :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
+          <img
+            :src="formData.sourceToken.image_url || getFallbackAssetLogo(`sep20/${formData.sourceToken.address}`)"
+            height="30"
+            style="border-radius:50%"
+            class="q-mb-sm"
+            alt=""
+          >
           <q-item-label>
             {{ formData.sourceToken.symbol }} <q-icon name="expand_more"/>
           </q-item-label>
@@ -66,7 +72,7 @@
             v-if="formData.sourceToken.balance > 0 || formData.sourceToken.balance === 0"
             class="text-right q-mt-sm"
             caption
-            :class="darkMode ? 'text-grey-6' : ''"
+            :class="{'text-grey-6': darkMode}"
             @click="setAmountToSourceTokenBalance()"
           >
             {{ $t('Balance') }}: {{ formatNumber(formData.sourceToken.balance) }}
@@ -90,7 +96,13 @@
 
       <q-item clickable>
         <q-item-section avatar @click="selectDestToken()" class="items-center">
-          <img :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)" height="30" style="border-radius:50%" class="q-mb-sm">
+          <img
+            :src="formData.destToken.image_url || getFallbackAssetLogo(`sep20/${formData.destToken.address}`)"
+            height="30"
+            style="border-radius:50%"
+            class="q-mb-sm"
+            alt=""
+          >
           <q-item-label>
             {{ formData.destToken.symbol }} <q-icon name="expand_more"/>
           </q-item-label>
@@ -109,7 +121,7 @@
             v-if="networkData.exchangeRate"
             class="text-right q-mt-sm"
             caption
-            :class="darkMode ? 'text-grey-6' : ''"
+            :class="{'text-grey-6': darkMode}"
           >
             <div>
               <q-skeleton v-if="networkData.loading" type="text"/>
@@ -163,7 +175,6 @@
               {{ `${computedFormData.parsedDistribution.steps} step${computedFormData.parsedDistribution.steps > 1 ? 's' : ''}` }}
               <q-icon
                 name="launch"
-                :color="darkMode ? 'blue-5' : 'blue-9'"
                 class="button button-text-primary"
                 :class="getDarkModeClass(darkMode)"
               />
@@ -183,7 +194,7 @@
           <q-item-label>
             <q-skeleton v-if="networkData.loading" type="text"/>
             <template v-else>
-              ~ {{ 
+              ~ {{
                   formData.destToken.symbol === 'BCH'
                     ? getAssetDenomination(denomination, computedFormData.minimumReturn)
                     : `${formatNumber(computedFormData.minimumReturn, 6)} ${formData.destToken.symbol}`
@@ -202,7 +213,6 @@
           no-caps
           :loading="networkData.approvingToken"
           :label="$t('Approve') + ' ' + formData.sourceToken.symbol"
-          color="brandblue"
           class="q-space button"
           rounded
           @click="confirmApproveToken()"
@@ -213,7 +223,6 @@
           rounded
           no-caps
           :label="$t('EnterAmount')"
-          color="brandblue"
           class="q-space button"
         />
         <q-btn
@@ -222,7 +231,6 @@
           no-caps
           rounded
           :label="insufficientBalance ? $t('InsufficientBalance') : $t('Swap')"
-          color="brandblue"
           class="q-space button"
           @click="moveSwapDetailsToStaging()"
         />
@@ -236,11 +244,11 @@
       </div>
       <div class="row no-wrap justify-around items-baseline">
         <div class="col-5 column items-center">
-          <img height="40" :src="stagedSwapDetails.sourceToken.image_url"/>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mt-sm">
+          <img height="40" :src="stagedSwapDetails.sourceToken.image_url" alt=""/>
+          <div class="q-mt-sm pt-label" :class="getDarkModeClass(darkMode)">
             {{ computedStagedSwapDetails.formattedAmount }}
           </div>
-          <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div class="text-center pt-label" :class="getDarkModeClass(darkMode)">
             {{ stagedSwapDetails.sourceToken.symbol }}
           </div>
         </div>
@@ -249,10 +257,10 @@
 
         <div class="col-5 column items-center">
           <img height="40" :src="stagedSwapDetails.destToken.image_url"/>
-          <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mt-sm">
+          <div class="q-mt-sm pt-label" :class="getDarkModeClass(darkMode)">
             {{ computedStagedSwapDetails.formattedExpectedReturn }}
           </div>
-          <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+          <div class="text-center pt-label" :class="getDarkModeClass(darkMode)">
             {{ stagedSwapDetails.destToken.symbol }}
           </div>
         </div>
@@ -280,7 +288,6 @@
               {{ `${computedStagedSwapDetails.parsedDistribution.steps} step${computedStagedSwapDetails.parsedDistribution.steps > 1 ? 's' : ''}` }}
               <q-icon
                 name="launch"
-                color="blue-9"
                 class="button button-text-primary"
                 :class="getDarkModeClass(darkMode)"
               />
@@ -305,9 +312,9 @@
           no-caps
           :disable="stagedSwapDetails.loading"
           rounded
-          color="blue-9"
           icon="mdi-arrow-left"
           :label="$t('BackToEdit')"
+          class="button"
           @click="stagedSwapDetails.show = false"
         />
       </div>
@@ -318,7 +325,7 @@
             :href="`https://sonar.cash/tx/${stagedSwapDetails.txid}`"
             target="_blank"
             style="text-decoration: none;"
-            :class="darkMode ? 'text-blue-5' : 'text-blue-9'"
+            class="button button-text-primary"
           >
             {{ stagedSwapDetails.txid }}
           </a>
@@ -326,7 +333,7 @@
       </div>
       <q-separator />
       <div v-if="stagedSwapDetails.loading" class="row items-center justify-center">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div class="row justify-center" style="margin-top: 20px; color: gray;">
         <span>{{ $t('PoweredBy') }} SmartSwap.fi</span>
@@ -344,17 +351,16 @@
       />
     </q-card-section>
     <q-dialog v-model="showSettingsDialogForm" persistent seamless>
-      <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')" style="min-width:75vw;">
+      <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width:75vw;">
         <div class="row no-wrap items-center justify-center q-pl-md">
           <div
             class="text-subtitle1 text-weight-medium q-space q-pt-sm text-section"
-            :class="darkMode ? 'text-blue-5' : ''"
+            :class="{'text-blue-5': darkMode}"
           >
             {{ $t('Settings') }}
           </div>
           <q-btn
               flat
-              color="blue-9"
               icon="refresh"
               round
               padding="sm"
@@ -380,7 +386,7 @@
             {{ $t('SlippageTolerance') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
+                <div class="q-px-md q-py-sm text-caption pt-card-2 pt-label" :class="getDarkModeClass(darkMode)">
                   {{ $t('SlippageToleranceDescription') }}
                 </div>
               </q-popup-proxy>
@@ -390,35 +396,28 @@
             <q-btn-toggle
               v-model="formData.slippageTolerance"
               rounded
-              :toggle-color="isDefaultTheme(theme) ? 'toggle-active' : 'grad'"
+              :toggle-color="isNotDefaultTheme(theme) ? 'toggle-active' : 'grad'"
               :toggle-text-color="darkMode ? 'dark' : 'white'"
-              :color="isDefaultTheme(theme) ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
-              :text-color="darkMode ? 'pt-dark-label' : 'dark'"
+              :color="isNotDefaultTheme(theme) ? 'toggle' : darkMode ? 'blue-9' : 'grey-3'"
+              :text-color="darkMode ? 'white' : 'dark'"
               :options="[
                 {label: '0.5%', value: 0.5 },
                 {label: '1%', value: 1},
                 {label: '2%', value: 2},
               ]"
             />
-            <!-- <q-input
-              dense
-              outlined
-              suffix="%"
-              v-model.number="formData.slippageTolerance"
-              :input-class="darkMode ? 'text-white' : 'text-black'"
-            /> -->
           </div>
           <div class="q-mt-lg q-mb-sm text-subtitle2 text-weight-regular">
             {{ $t('TransactionDeadline') }}
             <q-icon name="help" class="q-ml-sm" size="1.25em" :color="darkMode ? 'grad' : 'blue-9'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
+                <div class="q-px-md q-py-sm text-caption pt-card-2 pt-label" :class="getDarkModeClass(darkMode)">
                   {{ $t('SwapTransactionDeadlineDescription') }}
                 </div>
               </q-popup-proxy>
             </q-icon>
           </div>
-          <div :class="darkMode ? 'text-grey-6' : ''">{{ formData.transactionDeadline }} minutes</div>
+          <div :class="{'text-grey-6': darkMode}">{{ formData.transactionDeadline }} minutes</div>
           <div class="no-wrap row items-center q-gutter-sm">
             <q-slider
               :min="5"
@@ -455,7 +454,7 @@ import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
 import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SmartSwapForm',
@@ -616,7 +615,7 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
@@ -639,7 +638,7 @@ export default {
         cancel: {
           rounded: true
         },
-        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black'
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => {
           this.approveSourceToken()
@@ -665,7 +664,7 @@ export default {
         seamless: true,
         persistent: false,
         ok: false, // we want the user to not be able to close it
-        class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
 
       const onApproveSuccess = () => {
@@ -895,7 +894,7 @@ export default {
           },
           persisted: true,
           seamless: true,
-          class: this.darkMode ? 'br-15 text-white pt-dark-card' : 'br-15 text-black'
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
       } catch (err) {
         console.error(err)

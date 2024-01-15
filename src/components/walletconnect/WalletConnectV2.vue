@@ -10,7 +10,7 @@
       <q-btn flat padding="xs">
         <q-icon name="more_vert"/>
         <q-badge v-if="sessionProposals?.length" floating>{{ sessionProposals?.length }}</q-badge>
-        <q-menu :class="getDarkModeClass(darkMode, 'pt-dark', 'text-black')">
+        <q-menu class="text-bow" :class="getDarkModeClass(darkMode)">
           <q-item
             clickable v-ripple
             v-close-popup
@@ -121,7 +121,7 @@
         </div>
       </q-item-section>
     </q-item>
-    
+
     <div style="margin-top: 20px;">
       <div class="row items-center">
         <div class="text-h6">Requests</div>
@@ -199,7 +199,7 @@
               @click="() => openSessionProposal(sessionProposal)"
             >
               <q-item-section v-if="sessionProposal?.proposer?.metadata?.icons?.[0]" avatar>
-                <img :src="sessionProposal?.proposer?.metadata?.icons?.[0]" width="50"/>
+                <img :src="sessionProposal?.proposer?.metadata?.icons?.[0]" width="50" alt=""/>
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ sessionProposal?.proposer?.metadata?.name }}</q-item-label>
@@ -240,7 +240,7 @@
               @click="() => selectedActiveSessionTopic = session?.topic"
             >
               <q-item-section v-if="session?.peer?.metadata?.icons?.[0]" avatar>
-                <img :src="session?.peer?.metadata?.icons?.[0]" width="50"/>
+                <img :src="session?.peer?.metadata?.icons?.[0]" width="50" alt=""/>
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ session?.peer?.metadata?.name }}</q-item-label>
@@ -319,7 +319,7 @@ async function onScannerDecode (content) {
     persistent: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
   })
   try {
     await new Promise(async (resolve, reject) => {
@@ -417,7 +417,7 @@ async function connectNewSession(value='') {
     },
     position: 'bottom',
     seamless: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(val => pairUrl(val))
 }
@@ -438,7 +438,7 @@ async function pairUrl(uri, opts={ showDialog: true }) {
     persistent: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   try {
     await web3Wallet.value.pair({ uri: uri })
@@ -483,7 +483,7 @@ async function approveSessionProposal(sessionProposal) {
     persistent: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   try {
     const namespaces = getNamespaces()

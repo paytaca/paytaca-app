@@ -1,7 +1,7 @@
 <template>
   
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="min-width:300px;">
+    <q-card :class="getDarkModeClass(darkMode)" class="br-15 pt-card-2 text-bow" style="min-width:300px;">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">Filter offers list</div>
         <q-btn
@@ -59,6 +59,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 defineEmits([

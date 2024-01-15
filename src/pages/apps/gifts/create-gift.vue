@@ -9,7 +9,7 @@
       <div class="q-pa-lg" style="width: 100%; color: black;">
         <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >Creating gift...</p>
-          <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
         </div>
         <div class="q-mt-md" :class="{'text-white': darkMode}" v-if="!processing && !completed">
           <div class="text-h5 q-mb-md">Create Gift</div>
@@ -160,7 +160,7 @@ import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Gifts',
@@ -249,7 +249,7 @@ export default {
     getAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     disableGenerateButton () {
       if (this.amountBCH > 0) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {

@@ -159,7 +159,7 @@
     </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 50%" v-if="!isloaded && !error">
-    <ProgressLoader/>
+    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
@@ -193,6 +193,7 @@ import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 // import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 // import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
@@ -241,6 +242,7 @@ export default {
     }
   },
   methods: {
+    isNotDefaultTheme,
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({

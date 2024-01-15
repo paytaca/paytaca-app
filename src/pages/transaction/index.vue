@@ -1,24 +1,23 @@
 <template>
-  <div
-    id="app-container"
-    class="scroll-y"
-    style="background-color: #ECF3F3;"
-    :class="getDarkModeClass(darkMode)"
-  >
+  <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
     <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-          <div :class="{'pt-header home-header' : isDefaultTheme(theme)}">
+          <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange" />
-            <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
+            <div
+              class="row q-pb-xs"
+              :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'"
+              :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
+            >
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="(isDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
+                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
                 >
                   <q-tab
                     name="BCH"
@@ -42,7 +41,7 @@
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
                   style="margin-top: -15px;"
-                  :indicator-color="isDefaultTheme(theme) && 'transparent'"
+                  :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
                 >
                   <q-tab
                     :name="$t('DEEM')"
@@ -77,16 +76,16 @@
               </template>
             </div>
             <div class="row q-mt-sm">
-              <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
+              <div class="col text-white" @click="selectBch">
                 <q-card id="bch-card">
                   <q-card-section horizontal>
                     <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
-                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="height: 53px; width: 100%">
-                        <q-skeleton style="font-size: 24px;" type="rect"/>
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" class="bch-skeleton">
+                        <q-skeleton class="text-h5" type="rect"/>
                       </div>
-                      <div v-else style="z-index: 20; position: relative;">
+                      <div v-else>
                         <p>
-                          <span ellipsis style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{
                               selectedNetwork === 'sBCH'
                                 ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
@@ -94,13 +93,12 @@
                             }}
                           </span>
                         </p>
-                        <div style="padding: 0; margin-top: -15px;">
+                        <div style="margin-top: -15px;">
                           {{ getAssetMarketBalance(bchAsset) }}
                         </div>
                         <q-badge
                           rounded
-                          class="flex justify-start items-center"
-                          style="margin-top: 5px; background-color: #ecf3f3;"
+                          class="flex justify-start items-center yield-container"
                           v-if="walletYield"
                         >
                           <q-icon
@@ -135,16 +133,16 @@
           <div
             v-if="!showTokens"
             class="text-center button button-text-primary show-tokens-label"
-            :class="getDarkModeClass(darkMode, '', 'text-black')"
+            :class="getDarkModeClass(darkMode)"
             @click.native="toggleShowTokens"
-            style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
             {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
               <p
-                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary payment-methods"
+                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary"
+                style="font-size: 20px;"
                 :class="getDarkModeClass(darkMode)"
               >
                 {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
@@ -168,8 +166,12 @@
                   :class="getDarkModeClass(darkMode)"
                   @click="updateTokenMenuPosition"
                 >
-                  <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
-                    <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px;">
+                  <q-menu
+                    ref="tokenMenu"
+                    class="text-bow token-menu"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <q-list class="pt-card token-menu-list" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">
                           {{ $t(isHongKong(currentCountry) ? 'ManagePoints' : 'ManageTokens') }}
@@ -191,7 +193,7 @@
               </p>
             </div>
 
-            <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
+            <div class="col-3 q-mt-sm" style="margin-top: -5px !important;" v-show="selectedNetwork === networks.BCH.name">
               <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
             </div>
           </div>
@@ -242,15 +244,12 @@
         />
         <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
           <div class="row no-wrap justify-between">
-            <p
-              class="q-ma-lg section-title transaction-wallet"
-              :class="getDarkModeClass(darkMode)"
-            >
+            <p class="q-ma-lg section-title transaction-wallet" :class="getDarkModeClass(darkMode)">
               {{ selectedAsset.symbol }} {{ $t('Transactions') }}
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
               <q-btn
-                v-if="isDefaultTheme(theme) && darkMode"
+                v-if="isNotDefaultTheme(theme) && darkMode"
                 unelevated
                 @click="openPriceChart"
                 icon="img:assets/img/theme/payhero/price-chart.png"
@@ -267,7 +266,10 @@
               />
             </div>
           </div>
-          <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+          <div
+            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"
+            :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')"
+          >
             <button
               class="btn-custom q-mt-none btn-all"
               :class="[getDarkModeClass(darkMode), {'active-transaction-btn border': transactionsFilter == 'all'}]"
@@ -302,12 +304,16 @@
               />
               <div ref="bottom-transactions-list"></div>
               <TransactionListItemSkeleton v-if="transactionsAppending"/>
-              <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
+              <div
+                v-else-if="transactionsPageHasNext"
+                class="pt-label show-more-label"
+                :class="getDarkModeClass(darkMode, '', isNotDefaultTheme(theme) ? '' : 'default')"
+              >
                 <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
               </div>
               <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
-                <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-                <p :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">{{ $t('NoTransactionsToDisplay') }}</p>
+                <q-img class="vertical-top q-my-md no-transaction-img" src="empty-wallet.svg" />
+                <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
               </div>
             </template>
             <div v-else>
@@ -356,7 +362,7 @@ import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -482,7 +488,7 @@ export default {
       return this.$store.getters['notification/openedNotification']
     },
     isDenominationTabEnabled () {
-      return (isDefaultTheme(this.theme) &&
+      return (isNotDefaultTheme(this.theme) &&
         (this.denomination === this.$t('DEEM') || this.denomination === 'DEEM') &&
         this.selectedNetwork !== 'sBCH')
     },
@@ -548,7 +554,7 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     openPriceChart () {
       this.$q.dialog({
@@ -1143,7 +1149,7 @@ export default {
           message: 'Transaction not found',
           seamless: true,
           ok: true,
-          class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
         return
       }
@@ -1232,7 +1238,7 @@ export default {
   async mounted () {
     const vm = this
 
-    if (isDefaultTheme(vm.theme) && vm.darkMode) {
+    if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
       vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
       vm.assetsCloseButtonColor = 'color: #ffbf00;'
     } else {
@@ -1301,6 +1307,10 @@ export default {
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
+    .bch-skeleton {
+      height: 53px;
+      width: 100%
+    }
   }
   .fixed-container {
     position: fixed;
@@ -1324,9 +1334,6 @@ export default {
     .transaction-list {
       height: 430px;
     }
-  }
-  .payment-methods {
-    font-size: 20px;
   }
   .transaction-container {
     min-height: 80vh;
@@ -1366,14 +1373,42 @@ export default {
   .q-tab__icon {
     font-size: 14px !important;
   }
-  .yield {
-    padding-right: 5px;
-    &.positive {
-      color: $green-5;
+  .token-menu {
+    position: fixed;
+    left: 0;
+    &.token-menu-list {
+      min-width: 100px;
     }
-    &.negative {
-      color: $red-5;
+  }
+  .show-more-label {
+    margin-top: 20px;
+    width: 100%;
+    text-align: center;
+    &.light.default {
+      color: #3b7bf6 !important;
     }
+  }
+  .no-transaction-img {
+    width: 75px;
+    fill: gray;
+  }
+  .yield-container {
+    margin-top: 5px;
+    background-color: #ecf3f3;
+    .yield {
+      padding-right: 5px;
+      &.positive {
+        color: $green-5;
+      }
+      &.negative {
+        color: $red-5;
+      }
+    }
+  }
+  .show-tokens-label {
+    margin-top: 0px;
+    font-size: 13px;
+    padding-bottom: 15px;
   }
 </style>
 

@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:max(300px, 90vw);">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:max(300px, 90vw);">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-subtitle1 q-space q-mt-sm"> {{ $t('FilterSalesReport', {}, 'Filter sales report') }}</div>
       </div>
@@ -83,6 +83,7 @@
 import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useDialogPluginComponent } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 defineEmits([
