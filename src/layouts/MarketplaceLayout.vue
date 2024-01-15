@@ -6,6 +6,7 @@
         <q-spinner size="1.5em" class="q-ml-sm"/>
       </div>
     </q-dialog>
+    <div v-if="$q.platform.is.ios" style="padding-top:25px;"></div>
     <router-view v-slot="{ Component }">
       <keep-alive>
         <component :is="Component" />
@@ -13,15 +14,16 @@
     </router-view>
     <div class="row items-center fixed-bottom q-pa-sm footer-panel">
       <q-space/>
-      <q-fab
+      <q-btn
         color="brandblue"
-        icon="shopping_cart"
+        :round="!activeStorefrontCart?.totalItemsCount"
+        :rounded="Boolean(activeStorefrontCart?.totalItemsCount)"
+        :icon="showCartsDialog ? 'close' : 'shopping_cart'"
         direction="up"
         :label="activeStorefrontCart?.totalItemsCount || undefined"
-        padding="12px"
-        v-model="showCartsDialog"
-      >
-      </q-fab>
+        :padding="activeStorefrontCart?.totalItemsCount ? '15px 18px' : '18px'"
+        @click="() => showCartsDialog = true"
+      />
     </div>
     <q-dialog v-model="showCartsDialog" position="bottom">
       <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">

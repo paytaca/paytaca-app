@@ -1,5 +1,6 @@
 import { Geolocation } from '@capacitor/geolocation'
 import BCHJS from '@psf/bch-js'
+import { geolocationManager } from 'src/boot/geolocation'
 import { backend, setSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
 import { loadWallet } from 'src/wallet'
@@ -10,8 +11,9 @@ const bchjs = new BCHJS()
  * @param {Object} context
  * @param {Object} opts
  * @param {Number} opts.maxAge
+ * @param {Boolean} opts.excludeGeocode
  */
-export async function updateLocation(context, opts={ maxAge: 86400 * 1000 }) {
+export async function updateLocation(context, opts={ maxAge: 86400 * 1000, excludeGeocode: false }) {
   if (opts?.maxAge) {
     const age = Date.now() - context?.state?.location?.timestamp
     const expired = isNaN(age) || age > opts?.maxAge
@@ -26,14 +28,38 @@ export async function updateLocation(context, opts={ maxAge: 86400 * 1000 }) {
     maximumAge: 30 * 1000,
     timeout: 10 * 1000,
   }
+
   return Geolocation.getCurrentPosition(geolocateOpts)
     .then(response => {
-      context.commit('updateLocationData', {
+      const locationData = {
         timestamp: response?.timestamp,
-        lat: response?.coords?.latitude,
-        lon: response?.coords?.longitude,
-      })
-      return response
+        latitude: response?.coords?.latitude,
+        longitude: response?.coords?.longitude,
+      }
+      return locationData
+    })
+    .then(async (locationData) => {
+      if (opts?.excludeGeocode) return locationData
+      
+      const reverseGeocodeData = await geolocationManager.reverseGeocode({
+        lat: locationData?.latitude,
+        lon: locationData?.longitude,
+      }).catch(console.error)
+
+      return {
+        address1: reverseGeocodeData?.address1,
+        address2: reverseGeocodeData?.address2,
+        street: reverseGeocodeData?.street,
+        city: reverseGeocodeData?.city,
+        state: reverseGeocodeData?.state,
+        country: reverseGeocodeData?.country,
+        zip_code: reverseGeocodeData?.zip_code,
+        ...locationData,
+      }
+    })
+    .then(locationData => {
+      context.commit('updateLocationData', locationData)
+      return locationData
     })
 }
 

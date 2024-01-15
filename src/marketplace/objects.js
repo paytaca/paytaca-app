@@ -7,6 +7,14 @@ export class Location {
     return new Location(data)
   }
 
+  /**
+   * @param {Location} data
+   */
+  static formatLocationData(data) {
+    const addressStr = [data.address2, data.address1].filter(Boolean).join(' ')
+    return [addressStr, data.street, data.city, data.state, data.country].filter(Boolean).join(', ')  
+  }
+
   constructor(data) {
     this.raw = data
   }
