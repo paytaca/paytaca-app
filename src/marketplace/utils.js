@@ -112,6 +112,34 @@ export const errorParser = {
   },
 }
 
+/**
+ * @param {Object} opts 
+ * @param {{ latitude:Number, longitude:Number }} opts.pos1
+ * @param {{ latitude:Number, longitude:Number }} opts.pos2
+ */
+export function aerialDistance(opts) {
+  const lat1 = opts?.pos1?.latitude
+  const lon1 = opts?.pos1?.longitude
+  const lat2 = opts?.pos2?.latitude
+  const lon2 = opts?.pos2?.longitude
+
+  const R = 6371000; // Radius of the Earth in meters
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distance in meters
+
+  return distance;
+}
+
 export function reverseGeocode(opts = { lat: null, lng: null, syncToForm: false}) {
   const params = {
     lat: opts?.lat,

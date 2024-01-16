@@ -1,5 +1,6 @@
 import { Customer, Cart, Storefront, Location } from 'src/marketplace/objects'
 import { DEVICE_LOCATION_ID_CONST } from './state'
+import { aerialDistance } from 'src/marketplace/utils'
 
 export function shopListOpts(state) {
   return state.shopListOpts
@@ -56,6 +57,22 @@ export function customer(state) {
 export function customerLocations(state) {
   if (!Array.isArray(state?.customerLocations)) return []
   return state.customerLocations.map(Location.parse)
+}
+
+export function getClosestCustomerLocation(state, getters) {
+  return (coordinates={ latitude:null, longitude:null }, maxDistance=100) => {
+    let minDistanceObj = null
+    let minDistance = Infinity
+    getters.customerLocations.forEach(location => {
+      const distance = aerialDistance({ pos1: coordinates, pos2: location })
+      if (distance <= maxDistance && distance < minDistance) {
+        minDistance = distance
+        minDistanceObj = location
+      }
+    })
+
+    return minDistanceObj
+  }
 }
 
 export function storefronts(state) {

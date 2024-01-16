@@ -40,6 +40,11 @@ export async function updateLocation(context, opts={ maxAge: 86400 * 1000, exclu
     })
     .then(async (locationData) => {
       if (opts?.excludeGeocode) return locationData
+      const closestLocation = context.getters?.getClosestCustomerLocation?.(locationData, 100)
+      if (closestLocation) return {
+        ...closestLocation.raw,
+        ...locationData,
+      }
       
       const reverseGeocodeData = await geolocationManager.reverseGeocode({
         lat: locationData?.latitude,
