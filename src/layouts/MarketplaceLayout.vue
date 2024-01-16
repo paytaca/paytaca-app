@@ -217,13 +217,11 @@ export default {
     }
 
     async function subscribePushNotifications(id) {
-      console.log('window.promptedPushNotificationsSettings', window.promptedPushNotificationsSettings)
       if (!window.promptedPushNotificationsSettings) {
         const promptResponse = await promptEnablePushNotificationSetting(
           'Enable notifications to receive updates'
         ).catch(console.error)
         window.promptedPushNotificationsSettings = promptResponse.prompted
-        console.log('promptResponse', promptResponse)
       }
       return marketplacePushNotificationsManager.subscribe(id)
     }

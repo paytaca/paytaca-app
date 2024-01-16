@@ -10,7 +10,7 @@
       style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
     />
     <div class="q-mx-sm">
-      <SessionLocationWidget />
+      <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="row items-center">
@@ -147,6 +147,7 @@ import SessionLocationWidget from 'src/components/marketplace/SessionLocationWid
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+window.s = $store
 
 const initialized = ref(false)
 function resetPage() {
@@ -164,10 +165,27 @@ onActivated(() => {
   fetchOrders()
 })
 
+const sessionLocationWidget = ref()
 const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
 onMounted(() => {
-  if(!sessionLocation.value?.isDeviceLocation) return
-  updateLocation()
+  if (!sessionLocationWidget.value) {
+    return updateLocation()
+      .then(() => $store.commit('marketplace/setSelectedSessionLocationId'))
+      .catch(console.error)
+  } else {
+    sessionLocationWidget.value.openLocationSelector = true
+  }
+
+  if(!sessionLocation.value?.isDeviceLocation && sessionLocation.value?.id) return
+
+  setTimeout(async () => {
+    await sessionLocationWidget.value
+      ?.setCurrentLocation?.({ keepSelectorOpen: true, hideDialogOnError: true })
+      ?.catch(console.error)
+    if (!sessionLocation.value?.validCoordinates) {
+      sessionLocationWidget.value?.updateDeviceLocation({ keepSelectorOpen: true })
+    }
+  }, 250)
 })
 const updateLocationPromise = ref()
 async function updateLocation() {

@@ -16,7 +16,7 @@ const bchjs = new BCHJS()
 export async function updateLocation(context, opts={ maxAge: 86400 * 1000, excludeGeocode: false }) {
   if (opts?.maxAge) {
     const age = Date.now() - context?.state?.location?.timestamp
-    const expired = isNaN(age) || age > opts?.maxAge
+    const expired = Number.isNaN(age) || age > opts?.maxAge
     if (!expired) return Promise.resolve('Device location has not reached max age')
   }
 
@@ -37,6 +37,10 @@ export async function updateLocation(context, opts={ maxAge: 86400 * 1000, exclu
         longitude: response?.coords?.longitude,
       }
       return locationData
+    })
+    .catch(error => {
+      console.error('Update location error', error)
+      return null
     })
     .then(async (locationData) => {
       if (opts?.excludeGeocode) return locationData

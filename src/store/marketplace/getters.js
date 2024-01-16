@@ -18,15 +18,15 @@ export function sessionLocation(state, getters) {
 export function deviceLocation(state) {
   const data = {
     isDeviceLocation: true,
-    valid: false,
+    validCoordinates: false,
     age: NaN,
     expired: true,
     ...state?.location,
     formatted: Location.formatLocationData(state?.location),
   }
-  data.valid = !isNaN(data?.coordinates?.latitude) && !isNaN(data?.coordinates?.longitude)
+  data.validCoordinates = Number.isFinite(data?.latitude) && Number.isFinite(data?.longitude)
   data.age = (Date.now() - state?.location?.timestamp)
-  data.expired = isNaN(data.age) || data.age > 86400
+  data.expired = Number.isNaN(data.age) || data.age > 86400
   return data
 }
 
@@ -37,12 +37,12 @@ export function customerCoordinates(state, getters) {
       latitude: parseFloat(getters.sessionLocation?.latitude),
       longitude: parseFloat(getters.sessionLocation?.longitude)
     },
-    valid: true,
+    validCoordinates: true,
     age: NaN,
     expired: false,
   }
 
-  deviceLocation.valid = !isNaN(deviceLocation?.coordinates?.latitude) && !isNaN(deviceLocation?.coordinates?.longitude)
+  deviceLocation.validCoordinates = Number.isFinite(deviceLocation?.coordinates?.latitude) && Number.isFinite(deviceLocation?.coordinates?.longitude)
   if (deviceLocation.id === DEVICE_LOCATION_ID_CONST) {
     deviceLocation.age = (Date.now() - state?.location?.timestamp)
     deviceLocation.expired = isNaN(deviceLocation.age) || deviceLocation.age > 86400
