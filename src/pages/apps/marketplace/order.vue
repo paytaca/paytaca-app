@@ -46,6 +46,19 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
+            <template v-if="order.status === 'pending'">
+              <q-separator/>
+              <q-item
+                v-close-popup clickable
+                @click="() => confirmCancelOrder()"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    Cancel order
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
           </q-menu>
         </q-btn>
       </div>
@@ -971,6 +984,48 @@ function stopAutoCompleteCountdown() {
   clearInterval(autoCompleteCountdownInterval.value)
   autoCompleteCountdownInterval.value = null
   autoCompleteTimeRemaining.value = 0
+}
+
+function confirmCancelOrder() {
+  $q.dialog({
+    title: 'Cancel order',
+    message: 'Are you sure?',
+    color: 'brandblue',
+    ok: { noCaps: true, label: 'Cancel Order', color: 'red' },
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  }).onOk(() => cancelOrder())
+}
+
+function cancelOrder() {
+ const data = { status: 'cancelled', cancel_reason: 'Customer cancelled' }
+ const dialog = $q.dialog({
+    title: 'Cancelling order',
+    progress: true,
+    persistent: true,
+    color: 'brandblue',
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+
+ return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
+  .then(response => {
+    order.value.raw = response?.data
+    dialog.hide()
+  })
+  .catch(error => {
+    const data = error?.response?.data
+      let errorMessage = errorParser.firstElementOrValue(data?.detail) ||
+                         errorParser.firstElementOrValue(data?.non_field_errors) ||
+                         errorParser.firstElementOrValue(data?.status)
+
+      if (typeof data === 'string' && data.length < 200) errorMessage = data
+      dialog.update({
+        title: 'Unable to cancel order',
+        message: errorMessage || 'An unknown error occurred',
+      })
+  })
+  .finally(() => {
+    dialog.update({ progress: false, persistent: true })
+  })
 }
 
 
