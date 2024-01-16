@@ -167,8 +167,9 @@ onActivated(() => {
 
 const sessionLocationWidget = ref()
 const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
-onMounted(() => {
+onMounted(async () => {
   if (!sessionLocationWidget.value) {
+    if(!sessionLocation.value?.isDeviceLocation && sessionLocation.value?.id) return
     return updateLocation()
       .then(() => $store.commit('marketplace/setSelectedSessionLocationId'))
       .catch(console.error)
