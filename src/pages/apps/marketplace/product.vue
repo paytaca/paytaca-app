@@ -68,7 +68,7 @@
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
-              :disable="!available"
+              :disable="!available || !activeStorefrontIsActive"
               label="Quantity"
               dense outlined
               :dark="darkMode"
@@ -79,7 +79,7 @@
             />
             <q-btn
               v-else
-              :disable="!available"
+              :disable="!available || !activeStorefrontIsActive"
               no-caps label="Add to cart"
               color="brandblue"
               class="full-width q-mt-md"
@@ -96,7 +96,7 @@ import { Cart, Collection, Product } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 
@@ -124,7 +124,14 @@ watch(() => [props.productId], () => {
 })
 watch(() => [props.variantId], () => selectVariantFromProps())
 
+
+const storefrontId = computed(() => product.value?.storefrontId)
+onActivated(() => {
+  if (!storefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+})
 const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
+const activeStorefrontIsActive = computed(() => activeStorefront.value?.active)
 
 const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
 const cartItem = computed(() => {

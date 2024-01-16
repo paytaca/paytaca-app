@@ -1,11 +1,8 @@
-@import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
+@use 'shared.scss';
 
 body.theme-payhero {
-  $color_1: #eaeeff;
-  $color_2: rgb(60, 100, 246);
-  $color_3: #ecf3f3;
+  /* ----- VARIABLES ----- */
   $color_4: #fff;
-  $color_5: #000;
   $color_9: #ececec;
 
   $brand_yellow: #ffbf00;
@@ -13,59 +10,37 @@ body.theme-payhero {
   $label-white: #e0e2e5;
   $wallet_card: #111c2c;
   $wallet_address: #949494;
-  $close_button: red;
   $footer-bar: #1f1f1f;
   $transactions-text: #cecece;
   $transactions-subtext: #7e7e7e;
   $black_opaque_50: rgba(0, 0, 0, 0.5);
 
-  $font-family_1: "Rubik", sans-serif;
-
   $background-color_1: #012121;
-  $background-color_2: #f9f8ff;
-  $background-color_3: #ecf3f3;
   $background-blue: #4872b8;
   $bg_info_banner: #273746;
   $bg_container_dark: #1a2a43;
   $bg_container_light: #475d82;
   $bg_card_dark: #1c2833;
 
+  /* ----- GLOBAL ----- */
   body {
-    font-family: $font-family_1;
-    font-weight: 300 !important;
-  }
-  body.body--light {
-    background-color: $background-color_1;
-    -webkit-transition: 0.1s;
-    -moz-transition: 0.1s;
-    -o-transition: 0.1s;
-    transition: 0.1s;
-  }
-  body.body--dark {
-    background-color: $background-color_1 !important;
-    -webkit-transition: 0.1s;
-    -moz-transition: 0.1s;
-    -o-transition: 0.1s;
-    transition: 0.1s;
+    @include shared.body-prop;
+
+    &.body--light {
+      @include shared.body-transition;
+      background-color: $background-color_1;
+    }
+    &.body--dark {
+      @include shared.body-transition;
+      background-color: $background-color_1 !important;
+    }
   }
 
-  p {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-  }
-  a {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  p, a {
+    @include shared.user-select-none;
   }
 
+  /* ----- IDS ----- */
   #registration-container {
     min-height: 100vh;
     background-image: linear-gradient(
@@ -121,6 +96,8 @@ body.theme-payhero {
       background: transparent !important;
     }
   }
+
+  /* ----- CLASSES ----- */
 
   .bg-grad {
     background: $black_opaque_50;
@@ -197,84 +174,71 @@ body.theme-payhero {
     }
   }
 
-  .pt-brand {
-    text-align: center;
-    padding: 20px 0px 0px 0px;
-  }
-  .pt-brandname {
-    color: $color_1;
-    font-size: 28px;
-  }
-  .pt-get-started {
-    width: 100%;
-    min-height: calc(100vh - 152px);
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: $background-color_2;
-  }
-  .br-15 {
-    border-radius: 15px !important;
-  }
-  .br-40 {
-    border-radius: 40px !important;
-  }
-  .text-brandblue {
-    color: $color_2 !important;
-  }
-  .bg-brandblue {
-    background: rgb(60, 100, 246) !important;
-  }
-  .text-brandlight {
-    color: $color_3 !important;
-  }
-  .bg-brandlight {
-    background-color: $background-color_3 !important;
+  .pt-card {
+    &.dark {
+      background: $bg_card_dark !important;
+
+      &.registration-card {
+        background: $button_yellow !important;
+        border: 2px solid #13212c !important;
+  
+        .divider {
+          border-bottom: 2px solid #13212c;
+        }
+      }
+    }
+
+    &.light {
+      background-color: white;
+
+      &.btn-transaction-bg {
+        background-color: transparent !important;
+      }
+    }
   }
 
-  .pt-dark {
+  .pt-card-2 {
+    &.dark {
+      background: $bg_info_banner;
+
+      &.registration {
+        background: linear-gradient(
+          165.26deg,
+          rgba(69, 110, 177, 0.95) -18.47%,
+          rgba(0, 0, 0, 0.95) 65.31%
+        ) !important;
+      }
+    }
+    
+    &.light {
+      background-color: white;
+    }
+  }
+
+  .pt-card-3 {
     background: linear-gradient(
       180deg,
       $background-blue 0%,
       #000 100%
     ) !important;
-
-    &.registration {
-      background: linear-gradient(
-        165.26deg,
-        rgba(69, 110, 177, 0.95) -18.47%,
-        rgba(0, 0, 0, 0.95) 65.31%
-      ) !important;
-    }
-
-    &.modal {
-      background: $wallet_card !important;
-    }
-
-    &.info-banner {
-      background: $bg_info_banner !important;
-    }
   }
 
-  .pt-dark-card {
-    background: $bg_card_dark !important;
-
-    &.registration-card {
-      background: $button_yellow !important;
-      border: 2px solid #13212c !important;
-
-      .divider {
-        border-bottom: 2px solid #13212c;
-      }
-    }
-  }
-
-  .pt-card {
+  .pt-label {
     &.dark {
-      background: $bg_card_dark !important;
+      color: $label-white;
     }
 
     &.light {
-      background-color: white !important;
+      color: black;
+    }
+  }
+
+  .price-chart-card {
+    &.dark {
+      background: $wallet_card;
+    }
+    &.light {
+      background: #ECF3F3
     }
   }
 
@@ -309,29 +273,6 @@ body.theme-payhero {
     }
   }
 
-  .pt-dark-card-2 {
-    background: transparent !important;
-  }
-  .pt-dark-label {
-    color: $label-white !important;
-
-    &.label-text {
-      color: $color_9 !important;
-      font-size: 14px;
-      font-weight: 300;
-    }
-  }
-
-  .pt-label {
-    &.dark {
-      color: $label-white;
-    }
-
-    &.light {
-      color: #444655;
-    }
-  }
-
   .pt-header {
     background: $black_opaque_50 !important;
     border-bottom-left-radius: 17px;
@@ -349,20 +290,7 @@ body.theme-payhero {
   }
 
   .pt-app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     border-radius: 999px;
-  }
-
-  .pt-dark-box-shadow {
-    box-shadow: 2px 2px 2px 2px #212f3d !important;
-  }
-  .bex.q-body--prevent-scroll {
-    position: unset !important;
-  }
-  .pp-fcolor {
-    color: $color_5 !important;
   }
 
   .fixed-container {
@@ -380,13 +308,8 @@ body.theme-payhero {
   }
 
   .text-section,
-  .pin-icon,
-  .dismiss-text {
+  .pin-icon {
     color: $brand_yellow !important;
-  }
-
-  .close-button {
-    color: $close_button !important;
   }
 
   .btn-transaction {
@@ -400,18 +323,6 @@ body.theme-payhero {
       color: $transactions-text;
       font-weight: 300;
     }
-  }
-
-  .price-chart {
-    background: #212f3d !important;
-
-    &.light {
-      background: #f9f8ff !important;
-    }
-  }
-
-  .add-asset-card.dark {
-    background: rgba(17, 28, 44, 0.95) !important;
   }
 
   .collectibles-panel {
@@ -477,10 +388,13 @@ body.theme-payhero {
     > .q-toggle__inner--falsy {
       color: $brand_yellow !important;
     }
-  }
 
-  .pt-internet-required {
-    color: $label-white !important;
+    &.legacy-address.light {
+      > .q-toggle__inner--truthy,
+      > .q-toggle__inner--falsy {
+        color: shared.$brand_blue !important;
+      }
+    }
   }
 
   .button,
@@ -559,11 +473,11 @@ body.theme-payhero {
     border-radius: 6px;
 
     &.dark {
-      background: $bg_container_dark !important;
+      background: $bg_container_dark;
     }
 
     &.light {
-      background: $bg_container_light !important;
+      background: $bg_container_light;
     }
 
     .text-token.light {
@@ -572,6 +486,7 @@ body.theme-payhero {
 
     .amount-text {
       font-size: 16px;
+      overflow-wrap: anywhere;
 
       &.dark {
         color: $label-white;
@@ -672,6 +587,26 @@ body.theme-payhero {
 
     &.light {
       background: $label-white !important;
+    }
+  }
+
+  .q-pagination {
+    &.dark {
+      [aria-current='true'] {
+        background: $brand_yellow !important;
+        color: black !important;
+      }
+      [aria-current='false'] {
+        color: $brand_yellow !important;
+      }
+    }
+    &.light {
+      [aria-current='true'] {
+        background: $footer-bar !important;
+      }
+      [aria-current='false'] {
+        color: $footer-bar !important;
+      }
     }
   }
 }

@@ -1,13 +1,14 @@
 <template>
   <div>
-    <div class="row no-wrap justify-around items-baseline">
+    <div class="row no-wrap justify-around items-baseline pt-label" :class="getDarkModeClass(darkMode)">
       <div class="col-5 column items-center">
         <img
           height="50"
           src="bch-logo.png"
+          alt=""
         />
-        <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('From') }}</div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <div class="text-lowercase q-mt-sm">{{ $t('From') }}</div>
+        <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Bitcoin Cash</template>
           <template v-else>Smart Bitcoin Cash</template>
         </div>
@@ -18,47 +19,45 @@
         flat
         padding="sm"
         icon="arrow_forward"
-        :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
         disable
       />
 
       <div class="col-5 column items-center">
-        <img height="50" src="bch-logo.png"/>
-        <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ $t('To') }}</div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <img height="50" src="bch-logo.png" alt=""/>
+        <div class="text-lowercase q-mt-sm">{{ $t('To') }}</div>
+        <div class="text-subtitle1 text-center">
           <template v-if="transferType === 'c2s'">Smart Bitcoin Cash</template>
           <template v-else>Bitcoin Cash</template>
         </div>
       </div>
     </div>
 
-    <q-card class="q-mt-sm pp-text" :class="{'pt-dark-card': darkMode}">
+    <q-card class="q-mt-sm pp-text pt-card-2 pt-label" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <q-banner class="bg-grey-3 rounded-borders q-mb-sm" :class="[darkMode ? 'text-black' : 'pp-text']">
+        <q-banner class="bg-grey-3 rounded-borders q-mb-sm">
           <template v-slot:avatar>
             <q-icon name="info" color="grey" />
           </template>
           Leaving the page may result in being unable to view progress
         </q-banner>
 
-        <div class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <div class="text-center">
           {{ getAssetConversion(denomination, amount) }}
           <q-icon name="arrow_forward"/>
           ~{{ getAssetConversion(denomination, expectedAmount) }}
         </div>
         <div class="q-mt-sm">
           <div class="q-mb-sm">
-            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-if="transferType === 'c2s'">
+            <span class="text-bow" :class="getDarkModeClass(darkMode)" v-if="transferType === 'c2s'">
               {{ `${denomination} Transaction:` }}
             </span>
-            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-else-if="transferType === 's2c'">SmartBCH Transaction:</span>
-            <span :class="[darkMode ? 'text-white' : 'pp-text']" v-else>Source tx:</span>
+            <span class="text-bow" :class="getDarkModeClass(darkMode)" v-else-if="transferType === 's2c'">SmartBCH Transaction:</span>
+            <span class="text-bow" :class="getDarkModeClass(darkMode)" v-else>Source tx:</span>
             <q-btn
               flat
               icon="mdi-content-copy"
               size="sm"
               padding="xs"
-              :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
               @click="copyToClipboard(incomingTxid)"
             />
           </div>
@@ -69,7 +68,7 @@
 
         <q-separator spaced/>
 
-        <div v-if="fetchingOutgoingTx || waiting" class="text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <div v-if="fetchingOutgoingTx || waiting" class="text-center">
           <template v-if="fetchingOutgoingTx">
             <div v-if="transferType === 'c2s'">Looking for SmartBCH Transaction</div>
             <div v-else-if="transferType === 's2c'">{{ `Looking for ${denomination} Transaction` }}</div>
@@ -78,18 +77,17 @@
             <div v-if="transferType === 'c2s'">Waiting for SmartBCH Transaction</div>
             <div v-else-if="transferType === 's2c'">{{ `Waiting for ${denomination} Transaction` }}</div>
           </template>
-          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-else-if="parsedOutgoingTx.hash">
           <div>
-            <div class="q-mb-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+            <div class="q-mb-sm">
               {{ parsedOutgoingTx.chainName }} Transaction:
               <q-btn
                 flat
                 icon="mdi-content-copy"
                 size="sm"
                 padding="xs"
-                :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                 @click="copyToClipboard(parsedOutgoingTx.hash)"
               />
             </div>
@@ -99,13 +97,12 @@
           </div>
         </div>
         <div v-else class="text-center">
-          <div class="q-my-md" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">Outgoing transaction not found</div>
+          <div class="q-my-md">Outgoing transaction not found</div>
           <q-btn
             no-caps
             color="brandblue"
             :label="$t('Retry')"
             class="full-width"
-            :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
             @click="findAndOrWaitOutgoingTx()"
           />
         </div>
@@ -118,7 +115,7 @@
 import { findC2SOutgoingTx, findS2COutgoingTx, waitC2SOutgoing, waitS2COutgoing } from '../../wallet/hopcash'
 import ProgressLoader from 'components/ProgressLoader.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'HopCashSwapWait',
   components: { ProgressLoader },
@@ -185,7 +182,8 @@ export default {
   },
   methods: {
     getAssetDenomination,
-    isDefaultTheme,
+    isNotDefaultTheme,
+    getDarkModeClass,
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -267,9 +265,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.pp-text {
-  color: #000 !important;
-}
-</style>

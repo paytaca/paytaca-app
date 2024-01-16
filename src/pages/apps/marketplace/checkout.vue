@@ -1101,8 +1101,28 @@ function toggleAmountsDisplay() {
 
 function fetchCheckout() {
   let request
-  if (props.checkoutId) request = backend.get(`connecta/checkouts/${props.checkoutId}`)
-  else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`)
+
+  const sessionLocation = $store.getters['marketplace/sessionLocation']
+  const parsedSessionLocationData = {
+    address1: sessionLocation?.address1,
+    address2: sessionLocation?.address2,
+    street: sessionLocation?.street,
+    city: sessionLocation?.city,
+    state: sessionLocation?.state,
+    country: sessionLocation?.country,
+    zip_code: sessionLocation?.zip_code,
+    longitude: parseFloat(sessionLocation?.longitude),
+    latitude: parseFloat(sessionLocation?.latitude),
+  }
+
+  if (!initialized.value && !Number.isNaN(parsedSessionLocationData?.longitude) && !Number.isNaN(parsedSessionLocationData?.latitude)) {  
+    const data = { delivery_address: { location: parsedSessionLocationData } }
+    if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
+    else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
+  } else {
+    if (props.checkoutId) request = backend.get(`connecta/checkouts/${props.checkoutId}/`)
+    else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`)
+  }
 
   if (!request) return Promise.reject()
   fetchingCheckout.value = true
@@ -1130,11 +1150,16 @@ function saveCart() {
   $store.dispatch('marketplace/saveCart', checkout.value.cart)
 }
 
+const updateBchPricePromise = ref()
 function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
-  loadingState.value.price = true
-  return checkout.value.updateBchPrice(opts)
-    .then(() => resetFormData())
-    .finally(() => loadingState.value.price = false)
+  if (!updateBchPricePromise.value) {
+    loadingState.value.price = true
+    updateBchPricePromise.value = checkout.value.updateBchPrice(opts)
+      .then(() => resetFormData())
+      .finally(() => loadingState.value.price = false)
+      .finally(() => updateBchPricePromise.value = undefined)
+  }
+  return updateBchPricePromise.value
 }
 
 const customerLocationsDialog = ref({ show: false })
@@ -1231,7 +1256,8 @@ function findRiders() {
 }
 
 const updateDeliveryFeePromise = ref()
-function updateDeliveryFee() {
+async function updateDeliveryFee() {
+  await updateBchPricePromise.value?.catch?.(console.error)
   loadingState.value.deliveryFee = true
   loadingMsg.value = 'Calculating delivery fee'
   updateDeliveryFeePromise.value = backend.post(`connecta/checkouts/${checkout.value.id}/update_delivery_fee/`)
@@ -1362,6 +1388,7 @@ watch(() => [tabs.value.active], async () => {
 
   if (checkout.value.totalPayable < 0) return
   await fetchPaymentPromise.value
+  await updateBchPricePromise.value?.catch?.(console.error)
   await updateDeliveryFeePromise.value
   await createPaymentPromise.value?.catch?.(console.error)
   if (!payment.value) return createPayment()
@@ -1383,7 +1410,7 @@ function fetchPayments() {
 }
 
 const createPaymentPromise = ref()
-const createPayment = debounce(() => {
+const createPayment = debounce(async () => {
   if (checkout.value.balanceToPay <= 0) return Promise.resolve('Checkout paid')
   const data = {
     checkout_id: checkout.value.id,
@@ -1519,12 +1546,13 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
   })
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
     .then(response => {
-      if (payment.value.escrowContractAddress == response?.data?.address) payment.value.fetchEscrowContract()
+      if (payment.value?.escrowContractAddress == response?.data?.address) payment.value.fetchEscrowContract()
       fetchCheckout()
       dialog.hide()
       return response
     })
     .catch(error => {
+      console.error(error)
       const data = error?.response?.data
       let errorMessage = errorParser.firstElementOrValue(data?.non_field_errors) ||
                         errorParser.firstElementOrValue(data?.detail)
@@ -1535,7 +1563,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
       return Promise.reject(error)
     })
     .finally(() => {
-      dialog.update({ persistent: false, ok: { color: 'brandblue' } })
+      dialog.update({ persistent: false, progress: false, ok: { color: 'brandblue' } })
       loadingState.value.payment = false
       loadingMsg.value = resolveLoadingMsg()
     })
@@ -1785,13 +1813,17 @@ async function completeCheckout() {
 }
 
 const checkoutStorefrontId = computed(() => checkout.value?.cart?.storefrontId)
+onActivated(() => {
+  if (!checkoutStorefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', checkoutStorefrontId.value)
+})
 watch(checkoutStorefrontId, () => {
   if (!checkout.value?.cart?.storefrontId) return
-  $store.commit('marketplace/setActiveStorefrontId', checkout.value?.cart?.storefrontId)
+  $store.commit('marketplace/setActiveStorefrontId', checkoutStorefrontId.value)
   if (!checkoutStorefront.value?.id) fetchCheckoutStorefront()
 })
 
-const checkoutStorefront = computed(() => $store.getters['marketplace/getStorefront']?.(checkout.value?.cart?.storefrontId))
+const checkoutStorefront = computed(() => $store.getters['marketplace/getStorefront']?.(checkoutStorefrontId.value))
 function fetchCheckoutStorefront() {
   if (!checkoutStorefrontId.value) Promise.reject()
   backend.get(`connecta/storefronts/${checkoutStorefrontId.value}/`)

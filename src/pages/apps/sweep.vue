@@ -8,24 +8,26 @@
       <div>
         <header-nav :title="$t('Sweep')" backnavpath="/apps" />
         <div style="margin-top: 60px;" :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}">
-          <div id="app" ref="app" :class="{'text-black': !darkMode}">
-            <div v-if="fetching && tokens.length === 0" style="text-align: center; margin-top: 25px;">
+          <div id="app" ref="app" class="text-bow" :class="getDarkModeClass(darkMode)">
+            <div class="text-center" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
               <p>{{ $t('Scanning') }}...</p>
-              <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+              <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
             </div>
             <q-form v-if="!submitted" class="text-center" style="margin-top: 25px;">
               <textarea
-                v-if="tokens.length === 0" v-model="wif"
-                style="width: 100%; font-size: 18px; color: black; background: white;" rows="2"
+                v-if="tokens.length === 0"
+                v-model="wif"
+                class="sweep-input"
+                rows="2"
                 :placeholder="$t('SweepInputPlaceholder')"
               >
               </textarea>
               <br>
               <template v-if="!wif">
-                <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;" class="text-uppercase">
+                <div class="text-uppercase or-label">
                   {{ $t('or') }}
                 </div>
-                <q-btn round size="lg" class="btn-scan button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
+                <q-btn round size="lg" class="button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
               <div style="margin-top: 20px; ">
                 <q-btn
@@ -50,12 +52,20 @@
                 </p>
                 <div style="border: 1px solid black; padding: 10px;">
                   <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
-                  <q-btn color="primary" v-if="selectedToken !== 'bch'" @click.prevent="sweepBch" :disabled="(tokens.length - skippedTokens.length) > 0">Sweep</q-btn>
+                  <q-btn
+                    v-if="selectedToken !== 'bch'"
+                    @click.prevent="sweepBch"
+                    class="button"
+                    :class="getDarkModeClass(darkMode)"
+                    :disabled="(tokens.length - skippedTokens.length) > 0"
+                  >
+                    Sweep
+                  </q-btn>
                   <span v-if="(tokens.length - skippedTokens.length) > 0" style="color: red;">
                     <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
                   </span>
                   <div v-if="sweeping && selectedToken === 'bch'">
-                    <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+                    <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
                   </div>
                 </div>
               </div>
@@ -65,7 +75,7 @@
                   {{ $t('BchAddress') }}: {{ ellipsisText(sweeper.bchAddress) }}
                   <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
                 </p>
-                <div style="border: 1px solid black; padding: 10px;">
+                <div class="bch-balance">
                   <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
                   <template v-if="tokens.length === 0">
                     <span style="color: red;">{{ $t('SweepErrMsg1') }}</span>
@@ -85,13 +95,13 @@
                   <q-select filled v-model="payFeeFrom" :options="feeOptions" :label="$t('PayTransactionFeeFrom')" :dark="darkMode" />
                 </div>
                 <div v-for="(token, index) in tokens" :key="index">
-                  <div style="border: 1px solid black; padding: 10px; margin-top: 10px;">
+                  <div class="token-details">
                     <p>
                       {{ $t(isHongKong(currentCountry) ? 'PointId' : 'TokenId') }}: {{ ellipsisText(token.token_id) }}
                       <q-icon name="mdi-content-copy" @click="copyToClipboard(token.token_id)" />
                     </p>
                     <p>{{ $t('Symbol') }}: {{ token.symbol }}</p>
-                    <img v-if="token.image_url.length > 0" :src="token.image_url" height="50" />
+                    <img v-if="token.image_url.length > 0" :src="token.image_url" height="50" alt="" />
                     <p>{{ $t('Amount') }}: {{ token.spendable }}</p>
                     <template v-if="selectedToken !== token.token_id">
                       <q-btn color="primary" @click.prevent="sweepToken(token)" :disabled="sweeping || skippedTokens.includes(token.token_id)">
@@ -99,7 +109,7 @@
                       </q-btn>&nbsp;&nbsp;&nbsp; <span class="text-uppercase">{{ $t('or') }}</span> <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
                     </template>
                     <div v-if="sweeping && selectedToken === token.token_id">
-                      <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+                      <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
                     </div>
                   </div>
                 </div>
@@ -119,7 +129,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey from '../../wallet/sweep'
 import QrScanner from '../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../wallet'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'sweep',
@@ -188,7 +198,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
@@ -285,15 +295,31 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   #app {
     padding: 25px;
     overflow-y: auto;
     z-index: 1 !important;
     min-height: 100vh;
   }
-  .btn-scan {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-    color: white;
+  .sweep-input {
+    width: 100%;
+    font-size: 18px;
+    color: black;
+    background: white;
+  }
+  .or-label {
+    margin: 20px 0;
+    font-size: 15px;
+    color: grey;
+  }
+  .bch-balance {
+    border: 1px solid black;
+    padding: 10px;
+  }
+  .token-details {
+    border: 1px solid black;
+    padding: 10px;
+    margin-top: 10px;
   }
 </style>

@@ -2,70 +2,109 @@
   <div :class="theme" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
-        <img src="~/assets/paytaca_logo.png" height="60">
+        <img src="~/assets/paytaca_logo.png" height="60" alt="">
         <p class="pt-brandname">Paytaca</p>
       </div>
     </div>
-    <div class="row pt-wallet q-mt-sm justify-center" :class="{'pt-dark info-banner': darkMode}" v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1">
-      <div v-if="serverOnline" v-cloak>
-        <div class="col-12 q-mt-md q-px-lg q-py-none">
-          <div class="row">
-            <div class="col-12 q-py-sm">
-              <q-btn class="full-width bg-blue-9 text-white" @click="initCreateWallet()" :label="$t('CreateNewWallet')" rounded />
+    <div
+      class="row pt-wallet q-mt-sm justify-center pt-card-2"
+      :class="getDarkModeClass(darkMode, 'registration')"
+      v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
+    >
+      <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+        <div class="q-py-lg">
+          <div v-if="serverOnline" v-cloak>
+            <div class="col-12 q-mt-md q-px-lg q-py-none">
+              <div class="row">
+                <div class="col-12 q-py-sm">
+                  <q-btn
+                    rounded
+                    class="full-width bg-blue-9 text-white button"
+                    @click="initCreateWallet()"
+                    :label="$t('CreateNewWallet')"
+                  />
+                </div>
+                <div class="col-12 text-center q-py-sm">
+                  <p
+                    style="font-size: 14px"
+                    class="q-my-none q-py-none text-uppercase text-weight-bold button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    {{ $t('or') }}
+                  </p>
+                </div>
+                <div class="col-12 q-py-sm">
+                  <q-btn
+                    rounded
+                    class="full-width bg-blue-9 text-white button"
+                    @click="() => { importSeedPhrase = true }"
+                    :label="$t('RestoreFromSeedPhrase')"
+                  />
+                </div>
+              </div>
             </div>
-            <div class="col-12 text-center q-py-sm">
-              <p class="q-my-none q-py-none text-uppercase" style="font-size: 14px; color: #2E73D2;">{{ $t('or') }}</p>
-            </div>
-            <div class="col-12 q-py-sm">
-              <q-btn class="full-width bg-blue-9 text-white" @click="() => { importSeedPhrase = true }" :label="$t('RestoreFromSeedPhrase')" rounded />
+            <div class="col-12 q-mt-md">
+              <q-btn
+                flat
+                padding="md"
+                :label="$t('Back')"
+                icon="arrow_back"
+                class="full-width button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                @click="!$router.push('/')"
+                v-if="!$store.getters['global/isVaultEmpty']"
+              />
             </div>
           </div>
-        </div>
-        <div class="col-12 q-mt-md">
-          <q-btn
-            flat
-            padding="md"
-            :label="$t('Back')"
-            icon="arrow_back"
-            class="full-width"
-            color="blue-9"
-            @click="!$router.push('/')"
-            v-if="!$store.getters['global/isVaultEmpty']"
-          />
-        </div>
-      </div>
-      <div class="row" v-else style="margin-top: 60px;">
-        <div class="col" v-if="serverOnline === false">
-          <div class="col q-mt-sm pt-internet-required" :class="{'pt-dark': darkMode}">
-            {{ $t('NoInternetConnectionNotice') }} &#128533;
+          <div class="row" v-else style="margin-top: 60px;">
+            <div class="col" v-if="serverOnline === false">
+              <div class="col q-mt-sm pt-internet-required pt-card" :class="getDarkModeClass(darkMode)">
+                {{ $t('NoInternetConnectionNotice') }} &#128533;
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="steps > -1 && steps < totalSteps" style="text-align: center;">
-      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+    <div
+      class="col pt-wallet q-mt-sm pt-card-2 text-center"
+      :class="getDarkModeClass(darkMode)"
+      v-if="steps > -1 && steps < totalSteps"
+    >
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
-    <div class="row pt-wallet q-mt-sm" :class="{'pt-dark': darkMode}" v-if="importSeedPhrase && mnemonic.length === 0">
+    <div
+      class="row pt-wallet q-mt-sm pt-card-2"
+      :class="getDarkModeClass(darkMode, 'registration')"
+      v-if="importSeedPhrase && mnemonic.length === 0"
+    >
       <div class="col-12 q-px-lg">
-        <p
-          style="text-align: center; font-size: 16px; color: #000;"
-          :class="{'pt-dark-label': darkMode}"
-        >
-          {{ $t('RestoreWalletDescription') }}
-        </p>
-        <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-        <q-btn class="full-width bg-blue-9 text-white q-mt-md" @click="initCreateWallet()" :disable="!validateSeedPhrase()" :label="$t('RestoreWallet')" rounded />
+        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+          <div class="q-py-lg">
+            <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
+              {{ $t('RestoreWalletDescription') }}
+            </p>
+            <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+            <q-btn
+              rounded
+              class="full-width q-mt-md button"
+              @click="initCreateWallet()"
+              :disable="!validateSeedPhrase()"
+              :label="$t('RestoreWallet')"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="pt-get-started q-mt-sm" :class="{ 'pt-dark': darkMode, 'registration' : theme }">
-        <div :class="{'logo-splash-bg' : isDefaultTheme(theme)}">
+      <div class="pt-get-started q-mt-sm pt-card-2" :class="getDarkModeClass(darkMode, 'registration')">
+        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
             <div class="row" v-if="openSettings">
               <div class="col">
                 <div class="row justify-center">
-                  <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('OnBoardSettingHeader') }}</h5><br />
+                  <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5><br />
                 </div>
                 <div class="row justify-center">
                   <p class="dim-text" style="margin-top: 10px;">
@@ -73,10 +112,16 @@
                   </p>
                 </div>
                 <div class="row justify-center q-mt-md">
-                  <q-list bordered separator style="border-radius: 14px;" :class="{'pt-dark-card': darkMode, 'registration-card' : theme}">
+                  <q-list
+                    bordered
+                    separator
+                    style="border-radius: 14px;"
+                    class="pt-card registration-card"
+                    :class="getDarkModeClass(darkMode)"
+                  >
                     <q-item :class="{'divider' : theme}">
                       <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Country') }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
                         <CountrySelector :darkMode="darkMode" />
@@ -85,7 +130,7 @@
 
                     <q-item :class="{'divider' : theme}">
                       <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Language') }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Language') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
                         <LanguageSelector :darkMode="darkMode" />
@@ -94,7 +139,7 @@
 
                     <q-item>
                       <q-item-section>
-                        <q-item-label class="pt-setting-menu" :class="{'pt-dark-label': darkMode}">{{ $t('Currency') }}</q-item-label>
+                        <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
                         <CurrencySelector :darkMode="darkMode" :key="currencySelectorRerender" />
@@ -103,13 +148,13 @@
                   </q-list>
                 </div>
                 <div class="row justify-center">
-                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width bg-blue-9 text-white" @click="choosePreferedSecurity"/>
+                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/>
                 </div>
                 <div class="row justify-center">
                   <transition appear enter-active-class="animated fadeIn">
                     <div v-if="theme === 'payhero'" class="q-mt-lg q-pt-sm text-center">
                       <p style="font-size: 16px;">in partnership with</p>
-                      <img src="~/assets/themes/payhero/payhero_logo.png" width="130">
+                      <img src="~/assets/themes/payhero/payhero_logo.png" width="130" alt="">
                     </div>
                   </transition>
                 </div>
@@ -118,7 +163,7 @@
 
             <div v-else>
               <template v-if="steps === totalSteps">
-                <h5 class="q-ma-none get-started-text text-black" :class="{ 'pt-dark-label': darkMode }">{{ $t('MnemonicBackupPhrase') }}</h5>
+                <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
                 <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
                   {{ $t('MnemonicBackupPhraseDescription1') }}
                 </p>
@@ -145,7 +190,8 @@
                         padding="xs sm"
                         icon="arrow_back"
                         color="black"
-                        class="text-blue"
+                        class="button button-text-primary"
+                        :class="getDarkModeClass(darkMode)"
                         :label="$t('MnemonicBackupPhrase')"
                         @click="showMnemonicTest = false"
                       />
@@ -159,12 +205,12 @@
                 </template>
               </div>
               <div class="row q=mt-md" v-if="steps === totalSteps">
-                <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="openSettings = true" :label="$t('Continue')" rounded />
+                <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
                 <template v-else>
-                  <q-btn v-if="showMnemonicTest" class="full-width q-mt-md" @click="confirmSkipVerification" no-caps rounded>
+                  <q-btn v-if="showMnemonicTest" class="full-width q-mt-md button" @click="confirmSkipVerification" no-caps rounded>
                     {{ $t('SkipVerification') }}
                   </q-btn>
-                  <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                  <q-btn v-else rounded :label="$t('Continue')" class="full-width button" @click="showMnemonicTest = true"/>
                 </template>
               </div>
             </div>
@@ -198,7 +244,7 @@ import { Device } from '@capacitor/device'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 function countWords(str) {
@@ -263,7 +309,8 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
+    getDarkModeClass,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
         return utils.isValidMnemonic(this.seedPhraseBackup)
@@ -286,7 +333,7 @@ export default {
         ok: true,
         cancel: true,
         seamless: true,
-        class: 'text-white br-15 pt-dark-card'
+        class: 'text-white br-15 pt-card dark'
       }).onOk(() => { vm.openSettings = true })
     },
     saveToVault () {
@@ -515,25 +562,38 @@ export default {
     let langsFromIP = 'en-us'
     const apiKey = process.env.IPGEO_API_KEY
     const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`
-    await this.$axios.get(url).then(response => {
-      if (response.data?.country_name) {
+    await this.$axios
+      .get(url)
+      .then(response => {
+        if (response.data?.country_name) {
+          countryFromIP = {
+            name: response.data?.country_name,
+            code: response.data?.country_code2
+          }
+        }
+        if (response.data?.currency.code) {
+          currencyFromIP = {
+            symbol: response.data?.currency.code,
+            name: response.data?.currency?.name
+          }
+        }
+        if (response.data?.languages) {
+          langsFromIP = response.data?.languages?.toLowerCase().split(',')
+        }
+      })
+      .catch((error) => {
+        console.error(error)
+        // use default values
         countryFromIP = {
-          name: response.data?.country_name,
-          code: response.data?.country_code2
+          name: 'United States',
+          code: 'US'
         }
-      }
-      if (response.data?.currency.code) {
         currencyFromIP = {
-          symbol: response.data?.currency.code,
-          name: response.data?.currency?.name
+          symbol: 'USD',
+          name: 'United States Dollar'
         }
-      }
-      if (response.data?.languages) {
-        langsFromIP = response.data?.languages?.toLowerCase().split(',')
-      }
-    }).catch(() => {
-      console.log('geo error here')
-    })
+        langsFromIP = ['en-us']
+      })
 
     setTimeout(function () {
       // set country
@@ -674,5 +734,29 @@ li pre {
   font-size: 24px;
   padding: 30px;
   color: gray;
+}
+.pt-brand {
+  text-align: center;
+  padding: 20px 0px 0px 0px;
+}
+.pt-brandname {
+  color: #eaeeff;
+  font-size: 28px;
+}
+.pt-get-started {
+  width: 100%;
+  min-height: calc(100vh - 152px);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  background-color: #f9f8ff;
+}
+.pt-setting-menu {
+  font-weight: 400;
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: #3B7BF6;
+  }
 }
 </style>

@@ -47,7 +47,7 @@
           </div>
           <template v-if="handshakeOnProgress">
             <div class="row items-center justify-center">
-              <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
             </div>
             <div v-if="pendingConnector" class="row items-center justify-center">
               <q-btn
@@ -61,7 +61,7 @@
           </template>
         </div>
         <div v-else>
-          <q-card style="max-width: 320px;" :class="{'pt-dark-card': darkMode }" class="shadow-2 br-15">
+          <q-card style="max-width: 320px;" class="shadow-2 br-15 pt-card" :class="getDarkModeClass(darkMode)">
             <q-card-section>
               <div class="row items-start q-mb-sm">
                 <div class="text-grey">
@@ -134,7 +134,7 @@
                   @click="confirmClearCallRequests()"
                 />
               </div>
-              <q-list separator :class="darkMode ? 'pt-dark-card-2' : ''">
+              <q-list separator class="pt-card" :class="getDarkModeClass(darkMode)">
                 <q-item
                   v-for="(request, index) in callRequests"
                   :key="index"
@@ -143,7 +143,7 @@
                   @click="showCallRequestInDialog(request)"
                 >
                   <q-item-section>
-                    <q-item-label class="row" :class="darkMode ? 'text-white' : 'text-black'">
+                    <q-item-label class="row text-bow" :class="getDarkModeClass(darkMode)">
                       <span class="q-mt-xs">{{ request.payload.method }}</span>
                       <q-space/>
                       <span class="text-grey text-caption">
@@ -198,7 +198,7 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader.vue'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
 import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 const ago = require('s-ago')
 
 export default {
@@ -274,7 +274,7 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
@@ -526,7 +526,7 @@ export default {
           flat: true
         },
         seamless: true,
-        class: this.darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => {
           if (Array.isArray(this.callRequests)) {

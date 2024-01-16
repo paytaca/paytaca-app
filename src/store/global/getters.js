@@ -64,6 +64,11 @@ export function getChangeAddress (state) {
   }
 }
 
+export function getPurelypeerVaultSigner (state) {
+  const wallet = getWalletData(state, 'bch')
+  return wallet.purelypeerVaultSigner
+}
+
 export function getWallet (state) {
   return function (walletType) {
     return getWalletData(state, walletType)

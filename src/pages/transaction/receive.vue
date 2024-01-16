@@ -4,82 +4,165 @@
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
     ></header-nav>
-    <q-icon v-if="!isSep20" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
-      <q-menu anchor="bottom right" self="top end">
-        <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
-          <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="generateNewAddress">{{ $t('GenerateNewAddress') }}</q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup>
-            <q-item-section :class="[$store.getters['darkmode/getStatus'] ? 'pt-dark-label' : 'pp-text']" @click="copyPrivateKey">
-              <template v-if="copying">
-                {{ $t('Copying') }}...
-              </template>
-              <template v-else>
-                {{ $t('CopyPrivateKey') }}
-              </template>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-menu>
-    </q-icon>
-    <div style="text-align: center; padding-top: 80px;" v-if="generatingAddress">
-      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
-    <template v-else>
-      <div class="row">
-        <div class="col qr-code-container" @click="copyToClipboard(address)">
-          <div class="col col-qr-code q-pl-sm q-pr-sm">
-            <div class="row text-center">
-              <div class="col row justify-center q-pt-md">
-                <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" class="receive-icon-asset">
-                <qr-code :text="address" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+    <div v-if="!amountDialog">
+      <q-icon
+        v-if="!isSep20"
+        id="context-menu"
+        size="35px"
+        name="more_vert"
+        :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}"
+      >
+        <q-menu anchor="bottom right" self="top end">
+          <q-list class="pt-card" style="min-width: 100px" :class="getDarkModeClass(darkMode)">
+            <q-item clickable v-close-popup>
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="generateNewAddress">
+                {{ $t('GenerateNewAddress') }}
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup>
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="copyPrivateKey">
+                <template v-if="copying">
+                  {{ $t('Copying') }}...
+                </template>
+                <template v-else>
+                  {{ $t('CopyPrivateKey') }}
+                </template>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-icon>
+      <div class="text-center" style="padding-top: 80px;" v-if="generatingAddress">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+      <template v-else>
+        <div class="row">
+          <div class="col qr-code-container" @click="copyToClipboard(address)">
+            <div class="col col-qr-code q-pl-sm q-pr-sm">
+              <div class="row text-center">
+                <div class="col row justify-center q-pt-md">
+                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" alt="" class="receive-icon-asset">
+                  <qr-code :text="addressAmountFormat" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
-        <q-toggle
-          style="margin: auto;"
-          v-model="legacy"
-          :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'"
-          keep-color
-          color="blue-9"
-          :label="$t('LegacyAddress')"
+        <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
+          <q-toggle
+            v-model="legacy"
+            class="text-bow"
+            style="margin: auto;"
+            :class="getDarkModeClass(darkMode)"
+            keep-color
+            color="blue-9"
+            :label="$t('LegacyAddress')"
+          />
+        </div>
+        <div class="row">
+          <div class="col copy-container">
+            <span class="qr-code-text text-weight-light text-center">
+              <div
+                class="text-nowrap text-bow"
+                style="letter-spacing: 1px;"
+                @click="copyToClipboard(address)"
+                :class="getDarkModeClass(darkMode)"
+              >
+                {{ address }}
+                <p class="copy-address-button">{{ $t('ClickToCopyAddress') }}</p>
+              </div>
+              <div v-if="lnsName" class="text-center text-caption" style="color: #000 !important;">
+                {{ lnsName }}
+                <q-btn
+                  type="a"
+                  size="sm"
+                  flat
+                  padding="none"
+                  icon="open_in_new"
+                  :href="`https://app.bch.domains/name/${lnsName}/details`"
+                  target="_blank"
+                />
+              </div>
+            </span>
+
+            <div v-if="amount" class="text-center">
+              <q-separator class="q-mb-sm q-mx-md" style="height: 2px;" />
+              <div class="text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="receive-label">
+                  You Will Receive
+                </div>
+                <div class="text-weight-light receive-amount-label">
+                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="asset.symbol === 'BCH'"
+              @click="amountDialog = true"
+              class="text-center button button-text-primary"
+              style="font-size: 18px;"
+              :class="getDarkModeClass(darkMode)"
+            >
+              {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+    <div v-if="amountDialog">
+      <div class="text-right">
+        <q-btn
+          flat
+          padding="lg"
+          size="lg"
+          icon="close"
+          class="close-button"
+          @click="setReceiveAmount('close')"
         />
       </div>
-      <div class="row">
-        <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;">
-          <span class="qr-code-text text-weight-light text-center">
-            <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
-              {{ address }}
-              <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
-            </div>
-            <div v-if="lnsName" class="text-center text-caption pp-text">
-              {{ lnsName }}
-              <q-btn
-                type="a"
-                size="sm"
-                flat
-                padding="none"
-                icon="open_in_new"
-                :href="`https://app.bch.domains/name/${lnsName}/details`"
-                target="_blank"
-              />
-            </div>
-          </span>
+      <div :style="`margin-top: ${$q.screen.height * .15}px`">
+        <div class="text-center text-bow text-h6" :class="getDarkModeClass(darkMode)">{{ $t('SetReceiveAmount') }}</div>
+        <div class="col q-mt-md q-px-lg text-center">
+          <q-input
+            type="text"
+            inputmode="none"
+            @focus="openCustomKeyboard(true)"
+            filled
+            v-model="tempAmount"
+            :label="$t('Amount')"
+            :readonly="readonlyState"
+            :dark="darkMode"
+          >
+            <template v-slot:append>
+              <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
+                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}
+              </div>
+            </template>
+          </q-input>
+        </div>
+        <div
+          class="q-pt-md text-subtitle1 button button-text-primary set-amount-button"
+          :class="getDarkModeClass(darkMode)"
+          @click="setAmountInFiat = !setAmountInFiat"
+        >
+          {{ $t('SetAmountIn') }} {{ setAmountInFiat ? 'BCH' : String(selectedMarketCurrency()).toUpperCase() }}
         </div>
       </div>
-    </template>
-    <footer-menu />
+    </div>
   </div>
+
+  <customKeyboard
+    :custom-keyboard-state="customKeyboardState"
+    v-on:addKey="setAmount"
+    v-on:makeKeyAction="makeKeyAction"
+  />
 </template>
 
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
+import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 import { NativeAudio } from '@capacitor-community/native-audio'
@@ -89,7 +172,7 @@ import {
   convertCashAddress,
   convertTokenAmount,
 } from 'src/wallet/chipnet'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -99,7 +182,7 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav, ProgressLoader },
+  components: { HeaderNav, ProgressLoader, customKeyboard },
   data () {
     return {
       sBCHListener: null,
@@ -110,7 +193,13 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
-      copying: false
+      copying: false,
+      amount: '',
+      tempAmount: '',
+      readonlyState: false,
+      amountDialog: false,
+      customKeyboardState: 'dismiss',
+      setAmountInFiat: false
     }
   },
   props: {
@@ -146,11 +235,99 @@ export default {
       } else {
         return address
       }
+    },
+    selectedAssetMarketPrice() {
+      return this.$store.getters['market/getAssetPrice'](this.asset.id, this.selectedMarketCurrency())
+    },
+    addressAmountFormat () {
+      let tempAddress = this.address
+      let tempAmount = this.amount
+
+      if (this.setAmountInFiat && this.amount) {
+        tempAmount = this.convertFiatToSelectedAsset(this.amount)
+      }
+
+      tempAddress += this.amount ? '?amount=' + tempAmount : ''
+
+      return tempAddress
     }
   },
   methods: {
+    convertFiatToSelectedAsset (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
+      return computedBalance.toFixed(8)
+    },
+    setReceiveAmount (state) {
+      if (state !== 'close') {
+        this.amount = this.tempAmount
+      }
+      this.readonlyState = false
+      this.amountDialog = false
+      this.customKeyboardState = 'dismiss'
+    },
+    selectedMarketCurrency () {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
+    },
+    openCustomKeyboard (state) {
+      this.readonlyState = state
+
+      if (state) {
+        this.customKeyboardState = 'show'
+      } else {
+        this.customKeyboardState = 'dismiss'
+      }
+    },
+    setAmount (key) {
+      let receiveAmount, finalAmount, tempAmountFormatted = ''
+
+      receiveAmount = this.tempAmount
+
+      receiveAmount = receiveAmount === null ? '' : receiveAmount
+      if (key === '.' && receiveAmount === '') {
+        finalAmount = '0.'
+      } else {
+        finalAmount = receiveAmount.toString()
+        const hasPeriod = finalAmount.indexOf('.')
+        if (hasPeriod < 1) {
+          if (Number(finalAmount) === 0 && Number(key) > 0) {
+            finalAmount = key
+          } else {
+            // Check amount if still zero
+            if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
+              finalAmount = 0
+            } else {
+              finalAmount += key.toString()
+            }
+          }
+        } else {
+          finalAmount += key !== '.' ? key.toString() : ''
+        }
+      }
+      // // Set the new amount
+      this.tempAmount = finalAmount
+    },
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        // Backspace
+        this.tempAmount = String(this.tempAmount).slice(0, -1)
+      } else if (action === 'delete') {
+        // Delete
+        this.tempAmount = ''
+      } else {
+        // Enabled submit slider
+        if (this.tempAmount) {
+          this.setReceiveAmount('gen')
+        }
+        this.customKeyboardState = 'dismiss'
+        this.readonlyState = false
+      }
+    },
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     updateLnsName () {
       if (!this.isSep20) return
       if (!this.address) return
@@ -239,7 +416,7 @@ export default {
       } else {
         this.walletType = 'bch'
       }
-    
+
       let address = this.$store.getters['global/getAddress'](this.walletType)
       if (this.assetId.indexOf('ct/') > -1 && !forListener) {
         address = convertCashAddress(address, this.isChipnet, true)
@@ -255,7 +432,16 @@ export default {
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyToClipboard (value) {
-      this.$copyText(value)
+      let tempAddress = value
+      let tempAmount = this.amount
+
+      if (this.setAmountInFiat && this.amount) {
+        tempAmount = this.convertFiatToSelectedAsset(this.amount)
+      }
+
+      tempAddress += this.amount ? '?amount=' + tempAmount : ''
+
+      this.$copyText(tempAddress)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
         timeout: 800,
@@ -293,7 +479,7 @@ export default {
         dropRate: 3
       })
       if (!vm.$q.platform.is.mobile) {
-        if (isCashToken) 
+        if (isCashToken)
           amount = convertTokenAmount(amount, decimals)
 
         vm.$q.notify({
@@ -329,7 +515,7 @@ export default {
         assetType = 'bch'
         url = `${wsURL}/watch/bch/${address}/`
       }
-      
+
       vm.$connect(url)
       vm.$options.sockets.onmessage = function (message) {
         const data = JSON.parse(message.data)
@@ -400,6 +586,9 @@ export default {
     address () {
       this.lnsName = ''
       this.updateLnsName()
+    },
+    amountDialog () {
+      this.tempAmount = this.amount
     }
   },
 
@@ -461,9 +650,6 @@ export default {
     color: #3b7bf6;
     z-index: 150;
   }
-  .receive {
-    color: #636767;
-  }
   .qr-code-container {
     margin-top: 40px;
     padding-left: 28px;
@@ -491,66 +677,9 @@ export default {
     padding: 25px 10px 32px 10px;
     background: white;
   }
-  .receive-add-amount {
-    color: #3992EA;
-  }
-  .qr-code {
-    height: 205px;
-    width: 205px;
-    background-color: #464747;
-    margin: auto;
-  }
   .qr-code-text {
     font-size: 18px;
     color: #000;
-  }
-  .currencies {
-    position: fixed;
-    height: 100px;
-    width: 100%;
-    bottom: 0pt;
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    background-color: #fff;
-    padding-top: 28px;
-  }
-  .btn-bch {
-    margin-left: 0px;
-  }
-  .btn-custom {
-    height: 40px;
-    width: 32%;
-    border-radius: 20px;
-    border: none;
-    color: #444646;
-    background-color: transparent;
-    outline:0;
-    cursor: pointer;
-    transition: .2s;
-  }
-  .btn-custom:hover {
-    background-color: #fff;
-  }
-  .btn-custom.active-btn {
-    background-color: #fff !important;
-    color: #3992EA;
-  }
-  .btn-transaction {
-    background-color: rgba(43, 126, 209, .04);
-    border-radius: 24px;
-    padding: 4px;
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-  .receive__to {
-    color: #636767;
-  }
-  .receive-wallet {
-    color: #373939;
-  }
-  .icon-copy {
-    color: #3992EA;
-    font-size: 26px;
   }
   .receive-icon-asset {
     position: absolute;
@@ -559,7 +688,24 @@ export default {
     border-radius: 50%;
     padding: 4px;
   }
-  .pp-text {
-    color: #000 !important;
+  .copy-container {
+    padding: 20px 40px 0px 40px;
+    overflow-wrap: break-word;
+    .copy-address-button {
+      font-size: 12px;
+      margin-top: 7px;
+    }
+    .receive-label {
+      font-size: 15px;
+      letter-spacing: 1px;
+    }
+    .receive-amount-label {
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+  }
+  .set-amount-button {
+    margin-left: 35px;
+    font-weight: 500;
   }
 </style>

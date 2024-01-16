@@ -74,7 +74,7 @@ import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product } from 'src/marketplace/objects'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 
@@ -98,6 +98,13 @@ watch(() => [props?.collectionId], () => {
   resetPage()
   refreshPage()
 })
+
+const storefrontId = computed(() => collection.value?.storefrontId)
+onActivated(() => {
+  if (!storefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+})
+
 const collection = ref(Collection.parse())
 const fetchingCollection = ref(false)
 function fetchCollection() {

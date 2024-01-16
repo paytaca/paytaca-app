@@ -7,6 +7,14 @@ export class Location {
     return new Location(data)
   }
 
+  /**
+   * @param {Location} data
+   */
+  static formatLocationData(data) {
+    const addressStr = [data.address2, data.address1].filter(Boolean).join(' ')
+    return [addressStr, data.street, data.city, data.state, data.country].filter(Boolean).join(', ')  
+  }
+
   constructor(data) {
     this.raw = data
   }
@@ -72,6 +80,7 @@ export class Storefront {
   /**
    * @param {Object} data 
    * @param {Number} data.id
+   * @param {Boolean} data.active
    * @param {Number} data.shop_id
    * @param {String} data.name
    * @param {String} data.image_url
@@ -84,6 +93,7 @@ export class Storefront {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.active = data?.active
     this.shopId = data?.shop_id
     this.name = data?.name
     this.imageUrl = data?.image_url

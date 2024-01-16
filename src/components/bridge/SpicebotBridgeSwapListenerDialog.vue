@@ -9,7 +9,7 @@
     full-width
     seamless
     persistent>
-    <q-card :class="darkMode ? 'pt-dark' : 'text-black'">
+    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space">Fulfilling swap</div>
         <q-btn
@@ -26,10 +26,7 @@
         </q-banner>
         <q-item class="q-px-none">
           <q-item-section avatar>
-            <img
-              height="40"
-              :src="tokenImgUrl"
-            />
+            <img height="40" :src="tokenImgUrl" alt="" />
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -39,7 +36,7 @@
           </q-item-section>
         </q-item>
         <div v-if="waiting" class="row items-center justify-center">
-          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-else-if="fulfillmentTxDetails.hash" class="q-mt-md">
           <div class="ellipsis">
@@ -52,13 +49,13 @@
           </div>
         </div>
         <div v-else class="text-center">
-          <div class="q-my-md" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">Outgoing transaction not found</div>
+          <div class="q-my-md pt-label" :class="getDarkModeClass(darkMode)">Outgoing transaction not found</div>
           <q-btn
             no-caps
             color="brandblue"
             :label="$t('Retry')"
-            class="full-width"
-            :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
+            class="full-width pt-label"
+            :class="getDarkModeClass(darkMode)"
             @click="startPoller()"
           />
         </div>
@@ -69,7 +66,7 @@
 <script>
 import { getSwapRequestDetails } from '../../wallet/spicebot-bridge'
 import ProgressLoader from '../ProgressLoader.vue'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SpicebotBridgeSwapListenerDialog',
@@ -118,7 +115,8 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
+    getDarkModeClass,
     async updateTokenImgUrl () {
       if (this.tokenImagesMap?.[this.swapRequest?.token?.slp_token_id]) {
         this.tokenImgUrl = this.tokenImagesMap?.[this.swapRequest?.token?.slp_token_id]

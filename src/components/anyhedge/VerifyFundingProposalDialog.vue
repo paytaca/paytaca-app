@@ -1,11 +1,10 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onHide()" :persistent="loading" seamless>
-    <q-card :class="darkMode ? 'text-white br-15 pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-h6">
         {{ title }}
       </q-card-section>
       <q-card-section class="q-pt-none">
-        <!-- {{ loading }} | {{ errorMessage }} | {{ spendingTx }} -->
         <div v-if="loading" class="row justify-center">
           <q-spinner color="brandblue" size="3em" :thickness="5"/>
         </div>
@@ -47,6 +46,7 @@ import { isUtxoSpent } from 'src/wallet/anyhedge/funding'
 import { computed, inject, onMounted, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 const emit = defineEmits([

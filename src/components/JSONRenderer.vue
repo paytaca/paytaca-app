@@ -1,5 +1,5 @@
 <template>
-  <div :class="darkMode ? 'pt-dark-card-2' : 'bg-grey-4'" class="br-15 q-mt-sm q-pr-sm q-py-sm">
+  <div class="br-15 q-mt-sm q-pr-sm q-py-sm pt-card" :class="getDarkModeClass(darkMode, '', 'bg-grey-4')">
     <q-tree
       :nodes="tree"
       dense
@@ -15,7 +15,7 @@
           <div class="text-caption" :class="darkMode ? 'text-grey' : 'text-grey-8'">
             {{ node.property }}:
 
-            <span :class="darkMode ? 'text-white' : 'text-black'">
+            <span class="text-bow" :class="getDarkModeClass(darkMode)">
               {{ node.value }}
             </span>
           </div>
@@ -25,7 +25,7 @@
   </div>
 </template>
 <script>
-
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 function toNodes (value, prefix = '') {
   if (typeof value !== 'object') {
     return [{
@@ -69,6 +69,9 @@ export default {
         return toNodes(this.value)
       }
     }
+  },
+  methods: {
+    getDarkModeClass
   }
 }
 </script>

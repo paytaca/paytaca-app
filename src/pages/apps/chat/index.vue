@@ -1,7 +1,7 @@
 <template>
   <div
     style="background-color: #ECF3F3; min-height: 100vh; padding-top:70px; z-index: 1;"
-    :class="{'pt-dark': darkMode}"
+    :class="{'pt-card-3': darkMode}"
   >
     <header-nav title="Chats" backnavpath="/apps" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
     <q-icon

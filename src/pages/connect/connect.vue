@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="" :class="{'pt-dark': darkMode}">
+  <div id="app-container" class="" :class="{'card-3dark': darkMode}">
     <header-nav
       backnavpath="/"
       :title="$t('Connect to Paytaca')"

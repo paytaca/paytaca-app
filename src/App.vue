@@ -40,6 +40,7 @@ export default {
   },
   data () {
     return {
+      promptedPushNotifications: false,
       subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null
     }
@@ -53,6 +54,15 @@ export default {
         getWalletByNetwork(wallet, 'slp').getWalletHash(),
         wallet.sBCH.getWalletHash(),
       ]
+
+      await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+      if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
+        await this.$pushNotifications.openPushNotificationsSettingsPrompt({
+          message: 'Enable push notifications to receive updates from the app',
+        }).catch(console.log)
+        this.promptedPushNotifications = true
+      }
+
       this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
       await this.$pushNotifications.subscribe(walletHashes)
       this.subscribedPushNotifications = true

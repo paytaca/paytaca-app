@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" full-width seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ title }}</div>
         <q-btn
@@ -76,8 +76,8 @@
             no-caps
             :disable="!selectedOffer"
             @click="onDialogOK(selectedOffer)"
-            color="brandblue"
             label="Select"
+            class="button"
           />
         </q-btn-group>
       </q-card-section>
@@ -91,6 +91,7 @@ import { computed, ref } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 defineEmits([

@@ -23,13 +23,7 @@
       <q-icon name="mdi-timer-sand"/>
       {{ formatDuration(hedgePositionOffer?.durationSeconds) }}
     </div>
-    <q-menu
-      touch-position
-      :class="{
-        'pt-dark': darkMode,
-        'text-black': !darkMode,
-      }"
-    >
+    <q-menu touch-position class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-list>
         <q-item
           v-if="hedgePositionOffer?.hedgePosition"
@@ -79,6 +73,7 @@ import { format, useQuasar } from 'quasar'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from './HedgeContractDetailDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const { capitalize } = format
 const store = useStore()
@@ -145,7 +140,7 @@ function openUpdateExpirationForm() {
     },
     cancel: true,
     seamless: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
     .onOk(updateExpiration)
 }
@@ -159,7 +154,7 @@ function updateExpiration(expirationTime) {
     progress: true,
     persistent: true,
     seamless: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   anyhedgeBackend.patch(`anyhedge/hedge-position-offers/${props.hedgePositionOffer?.id}/`, data)
     .then(async (response) => {
@@ -183,7 +178,7 @@ function confirmRemoveHedgeOffer() {
     ok: true,
     cancel: true,
     seamless: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
     .onOk(() => removeHedgePositionOffer())
 }
@@ -194,7 +189,7 @@ function removeHedgePositionOffer() {
     persistent: true,
     progress: true,
     seamless: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   anyhedgeBackend.delete(`anyhedge/hedge-position-offers/${props.hedgePositionOffer.id}/`)
     .catch(error => {

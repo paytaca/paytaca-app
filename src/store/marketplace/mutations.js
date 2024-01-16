@@ -1,20 +1,41 @@
+import { DEVICE_LOCATION_ID_CONST } from "./state"
+
 export function setShopListOpts(state, data) {
   state.shopListOpts = data
 }
 
+export function setSelectedSessionLocationId(state, id=DEVICE_LOCATION_ID_CONST) {
+  state.selectedSessionLocationId = id
+}
+
 /**
  * @param {Object} state
- * @param {Object} data 
- * @param {Number} data.lat
- * @param {Number} data.lon
+ * @param {Object} data
+ * @param {String} data.address1
+ * @param {String} data.address2
+ * @param {String} data.street
+ * @param {String} data.city
+ * @param {String} data.state
+ * @param {String} data.zip_code
+ * @param {String} data.country
+ * @param {Number} data.latitude
+ * @param {Number} data.longitude
  * @param {Number} data.timestamp
  */
 export function updateLocationData(state, data) {
-  state.location = {
-    lat: data?.lat,
-    lon: data?.lon,
+  state.location = Object.assign({}, data, {
+    id: DEVICE_LOCATION_ID_CONST,
+    address1: data?.address1,
+    address2: data?.address2,
+    street: data?.street,
+    city: data?.city,
+    state: data?.state,
+    country: data?.country,
+    zip_code: data?.zip_code,
+    latitude: data?.latitude,
+    longitude: data?.longitude,
     timestamp: data?.timestamp,
-  }
+  })
 }
 
 /**

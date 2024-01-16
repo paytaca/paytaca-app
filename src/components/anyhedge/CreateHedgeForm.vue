@@ -66,11 +66,6 @@
           [{{index + 1}}] {{ error }}
         </div>
       </div>
-      <!-- <ul class="q-pl-sm">
-        <li v-for="(error, index) in errors" :key="index" style="word-break:break-word;" class="text-caption">
-          {{ error }}
-        </li>
-      </ul> -->
     </q-banner>
 
     <div class="row items-center">
@@ -84,7 +79,7 @@
           <q-icon :color="darkMode ? 'grey-7' : 'black'" size="sm" name="info">
           </q-icon>
           <q-popup-proxy :breakpoint="0">
-            <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+            <div class="q-px-md q-py-sm pt-label pt-card-2" :class="getDarkModeClass(darkMode)">
               <div class="q-py-xs">
                 <div class="text-caption text-grey" style="margin-bottom:-0.5em">Asset Name</div>
                 <span>
@@ -141,7 +136,7 @@
         name="help"
       >
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']" class="text-caption">
+          <div class="q-px-md q-py-sm text-caption pt-label pt-card-2" :class="getDarkModeClass(darkMode)">
             Hedge amount is calculated from long amount below & low liquidation percentage below
           </div>
         </q-popup-proxy>
@@ -272,25 +267,6 @@
       </q-input>
     </div>
 
-    <!-- <div class="row q-gutter-x-md items-center">
-      <q-toggle
-        :dark="darkMode"
-        label="Match to liquidity pool"
-        disable
-        v-model="createHedgeForm.autoMatch"
-      />
-      <q-icon
-        :color="darkMode ? 'grey-7' : 'black'"
-        size="sm"
-        name="help"
-      >
-        <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption">
-            Disabling will create a hedge position offer instead
-          </div>
-        </q-popup-proxy>
-      </q-icon>
-    </div> -->
     <q-slide-transition>
       <div v-if="createHedgeForm.autoMatch">
         <div :class="darkMode ? 'text-white' : 'text-grey-7'">{{ $t('LiquidityPool') }}</div>
@@ -332,7 +308,7 @@
           <template v-slot:append>
             <q-icon name="help" :color="darkMode ? 'grey-7' : 'black'">
               <q-popup-proxy :breakpoint="0">
-                <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+                <div class="q-px-md q-py-sm pt-label pt-card-2" :class="getDarkModeClass(darkMode)">
                   {{ $t('AnyHedgeNoExactMatchInfo') }}
                 </div>
               </q-popup-proxy>
@@ -383,6 +359,7 @@ import CreateHedgeConfirmDialog from './CreateHedgeConfirmDialog.vue';
 import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
 import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 
 function alertError(...args) {
@@ -996,7 +973,7 @@ async function createHedgePosition() {
           ok: true,
           seamless: true,
           cancel: true,
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
       } catch(error) {
         console.error(error)
@@ -1026,7 +1003,7 @@ async function createHedgePosition() {
       }
     }
 
-    if (!misc.matchedHedgePositionOffer?.id){
+    if (!misc.matchedHedgePositionOffer?.id) {
       try {
         await dialogPromise({
           title: 'No matching offer',
@@ -1034,7 +1011,7 @@ async function createHedgePosition() {
           ok: true,
           seamless: true,
           cancel: true,
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
         misc.isPositionOffer = true
         funding.prepareFunding = false
