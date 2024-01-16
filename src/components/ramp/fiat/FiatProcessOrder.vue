@@ -65,6 +65,10 @@
     <div class="fixed" style="right: 35px; bottom: 100px;" v-if="status.value !== 'RLS'">
       <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
     </div>
+
+    <div v-if="reconnectingWebSocket" class="fixed" style="right: 40px; top: 145px;">
+      <q-spinner-ios size="1.5em"/>
+    </div>
   </div>
 
   <!-- Dialogs -->
@@ -135,7 +139,9 @@ export default {
       paymentConfirmationKey: 0,
 
       errorMessages: [],
-      selectedPaymentMethods: []
+      selectedPaymentMethods: [],
+      autoReconWebSocket: true,
+      reconnectingWebSocket: false
     }
   },
   components: {
@@ -161,7 +167,8 @@ export default {
         arbiter: this.order.arbiter,
         contractAddress: this.contract.address,
         transferAmount: this.transferAmount,
-        fees: this.fees
+        fees: this.fees,
+        wsConnected: !this.reconnectingWebSocket
       }
     },
     verifyTransactionData () {
@@ -169,7 +176,8 @@ export default {
         orderId: this.order.id,
         contractId: this.order.contract,
         action: this.verifyAction,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        wsConnected: !this.reconnectingWebSocket
       }
     },
     standByDisplayData () {
@@ -177,7 +185,8 @@ export default {
         order: this.order,
         feedback: this.feedback,
         contractAddress: this.contract.address,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        wsConnected: !this.reconnectingWebSocket
       }
     },
     paymentConfirmationData () {
@@ -186,7 +195,8 @@ export default {
         type: this.confirmType,
         contractAddress: this.contract.address,
         errors: this.errorMessages,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        wsConnected: !this.reconnectingWebSocket
       }
     },
     receiveOrderData () {
@@ -228,6 +238,11 @@ export default {
     }
   },
   emits: ['back', 'refresh'],
+  watch: {
+    reconnectingWebSocket () {
+      this.reloadChildComponents()
+    }
+  },
   mounted () {
     const vm = this
     vm.fetchOrder()
@@ -239,13 +254,20 @@ export default {
         })
         vm.fetchAd().then(vm.isloaded = true)
         vm.fetchFeedback()
-        vm.setupWebsocket()
+        this.setupWebsocket(5, 1000)
       })
   },
   beforeUnmount () {
+    this.autoReconWebSocket = false
     this.closeWSConnection()
   },
   methods: {
+    reloadChildComponents () {
+      this.standByDisplayKey++
+      this.escrowTransferKey++
+      this.verifyTransactionKey++
+      this.paymentConfirmationKey++
+    },
     updateStatus (status) {
       console.log('Updating order status to:', status)
       const vm = this
@@ -691,7 +713,7 @@ export default {
       })
     },
 
-    setupWebsocket () {
+    setupWebsocket (retries, delayDuration) {
       const wsUrl = `${this.wsURL}${this.order.id}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
@@ -730,12 +752,21 @@ export default {
       }
       this.websocket.onclose = () => {
         console.log('WebSocket connection closed.')
+        if (this.autoReconWebSocket && retries > 0) {
+          this.reconnectingWebSocket = true
+          console.log(`Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
+          return this.delay(delayDuration)
+            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
+        }
       }
     },
     closeWSConnection () {
       if (this.websocket) {
         this.websocket.close()
       }
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     }
   }
 }

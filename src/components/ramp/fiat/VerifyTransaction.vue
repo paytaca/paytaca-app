@@ -57,7 +57,7 @@
             <q-btn
               rounded
               :loading="loading"
-              :disable="disableBtn"
+              :disable="disableBtn || !data?.wsConnected"
               :label=btnLabel
               color="blue-6"
               class="col q-mx-lg q-mb-md q-py-sm q-my-md"

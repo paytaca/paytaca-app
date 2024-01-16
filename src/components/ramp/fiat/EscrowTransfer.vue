@@ -96,7 +96,7 @@
     </q-scroll-area>
     <RampDragSlide
       :key="dragSlideKey"
-      v-if="showDragSlide"
+      v-if="showDragSlide && data?.wsConnected"
       :style="{
         position: 'fixed',
         bottom: 0,

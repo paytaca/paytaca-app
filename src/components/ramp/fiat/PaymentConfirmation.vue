@@ -86,13 +86,13 @@
                 <q-spinner class="q-mx-sm"/>Sending BCH, please wait...
               </div>
               <div v-else>
-                <q-checkbox size="sm" v-model="confirmRelease" :dark="darkMode"/>
-                <span class="sm-font-size text-center">I confirm that I have received payment</span>
+                <q-checkbox :disable="!data?.wsConnected" size="sm" v-model="confirmRelease" :dark="darkMode"/>
+                <span :style="!data?.wsConnected ? 'color: grey': ''" class="sm-font-size text-center">I confirm that I have received payment</span>
               </div>
             </div>
             <div v-if="data?.type === 'buyer'">
-              <q-checkbox size="sm" v-model="confirmPayment" :dark="darkMode"/>
-              <span class="sm-font-size text-left"> I confirm that I already sent payment</span>
+              <q-checkbox :disable="!data?.wsConnected" size="sm" v-model="confirmPayment" :dark="darkMode"/>
+              <span :style="!data?.wsConnected ? 'color: grey': ''" class="sm-font-size text-left"> I confirm that I already sent payment</span>
             </div>
           </div>
 
@@ -112,7 +112,7 @@
     </q-pull-to-refresh>
   </div>
   <RampDragSlide
-    v-if="showDragSlide && countDown !== 'Expired'"
+    v-if="showDragSlide && countDown !== 'Expired' && data?.wsConnected"
     :key="dragSlideKey"
     :text="dragSlideTitle"
     :locked="lockDragSlide"

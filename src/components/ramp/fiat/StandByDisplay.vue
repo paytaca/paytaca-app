@@ -102,6 +102,7 @@
                 <q-btn
                   rounded
                   no-caps
+                  :disable="!data?.wsConnected"
                   label='Appeal'
                   class="q-space text-white"
                   color="blue-6"
