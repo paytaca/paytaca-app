@@ -25,16 +25,17 @@
       @cancel="cancellingOrder"
       @refresh="$emit('refresh')"
     />
-    <EscrowTransferProcess
+    <EscrowTransfer
       v-if="state === 'escrow-bch'"
-      :key="escrowTransferProcessKey"
+      :key="escrowTransferKey"
       :data="escrowTransferData"
       @back="onBack"
       @success="onEscrowSuccess"
     />
-    <VerifyEscrowTx
+    <VerifyTransaction
       v-if="state === 'tx-confirmation'"
-      :key="verifyEscrowTxKey"
+      :key="verifyTransactionKey"
+      :data="verifyTransactionData"
       :order-id="order.id"
       :contract-id="order.contract"
       :action="verifyAction"
@@ -101,8 +102,8 @@ import { formatCurrency } from 'src/wallet/ramp'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
-import EscrowTransferProcess from './EscrowTransferProcess.vue'
-import VerifyEscrowTx from './VerifyEscrowTx.vue'
+import EscrowTransfer from './EscrowTransfer.vue'
+import VerifyTransaction from './VerifyTransaction.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ChatDialog from './dialogs/ChatDialog.vue'
 import StandByDisplay from './StandByDisplay.vue'
@@ -142,8 +143,8 @@ export default {
       verifyAction: null,
 
       standByDisplayKey: 0,
-      escrowTransferProcessKey: 0,
-      verifyEscrowTxKey: 0,
+      escrowTransferKey: 0,
+      verifyTransactionKey: 0,
       paymentConfirmationKey: 0,
 
       errorMessages: [],
@@ -155,8 +156,8 @@ export default {
     StandByDisplay,
     ProgressLoader,
     MiscDialogs,
-    EscrowTransferProcess,
-    VerifyEscrowTx,
+    EscrowTransfer,
+    VerifyTransaction,
     PaymentConfirmation,
     ChatDialog
   },
@@ -174,6 +175,14 @@ export default {
         contractAddress: this.contract.address,
         transferAmount: this.transferAmount,
         fees: this.fees
+      }
+    },
+    verifyTransactionData () {
+      return {
+        orderId: this.order.id,
+        contractId: this.order.contract,
+        action: this.verifyAction,
+        escrow: this.rampContract
       }
     },
     transferAmount () {
@@ -316,7 +325,7 @@ export default {
             vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
           vm.state = state
-          if (state === 'tx-confirmation') vm.verifyEscrowTxKey++
+          if (state === 'tx-confirmation') vm.verifyTransactionKey++
           break
         }
         case 'RFN': // Refunded
@@ -489,7 +498,7 @@ export default {
       vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
       vm.paymentConfirmationKey++
       vm.standByDisplayKey++
-      vm.verifyEscrowTxKey++
+      vm.verifyTransactionKey++
     },
     submitAppeal (data) {
       const vm = this
@@ -692,10 +701,10 @@ export default {
           }
           if (data.error) {
             this.errorMessages.push(data.error)
-            this.verifyEscrowTxKey++
+            this.verifyTransactionKey++
           } else if (data.errors) {
             this.errorMessages.push(...data.errors)
-            this.verifyEscrowTxKey++
+            this.verifyTransactionKey++
           }
           if (data.txid) {
             this.txid = data.txid
@@ -708,7 +717,7 @@ export default {
                 address: data.contract_address
               }
             }
-            this.escrowTransferProcessKey++
+            this.escrowTransferKey++
           }
         }
       }
