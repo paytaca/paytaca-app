@@ -84,8 +84,8 @@
             <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
           </div>
           <div v-else class="sm-font-size q-mt-sm">
-            <div v-if="fees" class="row q-ml-xs">
-              Fee: {{ fees.total / 100000000 }} BCH
+            <div class="row q-ml-xs">
+              Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
             </div>
             <div class="row q-ml-xs">
               Balance: {{ balance }} BCH
@@ -96,7 +96,7 @@
     </q-scroll-area>
     <RampDragSlide
       :key="dragSlideKey"
-      v-if="showDragSlide && (!loading && contractAddress)"
+      v-if="showDragSlide"
       :style="{
         position: 'fixed',
         bottom: 0,
@@ -133,7 +133,7 @@ export default {
       fees: null,
       transferAmount: null,
       txid: null,
-      showDragSlide: true,
+      showDragSlide: false,
       sendErrors: [],
       sendingBch: false,
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
@@ -152,6 +152,9 @@ export default {
       if (oldValue === null) return
       this.contractAddress = null
       this.generateContractAddress()
+    },
+    fees (value) {
+      if (value) this.showDragSlide = true
     }
   },
   computed: {
@@ -303,27 +306,31 @@ export default {
       })
     },
     generateContractAddress () {
-      const vm = this
-      const body = {
-        order_id: vm.order?.id,
-        arbiter_id: vm.selectedArbiter.id
-      }
-      backend.post('/ramp-p2p/order/contracts/create', body, { authorize: true })
-        .then(response => {
-          console.log(response)
-          if (response.data.data) {
-            const data = response.data.data
-            if (data.contract_address) {
-              vm.contractAddress = data.contract_address
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const body = {
+          order_id: vm.order?.id,
+          arbiter_id: vm.selectedArbiter.id
+        }
+        backend.post('/ramp-p2p/order/contracts/create', body, { authorize: true })
+          .then(response => {
+            console.log(response)
+            if (response.data.data) {
+              const data = response.data.data
+              if (data.contract_address) {
+                vm.contractAddress = data.contract_address
+              }
             }
-          }
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+            reject(error)
+          })
+      })
     },
     checkSufficientBalance () {
       if (this.transferAmount > parseFloat(this.balance)) {

@@ -237,12 +237,8 @@ export default {
             vm.fetchContract().then(contract => vm.generateContract(contract, fees))
           }
         })
-        vm.fetchAd()
-          .then(() => {
-            vm.isloaded = true
-          })
+        vm.fetchAd().then(vm.isloaded = true)
         vm.fetchFeedback()
-
         vm.setupWebsocket()
       })
   },
@@ -451,11 +447,13 @@ export default {
     },
     fetchFees () {
       return new Promise((resolve, reject) => {
+        const vm = this
         const url = '/ramp-p2p/order/contracts/fees'
         backend.get(url, { authorize: true })
           .then(response => {
             console.log(response)
-            this.fees = response.data
+            vm.fees = response.data
+            vm.escrowTransferKey++
             resolve(response.data)
           })
           .catch(error => {
@@ -478,6 +476,7 @@ export default {
         backend.get(url, { authorize: true })
           .then(response => {
             vm.contract = response.data
+            vm.escrowTransferKey++
             resolve(response.data)
           })
           .catch(error => {
@@ -672,7 +671,6 @@ export default {
       return true
     },
     onVerifyTxSuccess (status) {
-      // TODO: Add and handle emit event
       this.updateStatus(status)
     },
     onBack () {
