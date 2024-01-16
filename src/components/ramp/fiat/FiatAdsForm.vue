@@ -240,6 +240,11 @@
         @submit="onSubmit()"
       />
     </div>
+    <div v-if="step > 3">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader/>
+      </div>
+    </div>
   </div>
 </template>
 <script>
@@ -305,7 +310,7 @@ export default {
         tradeFloor: 0.02,
         tradeCeiling: 100,
         tradeAmount: 100,
-        timeDurationChoice: 5,
+        timeDurationChoice: 1440,
         paymentMethods: [],
         isPublic: true
       },
@@ -426,6 +431,7 @@ export default {
     },
     async onSubmit () {
       const vm = this
+      vm.step++
       const url = vm.apiURL + '/ad/'
       const body = vm.transformPostData()
       try {
