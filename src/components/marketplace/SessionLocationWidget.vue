@@ -172,7 +172,7 @@ function setCurrentLocation() {
     color: 'brandblue',
     progress: true,
     persistent: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`,
     ok: false,
     cancel: false,
   })
@@ -194,7 +194,7 @@ function setDeviceLocation(data, dialogTitle='Pin location') {
   const dialog = $q.dialog({
     title: dialogTitle,
     color: 'brandblue',
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
   })
   if (Number.isNaN(data?.lat) || Number.isNaN(data?.lng)) {
     return dialog.update({ message: 'Invalid pin location' })

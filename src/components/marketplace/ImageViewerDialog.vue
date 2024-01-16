@@ -1,13 +1,13 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" full-height @hide="onDialogHide" position="bottom">
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row no-wrap items-start">
           <slot name="title">
             <div class="text-h5">{{ title }}</div>
           </slot>
           <q-space/>
-          <q-btn flat padding="xs" icon="close" v-close-popup/>
+          <q-btn flat padding="xs" icon="close" v-close-popup class="close-button" />
         </div>
       </q-card-section>
       <div style="position: relative;">
@@ -15,7 +15,7 @@
           class="row items-center justify-center"
           style="overflow:auto;max-height:calc(87.5vh - 4rem);min-height:50vh;"
         >
-          <img :src="image" :style="{
+          <img :src="image" alt="" :style="{
             'max-width': '100%',
             'max-height': '100%',
             'object-fit': 'contain',
@@ -26,7 +26,7 @@
         </div>
         <q-btn
           fab icon="search"
-          color="brandblue"
+          class="button"
           padding="sm"
           :style="{
             position: 'absolute',
@@ -35,7 +35,8 @@
           }"
         >
           <q-menu
-            :class="[darkMode ? 'pt-dark': 'text-black', 'text-center q-pa-sm']"
+            class="text-center q-pa-sm pt-card text-bow"
+            :class="getDarkModeClass(darkMode)"
             :offset="[0, 10]"
           >
             <div><q-icon name="zoom_in" size="2rem"/></div>
@@ -61,6 +62,7 @@
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, ref, watch } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default defineComponent({
   name: 'ImageViewerDialog.vue',
@@ -94,5 +96,8 @@ export default defineComponent({
       zoom,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>

@@ -1,20 +1,19 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
-    <div v-if="!initialized" class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <HeaderNav title="Marketplace" class="header-nav" />
+
+    <div v-if="!initialized" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="q-px-sm text-h5 q-space">Order</div>
       <div v-if="fetchingOrder" class="text-center">
         <q-spinner size="3em"/>
       </div>
     </div>
-    <div v-else class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <div v-else class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-start no-wrap q-px-sm">
         <div class="q-space row items-start">
           <div class="text-h5 q-space">
@@ -35,7 +34,7 @@
           </div>
         </div>
         <q-btn flat icon="more_vert" padding="xs" rounded class="q-r-mr-md">
-          <q-menu :class="[ darkMode ? 'pt-dark' : 'text-black' ]">
+          <q-menu class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <q-item
               v-close-popup clickable
               @click="() => showPaymentsDialog = true"
@@ -57,13 +56,15 @@
       <template v-if="order?.inProgress">
         <q-banner
           v-if="['ready_for_pickup', 'on_delivery'].includes(order?.status) && orderDeadlines.delivery.text"
-          :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+          class="q-mx-xs q-my-sm pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
         >
           {{ orderDeadlines.delivery.text }}
         </q-banner>
         <q-banner
           v-else-if="orderDeadlines.preparation.text"
-          :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+          class="q-mx-xs q-my-sm pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
         >
           {{ orderDeadlines.preparation.text }}
         </q-banner>
@@ -74,7 +75,8 @@
       </q-banner>
       <template v-if="order?.balanceToPay > 0 && !order?.isCancelled">
         <q-banner
-          :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+          class="q-mx-xs q-my-sm pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
         >
           <div class="row items-center">
             <div>
@@ -91,7 +93,7 @@
               outlined
               :loading="creatingPayment"
               no-caps label="Pay"
-              color="brandblue"
+              class="button"
               padding="1px md"
               @click="() => showPaymentDialog = true"
             />
@@ -100,7 +102,8 @@
       </template>
       <q-banner
         v-if="order?.status == 'delivered'" rounded
-        :class="['q-mx-xs q-my-sm', darkMode ? 'pt-dark-card text-white' : '']"
+        class="q-mx-xs q-my-sm pt-card text-bow"
+        :class="getDarkModeClass(darkMode)"
       >
         <div class="row items-center q-gutter-y-sm">
           <div>
@@ -120,7 +123,7 @@
             no-caps
             :loading="completingOrder"
             label="Mark as Complete"
-            color="brandblue"
+            class="button"
             padding="1px sm"
             @click="() => completeOrder()"
           />
@@ -129,14 +132,16 @@
       <div class="row items-start items-delivery-address-panel">
         <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
           <q-card
-            :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-px-md q-py-sm']"
+            class="q-px-md q-py-sm pt-card text-bow"
+            :class="getDarkModeClass(darkMode)"
           >
             <q-btn
               flat
               padding="none"
               no-caps
               label="Open Map"
-              class="float-right q-mt-xs"
+              class="float-right q-mt-xs button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click="() => showMap = true"
             />
             <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
@@ -153,7 +158,7 @@
               <div>
                 <div class="q-mt-xs float-right">
                   <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
-                    <q-menu :class="[ 'q-pa-sm', darkMode ? 'pt-dark' : 'text-black' ]">
+                    <q-menu class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
                       Rider has accepted delivery
                       <span v-if="delivery?.acceptedAt">({{  formatDateRelative(delivery?.acceptedAt) }})</span>
                     </q-menu>
@@ -165,7 +170,7 @@
                     :color="delivery?.deliveredAt ? 'green' : 'amber'"
                     class="q-mx-sm"
                   >
-                    <q-menu :class="[ 'q-pa-sm', darkMode ? 'pt-dark' : 'text-black' ]">
+                    <q-menu class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
                       <div v-if="delivery.pickedUpAt">
                         Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
                       </div>
@@ -201,9 +206,7 @@
           </q-card>
         </div>
         <div class="q-pa-xs q-space">
-          <q-card
-            :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'q-pa-sm']"
-          >
+          <q-card class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <div class="q-px-sm">
               <div class="text-subtitle1">Items</div>
               <q-separator :dark="darkMode"/>
@@ -247,7 +250,7 @@
         </div>
       </div>
 
-      <div class="q-px-xs" @click="toggleAmountsDisplay">
+      <div class="q-px-xs q-pt-sm q-pb-md" @click="toggleAmountsDisplay">
         <div class="row items-start text-subtitle2">
           <div class="q-space">Subtotal</div>
           <div v-if="displayBch">{{ orderAmounts.subtotal.bch }} BCH</div>
@@ -279,7 +282,7 @@
             <div class="q-space">Pending amount</div>
             <div v-if="displayBch">{{ orderAmounts.totalPendingPayment.bch }} BCH</div>
             <div v-else>{{ orderAmounts.totalPendingPayment.currency }} {{ orderCurrency }}</div>
-            <q-menu :class="[ 'q-pa-md', darkMode ? 'pt-dark' : 'text-black' ]">
+            <q-menu class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
               Amount sent by customer but not yet received
             </q-menu>
           </div>
@@ -312,18 +315,19 @@
     </div>
     <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
     <q-dialog v-model="showPaymentDialog" position="bottom">
-      <q-card :class="[darkMode ? 'text-white pt-dark-card' : 'text-black']">
+      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row no-wrap items-center justify-center">
             <div class="text-h6 q-mt-sm">Payment</div>
             <q-space/>
-            <q-btn flat padding="sm" icon="close" v-close-popup />
+            <q-btn flat padding="sm" icon="close" v-close-popup class="close-button" />
           </div>
           <div class="row items-center q-mb-xs">
             <q-btn
               flat padding="xs"
               no-caps label="Payment details"
-              class="text-underline"
+              class="text-underline button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click="() => showBchPaymentEscrowContract()"
             />
             <q-space/>
@@ -331,6 +335,8 @@
               flat padding="xs"
               icon="content_copy"
               no-caps label="Copy link"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click.stop="() => copyToClipboard(bchPaymentData?.url)"
             />
           </div>
@@ -360,7 +366,7 @@
       </q-card>
     </q-dialog>
     <q-dialog v-model="showOrderCompletedPrompt">
-      <q-card :class="[darkMode ? 'text-white pt-dark-card' : 'text-black', 'rounded-borders']">
+      <q-card class="rounded-borders pt-card text-bow" :class="getDarkModeClass(darkMode)">
         <q-btn flat icon="close" padding="sm" class="float-right" style="z-index:100;" v-close-popup/>
         <q-card-section class="text-center">
           <div class="text-h5">Order Complete</div>
@@ -396,6 +402,7 @@ import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import OrderChatButton from 'src/components/marketplace/OrderChatButton.vue'
 import { loadWallet, Wallet } from 'src/wallet'
 import { TransactionListener } from 'src/wallet/transaction-listener'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
 import riderLocationPin from 'src/assets/rider_map_marker.png'
@@ -813,7 +820,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     persistent: true,
     ok: false,
     cancel: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
   })
   creatingPayment.value = true
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
@@ -881,7 +888,7 @@ async function sendBchPayment() {
     progress: true,
     ok: false,
     cancel: false,
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
   })
 
   const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
@@ -985,7 +992,7 @@ function completeOrder() {
     progress: true,
     persistent: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
   })
 
   completingOrder.value = true
