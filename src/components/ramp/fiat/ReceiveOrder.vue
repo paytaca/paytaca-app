@@ -110,8 +110,7 @@ export default {
     }
   },
   props: {
-    orderData: Object,
-    adData: Object
+    data: Object
   },
   emits: ['confirm', 'cancel', 'refresh'],
   computed: {
@@ -128,12 +127,10 @@ export default {
     }
   },
   async mounted () {
-    this.order = this.orderData
+    this.order = this.data?.order
     this.price = this.$parent.formattedCurrency(this.order.locked_price, this.order.fiat_currency.symbol)
     this.updateInput()
     this.isloaded = true
-    console.log('order:', this.order)
-    console.log('this.$q.screen.height:', this.$q.screen.height)
   },
   methods: {
     formattedPlt (value) {

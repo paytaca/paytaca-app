@@ -2,7 +2,7 @@
   <div v-if="isloaded">
     <q-pull-to-refresh @refresh="$emit('refresh')">
       <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
-        <span v-if="type === 'buyer'">PAY BY FIAT</span>
+        <span v-if="data?.type === 'buyer'">PAY BY FIAT</span>
         <span v-else>RECEIVE FIAT</span>
       </div>
       <div style="opacity: .5;" class="text-center q-pb-sm md-font-size bold-text">ORDER #{{ order.id }}</div>
@@ -11,7 +11,7 @@
         <div class="q-mt-md q-mx-lg q-px-md">
           <div class="q-my-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="contractAddress">
+            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="data?.contractAddress">
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Balance</div>
             <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" :label="contractBalance">
@@ -20,7 +20,7 @@
               </template>
             </q-input>
           </div>
-          <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs q-ml-xs">Please pay the seller</div>
+          <div v-if="data?.type === 'buyer'" class="sm-font-size q-pb-xs q-ml-xs">Please pay the seller</div>
           <div v-else class="sm-font-size q-pb-xs q-ml-xs">Expect fiat payment of</div>
           <div @click="$parent.copyToClipboard(fiatAmount)">
             <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="fiatAmount" :rules="[$parent.isValidInputAmount]">
@@ -37,7 +37,7 @@
 
         <div class="q-mx-md q-px-md q-pt-sm">
           <!-- Buyer -->
-          <div v-if="type === 'buyer'" class="q-pb-xs">
+          <div v-if="data?.type === 'buyer'" class="q-pb-xs">
             <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
             <div class="full-width">
                 <div v-for="(method, index) in paymentMethods" :key="index">
@@ -71,7 +71,7 @@
         <!-- Checkbox -->
         <div class="q-mb-sm" v-if="countDown !== 'Expired'">
           <div class="q-mx-lg q-px-md">
-            <div v-if="type === 'seller'">
+            <div v-if="data?.type === 'seller'">
               <div class="row q-mb-sm" v-if="sendErrors.length > 0">
                 <div class="col">
                   <ul style="margin-left: -40px; list-style: none;">
@@ -90,14 +90,14 @@
                 <span class="sm-font-size text-center">I confirm that I have received payment</span>
               </div>
             </div>
-            <div v-if="type === 'buyer'">
+            <div v-if="data?.type === 'buyer'">
               <q-checkbox size="sm" v-model="confirmPayment" :dark="darkMode"/>
               <span class="sm-font-size text-left"> I confirm that I already sent payment</span>
             </div>
           </div>
 
           <!-- Confirm  -->
-          <!-- <div v-if="type !== 'seller'" class="row q-pt-sm q-mx-lg q-px-md">
+          <!-- <div v-if="data?.type !== 'seller'" class="row q-pt-sm q-mx-lg q-px-md">
             <q-btn
               :disable="!confirmPayment || selectedPaymentMethods.length === 0"
               rounded
@@ -154,28 +154,24 @@ export default {
       sendErrors: []
     }
   },
-  props: {
-    orderId: Number,
-    type: String,
-    rampContract: Object,
-    errors: Array,
-    contractAddress: String
-  },
   components: {
     RampDragSlide
   },
   emits: ['expired', 'verify-release', 'refresh'],
+  props: {
+    data: Object
+  },
   computed: {
     dragSlideTitle () {
-      return this.type === 'seller' ? 'Release Crypto' : 'Confirm Payment'
+      return this.data?.type === 'seller' ? 'Release Crypto' : 'Confirm Payment'
     },
     lockDragSlide () {
       const vm = this
       let lock = true
-      if (vm.type === 'seller') {
+      if (vm.data?.type === 'seller') {
         lock = !vm.confirmRelease
       }
-      if (vm.type === 'buyer') {
+      if (vm.data?.type === 'buyer') {
         lock = !vm.confirmPayment || vm.selectedPaymentMethods.length === 0
       }
       return lock
@@ -193,8 +189,8 @@ export default {
   },
   async mounted () {
     const vm = this
-    if (vm.errors) {
-      vm.sendErrors = vm.errors
+    if (vm.data?.errors) {
+      vm.sendErrors = vm.data?.errors
     }
     vm.fetchOrderDetail()
       .then(() => {
@@ -209,8 +205,8 @@ export default {
   methods: {
     fetchContractBalance () {
       const vm = this
-      if (vm.rampContract) {
-        vm.rampContract.getBalance()
+      if (vm.data?.escrow) {
+        vm.data?.escrow.getBalance()
           .then(balance => {
             vm.contractBalance = balance
           })
@@ -224,10 +220,10 @@ export default {
       const status = vm.order.status.value
       vm.sendErrors = []
       if (status === 'ESCRW') {
-        vm.sendConfirmPayment(vm.type)
+        vm.sendConfirmPayment(vm.data?.type)
       }
       if (status === 'PD_PN') {
-        vm.sendConfirmPayment(vm.type)
+        vm.sendConfirmPayment(vm.data?.type)
           .then(data => {
             if (data && data.status.value === 'PD') {
               vm.releaseBch()
@@ -264,13 +260,13 @@ export default {
     async releaseBch () {
       const vm = this
       vm.sendErrors = []
-      const feContractAddr = await vm.rampContract.getAddress()
-      const beContractAddr = vm.contractAddress
+      const feContractAddr = await vm.data?.escrow.getAddress()
+      const beContractAddr = vm.data?.contractAddress
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const privateKeyWif = await rampWallet.privkey()
-      vm.rampContract.release(privateKeyWif, vm.order.crypto_amount)
+      vm.data?.escrow.release(privateKeyWif, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {
             const txid = result.txInfo.txid
@@ -296,7 +292,7 @@ export default {
     fetchOrderDetail () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = vm.apiURL + '/order/' + vm.orderId
+        const url = vm.apiURL + '/order/' + vm.data?.orderId
         vm.$axios.get(url, { headers: vm.authHeaders })
           .then(response => {
             console.log(response)

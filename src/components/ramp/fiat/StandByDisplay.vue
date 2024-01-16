@@ -5,11 +5,11 @@
         <div class="lg-font-size">
           <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
-        <div class="text-center subtext md-font-size bold-text">ORDER #{{ order.id }}</div>
-        <div v-if="order.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
+        <div class="text-center subtext md-font-size bold-text">ORDER #{{ data?.order?.id }}</div>
+        <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
-        <div v-if="order.status?.value === 'APL'">
+        <div v-if="data?.order?.status?.value === 'APL'">
           <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
               <div class="bold-text md-font-size">Appeal reasons</div>
@@ -35,19 +35,19 @@
             :dark="darkMode"
             v-model="cryptoAmount">
             <template v-slot:append>
-              <span class="md-font-size bold-text">{{ order.crypto_currency?.symbol }}</span>
+              <span class="md-font-size bold-text">{{ data?.order?.crypto_currency?.symbol }}</span>
             </template>
           </q-input>
           <div class="col text-right sm-font-size q-pl-sm">
-            = {{ fiatAmount }} {{ order.fiat_currency?.symbol }}
+            = {{ fiatAmount }} {{ data?.order?.fiat_currency?.symbol }}
           </div>
         </div>
         <div v-if="displayContractInfo">
           <div class="q-mx-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="contractAddress">
+            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="data?.contractAddress">
               <template v-slot:append>
-                <div v-if="contractAddress" @click="copyToClipboard(contractAddress)">
+                <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
                   <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
                 </div>
               </template>
@@ -60,7 +60,7 @@
             </q-input>
           </div>
         </div>
-        <div v-if="order.status.value === 'APL'" class="row q-pt-md q-mx-lg">
+        <div v-if="data?.order?.status.value === 'APL'" class="row q-pt-md q-mx-lg">
           <q-btn
             disable
             rounded
@@ -111,7 +111,7 @@
             </div>
         </div>
         <!-- Feedback -->
-        <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
+        <div class="q-pt-xs q-mx-md" v-if="data?.order?.status.value === 'RLS'">
           <div class="md-font-size text-center">
             <span v-if="!feedbackForm.is_posted">Rate your experience</span>
             <span v-else>Your Review</span>
@@ -188,7 +188,7 @@
   <div v-if="openReviews">
     <FeedbackDialog
       :openReviews="openReviews"
-      :orderID="order.id"
+      :orderID="data?.order?.id"
       :type="'order-review'"
       @back="openReviews = false"
     />
@@ -225,10 +225,7 @@ export default {
     }
   },
   props: {
-    escrow: Object,
-    order: Object,
-    feedback: Object,
-    contractAddress: String
+    data: Object
   },
   emits: ['sendFeedback', 'submitAppeal', 'refresh'],
   components: {
@@ -239,26 +236,26 @@ export default {
     showAppealBtn () {
       const vm = this
       return (
-        !vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.order.status.value) &&
+        !vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value) &&
         (vm.$parent.isExpired || vm.countDown === 'Expired'))
     },
     displayContractInfo () {
-      const status = this.order.status.value
+      const status = this.data?.order?.status?.value
       return status !== 'SBM' && status !== 'CNF' && status !== 'CNCL'
     },
     isAppealed () {
-      return this.order.status.value === 'APL'
+      return this.data?.order?.status?.value === 'APL'
     },
     isCompletedOrder () {
-      return (this.order.status.value === 'RLS' || this.order.status.value === 'RFN')
+      return (this.data?.order?.status.value === 'RLS' || this.data?.order?.status.value === 'RFN')
     },
     orderStatus () {
-      return this.order.status?.label?.toUpperCase()
+      return this.data?.order?.status?.label?.toUpperCase()
     },
     forRelease () {
       let release = false
-      if (this.order.status.value === 'PD' &&
-        (this.order.trade_type === 'BUY' && this.order.is_ad_owner)) {
+      if (this.data?.order?.status.value === 'PD' &&
+        (this.data?.order?.trade_type === 'BUY' && this.data?.order?.is_ad_owner)) {
         release = true
       }
       return release
@@ -266,22 +263,22 @@ export default {
     hasCountDown () {
       const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
 
-      return stat.includes(this.order.status.value) && !this.$parent.isExpired
+      return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
-      return stat.includes(this.order.status.value)
+      return stat.includes(this.data?.order?.status.value)
     },
     cryptoAmount () {
-      return this.$parent.formattedCurrency(this.order.crypto_amount)
+      return this.$parent.formattedCurrency(this.data?.order?.crypto_amount)
     },
     fiatAmount () {
-      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      let amount = Number(parseFloat(this.data?.order?.crypto_amount) * parseFloat(this.data?.order?.locked_price))
       if (amount > 1) amount = amount.toFixed(2)
       return this.$parent.formattedCurrency(amount)
     },
     statusColor () {
-      const stat = this.order.status.value
+      const stat = this.data?.order?.status.value
 
       if (stat === 'RLS') {
         return 'text-green-6'
@@ -293,7 +290,7 @@ export default {
     },
     hasLabel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN']
-      return stat.includes(this.order.status.value)
+      return stat.includes(this.data?.order?.status.value)
     },
     label () {
       const labels = {
@@ -305,12 +302,12 @@ export default {
         PD: 'Please wait for the fund release.',
         RLS_PN: 'Please wait for the fund release.'
       }
-      return labels[this.order.status.value]
+      return labels[this.data?.order?.status.value]
     }
   },
   async mounted () {
-    if (this.feedback) {
-      this.feedbackForm = this.feedback
+    if (this.data?.feedback) {
+      this.feedbackForm = this.data?.feedback
     }
     this.loadData()
     this.isloaded = true
@@ -321,7 +318,7 @@ export default {
   },
   methods: {
     loadData () {
-      if (this.order.status?.value === 'APL') {
+      if (this.data?.order?.status?.value === 'APL') {
         this.fetchAppeal()
       }
       this.paymentCountdown()
@@ -330,7 +327,7 @@ export default {
     },
     fetchAppeal () {
       const vm = this
-      backend.get(`/ramp-p2p/order/${vm.order.id}/appeal`, { authorize: true })
+      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
         .then(response => {
           console.log(response)
           vm.appeal = response.data?.appeal
@@ -338,8 +335,8 @@ export default {
     },
     fetchContractBalance () {
       const vm = this
-      if (this.escrow) {
-        vm.escrow.getBalance()
+      if (this.data?.escrow) {
+        vm.data?.escrow?.getBalance()
           .then(balance => {
             vm.contractBalance = balance.toString()
           })
@@ -350,7 +347,7 @@ export default {
     },
     checkStatus () {
       const completedStatus = ['RLS', 'RFN', 'CNCL']
-      if (completedStatus.includes(this.order.status.value)) {
+      if (completedStatus.includes(this.data?.order?.status.value)) {
         this.type = 'completed'
       }
     },
@@ -366,8 +363,8 @@ export default {
     },
     paymentCountdown () {
       const vm = this
-      if (vm.order.expires_at) {
-        const expiryDate = new Date(vm.order.expires_at)
+      if (vm.data?.order?.expires_at) {
+        const expiryDate = new Date(vm.data?.order?.expires_at)
         vm.timer = setInterval(function () {
           const now = new Date().getTime()
           const distance = expiryDate - now

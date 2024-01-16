@@ -19,8 +19,7 @@
     <!-- Ad Owner Confirm / Decline -->
     <ReceiveOrder
       v-if="state === 'order-confirm-decline'"
-      :order-data="order"
-      :ad-data="ad"
+      :data="receiveOrderData"
       @confirm="confirmingOrder"
       @cancel="cancellingOrder"
       @refresh="$emit('refresh')"
@@ -36,10 +35,6 @@
       v-if="state === 'tx-confirmation'"
       :key="verifyTransactionKey"
       :data="verifyTransactionData"
-      :order-id="order.id"
-      :contract-id="order.contract"
-      :action="verifyAction"
-      :escrow="rampContract"
       @back="onBack"
       @success="onVerifyTxSuccess"
       @refresh="$emit('refresh')"
@@ -48,10 +43,7 @@
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
         :key="standByDisplayKey"
-        :escrow="rampContract"
-        :order="order"
-        :feedback="feedback"
-        :contract-address="contract.address"
+        :data="standByDisplayData"
         @send-feedback="sendFeedback"
         @submit-appeal="submitAppeal"
         @refresh="$emit('refresh')"
@@ -62,11 +54,7 @@
     <div v-if="state === 'payment-confirmation'">
       <PaymentConfirmation
         :key="paymentConfirmationKey"
-        :order-id="order.id"
-        :type="confirmType"
-        :ramp-contract="rampContract"
-        :errors="errorMessages"
-        :contract-address="contract.address"
+        :data="paymentConfirmationData"
         @expired="handleExpired"
         @verify-release="handleVerifyRelease"
         @refresh="$emit('refresh')"
@@ -99,6 +87,9 @@
 </template>
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
+import { addChatMembers } from 'src/wallet/ramp/chat'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
@@ -108,9 +99,6 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ChatDialog from './dialogs/ChatDialog.vue'
 import StandByDisplay from './StandByDisplay.vue'
 import PaymentConfirmation from './PaymentConfirmation.vue'
-import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
-import { addChatMembers } from 'src/wallet/ramp/chat'
 
 export default {
   data () {
@@ -118,7 +106,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      wallet: this.$store.getters['ramp/wallet'],
       websocket: null,
       state: '',
       isloaded: false,
@@ -131,7 +118,7 @@ export default {
       ad: null,
       order: null,
       feedback: null,
-      rampContract: null,
+      escrowContract: null,
       contract: {
         address: null
       },
@@ -182,7 +169,29 @@ export default {
         orderId: this.order.id,
         contractId: this.order.contract,
         action: this.verifyAction,
-        escrow: this.rampContract
+        escrow: this.escrowContract
+      }
+    },
+    standByDisplayData () {
+      return {
+        order: this.order,
+        feedback: this.feedback,
+        contractAddress: this.contract.address,
+        escrow: this.escrowContract
+      }
+    },
+    paymentConfirmationData () {
+      return {
+        orderId: this.order.id,
+        type: this.confirmType,
+        contractAddress: this.contract.address,
+        errors: this.errorMessages,
+        escrow: this.escrowContract
+      }
+    },
+    receiveOrderData () {
+      return {
+        order: this.order
       }
     },
     transferAmount () {
@@ -486,7 +495,7 @@ export default {
     },
     generateContract (contract, fees) {
       const vm = this
-      if (vm.rampContract) return
+      if (vm.escrowContract) return
       const publicKeys = contract.pubkeys
       const addresses = contract.addresses
       const fees_ = {
@@ -495,7 +504,7 @@ export default {
         contractFee: fees.breakdown.hardcoded_fee
       }
       const timestamp = contract.timestamp
-      vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+      vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
       vm.paymentConfirmationKey++
       vm.standByDisplayKey++
       vm.verifyTransactionKey++
