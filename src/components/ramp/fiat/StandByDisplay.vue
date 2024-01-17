@@ -35,7 +35,7 @@
             :dark="darkMode"
             v-model="cryptoAmount">
             <template v-slot:append>
-              <span class="md-font-size bold-text">{{ data?.order?.crypto_currency?.symbol }}</span>
+              <span>{{ data?.order?.crypto_currency?.symbol }}</span>
             </template>
           </q-input>
           <div class="col text-right sm-font-size q-pl-sm">
@@ -45,7 +45,13 @@
         <div v-if="displayContractInfo">
           <div class="q-mx-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="data?.contractAddress">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="data?.contractAddress">
               <template v-slot:append>
                 <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
                   <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
@@ -53,9 +59,16 @@
               </template>
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" :label="contractBalance">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :loading="!contractBalance"
+              :dark="darkMode"
+              v-model="contractBalance">
               <template v-slot:append>
-                <span class="sm-font-size bold-text md-font-size">BCH</span>
+                <span>BCH</span>
               </template>
             </q-input>
           </div>
