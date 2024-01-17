@@ -227,18 +227,22 @@
         @click.prevent="attachment = null"
       />
     </div>
-    <q-dialog v-model="openImage" maximized>
-      <q-card>
-        <q-img
-          :src="selectedImage"
-          spinner-color="white"
-          style="max-height: 100%; max-width: 100%"
-        />
-        <q-btn
-          flat icon="cancel"
-          padding="sm"
-          v-close-popup
-        />
+    <q-dialog v-model="openImage">
+      <q-card style="width: 100%;">
+        <div class="justify-end">
+          <q-btn
+            flat icon="cancel"
+            padding="sm"
+            v-close-popup
+          />
+        </div>
+        <div class="q-my-lg q-mx-lg">
+          <q-img
+            fill
+            :src="selectedImage"
+            spinner-color="white"
+          />
+        </div>
       </q-card>
     </q-dialog>
   </q-card>
