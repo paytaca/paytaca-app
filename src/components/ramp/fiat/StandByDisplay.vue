@@ -73,17 +73,6 @@
             </q-input>
           </div>
         </div>
-        <div v-if="data?.order?.status.value === 'APL'" class="row q-pt-md q-mx-lg">
-          <q-btn
-            disable
-            rounded
-            no-caps
-            label='Chat'
-            class="q-space text-white"
-            color="blue-6"
-            @click="onChat"
-          />
-        </div>
         <!-- Countdown Timer -->
         <div v-else class="q-mt-md q-px-md q-mb-sm">
           <div
@@ -370,9 +359,6 @@ export default {
     async onSubmitAppeal (data) {
       this.openDialog = false
       this.$emit('submitAppeal', data)
-    },
-    onChat () {
-      console.log('chat clicked')
     },
     paymentCountdown () {
       const vm = this
