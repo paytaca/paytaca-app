@@ -6,39 +6,63 @@
         <span v-else>RECEIVE FIAT</span>
       </div>
       <div style="opacity: .5;" class="text-center q-pb-sm md-font-size bold-text">ORDER #{{ order.id }}</div>
-      <!-- <q-separator :dark="darkMode" class="q-mx-lg"/> -->
       <q-scroll-area :style="`height: ${minHeight - 175}px`" style="overflow-y:auto;">
-        <div class="q-mt-md q-mx-lg q-px-md">
+        <div class="q-mt-sm q-mx-md q-px-md">
           <div class="q-my-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="data?.contractAddress">
+            <q-input
+              class="q-pb-xs"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="data?.contractAddress">
+              <template v-slot:append>
+                <div v-if="data?.contractAddress" @click="$parent.copyToClipboard(data?.contractAddress)">
+                  <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+                </div>
+              </template>
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" :label="contractBalance">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :loading="!contractBalance"
+              :dark="darkMode"
+              v-model="contractBalance">
               <template v-slot:append>
-                <span class="md-font-size bold-text">BCH</span>
+                <span>BCH</span>
               </template>
             </q-input>
           </div>
-          <div v-if="data?.type === 'buyer'" class="sm-font-size q-pb-xs q-ml-xs">Please pay the seller</div>
+          <div v-if="data?.type === 'buyer'" class="sm-font-size q-pb-xs q-ml-xs">Pay the seller</div>
           <div v-else class="sm-font-size q-pb-xs q-ml-xs">Expect fiat payment of</div>
           <div @click="$parent.copyToClipboard(fiatAmount)">
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="fiatAmount" :rules="[$parent.isValidInputAmount]">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :rules="[$parent.isValidInputAmount]"
+              v-model="fiatAmount">
               <template v-slot:append>
-                <span class="md-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+                <span>{{ order.fiat_currency.symbol }}</span>
               </template>
             </q-input>
           </div>
         </div>
         <div class="q-pt-sm text-center" v-if="!sendingBch && sendErrors.length === 0">
-          <span class="sm-font-size" v-if="countDown !== 'Expired'">within</span>
+          <span class="sm-font-size" v-if="countDown !== 'Expired'">order expires in</span>
           <div style="font-size: 30px; color: #ed5f59;"> {{ countDown }}</div>
         </div>
-
         <div class="q-mx-md q-px-md q-pt-sm">
           <!-- Buyer -->
           <div v-if="data?.type === 'buyer'" class="q-pb-xs">
-            <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
+            <q-separator :dark="darkMode" class="q-mx-sm q-mb-md"/>
+            <div class="md-font-size q-pb-xs q-pl-sm text-center">PAYMENT METHODS</div>
             <div class="full-width">
                 <div v-for="(method, index) in paymentMethods" :key="index">
                   <div class="q-px-sm">
@@ -192,11 +216,11 @@ export default {
     if (vm.data?.errors) {
       vm.sendErrors = vm.data?.errors
     }
-    vm.fetchOrderDetail()
-      .then(() => {
-        vm.paymentCountdown()
-        vm.isloaded = true
-      })
+    vm.fetchOrderDetail().then(() => {
+      vm.paymentCountdown()
+      vm.isloaded = true
+    })
+    vm.fetchContractBalance()
   },
   beforeUnmount () {
     clearInterval(this.timer)
@@ -295,7 +319,6 @@ export default {
         const url = vm.apiURL + '/order/' + vm.data?.orderId
         vm.$axios.get(url, { headers: vm.authHeaders })
           .then(response => {
-            console.log(response)
             vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
             vm.paymentMethods = vm.order.ad.payment_methods.map(method => {

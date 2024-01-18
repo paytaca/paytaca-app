@@ -5,7 +5,7 @@
         <div class="lg-font-size">
           <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
-        <div class="text-center subtext md-font-size bold-text">ORDER #{{ data?.order?.id }}</div>
+        <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
         <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
@@ -343,7 +343,6 @@ export default {
       const vm = this
       backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
         .then(response => {
-          console.log(response)
           vm.appeal = response.data?.appeal
         })
     },

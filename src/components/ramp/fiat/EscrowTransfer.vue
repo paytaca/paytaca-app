@@ -148,8 +148,8 @@ export default {
     data: Object
   },
   watch: {
-    selectedArbiter (_, oldValue) {
-      if (oldValue === null) return
+    selectedArbiter (newValue, oldValue) {
+      if (!oldValue || oldValue?.id === newValue?.id) return
       this.contractAddress = null
       this.generateContractAddress()
     },
@@ -191,8 +191,8 @@ export default {
     loadData () {
       const vm = this
       vm.order = vm.data.order
-      vm.contractAddress = vm.data.contractAddress
       vm.selectedArbiter = vm.data.arbiter
+      vm.contractAddress = vm.data.contractAddress
       vm.fees = vm.data.fees
       vm.updateTransferAmount(vm.data.transferAmount)
     },
@@ -281,7 +281,6 @@ export default {
         const vm = this
         backend.get('ramp-p2p/arbiter', { authorize: true })
           .then(response => {
-            console.log(response)
             vm.arbiterOptions = response.data
             if (vm.arbiterOptions.length > 0) {
               if (!vm.selectedArbiter) {
@@ -312,9 +311,8 @@ export default {
           order_id: vm.order?.id,
           arbiter_id: vm.selectedArbiter.id
         }
-        backend.post('/ramp-p2p/order/contracts/create', body, { authorize: true })
+        backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
           .then(response => {
-            console.log(response)
             if (response.data.data) {
               const data = response.data.data
               if (data.contract_address) {
