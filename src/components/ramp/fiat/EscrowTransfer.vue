@@ -96,7 +96,7 @@
     </q-scroll-area>
     <RampDragSlide
       :key="dragSlideKey"
-      v-if="showDragSlide && data?.wsConnected"
+      v-if="showDragSlide && data?.wsConnected && !sendingBch && contractAddress"
       :style="{
         position: 'fixed',
         bottom: 0,
@@ -204,56 +204,54 @@ export default {
     },
     async completePayment () {
       const vm = this
-      const status = vm.order?.status?.value
       vm.sendErrors = []
-      if (status === 'CNF') {
-        vm.escrowPendingOrder()
-          .then(data => {
-            if (data && data.success) {
-              vm.escrowBch()
+      vm.escrowBch()
+    },
+    escrowBch () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        vm.sendingBch = true
+        rampWallet.raw().then(wallet =>
+          wallet.sendBch(vm.transferAmount, vm.contractAddress).then(result => {
+            console.log('sendBch:', result)
+            if (result.success) {
+              vm.txid = result.txid
+              const txidData = {
+                id: vm.order?.id,
+                txidInfo: {
+                  action: 'ESCROW',
+                  txid: this.txid
+                }
+              }
+              vm.$store.commit('ramp/saveTxid', txidData)
+              vm.$emit('success', vm.txid)
+              vm.sendingBch = false
+              if (vm.order?.status?.value === 'CNF') {
+                vm.escrowPendingOrder()
+              }
+              resolve(result)
+            } else {
+              vm.sendErrors = []
+              if (result.error.indexOf('not enough balance in sender') > -1) {
+                vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+              } else if (result.error.indexOf('has insufficient priority') > -1) {
+                vm.sendErrors.push('Not enough balance to cover the transaction fee')
+              } else {
+                vm.sendErrors.push(result.error)
+              }
+              vm.showDragSlide = true
+              vm.dragSlideKey++
+              reject(result)
             }
           })
-      }
-      if (status === 'ESCRW_PN') {
-        vm.escrowBch()
-      }
-    },
-    async escrowBch () {
-      const vm = this
-      vm.sendingBch = true
-      try {
-        const wallet = await rampWallet.raw()
-        const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
-        console.log('sendBch:', result)
-        if (result.success) {
-          vm.txid = result.txid
-          const txidData = {
-            id: vm.order?.id,
-            txidInfo: {
-              action: 'ESCROW',
-              txid: this.txid
-            }
-          }
-          vm.$store.commit('ramp/saveTxid', txidData)
-          vm.$emit('success', vm.txid)
-        } else {
-          vm.sendErrors = []
-          if (result.error.indexOf('not enough balance in sender') > -1) {
-            vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
-          } else if (result.error.indexOf('has insufficient priority') > -1) {
-            vm.sendErrors.push('Not enough balance to cover the transaction fee')
-          } else {
-            vm.sendErrors.push(result.error)
-          }
+        ).catch(error => {
+          vm.sendErrors.push(error)
           vm.showDragSlide = true
           vm.dragSlideKey++
-        }
-      } catch (error) {
-        vm.sendErrors.push(error)
-        vm.showDragSlide = true
-        vm.dragSlideKey++
-      }
-      vm.sendingBch = false
+          vm.sendingBch = false
+          reject(error)
+        })
+      })
     },
     escrowPendingOrder () {
       return new Promise((resolve, reject) => {

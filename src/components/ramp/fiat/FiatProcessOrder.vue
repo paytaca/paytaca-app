@@ -695,9 +695,8 @@ export default {
       this.state = 'order-list'
     },
     onEscrowSuccess (txid) {
-      const vm = this
-      vm.txid = txid
-      vm.fetchOrder()
+      this.txid = txid
+      this.fetchOrder()
     },
     copyToClipboard (value) {
       this.$copyText(value)
