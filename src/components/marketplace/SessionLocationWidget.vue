@@ -5,10 +5,10 @@
       clickable v-ripple
       @click="() => openLocationSelector = true"
     >
-      <q-item-section side class="q-pr-xs">
+      <q-item-section side class="q-pr-xs button button-text-primary" :class="getDarkModeClass(darkMode)">
         <q-icon name="location_on" size="1.5rem"/>
       </q-item-section>
-      <q-item-section>
+      <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
         <q-item-label v-if="sessionLocation?.name" caption>{{ sessionLocation?.name }}</q-item-label>
         <!-- <q-item-label v-else caption><i>Set Location</i></q-item-label> -->
         <q-item-label >
@@ -17,7 +17,7 @@
       </q-item-section>
     </q-item>
     <q-dialog v-model="openLocationSelector" position="bottom">
-      <q-card :class="darkMode ? 'text-white pt-dark' : 'text-black'">
+      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">
             Select Location
@@ -26,7 +26,7 @@
           <q-btn
             flat
             icon="close"
-            class="q-r-mx-md"
+            class="q-r-mx-md close-button"
             v-close-popup
           />
         </q-card-section>
@@ -62,7 +62,8 @@
               flat no-caps no-wrap
               padding="sm"
               size="0.75rem"
-              class="q-space"
+              class="q-space button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click.stop="() => setCurrentLocation()"
             >
               <q-icon name="location_on"/>
@@ -72,7 +73,8 @@
               flat no-caps no-wrap
               padding="sm"
               size="0.75rem"
-              class="q-space"
+              class="q-space button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click.stop="() => updateDeviceLocation()"
             >
               <q-icon name="location_on"/>
@@ -125,6 +127,7 @@ import { useStore } from "vuex";
 import { ref, computed } from "vue";
 import PinLocationDialog from "src/components/PinLocationDialog.vue";
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -169,7 +172,7 @@ function setCurrentLocation() {
     color: 'brandblue',
     progress: true,
     persistent: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`,
     ok: false,
     cancel: false,
   })
@@ -191,7 +194,7 @@ function setDeviceLocation(data, dialogTitle='Pin location') {
   const dialog = $q.dialog({
     title: dialogTitle,
     color: 'brandblue',
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
   })
   if (Number.isNaN(data?.lat) || Number.isNaN(data?.lng)) {
     return dialog.update({ message: 'Invalid pin location' })

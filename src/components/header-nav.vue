@@ -4,8 +4,7 @@
       <div class="col 12">
         <div
           class="pt-header"
-          style="height: 200px;"
-          :style="{ 'padding-top': $q.platform.is.ios ? '60px' : '18px', 'height': $q.platform.is.ios ? '100px' : '70px',}"
+          :style="{'padding-top': $q.platform.is.ios ? '60px' : '18px', 'height': $q.platform.is.ios ? '100px' : '70px'}"
           :class="{'pt-card-3': darkMode}"
         >
           <router-link
@@ -55,16 +54,15 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
 .pt-header {
   color: #3B7BF6;
   margin-top: 0;
   margin-left: auto;
   margin-right: auto;
   padding-top: 20px;
-  /* position: fixed; */
-  /* width: 100%; */
   z-index: 100;
+  background: #ecf3f3;
 }
 .pt-arrow-left-link {
   position: absolute;

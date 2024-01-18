@@ -95,3 +95,16 @@ $font-family_1: "Rubik", sans-serif;
     background: #f9f8ff !important;
   }
 }
+
+.marketplace-container {
+  min-height: 100vh;
+  padding-top: 70px;
+  padding-bottom: 50px;
+
+  .header-nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100 !important;
+  }
+}

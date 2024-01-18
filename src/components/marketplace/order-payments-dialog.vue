@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">Payments</div>
@@ -28,7 +28,7 @@
             <q-item-section side top style="padding-left:4px;">
               <template v-if="payment?.isEscrow">
                 <q-icon name="more_vert"/>
-                <q-menu :class="[ 'text-left', darkMode ? 'pt-dark' : 'text-black' ]">
+                <q-menu class="text-left pt-card text-bow" :class="getDarkModeClass(darkMode)">
                   <q-list separator>
                     <q-item
                       v-if="payment.isEscrow"
@@ -67,6 +67,7 @@ import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
 import { capitalize, computed, ref, watch } from 'vue'
 import { BchPrice, EscrowContract, Payment } from 'src/marketplace/objects'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import EscrowContractDialog from './escrow-contract-dialog.vue'
 
 const props = defineProps({

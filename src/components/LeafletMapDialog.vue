@@ -8,16 +8,18 @@
     @show="autoCenter ? centerMap() : null"
   >
     <q-card
-      :class="darkMode ? 'pt-dark' : 'text-black'"
+      class="br-15 pt-card-2 text-bow"
+      :class="getDarkModeClass(darkMode)"
       style="height:100%;width:100%;"
     >
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">{{ headerText || 'Map' }}</div>
+        <div class="text-h6 q-space q-my-sm">{{ headerText || 'Map' }}</div>
         <q-btn
           flat
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <LMap
@@ -65,6 +67,7 @@ import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, ref, watch, inject } from 'vue'
 import { LMap, LTileLayer, LMarker, LControl, LPopup } from '@vue-leaflet/vue-leaflet'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default defineComponent({
   name: 'LeafletMapDialog',
@@ -151,5 +154,8 @@ export default defineComponent({
       centerMap,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>
