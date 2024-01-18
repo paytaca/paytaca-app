@@ -9,9 +9,9 @@
         <div>
           <!-- <q-pull-to-refresh @refresh="refreshData"> -->
             <div class="row no-wrap items-center q-pa-sm q-pt-md">
-              <div class="col-9 row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-                <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
-                <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
+              <div class="col-9 row br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')">
+                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
+                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
               </div>
               <div class="col-auto q-mt-sm q-pr-md">
                 <q-btn unelevated ripple dense size="md" icon="sym_o_filter_list" @click="openFilter()">
@@ -124,6 +124,7 @@ import FiatProfileCard from './FiatProfileCard.vue'
 import FooterLoading from './FooterLoading.vue'
 import FilterDialog from './dialogs/FilterDialog.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 
@@ -222,6 +223,7 @@ export default {
     this.resetAndRefetchListings()
   },
   methods: {
+    getDarkModeClass,
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
@@ -469,6 +471,9 @@ export default {
 .btn-custom.active-sell-btn {
   background-color: #ed5f59 !important;
   color: #fff;
+}
+.btn-custom.dark {
+  background-color: #1c2833;
 }
 .col-transaction {
   padding-top: 2px;

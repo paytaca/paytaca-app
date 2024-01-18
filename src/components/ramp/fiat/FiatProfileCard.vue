@@ -81,9 +81,9 @@
               No Reviews Yet
             </div>
             <div v-else>
-              <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-                <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'to-peer-review' }" @click="switchReviewType('to-peer-review')">Ad Review</button>
-                <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
+              <div class="row br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')">
+                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-btn': reviewType == 'to-peer-review' }" @click="switchReviewType('to-peer-review')">Ad Review</button>
+                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
               </div>
               <div class="q-mx-lg q-px-md">
                   <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
@@ -153,6 +153,7 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { rampWallet } from 'src/wallet/ramp/wallet'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -195,6 +196,7 @@ export default {
     this.fetchTopReview()
   },
   methods: {
+    getDarkModeClass,
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
@@ -356,6 +358,9 @@ export default {
 .btn-custom.active-btn {
   background-color: rgb(172, 177, 180) !important;
   color: #ffffff;
+}
+.btn-custom.dark {
+  background-color: #1c2833;
 }
 .col-transaction {
   padding-top: 2px;

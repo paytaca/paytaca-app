@@ -35,9 +35,9 @@
             </div>
           </div>
           <!-- transaction type tabs -->
-          <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'SELL' }" @click="transactionType='SELL'">Buy BCH</button>
-            <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'BUY'}" @click="transactionType='BUY'">Sell BCH</button>
+          <div class="row br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')">
+            <button class="col br-15 btn-custom q-mt-none" :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"  @click="transactionType='SELL'">Buy BCH</button>
+            <button class="col br-15 btn-custom q-mt-none" :class="[{'dark': darkMode}, {'active-sell-btn': transactionType == 'BUY'}]" @click="transactionType='BUY'">Sell BCH</button>
           </div>
         <!-- </q-pull-to-refresh> -->
         <div class="q-mt-md">
@@ -152,6 +152,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import FooterLoading from './FooterLoading.vue'
 
 export default {
@@ -249,6 +250,7 @@ export default {
     vm.updateFilters().then(() => { vm.resetAndRefetchListings() })
   },
   methods: {
+    getDarkModeClass,
     fetchPaymentTypes () {
       const vm = this
       return new Promise((resolve, reject) => {
@@ -494,11 +496,14 @@ export default {
 }
 .btn-custom.active-buy-btn {
   background-color: rgb(60, 100, 246) !important;
-  color: #fff;
+  color: #fff !important;
 }
 .btn-custom.active-sell-btn {
   background-color: #ed5f59 !important;
-  color: #fff;
+  color: #fff !important;
+}
+.btn-custom.dark {
+  background-color: #1c2833;
 }
 .btn-transaction {
   font-size: 16px;

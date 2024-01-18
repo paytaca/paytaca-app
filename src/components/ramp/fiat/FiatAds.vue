@@ -25,9 +25,9 @@
           @click="state = 'create'"
         />
       </div>
-      <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy Ads</button>
-        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell Ads</button>
+      <div class="row br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')">
+        <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy Ads</button>
+        <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell Ads</button>
       </div>
       <div v-if="loading">
         <FooterLoading/>
@@ -133,6 +133,7 @@ import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import FooterLoading from './FooterLoading.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 
@@ -212,6 +213,7 @@ export default {
     this.resetAndRefetchListings()
   },
   methods: {
+    getDarkModeClass,
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
         return parseFloat(tradeAmount)
@@ -405,6 +407,9 @@ color: #fff;
 .btn-custom.active-sell-btn {
 background-color: #ed5f59 !important;
 color: #fff;
+}
+.btn-custom.dark {
+  background-color: #1c2833;
 }
 .col-transaction {
   padding-top: 2px;
