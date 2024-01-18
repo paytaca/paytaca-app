@@ -345,7 +345,7 @@ export default {
       return new Promise((resolve, reject) => {
         vm.$axios.get(url, { headers: vm.authHeaders })
           .then(response => {
-            vm.order = response.data.order
+            vm.order = response.data
             vm.contract = response.data.contract
             vm.fees = response.data.fees
             vm.updateStatus(vm.order.status)

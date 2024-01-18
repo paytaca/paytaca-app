@@ -37,12 +37,13 @@
         <q-infinite-scroll
             ref="infiniteScroll"
             :items="convo.messages"
-            :offset="0"
             :scroll-target="scrollTargetRef"
+            @load="loadMoreData"
+            :offset="0"
             reverse
           >
           <template v-slot:loading>
-            <div class="row justify-center q-my-md" v-if="!isloaded">
+            <div class="row justify-center q-my-md">
               <q-spinner-dots color="primary" size="40px" />
             </div>
           </template>
@@ -264,12 +265,72 @@ export default {
   setup () {
     const fileAttachmentField = ref()
     const scrollTargetRef = ref(null)
+    const infiniteScroll = ref(null)
+
+    const limit = ref(10)
+    const offset = ref(0)
+    const totalMessages = ref(0)
+
+    const chatRef = ref('')
+    const isloaded = ref(false)
+
+    const loadMessage = ref(false)
+    const tempMessage = ref(null)
+
+    const resetScroll = async () => {
+      await infiniteScroll.value.reset()
+      const scrollElement = scrollTargetRef.value.$el
+      const test = infiniteScroll.value.$el
+      scrollElement.scrollTop = test.clientHeight
+    }
+
     return {
       scrollTargetRef,
       fileAttachmentField,
+      infiniteScroll,
 
+      limit,
+      offset,
+      totalMessages,
+
+      chatRef,
+      isloaded,
+      loadMessage,
+      tempMessage,
+
+      resetScroll,
       openFileAttachementField (evt) {
         fileAttachmentField.value?.pickFiles?.(evt)
+      },
+      loadMoreData (index, done) {
+        if (isloaded.value) {
+          if (totalMessages.value < offset.value) {
+            setTimeout(() => {
+              console.log('Loading More Messages ')
+              fetchChatMessages(chatRef.value, offset.value, 10)
+                .then(data => {
+                  console.log(data)
+
+                  offset.value += data.results.length
+                  totalMessages.value = data.count
+                  console.log('offset: ', offset.value)
+                  tempMessage.value = data.results
+                })
+                // .then(() => {
+                //   console.log('resetting scroll')
+                //   resetScroll()
+                // })
+                .finally(() => {
+                  done()
+                })
+                .catch(() => {
+                  done()
+                })
+            }, 2000)
+          }
+        } else {
+          done()
+        }
       }
     }
   },
@@ -292,7 +353,6 @@ export default {
 
       message: '',
       owner: null,
-      isloaded: false,
       isTyping: false,
 
       attachment: null,
@@ -301,7 +361,6 @@ export default {
       convo: {
         messages: []
       },
-      chatRef: '',
       chatMembers: [],
       chatPubkeys: []
     }
@@ -325,18 +384,20 @@ export default {
       if (val === '') {
         this.isTyping = false
       }
+    },
+    loadMessage () {
+      // decrypt loaded message
+      //add to convo
+      //reset scroll
     }
   },
   emits: ['close'],
   async mounted () {
     // Set Data Here
     this.chatRef = `ramp-order-${this.data.id}-chat`
-
     this.loadKeyPair()
     this.setupWebsocket()
     this.loadData()
-    // this.resetScroll()
-    // this.isloaded = true
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -369,7 +430,7 @@ export default {
 
         if (parsedData?.type === 'new_message') {
           const messageData = parsedData.data
-          console.log('msg data: ', messageData)
+          // console.log('msg data: ', messageData)
           // RECEIVE MESSAGE
           new Promise((resolve, reject) => {
             const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
@@ -378,6 +439,8 @@ export default {
             .then(item => {
               item.chatIdentity.is_user = item.chatIdentity.name === this.userName
               this.convo.messages.push(item)
+              this.offset++
+              this.totalMessages++
             })
             .finally(() => {
               this.resetScroll()
@@ -427,7 +490,14 @@ export default {
     fetchMessages () {
       const vm = this
       fetchChatMessages(vm.chatRef)
-        .then(async (messages) => {
+        .then(async (data) => {
+          // set offset
+          console.log('data here: ', data)
+          this.totalMessages = data.count
+          this.offset += data.results.length
+
+          const messages = data.results
+
           vm.convo.messages = messages.reverse()
           await vm.decryptMessages(messages)
           this.isloaded = true
@@ -548,12 +618,6 @@ export default {
       if (!this.keypair.privkey) return
       if (this.message.decryptedAttachmentFile?.url) return
       return message.decryptAttachment(this.keypair.privkey, tryAllKeys)
-    },
-    async resetScroll () {
-      await this.$refs.infiniteScroll.reset()
-      const scrollElement = this.$refs.scrollTargetRef.$el
-      const test = this.$refs.infiniteScroll.$el
-      scrollElement.scrollTop = test.clientHeight
     }
   }
 }
