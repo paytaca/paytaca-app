@@ -245,9 +245,13 @@
                         :src="orderItem?.variant?.itemImage"
                         width="35px"
                         ratio="1"
+                        style="min-width:35px;"
                         class="rounded-borders q-mr-xs"
                       />
-                      <div>{{ orderItem?.variant?.itemName }}</div>
+                      <div class="q-space">
+                        <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
+                        <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+                      </div>
                     </div>
                   </q-btn>
                 </td>
@@ -943,7 +947,6 @@ function checkPaymentFundingTx() {
     })
 }
 
-window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 watch(() => [order.value.autoCompleteAtTimestamp, order.value.status], () => runAutoCompleteCountdown())
 onActivated(() => runAutoCompleteCountdown())
 onDeactivated(() => stopAutoCompleteCountdown())

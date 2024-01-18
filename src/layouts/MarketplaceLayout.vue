@@ -80,18 +80,13 @@
             </div>
             <div
               v-for="cartItem in activeStorefrontCart?.items" :key="`${activeStorefrontCart?.id}-${cartItem?.variant?.id}`"
-              dense
               class="row items-center no-wrap q-px-xs"
             >
               <div class="q-space">
                 <q-btn
                   flat no-caps
                   padding="none"
-                  :to="{
-                    name: 'app-marketplace-product',
-                    params: { productId: cartItem?.variant?.product?.id },
-                    query: { variantId: cartItem?.variant?.id },
-                  }"
+                  @click="() => openCartItemDialog(cartItem)"
                 >
                   <div class="row items-center justify-left no-wrap full-width text-left">
                     <q-img
@@ -99,9 +94,13 @@
                       :src="cartItem?.variant?.itemImage"
                       width="35px"
                       ratio="1"
+                      style="min-width:35px;"
                       class="rounded-borders q-mr-xs"
                     />
-                    <div>{{ cartItem?.variant?.itemName }}</div>
+                    <div class="q-space">
+                      <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
+                      <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                    </div>
                   </div>
                 </q-btn>
               </div>
@@ -152,11 +151,12 @@ import { backend, getSignerData } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { updateOrCreateKeypair } from 'src/marketplace/chat'
-import { Cart } from 'src/marketplace/objects'
+import { Cart, CartItem } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import CartItemFormDialog from 'src/components/marketplace/CartItemFormDialog.vue'
 
 export default {
   name: 'MarketplaceLayout',
@@ -311,6 +311,21 @@ export default {
     }, 100))
     watch(() => [customer?.id], () => updateOrCreateKeypair())
 
+    function openCartItemDialog(cartItem=CartItem.parse()) {
+      $q.dialog({
+        component: CartItemFormDialog,
+        componentProps: {
+          cartItem: cartItem,
+          currency: getStorefrontCurrency(activeStorefrontCart.value?.storefrontId)
+        },
+      })
+        .onOk(data => {
+          cartItem.quantity = data.quantity
+          cartItem.properties = data.properties
+          saveCart(activeStorefrontCart.value)
+        })
+    }
+
     return {
       darkMode,
       loadingApp,
@@ -325,6 +340,8 @@ export default {
       activeStorefrontIsActive,
       getStorefrontCurrency,
       saveCart,
+
+      openCartItemDialog,
     }
   },
 }
@@ -335,5 +352,9 @@ export default {
 }
 .footer-panel * {
   pointer-events: auto;
+}
+.cat-items-list {
+  display: grid;
+  grid-template-columns: max-content min-content auto;
 }
 </style>

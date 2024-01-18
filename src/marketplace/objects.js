@@ -1,6 +1,6 @@
 import { backend } from "./backend"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
-import { formatOrderStatus, parseOrderStatusColor } from './utils'
+import { formatOrderStatus, lineItemPropertiesToText, parseOrderStatusColor } from './utils'
 
 export class Location {
   static parse(data) {
@@ -286,6 +286,7 @@ export class Product {
     this.raw = data
     this.$state = {
       updating: false,
+      updatingCartOptions: false,
     }
   }
 
@@ -298,6 +299,8 @@ export class Product {
    * @param {Number} data.id
    * @param {String} [data.code]
    * @param {String[]} data.categories
+   * @param {String[]} [data.cart_options]
+   * @param {Boolean} data.has_cart_options
    * @param {String} data.image_url
    * @param {String} [data.variant_image_url]
    * @param {String} data.name
@@ -319,6 +322,8 @@ export class Product {
     this.id = data?.id
     this.code = data?.code
     if (Array.isArray(data?.categories)) this.categories = [...data.categories]
+    if (Array.isArray(data?.cart_options)) this.cartOptions = [...data.cart_options]
+    this.hasCartOptions = data?.has_cart_options
     this.imageUrl = data?.image_url
     this.variantImageUrl = data?.variant_image_url
     this.name = data?.name
@@ -397,6 +402,26 @@ export class Product {
         return response
       })
   }
+
+  async fetchCartOptions() {
+    if (!this.id) return Promise.resolve()
+
+    this.$state.updatingCartOptions = true
+    const params = { ids: this.id }
+    return backend.get(`products/cart_options/`, { params })
+      .then(response => {
+        const obj = response?.data?.results?.find(product => product?.id == this?.id)
+        console.log('obj', obj)
+        if (obj) {
+          this.cartOptions = obj?.cart_options
+          if (this.$raw) this.$raw.cartOptions = obj?.cart_options
+        }
+        return response
+      })
+      .finally(() => {
+        this.$state.updatingCartOptions = false
+      })
+  }
 }
 
 export class CartItem {
@@ -416,12 +441,18 @@ export class CartItem {
    * @param {Object} data
    * @param {Object} data.variant
    * @param {Number} data.quantity
+   * @param {{ schema:Object, data:Object }} [data.properties]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     
     this.variant = Variant.parse(data?.variant)
     this.quantity = data?.quantity
+    this.properties = data?.properties
+  }
+
+  get propertiesText() {
+    return lineItemPropertiesToText(this.properties?.data)
   }
 }
 
@@ -468,7 +499,16 @@ export class Cart {
       storefront_id: this.storefrontId,
       customer: null,
       items: this.items.map(item => {
-        return { variant_id: item?.variant?.id, quantity: item?.quantity }
+        let properties
+        if (item?.properties?.data && Object.getOwnPropertyNames(item?.properties?.data)?.length) {
+          properties = item.properties
+        }
+
+        return {
+          variant_id: item?.variant?.id,
+          quantity: item?.quantity,
+          properties: properties,
+        }
       }).filter(item => !isNaN(item?.quantity) && item.quantity >= 0 && item?.quantity !== '')
     }
 
@@ -796,6 +836,7 @@ export class OrderItem {
    * @param {Number} data.quantity
    * @param {Number} data.price
    * @param {Number} data.markup_price
+   * @param {{ schema:Object, data:Object }} [data.properties]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -805,10 +846,15 @@ export class OrderItem {
     this.quantity = data?.quantity
     this.price = data?.price
     this.markupPrice = data?.markup_price
+    this.properties = data?.properties
   }
 
   get displayPrice() {
     return this.markupPrice || this.price
+  }
+
+  get propertiesText() {
+    return lineItemPropertiesToText(this.properties?.data)
   }
 }
 

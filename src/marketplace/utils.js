@@ -2,6 +2,13 @@ import ago from 's-ago'
 import { capitalize } from 'vue'
 import { backend } from './backend'
 
+export function lineItemPropertiesToText(data) {
+  if (!data) return ''
+  return Object.getOwnPropertyNames(data).map(name => {
+    return `${name}: ${data[name]}`
+  }).join(', ')
+}
+
 /**
  * @typedef {'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'on_delivery' | 'delivered' | 'completed' | 'cancelled'} OrderStatus
  */

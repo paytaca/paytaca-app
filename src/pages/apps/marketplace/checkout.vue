@@ -78,9 +78,13 @@
                     :src="cartItem?.variant?.itemImage"
                     width="35px"
                     ratio="1"
+                    style="min-width:35px;"
                     class="rounded-borders q-mr-xs"
                   />
-                  <div>{{ cartItem?.variant?.itemName }}</div>
+                  <div class="q-space">
+                    <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
+                    <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                  </div>
                 </div>
               </q-btn>
             </div>
@@ -614,9 +618,13 @@
                           :src="cartItem?.variant?.itemImage"
                           width="35px"
                           ratio="1"
+                          style="min-width:35px;"
                           class="rounded-borders q-mr-xs"
                         />
-                        <div>{{ cartItem?.variant?.itemName }}</div>
+                        <div class="q-space">
+                          <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
+                          <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                        </div>
                       </div>
                     </q-btn>
                   </td>
