@@ -15,7 +15,7 @@
             v-if="!loggingIn"
             class="row justify-center q-mx-lg q-mb-sm"
             style="margin-top: 30%; font-weight: 400; font-size: 20px;">
-              {{ register ? "Sign up" : "Sign in"}} as {{ isArbiter ? "Arbiter" : "Peer"}}
+              {{ register ? "Sign up" : "Sign in"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
           </div>
           <div
             v-else
@@ -24,19 +24,19 @@
               {{ register ? "Signing up" : "Signing in"}}...
           </div>
           <q-input
-            :dark="darkMode"
-            :readonly="!register || isArbiter"
+            class="row q-mx-md"
             rounded
             standout
             dense
+            :dark="darkMode"
+            :readonly="!register || user?.is_arbiter"
             :placeholder="register ? 'Enter nickname' : ''"
-            v-model="usernickname"
-            :loading="isLoading || loggingIn || (!usernickname && !register)"
-            class="row q-mx-md">
+            :loading="loggingIn || (!usernickname && !register)"
+            v-model="usernickname">
             <template v-slot:append>
               <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
               <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
-              <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname || isArbiter" @click="createRampUser" />
+              <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="createRampUser" />
             </template>
           </q-input>
         </div>
@@ -58,22 +58,21 @@
         </q-card>
       </div>
       <div class="col row justify-evenly" style="position: fixed; margin-bottom: 25%; width: 100%; font-weight: 300; font-size: 20px;  bottom: 0;">
-          <span>{{ isArbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
+          <span>{{ user?.is_arbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
       </div>
     </div>
   </q-card>
 </template>
 <script>
 import { rampWallet } from 'src/wallet/ramp/wallet'
-
 import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
 import { updatePeerChatIdentityId, fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
-import { chatBackend, updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
+import { updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
 import { backend } from 'src/wallet/ramp/backend'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
-import { getCookie } from 'src/wallet/ramp'
+import { getAuthCookie, setAuthCookie, clearAuthCookie } from 'src/wallet/ramp/auth'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -89,7 +88,6 @@ export default {
       wallet: null,
       isLoading: true,
       register: false,
-      isArbiter: false,
       loggingIn: false,
       errorMessage: null,
       hasBiometric: false,
@@ -114,12 +112,48 @@ export default {
     if (this.error) {
       this.errorMessage = this.error
     }
-    const walletInfo = this.loadWallet()
-    console.log('walletInfo: ', walletInfo)
-    this.getProfile()
+    this.loadWallet()
+    this.fetchUser()
   },
   methods: {
-    loadChatIdentity () {
+    fetchUser () {
+      const vm = this
+      backend.get('/auth/')
+        .then(response => {
+          console.log(response.data)
+          vm.user = response.data
+          vm.usernickname = vm.user?.name
+          vm.$store.commit('ramp/updateUser', vm.user)
+          vm.$store.dispatch('ramp/loadAuthHeaders')
+
+          if (vm.user.is_authenticated) {
+            if (getAuthCookie()) {
+              vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+              vm.loadChatIdentity().then(vm.isLoading = false)
+            } else {
+              vm.isLoading = false
+              vm.login()
+            }
+          } else {
+            vm.isLoading = false
+            clearAuthCookie()
+            vm.login()
+          }
+        })
+        .catch(error => {
+          if (error.response) {
+            console.log(error.response)
+            if (error.response.status === 404) {
+              vm.register = true
+            }
+          } else {
+            console.error(error)
+          }
+          vm.isLoading = false
+        })
+    },
+    async loadChatIdentity () {
+      await updateSignerData()
       return new Promise((resolve, reject) => {
         const vm = this
         const data = {
@@ -127,17 +161,16 @@ export default {
           ref: vm.wallet.walletHash,
           name: vm.user.name
         }
-        updateSignerData()
-          .then(
-            fetchChatIdentity(data.ref)
-              .then(identity => {
-                if (!identity) {
-                  vm.buildChatIdentityPayload(data)
-                    .then(payload => createChatIdentity(payload))
-                    .then(identity => updatePeerChatIdentityId(identity.id))
-                }
-              })
-          )
+        fetchChatIdentity(data.ref)
+          .then(identity => {
+            if (!identity) {
+              vm.buildChatIdentityPayload(data)
+                .then(payload => createChatIdentity(payload))
+                .then(identity => updatePeerChatIdentityId(identity.id))
+            } else if (!vm.user.chat_identity_id) {
+              updatePeerChatIdentityId(identity.id)
+            }
+          })
           .then(updateOrCreateKeypair())
           .finally(resolve())
           .catch(error => {
@@ -173,99 +206,56 @@ export default {
       vm.wallet = walletInfo
       return walletInfo
     },
-    getProfile () {
+    login (securityType) {
       const vm = this
-      backend.get('/ramp-p2p/user')
-        .then(response => {
-          console.log('getProfile: ', response.data)
-          if (response.data && response.data.user) {
-            vm.isArbiter = response.data.is_arbiter
-            vm.user = response.data.user
-            vm.usernickname = vm.user?.name
-            if (vm.user) {
-              this.$store.commit('ramp/updateUser', vm.user)
-              this.$store.dispatch('ramp/loadAuthHeaders')
-            }
-          } else {
-            vm.register = true
-          }
-        })
-        .then(() => {
-          // check if has Biometric
-          vm.checkBiometric()
-            .then(hasBiometric => {
-              if (hasBiometric) {
-                vm.verifyBiometric()
-              } else {
-                vm.showSecurityDialog()
-              }
-            })
-            .then(vm.loadChatIdentity())
-          vm.isLoading = false
-        })
-        .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 401) {
-              vm.errorMessage = `${error.response.status}:  Unauthorized`
-            }
-          } else {
-            console.error(error)
-          }
-          vm.isLoading = false
-        })
-    },
-    login () {
-      const token = getCookie('token')
-      if (token) {
-        return this.$emit('loggedIn', this.isArbiter ? 'arbiter' : 'peer')
-      }
-      try {
-        const otpUrl = `${this.apiURL}/auth/otp/${this.isArbiter ? 'arbiter' : 'peer'}`
-        const loginUrl = `${this.apiURL}/auth/login/${this.isArbiter ? 'arbiter' : 'peer'}`
-        this.$axios.get(otpUrl, { headers: { 'wallet-hash': rampWallet.walletHash } })
-          .then((response) => {
-            rampWallet.signMessage(response.data.otp)
-              .then((signature) => {
+      vm.loggingIn = true
+      // security check before login
+      vm.checkSecurity(securityType)
+        .then(success => {
+          if (success) {
+            backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
+              .then(response => rampWallet.signMessage(response.data.otp))
+              .then(signature => {
                 rampWallet.pubkey()
-                  .then((pubkey) => {
+                  .then(pubkey => {
                     const body = {
                       wallet_hash: rampWallet.walletHash,
                       signature: signature,
                       public_key: pubkey
                     }
-                    this.$axios.post(loginUrl, body)
+                    backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
                       .then((response) => {
-                        // save token as cookie and set to expire 1h later
-                        document.cookie = `token=${response.data.token}; expires=${new Date(response.data.expires_at).toUTCString()}; path=/`
-                        // this.loadChatIdentity()
-                        this.user = response.data.user
-                        if (this.user) {
-                          this.$store.commit('ramp/updateUser', this.user)
-                          this.$store.dispatch('ramp/loadAuthHeaders')
+                        setAuthCookie(response.data.token, response.data.expires_at)
+                        if (vm.user) {
+                          vm.$store.commit('ramp/updateUser', vm.user)
+                          vm.$store.dispatch('ramp/loadAuthHeaders')
                         }
-                        let userType
-                        if (this.isArbiter) userType = 'arbiter'
-                        else userType = 'peer'
-                        this.$emit('loggedIn', userType)
+                        vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                       })
+                      .then(vm.loadChatIdentity().then(vm.loggingIn = false))
                   })
               })
-          })
-      } catch (error) {
-        console.error(error)
-        if (error.response) {
-          console.log(error.response)
-          if (!('data' in error.response)) {
-            console.log('network error')
+              .catch(error => {
+                if (error.response) {
+                  console.error(error.response)
+                  if (!('data' in error.response)) {
+                    console.error('network error')
+                  }
+                } else {
+                  console.error(error)
+                }
+                vm.loggingIn = false
+              })
+          } else {
+            vm.loggingIn = false
           }
-        }
-      }
+        })
     },
     createRampUser () {
       const timestamp = Date.now()
       const url = `${this.apiURL}/ramp-p2p/peer/create`
-      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      this.loggingIn = true
+      clearAuthCookie()
       rampWallet.signMessage('PEER_CREATE', timestamp)
         .then((signature) => {
           rampWallet.pubkey()
@@ -313,68 +303,78 @@ export default {
         console.error(error.response)
       }
     },
-    checkBiometric () {
+    checkSecurity (securityType) {
       return new Promise((resolve) => {
-        NativeBiometric.isAvailable()
-          .then(() => {
-            this.hasBiometric = true
-            resolve(true)
+        if (this.register) return resolve(true)
+        if (!securityType || securityType === 'biometric') {
+          NativeBiometric.isAvailable()
+            .then(() => {
+              this.hasBiometric = true
+              this.verifyBiometric().then(result => {
+                resolve(result)
+              })
+            })
+            .catch((error) => {
+              console.error('Implementation error: ', error)
+              this.showSecurityDialog().then(result => {
+                resolve(result)
+              })
+            })
+        }
+        if (securityType === 'pin') {
+          this.showSecurityDialog().then(result => {
+            resolve(result)
           })
-          .catch((error) => {
-            console.error('Implementation error: ', error)
-            resolve(false)
-          })
+        }
       })
     },
     onLoginClick (type) {
       if (this.securityDialogUp) return
-      this.securityDialogUp = true
-      if (type === 'pin') {
-        this.showSecurityDialog()
-      } else if (type === 'biometric') {
-        this.verifyBiometric()
+      if (!this.register) {
+        this.securityDialogUp = true
       }
+      this.login(type)
     },
     showSecurityDialog () {
-      const securityDialog = Dialog.create({
-        component: SecurityCheckDialog
+      return new Promise((resolve) => {
+        const securityDialog = Dialog.create({
+          component: SecurityCheckDialog
+        })
+          .onOk(() => {
+            securityDialog.hide()
+            this.securityDialogUp = false
+            resolve(true)
+          })
+          .onCancel(() => {
+            this.securityDialogUp = false
+            resolve(false)
+          })
       })
-        .onOk(() => {
-          this.loggingIn = true
-          this.login()
-          securityDialog.hide()
-          this.securityDialogUp = false
-        })
-        .onCancel(() => {
-          this.loggingIn = false
-          this.securityDialogUp = false
-        })
     },
     verifyBiometric () {
-      // Authenticate using biometrics before logging the user in
-      NativeBiometric.verifyIdentity({
-        reason: 'For ownership verification',
-        title: 'Security Authentication',
-        subtitle: 'Verify your account using fingerprint.',
-        description: ''
+      return new Promise((resolve) => {
+        NativeBiometric.verifyIdentity({
+          reason: 'For ownership verification',
+          title: 'Security Authentication',
+          subtitle: 'Verify your account using fingerprint.',
+          description: ''
+        })
+          .then(() => {
+            setTimeout(() => {
+              this.login()
+            }, 1000)
+            this.securityDialogUp = false
+            resolve(true)
+          })
+          .catch((error) => {
+            console.error(error)
+            if (!String(error).toLocaleLowerCase().includes('cancel')) {
+              this.errorMessage = 'Failed to authenticate'
+            }
+            this.securityDialogUp = false
+            resolve(false)
+          })
       })
-        .then(() => {
-          // Authentication successful
-          setTimeout(() => {
-            this.loggingIn = true
-            this.login()
-          }, 1000)
-          this.securityDialogUp = false
-        })
-        .catch((error) => {
-          // Failed to authenticate
-          console.error(error)
-          this.loggingIn = false
-          if (!String(error).toLocaleLowerCase().includes('cancel')) {
-            this.errorMessage = 'Failed to authenticate'
-          }
-          this.securityDialogUp = false
-        })
     }
   }
 }
