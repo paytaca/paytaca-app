@@ -124,7 +124,8 @@ export default {
       feedback: null,
       escrowContract: null,
       contract: {
-        address: null
+        address: null,
+        addresses: []
       },
       fees: null,
       txid: null,
@@ -243,19 +244,16 @@ export default {
       this.reloadChildComponents()
     }
   },
-  mounted () {
+  async mounted () {
     const vm = this
-    vm.fetchOrder()
-      .then(order => {
-        vm.fetchFees().then(fees => {
-          if (order.contract) {
-            vm.fetchContract().then(contract => vm.generateContract(contract, fees))
-          }
-        })
-        vm.fetchAd().then(vm.isloaded = true)
-        vm.fetchFeedback()
-        this.setupWebsocket(5, 1000)
-      })
+    await vm.fetchOrder()
+    await vm.fetchFees()
+    if (vm.order.contract) {
+      vm.generateContract()
+    }
+    vm.fetchAd().then(vm.isloaded = true)
+    vm.fetchFeedback()
+    this.setupWebsocket(5, 1000)
   },
   beforeUnmount () {
     this.autoReconWebSocket = false
@@ -269,7 +267,7 @@ export default {
       this.paymentConfirmationKey++
     },
     updateStatus (status) {
-      console.log('Updating order status to:', status)
+      console.log('New status:', status)
       const vm = this
       if (!status || vm.status === status) return
       vm.status = status
@@ -306,7 +304,7 @@ export default {
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
-          // vm.generateContract()
+          vm.generateContract()
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'ESCROW')
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
@@ -387,7 +385,6 @@ export default {
         const url = `/ramp-p2p/order/${vm.orderData.id}`
         backend.get(url, { authorize: true })
           .then(response => {
-            console.log(response)
             vm.order = response.data
             vm.updateStatus(vm.order.status)
             resolve(response.data)
@@ -432,9 +429,7 @@ export default {
       const url = `/ramp-p2p/order/${vm.order.id}/confirm`
       backend.post(url, {}, { authorize: true })
         .then(response => {
-          console.log(response)
           vm.updateStatus(response.data.status)
-          vm.generateContract()
         })
         .catch(error => {
           if (error.response) {
@@ -470,12 +465,10 @@ export default {
     fetchFees () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/contracts/fees'
+        const url = '/ramp-p2p/order/contract/fees'
         backend.get(url, { authorize: true })
           .then(response => {
-            console.log(response)
             vm.fees = response.data
-            vm.escrowTransferKey++
             resolve(response.data)
           })
           .catch(error => {
@@ -494,11 +487,15 @@ export default {
     fetchContract () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `/ramp-p2p/order/contracts/${vm.order.contract}`
-        backend.get(url, { authorize: true })
+        const url = '/ramp-p2p/order/contract'
+        backend.get(url, {
+          params: {
+            order_id: vm.order?.id
+          },
+          authorize: true
+        })
           .then(response => {
             vm.contract = response.data
-            vm.escrowTransferKey++
             resolve(response.data)
           })
           .catch(error => {
@@ -514,21 +511,22 @@ export default {
           })
       })
     },
-    generateContract (contract, fees) {
+    async generateContract () {
       const vm = this
-      if (vm.escrowContract) return
-      const publicKeys = contract.pubkeys
-      const addresses = contract.addresses
-      const fees_ = {
-        arbitrationFee: fees.breakdown.arbitration_fee,
-        serviceFee: fees.breakdown.service_fee,
-        contractFee: fees.breakdown.hardcoded_fee
-      }
-      const timestamp = contract.timestamp
-      vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
-      vm.paymentConfirmationKey++
-      vm.standByDisplayKey++
-      vm.verifyTransactionKey++
+      const fees = await vm.fetchFees()
+      vm.fetchContract().then(contract => {
+        if (vm.escrowContract || !contract) return
+        const publicKeys = contract.pubkeys
+        const addresses = contract.addresses
+        const fees_ = {
+          arbitrationFee: fees.breakdown?.arbitration_fee,
+          serviceFee: fees.breakdown?.service_fee,
+          contractFee: fees.breakdown?.hardcoded_fee
+        }
+        const timestamp = contract.timestamp
+        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+        vm.reloadChildComponents()
+      })
     },
     submitAppeal (data) {
       const vm = this
@@ -589,7 +587,6 @@ export default {
         authorize: true
       })
         .then(response => {
-          console.log(response.data)
           if (response.data) {
             const data = response.data.feedbacks[0]
             vm.feedback = {
@@ -614,7 +611,6 @@ export default {
       return new Promise((resolve, reject) => {
         backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
           .then(response => {
-            console.log(response)
             resolve(response.data)
           })
           .catch(error => {
@@ -699,9 +695,8 @@ export default {
       this.state = 'order-list'
     },
     onEscrowSuccess (txid) {
-      const vm = this
-      vm.txid = txid
-      vm.fetchOrder()
+      this.txid = txid
+      this.fetchOrder()
     },
     copyToClipboard (value) {
       this.$copyText(value)
@@ -741,10 +736,6 @@ export default {
           if (data.contract_address) {
             if (this.contract) {
               this.contract.address = data.contract_address
-            } else {
-              this.contract = {
-                address: data.contract_address
-              }
             }
             this.escrowTransferKey++
           }

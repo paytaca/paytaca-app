@@ -144,7 +144,6 @@ export async function addChatMembers (chatRef, members) {
 
 export async function fetchChatMembers (chatRef) {
   return new Promise((resolve, reject) => {
-    console.log('chatRef:', chatRef)
     chatBackend.get(`chat/members/?chat_ref=${chatRef}`, { forceSign: true })
       .then(response => {
         console.log('Fetched chat members:', response)

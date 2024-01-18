@@ -5,7 +5,7 @@
         <div class="lg-font-size">
           <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
-        <div class="text-center subtext md-font-size bold-text">ORDER #{{ data?.order?.id }}</div>
+        <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
         <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
@@ -35,7 +35,7 @@
             :dark="darkMode"
             v-model="cryptoAmount">
             <template v-slot:append>
-              <span class="md-font-size bold-text">{{ data?.order?.crypto_currency?.symbol }}</span>
+              <span>{{ data?.order?.crypto_currency?.symbol }}</span>
             </template>
           </q-input>
           <div class="col text-right sm-font-size q-pl-sm">
@@ -45,7 +45,13 @@
         <div v-if="displayContractInfo">
           <div class="q-mx-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="data?.contractAddress">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="data?.contractAddress">
               <template v-slot:append>
                 <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
                   <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
@@ -53,23 +59,19 @@
               </template>
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" :label="contractBalance">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :loading="!contractBalance"
+              :dark="darkMode"
+              v-model="contractBalance">
               <template v-slot:append>
-                <span class="sm-font-size bold-text md-font-size">BCH</span>
+                <span>BCH</span>
               </template>
             </q-input>
           </div>
-        </div>
-        <div v-if="data?.order?.status.value === 'APL'" class="row q-pt-md q-mx-lg">
-          <q-btn
-            disable
-            rounded
-            no-caps
-            label='Chat'
-            class="q-space text-white"
-            color="blue-6"
-            @click="onChat"
-          />
         </div>
         <!-- Countdown Timer -->
         <div v-else class="q-mt-md q-px-md q-mb-sm">
@@ -330,7 +332,6 @@ export default {
       const vm = this
       backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
         .then(response => {
-          console.log(response)
           vm.appeal = response.data?.appeal
         })
     },
@@ -358,9 +359,6 @@ export default {
     async onSubmitAppeal (data) {
       this.openDialog = false
       this.$emit('submitAppeal', data)
-    },
-    onChat () {
-      console.log('chat clicked')
     },
     paymentCountdown () {
       const vm = this

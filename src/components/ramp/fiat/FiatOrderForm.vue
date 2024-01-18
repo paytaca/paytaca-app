@@ -320,9 +320,13 @@ export default {
         vm.ad = response.data
         this.amount = this.ad.trade_floor
       } catch (error) {
-        console.log(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          console.error(error)
         }
       }
     },
@@ -339,7 +343,6 @@ export default {
       }
       backend.post('/ramp-p2p/order/', body, { authorize: true })
         .then(response => {
-          console.log(response)
           vm.order = response.data.order
           vm.state = 'order-process'
           return vm.order.id
@@ -347,7 +350,6 @@ export default {
         .then(orderId => {
           vm.fetchOrderMembers(orderId)
             .then(members => {
-              console.log('members:', members)
               vm.createGroupChat(vm.order.id, members)
             })
         })
@@ -366,7 +368,6 @@ export default {
       return new Promise((resolve, reject) => {
         backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
           .then(response => {
-            console.log(response)
             resolve(response.data)
           })
           .catch(error => {
@@ -381,7 +382,6 @@ export default {
     },
     createGroupChat (orderId, members) {
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-      console.log('chatMembers:', chatMembers)
       createChatSession(orderId)
         .then(chatRef => addChatMembers(chatRef, chatMembers))
         .catch(console.error)

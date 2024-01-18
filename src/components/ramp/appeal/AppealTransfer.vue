@@ -166,10 +166,15 @@ export default {
           this.balanceLoaded = true
         })
     },
-    async fetchContract () {
+    fetchContract () {
       const vm = this
       vm.loading = true
-      backend.get(`/ramp-p2p/order/${vm.orderId}/contract`, { authorize: true })
+      backend.get('/ramp-p2p/order/contract', {
+        params: {
+          order_id: vm.orderId
+        },
+        authorize: true
+      })
         .then(response => {
           console.log(response.data)
           const data = response.data

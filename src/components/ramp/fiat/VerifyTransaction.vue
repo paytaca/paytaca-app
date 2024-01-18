@@ -27,7 +27,7 @@
               :dark="darkMode"
               v-model="contract.balance">
               <template v-slot:append>
-                <span class="sm-font-size bold-text md-font-size">BCH</span>
+                <span>BCH</span>
               </template>
             </q-input>
           </div>
@@ -106,8 +106,7 @@ export default {
   emits: ['back', 'success', 'refresh'],
   components: {},
   props: {
-    data: Object,
-    escrow: Object
+    data: Object
   },
   watch: {
     txidLoaded () {
@@ -116,11 +115,6 @@ export default {
     balanceLoaded () {
       this.checkTransferStatus()
     }
-  },
-  computed: {
-    // pollingBalance () {
-    //   this.retryBalance(this.contract.balance)
-    // }
   },
   async mounted () {
     const vm = this
@@ -144,7 +138,7 @@ export default {
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
         if (!this.data?.escrow) return 0
-        this.data?.escrow.getBalance()
+        this.data?.escrow?.getBalance()
           .then(balance => {
             this.contract.balance = balance
             this.balanceLoaded = true
@@ -156,7 +150,12 @@ export default {
     fetchTransactions () {
       const vm = this
       vm.loading = true
-      backend.get(`/ramp-p2p/order/contracts/${vm.data?.contractId}/transactions`, { authorize: true })
+      backend.get('/ramp-p2p/order/contract/transactions', {
+        params: {
+          order_id: vm.data?.orderId
+        },
+        authorize: true
+      })
         .then(response => {
           if (!vm.transactionId) {
             const transactions = response.data
@@ -180,9 +179,13 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         vm.loading = true
-        backend.get(`/ramp-p2p/order/contracts/${vm.data?.contractId}`, { authorize: true })
+        backend.get('/ramp-p2p/order/contract', {
+          params: {
+            order_id: vm.data?.orderId
+          },
+          authorize: true
+        })
           .then(response => {
-            console.log(response.data)
             vm.contract = response.data
             resolve(response.data)
           })

@@ -1,7 +1,7 @@
 <template>
   <div
     class="row justify-center fixed-footer"
-    :class="{'pt-dark-card': darkMode}"
+    :class="getDarkModeClass()"
     :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
@@ -37,6 +37,11 @@ export default {
       activeButton: 'store'
     }
   },
+  computed: {
+    isNotDefaultTheme () {
+      return this.$store.getters['global/theme'] !== 'default'
+    }
+  },
   emits: ['clicked'],
   methods: {
     expandBex () {
@@ -55,6 +60,9 @@ export default {
       } else {
         return false
       }
+    },
+    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
+      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   }
 }
