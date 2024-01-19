@@ -4,17 +4,16 @@
     @decode="onScannerDecode"
   />
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mb-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
+    class="br-15 q-pt-sm q-mx-md q-mt-md q-mb-lg pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
     v-if="isloaded && state === 'form' && !error"
   >
     <div class="row items-center justify-end q-mt-md q-mr-lg">
       <q-btn
         round
-        color="blue-9"
         padding="xs"
         icon="mdi-history"
-        class="q-ml-md"
+        class="q-ml-md button"
         @click="openHistory"
       />
     </div>
@@ -24,11 +23,11 @@
 
     <q-item clickable class="q-mx-md">
       <q-item-section avatar class="items-center" @click="selectSourceToken">
-        <div style="height: 30px; width: 30px; border-radius: 50%;" class="q-mb-sm" v-html="deposit.icon"></div>
+        <div class="q-mb-sm currency-icon" v-html="deposit.icon"></div>
         <q-item-label>
           {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
         </q-item-label>
-        <q-item-label class="text-center" style="font-size: 10px; color: gray;" >
+        <q-item-label class="text-center currency-name">
           {{getNetwork(deposit)}}
         </q-item-label>
       </q-item-section>
@@ -77,11 +76,11 @@
 
     <q-item class="q-mx-md q-mb-lg">
       <q-item-section avatar class="item-center" @click="selectSettleToken">
-        <div style="height: 30px; width: 30px; border-radius: 50%;" class="q-mb-sm" v-html="settle.icon"></div>
+        <div class="q-mb-sm currency-icon" v-html="settle.icon"></div>
         <q-item-label class="">
           {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
         </q-item-label>
-        <q-item-label class="text-center" style="font-size: 10px; color: gray;" >
+        <q-item-label class="text-center currency-name">
           {{ getNetwork(settle) }}
         </q-item-label>
       </q-item-section>
@@ -119,8 +118,13 @@
           v-model="settleAddress"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="settleAddress = ''"/>&nbsp;
-            <q-icon name="mdi-qrcode-scan" @click="displayScanner('receive')"/>
+            <q-icon name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
+            <q-icon
+              name="mdi-qrcode-scan"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
+              @click="displayScanner('receive')"
+            />
           </template>
        </q-input>
       </q-item-section>
@@ -137,8 +141,13 @@
           v-model="refundAddress"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp;
-            <q-icon name="mdi-qrcode-scan" @click="displayScanner('refund')"/>
+            <q-icon name="close" class="close-button" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp;
+            <q-icon
+              name="mdi-qrcode-scan"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
+              @click="displayScanner('refund')"
+            />
           </template>
        </q-input>
       </q-item-section>
@@ -152,8 +161,7 @@
         rounded
         no-caps
         :label="$t('Submit')"
-        color="brandblue"
-        class="q-space"
+        class="q-space button"
         @click="checkData()"
       />
     </div>
@@ -193,7 +201,7 @@ import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 // import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 // import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
@@ -243,6 +251,7 @@ export default {
   },
   methods: {
     isNotDefaultTheme,
+    getDarkModeClass,
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({
@@ -584,6 +593,9 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     bchAddress () {
       return this.$store.getters['global/getAddress']('bch')
     },
@@ -620,10 +632,19 @@ export default {
 </script>
 <style lang="scss" scoped>
   .pt-internet-required {
-  text-align: center;
-  width: 100%;
-  font-size: 24px;
-  padding: 30px;
-  color: gray;
-}
+    text-align: center;
+    width: 100%;
+    font-size: 24px;
+    padding: 30px;
+    color: gray;
+  }
+  .currency-icon {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+  }
+  .currency-name {
+    font-size: 10px;
+    color: gray;
+  }
 </style>
