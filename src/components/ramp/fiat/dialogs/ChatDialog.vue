@@ -302,9 +302,12 @@ export default {
       openFileAttachementField (evt) {
         fileAttachmentField.value?.pickFiles?.(evt)
       },
+      getTempMessage() {
+        return tempMessage.value
+      },
       loadMoreData (index, done) {
         if (isloaded.value) {
-          if (totalMessages.value < offset.value) {
+          if (totalMessages.value >= offset.value && !loadMessage.value) {
             setTimeout(() => {
               console.log('Loading More Messages ')
               fetchChatMessages(chatRef.value, offset.value, 10)
@@ -315,6 +318,7 @@ export default {
                   totalMessages.value = data.count
                   console.log('offset: ', offset.value)
                   tempMessage.value = data.results
+                  loadMessage.value = true
                 })
                 // .then(() => {
                 //   console.log('resetting scroll')
@@ -327,7 +331,7 @@ export default {
                   done()
                 })
             }, 2000)
-          }
+          } else { done() }
         } else {
           done()
         }
@@ -385,10 +389,10 @@ export default {
         this.isTyping = false
       }
     },
-    loadMessage () {
-      // decrypt loaded message
-      //add to convo
-      //reset scroll
+    loadMessage (val) {
+      if (val) {
+        this.decryptMessages(this.tempMessage, 'next-page')
+      }
     }
   },
   emits: ['close'],
@@ -430,7 +434,6 @@ export default {
 
         if (parsedData?.type === 'new_message') {
           const messageData = parsedData.data
-          // console.log('msg data: ', messageData)
           // RECEIVE MESSAGE
           new Promise((resolve, reject) => {
             const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
@@ -492,7 +495,6 @@ export default {
       fetchChatMessages(vm.chatRef)
         .then(async (data) => {
           // set offset
-          console.log('data here: ', data)
           this.totalMessages = data.count
           this.offset += data.results.length
 
@@ -572,20 +574,7 @@ export default {
           vm.message = ''
           vm.attachment = null
           vm.resetScroll()
-        //  await new Promise((resolve, reject) => {
-        //    const decMes = vm.decryptMessage(new ChatMessage(data.data), false)
-        //    resolve(decMes)
-        //  })
-        //    .then(item => {
-        //      item.chatIdentity.is_user = item.chatIdentity.name === this.userName
-        //      this.convo.messages.push(item)
-        //    })
         })
-        // .finally(() => {
-        //   vm.message = ''
-        //   vm.attachment = null
-        //   vm.resetScroll()
-        // })
         .catch(() => {
           console.log('error')
         })
@@ -597,20 +586,28 @@ export default {
       const decryptedMessage = message.decryptMessage(this.keypair?.privkey, tryAllKeys)
       return decryptedMessage
     },
-    async decryptMessages (messages) {
+    async decryptMessages (messages, type = 'initial') {
       const vm = this
       if (!vm.keypair.privkey) await vm.loadKeyPair()
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
           console.log('decryptedMessages:', decryptedMessages)
-          vm.convo.messages = decryptedMessages
 
           const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
-
-          vm.convo.messages.map(item => {
+          const temp = decryptedMessages
+          temp.map(item => {
             item.chatIdentity.is_user = item.chatIdentity.name === username
           })
+          if (type === 'initial') {
+            vm.convo.messages = decryptedMessages
+          } else {
+            // console.log('new-message')
+            temp.map(item => {
+              vm.convo.messages.unshift(item)
+            })
+            vm.loadMessage = false
+          }
         })
     },
     async decryptMessageAttachment (message = ChatMessage.parse(), tryAllKeys=false) {
