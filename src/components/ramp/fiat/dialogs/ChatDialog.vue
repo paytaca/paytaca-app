@@ -88,7 +88,7 @@
                             @click="() => decryptMessageAttachment(message, true)"
                             v-element-visibility="() => {
                               decryptMessageAttachment(message)
-                              resetScroll()
+                              if (!tempMessage) { resetScroll() }
                             }"
                             >
                               Attachment encrypted
@@ -122,7 +122,7 @@
                               @click="() => decryptMessageAttachment(message, true)"
                               v-element-visibility="() => {
                                 decryptMessageAttachment(message)
-                                resetScroll()
+                                if (!tempMessage) { resetScroll() }
                               }"
                               >
                                 Attachment encrypted
