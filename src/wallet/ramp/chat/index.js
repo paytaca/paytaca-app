@@ -182,12 +182,16 @@ export function sendChatMessage (data, signData) {
   })
 }
 
-export function fetchChatMessages (chatRef, limit = 10) {
+export function fetchChatMessages (chatRef, offset = null, limit = 10) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/messages/?chat_ref=${chatRef}&limit=${limit}`, { forceSign: true })
+    let url = `chat/messages/?chat_ref=${chatRef}&limit=${limit}`
+    if (offset) {
+      url += `&offset=${offset}`
+    }
+    chatBackend.get(url, { forceSign: true })
       .then(response => {
         console.log('Messages: ', response)
-        resolve(response.data?.results)
+        resolve(response.data)
       })
       .catch(error => {
         if (error.response) {
