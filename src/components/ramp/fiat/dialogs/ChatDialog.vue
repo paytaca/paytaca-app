@@ -346,7 +346,7 @@ export default {
       openChat: this.openDialog,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: 'ws://commercehub.paytaca.com/ws/chat/sessions/',
+      wsURL: 'wss://commercehub.paytaca.com/ws/chat/sessions/',
       websocket: null,
       openImage: false,
       selectedImage: null,
