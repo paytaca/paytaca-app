@@ -1,16 +1,18 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      backnavpath="/apps"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div class="row items-center">
+    <HeaderNav title="Marketplace" backnavpath="/apps" class="header-nav" />
+
+    <div class="q-mx-sm q-pt-md">
+      <SessionLocationWidget />
+    </div>
+
+    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="row items-center q-pa-sm">
         <div class="text-h5 q-px-xs">Shops</div>
         <q-btn
           flat
@@ -18,9 +20,10 @@
           icon="settings"
           padding="xs"
           size="sm"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
           @click="() => openStorefrontListOptsForm()"
         />
-
       </div>
       <div v-if="!initialized && fetchingStorefronts" class="row items-center justify-center">
         <q-spinner size="4em" color="brandblue"/>
@@ -28,7 +31,8 @@
       <div class="row items-start justify-start q-mb-md">
         <div v-for="storefront in storefronts" :key="storefront?.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
-            :class="[darkMode ? 'pt-dark-card': 'text-black']"
+            class="pt-card text-bow"
+            :class="getDarkModeClass(darkMode)"
             @click="$router.push({ name: 'app-marketplace-storefront', params: { storefrontId: storefront?.id }})"
           >
             <q-img :src="storefront?.imageUrl || noImage" ratio="1.75"/>
@@ -52,8 +56,7 @@
         </div>
       </div>
 
-      
-      <div class="col-12 row items-center q-px-sm">
+      <div class="col-12 row items-center q-px-sm q-pt-md">
         <div class="text-h5 q-px-xs">Orders</div>
         <q-space/>
         <LimitOffsetPagination
@@ -97,7 +100,7 @@
               </q-item-section>
               <q-item-section avatar top>
                 <q-item-label>
-  
+
                   <q-badge v-if="order?.formattedStatus" :color="order?.statusColor" text-color="white">
                     {{ order?.formattedStatus }}
                   </q-badge>
@@ -120,7 +123,8 @@
             :label="orders?.length ? 'View all' : 'Go to orders'"
             align="left"
             padding="none xs"
-            class="text-underline"
+            class="text-underline text-weight-bold button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             :to="{ name: 'app-marketplace-orders'}"
           />
         </div>
@@ -132,11 +136,14 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
+import { getISOWithTimezone } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, ref, onMounted, watch, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 
 const $q = useQuasar()
@@ -152,22 +159,35 @@ function resetPage() {
   initialized.value = false
 }
 
+
 onMounted(() => refreshPage())
 onActivated(() => {
   if (!initialized.value) return
   fetchOrders()
 })
 
+const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
+onMounted(() => {
+  if(!sessionLocation.value?.isDeviceLocation) return
+  updateLocation()
+})
+const updateLocationPromise = ref()
+async function updateLocation() {
+  if (!updateLocationPromise.value) {
+    updateLocationPromise.value = $store.dispatch('marketplace/updateLocation', { maxAge: 60 * 1000 })
+      .finally(() => updateLocationPromise.value = undefined)
+  }
+
+  return updateLocationPromise.value
+}
+
+
+const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
+watch(customerCoordinates, () => fetchStorefronts())
+
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
 const storefrontsPagination = ref({ count: 0, limit: 0, offset: 0 })
-const updateLocationPromise = ref()
-onMounted(() => {
-  updateLocationPromise.value = $store.dispatch('marketplace/updateLocation').catch(err => {
-    console.error(err)
-    return err
-  })
-})
 const storefrontListOpts = computed(() => {
   const data = {
     radius: ($store.getters['marketplace/shopListOpts']?.radius || 30) * 1000,
@@ -188,22 +208,24 @@ function openStorefrontListOptsForm() {
       type: 'number',
       suffix: 'km',
     },
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
   })
   .onOk(data => $store.commit('marketplace/setShopListOpts', { radius: parseFloat(data) }))
 }
 async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
   await updateLocationPromise.value
-  const customerCoordinates = $store.getters['marketplace/customerCoordinates']
   const params = {
     limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
     distance: '',
+    active: true,
+    annotate_is_open_at: getISOWithTimezone(new Date()),
+    ordering: '-is_open',
   }
-  if (!isNaN(customerCoordinates?.lat) && !isNaN(customerCoordinates.lon)) {
+  if (!isNaN(customerCoordinates.value?.latitude) && !isNaN(customerCoordinates.value.longitude)) {
     params.distance = btoa(JSON.stringify({
-      lat: customerCoordinates?.lat,
-      lon: customerCoordinates?.lon,
+      lat: customerCoordinates.value?.latitude,
+      lon: customerCoordinates.value?.longitude,
       radius: storefrontListOpts.value?.radius,
     }))
   }

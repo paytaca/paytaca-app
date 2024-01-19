@@ -9,7 +9,10 @@
     no-shake
     seamless
   >
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="max-width:450px;width:90vw;margin-bottom:3rem;">
+    <q-card
+      class="br-15 pt-card-2 text-bow hedge-confirm-container"
+      :class="getDarkModeClass(darkMode)"
+    >
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="isPositionOffer">
@@ -30,7 +33,7 @@
           v-close-popup
         />
       </div>
-      <q-card-section class="q-gutter-y-sm q-pt-none" style="max-height:calc(85vh - 5rem);overflow:auto;">
+      <q-card-section class="q-gutter-y-sm q-pt-none hedge-details-container">
         <div>
           <div class="text-grey text-subtitle1">Contract Value</div>
           <div class="row items-start">
@@ -58,7 +61,10 @@
                   name="help"
                 >
                   <q-popup-proxy :breakpoint="0">
-                    <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label info-banner pt-dark' : 'text-black']" class="text-caption">
+                    <div
+                      class="text-caption q-px-md q-py-sm pt-card pt-label"
+                      :class="getDarkModeClass(darkMode)"
+                    >
                       Long amount is only an approximation without a starting price value on the asset
                     </div>
                   </q-popup-proxy>
@@ -127,7 +133,7 @@
                         {{ getAssetDenomination(denomination, fee?.satoshis / (10**8)) }}
                       </div>
                       <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
-                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+                        <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
                           <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
@@ -155,7 +161,7 @@
                         size="1.5em"
                       >
                         <q-popup-proxy :breakpoint="0">
-                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+                          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
                             Premium is
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.hedge?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.hedge?.pctg, 2) }}%
@@ -230,7 +236,7 @@
                         {{ getAssetDenomination(denomination, fee?.satoshis / (10**8)) }}
                       </div>
                       <q-popup-proxy v-if="fee?.description || fee?.stats?.pctg" :breakpoint="0">
-                        <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+                        <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
                           <div v-if="fee?.name" class="text-subtitle1">{{ fee?.name }} </div>
                           <div v-if="fee?.stats?.pctg" class="text-caption" style="margin-top:-0.25em">
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
@@ -257,7 +263,7 @@
                         size="1.5em"
                       >
                         <q-popup-proxy :breakpoint="0">
-                          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark info-banner' : 'text-black']">
+                          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
                             Premium is
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.long?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.long?.pctg, 2) }}%
@@ -326,7 +332,6 @@
                 </div>
               </div>
             </div>
-            <!-- {{ liquidationData }} -->
           </div>
           <q-separator :dark="darkMode"/>
         </div>
@@ -388,6 +393,7 @@ import { useDialogPluginComponent } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import DragSlide from '../drag-slide.vue'
 
 // dialog plugins requirement
@@ -597,3 +603,15 @@ const durationData = computed(() => {
 window.p = props
 window.t = updateFundingAmounts
 </script>
+
+<style lang="scss" scoped>
+  .hedge-confirm-container {
+    max-width: 450px;
+    width: 90vw;
+    margin-bottom: 3rem;
+    .hedge-details-container {
+      max-height: calc(85vh - 5rem);
+      overflow: auto;
+    }
+  }
+</style>

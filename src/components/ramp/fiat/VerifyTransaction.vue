@@ -4,7 +4,7 @@
       <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
         <span>VERIFYING TRANSFER</span>
       </div>
-      <div class="subtext text-center q-pb-sm md-font-size">ORDER #{{ orderId }}</div>
+      <div class="subtext text-center q-pb-sm md-font-size">ORDER #{{ data?.orderId }}</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
         <div class="q-mx-md q-px-md q-pt-md">
@@ -27,7 +27,7 @@
               :dark="darkMode"
               v-model="contract.balance">
               <template v-slot:append>
-                <span class="sm-font-size bold-text md-font-size">BCH</span>
+                <span>BCH</span>
               </template>
             </q-input>
           </div>
@@ -57,7 +57,7 @@
             <q-btn
               rounded
               :loading="loading"
-              :disable="disableBtn"
+              :disable="disableBtn || !data?.wsConnected"
               :label=btnLabel
               color="blue-6"
               class="col q-mx-lg q-mb-md q-py-sm q-my-md"
@@ -106,14 +106,7 @@ export default {
   emits: ['back', 'success', 'refresh'],
   components: {},
   props: {
-    orderId: {
-      type: Number,
-      default: null
-    },
-    rampContract: Object,
-    action: String,
-    txid: String,
-    errors: Array
+    data: Object
   },
   watch: {
     txidLoaded () {
@@ -122,11 +115,6 @@ export default {
     balanceLoaded () {
       this.checkTransferStatus()
     }
-  },
-  computed: {
-    // pollingBalance () {
-    //   this.retryBalance(this.contract.balance)
-    // }
   },
   async mounted () {
     const vm = this
@@ -138,12 +126,10 @@ export default {
   },
   methods: {
     loadTransactionId () {
-      if (this.txid) {
-        this.transactionId = this.txid
-      }
       if (!this.transactionId) {
-        this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.orderId, this.action)
+        this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
       }
+      this.fetchTransactions()
     },
     loadContract () {
       this.fetchContractBalance()
@@ -151,8 +137,8 @@ export default {
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
-        if (!this.rampContract) return 0
-        this.rampContract.getBalance()
+        if (!this.data?.escrow) return 0
+        this.data?.escrow?.getBalance()
           .then(balance => {
             this.contract.balance = balance
             this.balanceLoaded = true
@@ -161,18 +147,19 @@ export default {
           .catch(error => reject(error))
       })
     },
-    async fetchContract () {
+    fetchTransactions () {
       const vm = this
       vm.loading = true
-      backend.get(`/ramp-p2p/order/${vm.orderId}/contract`, { authorize: true })
+      backend.get('/ramp-p2p/order/contract/transactions', {
+        params: {
+          order_id: vm.data?.orderId
+        },
+        authorize: true
+      })
         .then(response => {
-          console.log(response.data)
-          const data = response.data
-          vm.contract.address = data.contract.address
-
           if (!vm.transactionId) {
-            const transactions = data.transactions
-            const tx = transactions.filter(transaction => transaction.action === vm.action)
+            const transactions = response.data
+            const tx = transactions.filter(transaction => transaction.action === vm.data?.action)
             console.log('tx:', tx)
           }
           vm.txidLoaded = true
@@ -188,10 +175,37 @@ export default {
           }
         })
     },
+    fetchContract () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        vm.loading = true
+        backend.get('/ramp-p2p/order/contract', {
+          params: {
+            order_id: vm.data?.orderId
+          },
+          authorize: true
+        })
+          .then(response => {
+            vm.contract = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
     verifyRelease () {
       const vm = this
       const body = { txid: this.transactionId }
-      backend.post(`/ramp-p2p/order/${vm.orderId}/verify-release`, body, { authorize: true })
+      backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release`, body, { authorize: true })
         .then(response => console.log(response.data))
         .catch(error => {
           if (error.response) {
@@ -210,7 +224,7 @@ export default {
     verifyEscrow () {
       const vm = this
       const body = { txid: vm.transactionId }
-      backend.post(`/ramp-p2p/order/${vm.orderId}/verify-escrow`, body, { authorize: true })
+      backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow`, body, { authorize: true })
         .then(response => console.log(response.data))
         .catch(error => {
           if (error.response) {
@@ -233,7 +247,7 @@ export default {
       vm.loading = true
       vm.state = 'verifying'
       setTimeout(function () {
-        switch (vm.action) {
+        switch (vm.data?.action) {
           case 'ESCROW':
             vm.verifyEscrow()
             break
@@ -245,7 +259,7 @@ export default {
     },
     checkTransferStatus () {
       if (this.balanceLoaded && this.txidLoaded) {
-        switch (this.action) {
+        switch (this.data?.action) {
           case 'RELEASE':
             if (this.contract.balance === 0) {
               if (!this.transactionId) {
@@ -287,7 +301,7 @@ export default {
       return new Promise(resolve => setTimeout(resolve, duration))
     },
     retryBalance (balance) {
-      switch (this.action) {
+      switch (this.data?.action) {
         case 'RELEASE':
           if (balance > 0) return true
           break
@@ -301,7 +315,6 @@ export default {
     exponentialBackoff (fn, retries, delayDuration) {
       return fn()
         .then(balance => {
-          console.log('balance:', balance)
           if (this.retryBalance(balance)) {
             if (retries > 0) {
               console.log(`Attempt failed. Retrying in ${delayDuration / 1000} seconds...`)

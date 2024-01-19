@@ -19,13 +19,13 @@
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
               <span>Min Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ parseFloat($parent.getAdLimits.floor) }} BCH
+                {{ parseFloat($parent.getAdLimits?.floor) }} BCH
               </span>
             </div>
             <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
               <span>Max Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ parseFloat($parent.getAdLimits.ceiling) }} BCH
+                {{ parseFloat($parent.getAdLimits?.ceiling) }} BCH
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
@@ -110,8 +110,7 @@ export default {
     }
   },
   props: {
-    orderData: Object,
-    adData: Object
+    data: Object
   },
   emits: ['confirm', 'cancel', 'refresh'],
   computed: {
@@ -128,12 +127,10 @@ export default {
     }
   },
   async mounted () {
-    this.order = this.orderData
+    this.order = this.data?.order
     this.price = this.$parent.formattedCurrency(this.order.locked_price, this.order.fiat_currency.symbol)
     this.updateInput()
     this.isloaded = true
-    console.log('order:', this.order)
-    console.log('this.$q.screen.height:', this.$q.screen.height)
   },
   methods: {
     formattedPlt (value) {

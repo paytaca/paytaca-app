@@ -1,14 +1,13 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <HeaderNav title="Marketplace" class="header-nav" />
+
+    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="col-12 row items-center q-px-sm">
         <div class="text-h5">Orders</div>
         <q-space/>
@@ -39,7 +38,7 @@
         <q-linear-progress v-if="fetchingOrders" query reverse rounded color="brandblue"/>
         <div v-else class="q-mb-xs"></div>
         <div v-if="!orders?.length" class="text-grey text-center">No orders</div>
-        <q-card v-else class="q-py-sm" :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+        <q-card v-else class="q-py-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
           <q-list separator >
             <q-item
               v-for="order in orders" :key="order?.id"
@@ -84,6 +83,7 @@ import { backend } from 'src/marketplace/backend'
 import { formatDateRelative } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
 import { computed, onActivated, onMounted, ref, watch } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 

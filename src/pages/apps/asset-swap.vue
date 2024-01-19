@@ -7,8 +7,8 @@
     />
 
     <q-tabs
-      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isDefaultTheme(theme) && 'transparent'"
+      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedNetwork"
       style="padding-bottom: 16px;"
@@ -23,8 +23,8 @@
       >
         <q-popup-proxy>
           <q-banner
-            :class="getDarkModeClass(darkMode,'pt-dark info-banner text-white', 'text-black')"
-            class="q-pa-md br-15 text-center"
+            class="q-pa-md br-15 text-center pt-card-2 text-bow"
+            :class="getDarkModeClass(darkMode)"
           >
             {{ $t(isHongKong(currentCountry) ? 'SmartSwapBchSoonPoints' : 'SmartSwapBchSoonTokens') }}
           </q-banner>
@@ -56,7 +56,7 @@
 <script>
 import SmartSwapForm from '../../components/asset-swap/SmartSwapForm.vue'
 import HeaderNav from '../../components/header-nav'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'AssetSwap',
@@ -85,7 +85,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong
   }
 }

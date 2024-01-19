@@ -16,7 +16,7 @@
           >
             <div v-if="transaction?.record_type === 'outgoing'">
               {{
-                `-${parseAssetDenomination(
+                `${parseAssetDenomination(
                   denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                   ...asset,
                   balance: transaction?.amount
@@ -63,10 +63,7 @@
           {{ badge?.text }}
         </span>
         <q-popup-proxy :breakpoint="0">
-          <div
-            :class="['q-px-sm q-py-xs', darkMode ? 'pt-dark-label pt-dark' : 'text-black']"
-            class="text-caption"
-          >
+          <div class="q-px-sm q-py-xs text-caption pt-card pt-label" :class="getDarkModeClass(darkMode)">
             {{ badge?.text }}
           </div>
         </q-popup-proxy>
@@ -160,7 +157,7 @@ const badges = computed(() => {
   }
 
   props.transaction?.attributes.forEach(attribute => {
-    const key = attribute?.key.includes('anyhedge') ? 'anyhedge' : attribute?.key
+    const key = attribute?.key
     const value = attribute?.value
     const icon = icons[key]
     

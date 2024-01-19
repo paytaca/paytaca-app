@@ -19,30 +19,22 @@
     <!-- Ad Owner Confirm / Decline -->
     <ReceiveOrder
       v-if="state === 'order-confirm-decline'"
-      :order-data="order"
-      :ad-data="ad"
+      :data="receiveOrderData"
       @confirm="confirmingOrder"
       @cancel="cancellingOrder"
       @refresh="$emit('refresh')"
     />
-    <EscrowTransferProcess
+    <EscrowTransfer
       v-if="state === 'escrow-bch'"
-      :key="escrowTransferProcessKey"
-      :action="state"
-      :order="order"
-      :contract="contract"
-      :amount="transferAmount"
+      :key="escrowTransferKey"
+      :data="escrowTransferData"
       @back="onBack"
       @success="onEscrowSuccess"
     />
-    <VerifyEscrowTx
+    <VerifyTransaction
       v-if="state === 'tx-confirmation'"
-      :key="verifyEscrowTxKey"
-      :order-id="order.id"
-      :action="verifyAction"
-      :txid="txid"
-      :errors="errorMessages"
-      :ramp-contract="rampContract"
+      :key="verifyTransactionKey"
+      :data="verifyTransactionData"
       @back="onBack"
       @success="onVerifyTxSuccess"
       @refresh="$emit('refresh')"
@@ -51,9 +43,7 @@
     <div v-if="state === 'standby-view'" class="q-px-lg">
       <StandByDisplay
         :key="standByDisplayKey"
-        :data="order"
-        :feedback-data="feedback"
-        :ramp-contract="rampContract"
+        :data="standByDisplayData"
         @send-feedback="sendFeedback"
         @submit-appeal="submitAppeal"
         @refresh="$emit('refresh')"
@@ -64,10 +54,7 @@
     <div v-if="state === 'payment-confirmation'">
       <PaymentConfirmation
         :key="paymentConfirmationKey"
-        :order-id="order.id"
-        :type="confirmType"
-        :ramp-contract="rampContract"
-        :errors="errorMessages"
+        :data="paymentConfirmationData"
         @expired="handleExpired"
         @verify-release="handleVerifyRelease"
         @refresh="$emit('refresh')"
@@ -77,6 +64,10 @@
     <!-- Chat button -->
     <div class="fixed" style="right: 35px; bottom: 100px;" v-if="status.value !== 'RLS'">
       <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
+    </div>
+
+    <div v-if="reconnectingWebSocket" class="fixed" style="right: 40px; top: 145px;">
+      <q-spinner-ios size="1.5em"/>
     </div>
   </div>
 
@@ -100,28 +91,25 @@
 </template>
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
+import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
+import { addChatMembers } from 'src/wallet/ramp/chat'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
-import EscrowTransferProcess from './EscrowTransferProcess.vue'
-import VerifyEscrowTx from './VerifyEscrowTx.vue'
+import EscrowTransfer from './EscrowTransfer.vue'
+import VerifyTransaction from './VerifyTransaction.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ChatDialog from './dialogs/ChatDialog.vue'
 import StandByDisplay from './StandByDisplay.vue'
 import PaymentConfirmation from './PaymentConfirmation.vue'
-import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
-import { addChatMembers } from 'src/wallet/ramp/chat'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
-      wallet: this.$store.getters['ramp/wallet'],
       websocket: null,
       state: '',
       isloaded: false,
@@ -134,9 +122,10 @@ export default {
       ad: null,
       order: null,
       feedback: null,
-      rampContract: null,
+      escrowContract: null,
       contract: {
-        address: null
+        address: null,
+        addresses: []
       },
       fees: null,
       txid: null,
@@ -146,12 +135,14 @@ export default {
       verifyAction: null,
 
       standByDisplayKey: 0,
-      escrowTransferProcessKey: 0,
-      verifyEscrowTxKey: 0,
+      escrowTransferKey: 0,
+      verifyTransactionKey: 0,
       paymentConfirmationKey: 0,
 
       errorMessages: [],
-      selectedPaymentMethods: []
+      selectedPaymentMethods: [],
+      autoReconWebSocket: true,
+      reconnectingWebSocket: false
     }
   },
   components: {
@@ -159,8 +150,8 @@ export default {
     StandByDisplay,
     ProgressLoader,
     MiscDialogs,
-    EscrowTransferProcess,
-    VerifyEscrowTx,
+    EscrowTransfer,
+    VerifyTransaction,
     PaymentConfirmation,
     ChatDialog
   },
@@ -171,6 +162,49 @@ export default {
     }
   },
   computed: {
+    escrowTransferData () {
+      return {
+        order: this.order,
+        arbiter: this.order.arbiter,
+        contractAddress: this.contract.address,
+        transferAmount: this.transferAmount,
+        fees: this.fees,
+        wsConnected: !this.reconnectingWebSocket
+      }
+    },
+    verifyTransactionData () {
+      return {
+        orderId: this.order.id,
+        contractId: this.order.contract,
+        action: this.verifyAction,
+        escrow: this.escrowContract,
+        wsConnected: !this.reconnectingWebSocket
+      }
+    },
+    standByDisplayData () {
+      return {
+        order: this.order,
+        feedback: this.feedback,
+        contractAddress: this.contract.address,
+        escrow: this.escrowContract,
+        wsConnected: !this.reconnectingWebSocket
+      }
+    },
+    paymentConfirmationData () {
+      return {
+        orderId: this.order.id,
+        type: this.confirmType,
+        contractAddress: this.contract.address,
+        errors: this.errorMessages,
+        escrow: this.escrowContract,
+        wsConnected: !this.reconnectingWebSocket
+      }
+    },
+    receiveOrderData () {
+      return {
+        order: this.order
+      }
+    },
     transferAmount () {
       return Number(this.order.crypto_amount)
     },
@@ -205,28 +239,35 @@ export default {
     }
   },
   emits: ['back', 'refresh'],
-  mounted () {
+  watch: {
+    reconnectingWebSocket () {
+      this.reloadChildComponents()
+    }
+  },
+  async mounted () {
     const vm = this
-    vm.fetchOrderData()
-      .then(() => {
-        if (vm.contract) {
-          vm.generateContract()
-        }
-        vm.fetchAdData()
-          .then(() => {
-            vm.isloaded = true
-          })
-        vm.getOrderFeedback()
-
-        vm.setupWebsocket()
-      })
+    await vm.fetchOrder()
+    await vm.fetchFees()
+    if (vm.order.contract) {
+      vm.generateContract()
+    }
+    vm.fetchAd().then(vm.isloaded = true)
+    vm.fetchFeedback()
+    this.setupWebsocket(5, 1000)
   },
   beforeUnmount () {
+    this.autoReconWebSocket = false
     this.closeWSConnection()
   },
   methods: {
+    reloadChildComponents () {
+      this.standByDisplayKey++
+      this.escrowTransferKey++
+      this.verifyTransactionKey++
+      this.paymentConfirmationKey++
+    },
     updateStatus (status) {
-      console.log('Updating order status to:', status)
+      console.log('New status:', status)
       const vm = this
       if (!status || vm.status === status) return
       vm.status = status
@@ -309,7 +350,7 @@ export default {
             vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
           }
           vm.state = state
-          if (state === 'tx-confirmation') vm.verifyEscrowTxKey++
+          if (state === 'tx-confirmation') vm.verifyTransactionKey++
           break
         }
         case 'RFN': // Refunded
@@ -338,51 +379,46 @@ export default {
     isPdPendingRelease (status) {
       return status === 'PD'
     },
-    // API CALLS
-    fetchOrderData () {
-      const vm = this
-      const url = `${vm.apiURL}/order/${vm.orderData.id}`
+    fetchOrder () {
       return new Promise((resolve, reject) => {
-        vm.$axios.get(url, { headers: vm.authHeaders })
+        const vm = this
+        const url = `/ramp-p2p/order/${vm.orderData.id}`
+        backend.get(url, { authorize: true })
           .then(response => {
             vm.order = response.data
-            vm.contract = response.data.contract
-            vm.fees = response.data.fees
             vm.updateStatus(vm.order.status)
-            if (vm.contract) {
-              vm.generateContract()
-            }
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error)
             if (error.response) {
               console.error(error.response)
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              console.error(error)
             }
             reject(error)
           })
       })
     },
-    fetchAdData () {
-      const vm = this
-      const adId = vm.order.ad.id
-      const url = `${vm.apiURL}/ad/${adId}`
+    fetchAd () {
       return new Promise((resolve, reject) => {
-        vm.$axios.get(url, { headers: vm.authHeaders })
+        const vm = this
+        const url = `/ramp-p2p/ad/${vm.order.ad.id}`
+        backend.get(url, { authorize: true })
           .then(response => {
             vm.ad = response.data
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error)
             if (error.response) {
               console.error(error.response)
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              console.error(error)
             }
             reject(error)
           })
@@ -390,106 +426,107 @@ export default {
     },
     confirmOrder () {
       const vm = this
-      const orderID = vm.order.id
-      const url = `${vm.apiURL}/order/${orderID}/confirm`
-      vm.$axios.post(url, {}, { headers: vm.authHeaders })
+      const url = `/ramp-p2p/order/${vm.order.id}/confirm`
+      backend.post(url, {}, { authorize: true })
         .then(response => {
-          if (response.data && response.data.status.value === 'CNF') {
-            vm.generateContract()
-          }
+          vm.updateStatus(response.data.status)
         })
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
         })
     },
     cancelOrder () {
       const vm = this
-      const orderID = vm.order.id
-      const url = `${vm.apiURL}/order/${orderID}/cancel`
-      vm.$axios.post(url, {}, { headers: vm.authHeaders })
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      backend.post(url, {}, { authorize: true })
         .then(response => {
           if (response.data && response.data.status.value === 'CNCL') {
             vm.updateStatus(response.data.status)
           }
         })
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
         })
     },
-    verifyRelease () {
-      const vm = this
-      const url = `${vm.apiURL}/order/${vm.order.id}/verify-release`
-      const body = {
-        txid: this.txid
-      }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          vm.updateStatus(response.data.status)
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
+    fetchFees () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const url = '/ramp-p2p/order/contract/fees'
+        backend.get(url, { authorize: true })
+          .then(response => {
+            vm.fees = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
             }
-          }
-        })
+            reject(error)
+          })
+      })
     },
-    verifyEscrow () {
-      const vm = this
-      const url = vm.apiURL + '/order/' + vm.order.id + '/escrow-verify'
-      const body = {
-        txid: vm.txid
-      }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
+    fetchContract () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const url = '/ramp-p2p/order/contract'
+        backend.get(url, {
+          params: {
+            order_id: vm.order?.id
+          },
+          authorize: true
+        })
+          .then(response => {
+            vm.contract = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
             }
-          }
-          const errorMsg = error.response.data.error
-          vm.errorMessages.push(errorMsg)
-          vm.verifyEscrowTxKey++
-        })
+            reject(error)
+          })
+      })
     },
-    generateContract () {
+    async generateContract () {
       const vm = this
-      if (vm.rampContract) return
-      vm.fetchOrderData()
-        .then(data => {
-          const contract = data.contract
-          const fees = data.fees
-          const publicKeys = contract.pubkeys
-          const addresses = contract.addresses
-          const fees_ = {
-            arbitrationFee: fees.fees.arbitration_fee,
-            serviceFee: fees.fees.service_fee,
-            contractFee: fees.fees.hardcoded_fee
-          }
-          const timestamp = contract.timestamp
-          vm.rampContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
-          vm.paymentConfirmationKey++
-          vm.standByDisplayKey++
-        })
-        .catch(error => {
-          console.error(error)
-        })
+      const fees = await vm.fetchFees()
+      vm.fetchContract().then(contract => {
+        if (vm.escrowContract || !contract) return
+        const publicKeys = contract.pubkeys
+        const addresses = contract.addresses
+        const fees_ = {
+          arbitrationFee: fees.breakdown?.arbitration_fee,
+          serviceFee: fees.breakdown?.service_fee,
+          contractFee: fees.breakdown?.hardcoded_fee
+        }
+        const timestamp = contract.timestamp
+        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+        vm.reloadChildComponents()
+      })
     },
     submitAppeal (data) {
       const vm = this
@@ -507,43 +544,16 @@ export default {
           }
         })
     },
-    addArbiterToChat () {
-      const vm = this
-      const chatRef = `ramp-order-${vm.order.id}-chat`
-      vm.fetchOrderMembers(vm.order.id)
-        .then(members => {
-          const arbiter = members.filter(member => member.is_arbiter === true)
-          const arbiterMembers = arbiter.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-          addChatMembers(chatRef, arbiterMembers)
-        })
-    },
-    fetchOrderMembers (orderId) {
-      return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
-          .then(response => {
-            console.log(response)
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-            } else {
-              console.error(error)
-            }
-            reject(error)
-          })
-      })
-    },
     sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
-      const url = `${vm.apiURL}/order/feedback/peer`
+      const url = '/ramp-p2p/order/feedback/peer'
       const body = {
         order_id: vm.order.id,
         rating: feedback.rating,
         comment: feedback.comment
       }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
+      backend.post(url, body, { authorize: true })
         .then(response => {
           const data = response.data
           vm.feedback = {
@@ -553,27 +563,28 @@ export default {
           }
         })
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
         })
       vm.isloaded = true
     },
-    getOrderFeedback () {
+    fetchFeedback () {
       const vm = this
-      const url = `${vm.apiURL}/order/feedback/peer`
-      vm.$axios.get(url, {
+      const url = '/ramp-p2p/order/feedback/peer'
+      backend.get(url, {
         params: {
           limit: 7,
           page: 1,
           from_peer: vm.$store.getters['ramp/getUser'].id,
           order_id: vm.order.id
         },
-        headers: vm.authHeaders
+        authorize: true
       })
         .then(response => {
           if (response.data) {
@@ -586,13 +597,40 @@ export default {
           }
         })
         .catch(error => {
-          console.error(error)
           if (error.response) {
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            console.error(error)
           }
+        })
+    },
+    fetchOrderMembers (orderId) {
+      return new Promise((resolve, reject) => {
+        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
+    addArbiterToChat () {
+      const vm = this
+      const chatRef = `ramp-order-${vm.order.id}-chat`
+      vm.fetchOrderMembers(vm.order.id)
+        .then(members => {
+          const arbiter = members.filter(member => member.is_arbiter === true)
+          const arbiterMembers = arbiter.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+          addChatMembers(chatRef, arbiterMembers)
         })
     },
     // Recieve Dialogs
@@ -631,6 +669,7 @@ export default {
       this.openDialog = true
       this.title = 'Cancel this order?'
     },
+
     // Others
     formattedCurrency (value, currency = null) {
       if (currency) {
@@ -656,9 +695,8 @@ export default {
       this.state = 'order-list'
     },
     onEscrowSuccess (txid) {
-      const vm = this
-      vm.txid = txid
-      vm.fetchOrderData()
+      this.txid = txid
+      this.fetchOrder()
     },
     copyToClipboard (value) {
       this.$copyText(value)
@@ -670,7 +708,7 @@ export default {
       })
     },
 
-    setupWebsocket () {
+    setupWebsocket (retries, delayDuration) {
       const wsUrl = `${this.wsURL}${this.order.id}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
@@ -687,10 +725,10 @@ export default {
           }
           if (data.error) {
             this.errorMessages.push(data.error)
-            this.verifyEscrowTxKey++
+            this.verifyTransactionKey++
           } else if (data.errors) {
             this.errorMessages.push(...data.errors)
-            this.verifyEscrowTxKey++
+            this.verifyTransactionKey++
           }
           if (data.txid) {
             this.txid = data.txid
@@ -698,23 +736,28 @@ export default {
           if (data.contract_address) {
             if (this.contract) {
               this.contract.address = data.contract_address
-            } else {
-              this.contract = {
-                address: data.contract_address
-              }
             }
-            this.escrowTransferProcessKey++
+            this.escrowTransferKey++
           }
         }
       }
       this.websocket.onclose = () => {
         console.log('WebSocket connection closed.')
+        if (this.autoReconWebSocket && retries > 0) {
+          this.reconnectingWebSocket = true
+          console.log(`Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
+          return this.delay(delayDuration)
+            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
+        }
       }
     },
     closeWSConnection () {
       if (this.websocket) {
         this.websocket.close()
       }
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     }
   }
 }

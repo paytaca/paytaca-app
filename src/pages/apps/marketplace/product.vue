@@ -1,14 +1,13 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <HeaderNav title="Marketplace" class="header-nav" />
+
+    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center">
         <div class="q-space text-h5 q-px-sm">{{ product?.name }}</div>
         <q-chip v-if="available == false" color="grey" text-color="white" class="q-ma-none">
@@ -50,6 +49,7 @@
               v-for="(variant, index) in product?.variants" :key="variant?.id"
               :active="variant === selectedVariant"
               clickable
+              class="product-q-item"
               @click="selectedVariantIndex = index"
             >
               <q-item-section>
@@ -68,7 +68,7 @@
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
-              :disable="!available"
+              :disable="!available || !activeStorefrontIsActive"
               label="Quantity"
               dense outlined
               :dark="darkMode"
@@ -79,10 +79,9 @@
             />
             <q-btn
               v-else
-              :disable="!available"
+              :disable="!available || !activeStorefrontIsActive"
               no-caps label="Add to cart"
-              color="brandblue"
-              class="full-width q-mt-md"
+              class="full-width q-mt-md button"
               @click="addSelectedVariantToCart()"
             />
           </div>
@@ -96,7 +95,8 @@ import { Cart, Collection, Product } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 
@@ -124,7 +124,14 @@ watch(() => [props.productId], () => {
 })
 watch(() => [props.variantId], () => selectVariantFromProps())
 
+
+const storefrontId = computed(() => product.value?.storefrontId)
+onActivated(() => {
+  if (!storefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+})
 const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
+const activeStorefrontIsActive = computed(() => activeStorefront.value?.active)
 
 const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
 const cartItem = computed(() => {

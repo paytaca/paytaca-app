@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="row" :class="{'pt-dark': darkMode}">
+  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="`${appTitle.toLocaleUpperCase()} Ramp`" backnavpath="/apps"/>
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
@@ -19,6 +19,7 @@ import AppealIndex from 'src/components/ramp/appeal/AppealIndex.vue'
 import FiatIndex from 'src/components/ramp/fiat/FiatIndex.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
@@ -53,6 +54,7 @@ export default {
     this.isloaded = true
   },
   methods: {
+    getDarkModeClass,
     handleSessionEvent (_data) {
       this.loggedIn = false
       this.errorMessage = 'Session expired'

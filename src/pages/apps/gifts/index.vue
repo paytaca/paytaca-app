@@ -318,7 +318,7 @@ export default {
         ok: true,
         cancel: true,
         seamless: true,
-        class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => this.recoverGift(gift?.gift_code_hash))
     },

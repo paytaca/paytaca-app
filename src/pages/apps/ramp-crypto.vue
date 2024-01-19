@@ -1,5 +1,5 @@
 <template>
-<div id="app-container" class="row" :class="{'pt-dark': darkMode}">
+<div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <HeaderNav title="Crypto Ramp" backnavpath="/apps"/>
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
@@ -17,6 +17,7 @@
 import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RampShiftForm from 'src/components/ramp/crypto/RampShiftForm.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -39,6 +40,9 @@ export default {
       vm.isAllowed = false
     }
     vm.isloaded = true
+  },
+  methods: {
+    getDarkModeClass
   }
 }
 </script>

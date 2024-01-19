@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:max(300px, 90vw);">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:max(300px, 90vw);">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('SalesReport', {}, 'Sales Report') }}</div>
         <q-btn
@@ -15,7 +15,7 @@
         <div v-if="Number.isInteger(posDevice?.posid)" class="text-h6">
           {{ posDevice?.name || 'Device' }}#{{ padPosId(posDevice?.posid) }}
         </div>
-        <q-card class="pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
+        <q-card class="pt-card">
           <q-card-section>
             <div class="row items-center">
               <div class="q-space text-subtitle1">Total sales</div>
@@ -42,6 +42,8 @@
                 padding="xs"
                 rounded
                 icon="filter_alt"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 @click="openFilterForm()"
               />
             </div>

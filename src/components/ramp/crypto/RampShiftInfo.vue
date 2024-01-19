@@ -7,12 +7,14 @@
     </div> -->
     <div class="row no-wrap justify-around items-baseline">
       <div class="col-5 column items-center">
-        <div class="text-lowercase q-mt-sm" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px">{{ $t('From') }}</div>
+        <div class="text-lowercase q-mt-sm pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px">
+          {{ $t('From') }}
+        </div>
         <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="shiftInfo.deposit.icon"></div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
           {{ shiftInfo.deposit.coin}}
         </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
+        <div class="text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px; color:gray;">
           ({{ getNetwork(shiftInfo.deposit) }})
         </div>
       </div>
@@ -28,34 +30,36 @@
       />
 
       <div class="col-5 column items-center">
-        <div class="q-mt-sm text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px;">{{ $t('To') }}</div>
+        <div class="q-mt-sm text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px;">
+          {{ $t('To') }}
+        </div>
         <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="shiftInfo.settle.icon"></div>
-        <div class="text-subtitle1 text-center" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+        <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
           {{ shiftInfo.settle.coin }}
         </div>
-        <div class="text-lowercase" :class="[darkMode ? 'pt-dark-label' : 'pp-text']" style="font-size:11px; color:gray;">
+        <div class="text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px; color:gray;">
           ({{ getNetwork(shiftInfo.settle) }})
         </div>
       </div>
     </div>
 
     <div class="q-py-lg">
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
         <span>Deposit Amount:</span>
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.depositAmount }} {{ shiftInfo.deposit.coin }}</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
         <span>Receiving Amount:</span>
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.settleAmount }} {{ shiftInfo.settle.coin }}</span>
       </div>
     </div>
 
     <div class="q-pb-lg" v-if="historyInfo.shift_status == 'settled'">
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+      <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
         <span>Date Completed:</span>
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ getDate(historyInfo.date_shift_completed) }}</span>
       </div>
-      <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="text-center q-pt-md q-px-lg">
+      <div class="text-center q-pt-md q-px-lg pt-label" :class="getDarkModeClass(darkMode)">
         <span>Transaction ID:</span><br>
         <div class="q-pt-sm q-px-lg" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
           <span style="font-size: 15px; overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
@@ -108,6 +112,7 @@
 <script>
 import { objectTypeAnnotation } from '@babel/types';
 import RampDepositInfo from './RampDepositInfo.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 
 export default {
   data () {
@@ -133,6 +138,7 @@ export default {
     RampDepositInfo
   },
   methods: {
+    getDarkModeClass,
     getNetwork (type) {
       const network = type.network.toLowerCase()
       const coin = type.coin.toLowerCase()

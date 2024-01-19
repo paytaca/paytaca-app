@@ -6,6 +6,7 @@
         <q-spinner size="1.5em" class="q-ml-sm"/>
       </div>
     </q-dialog>
+    <div v-if="$q.platform.is.ios" style="padding-top:25px;"></div>
     <router-view v-slot="{ Component }">
       <keep-alive>
         <component :is="Component" />
@@ -13,18 +14,19 @@
     </router-view>
     <div class="row items-center fixed-bottom q-pa-sm footer-panel">
       <q-space/>
-      <q-fab
-        color="brandblue"
-        icon="shopping_cart"
+      <q-btn
+        class="button"
+        :round="!activeStorefrontCart?.totalItemsCount"
+        :rounded="Boolean(activeStorefrontCart?.totalItemsCount)"
+        :icon="showCartsDialog ? 'close' : 'shopping_cart'"
         direction="up"
         :label="activeStorefrontCart?.totalItemsCount || undefined"
-        padding="12px"
-        v-model="showCartsDialog"
-      >
-      </q-fab>
+        :padding="activeStorefrontCart?.totalItemsCount ? '15px 18px' : '18px'"
+        @click="() => showCartsDialog = true"
+      />
     </div>
     <q-dialog v-model="showCartsDialog" position="bottom">
-      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center no-wrap">
             <div class="text-h5">Cart</div>
@@ -40,30 +42,35 @@
             >
               <div class="row items-center">
                 <div class="ellipsis" style="max-width:10em;">{{ customer?.fullName }}</div>
-                <q-icon name="person"/>
+                <q-icon class="q-pl-xs button button-text-primary" :class="getDarkModeClass(darkMode)" name="person"/>
               </div>
             </q-btn>
           </div>
 
-          <div class="row items-center">
+          <div class="row no-wrap items-center">
             <q-btn
               v-if="activeStorefront?.id"
               no-caps flat
               padding="none"
-              class="text-underline"
+              class="text-underline ellipsis"
               :to="{ name: 'app-marketplace-storefront', params: { storefrontId: activeStorefront?.id } }"
             >
               {{ activeStorefront?.name }}
               #{{ activeStorefront?.id }}
             </q-btn>
+            <q-chip v-if="!activeStorefrontIsActive" class="text-white" color="grey" size="sm">
+              Inactive
+            </q-chip>
             <q-space/>
             <q-btn
               v-if="activeStorefrontCart?.items?.length"
+              :disable="!activeStorefrontIsActive"
               no-caps
               flat
               label="Clear cart"
               color="red"
               padding="xs md"
+              style="text-wrap:nowrap;"
               @click="$store.dispatch('marketplace/clearCart', activeStorefrontCart)"
             />
           </div>
@@ -106,7 +113,7 @@
                 <q-input
                   dense
                   outlined
-                  :disable="activeStorefrontCart?.$state?.updating"
+                  :disable="activeStorefrontCart?.$state?.updating || !activeStorefrontIsActive"
                   :dark="darkMode"
                   type="number"
                   v-model.number="cartItem.quantity"
@@ -128,9 +135,9 @@
             <q-btn
               v-close-popup
               no-caps
+              :disable="!activeStorefrontIsActive"
               label="Checkout"
-              color="brandblue"
-              class="full-width"
+              class="full-width button"
               :to="{ name: 'app-marketplace-checkout', query: { cartId: activeStorefrontCart?.id } }"
             />
           </div>
@@ -149,6 +156,7 @@ import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MarketplaceLayout',
@@ -182,7 +190,7 @@ export default {
           await $store.dispatch('marketplace/refetchCustomerData')
             .then(() => {
               const customerId = $store.getters['marketplace/customer']?.id
-              marketplacePushNotificationsManager.subscribe(customerId)
+              subscribePushNotifications(customerId)
             })
 
           const signerData = await getSignerData()
@@ -208,6 +216,32 @@ export default {
         })
     }
 
+    async function subscribePushNotifications(id) {
+      console.log('window.promptedPushNotificationsSettings', window.promptedPushNotificationsSettings)
+      if (!window.promptedPushNotificationsSettings) {
+        const promptResponse = await promptEnablePushNotificationSetting(
+          'Enable notifications to receive updates'
+        ).catch(console.error)
+        window.promptedPushNotificationsSettings = promptResponse.prompted
+        console.log('promptResponse', promptResponse)
+      }
+      return marketplacePushNotificationsManager.subscribe(id)
+    }
+
+    async function promptEnablePushNotificationSetting(message='') {
+      const response = { isPushNotificationEnabled: null, prompted: false }
+      const pushNotificationsStatusResponse = await marketplacePushNotificationsManager.isPushNotificationEnabled()
+      response.isPushNotificationEnabled = pushNotificationsStatusResponse?.isEnabled
+      if (response.isPushNotificationEnabled === false) {
+        const openSettingsResponse = await marketplacePushNotificationsManager.openPushNotificationsSettingsPrompt({
+          message: message || undefined,
+        })
+        response.isPushNotificationEnabled = openSettingsResponse?.isEnabled
+        response.prompted = true
+      }
+      return response
+    }
+
     onMounted(() => setTimeout(async () => {
       await loadAppPromise.value?.catch?.(console.error)
       if (!window.$promptedMarketplaceCustomerDetails) {
@@ -227,11 +261,14 @@ export default {
         $q.dialog({
           title: 'Setup customer info',
           message: 'Update address and other info for faster checkout',
-          ok: { noCaps: true, label: 'Go', color: 'brandblue' },
+          ok: { noCaps: true, label: 'Go', color: 'brandblue', class: 'button' },
           cancel: { noCaps: true, flat: true, label: 'Skip', color: 'grey' },
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         }).onOk(() => {
-          $router.push({ name: 'app-marketplace-customer', params: { returnOnSave: true } })
+          $router.push({
+            name: 'app-marketplace-customer',
+            query: { returnOnSave: true, hideStayOnPageOpt: true },
+          })
           resolve('go')
         })
         .onCancel(() => resolve('skipped'))
@@ -254,6 +291,7 @@ export default {
     const showCartsDialog = ref(false)
 
     const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
+    const activeStorefrontIsActive = computed(() => activeStorefront.value?.active)
     const activeStorefrontId = computed(() => activeStorefront.value?.id)
     watch(activeStorefrontId,() => {
       if (!activeStorefrontId.value) return
@@ -286,10 +324,14 @@ export default {
       activeStorefront,
 
       activeStorefrontCart,
+      activeStorefrontIsActive,
       getStorefrontCurrency,
       saveCart,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 }
 </script>
 <style scoped>

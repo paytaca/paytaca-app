@@ -1,29 +1,53 @@
 <template>
-  <div id="connected-dialog" class="text-white" :class="{'pt-dark': darkMode}">
+  <div id="connected-dialog pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
     <div style="display: flex; justify-content: center; margin-top: 5px;">Connected Addresses</div>
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
-      <q-card ref="card" style="padding: 20px 10px 5px 0;" :class="{'pt-dark-card': darkMode}" class="pp-text br-15">
-        <div style="right: 10px; top: 10px; position: absolute; z-index: 100;">
-          <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : ''" />
+      <q-card ref="card" style="padding: 20px 10px 5px 0;" class="pp-text br-15 pt-card" :class="getDarkModeClass(darkMode)">
+        <div class="connected-dialog-header">
+          <q-btn icon="close" flat round dense v-close-popup class="close-button" />
         </div>
-        <div class="text-h6" :class="{'text-white': darkMode}" style="text-align: center !important;" v-text="origin"></div>
-        <div :class="{'text-white': darkMode}" style="text-align: center !important;" v-if="connectedAddresses.length">{{ `You have ${connectedAddresses.length} addresses connected to this site.` }}</div>
-        <div :class="{'text-white': darkMode}" style="text-align: center !important; margin: 10px" v-else>{{ `You are not connected to this site.` }}</div>
+        <div class="text-h6 text-center text-bow" :class="getDarkModeClass(darkMode)" v-text="origin"></div>
+        <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" v-if="connectedAddresses.length">
+          {{ `You have ${connectedAddresses.length} addresses connected to this site.` }}
+        </div>
+        <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" style="margin: 10px" v-else>
+          {{ `You are not connected to this site.` }}
+        </div>
 
-        <q-card-section v-for="(address, index) in connectedAddresses" class="amount q-pb-none" style="padding-right: 0px; padding-top: 8px;">
+        <q-card-section
+          v-for="(address, index) in connectedAddresses"
+          class="amount q-pb-none"
+          style="padding-right: 0px; padding-top: 8px;"
+        >
           <q-item class="q-px-none">
             <q-item-section side avatar class="logo">
               <q-avatar>
-                <img :src="addressLogo(address)" height="30" />
+                <img :src="addressLogo(address)" height="30" alt=""/>
               </q-avatar>
             </q-item-section>
-            <q-item-section :class="darkMode ? 'text-white' : 'pp-text'" class="address-section">
+            <q-item-section class="address-section pt-label" :class="getDarkModeClass(darkMode)">
               <div>{{ address.split(':')[1] }}</div>
               <div v-if="address == activeAddress" style="color: grey">Active</div>
-              <div v-else class="text-brandblue" style="font-weight: 400" @click="switchAddress(address)">Switch to this address</div>
+              <div
+                v-else
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                style="font-weight: 400"
+                @click="switchAddress(address)"
+              >
+                Switch to this address
+              </div>
             </q-item-section>
-            <q-item-section side :class="darkMode ? 'text-white' : 'pp-text'" style="padding-left: 4px">
-              <q-btn style="width: 1px" icon="eject" flat round dense :color="darkMode ? 'grey' : ''" @click="disconnectAddress(address)" />
+            <q-item-section side class="pt-label" :class="getDarkModeClass(darkMode)" style="padding-left: 4px">
+              <q-btn
+                style="width: 1px"
+                icon="eject"
+                flat
+                round
+                dense
+                :color="darkMode ? 'grey' : ''"
+                @click="disconnectAddress(address)"
+              />
             </q-item-section>
           </q-item>
         </q-card-section>
@@ -33,6 +57,8 @@
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 export default {
   name: 'connected-dialog',
   props: {
@@ -44,8 +70,7 @@ export default {
     return {
       origin: "",
       connectedAddresses: [],
-      activeAddress: "",
-      darkMode: this.$store.getters['darkmode/getStatus']
+      activeAddress: ""
     }
   },
   mounted () {
@@ -58,9 +83,12 @@ export default {
     });
   },
   computed: {
-
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    }
   },
   methods: {
+    getDarkModeClass,
     async switchAddress (address) {
       const network = this.$store.getters['global/network'].toLowerCase();
       const connectedAddresses = this.$store.getters['global/getConnectedSites'](network)[this.origin] || {};
@@ -130,11 +158,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   .amount {
-    /* height: 50px; */
     font-size: 20px;
-    /* margin-left: 16px; */
   }
   .logo {
     justify-content: center;
@@ -143,23 +169,14 @@ export default {
     font-size: 14px;
     text-overflow: ellipsis;
     overflow: hidden;
-  };
-  .text-gray {
-    color: gray;
-  }
-  .amount-label {
-    position: relative;
-    margin-top: -38px;
-    margin-left: 35px;
   }
   .q-dialog__backdrop {
     background: black;
   }
-  .record-type-icon {
-    /* color: #3b7bf6; */
-    color: #fff;
-    font-size: 30px;
-    background: #3b7bf6;
-    border-radius: 20px;
+  .connected-dialog-header {
+    right: 10px;
+    top: 10px;
+    position:
+    absolute; z-index: 100;
   }
 </style>

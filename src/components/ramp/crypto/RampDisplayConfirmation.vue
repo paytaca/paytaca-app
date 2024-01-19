@@ -1,7 +1,7 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md"
-    :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]"
+    class="br-15 q-pt-sm q-mx-md pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
     v-if="isloaded && !networkError"
   >
     <div class="q-pl-sm q-pt-sm">
@@ -21,7 +21,7 @@
     </div>
   </q-card>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
-    <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
     <div class="q-px-lg">{{error_msg }} &#128533;</div>
@@ -47,7 +47,7 @@ import { getMnemonic, Wallet } from 'src/wallet'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -82,7 +82,8 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    getDarkModeClass,
+    isNotDefaultTheme,
     rampType () {
       const vm = this
       if (vm.rampData.settle.coin === 'BCH') {

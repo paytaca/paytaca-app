@@ -1,14 +1,13 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <HeaderNav title="Marketplace" class="header-nav" />
+
+    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-h5 q-px-sm">{{ collection?.name }}</div>
       <div class="row items-center justify-center">
         <q-spinner v-if="!initialized && (fetchingCollection || fetchingProducts)" size="4em" color="brandblue"/>
@@ -37,7 +36,7 @@
             class="col-6 col-sm-4 col-md-3 q-pa-sm"
             @click="() => $router.push({ name: 'app-marketplace-collection-product', params: { collectionId: collectionId, productId: product?.id } })"
           >
-            <q-card :class="[darkMode ? 'pt-dark-card': 'text-black']">
+            <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1"/>
               <q-card-section>
                 <div class="row items-center">
@@ -74,7 +73,8 @@ import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product } from 'src/marketplace/objects'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 
@@ -98,6 +98,13 @@ watch(() => [props?.collectionId], () => {
   resetPage()
   refreshPage()
 })
+
+const storefrontId = computed(() => collection.value?.storefrontId)
+onActivated(() => {
+  if (!storefrontId.value) return
+  $store.commit('marketplace/setActiveStorefrontId', storefrontId.value)
+})
+
 const collection = ref(Collection.parse())
 const fetchingCollection = ref(false)
 function fetchCollection() {

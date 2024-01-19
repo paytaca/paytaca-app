@@ -191,19 +191,14 @@ export class SlpWallet {
     return request.data
   }
 
-  async sendSlp (amount, tokenId, tokenType, recipient, feeFunder, changeAddresses) {
+  async sendSlp (tokenId, tokenType, feeFunder, changeAddresses, recipients) {
     let data = {
       sender: {
         walletHash: this.walletHash,
         mnemonic: this.mnemonic,
         derivationPath: this.derivationPath
       },
-      recipients: [
-        {
-          address: recipient,
-          amount: amount
-        }
-      ],
+      recipients,
       tokenId: tokenId,
       feeFunder: feeFunder,
       changeAddresses: changeAddresses,
@@ -213,12 +208,14 @@ export class SlpWallet {
     if (tokenType === 1) {
       result = await this.watchtower.SLP.Type1.send(data)
     } else if (tokenType === 65) {
+      // currently can only send to one recipient
       delete data.tokenId
       delete data.recipients
       data = Object.assign(
         {
           childTokenId: tokenId,
-          recipient: recipient
+          // get the address of the very first recipient
+          recipient: recipients[0].address
         },
         data
       )

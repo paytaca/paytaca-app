@@ -1,11 +1,7 @@
 <template>
   <q-dialog v-model="val" full-width persistent seamless>
-    <q-card v-if="collectible" class="pp-text" style="max-width:90vw;" :class="{'pt-dark info-banner': darkMode}">
-      <q-card-section
-        class="row no-wrap items-start"
-        style="position:sticky;top:0;z-index:1"
-        :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
-      >
+    <q-card v-if="collectible" class="pt-card-2 pt-label" style="max-width:90vw;" :class="getDarkModeClass(darkMode)">
+      <q-card-section class="row no-wrap items-start collectible-detail-card-section">
         <div v-if="collectible.metadata && collectible.metadata.name">
           <div class="text-h6" :class="darkMode ? 'text-grad' : ''">{{ collectible.metadata.name }}</div>
           <div class="text-caption">#{{collectible.id}}</div>
@@ -15,7 +11,7 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
       <q-img :src="imageUrl" fit="fill" width="75"></q-img>
-      <q-card-section v-if="collectibleAttributes.length" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+      <q-card-section v-if="collectibleAttributes.length">
         <div class="text-subtitle1">Properties</div>
         <q-separator/>
         <div class="row justify-around items-start">
@@ -25,7 +21,7 @@
           </div>
         </div>
       </q-card-section>
-      <q-card-section v-if="collectible.metadata && collectible.metadata.description" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+      <q-card-section v-if="collectible.metadata && collectible.metadata.description">
         <div class="text-subtitle1">Description</div>
         <q-separator/>
         <div>{{ collectible.metadata.description }}</div>
@@ -42,6 +38,7 @@
 
 <script>
 import { openURL } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'ERC721CollectibleDetail',
@@ -73,6 +70,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     verify () {
       const url = 'https://sonar.cash/token/' + this.collectible.contractAddress + '/instance/' + this.collectible.id
       openURL(url)
@@ -100,3 +98,11 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .collectible-detail-card-section {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+</style>

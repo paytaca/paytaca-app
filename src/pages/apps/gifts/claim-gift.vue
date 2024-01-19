@@ -11,7 +11,7 @@
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="processing" style="text-align: center; padding-top: 25px;">
               <p><span class="text-capitalize">{{ action }}</span>ing gift...</p>
-              <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+              <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
             </div>
             <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
               <textarea
@@ -38,7 +38,7 @@
             <div class="text-center q-pt-md">
               <p v-if="bchAmount" style="font-size: 24px;">Amount:<br>{{ getAssetDenomination(denomination, bchAmount) }}</p>
               <p v-if="completed" style="color: green; font-size: 20px;">{{ action }} gift completed!</p>
-              <p v-if="error" style="color: red;">
+              <p v-if="error" style="color: red; font-size: 20px;">
                 {{ error }}
               </p>
             </div>
@@ -59,7 +59,7 @@ import SweepPrivateKey from '../../../wallet/sweep'
 import QrScanner from '../../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'sweep',
@@ -104,7 +104,7 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     claimGift (giftCodeHash) {
       const vm = this
       vm.processing = true

@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card class="q-dialog-plugin" :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="q-dialog-plugin pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> Received </div>
         <q-btn
@@ -8,6 +8,7 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <q-card-section>
@@ -31,12 +32,14 @@
               rounded
               padding="xs"
               icon="content_copy"
+              class="button"
               @click="copyText(txid, 'Transaction ID copied')"
             />
             <q-btn
               rounded
               padding="xs"
               icon="open_in_new"
+              class="button"
               :href="`https://blockchair.com/bitcoin-cash/transaction/${txid}/`"
               target="_blank"
             />
@@ -47,8 +50,7 @@
           <q-btn
             no-caps
             label="Okay"
-            color="brandblue"
-            class="full-width"
+            class="full-width button"
             @click="onOk()"
           />
         </div>
@@ -60,6 +62,7 @@
 import { computed, defineComponent } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default defineComponent({
   name: 'ReceiveUpdateDialog',
@@ -125,5 +128,8 @@ export default defineComponent({
       onOk,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>

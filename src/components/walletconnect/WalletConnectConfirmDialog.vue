@@ -1,11 +1,11 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-xs" :class="{'pt-dark-card': darkMode }">
+    <q-card class="q-dialog-plugin br-15 q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-black">
         <div class="text-grad">Connect to this site?</div>
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
           <div>
-            <div class="row text-h6" :class="[darkMode ? 'text-white' : 'text-black']">
+            <div class="row text-h6 text-bow" :class="getDarkModeClass(darkMode)">
               {{ parsedPeerMeta.name }}
             </div>
             <div v-if="parsedPeerMeta.url" class="row text-caption" :class="[darkMode ? 'text-grey' : 'text-black']">
@@ -20,6 +20,7 @@
             width="50"
             style="border-radius: 50%"
             :src="parsedPeerMeta.icon"
+            alt=""
           />
         </div>
       </q-card-section>
@@ -49,6 +50,7 @@
   </q-dialog>
 </template>
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   // Custom Qdialog component
   name: 'WalletConnectConfirmDialog',
@@ -83,6 +85,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     // following method is REQUIRED
     // (don't change its name --> "show")
     show () {

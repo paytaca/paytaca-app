@@ -70,6 +70,7 @@ const words = [
     MAX: "MAX",
     Name: "Name",
     or: "or",
+    Pin: "PIN",
     Personalize: "Personalize",
     ChangePin: "Change PIN",
     POSID: "POSID",
@@ -439,6 +440,8 @@ const phrases = {
       UpdateDeviceIDNo: "Update device #{ID}",
       UpdatedDeviceIDNo: "Updated device #{ID}",
       UpdatingDeviceIDNo: "Updating device #{ID}",
+      DetectedUnknownCurrency: "Detected unknown currency: #{currency}",
+      InvalidRecipient: "Recipient should be a valid #{walletType} address"
     }
   ]
 }
@@ -446,7 +449,6 @@ const phrases = {
 // token to point
 const hongKongSpecific = [
   {
-    CashPoints: "CashPoints",
     Points: "Points",
     ApprovePoint: "Approve point",
     Add_SEP20_Point: "Add SEP20 Point",
@@ -467,7 +469,6 @@ const hongKongSpecific = [
     PointId: "Point ID",
     PointAdded: "Point added",
     PointAlreadyInList: "Point already exists in list",
-    SLPPoints: "SLP Points",
     AddFungibleCashPoint: "Add Fungible CashPoint",
     EnterCashPointCategoryID: "Enter CashPoint category ID",
     ManageIgnoredPoints: "Manage Ignored Points",
@@ -479,10 +480,38 @@ const hongKongSpecific = [
     ViewPoints: "View Points",
     Waiting_SEP20_PointSent: "Waiting for SEP20 point to be sent",
     Add_SEP721_Point: "Add SEP721 Point",
-    DEEM: "DEEM",
+    DEEM: "DEEM"
+  }
+]
+
+const additional = [
+  {
     Theme: "Theme",
     Default: "Default",
-    ReferenceId: "Reference ID"
+    ReferenceId: "Reference ID",
+    SendPageOffline: "You cannot send funds while offline. Please connect to the internet.",
+    AddAnotherRecipient: "Add Another Recipient",
+    InvalidAddressFormat: "Invalid address format",
+    MultipleRecipientsUnsupported: "Multiple recipients not yet supported",
+    NotEnoughForGasFee: "Not enough balance to cover the gas fee",
+    NotEnoughForSendAmount: "Not enough balance to cover the send amount",
+    NotEnoughForTransactionFee: "Not enough balance to cover the transaction fee",
+    NotEnoughForBoth: "Not enough balance to cover the send amount and transaction fee",
+    SendAmountGreaterThanZero: "Send amount should be greater than zero",
+    UnknownError: "Unknown error",
+    CannotAddRecipient: "Cannot add more than 5 recipients.",
+    TotalAmountError: "Total amount being sent is greater than your current balance",
+    EmptyRecipient: "Recipient cannot be empty",
+    Warning: "Warning",
+    SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?",
+    Yes: "YES",
+    No: "NO",
+    SetAmountIn: "Set amount in",
+    RemoveRecipient: "Remove recipient",
+    Recipient: "Recipient",
+    To: "to",
+    SetReceiveAmount: "Set Receive Amount",
+    PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through."
   }
 ]
 
@@ -490,8 +519,27 @@ const TEXT_GROUPS = [
   ...words,
   ...phrases.static,
   ...phrases.dynamic,
-  ...hongKongSpecific
+  ...hongKongSpecific,
+  ...additional
 ]
+
+const hardcodedTranslations = {
+  'zh-tw': {
+    Pin: '密碼',
+    ChangePin: '密碼',
+    Biometric: '生物認證',
+    ShowTokens: '顯示幣種',
+    ManageIgnoredTokens: '管理被忽略幣種',
+    ChineseTraditional: '中文繁體字',
+    Ramp: 'Ramp',
+    Sweep: 'Sweep',
+    Collectibles: 'NFT',
+    Home: '主頁',
+    Send: '發送',
+    Receive: '收取',
+    Apps: '應用程式'
+  }
+}
 
 // check for supported language codes here
 // https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
@@ -543,7 +591,7 @@ let jsonData = {};
 
 (async () => {
   for (let lang of supportedLangs) {
-    const codes = { from: 'en', to: lang }
+    let codes = { from: 'en', to: lang }
     if (lang === 'en-us') {
       codes.to = 'en'
     }
@@ -561,7 +609,15 @@ let jsonData = {};
       const label = getTextGroupLabel(index)
       console.log(`Translating ${label}...`)
 
-      const translatedObj = await translate(group, codes)
+      let _group
+      if (Object.keys(hardcodedTranslations).indexOf(lang) > -1) {
+        _group = {...group, ...hardcodedTranslations[lang]}
+        codes.except = Object.keys(hardcodedTranslations[lang])
+      } else {
+        _group = group
+      }
+
+      const translatedObj = await translate(_group, codes)
 
       // merge the previous and current objects
       Object.assign(jsonData, translatedObj)

@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="viewAsHedge && viewPositionInTitle">Stabilize</template>
@@ -11,10 +11,11 @@
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
-      <q-card-section class="q-gutter-y-sm" style="max-height:calc(95vh - 10rem);overflow:auto;">
+      <q-card-section class="q-gutter-y-sm contract-details-container">
         <div>
           <div class="text-grey text-subtitle1">Address</div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
@@ -133,13 +134,7 @@
               </template>
               <q-space/>
               <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured && !isCancelled" icon="more_vert" flat size="sm">
-                <q-menu
-                  anchor="bottom right" self="top right"
-                  :class="{
-                    'pt-dark': darkMode,
-                    'text-black': !darkMode,
-                  }"
-                >
+                <q-menu anchor="bottom right" self="top right" class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                   <q-item clickable v-ripple v-close-popup @click="verifyFundingProposalUtxo('hedge')">
                     <q-item-section>
                       <q-item-label>Verify Validity</q-item-label>
@@ -180,13 +175,7 @@
               </template>
               <q-space/>
               <q-btn v-if="contract.longFundingProposal && viewAsLong && !matured && !isCancelled" icon="more_vert" flat size="sm">
-                <q-menu
-                  anchor="bottom right" self="top right"
-                  :class="{
-                    'pt-dark': darkMode,
-                    'text-black': !darkMode,
-                  }"
-                >
+                <q-menu anchor="bottom right" self="top right" class="text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
                   <q-item clickable v-ripple v-close-popup @click="verifyFundingProposalUtxo('long')">
                     <q-item-section>
                       <q-item-label>Verify Validity</q-item-label>
@@ -427,10 +416,7 @@
                   <q-badge v-else color="grey-7">Pending</q-badge>
                 </div>
                 <q-btn v-if="viewAsHedge && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
-                  <q-menu
-                    anchor="bottom right" self="top right"
-                    :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
-                  >
+                  <q-menu anchor="bottom right" self="top right" class="text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
                     <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('hedge')">
                       <q-item-section>
                         <q-item-label>
@@ -456,10 +442,7 @@
                   <q-badge v-else color="grey-7">Pending</q-badge>
                 </div>
                 <q-btn v-if="viewAsLong && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
-                  <q-menu
-                    anchor="bottom right" self="top right"
-                    :class="{ 'pt-dark': darkMode, 'text-black': !darkMode }"
-                  >
+                  <q-menu anchor="bottom right" self="top right" class="text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
                     <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('long')">
                       <q-item-section>
                         <q-item-label>
@@ -515,6 +498,7 @@ import FundingAmountsPanel from './FundingAmountsPanel.vue'
 import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 
@@ -778,7 +762,7 @@ async function fundHedgeProposal(position) {
     persistent: true, // we want the user to not be able to close it
     seamless: true,
     ok: false, // we want the user to not be able to close it
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
 
   const getAddressesResponse = await getAddresses()
@@ -804,7 +788,7 @@ async function fundHedgeProposal(position) {
       title: `Fund ${position} position`,
       message: `Prepare utxo amounting to ${amount} BCH`,
       cancel: true,
-      class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
     })
     await dialogPromise({component: SecurityCheckDialog})
   } catch(error) {
@@ -887,7 +871,7 @@ async function completeFunding() {
     seamless: true,
     persistent: true, // we want the user to not be able to close it
     ok: false, // we want the user to not be able to close it
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   anyhedgeBackend.post(`anyhedge/hedge-positions/${props.contract.address}/complete_funding/`)
     .then(response => {
@@ -941,7 +925,7 @@ async function verifyFundingProposalUtxo(position) {
         message: 'Resubmit funding proposal?',
         seamless: true,
         cancel: true,
-        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => fundHedgeProposal(position))
     }
@@ -1013,7 +997,7 @@ async function signMutualRedemption(position) {
     progress: true,
     html: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
 
   if (!props?.contract?.funding?.[0]?.fundingSatoshis) {
@@ -1181,7 +1165,7 @@ async function signMutualRedemptionConfirm(position) {
     html: true,
     ok: true,
     cancel: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
   signMutualRedemption(position)
@@ -1197,7 +1181,7 @@ async function cancelMutualRedemption(position) {
     progress: true,
     html: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
 
   let signature
@@ -1255,7 +1239,7 @@ async function cancelMutualRedemptionConfirm(position) {
     html: true,
     ok: true,
     cancel: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
   cancelMutualRedemption(position)
@@ -1276,7 +1260,7 @@ async function cancelContract(position) {
     progress: true,
     html: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black'
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
 
   const data = {
@@ -1336,9 +1320,16 @@ async function cancelContractConfirm(position) {
     html: true,
     ok: true,
     cancel: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
   cancelContract(position)
 }
 </script>
+
+<style lang="scss" scoped>
+  .contract-details-container {
+    max-height:calc(95vh - 10rem);
+    overflow:auto;
+  }
+</style>

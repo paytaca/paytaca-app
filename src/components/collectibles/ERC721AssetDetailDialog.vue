@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="val" ref="dialogRef" seamless>
-    <q-card class="q-dialog-plugin pp-text br-15" :class="{'pt-dark info-banner': darkMode}">
+    <q-card class="q-dialog-plugin pp-text br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
       <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
         <strong class="text-h6" :class="darkMode ? 'text-grad' : ''">
           {{ `SEP721 ${isHongKong(currentCountry) ? 'Point' : 'Token'}` }}

@@ -1,18 +1,17 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
+    <HeaderNav title="Marketplace" class="header-nav" />
 
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-px-xs q-mb-md">
         <div class="text-h5 q-mr-xs">{{ storefront?.name }}</div>
-        <q-chip v-if="!storefront?.isOpen" class="q-ma-none text-weight-medium">Closed</q-chip>
+        <q-chip v-if="!storefront?.active" color="grey" class="q-ma-none text-weight-medium">Inactive</q-chip>
+        <q-chip v-if="!storefront?.isOpen" color="grey" class="q-ma-none text-weight-medium">Closed</q-chip>
         <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="col-12">
           {{ storefront?.openingTimeText }}
         </div>
@@ -49,7 +48,8 @@
               class="col-6 col-sm-4 col-md-3 q-pa-sm"
             >
               <q-card
-                :class="[darkMode ? 'pt-dark-card': 'text-black']"
+                class="pt-card text-bow"
+                :class="getDarkModeClass(darkMode)"
                 @click="() => $router.push({ name: 'app-marketplace-collection', params: { collectionId: collection?.id }})"
               >
                 <q-img :src="collection?.imageUrl || noImage" ratio="1">
@@ -62,7 +62,7 @@
                   </div>
 
                   <template v-slot:error>
-                    <img :src="noImage" class="q-img__image q-img__image--with-transition q-img__image--loaded"/>
+                    <img :src="noImage" class="q-img__image q-img__image--with-transition q-img__image--loaded" alt="" />
                     <div class="absolute-bottom text-subtitle2 text-center">
                       <div>{{ collection?.name }}</div>
                       <div v-if="collection?.productsCount" class="text-caption">
@@ -88,7 +88,7 @@
               v-for="category in productCategories" :key="category"
               :outline="category !== selectedCategory"
               :color="darkMode ? 'white' : 'brandblue'"
-              :text-color="darkMode ? undefined : 'white'"
+              :text-color="darkMode ? 'black' : 'white'"
               clickable
               @click="selectedCategory = category === selectedCategory ? '' : category"
             >
@@ -116,7 +116,7 @@
             class="col-6 col-sm-4 col-md-3 q-pa-sm"
             @click="() => $router.push({ name: 'app-marketplace-product', params: { productId: product?.id } })"
           >
-            <q-card :class="[darkMode ? 'pt-dark-card': 'text-black']">
+            <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1"/>
               <q-card-section>
                 <div class="row items-center">
@@ -153,9 +153,10 @@ import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({
   storefrontId: [Number, String],
@@ -188,6 +189,10 @@ watch(() => [props?.storefrontId], () => {
 
 const fetchingStorefront = ref(false)
 const storefront = ref(Storefront.parse())
+onActivated(() => {
+  if (!props.storefrontId) return
+  $store.commit('marketplace/setActiveStorefrontId', props.storefrontId)
+})
 function fetchStorefront() {
   fetchingStorefront.value = true
   return backend.get(`connecta/storefronts/${props.storefrontId}/`)

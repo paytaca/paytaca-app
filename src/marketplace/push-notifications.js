@@ -26,6 +26,18 @@ class MarketplacePushNotificationsManager {
       })
   }
 
+  isPushNotificationEnabled() {
+    return pushNotificationsManager.isPushNotificationEnabled()
+  }
+
+  openPushNotificationsSettings() {
+    return pushNotificationsManager.openPushNotificationsSettings()
+  }
+
+  openPushNotificationsSettingsPrompt(opts) {
+    return pushNotificationsManager.openPushNotificationsSettingsPrompt(opts)
+  }
+
   checkPermissions() {
     return pushNotificationsManager.checkPermissions()
       .then(response => {

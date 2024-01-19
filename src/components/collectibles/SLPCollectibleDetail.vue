@@ -1,8 +1,8 @@
 <template>
   <q-dialog v-model="val" persistent seamless>
-    <q-card v-if="collectible" style="width: 90vw;" :class="{'pt-dark info-banner': darkMode}">
-      <q-card-section class="row no-wrap items-start" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-        <div class="text-h6" :class=" $store.getters['darkmode/getStatus'] ? 'text-grad' : 'text-black'">{{ collectible.name }}</div>
+    <q-card v-if="collectible" style="width: 90vw;" class="pt-card-2" :class="getDarkModeClass(darkMode)">
+      <q-card-section class="row no-wrap items-start pt-label" :class="getDarkModeClass(darkMode)">
+        <div class="text-h6" :class="darkMode ? 'text-grad' : 'text-black'">{{ collectible.name }}</div>
         <q-space/>
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -26,6 +26,7 @@
 
 <script>
 import { openURL } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'collectible',
@@ -39,11 +40,13 @@ export default {
   data () {
     return {
       val: this.modelValue,
-      forceUseDefaultImg: false,
-      darkMode: this.$store.getters['darkmode/getStatus']
+      forceUseDefaultImg: false
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     imageUrl () {
       if (!this.collectible) return ''
       return this.collectible.thumbnail_image_url ||
@@ -56,6 +59,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     verify () {
       const url = 'https://blockchair.com/bitcoin-cash/transaction/' + this.collectible.token_id
       openURL(url)

@@ -1,9 +1,10 @@
+export const DEVICE_LOCATION_ID_CONST = 'DEVICE_LOCATION_ID'
+
 export default function () {
   return {
     shopListOpts: {
       radius: 30, // kilometers
     },
-    location: { lat: NaN, lon: NaN, timestamp: 0 },
     customerData: {
       id: 0,
       ref: '',
@@ -23,6 +24,16 @@ export default function () {
         verifying_pubkey_index: 0,
       },
     },
+
+    selectedSessionLocationId: DEVICE_LOCATION_ID_CONST,
+    DEVICE_LOCATION_ID: DEVICE_LOCATION_ID_CONST,
+    location: {
+      timestamp: 0,
+      address1: '', address2: '',
+      street: '', city: '', state: '',
+      country: '', zip_code: '',
+      latitude: NaN, longitude: NaN,
+    },
     customerLocations: [].map(() => {
       return {
         id: 0,
@@ -39,6 +50,7 @@ export default function () {
     storefronts: [].map(() => {
       return {
         id: 0,
+        active: false,
         shop_id: 0,
         image_url: '',
         name: '',
