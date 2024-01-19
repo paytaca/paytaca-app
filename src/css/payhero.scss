@@ -540,6 +540,19 @@ body.theme-payhero {
         mask-composite: exclude;
       }
     }
+
+    &.fiat-tab {
+      background: unset;
+      background-clip: unset;
+      -webkit-background-clip: unset;
+      -webkit-text-fill-color: unset;
+      -webkit-box-decoration-break: unset;
+      box-decoration-break: unset;
+      
+      &.dark {
+        color: white;
+      }
+    }
   }
 
   .section-title {

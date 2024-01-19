@@ -1,13 +1,13 @@
 <template>
     <!-- Filter orders -->
     <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
-      <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-        <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="q-mt-md text-center bold-text lg-font-size">Filter Orders</div>
+      <q-card class="br-15 transaction-container text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
+        <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter Orders</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
-        <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+        <div class="q-px-lg q-mx-sm">
           <!-- Trade type -->
           <div class="q-pt-md">
-            <div class="sm-font-size bold-text">Trade Type</div>
+            <div class="sm-font-size text-weight-bold">Trade Type</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="orderFilters.trade_type.buy = !orderFilters.trade_type?.buy">Buy</q-badge>
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="orderFilters.trade_type.sell = !orderFilters.trade_type?.sell">Sell</q-badge>
@@ -15,7 +15,7 @@
           </div>
           <!-- Order status -->
           <div v-if="orderFilters.status" class="q-pt-md">
-            <div class="sm-font-size bold-text">Status</div>
+            <div class="sm-font-size text-weight-bold">Status</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 rounded
@@ -39,7 +39,7 @@
           </div>
           <!-- Order payment types -->
           <div v-if="orderFilters.payment_types" class="q-pt-md">
-            <div class="sm-font-size bold-text">Payment Type</div>
+            <div class="sm-font-size text-weight-bold">Payment Type</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -63,7 +63,7 @@
           </div>
           <!-- Time limits -->
           <div v-if="orderFilters.time_limits" class="q-pt-md">
-            <div class="sm-font-size bold-text">Time Limit</div>
+            <div class="sm-font-size text-weight-bold">Time Limit</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -86,28 +86,28 @@
             </div>
           </div>
           <div class="q-pt-md">
-            <div class="sm-font-size bold-text">Ownership</div>
+            <div class="sm-font-size text-weight-bold">Ownership</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Owned</q-badge>
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not Owned</q-badge>
             </div>
           </div>
           <div v-if="orderFilters.sort_type" class="q-pt-md">
-            <div class="sm-font-size bold-text">Sort Type</div>
+            <div class="sm-font-size text-weight-bold">Sort Type</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">Ascending</q-badge>
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">Descending</q-badge>
             </div>
           </div>
           <div v-if="orderFilters.sort_by" class="q-pt-md">
-            <div class="sm-font-size bold-text">Sort By</div>
+            <div class="sm-font-size text-weight-bold">Sort By</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">Created</q-badge>
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">Last Modified</q-badge>
             </div>
           </div>
           <div class="q-pt-md" v-if="type !== 'filterCompletedOrder'">
-            <div class="sm-font-size bold-text">Misc</div>
+            <div class="sm-font-size text-weight-bold">Misc</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge
                 rounded
@@ -125,8 +125,8 @@
                 rounded
                 no-caps
                 label='Reset'
-                class="q-space text-white"
-                color="blue-6"
+                class="q-space button button-icon"
+                :class="getDarkModeClass(darkMode)"
                 outline
                 @click="resetFilters('orders')"
               />
@@ -134,8 +134,7 @@
                 rounded
                 no-caps
                 label='Filter'
-                class="q-space text-white"
-                color="blue-6"
+                class="q-space button"
                 @click="submitData()"
                 v-close-popup
               />
@@ -151,12 +150,12 @@
         <div class="q-mt-md q-pl-md">
           <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
         </div>
-        <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="text-center bold-text lg-font-size">Filter Ads</div>
+        <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="text-center text-weight-bold lg-font-size">Filter Ads</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
         <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
           <div v-if="storeFilters.priceTypes" class="q-pt-md">
-            <div class="sm-font-size bold-text">Price Type</div>
+            <div class="sm-font-size text-weight-bold">Price Type</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 rounded
@@ -177,7 +176,7 @@
             </div>
           </div>
           <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
-            <div class="sm-font-size bold-text">Payment Type</div>
+            <div class="sm-font-size text-weight-bold">Payment Type</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -201,7 +200,7 @@
           </div>
 
           <div v-if="storeFilters.selectedPTL" class="q-pt-md">
-            <div class="sm-font-size bold-text">Time Limit</div>
+            <div class="sm-font-size text-weight-bold">Time Limit</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -225,7 +224,7 @@
           </div>
 
           <div v-if="storeFilters.priceOrder" class="q-pt-md">
-            <div class="sm-font-size bold-text">Price Order</div>
+            <div class="sm-font-size text-weight-bold">Price Order</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'ascending'" @click="storeFilters.priceOrder = 'ascending'">Ascending</q-badge>
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'descending'" @click="storeFilters.priceOrder = 'descending'">Descending</q-badge>
@@ -261,6 +260,7 @@
 
 <script>
 import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -337,6 +337,7 @@ export default {
     this.checkDialogType()
   },
   methods: {
+    getDarkModeClass,
     checkDialogType () {
       const vm = this
       switch (vm.type) {

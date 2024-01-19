@@ -5,14 +5,15 @@
         flat
         padding="md"
         icon="close"
+        class="close-button"
         @click="$emit('back')"
       />
     </div>
 
-    <div class="text-center md-font-size bold-text">Please check to confirm...</div>
+    <div class="text-center md-font-size text-weight-bold">Please check to confirm...</div>
 
     <div v-if="type === 'ads'">
-      <div class="md-font-size" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+      <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
         <div class="q-pt-lg q-mx-lg ">
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Fiat Currency</span>
@@ -22,7 +23,7 @@
             <span>Price Type</span>
             <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
           </div>
-          <div class="row justify-between no-wrap q-mx-lg bold-text">
+          <div class="row justify-between no-wrap q-mx-lg text-weight-bold">
             <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price Margin' }}</span>
             <!-- <span>Price:</span> -->
             <span class="text-nowrap q-ml-xs">
@@ -38,7 +39,7 @@
             <span>Trade Limit</span>
             <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} - {{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
           </div>
-          <div class="row justify-between no-wrap q-mx-lg bold-text">
+          <div class="row justify-between no-wrap q-mx-lg text-weight-bold">
             <span>Trade Amount</span>
             <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
           </div>
@@ -46,7 +47,7 @@
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
         <div class="q-pt-lg q-mx-lg" >
-          <div class="row justify-between no-wrap q-mx-lg bold-text">
+          <div class="row justify-between no-wrap q-mx-lg text-weight-bold">
             <span>Payment Time Limit</span>
             <!-- <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span> -->
             <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
@@ -57,7 +58,7 @@
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
         <div class="q-mx-lg q-pt-lg">
-          <div class="q-px-lg bold-text">
+          <div class="q-px-lg text-weight-bold">
             Payment Methods
           </div>
           <div class="q-gutter-sm q-pt-sm q-px-lg">
@@ -69,15 +70,15 @@
 
     <div v-if="type === 'order'">
       <div class="q-pt-lg">
-        <div class="text-center lg-font-size bold-text" :class="transactionType === 'SELL' ? 'buy-color' : 'sell-color'">
+        <div class="text-center lg-font-size text-weight-bold" :class="transactionType === 'SELL' ? 'buy-color' : 'sell-color'">
           <span>{{ transactionType === 'SELL' ? 'Buying': 'Selling' }} BCH {{ transactionType === 'SELL' ? 'from': 'to' }}</span><br>
           <span>
             <u>{{ adData.owner}}</u>
           </span>
         </div>
         <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
-        <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-px-lg q-pt-md md-font-size">
-          <div class="bold-text subtext">
+        <div :class="getDarkModeClass(darkMode)" class="q-px-lg q-pt-md md-font-size pt-label">
+          <div class="text-weight-bold subtext">
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Fiat Amount</span>
               <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ adData.fiat_currency.symbol }}</span>
@@ -94,7 +95,7 @@
         </div>
         <q-separator :dark="darkMode" class="q-mx-lg q-mt-lg"/>
         <div class="text-center q-px-md">
-          <div class="md-font-size bold-text q-py-sm">Pay With</div>
+          <div class="md-font-size text-weight-bold q-py-sm">Pay With</div>
           <div class="q-gutter-sm q-px-lg">
             <q-badge v-for="method in adData.payment_methods" :key="method.id" rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
               {{ method.payment_type }}
@@ -102,7 +103,7 @@
           </div>
         </div>
         <div class="text-center q-px-md">
-          <div class="md-font-size bold-text q-py-sm">Your Payment Methods</div>
+          <div class="md-font-size text-weight-bold q-py-sm">Your Payment Methods</div>
           <q-list bordered class="q-mx-lg" :dark="darkMode">
             <div
               v-for="(method, index) in paymentMethods"
@@ -113,7 +114,7 @@
                 :label="method.payment_type.name.toUpperCase()"
               >
                 <!-- ^ higlight header-class payment method on seller/buyer list -->
-                <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
+                <q-card flat class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                   <q-card-section>
                     <!-- <span>{{ method.account_name }}</span><br> -->
                     <span class="subtext">{{ method.account_number }}</span>
@@ -147,6 +148,7 @@
 <script>
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { formatCurrency } from 'src/wallet/ramp'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   data () {
     return {
@@ -195,6 +197,7 @@ export default {
     vm.isLoaded = true
   },
   methods: {
+    getDarkModeClass,
     formattedCurrency (value, currency) {
       return formatCurrency(value, currency)
     },

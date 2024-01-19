@@ -1,11 +1,11 @@
 <template>
   <div v-if="isloaded">
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
+      <div class="q-mx-lg text-h5 text-center lg-font-size text-weight-bold">
         <span v-if="data?.type === 'buyer'">PAY BY FIAT</span>
         <span v-else>RECEIVE FIAT</span>
       </div>
-      <div style="opacity: .5;" class="text-center q-pb-sm md-font-size bold-text">ORDER #{{ order.id }}</div>
+      <div style="opacity: .5;" class="text-center q-pb-sm md-font-size text-weight-bold">ORDER #{{ order.id }}</div>
       <q-scroll-area :style="`height: ${minHeight - 175}px`" style="overflow-y:auto;">
         <div class="q-mt-sm q-mx-md q-px-md">
           <div class="q-my-sm">
@@ -68,12 +68,13 @@
                   <div class="q-px-sm">
                     <q-card flat bordered :dark="darkMode">
                       <q-expansion-item
-                        :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black bg-grey-2',]"
+                        class="pt-card text-bow"
+                        :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
                         :default-opened=true
                         :label="method.payment_type"
                         expand-separator >
                         <q-card>
-                          <q-card-section  :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">
+                          <q-card-section class="pt-card" :class="getDarkModeClass(darkMode)">
                             <div class="row">
                               <div class="col">
                                 <div>{{ method.account_name }}</div>
@@ -154,6 +155,7 @@
 import { bus } from 'src/wallet/event-bus.js'
 import { rampWallet } from 'src/wallet/ramp/wallet'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -227,6 +229,7 @@ export default {
     this.timer = null
   },
   methods: {
+    getDarkModeClass,
     fetchContractBalance () {
       const vm = this
       if (vm.data?.escrow) {
@@ -402,10 +405,6 @@ export default {
 
 .lg-font-size {
   font-size: large;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 .subtext {
   opacity: .5;
