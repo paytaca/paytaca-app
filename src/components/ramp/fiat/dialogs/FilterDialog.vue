@@ -146,14 +146,14 @@
 
     <!-- Filter Ads -->
     <q-dialog v-model="filterAd" @before-hide="$emit('back')">
-      <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
         <div class="q-mt-md q-pl-md">
           <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
         </div>
-        <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="text-center text-weight-bold lg-font-size">Filter Ads</div>
+        <div class="text-center text-weight-bold lg-font-size">Filter Ads</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
-        <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+        <div class="q-px-lg q-mx-sm">
           <div v-if="storeFilters.priceTypes" class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Price Type</div>
             <div class="q-gutter-sm q-pt-sm">

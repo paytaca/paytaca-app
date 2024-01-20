@@ -14,7 +14,7 @@
           @click="$emit('back')"
         />
       </div>
-      <div class="text-center bold-text lg-font-size text-uppercase">Ad Snapshot</div>
+      <div class="text-center text-weight-bold lg-font-size text-uppercase">Ad Snapshot</div>
       <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Ad #{{ snapshot.ad }})</div>
 
       <q-separator class="q-my-sm" :dark="darkMode"/>
@@ -53,14 +53,14 @@
       </div>
 
       <div class="q-mx-lg q-pb-sm">
-        <div class="md-font-size bold-text q-px-md">Ad Payment Methods</div>
+        <div class="md-font-size text-weight-bold q-px-md">Ad Payment Methods</div>
         <div class="q-gutter-sm q-pt-sm q-px-md">
           <q-badge v-for="(method, index) in snapshot.payment_methods" :key="index" rounded outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-7'" :label="method.payment_type" />
         </div>
       </div>
 
       <div class="q-py-md q-mx-lg q-pb-sm">
-        <div class="md-font-size bold-text q-px-md">Selected Payment Methods</div>
+        <div class="md-font-size text-weight-bold q-px-md">Selected Payment Methods</div>
         <div v-if="selectedPaymentMethods.length === 0" class="q-px-md sm-font-size">~ No payment method selected ~</div>
         <div v-for="(method, index) in selectedPaymentMethods" :key="index">
           <div class="q-px-sm q-my-sm">

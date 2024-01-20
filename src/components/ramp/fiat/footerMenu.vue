@@ -102,12 +102,6 @@ export default {
     .footer-btn-container {
       margin-top: 1px !important;
     }
-    .active-switch {
-      color: #69CB51;
-    }
-    .pt-dark-label {
-      color: #fff !important;
-    }
     .default-text-color {
       color: rgb(60, 100, 246) !important;
     }

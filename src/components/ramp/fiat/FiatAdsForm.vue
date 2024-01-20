@@ -97,7 +97,7 @@
                 </q-input>
               </div>
             </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mx-lg sm-font-size">
+            <div class="q-mx-lg sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
               <div class="row justify-between">
                 <span class="col text-left">Your Price</span>
                 <span class="col text-right">Current Market Price</span>

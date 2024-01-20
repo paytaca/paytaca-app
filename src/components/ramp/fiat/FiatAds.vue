@@ -76,12 +76,12 @@
                         <div class="row">
                           <div class="col ib-text">
                             <span
-                              :class="{'pt-dark-label': darkMode}"
-                              class="q-mb-none text-uppercase"
+                              class="q-mb-none text-uppercase pt-label"
+                              :class="getDarkModeClass(darkMode)"
                               style="font-size: 13px;">
                               {{ listing.price_type }}
                             </span><br>
-                            <span :class="{'pt-dark-label': darkMode}" class="text-weight-bold col-transaction lg-font-size">
+                            <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
                               {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
                             </span>
                             <span class="sm-font-size">/BCH</span>

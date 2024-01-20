@@ -117,7 +117,10 @@
                               <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
                               <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                             </div>
-                            <span :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase text-weight-bold lg-font-size">
+                            <span
+                              class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                              :class="getDarkModeClass(darkMode)"
+                            >
                               {{ formattedCurrency(listing.price) }}
                             </span>
                             <span class="sm-font-size">/BCH</span><br>
