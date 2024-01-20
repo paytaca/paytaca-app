@@ -6,33 +6,35 @@
   >
    <!--Title  -->
   <q-card class="br-15" :style="`height: ${maxHeight}px;`" :dark="darkMode">
-    <div class="row items-center justify-between q-mr-lg q-pb-xs">
-      <div class="q-pl-lg q-mt-md">
-        <div
-          style="font-size: 25px; font-weight: 500;"
-          :class="darkMode ? 'text-grey-5' : 'text-black'">
-          Chat
+    <q-pull-to-refresh @refresh="refreshData">
+      <div class="row items-center justify-between q-mr-lg q-pb-xs">
+        <div class="q-pl-lg q-mt-md">
+          <div
+            style="font-size: 25px; font-weight: 500;"
+            :class="darkMode ? 'text-grey-5' : 'text-black'">
+            Chat
+          </div>
+          <div
+            v-if="chatMembers?.length > 0" style="font-size: 13px; letter-spacing: 1px;" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            <span v-for="(member, index) in chatMembers" :key="index">
+              {{ member.is_user ? `You (${member.name})` : member.name}}{{ index < chatMembers.length-1 ? ', ' : ''}}
+            </span>
+          </div>
         </div>
-        <div
-          v-if="chatMembers?.length > 0" style="font-size: 13px; letter-spacing: 1px;" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-          <span v-for="(member, index) in chatMembers" :key="index">
-            {{ member.is_user ? `You (${member.name})` : member.name}}{{ index < chatMembers.length-1 ? ', ' : ''}}
-          </span>
-        </div>
+        <q-btn
+          rounded
+          no-caps
+          padding="sm"
+          class="q-ml-md"
+          icon="close"
+          flat
+          @click="$emit('close')"
+        />
       </div>
-      <q-btn
-        rounded
-        no-caps
-        padding="sm"
-        class="q-ml-md"
-        icon="close"
-        flat
-        @click="$emit('close')"
-      />
-    </div>
+    </q-pull-to-refresh>
 
     <!-- Convo -->
-    <q-pull-to-refresh @refresh="refreshData">
+    <!-- <q-pull-to-refresh @refresh="refreshData"> -->
       <q-list ref="scrollTargetRef" :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`" style="overflow: auto;" >
         <q-infinite-scroll
             ref="infiniteScroll"
@@ -86,7 +88,7 @@
                             @click="() => decryptMessageAttachment(message, true)"
                             v-element-visibility="() => {
                               decryptMessageAttachment(message)
-                              resetScroll()
+                              if (!tempMessage) { resetScroll() }
                             }"
                             >
                               Attachment encrypted
@@ -120,7 +122,7 @@
                               @click="() => decryptMessageAttachment(message, true)"
                               v-element-visibility="() => {
                                 decryptMessageAttachment(message)
-                                resetScroll()
+                                if (!tempMessage) { resetScroll() }
                               }"
                               >
                                 Attachment encrypted
@@ -172,7 +174,7 @@
           </div>
         </q-infinite-scroll>
       </q-list>
-    </q-pull-to-refresh>
+    <!-- </q-pull-to-refresh> -->
 
     <!-- Message Input -->
     <div class="row q-py-sm q-px-sm">
@@ -273,21 +275,28 @@ export default {
 
     const chatRef = ref('')
     const isloaded = ref(false)
+    const scrollSnapshot = ref(0)
 
     const loadMessage = ref(false)
     const tempMessage = ref(null)
 
-    const resetScroll = async () => {
+    const resetScroll = async (type = null) => {
       await infiniteScroll.value.reset()
       const scrollElement = scrollTargetRef.value.$el
       const test = infiniteScroll.value.$el
-      scrollElement.scrollTop = test.clientHeight
+
+      if (type) {
+        scrollElement.scrollTop = test.clientHeight - scrollSnapshot.value
+      } else {
+        scrollElement.scrollTop = test.clientHeight
+      }
     }
 
     return {
       scrollTargetRef,
       fileAttachmentField,
       infiniteScroll,
+      scrollSnapshot,
 
       limit,
       offset,
@@ -302,28 +311,22 @@ export default {
       openFileAttachementField (evt) {
         fileAttachmentField.value?.pickFiles?.(evt)
       },
-      getTempMessage() {
-        return tempMessage.value
-      },
       loadMoreData (index, done) {
-        if (isloaded.value) {
-          if (totalMessages.value >= offset.value && !loadMessage.value) {
+        if (isloaded.value && !loadMessage.value) {
+          if (totalMessages.value > offset.value) {
             setTimeout(() => {
               console.log('Loading More Messages ')
               fetchChatMessages(chatRef.value, offset.value, 10)
                 .then(data => {
                   console.log(data)
 
+                  scrollSnapshot.value = infiniteScroll.value.$el.clientHeight
                   offset.value += data.results.length
                   totalMessages.value = data.count
-                  console.log('offset: ', offset.value)
+
                   tempMessage.value = data.results
                   loadMessage.value = true
                 })
-                // .then(() => {
-                //   console.log('resetting scroll')
-                //   resetScroll()
-                // })
                 .finally(() => {
                   done()
                 })
@@ -513,7 +516,8 @@ export default {
     refreshData (done) {
       console.log('refreshing data')
       setTimeout(() => {
-        this.fetchMessages()
+        this.isloaded = false
+        this.loadData()
         done()
       }, 500)
     },
@@ -602,11 +606,15 @@ export default {
           if (type === 'initial') {
             vm.convo.messages = decryptedMessages
           } else {
-            // console.log('new-message')
             temp.map(item => {
               vm.convo.messages.unshift(item)
             })
             vm.loadMessage = false
+          }
+        })
+        .then(() => {
+          if (type) {
+            this.resetScroll('new-message')
           }
         })
     },
