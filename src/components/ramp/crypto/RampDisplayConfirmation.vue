@@ -9,7 +9,7 @@
         rounded
         flat
         icon="close"
-        :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
+        class="close-button"
         @click="$emit('close')"
       />
     </div>

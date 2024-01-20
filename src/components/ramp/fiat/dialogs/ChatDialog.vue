@@ -5,17 +5,22 @@
     full-width
   >
    <!--Title  -->
-  <q-card class="br-15" :style="`height: ${maxHeight}px;`" :dark="darkMode">
+  <q-card class="br-15 pt-card" :style="`height: ${maxHeight}px;`" :dark="darkMode" :class="getDarkModeClass(darkMode)">
     <q-pull-to-refresh @refresh="refreshData">
       <div class="row items-center justify-between q-mr-lg q-pb-xs">
         <div class="q-pl-lg q-mt-md">
           <div
-            style="font-size: 25px; font-weight: 500;"
-            :class="darkMode ? 'text-grey-5' : 'text-black'">
+            class="text-bow text-weight-medium"
+            style="font-size: 25px;"
+            :class="getDarkModeClass(darkMode)">
             Chat
           </div>
           <div
-            v-if="chatMembers?.length > 0" style="font-size: 13px; letter-spacing: 1px;" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            v-if="chatMembers?.length > 0"
+            style="letter-spacing: 1px;"
+            class="font-13"
+            :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+          >
             <span v-for="(member, index) in chatMembers" :key="index">
               {{ member.is_user ? `You (${member.name})` : member.name}}{{ index < chatMembers.length-1 ? ', ' : ''}}
             </span>
@@ -25,7 +30,7 @@
           rounded
           no-caps
           padding="sm"
-          class="q-ml-md"
+          class="q-ml-md close-button"
           icon="close"
           flat
           @click="$emit('close')"
@@ -35,7 +40,11 @@
 
     <!-- Convo -->
     <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-      <q-list ref="scrollTargetRef" :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`" style="overflow: auto;" >
+      <q-list
+        ref="scrollTargetRef"
+        :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`"
+        style="overflow: auto;"
+      >
         <q-infinite-scroll
             ref="infiniteScroll"
             :items="convo.messages"
@@ -65,22 +74,17 @@
                         :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
                         size="6"
                       >
-                        <div style="font-size: 13px; font-weight: 400;">
+                        <div class="font-13 text-weight-light">
                           {{ message.text }}
                         </div>
                       </q-chat-message>
                       <div class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
                         <img
                           v-if="message?.decryptedAttachmentFile?.url"
-                          class="q-px-sm"
+                          class="q-px-sm cursor-pointer image-attachment"
                           :src="message?.decryptedAttachmentFile?.url"
-                          :style="{
-                            'cursor': 'pointer',
-                            'border-radius': '10px',
-                            'max-width': '200px',
-                            'max-height': '200px',
-                          }"
                           @click="openSelectedImage(message?.decryptedAttachmentFile?.url)"
+                          alt=""
                         />
                         <div v-else class="row items-center">
                           <div
@@ -98,23 +102,27 @@
                       </div>
                     </div>
                     <div v-else>
-                      <div :class="message.chatIdentity.is_user? 'text-right' : ''" style="font-size: 13px;" :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'">{{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}</div>
+                      <div
+                        class="font-13"
+                        :class="message.chatIdentity.is_user? 'text-right' : ''"
+                        :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'"
+                      >
+                        {{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}
+                      </div>
                       <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
                         <q-avatar size="6" v-if="!message.chatIdentity.is_user">
-                          <img :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`">
+                          <img
+                            :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                            alt=""
+                          >
                         </q-avatar>
                         <div class="q-mx-lg q-pt-sm">
                           <img
                             v-if="message?.decryptedAttachmentFile?.url"
-                            class="q-px-sm"
+                            class="q-px-sm cursor-pointer image-attachment"
                             :src="message?.decryptedAttachmentFile?.url"
-                            :style="{
-                                'cursor': 'pointer',
-                                'border-radius': '10px',
-                                'max-width': '200px',
-                                'max-height': '200px',
-                              }"
-                              @click="openSelectedImage(message?.decryptedAttachmentFile?.url)"
+                            @click="openSelectedImage(message?.decryptedAttachmentFile?.url)"
+                            alt=""
                           />
                           <div v-else class="row items-center">
                             <div
@@ -131,7 +139,10 @@
                           </div>
                         </div>
                         <q-avatar size="6" v-if="message.chatIdentity.is_user">
-                          <img :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`">
+                          <img
+                            :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                            alt=""
+                          >
                         </q-avatar>
                       </div>
                     </div>
@@ -147,7 +158,7 @@
                         :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
                         size="6"
                       >
-                        <div style="font-size: 13px; font-weight: 400;">
+                        <div class="font-13 text-weight-regular">
                           {{ message._decryptedMessage }}
                         </div>
                       </q-chat-message>
@@ -216,13 +227,9 @@
     <div v-if="attachmentUrl" class="row items-start no-wrap q-my-sm q-mx-md">
       <img
         :src="attachmentUrl"
-        :style="{
-          'cursor': 'pointer',
-          'border-radius': '10px',
-          'max-height': '150px',
-          'max-width': '150px',
-        }"
+        class="cursor-pointer image-attachment file-attachment"
         @click="openFileAttachementField"
+        alt=""
       >
       <q-btn
         flat icon="cancel"
@@ -231,15 +238,17 @@
       />
     </div>
     <q-dialog v-model="openImage">
-      <q-card style="width: 100%;">
+      <q-card style="width: 100%;" class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
         <div class="justify-end">
           <q-btn
-            flat icon="cancel"
+            flat
+            icon="cancel"
             padding="sm"
+            class="close-button"
             v-close-popup
           />
         </div>
-        <div class="q-my-lg q-mx-lg">
+        <div class="q-mt-sm q-mb-lg q-mx-lg">
           <q-img
             fill
             :src="selectedImage"
@@ -259,6 +268,7 @@ import { ChatMessage } from 'src/wallet/ramp/chat/objects'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   directives: {
@@ -416,6 +426,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     openSelectedImage (image) {
       this.selectedImage = image
       this.openImage = true
@@ -627,12 +638,24 @@ export default {
   }
 }
 </script>
-<style lang="scss">
-.encrypted-attachment-text {
-  max-width: 75%;
-  text-decoration: underline;
-  border: 0.5px solid $grey;
-  border-radius: map-get($space-xs, 'x');
-  padding: map-get($space-xs, 'y') map-get($space-sm, 'x');
-}
+<style lang="scss" scoped>
+  .font-13 {
+    font-size: 13px;
+  }
+  .encrypted-attachment-text {
+    max-width: 75%;
+    text-decoration: underline;
+    border: 0.5px solid $grey;
+    border-radius: map-get($space-xs, 'x');
+    padding: map-get($space-xs, 'y') map-get($space-sm, 'x');
+  }
+  .image-attachment {
+    border-radius: 10px;
+    max-width: 200px;
+    max-height: 200px;
+    &.file-attachment {
+      max-width: 150px !important;
+      max-height: 150px !important;
+    }
+  }
 </style>

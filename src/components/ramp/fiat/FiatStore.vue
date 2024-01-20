@@ -1,9 +1,9 @@
 <template>
     <q-card
-      class="br-15 q-pt-sm q-mx-md q-mb-lg"
-      :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
+      class="br-15 q-pt-sm q-mx-md q-mb-lg text-bow"
+      :class="getDarkModeClass(darkMode)"
       style="overflow:hidden;"
-      :style="`height: ${minHeight}px;`"
+      :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
       v-if="state === 'SELECT' && !viewProfile">
       <div class="q-mb-lg q-pb-lg">
         <!-- <q-pull-to-refresh @refresh="refreshData"> -->
@@ -14,14 +14,16 @@
                 {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
               </div>
               <q-menu anchor="bottom left" self="top left" >
-                <q-list class="md-font-size" :class="{'pt-dark-card': darkMode}" style="min-width: 150px">
+                <q-list class="pt-card-2 text-bow md-font-size" :class="getDarkModeClass(darkMode)" style="min-width: 150px">
                   <q-item
                     v-for="(currency, index) in fiatCurrencies"
                     :key="index"
                     clickable
                     v-close-popup
                     @click="selectCurrency(index)">
-                    <q-item-section :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">{{ currency.name }} ({{ currency.symbol }})</q-item-section>
+                    <q-item-section>
+                      {{ currency.name }} ({{ currency.symbol }})
+                    </q-item-section>
                   </q-item>
                 </q-list>
               </q-menu>
@@ -29,15 +31,40 @@
             <q-space />
             <!-- filters -->
             <div class="q-pr-md">
-              <q-btn unelevated ripple dense size="md" icon="filter_list" @click="openFilter()">
+              <q-btn
+                unelevated
+                ripple
+                dense
+                size="md"
+                icon="filter_list"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                @click="openFilter()"
+              >
                 <q-badge v-if="!defaultFiltersOn" floating color="red"/>
               </q-btn>
             </div>
           </div>
           <!-- transaction type tabs -->
-          <div class="row br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')">
-            <button class="col br-15 btn-custom q-mt-none" :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"  @click="transactionType='SELL'">Buy BCH</button>
-            <button class="col br-15 btn-custom q-mt-none" :class="[{'dark': darkMode}, {'active-sell-btn': transactionType == 'BUY'}]" @click="transactionType='BUY'">Sell BCH</button>
+          <div
+            class="row br-15 text-center pt-card btn-transaction"
+            :class="getDarkModeClass(darkMode)"
+            :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
+          >
+            <button
+              class="col br-15 btn-custom fiat-tab q-mt-none"
+              :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"
+              @click="transactionType='SELL'"
+            >
+              Buy BCH
+            </button>
+            <button
+              class="col br-15 btn-custom fiat-tab q-mt-none"
+              :class="[{'dark': darkMode}, {'active-sell-btn': transactionType == 'BUY'}]"
+              @click="transactionType='BUY'"
+            >
+              Sell BCH
+            </button>
           </div>
         <!-- </q-pull-to-refresh> -->
         <div class="q-mt-md">
@@ -69,7 +96,7 @@
                           <div class="col ib-text">
                             <div class="">
                               <span
-                                :class="{'pt-dark-label': darkMode}"
+                                :class="{'pt-label dark': darkMode}"
                                 class="md-font-size"
                                 @click.stop.prevent="viewUserProfile(listing.owner, listing)">
                                 {{ listing.owner.name }}
@@ -90,7 +117,10 @@
                               <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
                               <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                             </div>
-                            <span :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase bold-text lg-font-size">
+                            <span
+                              class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                              :class="getDarkModeClass(darkMode)"
+                            >
                               {{ formattedCurrency(listing.price) }}
                             </span>
                             <span class="sm-font-size">/BCH</span><br>
@@ -473,11 +503,6 @@ export default {
 .lg-font-size {
   font-size: large;
 }
-
-.bold-text {
-  font-weight: bold;
-}
-
 .btn-custom {
   height: 40px;
   width: 40%;
@@ -502,9 +527,6 @@ export default {
   background-color: #ed5f59 !important;
   color: #fff !important;
 }
-.btn-custom.dark {
-  background-color: #1c2833;
-}
 .btn-transaction {
   font-size: 16px;
   background-color: rgb(242, 243, 252);
@@ -514,9 +536,6 @@ export default {
   margin-right: 12%;
   margin-top: 10px;
 }
-.transactions-wallet {
-  color: #4C4F4F;
-}
 .ib-text {
   display: inline-block;
 }
@@ -524,8 +543,4 @@ export default {
   padding-top: 2px;
   font-weight: 500;
 }
-.subtext {
-  opacity: .5;
-}
-
 </style>

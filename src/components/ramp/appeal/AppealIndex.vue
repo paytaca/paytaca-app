@@ -1,13 +1,30 @@
 <template>
-  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`height: ${ minHeight }px;`"
-    v-if="state === 'appeal-list'">
+  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
+    v-if="state === 'appeal-list'"
+  >
     <div class="q-pt-md">
       <div class="q-mb-sm">
-        <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-          <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'PENDING' }" @click="statusType='PENDING'">Pending</button>
-          <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}" @click="statusType='RESOLVED'">Resolved</button>
+        <div
+          class="row br-15 text-center pt-card btn-transaction md-font-size"
+          :class="getDarkModeClass(darkMode)"
+          :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
+        >
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'PENDING'}"
+            @click="statusType='PENDING'"
+          >
+            Pending
+          </button>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}"
+            @click="statusType='RESOLVED'"
+          >
+            Resolved
+          </button>
         </div>
       </div>
       <q-pull-to-refresh
@@ -47,7 +64,7 @@
                       <div class="col ib-text">
                         <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
                         <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
-                        <div class="md-font-size bold-text">Order #{{ appeal.order.id }}</div>
+                        <div class="md-font-size text-weight-bold">Order #{{ appeal.order.id }}</div>
                         <div class="sm-font-size">
                           <div class="row">
                             Requested by {{ appeal.owner.name}}
@@ -85,6 +102,7 @@ import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { rampWallet } from 'src/wallet/ramp/wallet'
 import { bus } from 'src/wallet/event-bus.js'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   setup () {
@@ -162,6 +180,7 @@ export default {
     this.resetAndRefetchListings()
   },
   methods: {
+    getDarkModeClass,
     async login () {
       try {
         const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/arbiter`, { headers: { 'wallet-hash': this.wallet.walletHash } })
