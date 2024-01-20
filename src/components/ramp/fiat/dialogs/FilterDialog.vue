@@ -1,7 +1,7 @@
 <template>
     <!-- Filter orders -->
     <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
-      <q-card class="br-15 transaction-container text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
+      <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
         <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter Orders</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
         <div class="q-px-lg q-mx-sm">

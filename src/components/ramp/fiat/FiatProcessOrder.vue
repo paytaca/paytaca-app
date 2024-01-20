@@ -65,7 +65,7 @@
 
     <!-- Chat button -->
     <div class="fixed" style="right: 35px; bottom: 100px;" v-if="status.value !== 'RLS'">
-      <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
+      <q-btn size="md" padding="sm" dense ripple round class="button" icon="comment" @click="openChat = true"/>
     </div>
 
     <div v-if="reconnectingWebSocket" class="fixed" style="right: 40px; top: 145px;">
