@@ -1,7 +1,7 @@
 <template>
   <div>
-    <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
-    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">(ORDER #{{ order.id }})</div>
+    <div class="text-center lg-font-size text-weight-bold">ESCROW BCH</div>
+    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size text-weight-bold">(ORDER #{{ order?.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
       <div class="q-mx-lg q-px-lg q-pt-md">
@@ -42,7 +42,7 @@
           :dark="darkMode"
           filled
           dense
-          v-model="contractAddress"
+          :label="contractAddress"
           :loading="!contractAddress">
           <template v-slot:append v-if="contractAddress">
             <div @click="copyToClipboard(contractAddress)">
@@ -66,7 +66,7 @@
           </template>
         </q-input>
         <div class="col text-right sm-font-size q-pl-sm">
-          = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
+          = {{ fiatAmount }} {{ order?.fiat_currency.symbol }}
         </div>
         <!-- </div> -->
         <div class="row q-mb-md" v-if="sendErrors.length > 0">
@@ -84,8 +84,8 @@
             <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
           </div>
           <div v-else class="sm-font-size q-mt-sm">
-            <div v-if="fees" class="row q-ml-xs">
-              Fee: {{ fees.total / 100000000 }} BCH
+            <div class="row q-ml-xs">
+              Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
             </div>
             <div class="row q-ml-xs">
               Balance: {{ balance }} BCH
@@ -96,7 +96,7 @@
     </q-scroll-area>
     <RampDragSlide
       :key="dragSlideKey"
-      v-if="showDragSlide && (!loading && contractAddress)"
+      v-if="showDragSlide && data?.wsConnected && !sendingBch && contractAddress"
       :style="{
         position: 'fixed',
         bottom: 0,
@@ -114,6 +114,8 @@
 import { bus } from 'src/wallet/event-bus.js'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { rampWallet } from 'src/wallet/ramp/wallet'
+import { backend } from 'src/wallet/ramp/backend'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -123,15 +125,16 @@ export default {
       wsURL: process.env.RAMP_WS_URL + 'order/',
       authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: this.$store.getters['ramp/wallet'],
-      adData: null,
       loading: false,
+      order: null,
+      adData: null,
       selectedArbiter: null,
       arbiterOptions: [],
       contractAddress: null,
+      fees: null,
       transferAmount: null,
       txid: null,
-      fees: null,
-      showDragSlide: true,
+      showDragSlide: false,
       sendErrors: [],
       sendingBch: false,
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
@@ -143,25 +146,16 @@ export default {
     RampDragSlide
   },
   props: {
-    order: {
-      type: Object,
-      default: null
-    },
-    amount: {
-      type: Number,
-      default: 0
-    },
-    contract: Object
+    data: Object
   },
   watch: {
-    selectedArbiter (_, oldValue) {
-      if (oldValue === null) return
+    selectedArbiter (newValue, oldValue) {
+      if (!oldValue || oldValue?.id === newValue?.id) return
       this.contractAddress = null
       this.generateContractAddress()
     },
     fees (value) {
-      const totalFees = value.total / 100000000
-      this.transferAmount += totalFees
+      if (value) this.showDragSlide = true
     }
   },
   computed: {
@@ -175,7 +169,7 @@ export default {
       return false
     },
     fiatAmount () {
-      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      let amount = Number(parseFloat(this.order?.crypto_amount) * parseFloat(this.order?.locked_price))
       if (amount > 1) amount = amount.toFixed(2)
       return this.$parent.formattedCurrency(amount)
     }
@@ -183,68 +177,88 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-    vm.transferAmount = vm.amount
-    vm.fetchOrderDetail()
-    vm.fetchArbiters()
+    vm.loadData()
+    vm.loadContract()
   },
   methods: {
-    async completePayment () {
+    getDarkModeClass,
+    loadContract () {
       const vm = this
-      const status = vm.order.status.value
-      vm.sendErrors = []
-      if (status === 'CNF') {
-        vm.escrowPendingOrder()
-          .then(data => {
-            if (data && data.success) {
-              vm.escrowBch()
-            }
-          })
-      }
-      if (status === 'ESCRW_PN') {
-        vm.escrowBch()
+      vm.fetchArbiters().then(() => {
+        if (!vm.contractAddress) {
+          vm.generateContractAddress()
+        }
+      })
+    },
+    loadData () {
+      const vm = this
+      vm.order = vm.data.order
+      vm.selectedArbiter = vm.data.arbiter
+      vm.contractAddress = vm.data.contractAddress
+      vm.fees = vm.data.fees
+      vm.updateTransferAmount(vm.data.transferAmount)
+    },
+    updateTransferAmount (transferAmount) {
+      this.transferAmount = transferAmount
+      if (this.fees) {
+        this.transferAmount += this.fees.total / 100000000
       }
     },
-    async escrowBch () {
+    async completePayment () {
       const vm = this
-      vm.sendingBch = true
-      try {
-        const wallet = await rampWallet.raw()
-        const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
-        console.log('sendBch:', result)
-        if (result.success) {
-          vm.txid = result.txid
-          const txidData = {
-            id: vm.order.id,
-            txidInfo: {
-              action: 'ESCROW',
-              txid: this.txid
+      vm.sendErrors = []
+      vm.escrowBch()
+    },
+    escrowBch () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        vm.sendingBch = true
+        rampWallet.raw().then(wallet =>
+          wallet.sendBch(vm.transferAmount, vm.contractAddress).then(result => {
+            console.log('sendBch:', result)
+            if (result.success) {
+              vm.txid = result.txid
+              const txidData = {
+                id: vm.order?.id,
+                txidInfo: {
+                  action: 'ESCROW',
+                  txid: this.txid
+                }
+              }
+              vm.$store.commit('ramp/saveTxid', txidData)
+              vm.$emit('success', vm.txid)
+              vm.sendingBch = false
+              if (vm.order?.status?.value === 'CNF') {
+                vm.escrowPendingOrder()
+              }
+              resolve(result)
+            } else {
+              vm.sendErrors = []
+              if (result.error.indexOf('not enough balance in sender') > -1) {
+                vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
+              } else if (result.error.indexOf('has insufficient priority') > -1) {
+                vm.sendErrors.push('Not enough balance to cover the transaction fee')
+              } else {
+                vm.sendErrors.push(result.error)
+              }
+              vm.showDragSlide = true
+              vm.dragSlideKey++
+              reject(result)
             }
-          }
-          vm.$store.commit('ramp/saveTxid', txidData)
-          vm.$emit('success', vm.txid)
-        } else {
-          vm.sendErrors = []
-          if (result.error.indexOf('not enough balance in sender') > -1) {
-            vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
-          } else if (result.error.indexOf('has insufficient priority') > -1) {
-            vm.sendErrors.push('Not enough balance to cover the transaction fee')
-          } else {
-            vm.sendErrors.push(result.error)
-          }
+          })
+        ).catch(error => {
+          vm.sendErrors.push(error)
           vm.showDragSlide = true
           vm.dragSlideKey++
-        }
-      } catch (error) {
-        console.error(error)
-        vm.showDragSlide = true
-        vm.dragSlideKey++
-      }
-      vm.sendingBch = false
+          vm.sendingBch = false
+          reject(error)
+        })
+      })
     },
     escrowPendingOrder () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = vm.apiURL + '/order/' + vm.order.id + '/pending-escrow'
+        const url = vm.apiURL + '/order/' + vm.order?.id + '/pending-escrow'
         vm.loading = true
         vm.$axios.post(url, null, { headers: vm.authHeaders })
           .then(response => {
@@ -262,73 +276,59 @@ export default {
           })
       })
     },
-    fetchOrderDetail () {
-      const vm = this
-      vm.loading = true
-      const url = vm.apiURL + '/order/' + vm.order.id
-      vm.$axios.get(url, { headers: vm.authHeaders })
-        .then(response => {
-          vm.fees = response.data.fees
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
-    },
     fetchArbiters () {
-      const vm = this
-      const url = vm.apiURL + '/arbiter'
-      vm.$axios.get(url, { headers: vm.authHeaders })
-        .then(response => {
-          vm.arbiterOptions = response.data
-          vm.selectedArbiter = vm.order.arbiter
-          if (vm.arbiterOptions.length > 0) {
-            if (!vm.selectedArbiter) {
-              vm.selectedArbiter = vm.arbiterOptions[0]
-            } else {
-              vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
-                return obj.id === vm.selectedArbiter.id
-              })
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('ramp-p2p/arbiter', { authorize: true })
+          .then(response => {
+            vm.arbiterOptions = response.data
+            if (vm.arbiterOptions.length > 0) {
+              if (!vm.selectedArbiter) {
+                vm.selectedArbiter = vm.arbiterOptions[0]
+              } else {
+                vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
+                  return obj.id === vm.selectedArbiter.id
+                })
+              }
             }
-          }
-          if (vm.contract) {
-            vm.contractAddress = vm.contract.address
-          } else {
-            vm.generateContractAddress()
-          }
-          vm.loading = false
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-          vm.loading = false
-        })
+            resolve(response.data)
+            vm.loading = false
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+            vm.loading = false
+            reject(error)
+          })
+      })
     },
     generateContractAddress () {
-      const vm = this
-      const url = vm.apiURL + '/order/' + vm.order.id + '/generate-contract'
-      const body = {
-        arbiter: vm.selectedArbiter.id
-      }
-      vm.$axios.post(url, body, { headers: vm.authHeaders })
-        .then(response => {
-          if (response.data.data) {
-            const data = response.data.data
-            if (data.contract_address) {
-              vm.contractAddress = data.contract_address
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const body = {
+          order_id: vm.order?.id,
+          arbiter_id: vm.selectedArbiter.id
+        }
+        backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
+          .then(response => {
+            if (response.data.data) {
+              const data = response.data.data
+              if (data.contract_address) {
+                vm.contractAddress = data.contract_address
+              }
             }
-          }
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        })
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+            reject(error)
+          })
+      })
     },
     checkSufficientBalance () {
       if (this.transferAmount > parseFloat(this.balance)) {
@@ -376,9 +376,5 @@ export default {
 
 .lg-font-size {
   font-size: large;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 </style>

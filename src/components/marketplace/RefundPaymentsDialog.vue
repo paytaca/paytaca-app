@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">Payments</div>
@@ -25,9 +25,7 @@
                   <span v-if="paymentsRefundErrorMap[payment?.id]">
                     <q-icon name="error" color="red" size="2em" class="q-mr-sm">
                     </q-icon>
-                    <q-menu
-                      :class="[darkMode ? 'pt-dark' : 'text-black', 'q-pa-sm']"
-                    >
+                    <q-menu class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
                       <div class="row items-start no-wrap">
                         <q-icon name="error" color="red" class="q-mr-sm" size="1.5em"/>
                         <div class="q-space">{{ paymentsRefundErrorMap[payment?.id] }}</div>
@@ -38,7 +36,7 @@
                     :loading="loadingPaymentsMap[payment?.id]"
                     :disable="loadingPaymentsMap[payment?.id]"
                     no-caps label="Refund"
-                    color="brandblue"
+                    class="button"
                     padding="2px md"
                     @click="() => refundPayment(payment)"
                   />
@@ -60,7 +58,7 @@
             <q-space/>
             <q-btn
               no-caps label="Refund all"
-              color="brandblue"
+              class="button"
               @click="() => refundPayments()"
             />
           </div>
@@ -76,6 +74,7 @@ import { errorParser } from 'src/marketplace/utils';
 import { useDialogPluginComponent } from 'quasar';
 import { useStore } from 'vuex';
 import { capitalize, computed, onMounted, ref, watch } from 'vue';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({
   modelValue: Boolean,

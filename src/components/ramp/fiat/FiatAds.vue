@@ -1,8 +1,9 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`height: ${minHeight}px;`">
+    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
+  >
     <div v-if="state !== 'selection'">
       <FiatAdsForm
         @back="onFormBack()"
@@ -25,9 +26,25 @@
           @click="state = 'create'"
         />
       </div>
-      <div class="row br-15 text-center btn-transaction md-font-size" :class="{'pt-dark-card': darkMode}">
-        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-buy-btn': transactionType == 'BUY' }" @click="transactionType='BUY'">Buy Ads</button>
-        <button class="col br-15 btn-custom q-mt-none" :class="{'pt-dark-label': darkMode, 'active-sell-btn': transactionType == 'SELL'}" @click="transactionType='SELL'">Sell Ads</button>
+      <div
+        class="row br-15 text-center pt-card btn-transaction md-font-size"
+        :class="getDarkModeClass(darkMode)"
+        :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
+      >
+        <button
+          class="col br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
+          @click="transactionType='BUY'"
+        >
+          Buy Ads
+        </button>
+        <button
+          class="col br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
+          @click="transactionType='SELL'"
+        >
+          Sell Ads
+        </button>
       </div>
       <div v-if="loading">
         <FooterLoading/>
@@ -59,12 +76,12 @@
                         <div class="row">
                           <div class="col ib-text">
                             <span
-                              :class="{'pt-dark-label': darkMode}"
-                              class="q-mb-none text-uppercase"
+                              class="q-mb-none text-uppercase pt-label"
+                              :class="getDarkModeClass(darkMode)"
                               style="font-size: 13px;">
                               {{ listing.price_type }}
                             </span><br>
-                            <span :class="{'pt-dark-label': darkMode}" class="col-transaction lg-font-size bold-text">
+                            <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
                               {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
                             </span>
                             <span class="sm-font-size">/BCH</span>
@@ -85,7 +102,7 @@
                               padding="sm"
                               icon="edit"
                               size="sm"
-                              color="grey-6"
+                              class="button"
                               @click="onEditAd(listing.id)"
                             />
                             <q-btn
@@ -94,8 +111,7 @@
                               padding="sm"
                               size="sm"
                               icon="delete"
-                              color="grey-6"
-                              class="q-ml-xs"
+                              class="q-ml-xs button"
                               @click="onDeleteAd(listing.id)"
                             />
                           </div>
@@ -133,6 +149,7 @@ import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import FooterLoading from './FooterLoading.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 
@@ -212,6 +229,7 @@ export default {
     this.resetAndRefetchListings()
   },
   methods: {
+    getDarkModeClass,
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
         return parseFloat(tradeAmount)
@@ -369,10 +387,6 @@ export default {
   font-size: medium;
 }
 
-.bold-text {
-  font-weight: bold;
-}
-
 .btn-transaction {
 font-size: 16px;
 background-color: rgb(242, 243, 252);
@@ -406,12 +420,12 @@ color: #fff;
 background-color: #ed5f59 !important;
 color: #fff;
 }
+.btn-custom.dark {
+  background-color: #1c2833;
+}
 .col-transaction {
   padding-top: 2px;
   font-weight: 500;
-}
-.subtext {
-  opacity: .5;
 }
 .buy-add-btn {
   background-color: rgb(60, 100, 246);

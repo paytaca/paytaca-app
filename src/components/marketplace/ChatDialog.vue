@@ -1,13 +1,13 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" full-height>
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pb-none">
         <div class="row items-center q-pb-sm">
           <div class="q-space">
             <div class="text-h5">Chat</div>
             <div class="text-caption text-grey bottom">{{ chatRef }}</div>
           </div>
-          <q-btn flat icon="close" padding="sm" v-close-popup/>
+          <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
           <q-space/>
@@ -19,6 +19,8 @@
                 :disable="fetchingMessages"
                 flat
                 no-caps label="Load more"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 @click="() => getMessages({ append: true })"
               />
               <q-spinner
@@ -45,7 +47,7 @@
                   <div>
                     {{ formatDateRelative(message?.createdAt) }}
                     <q-icon v-if="message?.encrypted" name="lock"/>
-                    <q-menu :class="[darkMode ? 'pt-dark' : 'text-black', 'q-py-xs q-px-sm']">
+                    <q-menu class="q-py-xs q-px-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                       {{ formatTimestampToText(message?.createdAt) }}
                     </q-menu>
                   </div>
@@ -73,6 +75,7 @@
                   v-if="message?.attachmentUrl" :src="message?.attachmentUrl"
                   style="max-width:75%;border-radius:4px;"
                   @click="() => openImage(message?.attachmentUrl)"
+                  alt=""
                 />
                 <template v-else-if="message?.encryptedAttachmentUrl">
                   <img
@@ -80,6 +83,7 @@
                     :src="message?.decryptedAttachmentFile?.url"
                     style="max-width:75%;border-radius:4px;"
                     @click="() => openImage(message?.decryptedAttachmentFile?.url)"
+                    alt=""
                   />
                   <div v-else class="row items-center">
                     <div
@@ -107,11 +111,11 @@
           >
             <template v-slot:after>
               <q-btn
-                color="brandblue"
                 :disable="sendingMessage"
                 :loading="sendingMessage"
                 icon="send"
                 padding="sm"
+                class="button"
                 @click="() => sendMessage()"
               />
             </template>
@@ -143,6 +147,7 @@
                 'max-width': 'calc(100% - 5rem)',
               }"
               @click="openFileAttachementField"
+              alt=""
             >
             <q-btn
               flat icon="cancel"
@@ -163,12 +168,13 @@ import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
-import { useDialogPluginComponent, debounce } from 'quasar'
+import { useDialogPluginComponent, debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { vElementVisibility } from '@vueuse/components'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
-import { useQuasar } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 
 export default defineComponent({
   name: 'ChatDialog',
@@ -580,6 +586,9 @@ export default defineComponent({
       formatTimestampToText,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>
 <style lang="scss" scoped>

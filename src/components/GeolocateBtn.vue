@@ -11,6 +11,8 @@
       :icon="hasPermission ? 'my_location' : 'location_disabled'"
       no-caps label="Locate"
       v-bind="btnProps"
+      class="button button-text-primary"
+      :class="getDarkModeClass(darkMode)"
       @click="() => attemptGeolocate()"
     />
   </slot>
@@ -20,6 +22,7 @@ import { Geolocation } from '@capacitor/geolocation'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, onMounted } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $emit = defineEmits([
   'grant',
@@ -79,13 +82,13 @@ function updateGeolocationPermission(opts = { request: false, promptOnDeny: fals
       ) {
         $q.dialog({
           message: 'Enable access location in app settings',
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         })
       } else if (opts?.promptOnDeny && !hasPermission.value) {
         $q.dialog({
           html: true,
           message: geolocation.value?.permission?.error?.message || 'Unable to access geolocation',
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         })
       }
     })
@@ -97,7 +100,7 @@ function geolocate() {
     persistent: true,
     progress: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
   })
 
   const opts = {

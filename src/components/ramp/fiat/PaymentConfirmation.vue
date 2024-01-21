@@ -1,55 +1,80 @@
 <template>
   <div v-if="isloaded">
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
-        <span v-if="type === 'buyer'">PAY BY FIAT</span>
+      <div class="q-mx-lg text-h5 text-center lg-font-size text-weight-bold">
+        <span v-if="data?.type === 'buyer'">PAY BY FIAT</span>
         <span v-else>RECEIVE FIAT</span>
       </div>
-      <div style="opacity: .5;" class="text-center q-pb-sm md-font-size bold-text">ORDER #{{ order.id }}</div>
-      <!-- <q-separator :dark="darkMode" class="q-mx-lg"/> -->
+      <div style="opacity: .5;" class="text-center q-pb-sm md-font-size text-weight-bold">ORDER #{{ order.id }}</div>
       <q-scroll-area :style="`height: ${minHeight - 175}px`" style="overflow-y:auto;">
-        <div class="q-mt-md q-mx-lg q-px-md">
+        <div class="q-mt-sm q-mx-md q-px-md">
           <div class="q-my-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+            <q-input
+              class="q-pb-xs"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="data?.contractAddress">
+              <template v-slot:append>
+                <div v-if="data?.contractAddress" @click="$parent.copyToClipboard(data?.contractAddress)">
+                  <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+                </div>
+              </template>
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="contract.balance">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :loading="!contractBalance"
+              :dark="darkMode"
+              v-model="contractBalance">
               <template v-slot:append>
-                <span class="md-font-size bold-text">BCH</span>
+                <span>BCH</span>
               </template>
             </q-input>
           </div>
-          <div v-if="type === 'buyer'" class="sm-font-size q-pb-xs q-ml-xs">Please pay the seller</div>
+          <div v-if="data?.type === 'buyer'" class="sm-font-size q-pb-xs q-ml-xs">Pay the seller</div>
           <div v-else class="sm-font-size q-pb-xs q-ml-xs">Expect fiat payment of</div>
           <div @click="$parent.copyToClipboard(fiatAmount)">
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="fiatAmount" :rules="[$parent.isValidInputAmount]">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :rules="[$parent.isValidInputAmount]"
+              v-model="fiatAmount">
               <template v-slot:append>
-                <span class="md-font-size bold-text">{{ order.fiat_currency.symbol }}</span>
+                <span>{{ order.fiat_currency.symbol }}</span>
               </template>
             </q-input>
           </div>
         </div>
         <div class="q-pt-sm text-center" v-if="!sendingBch && sendErrors.length === 0">
-          <span class="sm-font-size" v-if="countDown !== 'Expired'">within</span>
+          <span class="sm-font-size" v-if="countDown !== 'Expired'">order expires in</span>
           <div style="font-size: 30px; color: #ed5f59;"> {{ countDown }}</div>
         </div>
-
         <div class="q-mx-md q-px-md q-pt-sm">
           <!-- Buyer -->
-          <div v-if="type === 'buyer'" class="q-pb-xs">
-            <div class="xm-font-size q-pb-xs q-pl-sm text-left bold-text">Payment Methods</div>
+          <div v-if="data?.type === 'buyer'" class="q-pb-xs">
+            <q-separator :dark="darkMode" class="q-mx-sm q-mb-md"/>
+            <div class="md-font-size q-pb-xs q-pl-sm text-center">PAYMENT METHODS</div>
             <div class="full-width">
                 <div v-for="(method, index) in paymentMethods" :key="index">
                   <div class="q-px-sm">
                     <q-card flat bordered :dark="darkMode">
                       <q-expansion-item
-                        :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black bg-grey-2',]"
+                        class="pt-card text-bow"
+                        :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
                         :default-opened=true
                         :label="method.payment_type"
                         expand-separator >
                         <q-card>
-                          <q-card-section  :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">
+                          <q-card-section class="pt-card" :class="getDarkModeClass(darkMode)">
                             <div class="row">
                               <div class="col">
                                 <div>{{ method.account_name }}</div>
@@ -71,7 +96,7 @@
         <!-- Checkbox -->
         <div class="q-mb-sm" v-if="countDown !== 'Expired'">
           <div class="q-mx-lg q-px-md">
-            <div v-if="type === 'seller'">
+            <div v-if="data?.type === 'seller'">
               <div class="row q-mb-sm" v-if="sendErrors.length > 0">
                 <div class="col">
                   <ul style="margin-left: -40px; list-style: none;">
@@ -86,18 +111,18 @@
                 <q-spinner class="q-mx-sm"/>Sending BCH, please wait...
               </div>
               <div v-else>
-                <q-checkbox size="sm" v-model="confirmRelease" :dark="darkMode"/>
-                <span class="sm-font-size text-center">I confirm that I have received payment</span>
+                <q-checkbox :disable="!data?.wsConnected" size="sm" v-model="confirmRelease" :dark="darkMode"/>
+                <span :style="!data?.wsConnected ? 'color: grey': ''" class="sm-font-size text-center">I confirm that I have received payment</span>
               </div>
             </div>
-            <div v-if="type === 'buyer'">
-              <q-checkbox size="sm" v-model="confirmPayment" :dark="darkMode"/>
-              <span class="sm-font-size text-left"> I confirm that I already sent payment</span>
+            <div v-if="data?.type === 'buyer'">
+              <q-checkbox :disable="!data?.wsConnected" size="sm" v-model="confirmPayment" :dark="darkMode"/>
+              <span :style="!data?.wsConnected ? 'color: grey': ''" class="sm-font-size text-left"> I confirm that I already sent payment</span>
             </div>
           </div>
 
           <!-- Confirm  -->
-          <!-- <div v-if="type !== 'seller'" class="row q-pt-sm q-mx-lg q-px-md">
+          <!-- <div v-if="data?.type !== 'seller'" class="row q-pt-sm q-mx-lg q-px-md">
             <q-btn
               :disable="!confirmPayment || selectedPaymentMethods.length === 0"
               rounded
@@ -112,7 +137,7 @@
     </q-pull-to-refresh>
   </div>
   <RampDragSlide
-    v-if="showDragSlide && countDown !== 'Expired'"
+    v-if="showDragSlide && countDown !== 'Expired' && data?.wsConnected"
     :key="dragSlideKey"
     :text="dragSlideTitle"
     :locked="lockDragSlide"
@@ -130,6 +155,7 @@
 import { bus } from 'src/wallet/event-bus.js'
 import { rampWallet } from 'src/wallet/ramp/wallet'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -137,10 +163,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
-      contract: {
-        address: null,
-        balance: null
-      },
+      contractBalance: null,
       order: null,
       txid: null,
       isloaded: false,
@@ -157,27 +180,24 @@ export default {
       sendErrors: []
     }
   },
-  props: {
-    orderId: Number,
-    type: String,
-    rampContract: Object,
-    errors: Array
-  },
   components: {
     RampDragSlide
   },
   emits: ['expired', 'verify-release', 'refresh'],
+  props: {
+    data: Object
+  },
   computed: {
     dragSlideTitle () {
-      return this.type === 'seller' ? 'Release Crypto' : 'Confirm Payment'
+      return this.data?.type === 'seller' ? 'Release Crypto' : 'Confirm Payment'
     },
     lockDragSlide () {
       const vm = this
       let lock = true
-      if (vm.type === 'seller') {
+      if (vm.data?.type === 'seller') {
         lock = !vm.confirmRelease
       }
-      if (vm.type === 'buyer') {
+      if (vm.data?.type === 'buyer') {
         lock = !vm.confirmPayment || vm.selectedPaymentMethods.length === 0
       }
       return lock
@@ -195,26 +215,27 @@ export default {
   },
   async mounted () {
     const vm = this
-    if (vm.errors) {
-      vm.sendErrors = vm.errors
+    if (vm.data?.errors) {
+      vm.sendErrors = vm.data?.errors
     }
-    vm.fetchOrderDetail()
-      .then(() => {
-        vm.paymentCountdown()
-        vm.isloaded = true
-      })
+    vm.fetchOrderDetail().then(() => {
+      vm.paymentCountdown()
+      vm.isloaded = true
+    })
+    vm.fetchContractBalance()
   },
   beforeUnmount () {
     clearInterval(this.timer)
     this.timer = null
   },
   methods: {
-    getContractBalance () {
+    getDarkModeClass,
+    fetchContractBalance () {
       const vm = this
-      if (vm.rampContract) {
-        vm.rampContract.getBalance()
+      if (vm.data?.escrow) {
+        vm.data?.escrow.getBalance()
           .then(balance => {
-            vm.contract.balance = balance
+            vm.contractBalance = balance
           })
           .catch(error => {
             console.error(error)
@@ -226,10 +247,10 @@ export default {
       const status = vm.order.status.value
       vm.sendErrors = []
       if (status === 'ESCRW') {
-        vm.sendConfirmPayment(vm.type)
+        vm.sendConfirmPayment(vm.data?.type)
       }
       if (status === 'PD_PN') {
-        vm.sendConfirmPayment(vm.type)
+        vm.sendConfirmPayment(vm.data?.type)
           .then(data => {
             if (data && data.status.value === 'PD') {
               vm.releaseBch()
@@ -266,13 +287,13 @@ export default {
     async releaseBch () {
       const vm = this
       vm.sendErrors = []
-      const feContractAddr = await vm.rampContract.getAddress()
-      const beContractAddr = vm.contract.address
+      const feContractAddr = await vm.data?.escrow.getAddress()
+      const beContractAddr = vm.data?.contractAddress
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const privateKeyWif = await rampWallet.privkey()
-      vm.rampContract.release(privateKeyWif, vm.order.crypto_amount)
+      vm.data?.escrow.release(privateKeyWif, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {
             const txid = result.txInfo.txid
@@ -298,16 +319,12 @@ export default {
     fetchOrderDetail () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = vm.apiURL + '/order/' + vm.orderId
+        const url = vm.apiURL + '/order/' + vm.data?.orderId
         vm.$axios.get(url, { headers: vm.authHeaders })
           .then(response => {
-            vm.order = response.data.order
-            vm.contract.address = response.data.contract.address
+            vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-            if (vm.contract.address) {
-              vm.getContractBalance()
-            }
-            vm.paymentMethods = response.data.order.ad.payment_methods.map(method => {
+            vm.paymentMethods = vm.order.ad.payment_methods.map(method => {
               return { ...method, selected: false }
             })
             resolve(response)
@@ -388,10 +405,6 @@ export default {
 
 .lg-font-size {
   font-size: large;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 .subtext {
   opacity: .5;

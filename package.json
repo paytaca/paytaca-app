@@ -50,7 +50,7 @@
     "cashscript": "^0.7.5",
     "chart.js": "^4.2.1",
     "core-js": "^3.6.5",
-    "crypto-js": "^4.1.1",
+    "crypto-js": "^4.2.0",
     "date-fns": "^2.29.3",
     "ethereumjs-wallet": "^1.0.2",
     "ethers": "^5.5.3",

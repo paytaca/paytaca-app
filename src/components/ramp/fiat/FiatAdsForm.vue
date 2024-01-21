@@ -3,14 +3,20 @@
     <div v-if="step < 3">
       <q-btn
         flat
-        padding="md"
+        padding="md md 0 md"
         icon="arrow_back"
+        class="button button-text-primary"
+        :class="getDarkModeClass(darkMode)"
         @click="step > 1 ? step-- : $emit('back')"
       />
     </div>
     <div v-if="step === 1">
       <div>
-        <div class="text-h5 q-mx-lg text-center bold-text lg-font-size" :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <div
+          class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
+          :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
+          :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"
+        >
           <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
           <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
         </div>
@@ -24,7 +30,7 @@
       <div class="q-pt-sm" v-else>
         <q-scroll-area :style="`height: ${minHeight - 135}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
-            <div class="q-mx-lg q-pb-sm q-pt-sm bold-text">
+            <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
               Price Setting
             </div>
             <div class="text-center q-mx-md">
@@ -91,13 +97,13 @@
                 </q-input>
               </div>
             </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-mx-lg sm-font-size">
+            <div class="q-mx-lg sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
               <div class="row justify-between">
                 <span class="col text-left">Your Price</span>
                 <span class="col text-right">Current Market Price</span>
               </div>
               <div class="row justify-between">
-                <span class="col text-left bold-text md-font-size">{{ formattedCurrency(priceAmount) }}</span>
+                <span class="col text-left text-weight-bold md-font-size">{{ formattedCurrency(priceAmount) }}</span>
                 <span class="col text-right md-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
               </div>
             </div>
@@ -106,7 +112,7 @@
           <!-- Trade Amount -->
           <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
-              <div class="q-pb-xs q-pl-sm bold-text">Trade Amount</div>
+              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Amount</div>
                 <q-input
                   ref="tradeAmountRef"
                   dense
@@ -119,14 +125,14 @@
                   v-model="adData.tradeAmount"
                   @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
                   <template v-slot:prepend>
-                    <span class="bold-text sm-font-size">
+                    <span class="text-weight-bold sm-font-size">
                       BCH
                     </span>
                   </template>
                 </q-input>
               </div>
             <div class="q-px-md q-mt-sm">
-              <div class="q-pb-xs q-pl-sm bold-text">Trade Limit</div>
+              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Limit</div>
               <div class="row">
                 <div class="col">
                   <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
@@ -176,7 +182,7 @@
           <!-- Payment Time Limit -->
           <div class="q-mx-lg q-pt-sm">
             <div class="q-px-lg">
-              <div class="q-pt-sm bold-text">Payment Time Limit</div>
+              <div class="q-pt-sm text-weight-bold">Payment Time Limit</div>
             </div>
             <div class="q-mx-md q-pt-sm">
               <q-select
@@ -240,6 +246,11 @@
         @submit="onSubmit()"
       />
     </div>
+    <div v-if="step > 3">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+    </div>
   </div>
 </template>
 <script>
@@ -250,6 +261,7 @@ import { debounce } from 'quasar'
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   setup () {
@@ -276,6 +288,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
       authHeaders: this.$store.getters['ramp/authHeaders'],
@@ -305,7 +318,7 @@ export default {
         tradeFloor: 0.02,
         tradeCeiling: 100,
         tradeAmount: 100,
-        timeDurationChoice: 5,
+        timeDurationChoice: 1440,
         paymentMethods: [],
         isPublic: true
       },
@@ -397,6 +410,8 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
+    isNotDefaultTheme,
     async fetchAdDetail () {
       const vm = this
       const url = vm.apiURL + '/ad/' + vm.selectedAdId
@@ -426,6 +441,7 @@ export default {
     },
     async onSubmit () {
       const vm = this
+      vm.step++
       const url = vm.apiURL + '/ad/'
       const body = vm.transformPostData()
       try {
@@ -668,9 +684,6 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-.my-custom-toggle {
-  border: 1px solid #ed5f59
-}
 .buy-color {
   color: rgb(60, 100, 246);
 }
@@ -684,9 +697,5 @@ export default {
 
 .md-font-size {
   font-size: medium;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 </style>

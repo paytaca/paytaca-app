@@ -1,20 +1,20 @@
 <template>
   <!-- Delete Ad -->
   <q-dialog persistent v-model="deleteAd">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">Delete this Ad?</div>
       </q-card-section>
       <q-card-actions class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" @click="$emit('back')"  v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="selected('confirm')" v-close-popup />
+        <q-btn flat label="Confirm" class="button" @click="selected('confirm')" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
   <!-- Notiify Delete -->
   <q-dialog persistent v-model="notifyDeleteAd">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">
           <span class="q-pr-sm">Ad Deleted</span>
@@ -22,13 +22,13 @@
         </div>
       </q-card-section>
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Ok" color="blue-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat label="Ok" class="button" @click="$emit('back')" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 <script>
-
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   data () {
     return {
@@ -43,6 +43,7 @@ export default {
   },
   emits: ['back', 'selectedOption'],
   methods: {
+    getDarkModeClass,
     checkDialogType () {
       const vm = this
       switch (vm.type) {

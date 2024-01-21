@@ -4,12 +4,16 @@
       flat
       padding="md"
       icon="arrow_back"
+      class="button button-text-primary"
+      :class="getDarkModeClass(darkMode)"
       @click="$emit('back')"
       v-if="type !== 'Ads'"
     />
   </div>
   <div class="q-mx-lg" v-if="isloaded">
-    <div class="q-mx-sm q-mb-sm text-h5 text-center md-font-size bold-text" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+    <div
+      class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size"
+      :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
       PAYMENT METHODS
     </div>
     <!-- <div class="subtext q-pt-xs q-pl-lg"><i>Add up to 5 methods</i></div> -->
@@ -29,10 +33,10 @@
                       <div class="text-h5" style="font-size: 15px;">
                         {{ method.payment_type.name.toUpperCase() }}
                       </div>
-                      <div class="subtext bold-text">
+                      <div class="subtext text-weight-bold">
                         {{ method.account_name }}
                       </div>
-                      <div class="subtext bold-text">
+                      <div class="subtext text-weight-bold">
                         {{ method.account_number }}
                       </div>
                     </div>
@@ -43,7 +47,8 @@
                         padding="sm"
                         icon="edit"
                         size="sm"
-                        color="grey-6"
+                        class="button button-icon"
+                        :class="getDarkModeClass(darkMode)"
                         @click="editMethod(method)"
                       />
                       <q-btn
@@ -52,7 +57,7 @@
                         padding="sm"
                         size="sm"
                         icon="delete"
-                        color="grey-6"
+                        color="red-6"
                         class="q-ml-xs"
                         @click="deleteMethod(method)"
                         />
@@ -84,7 +89,7 @@
                       <div class="text-h5" style="font-size: 15px;">
                         {{ method }}
                       </div>
-                      <div class="subtext bold-text">
+                      <div class="subtext text-weight-bold">
                         <div class="row q-pt-sm">
                           <q-btn
                             outline
@@ -139,8 +144,8 @@
           rounded
           no-caps
           label='Add Method'
-          class="q-space text-white"
-          color="blue-6"
+          class="q-space button button-icon"
+          :class="getDarkModeClass(darkMode)"
           @click="createMethod"
         />
       </div>
@@ -170,6 +175,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -256,6 +262,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     onBack (data) {
       if (data !== undefined) {
         this.paymentMethods = data
@@ -500,10 +507,6 @@ export default {
 <style lang="scss" scoped>
 .md-font-size {
   font-size: medium;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 
 .subtext {

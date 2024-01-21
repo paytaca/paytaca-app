@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="isLoading" class="row justify-center q-py-lg" style="margin-top: 50%">
-      <ProgressLoader/>
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div v-else>
       <div class="q-mt-md">
@@ -30,11 +30,13 @@ import FiatOrders from './FiatOrders.vue'
 import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       apiURL: process.env.WATCHTOWER_BASE_URL,
       wallet: this.$store.getters['ramp/wallet'],
       network: 'BCH',
@@ -69,6 +71,7 @@ export default {
     }
   },
   methods: {
+    isNotDefaultTheme,
     switchMenu (item) {
       this.menu = item
       this.$refs.footer.selectMenu(this.menu)

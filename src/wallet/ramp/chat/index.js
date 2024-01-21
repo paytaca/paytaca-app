@@ -81,23 +81,21 @@ export async function updateChatIdentity (payload) {
 }
 
 export async function createChatSession (orderId) {
-  console.log('Creating chat session')
-  const payload = {
-    ref: `order-${orderId}-chat`,
-    title: `Order #${orderId} chat`,
-    order_id: orderId
-  }
   return new Promise((resolve, reject) => {
+    const payload = {
+      ref: `ramp-order-${orderId}-chat`,
+      title: `Ramp Order #${orderId} chat`
+    }
     chatBackend.post('chat/sessions/', payload, { forceSign: true })
       .then(response => {
-        console.log('created chat session:', response.data)
-        resolve(response)
+        console.log('Created chat session:', response.data)
+        resolve(response.data.ref)
       })
       .catch(error => {
         if (error.response) {
-          console.error(error.response)
+          console.error('Failed to create chat session:', error.response)
         } else {
-          console.error(error)
+          console.error('Failed to create chat session:', error)
         }
         reject(error)
       })
@@ -108,14 +106,117 @@ export async function checkChatSessionAdmin (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/chat_member`, { forceSign: true })
       .then(response => {
-        console.log('Checking chat session admin:', response.data)
+        console.log('Check chat admin:', response.data)
         resolve(response)
       })
       .catch(error => {
         if (error.response) {
-          console.error('Checking chat session admin:', error.response)
+          console.error('Failed to check chat admin:', error.response)
         } else {
-          console.error('Checking chat session admin:', error)
+          console.error('Failed to check chat admin:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export async function addChatMembers (chatRef, members) {
+  return new Promise((resolve, reject) => {
+    const body = {
+      chat_session_ref: chatRef,
+      members: members
+    }
+    chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
+      .then(response => {
+        console.log('Added chat members:', response)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to add chat members:', error.response)
+        } else {
+          console.error('Failed to add chat members:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export async function fetchChatMembers (chatRef) {
+  return new Promise((resolve, reject) => {
+    chatBackend.get(`chat/members/?chat_ref=${chatRef}`, { forceSign: true })
+      .then(response => {
+        console.log('Fetched chat members:', response)
+        resolve(response.data.results)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to fetch chat members:', error.response)
+        } else {
+          console.error('Failed to fetch chat members:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export function sendChatMessage (data, signData) {
+  return new Promise((resolve, reject) => {
+    const config = { forceSign: true }
+    if (signData !== null) {
+      config.signData = sha256(signData)
+    }
+    chatBackend.post('chat/messages/', data, config)
+      .then(response => {
+        console.log('Sent message:', response)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to send message:', error.response)
+        } else {
+          console.error('Failed to send message:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export function fetchChatMessages (chatRef, offset = null, limit = 10) {
+  return new Promise((resolve, reject) => {
+    let url = `chat/messages/?chat_ref=${chatRef}&limit=${limit}`
+    if (offset) {
+      url += `&offset=${offset}`
+    }
+    chatBackend.get(url, { forceSign: true })
+      .then(response => {
+        console.log('Messages: ', response)
+        resolve(response.data)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to fetch messages:', error.response)
+        } else {
+          console.error('Failed to fetch message:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
+export function fetchChatPubkeys (chatRef) {
+  return new Promise((resolve, reject) => {
+    chatBackend.get(`chat/sessions/${chatRef}/pubkeys/`)
+      .then(response => {
+        if (!Array.isArray(response?.data)) reject({ response })
+        console.log('Chat pubkeys:', response?.data)
+        resolve(response?.data)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to fetch pubkeys:', error.response)
+        } else {
+          console.error('Failed to fetch pubkeys:', error)
         }
         reject(error)
       })

@@ -1,18 +1,18 @@
 <template>
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-center bold-text">
+      <div class="q-mx-lg text-center text-weight-bold">
         <div class="lg-font-size">
-          <span v-if="appeal">{{ appeal.type.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
+          <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
-        <div class="text-center subtext md-font-size bold-text">ORDER #{{ order.id }}</div>
-        <div v-if="order.status.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
+        <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
+        <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
       <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
-        <div v-if="order.status.value === 'APL'">
-          <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+        <div v-if="data?.order?.status?.value === 'APL'">
+          <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
             <q-card-section>
-              <div class="bold-text md-font-size">Appeal reasons</div>
+              <div class="text-weight-bold md-font-size">Appeal reasons</div>
               <div v-if="appeal">
                 <q-badge
                   v-for="reason in appeal.reasons"
@@ -35,41 +35,43 @@
             :dark="darkMode"
             v-model="cryptoAmount">
             <template v-slot:append>
-              <span class="md-font-size bold-text">{{ order.crypto_currency.symbol }}</span>
+              <span>{{ data?.order?.crypto_currency?.symbol }}</span>
             </template>
           </q-input>
           <div class="col text-right sm-font-size q-pl-sm">
-            = {{ fiatAmount }} {{ order.fiat_currency.symbol }}
+            = {{ fiatAmount }} {{ data?.order?.fiat_currency?.symbol }}
           </div>
         </div>
         <div v-if="displayContractInfo">
           <div class="q-mx-sm">
             <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="data?.contractAddress">
               <template v-slot:append>
-                <div v-if="contract.address" @click="copyToClipboard(contract.address)">
+                <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
                   <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
                 </div>
               </template>
             </q-input>
             <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-            <q-input class="q-pb-xs md-font-size" readonly dense filled :dark="darkMode" v-model="contract.balance">
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :loading="!contractBalance"
+              :dark="darkMode"
+              v-model="contractBalance">
               <template v-slot:append>
-                <span class="sm-font-size bold-text md-font-size">BCH</span>
+                <span>BCH</span>
               </template>
             </q-input>
           </div>
-        </div>
-        <div v-if="order.status.value === 'APL'" class="row q-pt-md q-mx-lg">
-          <q-btn
-            disable
-            rounded
-            no-caps
-            label='Chat'
-            class="q-space text-white"
-            color="blue-6"
-            @click="onChat"
-          />
         </div>
         <!-- Countdown Timer -->
         <div v-else class="q-mt-md q-px-md q-mb-sm">
@@ -102,26 +104,26 @@
                 <q-btn
                   rounded
                   no-caps
+                  :disable="!data?.wsConnected"
                   label='Appeal'
-                  class="q-space text-white"
-                  color="blue-6"
+                  class="q-space text-white button"
                   @click="openDialog = true"
                 />
               </div>
             </div>
         </div>
         <!-- Feedback -->
-        <div class="q-pt-xs q-mx-md" v-if="order.status.value === 'RLS'">
+        <div class="q-pt-xs q-mx-md" v-if="data?.order?.status.value === 'RLS'">
           <div class="md-font-size text-center">
-            <span v-if="!feedback.is_posted">Rate your experience</span>
+            <span v-if="!feedbackForm.is_posted">Rate your experience</span>
             <span v-else>Your Review</span>
           </div>
-          <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
+          <!-- <div class="lg-font-size text-weight-bold text-center">{{ nickname }}</div> -->
           <div>
             <div class="q-py-xs text-center">
               <q-rating
-                :readonly="feedback.is_posted"
-                v-model="feedback.rating"
+                :readonly="feedbackForm.is_posted"
+                v-model="feedbackForm.rating"
                 size="2em"
                 color="yellow-9"
                 icon="star"
@@ -129,22 +131,22 @@
             </div>
             <div class="q-pt-sm q-px-xs">
               <q-input
-                v-if="!feedback.is_posted || (feedback.is_posted && feedback.comment)"
-                v-model="feedback.comment"
+                v-if="!feedbackForm.is_posted || (feedbackForm.is_posted && feedbackForm.comment)"
+                v-model="feedbackForm.comment"
                 :dark="darkMode"
-                :readonly="feedback.is_posted"
+                :readonly="feedbackForm.is_posted"
                 placeholder="Add comment here..."
                 dense
                 outlined
                 autogrow
-                :counter="!feedback.is_posted"
+                :counter="!feedbackForm.is_posted"
                 maxlength="200"
               />
             </div>
             <div class="row q-pt-xs q-px-xs">
               <q-btn
-                v-if="!feedback.is_posted"
-                :disable="!feedback.rating"
+                v-if="!feedbackForm.is_posted"
+                :disable="!feedbackForm.rating"
                 rounded
                 label='Post Review'
                 class="q-space text-white"
@@ -188,7 +190,7 @@
   <div v-if="openReviews">
     <FeedbackDialog
       :openReviews="openReviews"
-      :orderID="order.id"
+      :orderID="data?.order?.id"
       :type="'order-review'"
       @back="openReviews = false"
     />
@@ -198,6 +200,8 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -206,31 +210,25 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
       nickname: this.$store.getters['ramp/getUser'].name,
-      order: null,
       appeal: null,
-      contract: {
-        address: null,
-        balance: null
-      },
       isloaded: false,
       countDown: '',
       timer: null,
       type: 'ongoing',
       openDialog: false,
       openReviews: false,
-      feedback: {
+      feedbackForm: {
         rating: 0,
         comment: '',
         is_posted: false
       },
+      contractBalance: null,
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.25
       // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
     }
   },
   props: {
-    orderId: Number,
-    feedbackData: Object,
-    rampContract: Object
+    data: Object
   },
   emits: ['sendFeedback', 'submitAppeal', 'refresh'],
   components: {
@@ -241,26 +239,26 @@ export default {
     showAppealBtn () {
       const vm = this
       return (
-        !vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.order.status.value) &&
+        !vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value) &&
         (vm.$parent.isExpired || vm.countDown === 'Expired'))
     },
     displayContractInfo () {
-      const status = this.order.status.value
+      const status = this.data?.order?.status?.value
       return status !== 'SBM' && status !== 'CNF' && status !== 'CNCL'
     },
     isAppealed () {
-      return this.order.status.value === 'APL'
+      return this.data?.order?.status?.value === 'APL'
     },
     isCompletedOrder () {
-      return (this.order.status.value === 'RLS' || this.order.status.value === 'RFN')
+      return (this.data?.order?.status.value === 'RLS' || this.data?.order?.status.value === 'RFN')
     },
     orderStatus () {
-      return this.order.status.label.toUpperCase()
+      return this.data?.order?.status?.label?.toUpperCase()
     },
     forRelease () {
       let release = false
-      if (this.order.status.value === 'PD' &&
-        (this.order.trade_type === 'BUY' && this.order.is_ad_owner)) {
+      if (this.data?.order?.status.value === 'PD' &&
+        (this.data?.order?.trade_type === 'BUY' && this.data?.order?.is_ad_owner)) {
         release = true
       }
       return release
@@ -268,22 +266,22 @@ export default {
     hasCountDown () {
       const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
 
-      return stat.includes(this.order.status.value) && !this.$parent.isExpired
+      return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
-      return stat.includes(this.order.status.value)
+      return stat.includes(this.data?.order?.status.value)
     },
     cryptoAmount () {
-      return this.$parent.formattedCurrency(this.order.crypto_amount)
+      return this.$parent.formattedCurrency(this.data?.order?.crypto_amount)
     },
     fiatAmount () {
-      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
+      let amount = Number(parseFloat(this.data?.order?.crypto_amount) * parseFloat(this.data?.order?.locked_price))
       if (amount > 1) amount = amount.toFixed(2)
       return this.$parent.formattedCurrency(amount)
     },
     statusColor () {
-      const stat = this.order.status.value
+      const stat = this.data?.order?.status.value
 
       if (stat === 'RLS') {
         return 'text-green-6'
@@ -295,7 +293,7 @@ export default {
     },
     hasLabel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN']
-      return stat.includes(this.order.status.value)
+      return stat.includes(this.data?.order?.status.value)
     },
     label () {
       const labels = {
@@ -307,16 +305,14 @@ export default {
         PD: 'Please wait for the fund release.',
         RLS_PN: 'Please wait for the fund release.'
       }
-      return labels[this.order.status.value]
+      return labels[this.data?.order?.status.value]
     }
   },
   async mounted () {
-    if (this.feedbackData) {
-      this.feedback = this.feedbackData
+    if (this.data?.feedback) {
+      this.feedbackForm = this.data?.feedback
     }
-    await this.fetchOrderDetail()
-    this.paymentCountdown()
-    this.checkStatus()
+    this.loadData()
     this.isloaded = true
   },
   beforeUnmount () {
@@ -324,61 +320,51 @@ export default {
     this.timer = null
   },
   methods: {
-    getContractBalance () {
+    getDarkModeClass,
+    loadData () {
+      if (this.data?.order?.status?.value === 'APL') {
+        this.fetchAppeal()
+      }
+      this.paymentCountdown()
+      this.checkStatus()
+      this.fetchContractBalance()
+    },
+    fetchAppeal () {
       const vm = this
-      if (this.rampContract) {
-        vm.rampContract.getBalance()
+      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
+        .then(response => {
+          vm.appeal = response.data?.appeal
+        })
+    },
+    fetchContractBalance () {
+      const vm = this
+      if (this.data?.escrow) {
+        vm.data?.escrow?.getBalance()
           .then(balance => {
-            vm.contract.balance = balance
+            vm.contractBalance = balance.toString()
           })
           .catch(error => {
             console.error(error)
           })
       }
     },
-    async fetchOrderDetail () {
-      const vm = this
-      const url = vm.apiURL + '/order/' + vm.orderId
-      try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
-        vm.order = response.data.order
-        if (response.data.contract) {
-          vm.contract.address = response.data.contract.address
-        }
-        vm.appeal = response.data.appeal
-        if (vm.contract.address && vm.contract.balance === null) {
-          vm.getContractBalance()
-        }
-      } catch (error) {
-        console.error(error)
-        if (error.response) {
-          console.error(error.response)
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        }
-      }
-    },
     checkStatus () {
       const completedStatus = ['RLS', 'RFN', 'CNCL']
-      if (completedStatus.includes(this.order.status.value)) {
+      if (completedStatus.includes(this.data?.order?.status.value)) {
         this.type = 'completed'
       }
     },
     postingFeedback () {
-      this.$emit('sendFeedback', this.feedback)
+      this.$emit('sendFeedback', this.feedbackForm)
     },
     async onSubmitAppeal (data) {
       this.openDialog = false
       this.$emit('submitAppeal', data)
     },
-    onChat () {
-      console.log('chat clicked')
-    },
     paymentCountdown () {
       const vm = this
-      if (vm.order.expires_at) {
-        const expiryDate = new Date(vm.order.expires_at)
+      if (vm.data?.order?.expires_at) {
+        const expiryDate = new Date(vm.data?.order?.expires_at)
         vm.timer = setInterval(function () {
           const now = new Date().getTime()
           const distance = expiryDate - now
@@ -421,19 +407,10 @@ export default {
 .md-font-size {
   font-size: medium;
 }
-
 .lg-font-size {
   font-size: large;
 }
-
-.bold-text {
-  font-weight: bold;
-}
 .subtext {
   opacity: .5;
-}
-.button-color {
-  background: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-  color: white
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <q-card
-   class="br-15 q-pt-sm q-mx-md q-mx-none"
-   :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
+   class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+   :class="getDarkModeClass(darkMode)"
    :style="`height: ${minHeight}px;`">
    <!-- Form Body -->
     <div v-if="state === 'initial'">
@@ -9,18 +9,24 @@
         <div>
           <q-btn
             flat
-            padding="md"
+            padding="md md 0 md"
             icon="arrow_back"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             @click="$emit('back')"
           />
         </div>
-        <div class="q-mx-lg q-pt-xs text-h5 text-center bold-text lg-font-size" :class="ad.trade_type === 'SELL' ? 'buy-color' : 'sell-color'" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <div
+          class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size"
+          :class="ad.trade_type === 'SELL' ? 'buy-color' : 'sell-color'"
+          :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"
+        >
           {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
         </div>
         <q-scroll-area :style="`height: ${minHeight - 130}px`" style="overflow-y:auto;">
           <div class="q-mx-md">
             <!-- Ad Info -->
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="q-pt-md sm-font-size">
+            <div class="q-pt-md sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Price Type</span>
                 <span class="text-nowrap q-ml-xs">
@@ -64,45 +70,45 @@
                 v-model="amount"
                 @blur="resetInput">
                 <template v-slot:append>
-                  <span class="sm-font-size bold-text">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
+                  <span class="text-weight-bold sm-font-size">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
                 </template>
               </q-input>
               <div class="row justify-between">
-                <div class="col text-left bold-text subtext sm-font-size q-pl-sm">
+                <div class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
                   = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad.fiat_currency.symbol : 'BCH' }}
                 </div>
                 <div class="justify-end q-gutter-sm q-pr-sm">
                   <q-btn
-                    class="sm-font-size"
+                    class="sm-font-size button button-text-primary"
                     padding="none"
                     flat
                     dense
-                    color="primary"
+                    :class="getDarkModeClass(darkMode)"
                     label="MIN"
                     @click="updateInput(max=false, min=true)"/>
                   <q-btn
-                    class="sm-font-size"
+                    class="sm-font-size button button-text-primary"
                     padding="none"
                     flat
-                    color="primary"
+                    :class="getDarkModeClass(darkMode)"
                     label="MAX"
                     @click="updateInput(max=true, min=false)"/>
                 </div>
               </div>
               <div class="q-pl-sm">
                 <q-btn
-                  class="sm-font-size"
+                  class="sm-font-size button button-text-primary"
                   padding="none"
                   flat
                   no-caps
-                  color="primary"
+                  :class="getDarkModeClass(darkMode)"
                   @click="byFiat = !byFiat">
                   Set amount in {{ byFiat ? 'BCH' : ad.fiat_currency.symbol }}
                 </q-btn>
               </div>
               <div v-if="ad.trade_type === 'BUY'">
                 <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-                <div class="row justify-between no-wrap q-mx-lg sm-font-size bold-text subtext q-pt-sm">
+                <div class="row justify-between no-wrap q-mx-lg text-weight-bold sm-font-size subtext q-pt-sm">
                   <span>Balance:</span>
                   <span class="text-nowrap q-ml-xs">
                     {{ bchBalance }} BCH
@@ -137,7 +143,7 @@
             </div>
 
             <div class="text-center q-pt-sm">
-              <!-- <div class="bold-text" style="font-size: medium;">Average Rating</div>
+              <!-- <div class="text-weight-bold" style="font-size: medium;">Average Rating</div>
               <div class="row justify-center q-py-xs q-pb-sm">
                 <q-rating
                   readonly
@@ -149,7 +155,12 @@
                 />
                 <span class="q-mx-sm" style="font-size: medium;">({{ ad.owner.rating }})</span>
               </div> -->
-              <div class="text-center text-blue-5 md-font-size" @click="openReviews = true"><u>See all Reviews</u></div>
+              <div
+                class="text-center button button-text-primary md-font-size"
+                :class="getDarkModeClass(darkMode)"
+                @click="openReviews = true">
+                <u>See all Reviews</u>
+              </div>
             </div>
           </div>
         </q-scroll-area>
@@ -158,7 +169,7 @@
       <!-- Progress Loader -->
       <div v-else>
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader/>
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
       </div>
 
@@ -195,6 +206,7 @@
         :adsState="'edit'"
         :transactionType="ad.trade_type"
         :selectedAdId="ad.id"
+        @submit="$emit('back')"
       />
     </div>
     <!-- Process Order -->
@@ -220,12 +232,15 @@ import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { createChatSession, checkChatSessionAdmin } from 'src/wallet/ramp/chat'
+import { createChatSession, addChatMembers } from 'src/wallet/ramp/chat'
+import { backend } from 'src/wallet/ramp/backend'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
@@ -298,6 +313,8 @@ export default {
     vm.isloaded = true
   },
   methods: {
+    getDarkModeClass,
+    isNotDefaultTheme,
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
         return parseFloat(tradeAmount)
@@ -318,9 +335,13 @@ export default {
         vm.ad = response.data
         this.amount = this.ad.trade_floor
       } catch (error) {
-        console.log(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          console.error(error)
         }
       }
     },
@@ -335,30 +356,50 @@ export default {
         const temp = this.paymentMethods.map(p => p.id)
         body.payment_methods = temp
       }
-      try {
-        const response = await vm.$axios.post(vm.apiURL + '/order/', body, { headers: vm.authHeaders })
-        console.log('response:', response)
-        vm.order = response.data.order
-        vm.state = 'order-process'
-        vm.createGroupChat(vm.order.id)
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
-    },
-    createGroupChat (orderId) {
-      createChatSession(orderId)
+      backend.post('/ramp-p2p/order/', body, { authorize: true })
         .then(response => {
-          checkChatSessionAdmin(response.data.ref)
-            .then(response => {
-              console.log(response)
-              // if (response.data.is_admin) {
-
-              // }
+          vm.order = response.data.order
+          vm.state = 'order-process'
+          return vm.order.id
+        })
+        .then(orderId => {
+          vm.fetchOrderMembers(orderId)
+            .then(members => {
+              vm.createGroupChat(vm.order.id, members)
             })
         })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
+        })
+    },
+    fetchOrderMembers (orderId) {
+      return new Promise((resolve, reject) => {
+        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
+    createGroupChat (orderId, members) {
+      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+      createChatSession(orderId)
+        .then(chatRef => addChatMembers(chatRef, chatMembers))
+        .catch(console.error)
     },
     formattedCurrency (value, currency = null) {
       if (currency) {
@@ -439,7 +480,6 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-
 .sm-font-size {
   font-size: small;
 }
@@ -450,10 +490,6 @@ export default {
 .lg-font-size {
   font-size: large;
 }
-
-.bold-text {
-  font-weight: bold;
-}
 .buy-color {
   color: rgb(60, 100, 246);
 }
@@ -461,6 +497,6 @@ export default {
   color: #ed5f59;
 }
 .subtext {
-    opacity: .5;
-  }
-  </style>
+  opacity: .5;
+}
+</style>

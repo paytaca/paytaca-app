@@ -1,8 +1,8 @@
 <template>
   <q-dialog ref="dialog" persistent full-width seamless>
-    <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-sm" v-if="!showInfo">
-        <div class="text-subtitle1 q-space q-mt-sm">
+        <div class="text-subtitle2 q-space q-mt-sm">
           {{ $t('TransactionHistory') }}
         </div>
         <q-btn
@@ -10,6 +10,7 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <div v-if="showInfo">
@@ -41,17 +42,17 @@
                   <template v-slot="{ item: transaction, index }">
                     <q-item clickable @click="openShiftInfo(transaction)">
                       <q-item-section>
-                        <div class="col q-pt-none" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                        <div class="col q-pt-none transaction-row" :class="getDarkModeClass(darkMode)">
                           <div class="row">
                             <div class="col col-transaction">
                               <div>
                                 <div class="q-gutter-xs ib-text q-mb-none">
                                   <q-avatar>
-                                    <div style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.deposit.icon"></div>
+                                    <div class="currency-icon" v-html="transaction.shift_info.deposit.icon"></div>
                                   </q-avatar>
                                   <q-icon name="mdi-arrow-right" />
                                   <q-avatar>
-                                    <div style="height: 20px; width: 20px; border-radius: 50%;" v-html="transaction.shift_info.settle.icon"></div>
+                                    <div class="currency-icon" v-html="transaction.shift_info.settle.icon"></div>
                                   </q-avatar>
                                 </div>
                                 <p
@@ -59,11 +60,7 @@
                                   class="q-pt-md q-mb-none transactions-wallet float-right text-right"
                                 >
                                   <div class="text-grey">{{ getAmount(transaction.ramp_type, transaction.shift_info) }} BCH</div>
-                                  <div
-                                    class="subtext text-grey"
-                                    :class="{'pt-label dark': darkMode}"
-                                    style="font-size: 11px; padding-top: 10px;"
-                                  >
+                                  <div class="subtext shift-status text-grey" :class="{'pt-label dark': darkMode}">
                                     {{ transaction.shift_status.toUpperCase() }}
                                   </div>
                                 </p>
@@ -87,7 +84,12 @@
                     </q-item>
                   </template>
                 </q-virtual-scroll>
-                <div class="q-pt-sm" v-if="has_next" style="width: 100%; text-align: center; color: #3b7bf6;">
+                <div
+                  v-if="has_next"
+                  class="q-pt-sm text-center button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  style="width: 100%;"
+                >
                   <p v-if="!loadingNextPage" @click="loadingNextPage = true; getTransactions();">{{ $t('ShowMore') }}</p>
                   <div class="row justify-center q-pt-sm" v-if="loadingNextPage">
                     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
@@ -217,44 +219,36 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-.col-transaction {
-  padding-top: 2px;
-  font-weight: 500;
-}
-.transactions-wallet {
-  color: #4C4F4F;
-}
-.ib-text {
-  display: inline-block;
-}
-
-.subtext {
-  font-size: 11px;
-  color: #4C4F4F;
-  opacity: .5;
-}
-.text-nowrap {
-  white-space: nowrap;
-}
-.text-subtitle1 {
-  font-size: 14px;
-}
-.qr-code-container {
-    padding-left: 28px;
-    padding-right: 28px;
-  }
-.col-qr-code {
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
-  width: 300px;
-  border-radius: 16px;
-  border: 4px solid #ed5f59;
-  padding: 25px 10px 32px 10px;
-  background: white;
-}
-.qr-code-text {
-  font-size: 18px;
-  color: #000;
+  .transaction-row {
+    &.dark {
+      border-bottom: 1px solid grey;
+    }
+    &.light {
+      border-bottom: 1px solid #DAE0E7;
+    }
+    .col-transaction {
+      padding-top: 2px;
+      font-weight: 500;
+    }
+    .ib-text {
+      display: inline-block;
+    }
+    .currency-icon {
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+    }
+    .transactions-wallet {
+      color: #4C4F4F;
+    }
+    .subtext {
+      font-size: 11px;
+      color: #4C4F4F;
+      opacity: .5;
+      &.shift-status {
+        font-size: 11px;
+        padding-top: 10px;
+      }
+    }
   }
 </style>

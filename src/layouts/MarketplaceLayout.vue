@@ -15,7 +15,7 @@
     <div class="row items-center fixed-bottom q-pa-sm footer-panel">
       <q-space/>
       <q-btn
-        color="brandblue"
+        class="button"
         :round="!activeStorefrontCart?.totalItemsCount"
         :rounded="Boolean(activeStorefrontCart?.totalItemsCount)"
         :icon="showCartsDialog ? 'close' : 'shopping_cart'"
@@ -26,7 +26,7 @@
       />
     </div>
     <q-dialog v-model="showCartsDialog" position="bottom">
-      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center no-wrap">
             <div class="text-h5">Cart</div>
@@ -42,7 +42,7 @@
             >
               <div class="row items-center">
                 <div class="ellipsis" style="max-width:10em;">{{ customer?.fullName }}</div>
-                <q-icon name="person"/>
+                <q-icon class="q-pl-xs button button-text-primary" :class="getDarkModeClass(darkMode)" name="person"/>
               </div>
             </q-btn>
           </div>
@@ -136,8 +136,7 @@
               no-caps
               :disable="!activeStorefrontIsActive"
               label="Checkout"
-              color="brandblue"
-              class="full-width"
+              class="full-width button"
               :to="{ name: 'app-marketplace-checkout', query: { cartId: activeStorefrontCart?.id } }"
             />
           </div>
@@ -157,6 +156,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import CartItemFormDialog from 'src/components/marketplace/CartItemFormDialog.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MarketplaceLayout',
@@ -259,9 +259,9 @@ export default {
         $q.dialog({
           title: 'Setup customer info',
           message: 'Update address and other info for faster checkout',
-          ok: { noCaps: true, label: 'Go', color: 'brandblue' },
+          ok: { noCaps: true, label: 'Go', color: 'brandblue', class: 'button' },
           cancel: { noCaps: true, flat: true, label: 'Skip', color: 'grey' },
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         }).onOk(() => {
           $router.push({
             name: 'app-marketplace-customer',
@@ -344,6 +344,9 @@ export default {
       openCartItemDialog,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 }
 </script>
 <style scoped>

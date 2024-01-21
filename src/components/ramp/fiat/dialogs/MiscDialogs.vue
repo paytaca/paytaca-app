@@ -1,7 +1,7 @@
 <template>
   <!-- Generic Dialog -->
   <q-dialog v-model="genericDialog" @before-hide="$emit('back')">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">{{ title }}</div>
       </q-card-section>
@@ -12,14 +12,21 @@
 
       <q-card-actions class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+        <q-btn
+          flat
+          label="Confirm"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          @click="submitData()"
+          v-close-popup
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
   <!-- Create/Edit Payment Method -->
   <q-dialog full-width v-model="createPaymentMethod" @before-hide="$emit('back')">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h5 text-center lg-font-size">Create Payment Method</div>
       </q-card-section>
@@ -33,11 +40,24 @@
             <q-select
               :disable="dialogType === 'addMethodFromAd' || dialogType === 'editPaymentMethod' || paymentTypes.length === 0"
               dense
+              borderless
               filled
               :dark="darkMode"
               v-model="paymentMethod.payment_type"
               :options="paymentTypes"
               option-label="name">
+
+              <template v-slot:option="scope">
+                <q-item
+                  v-bind="scope.itemProps"
+                >
+                  <q-item-section>
+                    <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+                      {{ String(scope.opt.name).toUpperCase() }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
               <!-- <template v-slot:append>
                 <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.payment_type = null"/>&nbsp;
               </template> -->
@@ -94,8 +114,7 @@
               :disable="paymentMethod.account_number === '' || paymentMethod.payment_type === ''"
               rounded
               label="Confirm"
-              color="blue-6"
-              class="q-space text-white full-width"
+              class="q-space text-white full-width button"
               @click="submitData()"
               v-close-popup />
           </div>
@@ -106,9 +125,9 @@
 
   <!-- Add Payment Method Dialog -->
   <q-dialog persistent v-model="addPaymentMethod">
-    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-mx-sm">
-        <div class="bold-text text-center">Select Payment Methods</div>
+        <div class="text-weight-bold text-center">Select Payment Methods</div>
         <div v-if="maxMethodReached" class="subtext text-center" style="font-size: 13px;"><i>Select only up to 5 methods</i></div>
       </q-card-section>
 
@@ -124,21 +143,22 @@
                   <!-- <div class="row"> -->
                     <div class="col ib-text">
                       <span
-                        :class="{'pt-dark-label': darkMode}"
-                        class="q-mb-none"
-                        style="font-size: 10px;">
+                        class="q-mb-none pt-label"
+                        :class="getDarkModeClass(darkMode)"
+                        style="font-size: 10px;"
+                      >
                         {{ option.payment_type.name }}
                       </span><br>
                       <span
-                        :class="{'pt-dark-label': darkMode}"
-                        class="q-mb-none text-uppercase"
-                        style="font-size: 12px;">
+                        class="q-mb-none text-uppercase text-caption pt-label"
+                        :class="getDarkModeClass(darkMode)"
+                      >
                         {{ option.account_name }}
                       </span><br>
                       <span
-                        :class="{'pt-dark-label': darkMode}"
-                        class="q-mb-none text-uppercase"
-                        style="font-size: 12px;">
+                        class="q-mb-none text-uppercase text-caption pt-label"
+                        :class="getDarkModeClass(darkMode)"
+                      >
                         {{ option.account_number }}
                       </span>
                     </div>
@@ -165,14 +185,15 @@
               outline
               rounded
               label='Add new'
-              color="blue-6"
+              class="button button-icon"
+              :class="getDarkModeClass(darkMode)"
               @click="addNewPaymentMethod()"
               style="font-size: 12px;"
               v-close-popup>
             </q-btn>
             <q-btn
               rounded
-              color="blue-6"
+              class="button"
               @click="submitUpdatedPaymentMethods()"
               style="font-size: 12px;"
               v-close-popup>
@@ -192,13 +213,13 @@
 
   <!-- Payment Deletion Confirmation -->
   <q-dialog v-model="confirmDeletePaymentMethod" @before-hide="$emit('back')">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="xm-font-size q-mx-lg">
         <div class="text-center">Delete this Payment Method?</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
-        <span class="lg-font-size bold-text">
+        <span class="lg-font-size text-weight-bold">
           {{ info.payment_type.name}}:
         </span><br>
         <span>
@@ -208,20 +229,27 @@
 
       <q-card-actions class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+        <q-btn
+          flat
+          label="Confirm"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          @click="submitData()"
+          v-close-popup
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
   <!-- Payment Removal Confirmation -->
   <q-dialog persistent v-model="confirmRemovePaymentMethod">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="xm-font-size q-mx-lg">
         <div class="text-center">Remove this Payment Method?</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
-        <span class="lg-font-size bold-text">
+        <span class="lg-font-size text-weight-bold">
           {{ info.payment_type.name}}:
         </span><br>
         <span>
@@ -231,14 +259,21 @@
 
       <q-card-section class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+        <q-btn
+          flat
+          label="Confirm"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          @click="submitData()"
+          v-close-popup
+        />
       </q-card-section>
     </q-card>
   </q-dialog>
 
   <!-- Add Nickname -->
   <q-dialog persistent v-model="editNickname">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center q-my-sm">Set Nickname</div>
         <div class="text-center">
@@ -256,7 +291,15 @@
         <div v-if="!isNameValid" class="xs-font-size q-pt-sm q-pl-xs text-red-6">Please enter nickname</div>
         <q-card-actions class="text-center" align="center">
           <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-          <q-btn :disable="!isNameValid" flat label="Confirm" @click="submitData()" color="blue-6" v-close-popup />
+          <q-btn
+            :disable="!isNameValid"
+            flat
+            label="Confirm"
+            @click="submitData()"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
+            v-close-popup
+          />
         </q-card-actions>
       </q-card-section>
     </q-card>
@@ -264,11 +307,11 @@
 
   <!-- Profile View -->
   <q-dialog persistent v-model="viewProfile">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-center">
         <q-icon size="lg" color="blue-grey-9" name='o_account_circle'/>
 
-        <div class="q-pt-none lg-font-size bold-text">
+        <div class="q-pt-none lg-font-size text-weight-bold">
           {{ $store.getters['global/getRampNickName'].toUpperCase() }}&nbsp; <q-icon size="xs" color="blue-grey-5" name='o_edit'/>
         </div>
 
@@ -280,14 +323,21 @@
 
       <q-card-actions class="text-center" align="center">
         <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
-        <q-btn flat label="Confirm" @click="submitData()" color="blue-6" v-close-popup />
+        <q-btn
+          flat
+          label="Confirm"
+          @click="submitData()"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          v-close-popup
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
   <!-- Appeal Dialog -->
   <q-dialog full-width persistent v-model="submitAppeal">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">Submitting an Appeal&nbsp;&nbsp;<q-icon size="xs" name="info" color="blue-grey-6"/></div>
       </q-card-section>
@@ -306,19 +356,26 @@
 
       <q-card-actions class="q-pt-xs text-center" align="center">
         <q-btn flat label="Cancel" @click="$emit('back')" color="red" v-close-popup />
-        <q-btn flat label="I understand, proceed" @click="submitData()" color="blue-6" v-close-popup />
+        <q-btn
+          flat
+          label="I understand, proceed"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          @click="submitData()"
+          v-close-popup
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
   <!-- Filter orders -->
   <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
-    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
-      <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="q-mt-md text-center bold-text lg-font-size">Filter Orders</div>
+    <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
+      <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter Orders</div>
       <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
-      <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <div class="q-px-lg q-mx-sm">
         <div class="q-pt-md">
-          <div class="sm-font-size bold-text">Ownership</div>
+          <div class="sm-font-size text-weight-bold">Ownership</div>
           <div class="q-pt-xs q-gutter-sm">
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!isFilterAllSelected('ownership')" @click="filterSelectAll('ownership')">All</q-badge>
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Owned</q-badge>
@@ -326,14 +383,14 @@
           </div>
         </div>
         <div class="q-pt-md">
-          <div class="sm-font-size bold-text">Trade Type</div>
+          <div class="sm-font-size text-weight-bold">Trade Type</div>
           <div class="q-pt-xs q-gutter-sm">
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.buy" @click="setOrderFilter('tradeBuy', !orderFilters.tradeType?.buy)">Buy</q-badge>
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.sell" @click="setOrderFilter('tradeSell', !orderFilters.tradeType?.sell)">Sell</q-badge>
           </div>
         </div>
         <div v-if="orderFilters.status" class="q-pt-md">
-          <div class="sm-font-size bold-text">Status</div>
+          <div class="sm-font-size text-weight-bold">Status</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               rounded
@@ -372,7 +429,7 @@
           </div>
         </div>
         <div v-if="orderFilters.payment_types" class="q-pt-md">
-          <div class="sm-font-size bold-text">Payment Type</div>
+          <div class="sm-font-size text-weight-bold">Payment Type</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -395,7 +452,7 @@
           </div>
         </div>
         <div v-if="orderFilters.time_limits" class="q-pt-md">
-          <div class="sm-font-size bold-text">Time Limit</div>
+          <div class="sm-font-size text-weight-bold">Time Limit</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -418,14 +475,14 @@
           </div>
         </div>
         <div v-if="orderFilters.sort_type" class="q-pt-md">
-          <div class="sm-font-size bold-text">Sort Type</div>
+          <div class="sm-font-size text-weight-bold">Sort Type</div>
           <div class="q-pt-xs q-gutter-sm">
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">Ascending</q-badge>
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">Descending</q-badge>
           </div>
         </div>
         <div v-if="orderFilters.sort_by" class="q-pt-md">
-          <div class="sm-font-size bold-text">Sort By</div>
+          <div class="sm-font-size text-weight-bold">Sort By</div>
           <div class="q-pt-xs q-gutter-sm">
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">Created</q-badge>
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">Last Modified</q-badge>
@@ -438,8 +495,8 @@
               rounded
               no-caps
               label='Reset'
-              class="q-space text-white"
-              color="blue-6"
+              class="q-space button button-icon"
+              :class="getDarkModeClass(darkMode)"
               outline
               @click="resetFilters('orders')"
             />
@@ -447,8 +504,7 @@
               rounded
               no-caps
               label='Filter'
-              class="q-space text-white"
-              color="blue-6"
+              class="q-space button"
               @click="submitData()"
               v-close-popup
             />
@@ -460,16 +516,16 @@
 
   <!-- Filter Ads -->
   <q-dialog v-model="filterAd" @before-hide="$emit('back')">
-    <q-card class="br-15" style="width: 90%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
       <div class="q-mt-md q-pl-md">
-        <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
+        <q-icon size="sm" name="close" v-close-popup class="close-button" @click="$emit('back')"/>&nbsp;
       </div>
-      <div :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']" class="text-center bold-text lg-font-size">Filter Ads</div>
+      <div class="text-center text-weight-bold lg-font-size">Filter Ads</div>
       <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
-      <div class="q-px-lg q-mx-sm" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+      <div class="q-px-lg q-mx-sm">
         <div v-if="storeFilters.priceTypes" class="q-pt-md">
-          <div class="sm-font-size bold-text">Price Type</div>
+          <div class="sm-font-size text-weight-bold">Price Type</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               rounded
@@ -490,7 +546,7 @@
           </div>
         </div>
         <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
-          <div class="sm-font-size bold-text">Payment Type</div>
+          <div class="sm-font-size text-weight-bold">Payment Type</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -514,7 +570,7 @@
         </div>
 
         <div v-if="storeFilters.selectedPTL" class="q-pt-md">
-          <div class="sm-font-size bold-text">Time Limit</div>
+          <div class="sm-font-size text-weight-bold">Time Limit</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -538,7 +594,7 @@
         </div>
 
         <div v-if="storeFilters.priceOrder" class="q-pt-md">
-          <div class="sm-font-size bold-text">Price Order</div>
+          <div class="sm-font-size text-weight-bold">Price Order</div>
           <div class="q-pt-xs q-gutter-sm">
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'ascending'" @click="storeFilters.priceOrder = 'ascending'">Ascending</q-badge>
             <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'descending'" @click="storeFilters.priceOrder = 'descending'">Descending</q-badge>
@@ -551,8 +607,8 @@
               rounded
               no-caps
               label='Reset'
-              class="q-space text-white"
-              color="blue-6"
+              class="q-space button button-icon"
+              :class="getDarkModeClass(darkMode)"
               outline
               @click="resetFilters('store')"
             />
@@ -560,8 +616,7 @@
               rounded
               no-caps
               label='Filter'
-              class="q-space text-white"
-              color="blue-6"
+              class="q-space button"
               @click="submitData()"
               v-close-popup
             />
@@ -573,7 +628,7 @@
 
   <!-- Sending Appeal Confirmation Todo-->
   <q-dialog full-width v-model="appeal" @before-hide="$emit('back')">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">Submitting an Appeal</div>
       </q-card-section>
@@ -583,7 +638,7 @@
           The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
         </span><br><br>
         <span class="q-pt-lg">
-          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span class="bold-text">Arbiter</span>.
+          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span class="text-weight-bold">Arbiter</span>.
         </span><br><br>
         <span class="q-pt-lg">
           The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
@@ -592,19 +647,25 @@
 
       <q-card-actions class="q-pt-lg text-center" align="center">
         <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="I understand, proceed" @click="onProceedAppeal()" color="blue-6" v-close-popup />
+        <q-btn
+          flat
+          label="I understand, proceed"
+          class="button"
+          @click="onProceedAppeal()"
+          v-close-popup
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
   <q-dialog full-width persistent v-model="appealForm">
-    <q-card class="br-15" style="width: 70%;" :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black']">
+    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">Appeal Form</div>
       </q-card-section>
       <q-card-section class="q-pt-none">
         <div class="q-mx-md">
-          <div class="sm-font-size bold-text">Type</div>
+          <div class="sm-font-size text-weight-bold">Type</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -614,7 +675,7 @@
               {{ appealType.label }}
             </q-badge>
           </div>
-          <div class="sm-font-size bold-text q-mt-sm">Reasons</div>
+          <div class="sm-font-size text-weight-bold q-mt-sm">Reasons</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -631,7 +692,14 @@
 
       <q-card-actions class="q-pt-lg text-center" align="center">
         <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="Submit" :disable="!selectedAppealType || selectedReasons.length === 0" @click="submitData()" color="blue-6" v-close-popup />
+        <q-btn
+          flat
+          label="Submit"
+          class="button"
+          :disable="!selectedAppealType || selectedReasons.length === 0"
+          @click="submitData()"
+          v-close-popup
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -641,6 +709,7 @@
 import { debounce } from 'quasar'
 import { getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   emits: ['back', 'submit'],
@@ -788,6 +857,7 @@ export default {
     vm.fetchPaymentMethod()
   },
   methods: {
+    getDarkModeClass,
     filterSelectAll (type) {
       const vm = this
       switch (type) {

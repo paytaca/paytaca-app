@@ -6,10 +6,10 @@
       :class="darkMode ? '' : 'text-black'"
       @click="() => openLocationSelector = true"
     >
-      <q-item-section side class="q-pr-xs">
+      <q-item-section side class="q-pr-xs button button-text-primary" :class="getDarkModeClass(darkMode)">
         <q-icon name="location_on" size="1.5rem"/>
       </q-item-section>
-      <q-item-section>
+      <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
         <q-item-label v-if="sessionLocation?.name" caption>{{ sessionLocation?.name }}</q-item-label>
         <!-- <q-item-label v-else caption><i>Set Location</i></q-item-label> -->
         <q-item-label >
@@ -18,7 +18,7 @@
       </q-item-section>
     </q-item>
     <q-dialog v-model="openLocationSelector" position="bottom">
-      <q-card :class="darkMode ? 'text-white pt-dark' : 'text-black'">
+      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">
             Select Location
@@ -27,7 +27,7 @@
           <q-btn
             flat
             icon="close"
-            class="q-r-mx-md"
+            class="q-r-mx-md close-button"
             v-close-popup
           />
         </q-card-section>
@@ -60,30 +60,32 @@
             <div>{{ sessionLocation?.formatted }}</div>
           </div>
         </q-card-section>
-        <div class="row items-center full-width q-mx-md q-mt-md">
-          <q-btn
-            flat no-caps no-wrap
-            padding="sm"
-            size="0.75rem"
-            class="q-space"
-            @click.stop="() => setCurrentLocation()"
-          >
-            <q-icon name="location_on"/>
-            Use current location
-          </q-btn>
-          <q-btn
-            flat no-caps no-wrap
-            padding="sm"
-            size="0.75rem"
-            class="q-space"
-            @click.stop="() => updateDeviceLocation()"
-          >
-            <q-icon name="location_on"/>
-            Select pin location
-          </q-btn>
-        </div>
-        <q-separator inset/>
-        <q-list class="q-mb-md" separator style="max-height:min(20rem, 50vh);overflow:auto;">
+        <q-list class="q-my-md" separator>
+          <div class="row items-center full-width q-mx-md">
+            <q-btn
+              flat no-caps no-wrap
+              padding="sm"
+              size="0.75rem"
+              class="q-space button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
+              @click.stop="() => setCurrentLocation()"
+            >
+              <q-icon name="location_on"/>
+              Use current location
+            </q-btn>
+            <q-btn
+              flat no-caps no-wrap
+              padding="sm"
+              size="0.75rem"
+              class="q-space button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
+              @click.stop="() => updateDeviceLocation()"
+            >
+              <q-icon name="location_on"/>
+              Select pin location
+            </q-btn>
+          </div>
+          <q-separator inset/>
           <q-item
             v-for="location in customerLocations" :key="location?.id"
             clickable v-ripple
@@ -129,6 +131,7 @@ import { useStore } from "vuex";
 import { ref, computed } from "vue";
 import PinLocationDialog from "src/components/PinLocationDialog.vue";
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -180,7 +183,7 @@ function setCurrentLocation(opts={ keepSelectorOpen: false, hideDialogOnError: f
     color: 'brandblue',
     progress: true,
     persistent: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     ok: false,
     cancel: false,
   })
@@ -212,7 +215,7 @@ function setDeviceLocation(data, opts={ dialogTitle: '', keepSelectorOpen: false
   const dialog = $q.dialog({
     title: opts?.dialogTitle || 'Pin location',
     color: 'brandblue',
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   if (Number.isNaN(data?.lat) || Number.isNaN(data?.lng)) {
     dialog.update({ message: 'Invalid pin location' })
