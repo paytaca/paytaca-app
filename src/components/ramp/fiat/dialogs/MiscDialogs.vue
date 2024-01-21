@@ -82,9 +82,9 @@
               dense
               filled
               :dark="darkMode"
-              v-model="paymentMethod.account_number">
+              v-model="paymentMethod.account_identifier">
               <template v-slot:append>
-                <q-icon size="xs" name="close" @click="paymentMethod.account_number = ''"/>&nbsp;
+                <q-icon size="xs" name="close" @click="paymentMethod.account_identifier = ''"/>&nbsp;
               </template>
             </q-input>
           </div>
@@ -104,7 +104,7 @@
           </div>
           <div class="col">
             <q-btn
-              :disable="paymentMethod.account_number === '' || paymentMethod.payment_type === ''"
+              :disable="paymentMethod.account_identifier === '' || paymentMethod.payment_type === ''"
               rounded
               label="Confirm"
               color="blue-6"
@@ -152,7 +152,7 @@
                         :class="{'pt-dark-label': darkMode}"
                         class="q-mb-none text-uppercase"
                         style="font-size: 12px;">
-                        {{ option.account_number }}
+                        {{ option.account_identifier }}
                       </span>
                     </div>
                     <div>
@@ -215,7 +215,7 @@
           {{ info.payment_type.name}}:
         </span><br>
         <span>
-          {{ info.account_number }}
+          {{ info.account_identifier }}
         </span>
       </q-card-section>
 
@@ -238,7 +238,7 @@
           {{ info.payment_type.name}}:
         </span><br>
         <span>
-          {{ info.account_number }}
+          {{ info.account_identifier }}
         </span>
       </q-card-section>
 
@@ -708,7 +708,7 @@ export default {
       paymentMethod: {
         payment_type: '',
         account_name: '',
-        account_number: ''
+        account_identifier: ''
 
       },
       ptl: [5, 15, 30, 60, 300, 720, 1440],

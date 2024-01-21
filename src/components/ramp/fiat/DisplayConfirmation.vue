@@ -116,7 +116,7 @@
                 <q-card flat  :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
                   <q-card-section>
                     <!-- <span>{{ method.account_name }}</span><br> -->
-                    <span class="subtext">{{ method.account_number }}</span>
+                    <span class="subtext">{{ method.account_identifier }}</span>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>

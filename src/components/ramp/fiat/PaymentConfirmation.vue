@@ -77,7 +77,7 @@
                             <div class="row">
                               <div class="col">
                                 <div>{{ method.account_name }}</div>
-                                <div>{{ method.account_number }}</div>
+                                <div>{{ method.account_identifier }}</div>
                               </div>
                               <div>
                                 <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
@@ -289,8 +289,8 @@ export default {
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
       }
-      const privateKeyWif = await rampWallet.privkey()
-      vm.data?.escrow.release(privateKeyWif, vm.order.crypto_amount)
+      const keypair = await rampWallet.keypair()
+      vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {
             const txid = result.txInfo.txid

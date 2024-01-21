@@ -137,7 +137,7 @@ export function fetchAds (context, { component = null, params = null, overwrite 
     // Build request headers
     const headers = { ...state.authHeaders }
     headers.Authorization = `Token ${getCookie('token')}`
-
+    console.log('headers:', headers)
     return new Promise((resolve, reject) => {
       axiosInstance.get(apiURL, { params: parameters, headers: headers })
         .then((response) => {

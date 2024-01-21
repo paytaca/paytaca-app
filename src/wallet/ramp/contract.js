@@ -1,5 +1,5 @@
 import escrowSrcCode from 'src/cashscripts/escrow.cash'
-import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
+import { ElectrumNetworkProvider, Contract, SignatureTemplate, HashType, SignatureAlgorithm } from 'cashscript'
 import { compileString } from 'cashc'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
@@ -33,7 +33,10 @@ export class RampContract {
    */
   async initialize () {
     const artifact = compileString(escrowSrcCode)
-    const provider = new ElectrumNetworkProvider(this.network)
+    let provider = new ElectrumNetworkProvider()
+    if (this.network === 'chipnet') {
+      provider = new ElectrumNetworkProvider(this.network)
+    }
 
     const arbiterPkh = this.getPubKeyHash(this.publicKeys.arbiter)
     const buyerPkh = this.getPubKeyHash(this.publicKeys.buyer)
@@ -100,18 +103,17 @@ export class RampContract {
    *    - if output[1] is not the servicer.
    *    - if the output[2] is not the arbiter.
    * @param {string} callerWIF - The WIF of caller (arbiter/seller).
+   * @param {string} callerPubkey - The public key of caller (arbiter/seller).
    * @param {number} amount - The transaction amount in BCH.
    * @returns {result} An object representing the result of the operation.
    */
-  async release (callerWIF, amount) {
+  async release (callerWIF, callerPubkey, amount) {
     let result = {}
     let txInfo
 
     try {
       // generate the signature
-      const keyPair = bchjs.ECPair.fromWIF(callerWIF)
-      const callerPk = bchjs.ECPair.toPublicKey(keyPair)
-      const callerSig = new SignatureTemplate(keyPair)
+      const callerSig = new SignatureTemplate(callerWIF)
 
       // convert amount from BCH to satoshi
       const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
@@ -128,9 +130,10 @@ export class RampContract {
       ]
 
       txInfo = await this.contract.functions
-        .release(callerPk, callerSig, this.hash)
+        .release(callerPubkey, callerSig, this.hash)
         .to(outputs)
         .withHardcodedFee(this.fees.contractFee)
+        .withoutChange()
         .send()
 
       result = {

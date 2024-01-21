@@ -68,7 +68,7 @@
                     <div class="row">
                       <div class="col">
                         <div>{{ method.account_name }}</div>
-                        <div>{{ method.account_number }}</div>
+                        <div>{{ method.account_identifier }}</div>
                       </div>
                       <!-- <div>
                         <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)"/>
