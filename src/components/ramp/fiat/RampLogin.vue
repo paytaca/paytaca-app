@@ -334,7 +334,11 @@ export default {
     checkSecurity (securityType) {
       return new Promise((resolve) => {
         if (this.register) return resolve(true)
-        if (!securityType || securityType === 'biometric') {
+        if (!securityType || securityType === 'pin') {
+          this.showSecurityDialog().then(result => {
+            resolve(result)
+          })
+        } else if (securityType === 'biometric') {
           NativeBiometric.isAvailable()
             .then(() => {
               this.hasBiometric = true
@@ -348,11 +352,6 @@ export default {
                 resolve(result)
               })
             })
-        }
-        if (securityType === 'pin') {
-          this.showSecurityDialog().then(result => {
-            resolve(result)
-          })
         }
       })
     },

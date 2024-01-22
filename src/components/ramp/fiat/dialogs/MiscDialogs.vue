@@ -39,14 +39,11 @@
               v-model="paymentMethod.payment_type"
               :options="paymentTypes"
               option-label="name">
-
               <template v-slot:option="scope">
-                <q-item
-                  v-bind="scope.itemProps"
-                >
+                <q-item v-bind="scope.itemProps">
                   <q-item-section>
                     <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
-                      {{ String(scope.opt.name).toUpperCase() }}
+                      {{ scope.opt.name }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -57,36 +54,41 @@
             </q-select>
           </div>
         </div>
-        <div class="q-mx-lg q-pt-sm">
-          <span class="md-font-size">
-            Account Name
-          </span>
-          <div class="text-center q-pt-sm">
-            <q-input
-              dense
-              filled
-              :dark="darkMode"
-              v-model="paymentMethod.account_name">
-              <template v-slot:append>
-                <q-icon size="xs" name="close" @click="paymentMethod.account_name = ''"/>&nbsp;
-              </template>
-            </q-input>
+        <div v-if="paymentMethod.payment_type">
+          <div class="q-mx-lg q-pt-sm">
+            <span class="md-font-size">
+              Account Name
+            </span>
+            <div class="text-center q-pt-sm">
+              <q-input
+                dense
+                filled
+                :dark="darkMode"
+                v-model="paymentMethod.account_name">
+                <template v-slot:append>
+                  <q-icon size="xs" name="close" @click="paymentMethod.account_name = ''"/>&nbsp;
+                </template>
+              </q-input>
+            </div>
           </div>
-        </div>
-        <div class="q-mx-lg q-pt-sm">
-          <span class="md-font-size">
-            Account Number
-          </span>
-          <div class="text-center q-pt-sm">
-            <q-input
-              dense
-              filled
-              :dark="darkMode"
-              v-model="paymentMethod.account_identifier">
-              <template v-slot:append>
-                <q-icon size="xs" name="close" @click="paymentMethod.account_identifier = ''"/>&nbsp;
-              </template>
-            </q-input>
+          <div class="q-mx-lg q-pt-sm">
+            <span class="md-font-size" v-if="paymentMethod.payment_type.format === 'number'">
+              Account Number
+            </span>
+            <span class="md-font-size" v-if="paymentMethod.payment_type.format === 'email'">
+              Email
+            </span>
+            <div class="text-center q-pt-sm">
+              <q-input
+                dense
+                filled
+                :dark="darkMode"
+                v-model="paymentMethod.account_identifier">
+                <template v-slot:append>
+                  <q-icon size="xs" name="close" @click="paymentMethod.account_identifier = ''"/>&nbsp;
+                </template>
+              </q-input>
+            </div>
           </div>
         </div>
       </div>
