@@ -1208,7 +1208,7 @@ async function findRider(opts={ replaceExisting: false, displayDialog: false }) 
         persistent: true,
         ok: false,
         cancel: false,
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       })
     }
 
@@ -1230,7 +1230,7 @@ async function findRider(opts={ replaceExisting: false, displayDialog: false }) 
         progress: false,
         cancel: { flat: true, noCaps: true, label: 'Cancel', color: 'grey' },
         ok: { flat: true, noCaps: true, label: 'Proceed', color: 'brandblue', class: 'button' },
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       }).onCancel(() => {
         $router.replace({ params: { cartId: undefined } })
         $router.go(-1)
@@ -1553,7 +1553,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     persistent: true,
     ok: false,
     cancel: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
     .then(response => {
@@ -1623,7 +1623,7 @@ async function sendBchPayment() {
     progress: true,
     ok: false,
     cancel: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
@@ -1697,7 +1697,7 @@ async function onLeaveCheckout() {
       persistent: true,
       ok: { color: 'red', label: 'Leave page', noCaps: true, class: 'q-space' },
       cancel: { color: 'grey', label: 'Stay on page', noCaps: true, class: 'q-space' },
-      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
     }).then(() => true).catch(() => false)
     if (!leaveWithPaymentsMade) return leaveWithPaymentsMade
 
@@ -1719,7 +1719,7 @@ async function refundPendingPaymentsPromptBeforeRouteLeave() {
     persistent: true,
     ok: { color: 'brandblue', label: 'Refund', noCaps: true, class: 'q-space button' },
     cancel: { color: 'grey', label: 'Leave page', noCaps: true, class: 'q-space' },
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).then(() => true).catch(() => false)
 
   if (refund) openRefundPaymentsDialog()
@@ -1765,7 +1765,7 @@ async function completeCheckout() {
     progress: true,
     ok: false,
     persistent: true,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   loadingState.value.completing = true
   loadingMsg.value = 'Creating order'

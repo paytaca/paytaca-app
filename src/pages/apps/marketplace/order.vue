@@ -837,7 +837,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     persistent: true,
     ok: false,
     cancel: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   creatingPayment.value = true
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
@@ -905,7 +905,7 @@ async function sendBchPayment() {
     progress: true,
     ok: false,
     cancel: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
@@ -1050,7 +1050,7 @@ function completeOrder() {
     progress: true,
     persistent: true,
     ok: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   completingOrder.value = true
