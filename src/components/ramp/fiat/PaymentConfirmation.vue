@@ -320,7 +320,6 @@ export default {
         vm.$axios.get(url, { headers: vm.authHeaders })
           .then(response => {
             vm.order = response.data
-            console.log('order: ', this.order)
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
 
             if (vm.order.trade_type === 'BUY') {
