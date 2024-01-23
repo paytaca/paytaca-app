@@ -67,6 +67,14 @@ export default {
   },
   methods: {
     getDarkModeClass
+  },
+  mounted () {
+    this.selectedTheme = this.theme || 'default'
+  },
+  watch: {
+    selectedTheme () {
+      this.$store.commit('global/setTheme', this.selectedTheme)
+    }
   }
 }
 </script>
