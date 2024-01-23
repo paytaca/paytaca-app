@@ -230,6 +230,7 @@ export default {
       return walletInfo
     },
     login (securityType) {
+      console.log(securityType)
       const vm = this
       vm.loggingIn = true
       // security check before login
@@ -388,9 +389,6 @@ export default {
           description: ''
         })
           .then(() => {
-            setTimeout(() => {
-              this.login()
-            }, 1000)
             this.securityDialogUp = false
             resolve(true)
           })
