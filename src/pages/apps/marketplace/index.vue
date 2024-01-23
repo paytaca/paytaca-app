@@ -8,7 +8,7 @@
     <HeaderNav title="Marketplace" backnavpath="/apps" class="header-nav" />
 
     <div class="q-mx-sm q-pt-md">
-      <SessionLocationWidget />
+      <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -149,6 +149,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+window.s = $store
 
 const initialized = ref(false)
 function resetPage() {
@@ -166,10 +167,28 @@ onActivated(() => {
   fetchOrders()
 })
 
+const sessionLocationWidget = ref()
 const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
-onMounted(() => {
-  if(!sessionLocation.value?.isDeviceLocation) return
-  updateLocation()
+onMounted(async () => {
+  if (!sessionLocationWidget.value) {
+    if(!sessionLocation.value?.isDeviceLocation && sessionLocation.value?.id) return
+    return updateLocation()
+      .then(() => $store.commit('marketplace/setSelectedSessionLocationId'))
+      .catch(console.error)
+  } else {
+    sessionLocationWidget.value.openLocationSelector = true
+  }
+
+  if(!sessionLocation.value?.isDeviceLocation && sessionLocation.value?.id) return
+
+  setTimeout(async () => {
+    await sessionLocationWidget.value
+      ?.setCurrentLocation?.({ keepSelectorOpen: true, hideDialogOnError: true })
+      ?.catch(console.error)
+    if (!sessionLocation.value?.validCoordinates) {
+      sessionLocationWidget.value?.updateDeviceLocation({ keepSelectorOpen: true })
+    }
+  }, 250)
 })
 const updateLocationPromise = ref()
 async function updateLocation() {

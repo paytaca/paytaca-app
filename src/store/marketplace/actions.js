@@ -16,30 +16,38 @@ const bchjs = new BCHJS()
 export async function updateLocation(context, opts={ maxAge: 86400 * 1000, excludeGeocode: false }) {
   if (opts?.maxAge) {
     const age = Date.now() - context?.state?.location?.timestamp
-    const expired = isNaN(age) || age > opts?.maxAge
+    const expired = Number.isNaN(age) || age > opts?.maxAge
     if (!expired) return Promise.resolve('Device location has not reached max age')
   }
 
-  const permission = await Geolocation.checkPermissions()
-  const granted = permission?.location == 'granted' || permission?.coarseLocation == 'granted'
-  if (!granted) return Promise.reject('No permission')
-  const geolocateOpts = {
-    enableHighAccuracy: permission?.location == 'granted',
-    maximumAge: 30 * 1000,
-    timeout: 10 * 1000,
-  }
+  await geolocationManager.openLocationSettingsIfGpsDisabled().catch(console.error)
+  await geolocationManager.updateGeolocationPermission({ request: true, geolocateOnGrant: false})
 
-  return Geolocation.getCurrentPosition(geolocateOpts)
+  if (geolocationManager.isGpsStatusEnabled.value == false) return Promise.reject('GPS status is not enabled')
+
+  const granted = geolocationManager.permission.value.location || geolocationManager.permission.value.coarseLocation
+  if (!granted) return Promise.reject('No permission')
+
+  return geolocationManager.geolocate()
     .then(response => {
       const locationData = {
         timestamp: response?.timestamp,
-        latitude: response?.coords?.latitude,
-        longitude: response?.coords?.longitude,
+        latitude: response?.position?.latitude,
+        longitude: response?.position?.longitude,
       }
       return locationData
     })
+    .catch(error => {
+      console.error('Update location error', error)
+      return null
+    })
     .then(async (locationData) => {
       if (opts?.excludeGeocode) return locationData
+      const closestLocation = context.getters?.getClosestCustomerLocation?.(locationData, 100)
+      if (closestLocation) return {
+        ...closestLocation.raw,
+        ...locationData,
+      }
       
       const reverseGeocodeData = await geolocationManager.reverseGeocode({
         lat: locationData?.latitude,

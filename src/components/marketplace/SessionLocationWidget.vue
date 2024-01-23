@@ -3,6 +3,7 @@
     <q-item
       dense
       clickable v-ripple
+      :class="darkMode ? '' : 'text-black'"
       @click="() => openLocationSelector = true"
     >
       <q-item-section side class="q-pr-xs button button-text-primary" :class="getDarkModeClass(darkMode)">
@@ -52,7 +53,10 @@
           </div>
 
           <div class="q-mt-sm">
-            <div v-if="sessionLocation?.name" class="text-caption">{{ sessionLocation?.name }}</div>
+            <div v-if="sessionLocation?.name" class="text-caption">
+              {{ sessionLocation?.name }}
+              <template v-if="Number.isFinite(sessionLocation?.id)"> #{{ sessionLocation?.id }}</template>
+            </div>
             <div>{{ sessionLocation?.formatted }}</div>
           </div>
         </q-card-section>
@@ -138,6 +142,7 @@ const sessionLocation = computed(() => $store.getters['marketplace/sessionLocati
 const deviceLocation = computed(() => $store.getters['marketplace/deviceLocation'])
 const customerLocations = computed(() => $store.getters['marketplace/customerLocations'])
 
+
 function showLocationInDialog(location=Location.parse()) {
   $q.dialog({
     component: PinLocationDialog,
@@ -149,11 +154,16 @@ function showLocationInDialog(location=Location.parse()) {
       static: true,
       headerText: location?.name || undefined,
     }
+  }).onOk(() => {
+    if (location?.id) {
+      $store.commit('marketplace/setSelectedSessionLocationId', location?.id)
+      openLocationSelector.value = false
+    }
   })
 }
 
-function updateDeviceLocation() {
-  $q.dialog({
+async function updateDeviceLocation(opts={ dialogTitle: '', keepSelectorOpen: false }) {
+  const data = await dialogPromise({
     component: PinLocationDialog,
     componentProps: {
       initLocation: {
@@ -162,53 +172,84 @@ function updateDeviceLocation() {
       },
       headerText: 'Pin location',
     }
-  }).onOk(data => setDeviceLocation(data))
+  })
+  return setDeviceLocation(data, opts)
 }
 
-function setCurrentLocation() {
+function setCurrentLocation(opts={ keepSelectorOpen: false, hideDialogOnError: false }) {
   const dialog = $q.dialog({
     title: 'Set location',
     message: 'Getting device location & address',
     color: 'brandblue',
     progress: true,
     persistent: true,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`,
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     ok: false,
     cancel: false,
   })
 
-  $store.dispatch('marketplace/updateLocation')
+  return $store.dispatch('marketplace/updateLocation')
     .then(() => {
-      dialog.hide()
+      if (!deviceLocation.value?.validCoordinates) return Promise.reject({ errorMessage: 'Device location invalid' })
+
       $store.commit('marketplace/setSelectedSessionLocationId')
+      dialog.hide()
+      if (!opts?.keepSelectorOpen) openLocationSelector.value = false
     })
     .catch(error => {
       console.error(error)
+      if (opts?.hideDialogOnError) dialog.hide()
+      dialog.update({
+        title: 'Device location error',
+        message: error?.errorMessage || 'Unable to find device location',
+        ok: true,
+      })
+      return Promise.reject(error)
     })
     .finally(() => {
       dialog.update({ progress: false, persistent: false, ok: true })
     })
 }
 
-function setDeviceLocation(data, dialogTitle='Pin location') {
+function setDeviceLocation(data, opts={ dialogTitle: '', keepSelectorOpen: false }) {
   const dialog = $q.dialog({
-    title: dialogTitle,
+    title: opts?.dialogTitle || 'Pin location',
     color: 'brandblue',
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   if (Number.isNaN(data?.lat) || Number.isNaN(data?.lng)) {
-    return dialog.update({ message: 'Invalid pin location' })
+    dialog.update({ message: 'Invalid pin location' })
+    return Promise.reject('Invalid pin location')
   }
   dialog.update({
     message: 'Getting address of pinned location',
     progress: true, ok: false, cancel: false, persistent: true,
   })
-  geolocationManager.reverseGeocode({ lat: data?.lat, lon: data?.lng })
+  const closestLocation = $store.getters['marketplace/getClosestCustomerLocation']?.({
+    latitude: data?.lat, longitude: data?.lng,
+  }, 75)
+
+  let reverseGeocodePromise
+  if (closestLocation) {
+    // dialog doesn't get hidden when there is no delay
+    reverseGeocodePromise = new Promise(resolve => {
+      const parsedLocation = {
+        ...closestLocation,
+        latitude: data?.lat,
+        longitude: data?.lng,
+      }
+      setTimeout(() => resolve(parsedLocation), 750)
+    })
+  } else {
+    reverseGeocodePromise = geolocationManager.reverseGeocode({ lat: data?.lat, lon: data?.lng })
+  }
+
+  return reverseGeocodePromise
     .then(response => {
       $store.commit('marketplace/updateLocationData', response)
       $store.commit('marketplace/setSelectedSessionLocationId')
       dialog.hide()
-      openLocationSelector.value = false
+      if (!opts?.keepSelectorOpen) openLocationSelector.value = false
     })
     .catch(error => {
       console.error(error)
@@ -218,4 +259,17 @@ function setDeviceLocation(data, dialogTitle='Pin location') {
       dialog.update({ progress: false, persistent: false, ok: true })
     })
 }
+
+
+async function dialogPromise(qDialogOptions) {
+  return new Promise((resolve, reject) => {
+    $q.dialog(qDialogOptions).onOk(resolve).onDismiss(reject)
+  })
+}
+
+defineExpose({
+  openLocationSelector,
+  setCurrentLocation,
+  updateDeviceLocation,
+})
 </script>

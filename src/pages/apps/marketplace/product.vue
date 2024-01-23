@@ -1,13 +1,14 @@
 <template>
   <q-pull-to-refresh
-    id="app-container"
-    class="marketplace-container"
-    :class="getDarkModeClass(darkMode)"
+    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
+    :class="{'pt-card-3 dark': darkMode}"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" class="header-nav" />
-
-    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
+    <HeaderNav
+      title="Marketplace"
+      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
+    />
+    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="row items-center">
         <div class="q-space text-h5 q-px-sm">{{ product?.name }}</div>
         <q-chip v-if="available == false" color="grey" text-color="white" class="q-ma-none">
@@ -49,7 +50,6 @@
               v-for="(variant, index) in product?.variants" :key="variant?.id"
               :active="variant === selectedVariant"
               clickable
-              class="product-q-item"
               @click="selectedVariantIndex = index"
             >
               <q-item-section>
@@ -65,10 +65,24 @@
           <template v-else>
             <div class="text-subtitle1 text-center">{{ selectedVariant?.markupPrice }} {{ currency }}</div>
           </template>
+          <q-card
+            v-if="product?.cartOptions?.length"
+            class="q-my-sm pt-card"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-card-section>
+              <div class="text-subtitle1">Options</div>
+              <JSONFormPreview
+                v-model="cartOptionsFormData"
+                v-model:formDataErrors="cartOptionsFormErrors"
+                :schemaData="product?.cartOptions"
+              />
+            </q-card-section>
+          </q-card>
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
-              :disable="!available || !activeStorefrontIsActive"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
               label="Quantity"
               dense outlined
               :dark="darkMode"
@@ -79,9 +93,10 @@
             />
             <q-btn
               v-else
-              :disable="!available || !activeStorefrontIsActive"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
               no-caps label="Add to cart"
-              class="full-width q-mt-md button"
+              color="brandblue"
+              class="full-width q-mt-md"
               @click="addSelectedVariantToCart()"
             />
           </div>
@@ -99,6 +114,7 @@ import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
+import JSONFormPreview from 'src/components/marketplace/JSONFormPreview.vue'
 
 const props = defineProps({
   collectionId: [Number, String],
@@ -139,10 +155,12 @@ const cartItem = computed(() => {
 })
 
 function saveActiveCart() {
+  if (cartOptionsHasErrors.value) return
   $store.dispatch('marketplace/saveCart', activeStorefrontCart.value)
 }
 
 async function addSelectedVariantToCart() {
+  if (cartOptionsHasErrors.value) return
   const cart = activeStorefrontCart.value?.id ? activeStorefrontCart.value : Cart.parse({
     storefront_id: product.value?.storefrontId,
     customer: {
@@ -151,7 +169,13 @@ async function addSelectedVariantToCart() {
     items: [],
   })
   if (!cart.items.some(item => item?.variant?.id === selectedVariant.value.id)) {
-    cart.items.push({ variant: selectedVariant.value, quantity: 1 }) 
+    cart.items.push({
+      variant: selectedVariant.value, quantity: 1,
+      properties: {
+        schema: product.value?.cartOptions,
+        data: cartOptionsFormData.value,
+      },
+    })
   }
   $store.dispatch('marketplace/saveCart', cart)
 }
@@ -210,6 +234,36 @@ function selectVariantFromProps() {
   const index = product.value.variants.findIndex(variant => variant?.id == props.variantId)
   selectedVariantIndex.value = Math.max(index, 0)
 }
+
+function serializeCartOptionsData(data) {
+  try { return JSON.stringify(data) } catch {}
+}
+watch(() => [product.value?.cartOptions], () => resetCartOptionsFormData(), { deep: true })
+watch(cartItem, () => resetCartOptionsFormData())
+const cartOptionsFormData = ref(cartItem.value?.properties?.data || {})
+watch(cartOptionsFormData, () => {
+  if (!cartItem.value) return
+  const serializedCartOptions = serializeCartOptionsData(cartItem.value.properties?.data)
+  const serializedFormCartOptions = serializeCartOptionsData(cartOptionsFormData.value)
+  if (serializedCartOptions === serializedFormCartOptions) return
+  if (cartOptionsHasErrors.value) return
+
+  cartItem.value.properties = {
+    schema: product.value?.cartOptions,
+    data: cartOptionsFormData.value,
+  }
+
+  console.log('saving')
+  saveActiveCart()
+}, { flush: 'post' })
+function resetCartOptionsFormData() {
+  cartOptionsFormData.value = cartItem.value?.properties?.data || {}
+}
+
+const cartOptionsFormErrors = ref([])
+const cartOptionsHasErrors = computed(() => Boolean(cartOptionsFormErrors.value?.length))
+watch(() => [product.value?.cartOptions], () => cartOptionsFormErrors.value=[], { deep: true })
+
 
 function openImage(img, title) {
   if (!img) return
