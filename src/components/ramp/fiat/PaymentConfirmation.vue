@@ -321,9 +321,17 @@ export default {
           .then(response => {
             vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-            vm.paymentMethods = vm.order.ad.payment_methods.map(method => {
-              return { ...method, selected: false }
-            })
+
+            if (vm.order.trade_type === 'BUY') {
+              vm.paymentMethods = vm.order.ad.payment_methods.map(method => {
+                return { ...method, selected: false }
+              })
+            } else {
+              vm.paymentMethods = vm.order.payment_methods.map(method => {
+                return { ...method, selected: false }
+              })
+            }
+
             resolve(response)
           })
           .catch(error => {
