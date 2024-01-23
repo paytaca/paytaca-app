@@ -207,11 +207,7 @@
               <div class="row q=mt-md" v-if="steps === totalSteps">
                 <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
                 <template v-else>
-<<<<<<< HEAD
                   <q-btn v-if="showMnemonicTest" class="full-width q-mt-md button" @click="confirmSkipVerification" no-caps rounded>
-=======
-                  <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
->>>>>>> master
                     {{ $t('SkipVerification') }}
                   </q-btn>
                   <q-btn v-else rounded :label="$t('Continue')" class="full-width button" @click="showMnemonicTest = true"/>
