@@ -50,7 +50,8 @@ export async function updateMerchantInfo(context, data) {
     primary_contact_number: data?.primaryContactNumber,
   }
 
-  const wallet = await loadWallet('BCH')
+  const currentWalletIndex = context.rootGetters['global/getWalletIndex']
+  const wallet = await loadWallet('BCH', currentWalletIndex)
   const receivingPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/0'", true)
   const signerPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/1'", true)
   const receiving_pubkey = receivingPubkeys.receiving

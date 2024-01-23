@@ -97,7 +97,6 @@
 				0D21833CE393017B1F8D5488 /* Pods-App.debug.xcconfig */,
 				CFB4C42D60BF2C75DE545871 /* Pods-App.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -364,12 +363,20 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+<<<<<<< HEAD
 				CURRENT_PROJECT_VERSION = 99;
+=======
+				CURRENT_PROJECT_VERSION = 103;
+>>>>>>> master
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+<<<<<<< HEAD
 				MARKETING_VERSION = 0.18.0;
+=======
+				MARKETING_VERSION = 0.17.8;
+>>>>>>> master
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.paytaca.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -386,12 +393,20 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/AppRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+<<<<<<< HEAD
 				CURRENT_PROJECT_VERSION = 99;
+=======
+				CURRENT_PROJECT_VERSION = 103;
+>>>>>>> master
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+<<<<<<< HEAD
 				MARKETING_VERSION = 0.18.0;
+=======
+				MARKETING_VERSION = 0.17.8;
+>>>>>>> master
 				PRODUCT_BUNDLE_IDENTIFIER = com.paytaca.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";

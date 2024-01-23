@@ -1,6 +1,10 @@
 {
   "name": "paytaca",
+<<<<<<< HEAD
   "version": "0.18.0",
+=======
+  "version": "0.17.8",
+>>>>>>> master
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "author": "joemar@paytaca.com",
   "private": true,
