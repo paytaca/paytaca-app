@@ -1,5 +1,5 @@
 import escrowSrcCode from 'src/cashscripts/escrow.cash'
-import { ElectrumNetworkProvider, Contract, SignatureTemplate, HashType, SignatureAlgorithm } from 'cashscript'
+import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
 import { compileString } from 'cashc'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
@@ -34,9 +34,7 @@ export class RampContract {
   async initialize () {
     const artifact = compileString(escrowSrcCode)
     let provider = new ElectrumNetworkProvider()
-    if (this.network === 'chipnet') {
-      provider = new ElectrumNetworkProvider(this.network)
-    }
+    if (this.network === 'chipnet') provider = new ElectrumNetworkProvider(this.network)
 
     const arbiterPkh = this.getPubKeyHash(this.publicKeys.arbiter)
     const buyerPkh = this.getPubKeyHash(this.publicKeys.buyer)
@@ -44,7 +42,6 @@ export class RampContract {
     const servicerPkh = this.getPubKeyHash(this.publicKeys.servicer)
 
     this.hash = this.sha256Hash(arbiterPkh, buyerPkh, sellerPkh, servicerPkh, this.timestamp)
-
     const contractParams = [
       arbiterPkh,
       buyerPkh,
@@ -54,7 +51,6 @@ export class RampContract {
       this.fees.arbitrationFee,
       this.hash
     ]
-
     this.contract = new Contract(artifact, contractParams, provider)
   }
 
@@ -114,10 +110,8 @@ export class RampContract {
     try {
       // generate the signature
       const callerSig = new SignatureTemplate(callerWIF)
-
       // convert amount from BCH to satoshi
       const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
-
       /**
        * output[0]: {to: `buyer address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
@@ -133,7 +127,6 @@ export class RampContract {
         .release(callerPubkey, callerSig, this.hash)
         .to(outputs)
         .withHardcodedFee(this.fees.contractFee)
-        .withoutChange()
         .send()
 
       result = {
@@ -169,17 +162,9 @@ export class RampContract {
 
     try {
       // generate arbiter signature
-      const keyPair = bchjs.ECPair.fromWIF(callerWIF)
-      const arbiterSig = new SignatureTemplate(keyPair)
-
+      const arbiterSig = new SignatureTemplate(callerWIF)
       // convert amount from BCH to satoshi
       const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
-
-      console.log('sending to:')
-      console.log(`${satoshiAmount} to recipient: ${this.addresses.seller}`)
-      console.log(`${this.fees.serviceFee} to servicer: ${this.addresses.servicer}`)
-      console.log(`${this.fees.arbitrationFee} to arbiter: ${this.addresses.arbiter}`)
-
       /**
        * output[0]: {to: `seller address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
