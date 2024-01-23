@@ -3,7 +3,7 @@
     :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
     :style="`height: ${ minHeight }px;`" v-if="state === 'form'">
     <q-pull-to-refresh
-      @refresh="refreshData">
+      @refresh="$emit('refresh')">
       <div v-if="loading">
         <!-- Progress Loader -->
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -230,7 +230,7 @@
       right: 0,
       zIndex: 1500,
     }"
-    @ok="confirmAction"
+    @ok="onSubmit"
     @cancel="onSecurityCancel"
     text="Swipe To Confirm"
   />
@@ -241,16 +241,18 @@ import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import AdSnapshot from './AdSnapshot.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
+import { rampWallet } from 'src/wallet/ramp/wallet'
 
 export default {
   data () {
     return {
+      isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: null,
       tab: 'status',
-      appeal: null,
       order: null,
       ad_snapshot: null,
       contract: null,
@@ -272,10 +274,10 @@ export default {
     }
   },
   props: {
-    appealInfo: Object,
-    rampContract: Object
+    data: Object,
+    escrowContract: Object
   },
-  emits: ['back', 'submit'],
+  emits: ['back', 'refresh', 'success'],
   components: {
     RampDragSlide,
     AdSnapshot,
@@ -293,41 +295,137 @@ export default {
     }
   },
   async mounted () {
-    this.fetchAppealDetail()
-    this.contractBalance = await this.rampContract.getBalance()
+    this.loadData()
+    this.fetchContractBalance()
   },
   methods: {
-    fetchAppealDetail (done) {
+    loadData () {
       const vm = this
-      const url = vm.apiURL + '/order/' + vm.appealInfo.order.id + '/appeal'
-      vm.$axios.get(url, { headers: vm.authHeaders })
-        .then(response => {
-          vm.appeal = response.data.appeal
-          vm.order = response.data.order
-          vm.ad_snapshot = response.data.ad_snapshot
-          vm.statusHistory = response.data.statuses
-          vm.transactionHistory = response.data.transactions
-          vm.contract = response.data.contract
-          vm.fees = response.data.fees
-          if (!vm.appeal.resolved_at) {
-            vm.showDragSlide = true
-          }
-          vm.loading = false
-          if (done) done()
-        })
-        .catch(error => {
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-          this.loading = false
-          if (done) done()
-        })
+      vm.appeal = vm.data?.appeal
+      vm.order = vm.data?.order
+      vm.ad_snapshot = vm.data?.ad_snapshot
+      vm.statusHistory = vm.data?.statuses
+      vm.transactionHistory = vm.data?.transactions
+      vm.contract = vm.data?.contract
+      vm.fees = vm.data?.fees
+      vm.loading = false
+      vm.showDragSlide = true
     },
-    async confirmAction () {
-      this.showDragSlide = false
-      this.dragSlideKey++
-      this.$emit('submit', this.selectedAction, this.order.crypto_amount)
+    fetchContractBalance () {
+      return new Promise((resolve, reject) => {
+        if (!this.escrowContract) return 0
+        this.escrowContract?.getBalance()
+          .then(balance => {
+            this.contractBalance = balance
+            resolve(balance)
+          })
+          .catch(error => reject(error))
+      })
+    },
+    async onSubmit () {
+      const vm = this
+      vm.showDragSlide = false
+      if (vm.selectedAction === 'release') {
+        vm.releaseBch().then(txid => {
+          const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-release`
+          backend.post(url, {}, { authorize: true })
+            .then(response => {
+              console.log(response.data)
+              vm.$emit('success', txid)
+            })
+            .catch(error => {
+              console.error(error.response)
+              if (error.response && error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            })
+        })
+      }
+      if (vm.selectedAction === 'refund') {
+        vm.refundBch().then(txid => {
+          const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-refund`
+          backend.post(url, {}, { authorize: true })
+            .then(response => {
+              console.log(response.data)
+              vm.$emit('success', txid)
+            })
+            .catch(error => {
+              console.error(error.response)
+              if (error.response && error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            })
+        })
+      }
+    },
+    releaseBch () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        if (!vm.escrowContract) reject('escrow contract is null')
+        rampWallet.keypair().then(keypair => {
+          vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.crypto_amount)
+            .then(result => {
+              console.log(result)
+              if (result.success) {
+                const txid = result.txInfo.txid
+                const txidData = {
+                  id: vm.order.id,
+                  txidInfo: {
+                    action: 'RELEASE',
+                    txid: txid
+                  }
+                }
+                vm.$store.commit('ramp/saveTxid', txidData)
+                vm.$emit('verify-release', txid)
+                resolve(txid)
+              } else {
+                vm.sendErrors = [result.reason]
+                vm.sendingBch = false
+                vm.showDragSlide = true
+                reject(vm.sendErrors)
+              }
+            })
+            .catch(error => {
+              console.error(error)
+              reject(error)
+            })
+        })
+      })
+    },
+    refundBch () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        if (!vm.escrowContract) reject('escrow contract is null')
+        rampWallet.privkey().then(privateKeyWif => {
+          vm.escrowContract.refund(privateKeyWif, this.order.crypto_amount)
+            .then(result => {
+              console.log(result)
+              if (result.success) {
+                const txid = result.txInfo.txid
+                const txidData = {
+                  id: vm.order.id,
+                  txidInfo: {
+                    action: 'REFUND',
+                    txid: txid
+                  }
+                }
+                vm.$store.commit('ramp/saveTxid', txidData)
+                vm.$emit('verify-release', txid)
+                resolve(txid)
+              } else {
+                vm.sendErrors = [result.reason]
+                vm.sendingBch = false
+                vm.showDragSlide = true
+                reject(vm.sendErrors)
+              }
+              resolve(result)
+            })
+            .catch(error => {
+              console.error(error)
+              reject(error)
+            })
+        })
+      })
     },
     onSecurityCancel () {
       this.showDragSlide = true
@@ -340,8 +438,8 @@ export default {
         this.selectedAction = type
       }
     },
-    refreshData (done) {
-      this.fetchAppealDetail(done)
+    refreshData () {
+      this.$emit('refresh')
     },
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type.name)

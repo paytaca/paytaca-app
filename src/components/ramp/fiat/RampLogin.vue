@@ -212,13 +212,14 @@ export default {
     loadWallet () {
       const vm = this
       const wallet = vm.$store.getters['global/getWallet']('bch')
-      rampWallet.pubkey().then(pubkey => {
-        const body = {
-          address: rampWallet.address,
-          public_key: pubkey
-        }
-        vm.savePubkeyAndAddress(body)
-      })
+      // TODO: needs backend changes
+      // rampWallet.pubkey().then(pubkey => {
+      //   const body = {
+      //     address: rampWallet.address,
+      //     public_key: pubkey
+      //   }
+      //   vm.savePubkeyAndAddress(body)
+      // })
       const walletInfo = {
         walletHash: wallet.walletHash,
         connectedAddressIndex: wallet.connectedAddressIndex,
