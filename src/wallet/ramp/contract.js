@@ -110,10 +110,8 @@ export class RampContract {
     try {
       // generate the signature
       const callerSig = new SignatureTemplate(callerWIF)
-
       // convert amount from BCH to satoshi
       const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
-
       /**
        * output[0]: {to: `buyer address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
@@ -129,7 +127,6 @@ export class RampContract {
         .release(callerPubkey, callerSig, this.hash)
         .to(outputs)
         .withHardcodedFee(this.fees.contractFee)
-        .withoutChange()
         .send()
 
       result = {
@@ -165,17 +162,9 @@ export class RampContract {
 
     try {
       // generate arbiter signature
-      const keyPair = bchjs.ECPair.fromWIF(callerWIF)
-      const arbiterSig = new SignatureTemplate(keyPair)
-
+      const arbiterSig = new SignatureTemplate(callerWIF)
       // convert amount from BCH to satoshi
       const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
-
-      console.log('sending to:')
-      console.log(`${satoshiAmount} to recipient: ${this.addresses.seller}`)
-      console.log(`${this.fees.serviceFee} to servicer: ${this.addresses.servicer}`)
-      console.log(`${this.fees.arbitrationFee} to arbiter: ${this.addresses.arbiter}`)
-
       /**
        * output[0]: {to: `seller address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
