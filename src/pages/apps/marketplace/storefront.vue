@@ -10,11 +10,32 @@
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-px-xs q-mb-md">
         <div class="text-h5 q-mr-xs">{{ storefront?.name }}</div>
-        <q-chip v-if="!storefront?.active" color="grey" class="q-ma-none text-weight-medium">Inactive</q-chip>
-        <q-chip v-if="!storefront?.isOpen" color="grey" class="q-ma-none text-weight-medium">Closed</q-chip>
-        <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="col-12">
-          {{ storefront?.openingTimeText }}
-        </div>
+        <template v-if="storefront?.id">
+          <q-icon
+            size="1.25rem"
+            name="circle"
+            :color="isRecentlyActive() ? 'green' : 'grey'"
+          >
+            <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+              <template v-if="!isRecentlyActive()">
+                <template v-if="storefrontLiveness?.latest">
+                  Online {{ formatDateRelative(storefrontLiveness?.latest) }}
+                </template>
+                <template v-else>
+                  Offline for more than 1 day ago
+                </template>
+              </template>
+              <template v-else>
+                Online
+              </template>
+            </q-menu>
+          </q-icon>
+          <q-chip v-if="!storefront?.active" color="grey" class="q-ma-none text-weight-medium">Inactive</q-chip>
+          <q-chip v-if="!storefront?.isOpen" color="grey" class="q-ma-none text-weight-medium">Closed</q-chip>
+          <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="col-12">
+            {{ storefront?.openingTimeText }}
+          </div>
+        </template>
       </div>
       <div class="row items-center justify-center">
         <q-spinner v-if="!initialized && fetchingStorefront" size="4em" color="brandblue"/>
@@ -152,8 +173,9 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
+import { formatDateRelative } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onActivated } from 'vue'
+import { ref, computed, watch, onMounted, onActivated, onDeactivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -205,6 +227,41 @@ function fetchStorefront() {
       fetchingStorefront.value = false
     })
 }
+
+const storefrontLiveness = ref({
+  latest: [].map(() => new Date())[0],
+  count: 0,
+  data: [].map(() => Object({ userId: 0, timestamp: new Date() }))
+})
+const livenessUpdateIntervalId = ref()
+onActivated(() => {
+  clearInterval(livenessUpdateIntervalId.value)
+  livenessUpdateIntervalId.value = setInterval(() => updateLivenessStatus(), 120 * 1000)
+  updateLivenessStatus()
+})
+onDeactivated(() => clearInterval(livenessUpdateIntervalId.value))
+function isRecentlyActive() {
+  const diff = Date.now() - storefrontLiveness.value.latest
+  return diff < 3600 * 1000
+}
+function updateLivenessStatus() {
+  return backend.get(`connecta/storefronts/${props.storefrontId}/shop_liveness/`)
+    .then(response => {
+      const data = response?.data
+      storefrontLiveness.value = {
+        latest: data?.latest && new Date(data?.latest),
+        count: data?.count,
+        data: (Array.isArray(data?.data) ? data?.data : []).map(record => {
+          return {
+            userId: record?.userId,
+            timestamp: record?.timestamp && new Date(record?.timestamp)
+          }
+        })
+      }
+      return response
+    })
+}
+
 
 const expandCollections = ref(true)
 const fetchingCollections = ref(false)
@@ -288,6 +345,7 @@ async function refreshPage(done=() => {}) {
   try {
     await Promise.all([
       fetchStorefront(),
+      updateLivenessStatus(),
       fetchProducts(),
       fetchProductCategories(),
       fetchCollections(),
