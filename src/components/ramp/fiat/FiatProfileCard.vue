@@ -275,7 +275,10 @@ export default {
             ref: rampWallet.walletHash,
             name: response.data.name
           }
-          updateChatIdentity(payload)
+          updateChatIdentity(payload).then(data => {
+            const chatIdentity = data.data
+            vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+          })
           this.processUserData()
         })
         .catch(error => {
