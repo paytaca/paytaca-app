@@ -228,7 +228,6 @@ export default {
       return walletInfo
     },
     login (securityType) {
-      console.log(securityType)
       const vm = this
       vm.loggingIn = true
       // security check before login
@@ -256,10 +255,10 @@ export default {
                       })
                       .then(() => {
                         vm.loadChatIdentity().then(vm.loggingIn = false)
-                        vm.savePubkeyAndAddress({
-                          address: rampWallet.address,
-                          public_key: pubkey
-                        })
+                        // vm.savePubkeyAndAddress({
+                        //   address: rampWallet.address,
+                        //   public_key: pubkey
+                        // })
                       })
                   })
               })
