@@ -369,7 +369,7 @@ async function updateCustomerData() {
         ok: false,
         cancel: false,
         color: 'brandblue',
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       })
       if (redirectRouteOnSave.value) {
         const redirect = () => {

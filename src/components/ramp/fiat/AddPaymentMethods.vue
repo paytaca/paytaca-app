@@ -37,7 +37,7 @@
                         {{ method.account_name }}
                       </div>
                       <div class="subtext text-weight-bold">
-                        {{ method.account_number }}
+                        {{ method.account_identifier }}
                       </div>
                     </div>
                     <div class="text-right q-pt-sm" v-if="type === 'Profile'">
@@ -433,7 +433,7 @@ export default {
       let url = vm.apiURL + '/payment-method/'
       const body = {
         account_name: info.account_name,
-        account_number: info.account_number
+        account_identifier: info.account_identifier
       }
       if (vm.dialogType === 'editPaymentMethod') {
         url = url + vm.selectedMethodIndex

@@ -360,10 +360,7 @@ export default {
       chipnet = JSON.stringify(chipnet)
       chipnet = JSON.parse(chipnet)
 
-      const info = {
-        wallet: wallet,
-        chipnet: chipnet
-      }
+      const info = { wallet, chipnet }
 
       this.$store.commit('global/updateVault', info)
       this.$store.commit('global/updateWalletIndex', this.walletIndex)

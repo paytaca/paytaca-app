@@ -45,6 +45,19 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
+            <template v-if="order.status === 'pending'">
+              <q-separator/>
+              <q-item
+                v-close-popup clickable
+                @click="() => confirmCancelOrder()"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    Cancel order
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
           </q-menu>
         </q-btn>
       </div>
@@ -235,9 +248,13 @@
                         :src="orderItem?.variant?.itemImage"
                         width="35px"
                         ratio="1"
+                        style="min-width:35px;"
                         class="rounded-borders q-mr-xs"
                       />
-                      <div>{{ orderItem?.variant?.itemName }}</div>
+                      <div class="q-space">
+                        <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
+                        <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+                      </div>
                     </div>
                   </q-btn>
                 </td>
@@ -820,7 +837,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     persistent: true,
     ok: false,
     cancel: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   creatingPayment.value = true
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
@@ -888,7 +905,7 @@ async function sendBchPayment() {
     progress: true,
     ok: false,
     cancel: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
@@ -937,7 +954,6 @@ function checkPaymentFundingTx() {
     })
 }
 
-window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 watch(() => [order.value.autoCompleteAtTimestamp, order.value.status], () => runAutoCompleteCountdown())
 onActivated(() => runAutoCompleteCountdown())
 onDeactivated(() => stopAutoCompleteCountdown())
@@ -980,6 +996,48 @@ function stopAutoCompleteCountdown() {
   autoCompleteTimeRemaining.value = 0
 }
 
+function confirmCancelOrder() {
+  $q.dialog({
+    title: 'Cancel order',
+    message: 'Are you sure?',
+    color: 'brandblue',
+    ok: { noCaps: true, label: 'Cancel Order', color: 'red' },
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  }).onOk(() => cancelOrder())
+}
+
+function cancelOrder() {
+ const data = { status: 'cancelled', cancel_reason: 'Customer cancelled' }
+ const dialog = $q.dialog({
+    title: 'Cancelling order',
+    progress: true,
+    persistent: true,
+    color: 'brandblue',
+    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+  })
+
+ return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
+  .then(response => {
+    order.value.raw = response?.data
+    dialog.hide()
+  })
+  .catch(error => {
+    const data = error?.response?.data
+      let errorMessage = errorParser.firstElementOrValue(data?.detail) ||
+                         errorParser.firstElementOrValue(data?.non_field_errors) ||
+                         errorParser.firstElementOrValue(data?.status)
+
+      if (typeof data === 'string' && data.length < 200) errorMessage = data
+      dialog.update({
+        title: 'Unable to cancel order',
+        message: errorMessage || 'An unknown error occurred',
+      })
+  })
+  .finally(() => {
+    dialog.update({ progress: false, persistent: true })
+  })
+}
+
 
 const completingOrder = ref(false)
 const showOrderCompletedPrompt = ref(false)
@@ -992,7 +1050,7 @@ function completeOrder() {
     progress: true,
     persistent: true,
     ok: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   completingOrder.value = true

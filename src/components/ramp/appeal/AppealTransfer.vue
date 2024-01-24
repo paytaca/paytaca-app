@@ -76,16 +76,13 @@
           v-if="!loading && !hideBtn"
           rounded
           :disable="hideBtn"
-          :label=btnLabel
+          label="Retry"
           class="col q-mx-lg q-mb-md q-my-sm button"
           @click="submitAction">
         </q-btn>
         <div v-if="hideBtn && !errorMessage" class="q-mt-md">
           <span v-if="state === 'verifying'">
             <q-spinner class="q-mr-sm"/>Verifying, please wait. <span v-if="waitSeconds">({{ waitSeconds }}s)</span>
-          </span>
-          <span v-if="state === 'sending'">
-            <q-spinner class="q-mr-sm"/>Sending bch, please wait.
           </span>
         </div>
       </div>
@@ -95,7 +92,6 @@
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
-import { rampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -125,22 +121,16 @@ export default {
   },
   emits: ['back'],
   props: {
-    orderId: {
-      type: Number,
-      default: null
-    },
-    amount: String,
-    rampContract: Object,
-    action: String,
-    initState: String,
+    escrowContract: Object,
+    orderId: Number,
     txid: String,
-    errors: Array
+    action: String
   },
   watch: {
     txidLoaded () {
       this.checkTransferStatus()
     },
-    balanceLoaded (value) {
+    balanceLoaded () {
       this.checkTransferStatus()
     }
   },
@@ -165,8 +155,8 @@ export default {
       this.fetchContract()
     },
     fetchContractBalance () {
-      if (!this.rampContract) return 0
-      this.rampContract.getBalance()
+      if (!this.escrowContract) return 0
+      this.escrowContract.getBalance()
         .then(balance => {
           this.contract.balance = balance
           this.balanceLoaded = true
@@ -175,19 +165,12 @@ export default {
     fetchContract () {
       const vm = this
       vm.loading = true
-      backend.get('/ramp-p2p/order/contract', {
-        params: {
-          order_id: vm.orderId
-        },
-        authorize: true
-      })
+      backend.get('/ramp-p2p/order/contract', { params: { order_id: vm.orderId }, authorize: true })
         .then(response => {
           console.log(response.data)
-          const data = response.data
-          vm.contract.address = data.contract.address
-
+          vm.contract = response.data
           if (!vm.transactionId) {
-            const transactions = data.transactions
+            const transactions = response.data.transactions
             const tx = transactions.filter(transaction => transaction.action === vm.action)
             console.log('tx:', tx)
           }
@@ -223,79 +206,25 @@ export default {
           } else {
             console.error(error)
           }
-          this.btnLabel = 'VERIFY TRANSFER'
           vm.hideBtn = false
         })
-    },
-    async release () {
-      const privateKeyWif = await rampWallet.privkey()
-      this.state = 'sending'
-      await this.rampContract.release(privateKeyWif, this.amount)
-        .then(result => {
-          if (result.success) {
-            this.saveTxid(result)
-            this.verify()
-          } else {
-            this.errorMessage = result.reason
-            this.btnLabel = this.action
-            this.hideBtn = false
-          }
-        })
-    },
-    async refund () {
-      const privateKeyWif = await rampWallet.privkey()
-      this.state = 'sending'
-      await this.rampContract.refund(privateKeyWif, this.amount)
-        .then(result => {
-          if (result.success) {
-            this.saveTxid(result)
-            this.verify()
-          } else {
-            this.errorMessage = result.reason
-            this.btnLabel = this.action
-            this.hideBtn = false
-          }
-        })
-    },
-    saveTxid (result) {
-      this.transactionId = result.txInfo?.txid
-      const txidData = {
-        id: this.orderId,
-        txidInfo: {
-          action: this.action,
-          txid: this.transactionId
-        }
-      }
-      this.$store.commit('ramp/saveTxid', txidData)
     },
     submitAction () {
       const vm = this
       vm.hideBtn = true
       vm.errorMessage = null
-      switch (vm.action) {
-        case 'REFUND':
-          this.refund()
-          break
-        case 'RELEASE':
-          this.release()
-          break
-        default:
-          vm.verify()
-          break
-      }
+      vm.verify()
     },
     checkTransferStatus () {
       if (this.balanceLoaded && this.txidLoaded) {
-        if (this.contract.balance === 0) {
-          if (!this.transactionId) {
-            this.disableTxidInput = false
+        if (this.transactionId) {
+          if (this.contract.balance === 0) {
+            this.submitAction()
           }
-          this.state = 'verifying'
-          this.btnLabel = 'VERIFY TRANSFER'
+        }
+        if (!this.transactionId || this.contract.balance > 0) {
+          this.disableTxidInput = false
           this.hideBtn = false
-        } else if (!this.transactionId) {
-          this.errorMessage = 'Failed to retrieve transaction id'
-          this.submitAction()
         }
       }
     },
