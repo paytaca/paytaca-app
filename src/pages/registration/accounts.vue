@@ -252,7 +252,7 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 function countWords(str) {
@@ -316,11 +316,15 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
     }
   },
   methods: {
     isNotDefaultTheme,
     getDarkModeClass,
+    isHongKong,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
         return utils.isValidMnemonic(this.seedPhraseBackup)
@@ -540,9 +544,13 @@ export default {
         vm.pinDialogAction = ''
       }
     },
-    setOpenThemeSelector() {
-      this.openSettings = false
-      this.openThemeSelector = true
+    setOpenThemeSelector () {
+      if (this.isHongKong(this.currentCountry)) {
+        this.choosePreferedSecurity()
+      } else {
+        this.openSettings = false
+        this.openThemeSelector = true
+      }
     }
   },
   async mounted () {
