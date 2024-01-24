@@ -17,7 +17,7 @@
                   val="pin"
                   :label="$t('Pin')"
                   color="pt-radio"
-                  class="full-width pt-label"
+                  class="full-width pt-label security"
                   :class="getDarkModeClass('text-white', 'text-black')"
                 />
               </div>
@@ -27,7 +27,7 @@
                   val="biometric"
                   :label="$t('Biometric')"
                   color="pt-radio"
-                  class="full-width pt-label"
+                  class="full-width pt-label security"
                   :class="getDarkModeClass('text-white', 'text-black')"
                 />
               </div>
@@ -101,7 +101,7 @@ export default {
 .pp-text {
   color: #000 !important;
 }
-.q-radio .q-radio__inner--falsy {
+.security > .q-radio .q-radio__inner--falsy {
   color: white !important;
 }
 </style>
