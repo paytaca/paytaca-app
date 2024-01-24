@@ -1,12 +1,18 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" @show="() => openPinOnShow ? selectCoordinates() : null">
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+  <q-dialog
+    v-model="innerVal"
+    ref="dialogRef"
+    position="bottom"
+    @hide="onDialogHide"
+    @show="() => openPinOnShow ? selectCoordinates() : null"
+  >
+    <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">
             {{ locationObj?.id ? 'Update address' : 'New address' }}
           </div>
-          <q-btn flat icon="close" padding="sm" v-close-popup/>
+          <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <q-form ref="form" @submit="() => saveLocation()">
           <div class="text-subtitle1">Name</div>
@@ -114,7 +120,8 @@
               <q-btn
                 :disable="loading"
                 no-caps flat
-                class="q-space"
+                class="q-space button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 @click="selectCoordinates()"
               >
                 <q-icon name="location_on"/>
@@ -145,8 +152,7 @@
               :loading="loading"
               no-caps
               :label="locationObj?.id ? 'Update' : 'Save'"
-              color="brandblue"
-              class="full-width"
+              class="full-width button"
               type="submit"
             />
           </div>
@@ -162,6 +168,7 @@ import { errorParser, reverseGeocode } from 'src/marketplace/utils'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
 
@@ -258,9 +265,9 @@ export default defineComponent({
           $q.dialog({
             title: 'Resolve address',
             message: 'Auto fill field from pin location?',
-            ok: { color: 'brandblue', },
+            ok: { class: 'button' },
             cancel: { flat: true, color: 'grey' },
-            class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+            class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
           }).onOk(() => reverseGeocodeFormData())
         })
     }
@@ -382,5 +389,8 @@ export default defineComponent({
       saveLocation,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>

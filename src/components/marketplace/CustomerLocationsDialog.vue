@@ -1,10 +1,10 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pb-none">
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">Addresses</div>
-          <q-btn flat icon="close" padding="sm" v-close-popup/>
+          <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <div class="row">
           <q-space/>
@@ -12,6 +12,7 @@
             icon="add"
             no-caps label="Add new address"
             padding="2px md"
+            class="button"
             @click="() => editLocation()"
           />
         </div>
@@ -65,6 +66,7 @@ import { Location } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, ref, watch } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import CustomerLocationFormDialog from 'src/components/marketplace/CustomerLocationFormDialog.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
@@ -109,7 +111,7 @@ export default defineComponent({
         message: 'Are you sure?',
         ok: { color: 'red', noCaps: true, label: 'Delete', outlined: true },
         cancel: { flat: true, color: 'grey', noCaps: true },
-        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
       }).onOk(() => deleteLocation(locationId))
     }
 
@@ -119,7 +121,7 @@ export default defineComponent({
         progress: true,
         ok: false,
         cancel: false,
-        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
       })
 
       return $store.dispatch('marketplace/deleteCustomerLocation', locationId)
@@ -152,5 +154,8 @@ export default defineComponent({
       showLocationInDialog,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>

@@ -1,7 +1,7 @@
 <template>
   <div
-    class="br-15 q-pt-sm q-mx-md"
-    :class="[ darkMode ? 'text-white' : 'text-black',]"
+    class="br-15 q-pt-sm q-mx-md text-bow"
+    :class="getDarkModeClass(darkMode)"
     v-if="isloaded"
   >
     <div>
@@ -9,12 +9,14 @@
         flat
         padding="md"
         icon="arrow_back"
+        class="button button-text-primary"
+        :class="getDarkModeClass(darkMode)"
         @click="$emit('retry')"
       />
     </div>
     <div v-if="!sendBCH">
       <div v-if="!shiftExpired">
-        <div class="text-center justify-center text-h5" style="font-size:20px;">
+        <div class="text-center justify-center text-h6">
           Please send exactly <br><b style="letter-spacing: 1px;">{{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }} ({{ getNetwork(shiftInfo) }})</b> to...
         </div>
 
@@ -23,7 +25,7 @@
             <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
-                  <div style="height: 60px; width: 60px; border-radius: 50%;" v-html="shiftInfo.shift_info.deposit.icon" class="receive-icon-asset"></div>
+                  <div v-html="shiftInfo.shift_info.deposit.icon" class="receive-icon-asset"></div>
                   <qr-code :text="depositAddress" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
@@ -31,11 +33,11 @@
           </div>
         </div>
         <div class="row">
-          <div class="col" style="padding: 20px 40px 0px 40px; overflow-wrap: break-word;"  @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
+          <div class="col copy-address-container"  @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
             <span class="qr-code-text text-weight-light text-center">
-              <div style="letter-spacing: 1px" :class="darkMode ? 'text-white' : 'pp-text'">
+              <div style="letter-spacing: 1px" class="pt-label" :class="getDarkModeClass(darkMode)">
                 {{ shiftInfo.shift_info.deposit.address }}
-                <p style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
+                <p class="text-caption" style="margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
               </div>
             </span>
           </div>
@@ -58,7 +60,7 @@
     </div>
     <div v-if="sendBCH">
       <div v-if="processing">
-        <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
+        <div class="text-center text-h5 q-px-lg send-bch-messages">
           Sending <b>{{ shiftInfo.shift_info.deposit.amount }}</b> BCH to <b>{{ shiftInfo.shift_info.settle.address }}</b>
         </div>
         <div class="row justify-center q-py-lg">
@@ -66,7 +68,7 @@
         </div>
       </div>
       <div v-if="!sendFailed && !processing">
-        <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
+        <div class="text-center text-h5 q-px-lg send-bch-messages">
           <b>{{ shiftInfo.shift_info.deposit.amount }} BCH</b> Sent!
         </div>
         <div class="q-pt-lg text-center">
@@ -74,7 +76,7 @@
         </div>
       </div>
       <div v-if="sendFailed && !processing">
-        <div class="text-center text-h5 q-px-lg" style="margin-top: 100px; font-size: 20px; overflow-wrap: break-word;">
+        <div class="text-center text-h5 q-px-lg send-bch-messages">
           Sorry, failed to send BCH...
         </div>
         <div class="q-pt-lg text-center">
@@ -90,7 +92,7 @@ import { getMnemonic, Wallet } from 'src/wallet'
 // import { getMnemonic, Wallet } from '../../../wallet'
 // import { getMemoedVNodeCall } from '@vue/compiler-core'
 // import { getNetwork } from '@ethersproject/networks'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -129,10 +131,11 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    },
+    }
   },
   methods: {
     isNotDefaultTheme,
+    getDarkModeClass,
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
@@ -246,11 +249,7 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
- .address-text {
-    font-size: 18px;
-    color: #000;
- }
- .qr-code-container {
+  .qr-code-container {
     padding-left: 28px;
     padding-right: 28px;
   }
@@ -274,22 +273,17 @@ export default {
     background: white;
     border-radius: 50%;
     padding: 4px;
+    height: 60px;
+    width: 60px;
+    border-radius: 50%;
   }
-  .text-subtitle1 {
-  font-size: 14px;
-}
-.text-nowrap {
-  white-space: nowrap;
-}
-.pp-text {
-  color: #000 !important;
-}
-.pt-internet-required {
-  text-align: center;
-  width: 100%;
-  font-size: 24px;
-  padding: 30px;
-  color: gray;
-}
+  .copy-address-container {
+    padding: 20px 40px 0px 40px;
+    overflow-wrap: break-word;
+  }
+  .send-bch-messages {
+    margin-top: 100px;
+    font-size: 20px;
+    overflow-wrap: break-word;
+  }
 </style>
-

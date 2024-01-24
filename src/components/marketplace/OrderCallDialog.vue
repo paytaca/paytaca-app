@@ -8,7 +8,7 @@
     persistent
     @hide="onDialogHide"
   >
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">Call</div>
@@ -27,7 +27,7 @@
             />
             <q-space/>
             <div class="text-right">
-              <q-menu v-if="debugMode" :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
+              <q-menu v-if="debugMode" class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
                 <div>StreamID: {{ manager?.localStream?.id }}</div>
                 <div>AudioTrackIDs: {{  manager?.localStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
                 <div>VideoTrackIDs: {{  manager?.localStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
@@ -148,7 +148,7 @@
                 <div v-if="member.name">{{ member.name }}</div>
                 <div v-else >#{{ member.id }}</div>
 
-                <q-menu v-if="debugMode" :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
+                <q-menu v-if="debugMode" class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
                   <div>StreamID: {{ member?.mediaStream?.id }}</div>
                   <div>AudioTrackIDs: {{  member?.mediaStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
                   <div>VideoTrackIDs: {{  member?.mediaStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
@@ -208,8 +208,7 @@
               :disable="fetchingSession || creatingSession"
               :loading="fetchingSession || creatingSession"
               no-caps label="Join call"
-              color="brandblue"
-              class="q-space"
+              class="q-space button"
               @click="() => prepareAndStartCall({ create: false })"
             />
           </template>
@@ -225,8 +224,7 @@
               :disable="fetchingSession || creatingSession"
               :loading="fetchingSession || creatingSession"
               no-caps label="Create call"
-              color="brandblue"
-              class="q-space"
+              class="q-space button"
               @click="() => prepareAndStartCall({ create: true })"
             />
           </template>
@@ -244,6 +242,7 @@ import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'v
 import { WebRtcCallManager } from 'src/marketplace/webrtc'
 import { AVMedia } from 'vue-audio-visual'
 import { errorParser } from 'src/marketplace/utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default defineComponent({
   name: 'OrderCallDialog',
@@ -532,6 +531,9 @@ export default defineComponent({
       hangUp,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>
 <style lang="scss" scoped>

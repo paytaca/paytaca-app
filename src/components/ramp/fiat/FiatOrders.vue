@@ -1,20 +1,45 @@
 <template>
     <q-card
-      class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg"
-      :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-      :style="`height: ${ minHeight }px;`"
+      class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
+      :class="getDarkModeClass(darkMode)"
+      :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
       v-if="!viewProfile"
     >
       <div v-if="state === 'order-list'">
         <div>
           <!-- <q-pull-to-refresh @refresh="refreshData"> -->
             <div class="row no-wrap items-center q-pa-sm q-pt-md">
-              <div class="col-9 row br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')">
-                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING' }" @click="statusType='ONGOING'">Ongoing</button>
-                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}" @click="statusType='COMPLETED'">Completed</button>
+              <div
+                class="col-9 row br-15 text-center pt-card btn-transaction md-font-size"
+                :class="getDarkModeClass(darkMode)"
+                :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
+              >
+                <button
+                  class="col br-15 btn-custom fiat-tab q-mt-none"
+                  :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
+                  @click="statusType='ONGOING'"
+                >
+                  Ongoing
+                </button>
+                <button
+                  class="col br-15 btn-custom fiat-tab q-mt-none"
+                  :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
+                  @click="statusType='COMPLETED'"
+                >
+                  Completed
+                </button>
               </div>
               <div class="col-auto q-mt-sm q-pr-md">
-                <q-btn unelevated ripple dense size="md" icon="sym_o_filter_list" @click="openFilter()">
+                <q-btn
+                  unelevated
+                  ripple
+                  dense
+                  size="md"
+                  icon="sym_o_filter_list"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="openFilter()"
+                >
                   <q-badge v-if="!defaultFiltersOn" floating color="red"/>
                 </q-btn>
               </div>
@@ -50,17 +75,22 @@
                           <div class="row q-mx-md">
                             <div class="col ib-text">
                               <div
-                                :class="{'pt-dark-label': darkMode}"
-                                class="q-mb-none sm-font-size">
+                                class="q-mb-none pt-label sm-font-size"
+                                :class="getDarkModeClass(darkMode)"
+                              >
                                 ORDER #{{ listing.id }}
                               </div>
                               <!-- <span
-                                :class="{'pt-dark-label': darkMode}"
-                                class="md-font-size"
+                                class=" pt-label md-font-size"
+                                :class="getDarkModeClass(darkMode)"
                                 @click.stop.prevent="viewUserProfile(listing)">
                                 {{ listing.ad.owner.name }} <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
                               </span> -->
-                              <div :class="{'pt-dark-label': darkMode}" class="col-transaction text-uppercase lg-font-size" :style="amountColor(listing.trade_type)">
+                              <div
+                                class="col-transaction text-uppercase pt-label lg-font-size"
+                                :class="getDarkModeClass(darkMode)"
+                                :style="amountColor(listing.trade_type)"
+                              >
                                 {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
                               </div>
                               <div class="sm-font-size">
@@ -77,10 +107,12 @@
                               </span>
                               <div
                                 v-if="listing.expires_at && isExpired(listing.expires_at) && statusType === 'ONGOING'"
-                                class="bold-text subtext md-font-size" style="color: red">
+                                class="text-weight-bold subtext md-font-size" style="color: red">
                                 EXPIRED
                               </div>
-                              <div class="bold-text subtext md-font-size" style=";">{{ listing.status ? listing.status.label : '' }}</div>
+                              <div class="text-weight-bold subtext md-font-size" style=";">
+                                {{ listing.status ? listing.status.label : '' }}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -435,10 +467,6 @@ export default {
 .lg-font-size {
   font-size: large;
 }
-
-.bold-text {
-  font-weight: bold;
-}
 .btn-transaction {
   font-size: 16px;
   background-color: rgb(242, 243, 252);
@@ -480,11 +508,6 @@ export default {
   font-weight: 500;
 }
 .subtext {
-  font-size: 13px;
-  opacity: .5;
-}
-.status-text {
-  font-weight: 500;
   font-size: 13px;
   opacity: .5;
 }

@@ -4,20 +4,23 @@
     @before-hide="$emit('back')"
     position="bottom"
     full-width
-    :class="darkMode ? 'text-white' : 'text-black'">
-    <q-card class="br-15" :style="`max-height: ${maxHeight}px;`">
+    class="text-bow"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" :style="`max-height: ${maxHeight}px;`">
       <q-btn
         flat
         padding="md"
         icon="close"
+        class="close-button"
         @click="$emit('back')"
       />
       <div v-if="isloaded">
         <div class="lg-font-size">
-          <div v-if="reviewList.length !== 0"  class="text-center q-pb-md xm-font-size bold-text">
+          <div v-if="reviewList.length !== 0"  class="text-center q-pb-md xm-font-size text-weight-bold">
             Reviews
           </div>
-          <div v-else class="text-center text-italized bold-text xm-font-size">
+          <div v-else class="text-center text-weight-bold xm-font-size">
             No Reviews Yet
           </div>
         </div>
@@ -36,7 +39,7 @@
               </template>
               <q-item class="q-mx-lg q-pb-sm q-px-md" v-for="(review, index) in reviewList" :key="index">
                 <q-item-section>
-                  <div class="row bold-text md-font-size">{{  review.from_peer.name }}</div>
+                  <div class="row text-weight-bold md-font-size">{{  review.from_peer.name }}</div>
                   <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
                   <div class="row q-py-xs q-pb-sm">
                     <q-rating
@@ -64,6 +67,7 @@
 <script>
 import { ref } from 'vue'
 import { formatDate } from 'src/wallet/ramp'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   setup () {
@@ -120,6 +124,7 @@ export default {
     this.isloaded = true
   },
   methods: {
+    getDarkModeClass,
     loadMoreData (_, done) {
       const vm = this
       if (!vm.hasMoreData) {
@@ -179,9 +184,6 @@ export default {
 }
 </script>
 <style scoped>
-.xs-font-size {
-  font-size: x-small;
-}
 .sm-font-size {
   font-size: small;
 }
@@ -192,10 +194,6 @@ export default {
 .lg-font-size {
   font-size: large;
 }
-.bold-text {
-  font-weight: bold;
-}
-
 .subtext {
   opacity: .5;
 }

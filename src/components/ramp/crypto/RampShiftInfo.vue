@@ -25,7 +25,8 @@
         padding="sm"
         icon="arrow_forward"
         disable
-        :class="[darkMode ? 'text-blue-5' : 'text-blue-9']"
+        class="button button-text-primary"
+        :class="getDarkModeClass(darkMode)"
         style="position: absolute; top: 120px;"
       />
 

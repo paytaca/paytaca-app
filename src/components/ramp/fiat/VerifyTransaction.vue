@@ -1,7 +1,7 @@
 <template>
   <div class="q-pb-md">
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-h5 text-center lg-font-size bold-text">
+      <div class="q-mx-lg text-h5 text-center lg-font-size text-weight-bold">
         <span>VERIFYING TRANSFER</span>
       </div>
       <div class="subtext text-center q-pb-sm md-font-size">ORDER #{{ data?.orderId }}</div>
@@ -48,7 +48,7 @@
             </template>
           </q-input>
           <div v-if="errorMessage" class="q-mx-sm q-my-sm">
-            <q-card flat class="col q-pa-md bg-red-1" :class="[ darkMode ? 'text-white pt-dark-card-1' : 'text-black',]">
+            <q-card flat class="col q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                 <q-icon name="error" left/>
                 Error: {{ errorMessage }}
             </q-card>
@@ -59,8 +59,7 @@
               :loading="loading"
               :disable="disableBtn || !data?.wsConnected"
               label="Retry"
-              color="blue-6"
-              class="col q-mx-lg"
+              class="col q-mx-lg button"
               @click="submitAction">
             </q-btn>
           </div>
@@ -73,6 +72,7 @@
   </div>
 </template>
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 
@@ -122,6 +122,7 @@ export default {
     clearInterval(this.timer)
   },
   methods: {
+    getDarkModeClass,
     loadTransactionId () {
       if (!this.transactionId) {
         this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
@@ -341,10 +342,6 @@ export default {
 
 .lg-font-size {
   font-size: large;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 .subtext {
   opacity: .5;

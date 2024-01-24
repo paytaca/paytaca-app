@@ -1,21 +1,21 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
+    <HeaderNav title="Marketplace" class="header-nav" />
 
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-px-sm">
         <div class="text-h5 q-space">Customer</div>
         <q-btn
           flat
           no-caps
           label="Reset"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
           @click="() => resetFormData()"
         />
       </div>
@@ -64,7 +64,7 @@
         <div class="row items-center q-mb-sm">
           <div class="text-subtitle1">Default Address</div>
           <q-space/>
-          <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
+          <GeolocateBtn @geolocate="position => onGeolocate(position)" />
         </div>
         <div v-if="customer?.id" class="row q-mb-xs">
           <q-space/>
@@ -72,8 +72,8 @@
             flat
             no-caps label="Manager other addresses"
             padding="sm md"
-            class="text-underline q-r-mr-lg"
-            color="brandblue"
+            class="text-underline q-r-mr-lg button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             @click="() => showCustomerLocationsDialog = true"
           />
         </div>
@@ -167,7 +167,8 @@
           <div class="row items-center q-gutter-x-sm q-mt-sm full-width">
             <q-btn
               no-caps flat
-              class="q-space"
+              class="q-space button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
               @click="selectCoordinates()"
             >
               <q-icon name="location_on"/>
@@ -183,6 +184,7 @@
               icon="close"
               padding="xs"
               flat
+              class="close-button"
               @click="() => {
                 formData.defaultLocation.longitude = null
                 formData.defaultLocation.latitude = null
@@ -196,8 +198,7 @@
             no-caps
             label="Save"
             type="submit"
-            color="brandblue"
-            class="full-width"
+            class="full-width button"
           />
         </div>
       </q-form>
@@ -212,6 +213,7 @@ import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
@@ -367,7 +369,7 @@ async function updateCustomerData() {
         ok: false,
         cancel: false,
         color: 'brandblue',
-        class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       })
       if (redirectRouteOnSave.value) {
         const redirect = () => {
@@ -375,7 +377,7 @@ async function updateCustomerData() {
           else if (redirectRouteOnSave.value) $router.push(redirectRouteOnSave.value)
         }
         dialog.update({
-          ok: !props.hideStayOnPageOpt ? { noCaps: true, label: 'Stay on this page' } : false,
+          ok: !props.hideStayOnPageOpt ? { noCaps: true, label: 'Stay on this page', class: 'button' } : false,
           cancel: !props.hideStayOnPageOpt
             ? { noCaps: true, label: 'Return', flat: true, color: 'grey' }
             : { noCaps: true, label: 'Return', color: 'brandblue' },

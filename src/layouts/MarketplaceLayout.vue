@@ -15,7 +15,7 @@
     <div class="row items-center fixed-bottom q-pa-sm footer-panel">
       <q-space/>
       <q-btn
-        color="brandblue"
+        class="button"
         :round="!activeStorefrontCart?.totalItemsCount"
         :rounded="Boolean(activeStorefrontCart?.totalItemsCount)"
         :icon="showCartsDialog ? 'close' : 'shopping_cart'"
@@ -26,7 +26,7 @@
       />
     </div>
     <q-dialog v-model="showCartsDialog" position="bottom">
-      <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center no-wrap">
             <div class="text-h5">Cart</div>
@@ -42,7 +42,7 @@
             >
               <div class="row items-center">
                 <div class="ellipsis" style="max-width:10em;">{{ customer?.fullName }}</div>
-                <q-icon name="person"/>
+                <q-icon class="q-pl-xs button button-text-primary" :class="getDarkModeClass(darkMode)" name="person"/>
               </div>
             </q-btn>
           </div>
@@ -80,18 +80,13 @@
             </div>
             <div
               v-for="cartItem in activeStorefrontCart?.items" :key="`${activeStorefrontCart?.id}-${cartItem?.variant?.id}`"
-              dense
               class="row items-center no-wrap q-px-xs"
             >
               <div class="q-space">
                 <q-btn
                   flat no-caps
                   padding="none"
-                  :to="{
-                    name: 'app-marketplace-product',
-                    params: { productId: cartItem?.variant?.product?.id },
-                    query: { variantId: cartItem?.variant?.id },
-                  }"
+                  @click="() => openCartItemDialog(cartItem)"
                 >
                   <div class="row items-center justify-left no-wrap full-width text-left">
                     <q-img
@@ -99,9 +94,13 @@
                       :src="cartItem?.variant?.itemImage"
                       width="35px"
                       ratio="1"
+                      style="min-width:35px;"
                       class="rounded-borders q-mr-xs"
                     />
-                    <div>{{ cartItem?.variant?.itemName }}</div>
+                    <div class="q-space">
+                      <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
+                      <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                    </div>
                   </div>
                 </q-btn>
               </div>
@@ -137,8 +136,7 @@
               no-caps
               :disable="!activeStorefrontIsActive"
               label="Checkout"
-              color="brandblue"
-              class="full-width"
+              class="full-width button"
               :to="{ name: 'app-marketplace-checkout', query: { cartId: activeStorefrontCart?.id } }"
             />
           </div>
@@ -152,11 +150,13 @@ import { backend, getSignerData } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { updateOrCreateKeypair } from 'src/marketplace/chat'
-import { Cart } from 'src/marketplace/objects'
+import { Cart, CartItem } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import CartItemFormDialog from 'src/components/marketplace/CartItemFormDialog.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MarketplaceLayout',
@@ -217,13 +217,11 @@ export default {
     }
 
     async function subscribePushNotifications(id) {
-      console.log('window.promptedPushNotificationsSettings', window.promptedPushNotificationsSettings)
       if (!window.promptedPushNotificationsSettings) {
         const promptResponse = await promptEnablePushNotificationSetting(
           'Enable notifications to receive updates'
         ).catch(console.error)
         window.promptedPushNotificationsSettings = promptResponse.prompted
-        console.log('promptResponse', promptResponse)
       }
       return marketplacePushNotificationsManager.subscribe(id)
     }
@@ -261,9 +259,9 @@ export default {
         $q.dialog({
           title: 'Setup customer info',
           message: 'Update address and other info for faster checkout',
-          ok: { noCaps: true, label: 'Go', color: 'brandblue' },
+          ok: { noCaps: true, label: 'Go', color: 'brandblue', class: 'button' },
           cancel: { noCaps: true, flat: true, label: 'Skip', color: 'grey' },
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         }).onOk(() => {
           $router.push({
             name: 'app-marketplace-customer',
@@ -313,6 +311,21 @@ export default {
     }, 100))
     watch(() => [customer?.id], () => updateOrCreateKeypair())
 
+    function openCartItemDialog(cartItem=CartItem.parse()) {
+      $q.dialog({
+        component: CartItemFormDialog,
+        componentProps: {
+          cartItem: cartItem,
+          currency: getStorefrontCurrency(activeStorefrontCart.value?.storefrontId)
+        },
+      })
+        .onOk(data => {
+          cartItem.quantity = data.quantity
+          cartItem.properties = data.properties
+          saveCart(activeStorefrontCart.value)
+        })
+    }
+
     return {
       darkMode,
       loadingApp,
@@ -327,8 +340,13 @@ export default {
       activeStorefrontIsActive,
       getStorefrontCurrency,
       saveCart,
+
+      openCartItemDialog,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 }
 </script>
 <style scoped>
@@ -337,5 +355,9 @@ export default {
 }
 .footer-panel * {
   pointer-events: auto;
+}
+.cat-items-list {
+  display: grid;
+  grid-template-columns: max-content min-content auto;
 }
 </style>

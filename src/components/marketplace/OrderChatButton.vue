@@ -6,7 +6,7 @@
         round
         padding="18px"
         icon="message"
-        color="brandblue"
+        class="button"
         @click="() => toggleChatDialog()"
       >
         <q-badge v-if="chatDialog?.chatMember?.unreadCount" floating color="red">

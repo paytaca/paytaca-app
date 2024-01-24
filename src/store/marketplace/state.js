@@ -91,7 +91,10 @@ export default function () {
               image_url: '',
               total_stocks: 0,
               expired_stocks: 0,
-            }
+            },
+            properties: [].map(() => {
+              return { schema: {}, data: {} }
+            })[0],
           }
         })
       }

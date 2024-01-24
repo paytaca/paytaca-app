@@ -1,10 +1,10 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">Payments</div>
-          <q-btn flat icon="close" padding="sm" v-close-popup/>
+          <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <slot name="before"></slot>
         <q-list v-if="payments?.length" class="q-r-mx-md" separator style="max-height:65vh;overflow:auto;">
@@ -28,7 +28,7 @@
             <q-item-section side top style="padding-left:4px;">
               <template v-if="payment?.isEscrow || payment?.canReceive || payment?.canRefund">
                 <q-icon name="more_vert"/>
-                <q-menu :class="['text-left', darkMode ? 'pt-dark' : 'text-black']">
+                <q-menu class="text-left pt-card text-bow" :class="getDarkModeClass(darkMode)">
                   <q-list separator>
                     <!-- <q-item
                       v-if="!payment?.isEscrow && payment?.canReceive"
@@ -88,6 +88,7 @@ import { errorParser, formatDateRelative } from 'src/marketplace/utils'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { capitalize, computed, defineComponent, ref, watch } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dialog.vue'
 
 export default defineComponent({
@@ -189,5 +190,8 @@ export default defineComponent({
       formatDateRelative, capitalize,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>
