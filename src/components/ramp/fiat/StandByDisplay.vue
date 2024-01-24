@@ -8,7 +8,7 @@
         <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
         <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
       </div>
-      <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
+      <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
         <div v-if="data?.order?.status?.value === 'APL'">
           <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
             <q-card-section>
@@ -114,7 +114,7 @@
           </div>
         </div>
         <!-- Feedback -->
-        <div class="q-pt-xs q-mx-md" v-if="data?.order?.status.value === 'RLS'">
+        <div class="q-pt-md q-mx-md" v-if="hasReview">
           <div class="md-font-size text-center">
             <span v-if="!feedbackForm.is_posted">Rate your experience</span>
             <span v-else>Your Review</span>
@@ -266,6 +266,10 @@ export default {
       const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
 
       return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
+    },
+    hasReview () {
+      const stat = ['RLS', 'RFN']
+      return stat.includes(this.data?.order?.status.value)
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']

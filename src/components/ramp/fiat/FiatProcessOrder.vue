@@ -251,8 +251,10 @@ export default {
     if (vm.order.contract) {
       vm.generateContract()
     }
-    vm.fetchAd().then(vm.isloaded = true)
-    vm.fetchFeedback()
+    vm.fetchAd()
+    vm.fetchFeedback().then(() => {
+      vm.isloaded = true
+    })
     this.setupWebsocket(5, 1000)
   },
   beforeUnmount () {
@@ -267,7 +269,6 @@ export default {
       this.paymentConfirmationKey++
     },
     updateStatus (status) {
-      console.log('New status:', status)
       const vm = this
       if (!status || vm.status === status) return
       vm.status = status
@@ -561,6 +562,7 @@ export default {
             comment: data.comment,
             is_posted: true
           }
+          vm.standByDisplayKey++
         })
         .catch(error => {
           if (error.response) {
@@ -575,37 +577,43 @@ export default {
       vm.isloaded = true
     },
     fetchFeedback () {
-      const vm = this
-      const url = '/ramp-p2p/order/feedback/peer'
-      backend.get(url, {
-        params: {
-          limit: 7,
-          page: 1,
-          from_peer: vm.$store.getters['ramp/getUser'].id,
-          order_id: vm.order.id
-        },
-        authorize: true
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const url = '/ramp-p2p/order/feedback/peer'
+        backend.get(url, {
+          params: {
+            limit: 7,
+            page: 1,
+            from_peer: vm.$store.getters['ramp/getUser'].id,
+            order_id: vm.order.id
+          },
+          authorize: true
+        })
+          .then(response => {
+            if (response.data) {
+              const data = response.data.feedbacks[0]
+              if (data) {
+                vm.feedback = {
+                  rating: data.rating,
+                  comment: data.comment,
+                  is_posted: true
+                }
+              }
+              resolve(response.data)
+            }
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
       })
-        .then(response => {
-          if (response.data) {
-            const data = response.data.feedbacks[0]
-            vm.feedback = {
-              rating: data.rating,
-              comment: data.comment,
-              is_posted: true
-            }
-          }
-        })
-        .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-          }
-        })
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
