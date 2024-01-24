@@ -118,7 +118,8 @@ export default {
   props: {
     escrowContract: Object,
     orderId: Number,
-    txid: String
+    txid: String,
+    action: String
   },
   watch: {
     txidLoaded () {

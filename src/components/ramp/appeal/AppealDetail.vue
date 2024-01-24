@@ -253,6 +253,7 @@ export default {
       authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: null,
       tab: 'status',
+      state: 'form',
       order: null,
       ad_snapshot: null,
       contract: null,
@@ -261,7 +262,6 @@ export default {
       statusHistory: [],
       transactionHistory: [],
       loading: true,
-      state: 'form',
       amount: {
         buyer: 1,
         seller: 105500
@@ -275,7 +275,8 @@ export default {
   },
   props: {
     data: Object,
-    escrowContract: Object
+    escrowContract: Object,
+    initstate: String
   },
   emits: ['back', 'refresh', 'success'],
   components: {
@@ -308,8 +309,13 @@ export default {
       vm.transactionHistory = vm.data?.transactions
       vm.contract = vm.data?.contract
       vm.fees = vm.data?.fees
+      if (vm.initstate === 'release-form') {
+        vm.state = 'form'
+        vm.showDragSlide = true
+      } else {
+        vm.showDragSlide = false
+      }
       vm.loading = false
-      vm.showDragSlide = true
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {

@@ -1,22 +1,24 @@
 <template>
   <div v-if="isloaded">
-    <div v-if="(state === 'release-form' || state === 'completed-appeal') && escrowContract">
+    <div v-if="escrowContract && (state === 'release-form' || state === 'completed-appeal')">
       <AppealDetail
         :key="appealDetailKey"
         :data="appealDetailData"
         :escrowContract="escrowContract"
+        :state="state"
         @back="$emit('back')"
         @success="onSendSuccess"
         @refresh="refreshData"
       />
     </div>
 
-    <div v-if="state === 'tx-transfer'">
+    <div v-if="escrowContract && state === 'tx-transfer'">
       <VerifyTransfer
         :key="verifyTransferKey"
+        :escrowContract="escrowContract"
         :orderId="appeal?.order?.id"
         :txid="txid"
-        :escrowContract="escrowContract"
+        :action="selectedAction"
         @back="$emit('back')"
       />
     </div>
@@ -73,14 +75,6 @@ export default {
     AppealDetail,
     VerifyTransfer
   },
-  computed: {
-    verifyTransferData () {
-      return {
-        orderId: this.appeal.order.id,
-        action: this.selectedAction
-      }
-    }
-  },
   async mounted () {
     this.loadData()
     this.setupWebsocket()
@@ -98,7 +92,6 @@ export default {
     },
     loadData () {
       this.appeal = this.selectedAppeal
-      this.updateStatus(this.appeal?.order?.status)
       this.fetchAppeal()
         .then(() => { this.generateContract() })
         .then(this.reloadChildComponents())
@@ -112,10 +105,11 @@ export default {
       return new Promise((resolve, reject) => {
         backend.get(`/ramp-p2p/order/${vm.appeal?.order?.id}/appeal`, { authorize: true })
           .then(response => {
-            vm.appealDetailData = response.data
             vm.appeal = response.data.appeal
             vm.contract = response.data.contract
             vm.fees = response.data.fees
+            vm.appealDetailData = response.data
+            vm.updateStatus(response.data.order?.status)
             vm.loading = false
             if (done) done()
             resolve(response.data)
