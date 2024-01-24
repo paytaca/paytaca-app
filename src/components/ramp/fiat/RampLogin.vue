@@ -280,15 +280,13 @@ export default {
     },
     createRampUser () {
       const timestamp = Date.now()
-      const url = `${this.apiURL}/ramp-p2p/peer/create`
       this.loggingIn = true
       clearAuthCookie()
       rampWallet.signMessage('PEER_CREATE', timestamp)
-        .then((signature) => {
+        .then(signature => {
           rampWallet.pubkey()
             .then((pubkey) => {
               const headers = {
-                'wallet-hash': rampWallet.walletHash,
                 timestamp: timestamp,
                 signature: signature,
                 'public-key': pubkey
@@ -297,11 +295,12 @@ export default {
                 name: this.usernickname,
                 address: this.wallet.address
               }
-              this.$axios.post(url, body, { headers: headers })
+              backend.post('/ramp-p2p/peer/create', body, { headers: headers })
                 .then((response) => {
+                  console.log(response)
                   this.user = response.data
                   this.$store.commit('ramp/updateUser', this.user)
-                  console.log('user:', this.user)
+                  console.log('Created user:', this.user)
                   this.login()
                 })
             })
