@@ -1,5 +1,7 @@
 <template>
-  <div class="row justify-center q-pb-xs text-capitalize text-weight-bold">{{ `${mode} Mode` }}</div>
+  <div class="row justify-center q-pb-xs text-capitalize text-weight-bold">
+    {{ mode === 'light' ? $t('LightMode') : $t('DarkMode') }}
+  </div>
   <body :class="`theme-${theme} preview`">
     <div id="p-app-container" :class="`${mode}`">
       <!-- bch card -->

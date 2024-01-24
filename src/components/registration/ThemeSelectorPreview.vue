@@ -1,10 +1,10 @@
 <template>
   <div class="col">
-    <div class="row justify-center">
-      <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">Set Theme Preference</h5><br/>
+    <div class="row justify-center text-center">
+      <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('ThemePreferenceTitle') }}</h5><br/>
     </div>
-    <div class="row justify-center q-mt-sm dim-text">
-      <p>Adjust theme to fit your native experience</p>
+    <div class="row justify-center q-mt-sm dim-text text-center">
+      <p>{{ $t('ThemePreferenceSubtitle') }}</p>
     </div>
     <div class="row justify-center themes-preview-container">
       <q-card class="full-width pt-card" :class="getDarkModeClass(darkMode)">
@@ -13,7 +13,7 @@
             <q-radio
               v-model="selectedTheme"
               :val="themeElem.value"
-              :label="`${themeElem.label} Theme`"
+              :label="$t('ThemeName', { theme: themeElem.label }, `${themeElem.label} Theme`)"
               class="pt-label"
               :class="getDarkModeClass(darkMode)"
             />
