@@ -52,8 +52,7 @@ export default {
     return {
       selectedTheme: 'default',
       themesList: [
-        { value: 'default', label: this.$t('Default') },
-        { value: 'payhero', label: 'PayHero' }
+        { value: 'default', label: this.$t('Default') }
       ]
     }
   },
