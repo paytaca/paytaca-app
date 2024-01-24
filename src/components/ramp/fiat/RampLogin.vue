@@ -118,12 +118,10 @@ export default {
       const vm = this
       backend.get('/auth/')
         .then(response => {
-          console.log(response.data)
           vm.user = response.data
           vm.usernickname = vm.user?.name
           vm.$store.commit('ramp/updateUser', vm.user)
           vm.$store.dispatch('ramp/loadAuthHeaders')
-
           if (vm.user.is_authenticated) {
             if (getAuthCookie()) {
               vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
@@ -192,9 +190,34 @@ export default {
       }
       return payload
     },
+    savePubkeyAndAddress (payload) {
+      return new Promise((resolve, reject) => {
+        backend.put('/ramp-p2p/peer/detail', payload, { authorize: true })
+          .then(response => {
+            console.log('Updated pubkey and address:', response.data)
+            resolve(response)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error('Failed to update pubkey and address:', error.response)
+            } else {
+              console.error('Failed to update pubkey and address:', error)
+            }
+            reject(error)
+          })
+      })
+    },
     loadWallet () {
       const vm = this
       const wallet = vm.$store.getters['global/getWallet']('bch')
+      // TODO: needs backend changes
+      // rampWallet.pubkey().then(pubkey => {
+      //   const body = {
+      //     address: rampWallet.address,
+      //     public_key: pubkey
+      //   }
+      //   vm.savePubkeyAndAddress(body)
+      // })
       const walletInfo = {
         walletHash: wallet.walletHash,
         connectedAddressIndex: wallet.connectedAddressIndex,
@@ -205,6 +228,7 @@ export default {
       return walletInfo
     },
     login (securityType) {
+      console.log(securityType)
       const vm = this
       vm.loggingIn = true
       // security check before login
@@ -230,7 +254,13 @@ export default {
                         }
                         vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                       })
-                      .then(vm.loadChatIdentity().then(vm.loggingIn = false))
+                      .then(() => {
+                        vm.loadChatIdentity().then(vm.loggingIn = false)
+                        vm.savePubkeyAndAddress({
+                          address: rampWallet.address,
+                          public_key: pubkey
+                        })
+                      })
                   })
               })
               .catch(error => {
@@ -304,7 +334,11 @@ export default {
     checkSecurity (securityType) {
       return new Promise((resolve) => {
         if (this.register) return resolve(true)
-        if (!securityType || securityType === 'biometric') {
+        if (!securityType || securityType === 'pin') {
+          this.showSecurityDialog().then(result => {
+            resolve(result)
+          })
+        } else if (securityType === 'biometric') {
           NativeBiometric.isAvailable()
             .then(() => {
               this.hasBiometric = true
@@ -318,11 +352,6 @@ export default {
                 resolve(result)
               })
             })
-        }
-        if (securityType === 'pin') {
-          this.showSecurityDialog().then(result => {
-            resolve(result)
-          })
         }
       })
     },
@@ -358,9 +387,6 @@ export default {
           description: ''
         })
           .then(() => {
-            setTimeout(() => {
-              this.login()
-            }, 1000)
             this.securityDialogUp = false
             resolve(true)
           })

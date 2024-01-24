@@ -456,29 +456,29 @@ export default {
       this.dialogType = 'filterAd'
     },
     updateFilters () {
-      const vm = this
       return new Promise((resolve, reject) => {
-        vm.fetchPaymentTypes()
-          .then(() => {
-            const getterName = vm.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
-            const savedFilters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
-            let paymentTypes = savedFilters.payment_types
-            if (paymentTypes.length === 0) {
-              paymentTypes = Array.from(vm.defaultFilters.payment_types)
-            }
-            const filters = {
-              owned: false,
-              currency: vm.selectedCurrency.symbol,
-              trade_type: vm.transactionType,
-              payment_types: paymentTypes,
-              time_limits: savedFilters.time_limits,
-              price_order: savedFilters.price_order,
-              price_types: savedFilters.price_types
-            }
-            vm.storeFilters = filters
-            vm.defaultFiltersOn = vm.isdefaultFiltersOn(filters)
-            resolve(filters)
-          })
+        const vm = this
+        vm.fetchPaymentTypes().then(() => {
+          // fetch saved filters
+          const getterName = vm.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
+          const savedFilters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
+          let paymentTypes = savedFilters.payment_types
+          if (paymentTypes.length === 0) {
+            // set default: all payment types selected
+            paymentTypes = Array.from(vm.defaultFilters.payment_types)
+          }
+          vm.storeFilters = {
+            owned: false,
+            currency: vm.selectedCurrency.symbol,
+            trade_type: vm.transactionType,
+            payment_types: paymentTypes,
+            time_limits: savedFilters.time_limits,
+            price_order: savedFilters.price_order,
+            price_types: savedFilters.price_types
+          }
+          vm.defaultFiltersOn = vm.isdefaultFiltersOn(vm.storeFilters)
+          resolve(vm.storeFilters)
+        })
           .catch(error => {
             if (error.response) {
               console.error(error.response)

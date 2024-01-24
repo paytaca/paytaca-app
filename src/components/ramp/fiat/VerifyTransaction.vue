@@ -50,23 +50,21 @@
           <div v-if="errorMessage" class="q-mx-sm q-my-sm">
             <q-card flat class="col q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                 <q-icon name="error" left/>
-                {{ errorMessage }}
+                Error: {{ errorMessage }}
             </q-card>
           </div>
-          <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-md">
+          <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm">
             <q-btn
               rounded
               :loading="loading"
               :disable="disableBtn || !data?.wsConnected"
-              :label=btnLabel
-              class="col q-mx-lg q-mb-md q-py-sm q-my-md button"
+              label="Retry"
+              class="col q-mx-lg button"
               @click="submitAction">
             </q-btn>
           </div>
-          <div v-if="loading && !errorMessage" class="q-mt-md">
-            <span v-if="state === 'verifying'">
-              <q-spinner class="q-mr-sm"/>Verifying, please wait...
-            </span>
+          <div class="q-my-sm" v-if="state === 'verifying' && hideBtn">
+            <q-spinner class="q-mr-sm"/>Verifying, please wait...
           </div>
         </div>
       </q-scroll-area>
@@ -97,7 +95,6 @@ export default {
       state: null,
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
 
-      btnLabel: '',
       txidLoaded: false,
       balanceLoaded: false,
       disableTxidInput: true
@@ -219,8 +216,9 @@ export default {
             console.error(error)
           }
           vm.hideBtn = false
+          vm.disableBtn = false
+          vm.loading = false
         })
-        .finally(vm.loading = false)
     },
     verifyEscrow () {
       const vm = this
@@ -238,8 +236,9 @@ export default {
             console.error(error)
           }
           vm.hideBtn = false
+          vm.disableBtn = false
+          vm.loading = false
         })
-        .finally(vm.loading = false)
     },
     submitAction () {
       const vm = this
@@ -266,7 +265,7 @@ export default {
               if (!this.transactionId) {
                 this.disableTxidInput = false
               }
-              this.disableBtn = false
+              this.submitAction()
             } else {
               // poll for balance with exponential backoff
               this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
@@ -277,7 +276,7 @@ export default {
               if (!this.transactionId) {
                 this.disableTxidInput = false
               }
-              this.disableBtn = false
+              this.submitAction()
             } else {
               // poll for balance with exponential backoff
               this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
@@ -285,7 +284,6 @@ export default {
             break
         }
         this.state = 'verifying'
-        this.btnLabel = 'VERIFY TRANSFER'
         this.loading = false
       }
     },

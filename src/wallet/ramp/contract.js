@@ -33,7 +33,8 @@ export class RampContract {
    */
   async initialize () {
     const artifact = compileString(escrowSrcCode)
-    const provider = new ElectrumNetworkProvider(this.network)
+    let provider = new ElectrumNetworkProvider()
+    if (this.network === 'chipnet') provider = new ElectrumNetworkProvider(this.network)
 
     const arbiterPkh = this.getPubKeyHash(this.publicKeys.arbiter)
     const buyerPkh = this.getPubKeyHash(this.publicKeys.buyer)
@@ -41,7 +42,6 @@ export class RampContract {
     const servicerPkh = this.getPubKeyHash(this.publicKeys.servicer)
 
     this.hash = this.sha256Hash(arbiterPkh, buyerPkh, sellerPkh, servicerPkh, this.timestamp)
-
     const contractParams = [
       arbiterPkh,
       buyerPkh,
@@ -51,7 +51,6 @@ export class RampContract {
       this.fees.arbitrationFee,
       this.hash
     ]
-
     this.contract = new Contract(artifact, contractParams, provider)
   }
 
@@ -100,22 +99,19 @@ export class RampContract {
    *    - if output[1] is not the servicer.
    *    - if the output[2] is not the arbiter.
    * @param {string} callerWIF - The WIF of caller (arbiter/seller).
+   * @param {string} callerPubkey - The public key of caller (arbiter/seller).
    * @param {number} amount - The transaction amount in BCH.
    * @returns {result} An object representing the result of the operation.
    */
-  async release (callerWIF, amount) {
+  async release (callerWIF, callerPubkey, amount) {
     let result = {}
     let txInfo
 
     try {
       // generate the signature
-      const keyPair = bchjs.ECPair.fromWIF(callerWIF)
-      const callerPk = bchjs.ECPair.toPublicKey(keyPair)
-      const callerSig = new SignatureTemplate(keyPair)
-
+      const callerSig = new SignatureTemplate(callerWIF)
       // convert amount from BCH to satoshi
       const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
-
       /**
        * output[0]: {to: `buyer address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
@@ -128,7 +124,7 @@ export class RampContract {
       ]
 
       txInfo = await this.contract.functions
-        .release(callerPk, callerSig, this.hash)
+        .release(callerPubkey, callerSig, this.hash)
         .to(outputs)
         .withHardcodedFee(this.fees.contractFee)
         .send()
@@ -166,17 +162,9 @@ export class RampContract {
 
     try {
       // generate arbiter signature
-      const keyPair = bchjs.ECPair.fromWIF(callerWIF)
-      const arbiterSig = new SignatureTemplate(keyPair)
-
+      const arbiterSig = new SignatureTemplate(callerWIF)
       // convert amount from BCH to satoshi
       const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
-
-      console.log('sending to:')
-      console.log(`${satoshiAmount} to recipient: ${this.addresses.seller}`)
-      console.log(`${this.fees.serviceFee} to servicer: ${this.addresses.servicer}`)
-      console.log(`${this.fees.arbitrationFee} to arbiter: ${this.addresses.arbiter}`)
-
       /**
        * output[0]: {to: `seller address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}

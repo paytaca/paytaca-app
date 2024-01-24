@@ -98,19 +98,20 @@
                 @click="$parent.cancellingOrder()"
               />
             </div>
-            <!-- Appeal Button -->
-            <div v-if="showAppealBtn">
-              <div class="row q-pt-xs">
-                <q-btn
-                  rounded
-                  no-caps
-                  :disable="!data?.wsConnected"
-                  label='Appeal'
-                  class="q-space text-white button"
-                  @click="openDialog = true"
-                />
-              </div>
-            </div>
+        </div>
+        <!-- Appeal Button -->
+        <div v-if="showAppealBtn">
+          <div class="row q-pt-xs q-px-md">
+            <q-btn
+              rounded
+              no-caps
+              :disable="!data?.wsConnected"
+              label='Appeal'
+              class="q-space text-white button"
+              color="blue-6"
+              @click="openDialog = true"
+            />
+          </div>
         </div>
         <!-- Feedback -->
         <div class="q-pt-xs q-mx-md" v-if="data?.order?.status.value === 'RLS'">
@@ -238,8 +239,7 @@ export default {
   computed: {
     showAppealBtn () {
       const vm = this
-      return (
-        !vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value) &&
+      return ((!vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value)) &&
         (vm.$parent.isExpired || vm.countDown === 'Expired'))
     },
     displayContractInfo () {
