@@ -2,15 +2,17 @@
   <div>
     <q-btn
       flat
-      padding="md"
+      padding="md md xs md"
       icon="arrow_back"
+      class="button button-text-primary"
+      :class="getDarkModeClass(darkMode)"
       @click="$emit('back')"
     />
     </div>
   <!-- Progress Loader -->
   <div v-if="!isloaded">
     <div class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader/>
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
   </div>
 
@@ -63,7 +65,7 @@
 
     <!-- Chat button -->
     <div class="fixed" style="right: 35px; bottom: 100px;" v-if="status.value !== 'RLS'">
-      <q-btn size="md" padding="sm" dense ripple round color="primary" icon="comment" @click="openChat = true"/>
+      <q-btn size="md" padding="sm" dense ripple round class="button" icon="comment" @click="openChat = true"/>
     </div>
 
     <div v-if="reconnectingWebSocket" class="fixed" style="right: 40px; top: 145px;">
@@ -94,6 +96,7 @@ import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { addChatMembers } from 'src/wallet/ramp/chat'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from './ReceiveOrder.vue'
@@ -108,6 +111,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
       wsURL: process.env.RAMP_WS_URL + 'order/',
       websocket: null,
@@ -262,6 +266,8 @@ export default {
     this.closeWSConnection()
   },
   methods: {
+    getDarkModeClass,
+    isNotDefaultTheme,
     reloadChildComponents () {
       this.standByDisplayKey++
       this.escrowTransferKey++

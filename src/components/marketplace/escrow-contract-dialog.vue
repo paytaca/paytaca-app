@@ -1,10 +1,10 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">Escrow</div>
-          <q-btn flat icon="close" padding="sm" v-close-popup/>
+          <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <q-tab-panels v-model="tab" style="background: none;" animated>
           <q-tab-panel name="details" class="q-pa-none">
@@ -25,7 +25,7 @@
                   <q-icon name="credit_score" class="q-ml-xs"/>
                 </template>
 
-                <q-menu :class="['q-pa-sm', darkMode ? 'pt-dark' : 'text-black']">
+                <q-menu class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
                   <template v-if="escrowContract?.settlementTxid">
                     <div class="text-caption top">Settlement transaction:</div>
                     <div class="ellipsis">{{ escrowContract?.settlementTxid }}</div>
@@ -34,7 +34,8 @@
                       no-caps label="View transaction"
                       :href="escrowContract?.settlementTxLink"
                       target="_blank"
-                      class="text-underline"
+                      class="text-underline button button-text-primary"
+                      :class="getDarkModeClass(darkMode)"
                     />
                   </template>
                   <q-separator
@@ -49,7 +50,8 @@
                       no-caps label="View transaction"
                       :href="escrowContract?.fundingTxLink"
                       target="_blank"
-                      class="text-underline"
+                      class="text-underline button button-text-primary"
+                      :class="getDarkModeClass(darkMode)"
                     />
                   </template>
                 </q-menu>
@@ -73,10 +75,12 @@
                 icon="qr_code"
                 size="1.5em"
                 padding="md"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 @click="() => tab='qrcode'"
               />
             </div>
-    
+
             <div
               class="q-mb-sm rounded-borders"
               style="position:relative;" v-ripple
@@ -103,7 +107,7 @@
                 None
               </div>
             </div>
-    
+
             <q-separator :dark="darkMode" spaced/>
             <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
               <div class="row items-start">
@@ -117,26 +121,26 @@
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
                 </div>
-        
+
                 <div class="row items-start">
                   <div class="text-grey q-space">Service fee</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
                 </div>
-        
+
                 <div class="row items-start">
                   <div class="text-grey q-space">Arbitration fee</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
                 </div>
-    
+
                 <div class="row items-start">
                   <div class="text-grey q-space">Network fee</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
                 </div>
               </div>
-    
+
               <div class="row items-start">
                 <div class="text-grey q-space">Total</div>
                 <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
@@ -146,7 +150,14 @@
           </q-tab-panel>
           <q-tab-panel name="qrcode" class="q-pa-none">
             <div class="row items-center no-wrap">
-              <q-btn flat round icon="arrow_back" @click="() => tab = 'details'"/>
+              <q-btn
+                flat
+                round
+                icon="arrow_back"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                @click="() => tab = 'details'"
+              />
               <div class="q-space text-h5">Scan to pay</div>
             </div>
             <div class="row items-center justify-center">
@@ -168,7 +179,7 @@
                 rounded
                 no-caps
                 label="Send payment"
-                color="brandblue"
+                class="button"
                 :to="{ name: 'transaction-send', query: { paymentUrl: qrCodeData, network: 'BCH', assetId: 'bch' }}"
               />
             </div>
@@ -183,6 +194,7 @@ import { BchPrice, EscrowContract } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useStore } from 'vuex'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default defineComponent({
   name: 'EscrowContractDialog',
@@ -274,6 +286,9 @@ export default defineComponent({
       copyToClipboard,
     }
   },
+  methods: {
+    getDarkModeClass
+  }
 })
 </script>
 <style lang="scss" scoped>

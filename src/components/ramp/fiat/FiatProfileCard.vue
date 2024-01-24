@@ -1,12 +1,12 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md q-mb-lg q-pb-lg"
-    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
-    :style="`height: ${minHeight}px;`"
+    class="br-15 q-pt-sm q-mx-md q-mb-lg q-pb-lg text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
   >
     <div v-if="!isloaded">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
     <div v-else>
@@ -14,8 +14,10 @@
         <div>
           <q-btn
             flat
-            padding="md"
+            padding="md md xs md"
             icon="arrow_back"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             @click="$emit('back')"
           />
         </div>
@@ -23,8 +25,16 @@
           <div v-if="user">
             <div class="text-center q-pt-none">
               <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-              <div class="bold-text lg-font-size q-pt-sm">
-                {{ user.name }} <q-icon @click="editNickname = true" v-if="type === 'self'" size="sm" name='o_edit' color="blue-grey-6"/>
+              <div class="text-weight-bold lg-font-size q-pt-sm">
+                {{ user.name }}
+                <q-icon
+                  @click="editNickname = true"
+                  v-if="type === 'self'"
+                  size="sm"
+                  name='o_edit'
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                />
               </div>
             </div>
             <!-- Edit Payment Methods -->
@@ -34,7 +44,7 @@
                 no-caps
                 label="Edit Payment Methods"
                 color="blue-8"
-                class="q-space q-mx-md"
+                class="q-space q-mx-md button"
                 @click="state= 'edit-pm'"
                 icon="o_payments"
                 >
@@ -67,7 +77,7 @@
               <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
             </div>
             <div class="text-center sm-font-size q-pt-sm">
-                <span>{{ user.trade_count }} trades</span>&nbsp;&nbsp;
+                <span>{{ user.trade_count || 0 }} trades</span>&nbsp;&nbsp;
                 <span>|</span>&nbsp;&nbsp;
                 <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
             </div>
@@ -81,13 +91,29 @@
               No Reviews Yet
             </div>
             <div v-else>
-              <div class="row br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')">
-                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-btn': reviewType == 'to-peer-review' }" @click="switchReviewType('to-peer-review')">Ad Review</button>
-                <button class="col br-15 btn-custom q-mt-none" :class="{'dark': darkMode, 'active-btn': reviewType == 'from-peer-review'}" @click="switchReviewType('from-peer-review')">User Review</button>
+              <div
+                class="row br-15 text-center pt-card btn-transaction md-font-size"
+                :class="getDarkModeClass(darkMode)"
+                :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
+              >
+                <button
+                  class="col br-15 btn-custom fiat-tab q-mt-none"
+                  :class="{'dark': darkMode, 'active-btn': reviewType == 'to-peer-review'}"
+                  @click="switchReviewType('to-peer-review')"
+                >
+                  Ad Review
+                </button>
+                <button
+                  class="col br-15 btn-custom fiat-tab q-mt-none"
+                  :class="{'dark': darkMode, 'active-btn': reviewType == 'from-peer-review'}"
+                  @click="switchReviewType('from-peer-review')"
+                >
+                  User Review
+                </button>
               </div>
               <div class="q-mx-lg q-px-md">
                   <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
-                    <div class="sm-font-size bold-text">{{  review.from_peer.name }}</div>
+                    <div class="text-weight-bold sm-font-size">{{  review.from_peer.name }}</div>
                     <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
                     <div class="sm-font-text">
                       <q-rating
@@ -153,12 +179,13 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { rampWallet } from 'src/wallet/ramp/wallet'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
@@ -197,6 +224,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    isNotDefaultTheme,
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
@@ -322,10 +350,6 @@ export default {
 
 .lg-font-size {
   font-size: large;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 .subtext {
   opacity: .5;

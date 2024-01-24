@@ -1,15 +1,20 @@
 <template>
-  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg" bordered flat
-    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">
+  <q-card
+    bordered
+    flat
+    class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
+  >
     <div>
       <q-btn
         flat
         padding="md"
         icon="close"
+        class="close-button"
         @click="$emit('back')"
       />
     </div>
-    <div class="text-center lg-font-size bold-text text-uppercase q-py-sm">Verifying Transfer</div>
+    <div class="text-center lg-font-size text-weight-bold text-uppercase q-py-sm">Verifying Transfer</div>
 
     <q-separator class="q-my-sm q-mx-lg" :dark="darkMode"/>
     <div class="q-py-md q-mx-lg q-px-sm">
@@ -61,7 +66,7 @@
           </template>
       </q-input>
       <div v-if="errorMessage" class="q-mx-sm q-my-sm">
-        <q-card flat class="col q-pa-md" :class="[ darkMode ? 'text-white pt-dark-card-1' : 'text-black',]">
+        <q-card flat class="col q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             <q-icon name="error" left/>
             {{ errorMessage }}
         </q-card>
@@ -72,8 +77,7 @@
           rounded
           :disable="hideBtn"
           label="Retry"
-          color="blue-6"
-          class="col q-mx-lg q-mb-md q-my-sm"
+          class="col q-mx-lg q-mb-md q-my-sm button"
           @click="submitAction">
         </q-btn>
         <div v-if="hideBtn && !errorMessage" class="q-mt-md">
@@ -88,6 +92,7 @@
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -118,7 +123,8 @@ export default {
   props: {
     escrowContract: Object,
     orderId: Number,
-    txid: String
+    txid: String,
+    action: String
   },
   watch: {
     txidLoaded () {
@@ -135,6 +141,7 @@ export default {
     vm.loading = false
   },
   methods: {
+    getDarkModeClass,
     loadTransactionId () {
       if (this.txid) {
         this.transactionId = this.txid

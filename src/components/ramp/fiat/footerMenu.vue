@@ -5,19 +5,19 @@
     :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="onSelectMenu('store')">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('store')">
           <q-icon class="mb-2" :class="isActive('store') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_storefront"/>
         <span>Home</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="onSelectMenu('ads')">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('ads')">
           <q-icon class="mb-2" :class="isActive('ads') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_sell"/>
         <span>Ads</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="onSelectMenu('orders')">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('orders')">
           <q-icon class="mb-2" :class="isActive('orders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
         <span>Orders</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="{'text-white': darkMode}" @click="onSelectMenu('profile')">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('profile')">
           <q-icon class="mb-2" :class="isActive('profile') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
         <span>Profile</span>
       </button>
@@ -101,12 +101,6 @@ export default {
     }
     .footer-btn-container {
       margin-top: 1px !important;
-    }
-    .active-switch {
-      color: #69CB51;
-    }
-    .pt-dark-label {
-      color: #fff !important;
     }
     .default-text-color {
       color: rgb(60, 100, 246) !important;

@@ -1,7 +1,7 @@
 <template>
   <div
-    class="row justify-center fixed-footer rounded-0"
-    :class="{'pt-dark-card': darkMode}"
+    class="row justify-center fixed-footer rounded-0 pt-card"
+    :class="getDarkModeClass(darkMode)"
     :style="{'padding-bottom': $q.platform.is.ios ? '80px' : '0'}">
     <div class="col row justify-center footer-container">
         <q-spinner-dots class="q-my-xs" size="lg" :color="darkMode? 'white': 'blue'"/>
@@ -10,12 +10,16 @@
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'footer-loading',
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus']
     }
+  },
+  methods: {
+    getDarkModeClass
   }
 }
 </script>

@@ -1,7 +1,7 @@
 <template>
   <div v-if="isloaded" class="q-mb-sm q-pb-sm">
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-center bold-text">
+      <div class="q-mx-lg text-center text-weight-bold">
         <div class="lg-font-size">
           <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
@@ -10,9 +10,9 @@
       </div>
       <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
         <div v-if="data?.order?.status?.value === 'APL'">
-          <q-card class="br-15 q-mt-md" bordered flat :class="[ darkMode ? 'pt-dark-card' : '',]">
+          <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
             <q-card-section>
-              <div class="bold-text md-font-size">Appeal reasons</div>
+              <div class="text-weight-bold md-font-size">Appeal reasons</div>
               <div v-if="appeal">
                 <q-badge
                   v-for="reason in appeal.reasons"
@@ -107,7 +107,7 @@
               no-caps
               :disable="!data?.wsConnected"
               label='Appeal'
-              class="q-space text-white"
+              class="q-space text-white button"
               color="blue-6"
               @click="openDialog = true"
             />
@@ -119,7 +119,7 @@
             <span v-if="!feedbackForm.is_posted">Rate your experience</span>
             <span v-else>Your Review</span>
           </div>
-          <!-- <div class="lg-font-size bold-text text-center">{{ nickname }}</div> -->
+          <!-- <div class="lg-font-size text-weight-bold text-center">{{ nickname }}</div> -->
           <div>
             <div class="q-py-xs text-center">
               <q-rating
@@ -202,6 +202,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -323,6 +324,7 @@ export default {
     this.timer = null
   },
   methods: {
+    getDarkModeClass,
     loadData () {
       if (this.data?.order?.status?.value === 'APL') {
         this.fetchAppeal()
@@ -409,19 +411,10 @@ export default {
 .md-font-size {
   font-size: medium;
 }
-
 .lg-font-size {
   font-size: large;
 }
-
-.bold-text {
-  font-weight: bold;
-}
 .subtext {
   opacity: .5;
-}
-.button-color {
-  background: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
-  color: white
 }
 </style>

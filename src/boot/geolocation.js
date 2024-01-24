@@ -74,6 +74,17 @@ class GeolocationManager {
     })
   }
 
+  /**
+   * @param {{message: String, title: String, skipPrompt:Boolean }} opts
+   * @returns {Promise<{ isEnabled:boolean, resultCode:Number, data:any } | null>}
+   */
+  async openLocationSettingsIfGpsDisabled(opts) {
+    const response = await this.isGpsEnabled()?.catch(console.error)
+    if (this.isGpsStatusEnabled.value == true) return response
+    return opts?.skipPrompt
+      ? this.openLocationSettings(opts) : this.openLocationSettingsPrompt(opts)
+  }
+
   onPositionUpdate(response, error) {
     if (error) {
       if (this.tracker.value.callbackId) this.clearWatch()
@@ -89,7 +100,7 @@ class GeolocationManager {
   }
 
   updateGeolocationPermission(opts = { request: false, geolocateOnGrant: false }) {
-    const promiseObj = opts?.request ? Geolocation.requestPermissions() : Geolocation.checkPermissions()
+    const promiseObj = opts?.request ? Geolocation.requestPermissions(['location']) : Geolocation.checkPermissions()
 
     return promiseObj
       .finally(() => {
@@ -116,9 +127,10 @@ class GeolocationManager {
       })
   }
 
-  geolocate() {
+  geolocate(opts) {
     this.location.value.loading = true
-    return Geolocation.getCurrentPosition(this.geolocateOpts)
+    const geolocateOpts = opts || this.geolocateOpts
+    return Geolocation.getCurrentPosition(geolocateOpts)
       .then((...args) => this.onPositionUpdate(...args))
       .catch(error => {
         this.updateGeolocationPermission()

@@ -777,10 +777,12 @@ export default {
           dialog.update({ persistent: false, progress: false, ok: true })
         })
     },
-    onJppPaymentSucess() {
+    onJppPaymentSucess () {
       this.$forceUpdate()
       this.txid = this.jpp?.txids?.[0]
-      this.sendDataMultiple[0].amount = this.jpp.total / 10 ** 8
+      const jppAmount = this.jpp.total / 10 ** 8
+      this.totalAmountSent = jppAmount
+      this.sendDataMultiple[0].amount = jppAmount
       this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
       this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)

@@ -5,36 +5,41 @@
         style="overflow-y:auto;"
         :style="`height: ${ minHeight }px;`">
         <div class="q-mx-lg text-center">
-          <div class="lg-font-size bold-text">
+          <div class="lg-font-size text-weight-bold">
             <span>{{ order?.status?.label?.toUpperCase() }}</span>
           </div>
           <div class="text-center subtext md-font-size">ORDER #{{ order.id }}</div>
         </div>
         <div class="q-mx-md">
             <q-separator class="q-my-sm" :dark="darkMode"/>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+            <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
               <span>Locked Price</span>
               <span class="text-nowrap q-ml-xs">{{ price }}/{{ order.crypto_currency.symbol }}</span>
             </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+            <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
               <span>Min Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
                 {{ parseFloat($parent.getAdLimits?.floor) }} BCH
               </span>
             </div>
-            <div :class="[darkMode ? 'pt-dark-label' : 'pp-text']" class="row justify-between no-wrap q-mx-lg">
+            <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
               <span>Max Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
                 {{ parseFloat($parent.getAdLimits?.ceiling) }} BCH
               </span>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+            <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
               <span>Time Limit</span>
               <span class="text-nowrap q-ml-xs">{{ formattedPlt(order.ad.time_duration).label }} </span>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg bold-text" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
+            <div class="row justify-between no-wrap q-mx-lg pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
               <span>Status</span>
-              <span class="text-nowrap q-ml-xs" :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'">{{ order.status.label }}</span>
+              <span
+                class="text-nowrap q-ml-xs"
+                :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'"
+              >
+                {{ order.status.label }}
+              </span>
             </div>
           <!-- </q-card> -->
         </div>
@@ -72,8 +77,7 @@
             rounded
             no-caps
             label='CONFIRM'
-            class="q-space text-white q-mx-md"
-            color="blue-6"
+            class="q-space text-white q-mx-md button"
             @click="$emit('confirm')"
           />
         </div>
@@ -94,6 +98,7 @@
 </template>
 <script>
 
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getPaymentTimeLimit } from 'src/wallet/ramp'
 
 export default {
@@ -133,6 +138,7 @@ export default {
     this.isloaded = true
   },
   methods: {
+    getDarkModeClass,
     formattedPlt (value) {
       return getPaymentTimeLimit(value)
     },
@@ -149,7 +155,6 @@ export default {
 }
 </script>
 <style scoped>
-
 .sm-font-size {
   font-size: small;
 }
@@ -159,9 +164,5 @@ export default {
 
 .lg-font-size {
   font-size: large;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <q-pull-to-refresh
     style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-dark': darkMode}"
+    :class="{'pt-card-3 dark': darkMode}"
     @refresh="refreshPage"
   >
     <HeaderNav
@@ -65,10 +65,24 @@
           <template v-else>
             <div class="text-subtitle1 text-center">{{ selectedVariant?.markupPrice }} {{ currency }}</div>
           </template>
+          <q-card
+            v-if="product?.cartOptions?.length"
+            class="q-my-sm pt-card"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-card-section>
+              <div class="text-subtitle1">Options</div>
+              <JSONFormPreview
+                v-model="cartOptionsFormData"
+                v-model:formDataErrors="cartOptionsFormErrors"
+                :schemaData="product?.cartOptions"
+              />
+            </q-card-section>
+          </q-card>
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
-              :disable="!available || !activeStorefrontIsActive"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
               label="Quantity"
               dense outlined
               :dark="darkMode"
@@ -79,7 +93,7 @@
             />
             <q-btn
               v-else
-              :disable="!available || !activeStorefrontIsActive"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
               no-caps label="Add to cart"
               color="brandblue"
               class="full-width q-mt-md"
@@ -97,8 +111,10 @@ import { backend } from 'src/marketplace/backend'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated } from 'vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
+import JSONFormPreview from 'src/components/marketplace/JSONFormPreview.vue'
 
 const props = defineProps({
   collectionId: [Number, String],
@@ -139,10 +155,12 @@ const cartItem = computed(() => {
 })
 
 function saveActiveCart() {
+  if (cartOptionsHasErrors.value) return
   $store.dispatch('marketplace/saveCart', activeStorefrontCart.value)
 }
 
 async function addSelectedVariantToCart() {
+  if (cartOptionsHasErrors.value) return
   const cart = activeStorefrontCart.value?.id ? activeStorefrontCart.value : Cart.parse({
     storefront_id: product.value?.storefrontId,
     customer: {
@@ -151,7 +169,13 @@ async function addSelectedVariantToCart() {
     items: [],
   })
   if (!cart.items.some(item => item?.variant?.id === selectedVariant.value.id)) {
-    cart.items.push({ variant: selectedVariant.value, quantity: 1 }) 
+    cart.items.push({
+      variant: selectedVariant.value, quantity: 1,
+      properties: {
+        schema: product.value?.cartOptions,
+        data: cartOptionsFormData.value,
+      },
+    })
   }
   $store.dispatch('marketplace/saveCart', cart)
 }
@@ -210,6 +234,36 @@ function selectVariantFromProps() {
   const index = product.value.variants.findIndex(variant => variant?.id == props.variantId)
   selectedVariantIndex.value = Math.max(index, 0)
 }
+
+function serializeCartOptionsData(data) {
+  try { return JSON.stringify(data) } catch {}
+}
+watch(() => [product.value?.cartOptions], () => resetCartOptionsFormData(), { deep: true })
+watch(cartItem, () => resetCartOptionsFormData())
+const cartOptionsFormData = ref(cartItem.value?.properties?.data || {})
+watch(cartOptionsFormData, () => {
+  if (!cartItem.value) return
+  const serializedCartOptions = serializeCartOptionsData(cartItem.value.properties?.data)
+  const serializedFormCartOptions = serializeCartOptionsData(cartOptionsFormData.value)
+  if (serializedCartOptions === serializedFormCartOptions) return
+  if (cartOptionsHasErrors.value) return
+
+  cartItem.value.properties = {
+    schema: product.value?.cartOptions,
+    data: cartOptionsFormData.value,
+  }
+
+  console.log('saving')
+  saveActiveCart()
+}, { flush: 'post' })
+function resetCartOptionsFormData() {
+  cartOptionsFormData.value = cartItem.value?.properties?.data || {}
+}
+
+const cartOptionsFormErrors = ref([])
+const cartOptionsHasErrors = computed(() => Boolean(cartOptionsFormErrors.value?.length))
+watch(() => [product.value?.cartOptions], () => cartOptionsFormErrors.value=[], { deep: true })
+
 
 function openImage(img, title) {
   if (!img) return

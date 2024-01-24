@@ -1,6 +1,6 @@
 <template>
    <q-dialog ref="dialog" persistent full-width seamless>
-    <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-px-sm q-pt-sm">
         <div class="text-subtitle1 q-space q-mt-sm pt-label" :class="getDarkModeClass(darkMode)">{{ title }}</div>
         <q-btn
@@ -14,8 +14,8 @@
       <q-tab-panels
         v-model="panel"
         animated
-        class="pt-card"
-        :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+        class="pt-card-2 text-bow"
+        :class="getDarkModeClass(darkMode)"
       >
         <q-tab-panel name="list" class="q-pa-md">
           <q-card-section>
@@ -31,16 +31,16 @@
                 </template>
             </q-input>
           </q-card-section>
-          <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
+          <q-card-section class="q-pt-none token-list-container">
             <q-virtual-scroll :items="filteredCoinList">
               <template v-slot="{ item: token, index }">
                 <q-item clickable @click="onOKClick(token)">
                   <q-item-section avatar>
                     <q-avatar v-if="token.icon">
-                      <div style="height: 30px; width: 30px; border-radius: 50%;" class="q-mb-sm" v-html="token.icon"></div>
+                      <div class="q-mb-sm token-icon icon-div" v-html="token.icon"></div>
                     </q-avatar>
                     <div v-else>
-                      <q-skeleton type="circle" style="height: 30px; width: 30px;"></q-skeleton>
+                      <q-skeleton type="circle" class="token-icon"></q-skeleton>
                     </div>
                   </q-item-section>
                   <q-item-section>
@@ -130,8 +130,15 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-.coin-icon {
-  height: 30px;
-  width: 30px;
-}
+  .token-list-container {
+    max-height: 50vh;
+    overflow-y: auto;
+    .token-icon {
+      height: 30px;
+      width: 30px;
+      &.icon-div {
+        border-radius: 50%;
+      }
+    }
+  }
 </style>

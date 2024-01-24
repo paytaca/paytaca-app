@@ -1,7 +1,7 @@
 <template>
   <div>
-    <div class="text-center lg-font-size bold-text">ESCROW BCH</div>
-    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size bold-text">(ORDER #{{ order?.id }})</div>
+    <div class="text-center lg-font-size text-weight-bold">ESCROW BCH</div>
+    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size text-weight-bold">(ORDER #{{ order?.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
       <div class="q-mx-lg q-px-lg q-pt-md">
@@ -115,6 +115,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { rampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -180,6 +181,7 @@ export default {
     vm.loadContract()
   },
   methods: {
+    getDarkModeClass,
     loadContract () {
       const vm = this
       vm.fetchArbiters().then(() => {
@@ -374,9 +376,5 @@ export default {
 
 .lg-font-size {
   font-size: large;
-}
-
-.bold-text {
-  font-weight: bold;
 }
 </style>

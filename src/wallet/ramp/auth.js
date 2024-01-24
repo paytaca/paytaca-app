@@ -1,6 +1,6 @@
 
 export function setAuthCookie (token, expiresAt) {
-  document.cookie = `token=${token}; expires=${new Date(expiresAt).toUTCString()}; path=/`
+  document.cookie = `token=${token}; expires=${new Date(expiresAt).toUTCString()}; path=/; SameSite=None; Secure`
 }
 
 export function getAuthCookie () {

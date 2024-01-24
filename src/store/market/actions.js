@@ -79,7 +79,6 @@ export function getAllAssetList (context) {
 }
 
 export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null }) {
-  console.log('Updating asset prices...')
   const selectedCurrency = context.state.selectedCurrency?.symbol
   const assetList = await context.dispatch('getAllAssetList')
   const coinIds = [...assetList.mainchain, ...assetList.smartchain]

@@ -1,15 +1,20 @@
 <template>
-  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg" bordered flat
-    :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]">
+  <q-card
+    bordered
+    flat
+    class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
+  >
       <div>
         <q-btn
           flat
           padding="md"
           icon="close"
+          class="close-button"
           @click="$emit('back')"
         />
       </div>
-      <div class="text-center bold-text lg-font-size text-uppercase">Ad Snapshot</div>
+      <div class="text-center text-weight-bold lg-font-size text-uppercase">Ad Snapshot</div>
       <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Ad #{{ snapshot.ad }})</div>
 
       <q-separator class="q-my-sm" :dark="darkMode"/>
@@ -48,22 +53,22 @@
       </div>
 
       <div class="q-mx-lg q-pb-sm">
-        <div class="md-font-size bold-text q-px-md">Ad Payment Methods</div>
+        <div class="md-font-size text-weight-bold q-px-md">Ad Payment Methods</div>
         <div class="q-gutter-sm q-pt-sm q-px-md">
           <q-badge v-for="(method, index) in snapshot.payment_methods" :key="index" rounded outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-7'" :label="method.payment_type" />
         </div>
       </div>
 
       <div class="q-py-md q-mx-lg q-pb-sm">
-        <div class="md-font-size bold-text q-px-md">Selected Payment Methods</div>
+        <div class="md-font-size text-weight-bold q-px-md">Selected Payment Methods</div>
         <div v-if="selectedPaymentMethods.length === 0" class="q-px-md sm-font-size">~ No payment method selected ~</div>
         <div v-for="(method, index) in selectedPaymentMethods" :key="index">
           <div class="q-px-sm q-my-sm">
-            <q-card flat bordered :class="[ darkMode ? 'text-white pt-dark-card' : 'text-black',]">
+            <q-card flat bordered class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
               <q-expansion-item
                 :label="method.payment_type"
                 expand-separator>
-                <q-card :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black bg-grey-2',]">
+                <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode, '', 'bg-grey-2')">
                   <q-card-section class="text-left">
                     <div class="row">
                       <div class="col">
@@ -85,6 +90,7 @@
 </template>
 <script>
 import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -99,6 +105,7 @@ export default {
   },
   emits: ['back'],
   methods: {
+    getDarkModeClass,
     formattedCurrency (value, currency = null) {
       if (currency) {
         return formatCurrency(value, currency)

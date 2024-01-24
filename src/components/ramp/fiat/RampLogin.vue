@@ -1,26 +1,20 @@
 <template>
   <q-card
-  class="q-pt-md q-mx-md q-mb-lg"
-  :class="[ darkMode ? 'text-white pt-dark-card-2' : 'text-black',]"
+  class="q-pt-md q-mx-md q-mb-lg pt-card text-bow"
+  :class="getDarkModeClass(darkMode)"
   :style="`height: ${minHeight}px;`">
     <div v-if="isLoading">
       <div class="row justify-center q-py-lg" style="margin-top: 50%">
-        <ProgressLoader/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
     <div v-else class="row justify-center q-gutter-sm" style="margin-top: 5%">
       <div>
         <div class="q-mt-md">
-          <div
-            v-if="!loggingIn"
-            class="row justify-center q-mx-lg q-mb-sm"
-            style="margin-top: 30%; font-weight: 400; font-size: 20px;">
+          <div v-if="!loggingIn" class="row justify-center q-mx-lg q-mb-sm text-h6 login-label">
               {{ register ? "Sign up" : "Sign in"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
           </div>
-          <div
-            v-else
-            class="row justify-center q-mx-lg q-mb-sm"
-            style="margin-top: 30%; font-weight: 400; font-size: 20px;">
+          <div v-else class="row justify-center q-mx-lg q-mb-sm text-h6 login-label">
               {{ register ? "Signing up" : "Signing in"}}...
           </div>
           <q-input
@@ -57,7 +51,7 @@
             {{ errorMessage }}
         </q-card>
       </div>
-      <div class="col row justify-evenly" style="position: fixed; margin-bottom: 25%; width: 100%; font-weight: 300; font-size: 20px;  bottom: 0;">
+      <div class="col row justify-evenly text-h6 ramp-footer-text">
           <span>{{ user?.is_arbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
       </div>
     </div>
@@ -73,6 +67,7 @@ import { backend } from 'src/wallet/ramp/backend'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
 import { getAuthCookie, setAuthCookie, clearAuthCookie } from 'src/wallet/ramp/auth'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -80,6 +75,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       apiURL: process.env.WATCHTOWER_BASE_URL,
       dialog: false,
@@ -116,6 +112,8 @@ export default {
     this.fetchUser()
   },
   methods: {
+    getDarkModeClass,
+    isNotDefaultTheme,
     fetchUser () {
       const vm = this
       backend.get('/auth/')
@@ -230,7 +228,6 @@ export default {
       return walletInfo
     },
     login (securityType) {
-      console.log(securityType)
       const vm = this
       vm.loggingIn = true
       // security check before login
@@ -258,10 +255,10 @@ export default {
                       })
                       .then(() => {
                         vm.loadChatIdentity().then(vm.loggingIn = false)
-                        vm.savePubkeyAndAddress({
-                          address: rampWallet.address,
-                          public_key: pubkey
-                        })
+                        // vm.savePubkeyAndAddress({
+                        //   address: rampWallet.address,
+                        //   public_key: pubkey
+                        // })
                       })
                   })
               })
@@ -405,3 +402,17 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .login-label {
+    margin-top: 30%;
+    font-weight: 400;
+  }
+  .ramp-footer-text {
+    position: fixed;
+    margin-bottom: 25%;
+    width: 100%;
+    font-weight: 300;
+    bottom: 0;
+  }
+</style>
