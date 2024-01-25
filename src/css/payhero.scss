@@ -631,4 +631,8 @@ body.theme-payhero {
       color: $brand_yellow !important;
     }
   }
+
+  .q-radio > .q-radio__inner--truthy {
+    color: $brand_yellow !important;
+  }
 }

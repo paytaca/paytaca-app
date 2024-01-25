@@ -441,7 +441,8 @@ const phrases = {
       UpdatedDeviceIDNo: "Updated device #{ID}",
       UpdatingDeviceIDNo: "Updating device #{ID}",
       DetectedUnknownCurrency: "Detected unknown currency: #{currency}",
-      InvalidRecipient: "Recipient should be a valid #{walletType} address"
+      InvalidRecipient: "Recipient should be a valid #{walletType} address",
+      ThemeName: "{theme} Theme"
     }
   ]
 }
@@ -511,7 +512,10 @@ const additional = [
     Recipient: "Recipient",
     To: "to",
     SetReceiveAmount: "Set Receive Amount",
-    PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through."
+    PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through.",
+    LightMode: "Light Mode",
+    ThemePreferenceTitle: "Set Theme Preference",
+    ThemePreferenceSubtitle: "Adjust theme to fit your native experience"
   }
 ]
 
