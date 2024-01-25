@@ -12,40 +12,34 @@ export class RampWallet {
     this.lastAddressIndex = lastAddressIndex
     this.address = address
     this.isChipnet = isChipnet
-    this.keypair()
   }
 
   async raw () {
-    if (!this._raw) {
-      await markRaw(loadWallet('BCH', this.walletIndex)).then(rawWallet => {
-        this._raw = rawWallet
-      })
-    }
-    if (this.isChipnet) return this._raw.BCH_CHIP
-    return this._raw.BCH
+    const rawWallet = await markRaw(loadWallet('BCH', this.walletIndex))
+    if (this.isChipnet) return rawWallet.BCH_CHIP
+    return rawWallet.BCH
   }
 
   async keypair () {
+    const raw = await this.raw()
+    const privateKeyWif = await raw.getPrivateKey(this.connectedAddressIndex)
+    const publicKey = await raw.getPublicKey(this.connectedAddressIndex)
     return {
-      privateKey: await this.pubkey(),
-      publicKey: await this.privkey()
+      privateKey: privateKeyWif,
+      publicKey: publicKey
     }
   }
 
   async pubkey () {
-    if (!this._pubkey) {
-      const _raw = await this.raw()
-      this._pubkey = _raw.getPublicKey(this.connectedAddressIndex)
-    }
-    return this._pubkey
+    const raw = await this.raw()
+    const publicKey = await raw.getPublicKey(this.connectedAddressIndex)
+    return publicKey
   }
 
   async privkey () {
-    if (!this._privkey) {
-      const _raw = await this.raw()
-      this._privkey = _raw.getPrivateKey(this.connectedAddressIndex)
-    }
-    return this._privkey
+    const raw = await this.raw()
+    const privateKeyWif = await raw.getPrivateKey(this.connectedAddressIndex)
+    return privateKeyWif
   }
 
   async signMessage (message, timestamp) {
