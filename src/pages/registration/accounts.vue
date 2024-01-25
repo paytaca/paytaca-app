@@ -165,61 +165,87 @@
               <ThemeSelectorPreview
                 :choosePreferedSecurity="choosePreferedSecurity"
               />
-                <!-- <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/> -->
             </div>
 
             <div v-else>
               <template v-if="steps === totalSteps">
-                <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
-                <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription1') }}
-                </p>
-                <p v-else class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription2') }}
-                </p>
-              </template>
-              <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
+                <template v-if="authenticationPhase === 'options'">
+                  <p>Before proceeding keme keme</p>
+                  <p>Opt shard keme</p>
+                  <p>Or if too much, backup phrase</p>
+                  <q-btn
+                    rounded
+                    label="Proceed with Using Shards"
+                    class="full-width button"
+                    @click="changeAuthenticationPhase(true)"
+                  />
+                  <q-btn
+                    rounded
+                    label="Proceed with Using Backup Phrase"
+                    class="full-width button"
+                    @click="changeAuthenticationPhase(false)"
+                  />
+                </template>
 
-              <div class="row" id="mnemonic">
-                <template v-if="steps === totalSteps">
-                  <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                    <ul>
-                      <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                        <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div v-else>
-                    <div>
-                      <q-btn
-                        flat
-                        no-caps
-                        padding="xs sm"
-                        icon="arrow_back"
-                        color="black"
-                        class="button button-text-primary"
-                        :class="getDarkModeClass(darkMode)"
-                        :label="$t('MnemonicBackupPhrase')"
-                        @click="showMnemonicTest = false"
+                <template v-else-if="authenticationPhase === 'shards'">
+                  <ShardsProcess />
+                </template>
+
+                <template v-else-if="authenticationPhase === 'backup-phrase'">
+                  <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
+                  <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+                    {{ $t('MnemonicBackupPhraseDescription1') }}
+                  </p>
+                  <p v-else class="dim-text" style="margin-top: 10px;">
+                    {{ $t('MnemonicBackupPhraseDescription2') }}
+                  </p>
+                </template>
+              </template>
+              <!-- TODO readjust this and move before loading progress (ig?) -->
+              <!-- <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p> -->
+
+              <template v-if="authenticationPhase === 'backup-phrase'">
+                <div class="row" id="mnemonic">
+                  <template v-if="steps === totalSteps">
+                    <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+                      <ul>
+                        <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
+                          <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div v-else>
+                      <div>
+                        <q-btn
+                          flat
+                          no-caps
+                          padding="xs sm"
+                          icon="arrow_back"
+                          color="black"
+                          class="button button-text-primary"
+                          :class="getDarkModeClass(darkMode)"
+                          :label="$t('MnemonicBackupPhrase')"
+                          @click="showMnemonicTest = false"
+                        />
+                      </div>
+                      <MnemonicTest
+                        :mnemonic="mnemonic"
+                        @matched="mnemonicVerified = true"
+                        class="q-mb-md"
                       />
                     </div>
-                    <MnemonicTest
-                      :mnemonic="mnemonic"
-                      @matched="mnemonicVerified = true"
-                      class="q-mb-md"
-                    />
-                  </div>
-                </template>
-              </div>
-              <div class="row q=mt-md" v-if="steps === totalSteps">
-                <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
-                <template v-else>
-                  <q-btn v-if="showMnemonicTest" class="full-width q-mt-md button" @click="confirmSkipVerification" no-caps rounded>
-                    {{ $t('SkipVerification') }}
-                  </q-btn>
-                  <q-btn v-else rounded :label="$t('Continue')" class="full-width button" @click="showMnemonicTest = true"/>
-                </template>
-              </div>
+                  </template>
+                </div>
+                <div class="row q=mt-md" v-if="steps === totalSteps">
+                  <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
+                  <template v-else>
+                    <q-btn v-if="showMnemonicTest" class="full-width q-mt-md button" @click="confirmSkipVerification" no-caps rounded>
+                      {{ $t('SkipVerification') }}
+                    </q-btn>
+                    <q-btn v-else rounded :label="$t('Continue')" class="full-width button" @click="showMnemonicTest = true"/>
+                  </template>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -252,6 +278,7 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
+import ShardsProcess from 'src/components/registration/ShardsProcess.vue'
 import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
@@ -279,7 +306,8 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
-    ThemeSelectorPreview
+    ThemeSelectorPreview,
+    ShardsProcess
   },
   data () {
     return {
@@ -297,7 +325,9 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       walletIndex: 0,
       currencySelectorRerender: false,
-      openThemeSelector: false
+      openThemeSelector: false,
+      authenticationPhase: 'options',
+      skipToBackupPhrase: false
     }
   },
   watch: {
@@ -403,6 +433,9 @@ export default {
       const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
       const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
+      console.log('wallet', wallet)
+      console.log('mnemonic', vm.mnemonic)
+
       for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
@@ -481,6 +514,7 @@ export default {
         wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes)
+      console.log('steps', vm.steps)
     },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
@@ -548,6 +582,9 @@ export default {
         this.openSettings = false
         this.openThemeSelector = true
       }
+    },
+    changeAuthenticationPhase (isShard) {
+      this.authenticationPhase = isShard ? 'shards' : 'backup-phrase'
     }
   },
   async mounted () {
