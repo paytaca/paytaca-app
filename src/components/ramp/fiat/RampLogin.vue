@@ -179,6 +179,7 @@ export default {
             .finally(resolve())
             .catch(error => {
               console.error(error)
+              vm.isLoading = false
               reject(error)
             })
         })
