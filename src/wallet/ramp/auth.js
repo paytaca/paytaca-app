@@ -13,7 +13,7 @@ export function getAuthToken () {
       })
       .catch(error => {
         console.error('Item with specified key does not exist:', error)
-        reject(error)
+        resolve(null)
       })
   })
 }
