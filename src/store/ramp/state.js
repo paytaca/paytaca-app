@@ -3,6 +3,7 @@ export default function () {
     wallet: null,
     authHeaders: null,
     user: null,
+    chatIdentity: null,
     arbiter: null,
     itemsPerPage: 20,
 

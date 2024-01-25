@@ -152,6 +152,7 @@ import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -271,8 +272,7 @@ export default {
     },
     deleteAd () {
       const vm = this
-      const url = vm.apiURL + '/ad/' + vm.selectedAdId
-      vm.$axios.delete(url, { headers: vm.authHeaders })
+      backend.delete(`/ramp-p2p/ad/${vm.selectedAdId}`, { authorize: true })
         .then(() => {
           setTimeout(() => {
             vm.dialogName = 'notifyDeleteAd'

@@ -184,6 +184,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import FooterLoading from './FooterLoading.vue'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -297,7 +298,7 @@ export default {
     },
     fetchFiatCurrencies () {
       const vm = this
-      vm.$axios.get(vm.apiURL + '/currency/fiat', { headers: vm.authHeaders })
+      backend.get('/ramp-p2p/currency/fiat', { authorize: true })
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {

@@ -232,3 +232,7 @@ export function authHeaders (state) {
 export function paymentTypes (state) {
   return state.paymentTypes
 }
+
+export function chatIdentity (state) {
+  return state.chatIdentity
+}

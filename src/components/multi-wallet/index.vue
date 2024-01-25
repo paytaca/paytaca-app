@@ -132,6 +132,7 @@ export default {
 
         vm.$store.commit('ramp/resetUser')
         vm.$store.commit('ramp/resetData')
+        vm.$store.commit('ramp/resetChatIdentity')
         vm.$store.commit('ramp/resetPagination')
         document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
 

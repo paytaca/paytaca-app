@@ -329,9 +329,8 @@ export default {
     },
     async fetchAd () {
       const vm = this
-      const url = `${vm.apiURL}/ad/${vm.adId}`
       try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
+        const response = await backend.get(`/ramp-p2p/ad/${vm.adId}`, { authorize: true })
         vm.ad = response.data
         this.amount = this.ad.trade_floor
       } catch (error) {
