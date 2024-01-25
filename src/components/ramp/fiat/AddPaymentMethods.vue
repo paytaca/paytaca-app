@@ -176,6 +176,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   components: {
@@ -379,7 +380,7 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await vm.$axios.get(vm.apiURL + '/payment-type', { headers: vm.authHeaders })
+      await backend.get('/ramp-p2p/payment-type', { authorize: true })
         .then(response => {
           vm.paymentTypes = response.data
         })
@@ -394,8 +395,7 @@ export default {
     // processes
     async fetchPaymentMethod () {
       const vm = this
-      const url = `${vm.apiURL}/payment-method`
-      await vm.$axios.get(url, { headers: vm.authHeaders })
+      await backend.get('/ramp-p2p/payment-method', { authorize: true })
         .then(response => {
           if (this.type === 'Ads') {
             this.info = response.data
@@ -416,7 +416,7 @@ export default {
     async deletePaymentMethod (index) {
       const vm = this
       vm.isloaded = false
-      await vm.$axios.delete(vm.apiURL + '/payment-method/' + index, { headers: vm.authHeaders })
+      await backend.delete(`/ramp-p2p/payment-method/${index}`, { authorize: true })
         .catch(error => {
           console.error(error)
           console.error(error.response)
@@ -430,7 +430,7 @@ export default {
     },
     async savePaymentMethod (info) {
       const vm = this
-      let url = vm.apiURL + '/payment-method/'
+      let url = '/ramp-p2p/payment-method/'
       const body = {
         account_name: info.account_name,
         account_identifier: info.account_identifier
@@ -445,7 +445,7 @@ export default {
         case 'createPaymentMethod':
         case 'addPaymentMethod': {
           // posting new payment method
-          vm.$axios.post(url, body, { headers: vm.authHeaders })
+          backend.post(url, body, { authorize: true })
             .then(response => {
               if (vm.paymentMethods.length < 5) {
                 vm.paymentMethods.push(response.data)
@@ -465,7 +465,7 @@ export default {
         }
         case 'editPaymentMethod': {
           // editing payment method
-          vm.$axios.put(url, body, { headers: vm.authHeaders })
+          backend.put(url, body, { authorize: true })
             .then(() => {
               vm.dialogType = ''
               vm.openDialog = false

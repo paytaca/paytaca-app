@@ -478,7 +478,7 @@ async function deviceUnlinkRequest(posDevice) {
     progress: true,
     seamless: true,
     ok: false,
-    class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   return Promise.resolve(posDevice)
@@ -529,7 +529,7 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     progress: true,
     seamless: true,
     ok: false,
-    class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
   const watchtower = new Watchtower()
@@ -559,7 +559,7 @@ function updateDeviceSuspension(posDevice, isSuspended) {
     persistent: true,
     seamless: true,
     progress: true,
-    class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   const watchtower = new Watchtower()
   watchtower.BCH._api.post(`paytacapos/devices/${handle}/suspend/`, data)
@@ -657,7 +657,7 @@ function confirmUnlinkPosDevice(posDevice) {
     },
     seamless: true,
     cancel: { noCaps: true, flat: true, padding: 'xs md' },
-    class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(() => {
       return deviceUnlinkRequest(posDevice)
@@ -679,7 +679,7 @@ function addNewPosDevice() {
         persistent: true,
         progress: true,
         seamless: true,
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
       apiCall
         .then(response => {
@@ -732,7 +732,7 @@ function updatePosDevice(posDevice) {
         persistent: true,
         progress: true,
         seamless: true,
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
       apiCall
         .then(response => {
@@ -789,7 +789,7 @@ function confirmRemovePosDevice(posDevice) {
     },
     seamless: true,
     cancel: { noCaps: true, flat: true, padding: 'xs md' },
-    class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(() => {
       let updateDialogMsg = $t(
@@ -801,7 +801,7 @@ function confirmRemovePosDevice(posDevice) {
         persistent: true,
         seamless: true,
         progress: true,
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
       deletePosDevice(posDevice)
         .then(() => {

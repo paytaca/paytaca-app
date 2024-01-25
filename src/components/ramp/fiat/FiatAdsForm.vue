@@ -262,6 +262,7 @@ import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -273,11 +274,6 @@ export default {
       tradeFloorRef,
       tradeCeilingRef
     }
-  },
-  props: {
-    transactionType: String,
-    adsState: String,
-    selectedAdId: Number
   },
   components: {
     AddPaymentMethods,
@@ -364,12 +360,15 @@ export default {
       ]
     }
   },
+  props: {
+    transactionType: String,
+    adsState: String,
+    selectedAdId: Number
+  },
   async mounted () {
     const vm = this
     vm.loading = true
-    if (vm.selectedAdId !== null) {
-      await vm.fetchAdDetail()
-    }
+    vm.fetchAd()
     await vm.getInitialMarketPrice()
     vm.updatePriceValue(vm.adData.priceType)
     vm.loading = false
@@ -412,64 +411,83 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
-    async fetchAdDetail () {
+    fetchAd () {
       const vm = this
-      const url = vm.apiURL + '/ad/' + vm.selectedAdId
-      try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
-        const data = response.data
-        console.log(data)
-        vm.adData.tradeType = data.trade_type
-        vm.adData.priceType = data.price_type
-        vm.adData.fixedPrice = parseFloat(data.fixed_price)
-        vm.adData.floatingPrice = parseFloat(data.floating_price)
-        vm.adData.fiatCurrency = data.fiat_currency
-        vm.adData.tradeAmount = parseFloat(data.trade_amount)
-        vm.adData.tradeFloor = parseFloat(data.trade_floor)
-        vm.adData.tradeCeiling = parseFloat(data.trade_ceiling) ? parseFloat(data.trade_ceiling) : parseFloat(data.trade_amount)
-        vm.adData.paymentMethods = data.payment_methods
-        vm.adData.isPublic = data.is_public
-        vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
-        vm.selectedCurrency = data.fiat_currency
-      } catch (error) {
-        console.error(error.response)
-        vm.swipeStatus = false
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      }
+      if (!vm.selectedAdId) return
+      backend.get(`/ramp-p2p/ad/${vm.selectedAdId}`, { authorize: true })
+        .then(response => {
+          const data = response.data
+          vm.adData.tradeType = data.trade_type
+          vm.adData.priceType = data.price_type
+          vm.adData.fixedPrice = parseFloat(data.fixed_price)
+          vm.adData.floatingPrice = parseFloat(data.floating_price)
+          vm.adData.fiatCurrency = data.fiat_currency
+          vm.adData.tradeAmount = parseFloat(data.trade_amount)
+          vm.adData.tradeFloor = parseFloat(data.trade_floor)
+          vm.adData.tradeCeiling = parseFloat(data.trade_ceiling) ? parseFloat(data.trade_ceiling) : parseFloat(data.trade_amount)
+          vm.adData.paymentMethods = data.payment_methods
+          vm.adData.isPublic = data.is_public
+          vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
+          vm.selectedCurrency = data.fiat_currency
+        })
+        .catch(error => {
+          vm.swipeStatus = false
+          vm.handleRequestError(error)
+        })
+    },
+    createAd () {
+      const vm = this
+      return new Promise((resolve, reject) => {
+        const body = vm.transformPostData()
+        backend.post('/ramp-p2p/ad/', body, { authorize: true })
+          .then(response => {
+            console.log(response)
+            vm.swipeStatus = true
+            vm.$emit('submit')
+            resolve(response.data)
+          })
+          .catch(error => {
+            vm.handleRequestError(error)
+            vm.swipeStatus = false
+            reject(error)
+          })
+      })
+    },
+    updateAd () {
+      const vm = this
+      return new Promise((resolve, reject) => {
+        const body = vm.transformPostData()
+        backend.put(`/ramp-p2p/ad/${vm.selectedAdId}`, body, { authorize: true })
+          .then(response => {
+            console.log(response)
+            vm.swipeStatus = true
+            vm.$emit('submit')
+            resolve(response.data)
+          })
+          .catch(error => {
+            vm.handleRequestError(error)
+            vm.swipeStatus = false
+            reject(error)
+          })
+      })
     },
     async onSubmit () {
       const vm = this
       vm.step++
-      const url = vm.apiURL + '/ad/'
-      const body = vm.transformPostData()
-      try {
-        let response = null
-        switch (vm.adsState) {
-          case 'create':
-            response = await vm.$axios.post(url, body, { headers: vm.authHeaders })
-            break
-          case 'edit':
-            response = await vm.$axios.put(url + vm.selectedAdId, body, { headers: vm.authHeaders })
-            break
-        }
-        console.log('response:', response)
-        vm.swipeStatus = true
-        vm.$emit('submit')
-      } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-        vm.swipeStatus = false
+      switch (vm.adsState) {
+        case 'create':
+          vm.createAd()
+          break
+        case 'edit':
+          vm.updateAd()
+          break
       }
     },
     async getInitialMarketPrice () {
       const vm = this
       const url = vm.apiURL + '/utils/market-price'
       try {
-        const response = await vm.$axios.get(url, { params: { currency: vm.selectedCurrency.symbol } })
+        const response = await backend.get(url, { params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data[0].price)
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)
@@ -484,9 +502,8 @@ export default {
     },
     async getFiatCurrencies () {
       const vm = this
-      const url = vm.apiURL + '/currency/fiat'
       try {
-        const response = await vm.$axios.get(url, { headers: vm.authHeaders })
+        const response = await backend.get('/ramp-p2p/currency/fiat', { authorize: true })
         vm.fiatCurrencies = response.data
         if (!vm.selectedCurrency) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
@@ -507,9 +524,7 @@ export default {
     },
     async getPaymentMethods () {
       try {
-        const url = this.apiURL + '/payment-method/'
-        const { data } = await this.$axios.get(url, { headers: this.authHeaders })
-        // console.log('getPaymentMethods: ', data)
+        const { data } = await backend.get('/ramp-p2p/payment-method/', { authorize: true })
         return data
       } catch (error) {
         console.error(error.response)
@@ -679,7 +694,17 @@ export default {
           vm.adData.fixedPrice = null
           break
       }
-    }, 500)
+    }, 500),
+    handleRequestError (error) {
+      if (error.response) {
+        console.error(error.response)
+        if (error.response.status === 403) {
+          bus.emit('session-expired')
+        }
+      } else {
+        console.error(error)
+      }
+    }
   }
 }
 </script>

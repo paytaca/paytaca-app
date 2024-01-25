@@ -42,18 +42,17 @@ export class RampWallet {
     return privateKeyWif
   }
 
-  async signMessage (message, timestamp = null) {
-    const privateKeyWIF = await this.privkey()
-    const stringToSign = timestamp ? [message, timestamp].join('::') : message
-    const privateKeyBin = decodePrivateKeyWif(privateKeyWIF).privateKey
-    if (typeof privateKeyBin === 'string') throw (new IncorrectWIFError(privateKeyWIF))
-
-    const messageHash = await sha256.hash(utf8ToBin(stringToSign))
+  async signMessage (message, timestamp) {
+    const wif = await this.privkey()
+    // hash the message
+    message = timestamp ? [message, timestamp].join('::') : message
+    const messageHash = await sha256.hash(utf8ToBin(message))
+    const privateKeyBin = decodePrivateKeyWif(wif).privateKey
+    if (typeof privateKeyBin === 'string') throw (new IncorrectWIFError(wif))
+    // sign
     const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
-
     if (typeof signatureBin === 'string') throw new Error(signatureBin)
     const signature = binToHex(signatureBin)
-
     return signature
   }
 }

@@ -148,7 +148,7 @@
                   </q-list>
                 </div>
                 <div class="row justify-center">
-                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/>
+                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="setOpenThemeSelector"/>
                 </div>
                 <div class="row justify-center">
                   <transition appear enter-active-class="animated fadeIn">
@@ -159,6 +159,13 @@
                   </transition>
                 </div>
               </div>
+            </div>
+
+            <div v-else-if="openThemeSelector">
+              <ThemeSelectorPreview
+                :choosePreferedSecurity="choosePreferedSecurity"
+              />
+                <!-- <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/> -->
             </div>
 
             <div v-else>
@@ -244,7 +251,8 @@ import { Device } from '@capacitor/device'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
+import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 function countWords(str) {
@@ -271,6 +279,7 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
+    ThemeSelectorPreview
   },
   data () {
     return {
@@ -287,7 +296,8 @@ export default {
       pin: '',
       securityOptionDialogStatus: 'dismiss',
       walletIndex: 0,
-      currencySelectorRerender: false
+      currencySelectorRerender: false,
+      openThemeSelector: false
     }
   },
   watch: {
@@ -306,11 +316,15 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    currentCountry () {
+      return this.$store.getters['global/country'].code
     }
   },
   methods: {
     isNotDefaultTheme,
     getDarkModeClass,
+    isHongKong,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
         return utils.isValidMnemonic(this.seedPhraseBackup)
@@ -525,6 +539,14 @@ export default {
         vm.continueToDashboard()
       } else {
         vm.pinDialogAction = ''
+      }
+    },
+    setOpenThemeSelector () {
+      if (this.isHongKong(this.currentCountry)) {
+        this.choosePreferedSecurity()
+      } else {
+        this.openSettings = false
+        this.openThemeSelector = true
       }
     }
   },

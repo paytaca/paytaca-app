@@ -156,6 +156,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { rampWallet } from 'src/wallet/ramp/wallet'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -264,11 +265,10 @@ export default {
     sendConfirmPayment (type) {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `${this.apiURL}/order/${vm.order.id}/confirm-payment/${type}`
         const body = {
           payment_methods: this.selectedPaymentMethods
         }
-        vm.$axios.post(url, body, { headers: vm.authHeaders })
+        backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}`, body, { authorize: true })
           .then(response => {
             resolve(response.data)
           })
@@ -293,6 +293,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const keypair = await rampWallet.keypair()
+      console.log('escrow:', vm.data?.escrow)
       vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {
@@ -319,8 +320,7 @@ export default {
     fetchOrderDetail () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = vm.apiURL + '/order/' + vm.data?.orderId
-        vm.$axios.get(url, { headers: vm.authHeaders })
+        backend.get(`/ramp-p2p/order/${vm.data?.orderId}`, { authorize: true })
           .then(response => {
             vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')

@@ -26,6 +26,6 @@
   },
   "server": {
     "androidScheme": "https",
-    "url": "http://192.168.1.19:9000"
+    "url": "http://192.168.1.51:9000"
   }
 }

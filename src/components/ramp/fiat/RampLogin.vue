@@ -66,7 +66,7 @@ import { backend } from 'src/wallet/ramp/backend'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
-import { getAuthCookie, setAuthCookie, clearAuthCookie } from 'src/wallet/ramp/auth'
+import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -122,17 +122,20 @@ export default {
           vm.usernickname = vm.user?.name
           vm.$store.commit('ramp/updateUser', vm.user)
           vm.$store.dispatch('ramp/loadAuthHeaders')
+          console.log('user:', vm.user)
           if (vm.user.is_authenticated) {
-            if (getAuthCookie()) {
-              vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-              vm.loadChatIdentity().then(vm.isLoading = false)
-            } else {
-              vm.isLoading = false
-              vm.login()
-            }
+            getAuthToken().then(token => {
+              if (token) {
+                vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+                vm.loadChatIdentity().then(vm.isLoading = false)
+              } else {
+                vm.isLoading = false
+                vm.login()
+              }
+            })
           } else {
             vm.isLoading = false
-            clearAuthCookie()
+            deleteAuthToken()
             vm.login()
           }
         })
@@ -176,6 +179,7 @@ export default {
             .finally(resolve())
             .catch(error => {
               console.error(error)
+              vm.isLoading = false
               reject(error)
             })
         })
@@ -252,7 +256,8 @@ export default {
                     }
                     backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
                       .then((response) => {
-                        setAuthCookie(response.data.token, response.data.expires_at)
+                        console.log(response.data)
+                        saveAuthToken(response.data.token)
                         if (vm.user) {
                           vm.$store.commit('ramp/updateUser', vm.user)
                           vm.$store.dispatch('ramp/loadAuthHeaders')
@@ -286,15 +291,13 @@ export default {
     },
     createRampUser () {
       const timestamp = Date.now()
-      const url = `${this.apiURL}/ramp-p2p/peer/create`
       this.loggingIn = true
-      clearAuthCookie()
+      deleteAuthToken()
       rampWallet.signMessage('PEER_CREATE', timestamp)
-        .then((signature) => {
+        .then(signature => {
           rampWallet.pubkey()
             .then((pubkey) => {
               const headers = {
-                'wallet-hash': rampWallet.walletHash,
                 timestamp: timestamp,
                 signature: signature,
                 'public-key': pubkey
@@ -303,11 +306,11 @@ export default {
                 name: this.usernickname,
                 address: this.wallet.address
               }
-              this.$axios.post(url, body, { headers: headers })
+              backend.post('/ramp-p2p/peer/create', body, { headers: headers })
                 .then((response) => {
                   this.user = response.data
                   this.$store.commit('ramp/updateUser', this.user)
-                  console.log('user:', this.user)
+                  console.log('Created user:', this.user)
                   this.login()
                 })
             })
@@ -327,10 +330,8 @@ export default {
     },
     async revokeAuth () {
       const url = `${this.apiURL}/auth/revoke`
-      const authHeaders = this.$store.getters['ramp/authHeaders']
       try {
-        const response = await this.$axios.post(url, null, { headers: authHeaders })
-        console.log('response:', response)
+        await backend.post(url, null, { authrize: true })
       } catch (error) {
         console.error(error)
         console.error(error.response)

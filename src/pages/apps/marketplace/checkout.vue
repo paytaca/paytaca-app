@@ -1892,6 +1892,7 @@ function copyToClipboard(value, message) {
 
 async function refreshPage(done=() => {}) {
   try {
+    initialized.value = Boolean(checkout.value.id)
     await Promise.all([
       fetchCheckout()
         .finally(() => resetFormData())

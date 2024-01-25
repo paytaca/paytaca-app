@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ref, computed } from 'vue'
 import { Geolocation } from '@capacitor/geolocation'
 import { registerPlugin } from '@capacitor/core'
+import { Capacitor } from '@capacitor/core'
 
 const GpsService = registerPlugin('GpsService'); 
 
@@ -128,6 +129,11 @@ class GeolocationManager {
   }
 
   geolocate(opts) {
+    if (Capacitor.getPlatform() == 'ios') return this.geolocate2(opts)
+    return this.geolocate1(opts)
+  }
+
+  geolocate1(opts) {
     this.location.value.loading = true
     const geolocateOpts = opts || this.geolocateOpts
     return Geolocation.getCurrentPosition(geolocateOpts)
@@ -144,6 +150,35 @@ class GeolocationManager {
       .finally(() => {
         this.location.value.loading = false
       })
+  }
+
+  geolocate2(opts) {
+    const geolocateOpts = opts || this.geolocateOpts
+    return new Promise(async (resolve, reject) => {
+      let watcherId
+      let timeoutId
+      try {
+        const cleanUp = (error) => {
+          if (error) reject(error)
+          if (timeoutId) clearTimeout(timeoutId)
+          Geolocation.clearWatch({ id: watcherId })
+          this.location.value.loading = false
+        }
+
+        this.location.value.loading = true
+        watcherId = await Geolocation.watchPosition(geolocateOpts, (position, error) => {
+          Geolocation.clearWatch({ id: watcherId })
+          if(!error) resolve(this.onPositionUpdate(position, error))
+          cleanUp(error)
+        })
+
+      } finally {
+        let timeoutDuration = parseFloat(geolocateOpts?.timeout)
+        if (!Number.isFinite(timeoutDuration)) timeoutDuration = 15 * 1000
+        timeoutId = setTimeout(() => cleanUp(new Error('Geolocate Timeout')), timeoutDuration)
+      }
+    })
+
   }
 
   /**
