@@ -180,6 +180,7 @@ import { formatDate } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { rampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -244,7 +245,7 @@ export default {
     getUserInfo () {
       const vm = this
       if (vm.userId) {
-        vm.$axios.get(vm.apiURL + '/peer/detail', { headers: vm.authHeaders, params: { id: vm.userId } })
+        backend.get('/ramp-p2p/peer/detail', { params: { id: vm.userId }, authorize: true })
           .then(response => {
             vm.user = response.data
             // console.log('vm.user:', vm.user)
@@ -268,7 +269,7 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      vm.$axios.put(vm.apiURL + '/peer/detail', { name: info.nickname }, { headers: vm.authHeaders })
+      backend.put('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
@@ -303,19 +304,17 @@ export default {
     },
     fetchTopReview () {
       const vm = this
-      const url = `${vm.apiURL}/order/feedback/peer`
       const params = {
         limit: 3
       }
-
       if (vm.reviewType === 'to-peer-review') {
         params.to_peer = this.userId
       } else {
         params.from_peer = this.userId
       }
-      vm.$axios.get(url, {
+      backend.get('/ramp-p2p/order/feedback/peer', {
         params: params,
-        headers: vm.authHeaders
+        authorize: true
       })
         .then(response => {
           if (response.data) {

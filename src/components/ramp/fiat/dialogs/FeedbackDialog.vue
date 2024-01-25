@@ -68,6 +68,7 @@
 import { ref } from 'vue'
 import { formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/marketplace/backend'
 
 export default {
   setup () {
@@ -145,7 +146,7 @@ export default {
     },
     async fetchReviews () {
       const vm = this
-      const url = `${vm.apiURL}/order/feedback/peer`
+      const url = '/ramp-p2p/order/feedback/peer'
       vm.page += 1
       const params = {
         limit: vm.limit,
@@ -166,9 +167,9 @@ export default {
           params.from_peer = vm.fromPeerID
           break
       }
-      await vm.$axios.get(url, {
+      await backend.get(url, {
         params: params,
-        headers: this.authHeaders
+        authorize: true
       })
         .then(response => {
           if (response.data) {

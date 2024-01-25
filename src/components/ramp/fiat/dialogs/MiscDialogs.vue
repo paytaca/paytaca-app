@@ -708,10 +708,10 @@
 </template>
 
 <script>
-import { debounce } from 'quasar'
 import { getPaymentTimeLimit } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   emits: ['back', 'submit'],
@@ -1010,7 +1010,7 @@ export default {
     async fetchPaymentMethod () {
       const vm = this
       vm.loading = true
-      vm.$axios.get(vm.apiURL + '/payment-method', { headers: vm.authHeaders })
+      backend.get('/ramp-p2p/payment-method', { authorize: true })
         .then(response => {
           const data = response.data
           if (vm.addPaymentMethod) {

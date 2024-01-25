@@ -1,19 +1,23 @@
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+const TOKEN_STORAGE_KEY = 'ramp-p2p-auth-key'
 
-export function setAuthCookie (token, expiresAt) {
-  document.cookie = `token=${token}; expires=${new Date(expiresAt).toUTCString()}; path=/; SameSite=None; Secure`
+export function saveAuthToken (value) {
+  SecureStoragePlugin.set({ TOKEN_STORAGE_KEY, value }).then(success => { return success.value })
 }
 
-export function getAuthCookie () {
-  const cookieArr = document.cookie.split('; ')
-  for (let i = 0; i < cookieArr.length; i++) {
-    const cookiePair = cookieArr[i].split('=')
-    if (cookiePair[0] === 'token') {
-      return decodeURIComponent(cookiePair[1])
-    }
-  }
-  return null
+export function getAuthToken () {
+  return new Promise((resolve, reject) => {
+    SecureStoragePlugin.get({ TOKEN_STORAGE_KEY })
+      .then(token => {
+        resolve(token.value)
+      })
+      .catch(error => {
+        console.error('Item with specified key does not exist:', error)
+        reject(error)
+      })
+  })
 }
 
-export function clearAuthCookie () {
-  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+export function deleteAuthToken () {
+  SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
 }

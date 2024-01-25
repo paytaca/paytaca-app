@@ -103,6 +103,7 @@ import { ref } from 'vue'
 import { rampWallet } from 'src/wallet/ramp/wallet'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -183,14 +184,14 @@ export default {
     getDarkModeClass,
     async login () {
       try {
-        const { data } = await this.$axios.get(`${this.apiURL}/auth/otp/arbiter`, { headers: { 'wallet-hash': this.wallet.walletHash } })
+        const { data } = await backend.get('/ramp-p2p/auth/otp/arbiter', { headers: { 'wallet-hash': this.wallet.walletHash } })
         const signature = await rampWallet.signMessage(this.wallet.privateKeyWif, data.otp)
         const body = {
           wallet_hash: rampWallet.walletHash,
           signature: signature,
           public_key: this.wallet.publicKey
         }
-        await this.$axios.post(`${this.apiURL}/auth/login/arbiter`, body)
+        await backend.post('/ramp-p2p/auth/login/arbiter', body)
           .then(response => {
             // save token as cookie and set to expire 1h later
             document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
