@@ -149,31 +149,37 @@ export default {
         })
     },
     async loadChatIdentity () {
-      await updateSignerData()
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const data = {
-          rampWallet: rampWallet,
-          ref: vm.wallet.walletHash,
-          name: vm.user.name
-        }
-        fetchChatIdentity(data.ref)
-          .then(identity => {
-            if (!identity) {
-              vm.buildChatIdentityPayload(data)
-                .then(payload => createChatIdentity(payload))
-                .then(identity => updatePeerChatIdentityId(identity.id))
-            } else if (!vm.user.chat_identity_id) {
-              updatePeerChatIdentityId(identity.id)
-            }
-          })
-          .then(updateOrCreateKeypair())
-          .finally(resolve())
-          .catch(error => {
-            console.error(error)
-            reject(error)
-          })
-      })
+      // check if chatIdentity exist
+      const chatIdentity = this.$store.getters['ramp/chatIdentity']
+
+      if (!chatIdentity) {
+        await updateSignerData()
+        return new Promise((resolve, reject) => {
+          const vm = this
+          const data = {
+            rampWallet: rampWallet,
+            ref: vm.wallet.walletHash,
+            name: vm.user.name
+          }
+          fetchChatIdentity(data.ref)
+            .then(identity => {
+              if (!identity) {
+                vm.buildChatIdentityPayload(data)
+                  .then(payload => createChatIdentity(payload))
+                  .then(identity => updatePeerChatIdentityId(identity.id))
+              } else if (!vm.user.chat_identity_id) {
+                updatePeerChatIdentityId(identity.id)
+              }
+              vm.$store.commit('ramp/updateChatIdentity', identity)
+            })
+            .then(updateOrCreateKeypair())
+            .finally(resolve())
+            .catch(error => {
+              console.error(error)
+              reject(error)
+            })
+        })
+      }
     },
     async buildChatIdentityPayload (data) {
       const wallet = data.rampWallet

@@ -6,79 +6,114 @@
   >
    <!--Title  -->
   <q-card class="br-15 pt-card" :style="`height: ${maxHeight}px;`" :dark="darkMode" :class="getDarkModeClass(darkMode)">
-    <q-pull-to-refresh @refresh="refreshData">
-      <div class="row items-center justify-between q-mr-lg q-pb-xs">
-        <div class="q-pl-lg q-mt-md">
-          <div
-            class="text-bow text-weight-medium"
-            style="font-size: 25px;"
-            :class="getDarkModeClass(darkMode)">
-            Chat
-          </div>
-          <div
-            v-if="chatMembers?.length > 0"
-            style="letter-spacing: 1px;"
-            class="font-13"
-            :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-          >
-            <span v-for="(member, index) in chatMembers" :key="index">
-              {{ member.is_user ? `You (${member.name})` : member.name}}{{ index < chatMembers.length-1 ? ', ' : ''}}
-            </span>
-          </div>
+    <div class="row items-center justify-between q-mr-lg q-pb-xs">
+      <div class="q-pl-lg q-mt-md">
+        <div
+          class="text-bow text-weight-medium"
+          style="font-size: 25px;"
+          :class="getDarkModeClass(darkMode)">
+          Chat
         </div>
-        <q-btn
-          rounded
-          no-caps
-          padding="sm"
-          class="q-ml-md close-button"
-          icon="close"
-          flat
-          @click="$emit('close')"
-        />
+        <div
+          v-if="chatMembers?.length > 0"
+          style="letter-spacing: 1px;"
+          class="font-13"
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+        >
+          <span v-for="(member, index) in chatMembers" :key="index">
+            {{ member.is_user ? `You (${member.name})` : member.name}}{{ index < chatMembers.length-1 ? ', ' : ''}}
+          </span>
+        </div>
       </div>
-    </q-pull-to-refresh>
+      <q-btn
+        rounded
+        no-caps
+        padding="sm"
+        class="q-ml-md close-button"
+        icon="close"
+        flat
+        @click="$emit('close')"
+      />
+    </div>
 
     <!-- Convo -->
-    <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-      <q-list
-        ref="scrollTargetRef"
-        :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`"
-        style="overflow: auto;"
+    <q-list
+      ref="scrollTargetRef"
+      :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`"
+      style="overflow: auto;"
+    >
+      <q-infinite-scroll
+        ref="infiniteScroll"
+        :items="convo.messages"
+        :scroll-target="scrollTargetRef"
+        @load="loadMoreData"
+        :offset="0"
+        reverse
       >
-        <q-infinite-scroll
-            ref="infiniteScroll"
-            :items="convo.messages"
-            :scroll-target="scrollTargetRef"
-            @load="loadMoreData"
-            :offset="0"
-            reverse
-          >
-          <template v-slot:loading>
-            <div class="row justify-center q-my-md">
-              <q-spinner-dots color="primary" size="40px" />
-            </div>
-          </template>
+        <template v-slot:loading>
+          <div class="row justify-center q-my-md">
+            <q-spinner-dots color="primary" size="40px" />
+          </div>
+        </template>
 
-          <div v-if="convo.messages.length !== 0 && isloaded">
-            <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
-              <q-item>
-                <q-item-section>
-                  <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
-                    <div v-if="message.message">
-                      <q-chat-message
-                        :name="message.chatIdentity.is_user? 'You': message.chatIdentity.name"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
-                        :stamp="new Date(message.createdAt).toLocaleString"
-                        :sent="message.chatIdentity.is_user"
-                        :bg-color="message.chatIdentity.is_user ? 'blue-5': 'blue-grey-2'"
-                        :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
-                        size="6"
-                      >
-                        <div class="font-13 text-weight-light">
-                          {{ message.text }}
+        <div v-if="convo.messages.length !== 0 && isloaded">
+          <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
+            <q-item>
+              <q-item-section>
+                <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
+                  <div v-if="message.message">
+                    <q-chat-message
+                      :name="message.chatIdentity.is_user? 'You': message.chatIdentity.name"
+                      :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
+                      :stamp="new Date(message.createdAt).toLocaleString"
+                      :sent="message.chatIdentity.is_user"
+                      :bg-color="message.chatIdentity.is_user ? 'blue-5': 'blue-grey-2'"
+                      :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
+                      size="6"
+                    >
+                      <div class="font-13 text-weight-light">
+                        {{ message.text }}
+                      </div>
+                    </q-chat-message>
+                    <div class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
+                      <img
+                        v-if="message?.decryptedAttachmentFile?.url"
+                        class="q-px-sm cursor-pointer image-attachment"
+                        :src="message?.decryptedAttachmentFile?.url"
+                        @click="openSelectedImage(message?.decryptedAttachmentFile?.url)"
+                        alt=""
+                      />
+                      <div v-else class="row items-center">
+                        <div
+                          class="text-grey encrypted-attachment-text"
+                          @click="() => decryptMessageAttachment(message, true)"
+                          v-element-visibility="() => {
+                            decryptMessageAttachment(message)
+                            if (!tempMessage) { resetScroll() }
+                          }"
+                        >
+                          Attachment encrypted
+                          <q-spinner v-if="message?.$state?.decryptingAttachment"/>
                         </div>
-                      </q-chat-message>
-                      <div class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else>
+                    <div
+                      class="font-13"
+                      :class="message.chatIdentity.is_user? 'text-right' : ''"
+                      :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'"
+                    >
+                      {{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}
+                    </div>
+                    <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
+                      <q-avatar size="6" v-if="!message.chatIdentity.is_user">
+                        <img
+                          :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                          alt=""
+                        >
+                      </q-avatar>
+                      <div class="q-mx-lg q-pt-sm">
                         <img
                           v-if="message?.decryptedAttachmentFile?.url"
                           class="q-px-sm cursor-pointer image-attachment"
@@ -94,98 +129,59 @@
                               decryptMessageAttachment(message)
                               if (!tempMessage) { resetScroll() }
                             }"
-                            >
-                              Attachment encrypted
-                              <q-spinner v-if="message?.$state?.decryptingAttachment"/>
+                          >
+                            Attachment encrypted
+                            <q-spinner v-if="message?.$state?.decryptingAttachment"/>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <div v-else>
-                      <div
-                        class="font-13"
-                        :class="message.chatIdentity.is_user? 'text-right' : ''"
-                        :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'"
-                      >
-                        {{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}
-                      </div>
-                      <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
-                        <q-avatar size="6" v-if="!message.chatIdentity.is_user">
-                          <img
-                            :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
-                            alt=""
-                          >
-                        </q-avatar>
-                        <div class="q-mx-lg q-pt-sm">
-                          <img
-                            v-if="message?.decryptedAttachmentFile?.url"
-                            class="q-px-sm cursor-pointer image-attachment"
-                            :src="message?.decryptedAttachmentFile?.url"
-                            @click="openSelectedImage(message?.decryptedAttachmentFile?.url)"
-                            alt=""
-                          />
-                          <div v-else class="row items-center">
-                            <div
-                              class="text-grey encrypted-attachment-text"
-                              @click="() => decryptMessageAttachment(message, true)"
-                              v-element-visibility="() => {
-                                decryptMessageAttachment(message)
-                                if (!tempMessage) { resetScroll() }
-                              }"
-                              >
-                                Attachment encrypted
-                                <q-spinner v-if="message?.$state?.decryptingAttachment"/>
-                            </div>
-                          </div>
-                        </div>
-                        <q-avatar size="6" v-if="message.chatIdentity.is_user">
-                          <img
-                            :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
-                            alt=""
-                          >
-                        </q-avatar>
-                      </div>
+                      <q-avatar size="6" v-if="message.chatIdentity.is_user">
+                        <img
+                          :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                          alt=""
+                        >
+                      </q-avatar>
                     </div>
                   </div>
-                  <div class="q-px-md row justify-center" v-else>
-                    <div style="width: 100%;">
-                      <q-chat-message
-                        :name="message.chatIdentity.is_user ? 'me' : message.chatIdentity.name"
-                        :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
-                        :stamp="new Date(message.createdAt).toLocaleString()"
-                        :sent="message.chatIdentity.is_user"
-                        :bg-color="message.chatIdentity.is_user ? 'blue-5' : 'blue-grey-2'"
-                        :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
-                        size="6"
-                      >
-                        <div class="font-13 text-weight-regular">
-                          {{ message._decryptedMessage }}
-                        </div>
-                      </q-chat-message>
-                    </div>
-                  </div>
-                </q-item-section>
-              </q-item>
-            </div>
-          </div>
-          <div v-if="isTyping" class="q-px-sm q-mx-lg">
-            <div style="width: 100%;">
-              <q-chat-message
-                name="me"
-                sent
-                :avatar="`https://ui-avatars.com/api/?background=random&name=${userName}&color=fffff`"
-                bg-color="blue-5"
-                size="6"
-              >
-                <div class="text-center">
-                  <q-spinner-dots color="white" size="2rem" />
                 </div>
-              </q-chat-message>
-            </div>
+                <div class="q-px-md row justify-center" v-else>
+                  <div style="width: 100%;">
+                    <q-chat-message
+                      :name="message.chatIdentity.is_user ? 'me' : message.chatIdentity.name"
+                      :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                      :stamp="new Date(message.createdAt).toLocaleString()"
+                      :sent="message.chatIdentity.is_user"
+                      :bg-color="message.chatIdentity.is_user ? 'blue-5' : 'blue-grey-2'"
+                      :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
+                      size="6"
+                    >
+                      <div class="font-13 text-weight-regular">
+                        {{ message._decryptedMessage }}
+                      </div>
+                    </q-chat-message>
+                  </div>
+                </div>
+              </q-item-section>
+            </q-item>
           </div>
-        </q-infinite-scroll>
-      </q-list>
-    <!-- </q-pull-to-refresh> -->
+        </div>
+        <div v-if="isTyping" class="q-px-sm q-mx-lg">
+          <div style="width: 100%;">
+            <q-chat-message
+              name="me"
+              sent
+              :avatar="`https://ui-avatars.com/api/?background=random&name=${userName}&color=fffff`"
+              bg-color="blue-5"
+              size="6"
+            >
+              <div class="text-center">
+                <q-spinner-dots color="white" size="2rem" />
+              </div>
+            </q-chat-message>
+          </div>
+        </div>
+      </q-infinite-scroll>
+    </q-list>
 
     <!-- Message Input -->
     <div class="row q-py-sm q-px-sm">
@@ -523,14 +519,6 @@ export default {
             this.resetScroll()
           }, 1000)
         })
-    },
-    refreshData (done) {
-      console.log('refreshing data')
-      setTimeout(() => {
-        this.isloaded = false
-        this.loadData()
-        done()
-      }, 500)
     },
     typingMessage: debounce(async function () {
       if (this.message !== '') {

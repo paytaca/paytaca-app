@@ -53,7 +53,7 @@
                 Error: {{ errorMessage }}
             </q-card>
           </div>
-          <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm">
+          <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm q-pt-md">
             <q-btn
               rounded
               :loading="loading"
