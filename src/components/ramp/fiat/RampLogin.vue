@@ -70,6 +70,7 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/au
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { FailedSigCheckError } from 'cashscript'
 
 export default {
   data () {
@@ -88,7 +89,12 @@ export default {
       errorMessage: null,
       hasBiometric: false,
       securityDialogUp: false,
-      chatIdentityId: null
+      chatIdentityId: null,
+      retrying: false,
+      retry: {
+        loadChatIdentity: false,
+        updatePeerChatIdentityId: false
+      }
     }
   },
   components: {
@@ -127,7 +133,8 @@ export default {
             getAuthToken().then(token => {
               if (token) {
                 vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-                vm.loadChatIdentity().then(vm.isLoading = false)
+                vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
+                // vm.loadChatIdentity().then(vm.isLoading = false)
               } else {
                 vm.isLoading = false
                 vm.login()
@@ -153,12 +160,15 @@ export default {
     },
     async loadChatIdentity () {
       // check if chatIdentity exist
+
+      console.log('loading chat identity')
       const chatIdentity = this.$store.getters['ramp/chatIdentity']
 
       if (!chatIdentity) {
         await updateSignerData()
         return new Promise((resolve, reject) => {
           const vm = this
+          vm.retry.loadChatIdentity = true
           const data = {
             rampWallet: rampWallet,
             ref: vm.wallet.walletHash,
@@ -169,14 +179,25 @@ export default {
               if (!identity) {
                 vm.buildChatIdentityPayload(data)
                   .then(payload => createChatIdentity(payload))
-                  .then(identity => updatePeerChatIdentityId(identity.id))
+                  .then(identity => {
+                    console.log('fetching chat_dentity_id')
+                    vm.retry.updatePeerChatIdentityId = true
+                    vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
+                  })
               } else if (!vm.user.chat_identity_id) {
-                updatePeerChatIdentityId(identity.id)
+                console.log('!vm.user.chat_identity_id')
+                vm.retry.updatePeerChatIdentityId = true
+                vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
               }
               vm.$store.commit('ramp/updateChatIdentity', identity)
             })
             .then(updateOrCreateKeypair())
-            .finally(resolve())
+            .finally(() => {
+              console.log('doneeee')
+              vm.retry.loadChatIdentity = false
+              vm.retry.updatePeerChatIdentityId = true
+              resolve()
+            })
             .catch(error => {
               console.error(error)
               vm.isLoading = false
@@ -184,6 +205,32 @@ export default {
             })
         })
       }
+    },
+    exponentialBackoff (fn, retries, delayDuration, ...data) {
+      const vm = this
+      const funcName = fn.name.split('bound ').join('')
+      console.log('method: ', funcName)
+      console.log('retry: ', vm.retry[funcName])
+      console.log('data: ', data)
+      return fn(data[0])
+        .then(() => {
+          console.log('processing')
+          if (vm.retry[funcName]) {
+            console.log('retrying')
+            if (retries > 0) {
+              return vm.delay(delayDuration)
+                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2))
+            } else {
+              vm.retry[funcName] = false
+            }
+          }
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     },
     async buildChatIdentityPayload (data) {
       const wallet = data.rampWallet
@@ -265,7 +312,8 @@ export default {
                         vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                       })
                       .then(() => {
-                        vm.loadChatIdentity().then(vm.loggingIn = false)
+                        vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
+
                         // vm.savePubkeyAndAddress({
                         //   address: rampWallet.address,
                         //   public_key: pubkey
