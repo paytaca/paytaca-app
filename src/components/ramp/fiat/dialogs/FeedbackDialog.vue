@@ -68,7 +68,7 @@
 import { ref } from 'vue'
 import { formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/marketplace/backend'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -146,7 +146,7 @@ export default {
     },
     async fetchReviews () {
       const vm = this
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = 'ramp-p2p/order/feedback/peer'
       vm.page += 1
       const params = {
         limit: vm.limit,
@@ -173,6 +173,7 @@ export default {
       })
         .then(response => {
           if (response.data) {
+            console.log(response)
             vm.reviewList.push(...response.data.feedbacks)
             vm.totalPages = response.data.total_pages
           }
