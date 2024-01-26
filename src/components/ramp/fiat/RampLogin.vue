@@ -128,6 +128,14 @@ export default {
               if (token) {
                 vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                 vm.loadChatIdentity().then(vm.isLoading = false)
+                console.log('rampWallet:', rampWallet)
+                rampWallet.pubkey().then(pubkey => {
+                  const body = {
+                    address: rampWallet.address,
+                    public_key: pubkey
+                  }
+                  vm.savePubkeyAndAddress(body)
+                })
               } else {
                 vm.isLoading = false
                 vm.login()
@@ -202,7 +210,10 @@ export default {
     },
     savePubkeyAndAddress (payload) {
       return new Promise((resolve, reject) => {
-        backend.put('/ramp-p2p/peer/detail', payload, { authorize: true })
+        const usertype = this.user.is_arbiter ? 'arbiter' : 'peer'
+        console.log('payload:', payload)
+        console.log('url:', `/ramp-p2p/${usertype}/detail`)
+        backend.put(`/ramp-p2p/${usertype}/detail`, payload, { authorize: true })
           .then(response => {
             console.log('Updated pubkey and address:', response.data)
             resolve(response)
@@ -210,6 +221,9 @@ export default {
           .catch(error => {
             if (error.response) {
               console.error('Failed to update pubkey and address:', error.response)
+              if (error.response.status === 403) {
+                this.login()
+              }
             } else {
               console.error('Failed to update pubkey and address:', error)
             }
@@ -221,13 +235,6 @@ export default {
       const vm = this
       const wallet = vm.$store.getters['global/getWallet']('bch')
       // TODO: needs backend changes
-      // rampWallet.pubkey().then(pubkey => {
-      //   const body = {
-      //     address: rampWallet.address,
-      //     public_key: pubkey
-      //   }
-      //   vm.savePubkeyAndAddress(body)
-      // })
       const walletInfo = {
         walletHash: wallet.walletHash,
         connectedAddressIndex: wallet.connectedAddressIndex,
@@ -270,6 +277,13 @@ export default {
                         //   address: rampWallet.address,
                         //   public_key: pubkey
                         // })
+                      })
+                      .catch((error) => {
+                        if (error.response) {
+                          console.error(error.response)
+                        } else {
+                          console.error(error)
+                        }
                       })
                   })
               })
@@ -315,9 +329,10 @@ export default {
                 })
             })
             .catch((error) => {
-              console.error(error)
               if (error.response) {
                 console.error(error.response)
+              } else {
+                console.error(error)
               }
             })
         })
