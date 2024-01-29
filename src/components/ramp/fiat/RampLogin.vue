@@ -189,22 +189,21 @@ export default {
                 vm.buildChatIdentityPayload(data)
                   .then(payload => createChatIdentity(payload))
                   .then(identity => {
-                    console.log('fetching chat_dentity_id')
                     vm.retry.updatePeerChatIdentityId = true
+                    // updatePeerChatIdentityId(identity.id)
                     vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
                   })
               } else if (!vm.user.chat_identity_id) {
-                console.log('!vm.user.chat_identity_id')
                 vm.retry.updatePeerChatIdentityId = true
+                // updatePeerChatIdentityId(identity.id)
                 vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
               }
               vm.$store.commit('ramp/updateChatIdentity', identity)
             })
             .then(updateOrCreateKeypair())
             .finally(() => {
-              console.log('doneeee')
               vm.retry.loadChatIdentity = false
-              vm.retry.updatePeerChatIdentityId = true
+              // vm.retry.updatePeerChatIdentityId = false
               resolve()
             })
             .catch(error => {
@@ -218,17 +217,15 @@ export default {
     exponentialBackoff (fn, retries, delayDuration, ...data) {
       const vm = this
       const funcName = fn.name.split('bound ').join('')
-      console.log('method: ', funcName)
-      console.log('retry: ', vm.retry[funcName])
-      console.log('data: ', data)
-      return fn(data[0])
-        .then(() => {
-          console.log('processing')
+      const identityId = data[0]
+
+      return fn(identityId)
+        .then((info) => {
           if (vm.retry[funcName]) {
             console.log('retrying')
             if (retries > 0) {
               return vm.delay(delayDuration)
-                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2))
+                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
             } else {
               vm.retry[funcName] = false
             }
@@ -236,6 +233,12 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (retries > 0) {
+            return vm.delay(delayDuration)
+              .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
+          } else {
+            vm.retry[funcName] = false
+          }
         })
     },
     delay (duration) {
@@ -318,8 +321,9 @@ export default {
                           vm.$store.dispatch('ramp/loadAuthHeaders')
                         }
                         vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+                        console.log('processing auth')
                       })
-                      .then(() => {
+                      .finally(() => {
                         vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
 
                         // vm.savePubkeyAndAddress({
