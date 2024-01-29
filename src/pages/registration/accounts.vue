@@ -161,10 +161,15 @@
               <div class="row q=mt-md" v-if="steps === totalSteps">
                 <q-btn v-if="mnemonicVerified" class="full-width bg-blue-9 text-white" @click="openSettings = true" :label="$t('Continue')" rounded />
                 <template v-else>
-                  <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
-                    {{ $t('SkipVerification') }}
-                  </q-btn>
-                  <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                  <template v-if="$q.platform.is.mobile">
+                    <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
+                      {{ $t('SkipVerification') }}
+                    </q-btn>
+                    <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                  </template>
+                  <template v-else>
+                    <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                  </template>
                 </template>
               </div>
             </div>
