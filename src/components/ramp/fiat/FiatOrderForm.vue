@@ -400,6 +400,42 @@ export default {
         .then(chatRef => addChatMembers(chatRef, chatMembers))
         .catch(console.error)
     },
+    // WIP
+    // exponentialBackoff (fn, retries, delayDuration, ...info) {
+    //   const vm = this
+    //   const payload = info[0]
+
+    //   return fn(payload)
+    //     .then((data) => {
+    //       if (data.data) {
+    //         const chatIdentity = data.data
+    //         vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+    //         vm.retry = false
+    //       }
+
+    //       if (vm.retry) {
+    //         console.log('retrying')
+    //         if (retries > 0) {
+    //           return vm.delay(delayDuration)
+    //             .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
+    //         } else {
+    //           vm.retry = false
+    //         }
+    //       }
+    //     })
+    //     .catch(error => {
+    //       console.log(error)
+    //       if (retries > 0) {
+    //         return vm.delay(delayDuration)
+    //           .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
+    //       } else {
+    //         vm.retry = false
+    //       }
+    //     })
+    // },
+    // delay (duration) {
+    //   return new Promise(resolve => setTimeout(resolve, duration))
+    // },
     formattedCurrency (value, currency = null) {
       if (currency) {
         return formatCurrency(value, currency)

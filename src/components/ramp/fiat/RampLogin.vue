@@ -70,6 +70,7 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/au
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { FailedSigCheckError } from 'cashscript'
 
 export default {
   data () {
@@ -88,7 +89,12 @@ export default {
       errorMessage: null,
       hasBiometric: false,
       securityDialogUp: false,
-      chatIdentityId: null
+      chatIdentityId: null,
+      retrying: false,
+      retry: {
+        loadChatIdentity: false,
+        updatePeerChatIdentityId: false
+      }
     }
   },
   components: {
@@ -125,8 +131,10 @@ export default {
           if (vm.user.is_authenticated) {
             getAuthToken().then(token => {
               if (token) {
-                vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-                vm.loadChatIdentity().then(vm.isLoading = false)
+                // vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+                vm.$emit('loggedIn', vm.is_arbiter ? 'arbiter' : 'peer')
+                vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
+                // vm.loadChatIdentity().then(vm.isLoading = false)
                 vm.savePubkeyAndAddress()
               } else {
                 vm.isLoading = false
@@ -153,12 +161,15 @@ export default {
     },
     async loadChatIdentity () {
       // check if chatIdentity exist
+
+      console.log('loading chat identity')
       const chatIdentity = this.$store.getters['ramp/chatIdentity']
 
       if (!chatIdentity) {
         await updateSignerData()
         return new Promise((resolve, reject) => {
           const vm = this
+          vm.retry.loadChatIdentity = true
           const data = {
             rampWallet: rampWallet,
             ref: rampWallet.walletHash,
@@ -169,14 +180,24 @@ export default {
               if (!identity) {
                 vm.buildChatIdentityPayload(data)
                   .then(payload => createChatIdentity(payload))
-                  .then(identity => updatePeerChatIdentityId(identity.id))
+                  .then(identity => {
+                    vm.retry.updatePeerChatIdentityId = true
+                    // updatePeerChatIdentityId(identity.id)
+                    vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
+                  })
               } else if (!vm.user.chat_identity_id) {
-                updatePeerChatIdentityId(identity.id)
+                vm.retry.updatePeerChatIdentityId = true
+                // updatePeerChatIdentityId(identity.id)
+                vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
               }
               vm.$store.commit('ramp/updateChatIdentity', identity)
             })
             .then(updateOrCreateKeypair())
-            .finally(resolve())
+            .finally(() => {
+              vm.retry.loadChatIdentity = false
+              // vm.retry.updatePeerChatIdentityId = false
+              resolve()
+            })
             .catch(error => {
               console.error(error)
               vm.isLoading = false
@@ -184,6 +205,36 @@ export default {
             })
         })
       }
+    },
+    exponentialBackoff (fn, retries, delayDuration, ...data) {
+      const vm = this
+      const funcName = fn.name.split('bound ').join('')
+      const identityId = data[0]
+
+      return fn(identityId)
+        .then((info) => {
+          if (vm.retry[funcName]) {
+            console.log('retrying')
+            if (retries > 0) {
+              return vm.delay(delayDuration)
+                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
+            } else {
+              vm.retry[funcName] = false
+            }
+          }
+        })
+        .catch(error => {
+          console.log(error)
+          if (retries > 0) {
+            return vm.delay(delayDuration)
+              .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
+          } else {
+            vm.retry[funcName] = false
+          }
+        })
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     },
     async buildChatIdentityPayload (data) {
       const wallet = data.rampWallet
@@ -262,6 +313,44 @@ export default {
                   .catch((error) => { console.error(error) })
               })
             })
+            backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
+              .then(response => rampWallet.signMessage(response.data.otp))
+              .then(signature => {
+                rampWallet.pubkey()
+                  .then(pubkey => {
+                    const body = {
+                      wallet_hash: rampWallet.walletHash,
+                      signature: signature,
+                      public_key: pubkey
+                    }
+                    backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
+                      .then((response) => {
+                        console.log(response.data)
+                        saveAuthToken(response.data.token)
+                        if (vm.user) {
+                          vm.$store.commit('ramp/updateUser', vm.user)
+                          vm.$store.dispatch('ramp/loadAuthHeaders')
+                        }
+                        vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+                        console.log('processing auth')
+                      })
+                      .finally(() => {
+                        vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
+
+                        // vm.savePubkeyAndAddress({
+                        //   address: rampWallet.address,
+                        //   public_key: pubkey
+                        // })
+                      })
+                      .catch((error) => {
+                        if (error.response) {
+                          console.error(error.response)
+                        } else {
+                          console.error(error)
+                        }
+                      })
+                  })
+              })
               .catch(error => {
                 if (error.response) {
                   console.error(error.response)

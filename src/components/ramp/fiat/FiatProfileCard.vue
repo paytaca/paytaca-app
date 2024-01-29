@@ -199,7 +199,8 @@ export default {
       reviewList: [],
       reviewType: 'to-peer-review',
       statusType: 'ONGOING',
-      openReviews: false
+      openReviews: false,
+      retry: false
     }
   },
   props: {
@@ -276,10 +277,8 @@ export default {
             ref: rampWallet.walletHash,
             name: response.data.name
           }
-          updateChatIdentity(payload).then(data => {
-            const chatIdentity = data.data
-            vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
-          })
+          vm.retry = true
+          vm.exponentialBackoff(updateChatIdentity, 5, 1000, payload)
           this.processUserData()
         })
         .catch(error => {
@@ -293,6 +292,41 @@ export default {
         })
 
       this.editNickname = false
+    },
+    exponentialBackoff (fn, retries, delayDuration, ...info) {
+      const vm = this
+      const payload = info[0]
+
+      return fn(payload)
+        .then((data) => {
+          if (data.data) {
+            const chatIdentity = data.data
+            vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+            vm.retry = false
+          }
+
+          if (vm.retry) {
+            console.log('retrying')
+            if (retries > 0) {
+              return vm.delay(delayDuration)
+                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
+            } else {
+              vm.retry = false
+            }
+          }
+        })
+        .catch(error => {
+          console.log(error)
+          if (retries > 0) {
+            return vm.delay(delayDuration)
+              .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
+          } else {
+            vm.retry = false
+          }
+        })
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     },
     switchReviewType (type) {
       if (this.reviewType !== type) {
