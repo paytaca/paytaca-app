@@ -93,7 +93,7 @@ export async function updateSignerData (_context) {
   const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
 
   const message = `${Date.now()}`
-  const verifyingPubkeyIndex = rampWallet.lastAddressIndex
+  const verifyingPubkeyIndex = rampWallet.addressIndex
   const signature = await (await rampWallet.raw()).signMessage(message, verifyingPubkeyIndex)
 
   const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
