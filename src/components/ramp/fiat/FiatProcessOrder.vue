@@ -169,8 +169,8 @@ export default {
     escrowTransferData () {
       return {
         order: this.order,
-        arbiter: this.order.arbiter,
-        contractAddress: this.contract.address,
+        arbiter: this.order?.arbiter,
+        contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
         fees: this.fees,
         wsConnected: !this.reconnectingWebSocket
@@ -392,6 +392,7 @@ export default {
         const url = `/ramp-p2p/order/${vm.orderData.id}`
         backend.get(url, { authorize: true })
           .then(response => {
+            console.log('fetchOrder:', response.data)
             vm.order = response.data
             vm.updateStatus(vm.order.status)
             resolve(response.data)
@@ -502,6 +503,7 @@ export default {
           authorize: true
         })
           .then(response => {
+            console.log('fetchContract:', response.data)
             vm.contract = response.data
             resolve(response.data)
           })
@@ -731,28 +733,19 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        if (data) {
-          if (data.success) {
-            if (data.status) {
-              this.updateStatus(data.status.status)
-            }
-          }
-          if (data.error) {
-            this.errorMessages.push(data.error)
-            this.verifyTransactionKey++
-          } else if (data.errors) {
-            this.errorMessages.push(...data.errors)
-            this.verifyTransactionKey++
-          }
-          if (data.txid) {
-            this.txid = data.txid
-          }
-          if (data.contract_address) {
-            if (this.contract) {
-              this.contract.address = data.contract_address
-            }
-            this.escrowTransferKey++
-          }
+        this.updateStatus(data?.status?.status)
+        // if (data.error) {
+        //   this.errorMessages.push(data.error)
+        //   this.verifyTransactionKey++
+        // } else if (data.errors) {
+        //   this.errorMessages.push(...data.errors)
+        //   this.verifyTransactionKey++
+        // }
+        // if (data.txid) {
+        //   this.txid = data.txid
+        // }
+        if (data?.contract_address) {
+          this.fetchOrder().then(this.fetchContract().then(() => { this.escrowTransferKey++ }))
         }
       }
       this.websocket.onclose = () => {

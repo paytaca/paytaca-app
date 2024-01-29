@@ -22,8 +22,8 @@ export class RampWallet {
 
   async keypair () {
     const raw = await this.raw()
-    const privateKeyWif = await raw.getPrivateKey(this.connectedAddressIndex)
-    const publicKey = await raw.getPublicKey(this.connectedAddressIndex)
+    const privateKeyWif = await raw.getPrivateKey(`0/${this.lastAddressIndex}`)
+    const publicKey = await raw.getPublicKey(`0/${this.lastAddressIndex}`)
     return {
       privateKey: privateKeyWif,
       publicKey: publicKey
@@ -32,13 +32,13 @@ export class RampWallet {
 
   async pubkey () {
     const raw = await this.raw()
-    const publicKey = await raw.getPublicKey(this.connectedAddressIndex)
+    const publicKey = await raw.getPublicKey(`0/${this.lastAddressIndex}`)
     return publicKey
   }
 
   async privkey () {
     const raw = await this.raw()
-    const privateKeyWif = await raw.getPrivateKey(this.connectedAddressIndex)
+    const privateKeyWif = await raw.getPrivateKey(`0/${this.lastAddressIndex}`)
     return privateKeyWif
   }
 

@@ -16,6 +16,7 @@
           :label="selectedArbiter ? selectedArbiter.address : ''"
           :options="arbiterOptions"
           :disable="!contractAddress || sendingBch"
+          @update:model-value="selectArbiter"
           behavior="dialog">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -149,11 +150,6 @@ export default {
     data: Object
   },
   watch: {
-    selectedArbiter (newValue, oldValue) {
-      if (!oldValue || oldValue?.id === newValue?.id) return
-      this.contractAddress = null
-      this.generateContractAddress()
-    },
     fees (value) {
       if (value) this.showDragSlide = true
     }
@@ -182,6 +178,11 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    selectArbiter (value) {
+      console.log('selectArbiter:', value)
+      this.contractAddress = null
+      this.generateContractAddress()
+    },
     loadContract () {
       const vm = this
       vm.fetchArbiters().then(() => {
@@ -192,6 +193,7 @@ export default {
     },
     loadData () {
       const vm = this
+      console.log('data:', vm.data)
       vm.order = vm.data.order
       vm.selectedArbiter = vm.data.arbiter
       vm.contractAddress = vm.data.contractAddress
@@ -286,7 +288,7 @@ export default {
                 vm.selectedArbiter = vm.arbiterOptions[0]
               } else {
                 vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
-                  return obj.id === vm.selectedArbiter.id
+                  return Number(obj.id) === vm.selectedArbiter.id
                 })
               }
             }
@@ -312,10 +314,10 @@ export default {
         }
         backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
           .then(response => {
-            if (response.data.data) {
-              const data = response.data.data
-              if (data.contract_address) {
-                vm.contractAddress = data.contract_address
+            console.log('generateContractAddress:', response.data)
+            if (response.data) {
+              if (response.data.address) {
+                vm.contractAddress = response.data.address
               }
             }
             resolve(response.data)
