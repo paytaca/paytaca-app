@@ -13,6 +13,7 @@ export function updateAssetBalance (state, data) {
       assets[i].balance = data.balance
       if (asset.id.indexOf('bch') > -1) {
         assets[i].spendable = data.spendable
+        assets[i].yield = data.yield
       }
       break
     }
