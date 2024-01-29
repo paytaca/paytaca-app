@@ -1,5 +1,5 @@
 <template>
-  <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-show="assets">
+  <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
     <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
@@ -174,15 +174,11 @@ export default {
 <style lang="scss" scoped>
 
   #asset-container {
-    overflow: scroll;
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    overflow-x: auto;
+    overflow-y: hidden;
     margin-left: 20px;
     margin-right: 20px;
     padding-left: 0px;
-  }
-  #asset-container::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
   }
   .add-asset-button {
     border: 0px solid $grey-1;
@@ -198,6 +194,7 @@ export default {
     height: 78px;
     min-width: 150px;
     border-radius: 16px;
+    margin-bottom: 5px !important;
     .asset-symbol {
       overflow: hidden;
       text-overflow: ellipsis;
