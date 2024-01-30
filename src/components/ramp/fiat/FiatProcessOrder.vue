@@ -64,7 +64,7 @@
     </div>
 
     <!-- Chat button -->
-    <div class="fixed" style="right: 35px; bottom: 100px;" v-if="status.value !== 'RLS'">
+    <div class="fixed" style="right: 35px;" :style="$q.platform.is.ios ? 'bottom: 125px;' : 'bottom: 100px'" v-if="status.value !== 'RLS'">
       <q-btn size="md" padding="sm" dense ripple round class="button" icon="comment" @click="openChat = true"/>
     </div>
 
