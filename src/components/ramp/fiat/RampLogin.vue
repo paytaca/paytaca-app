@@ -311,57 +311,11 @@ export default {
                     vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                   })
                   .catch((error) => { console.error(error) })
-              })
-            })
-            backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
-              .then(response => rampWallet.signMessage(response.data.otp))
-              .then(signature => {
-                rampWallet.pubkey()
-                  .then(pubkey => {
-                    const body = {
-                      wallet_hash: rampWallet.walletHash,
-                      signature: signature,
-                      public_key: pubkey
-                    }
-                    backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
-                      .then((response) => {
-                        console.log(response.data)
-                        saveAuthToken(response.data.token)
-                        if (vm.user) {
-                          vm.$store.commit('ramp/updateUser', vm.user)
-                          vm.$store.dispatch('ramp/loadAuthHeaders')
-                        }
-                        vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-                        console.log('processing auth')
-                      })
-                      .finally(() => {
-                        vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
-
-                        // vm.savePubkeyAndAddress({
-                        //   address: rampWallet.address,
-                        //   public_key: pubkey
-                        // })
-                      })
-                      .catch((error) => {
-                        if (error.response) {
-                          console.error(error.response)
-                        } else {
-                          console.error(error)
-                        }
-                      })
+                  .finally(() => {
+                    vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
                   })
               })
-              .catch(error => {
-                if (error.response) {
-                  console.error(error.response)
-                  if (!('data' in error.response)) {
-                    console.error('network error')
-                  }
-                } else {
-                  console.error(error)
-                }
-                vm.loggingIn = false
-              })
+            })
           } else {
             vm.loggingIn = false
           }
