@@ -36,11 +36,14 @@
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
-      <div style="overflow-y: scroll;">
+      <div class="row flex-center" v-if="isRetrieving">
+        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+      <div style="overflow-y: scroll;" v-else>
         <div
           v-for="(asset, index) in assets"
           :key="index"
-          @click="$router.push({ name: 'transaction-receive', query: { assetId: asset.id, network: selectedNetwork } })"
+          @click="checkIfFirstTimeReceiver(asset)"
           role="button"
           class="row q-pl-lg q-pr-lg token-link"
         >
@@ -53,6 +56,7 @@
                     : asset.logo || getFallbackAssetLogo(asset)
                   "
                   width="50"
+                  alt=""
                 >
               </div>
               <div class="col q-pl-sm q-pr-sm">
@@ -90,8 +94,12 @@
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
-import { convertTokenAmount } from 'src/wallet/chipnet'
+import ProgressLoader from 'src/components/ProgressLoader'
+import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
+import { markRaw } from '@vue/reactivity'
+import { getMnemonic, Wallet } from '../../wallet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { convertTokenAmount, getWalletByNetwork } from 'src/wallet/chipnet'
 import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -102,6 +110,8 @@ export default {
   components: {
     HeaderNav,
     AssetFilter,
+    ProgressLoader,
+    FirstTimeReceiverWarning
   },
   data () {
     return {
@@ -112,7 +122,9 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: true
+      isCashToken: true,
+      wallet: null,
+      isRetrieving: false
     }
   },
   computed: {
@@ -208,12 +220,94 @@ export default {
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
+    },
+    async checkIfFirstTimeReceiver (asset) {
+      // check wallet/assets if balance is zero and no transactions were made
+      this.isRetrieving = true
+      const assetBalance = asset.balance ?? 0
+      const transactionsLength = this.selectedNetwork === 'sBCH'
+        ? await this.getSbchTransactions(asset)
+        : await this.getBchTransactions(asset)
+      this.isRetrieving = false
+      console.log(asset)
+
+      if (assetBalance === 0 && transactionsLength === 0 && asset.id.split('/')[1] !== 'unlisted') {
+        this.$q.dialog({ component: FirstTimeReceiverWarning })
+          .onOk(() => {
+            this.$router.push({
+              name: 'transaction-receive',
+              query: { assetId: asset.id, network: this.selectedNetwork }
+            })
+          })
+      } else {
+        this.$router.push({
+          name: 'transaction-receive',
+          query: { assetId: asset.id, network: this.selectedNetwork }
+        })
+      }
+    },
+    async getBchTransactions (asset) {
+      const vm = this
+      const id = asset.id
+      let historyLength = -1
+      let requestPromise
+
+      if (id.indexOf('slp/') > -1) {
+        const tokenId = id.split('/')[1]
+        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, 1, 'all')
+      } else if (id.indexOf('ct/') > -1) {
+        const tokenId = id.split('/')[1]
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(1, 'all', tokenId)
+      } else {
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(1, 'all')
+      }
+
+      if (!requestPromise) return
+      await requestPromise.then((response) => {
+        historyLength = response?.history.length ?? 0
+      })
+
+      return historyLength
+    },
+    async getSbchTransactions (asset) {
+      const vm = this
+      const address = vm.$store.getters['global/getAddress']('sbch')
+      const id = asset.id
+      const sep20IdRegexp = /sep20\/(.*)/
+      let historyLength = -1
+
+      const filterOpts = { limit: 10, includeTimestamp: true, type: 'incoming' }
+      let requestPromise = null
+
+      if (sep20IdRegexp.test(id)) {
+        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
+        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
+          contractAddress,
+          address,
+          filterOpts
+        )
+      } else {
+        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
+          address,
+          filterOpts
+        )
+      }
+
+      if (!requestPromise) return
+      await requestPromise.then(response => {
+        historyLength = response?.transactions.length ?? 0
+      })
+      return historyLength
     }
   },
   mounted () {
     const assets = this.$store.getters['assets/getAssets']
     const vm = this
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+
+    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      vm.wallet = markRaw(new Wallet(mnemonic))
+    })
   }
 }
 </script>
