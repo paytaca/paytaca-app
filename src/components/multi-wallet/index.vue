@@ -86,6 +86,7 @@
 import renameDialog from './renameDialog.vue'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { deleteAuthToken } from 'src/wallet/ramp/auth'
 
 export default {
   data () {
@@ -134,7 +135,7 @@ export default {
         vm.$store.commit('ramp/resetData')
         vm.$store.commit('ramp/resetChatIdentity')
         vm.$store.commit('ramp/resetPagination')
-        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+        deleteAuthToken()
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
           vm.$router.push('/')
