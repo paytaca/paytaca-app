@@ -58,7 +58,7 @@
   </q-card>
 </template>
 <script>
-import { rampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
 import { updatePeerChatIdentityId, fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
 import { updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
@@ -81,7 +81,7 @@ export default {
       dialog: false,
       user: null,
       usernickname: '',
-      wallet: null,
+      rampWallet: null,
       isLoading: true,
       register: false,
       loggingIn: false,
@@ -114,6 +114,7 @@ export default {
       this.errorMessage = this.error
     }
     this.fetchUser()
+    this.rampWallet = loadRampWallet()
   },
   methods: {
     getDarkModeClass,
@@ -125,14 +126,14 @@ export default {
           vm.user = response.data
           vm.usernickname = vm.user?.name
           vm.$store.commit('ramp/updateUser', vm.user)
-          vm.$store.dispatch('ramp/loadAuthHeaders')
+          // vm.$store.dispatch('ramp/loadAuthHeaders')
           console.log('user:', vm.user)
           if (vm.user.is_authenticated) {
             getAuthToken().then(token => {
               if (token) {
-                vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                 vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
                 vm.savePubkeyAndAddress()
+                vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
               } else {
                 vm.isLoading = false
                 vm.login()
@@ -158,18 +159,16 @@ export default {
     },
     async loadChatIdentity () {
       // check if chatIdentity exist
-
       console.log('loading chat identity')
       const chatIdentity = this.$store.getters['ramp/chatIdentity']
-
       if (!chatIdentity) {
         await updateSignerData()
         return new Promise((resolve, reject) => {
           const vm = this
           vm.retry.loadChatIdentity = true
           const data = {
-            rampWallet: rampWallet,
-            ref: rampWallet.walletHash,
+            rampWallet: vm.rampWallet,
+            ref: vm.rampWallet.walletHash,
             name: vm.user.name
           }
           fetchChatIdentity(data.ref)
@@ -252,11 +251,11 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
-        rampWallet.pubkey().then(async pubkey => {
+        vm.rampWallet.pubkey().then(async pubkey => {
           const payload = {
             public_key: pubkey,
-            address: rampWallet.address,
-            address_path: await rampWallet.addressPath()
+            address: vm.rampWallet.address,
+            address_path: await vm.rampWallet.addressPath()
           }
           if (payload.public_key === vm.user.public_key &&
               payload.address === vm.user.address &&
@@ -293,10 +292,10 @@ export default {
         .then(success => {
           if (success) {
             backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`).then(response => {
-              rampWallet.keypair().then(async keypair => {
-                const signature = await rampWallet.signMessage(keypair.privateKey, response.data.otp)
+              vm.rampWallet.keypair().then(async keypair => {
+                const signature = await vm.rampWallet.signMessage(keypair.privateKey, response.data.otp)
                 const body = {
-                  wallet_hash: rampWallet.walletHash,
+                  wallet_hash: vm.rampWallet.walletHash,
                   signature: signature,
                   public_key: keypair.publicKey
                 }
@@ -318,11 +317,12 @@ export default {
         })
     },
     async createRampUser () {
+      const vm = this
       const timestamp = Date.now()
       this.loggingIn = true
       deleteAuthToken()
-      const keypair = await rampWallet.keypair()
-      rampWallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
+      const keypair = await vm.rampWallet.keypair()
+      vm.rampWallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
         .then(signature => {
           const headers = {
             timestamp: timestamp,
@@ -331,7 +331,7 @@ export default {
           }
           const body = {
             name: this.usernickname,
-            address: this.wallet.address
+            address: this.rampWallet.address
           }
           backend.post('/ramp-p2p/peer/create', body, { headers: headers })
             .then((response) => {

@@ -114,7 +114,7 @@
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import { rampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
@@ -122,10 +122,8 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
-      wallet: this.$store.getters['ramp/wallet'],
+      wallet: null,
       loading: false,
       order: null,
       adData: null,
@@ -175,11 +173,11 @@ export default {
     vm.loading = true
     vm.loadData()
     vm.loadContract()
+    vm.wallet = loadRampWallet()
   },
   methods: {
     getDarkModeClass,
     selectArbiter (value) {
-      console.log('selectArbiter:', value)
       this.contractAddress = null
       this.generateContractAddress()
     },
@@ -193,7 +191,6 @@ export default {
     },
     loadData () {
       const vm = this
-      console.log('data:', vm.data)
       vm.order = vm.data.order
       vm.selectedArbiter = vm.data.arbiter
       vm.contractAddress = vm.data.contractAddress
@@ -214,8 +211,9 @@ export default {
     escrowBch () {
       return new Promise((resolve, reject) => {
         const vm = this
+        vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
         vm.sendingBch = true
-        rampWallet.raw().then(wallet =>
+        this.wallet.raw().then(wallet =>
           wallet.sendBch(vm.transferAmount, vm.contractAddress).then(result => {
             console.log('sendBch:', result)
             if (result.success) {
@@ -314,7 +312,6 @@ export default {
         }
         backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
           .then(response => {
-            console.log('generateContractAddress:', response.data)
             if (response.data) {
               if (response.data.address) {
                 vm.contractAddress = response.data.address

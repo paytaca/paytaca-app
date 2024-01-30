@@ -153,7 +153,7 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { rampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
@@ -164,6 +164,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       authHeaders: this.$store.getters['ramp/authHeaders'],
+      wallet: null,
       contractBalance: null,
       order: null,
       txid: null,
@@ -216,6 +217,7 @@ export default {
   },
   async mounted () {
     const vm = this
+    vm.wallet = loadRampWallet()
     if (vm.data?.errors) {
       vm.sendErrors = vm.data?.errors
     }
@@ -293,7 +295,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
-      const keypair = await rampWallet.keypair(sellerMember.address_path)
+      const keypair = await this.wallet.keypair(sellerMember.address_path)
       vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {

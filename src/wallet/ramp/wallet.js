@@ -69,17 +69,16 @@ export class RampWallet {
   }
 }
 
-const isChipnet = Store.getters['global/isChipnet']
-const walletIndex = Store.getters['global/getWalletIndex']
-const wallet = Store.getters['global/getWallet']('bch')
-const address = Store.getters['global/getAddress']('bch')
-export const rampWallet = new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
+// const isChipnet = Store.getters['global/isChipnet']
+// const walletIndex = Store.getters['global/getWalletIndex']
+// const wallet = Store.getters['global/getWallet']('bch')
+// const address = Store.getters['global/getAddress']('bch')
+// export const rampWallet = new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
 
-// export async function loadRampWallet () {
-//   const isChipnet = Store.getters['global/isChipnet']
-//   const walletIndex = Store.getters['global/getWalletIndex']
-//   const wallet = Store.getters['global/getWallet']('bch')
-//   const address = Store.getters['global/getAddress']('bch')
-//   const rampWallet = new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
-//   return rampWallet
-// }
+export function loadRampWallet () {
+  const isChipnet = Store.getters['global/isChipnet']
+  const walletIndex = Store.getters['global/getWalletIndex']
+  const wallet = Store.getters['global/getWallet']('bch')
+  const address = Store.getters['global/getAddress']('bch')
+  return new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
+}

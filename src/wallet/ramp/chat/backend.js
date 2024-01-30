@@ -1,6 +1,6 @@
 import BCHJS from '@psf/bch-js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { rampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getCookie } from '..'
 import axios from 'axios'
 
@@ -12,7 +12,7 @@ export const backend = axios.create({
 
 backend.interceptors.request.use(async (config) => {
   if (config.authorize) {
-    config.headers['wallet-hash'] = rampWallet.walletHash
+    config.headers['wallet-hash'] = loadRampWallet().walletHash
     config.headers.Authorization = `Token ${getCookie('token')}`
   }
   return config
@@ -87,19 +87,20 @@ export async function setSignerData (value = '') {
 
 export async function updateSignerData (_context) {
   console.log('Updating signer data')
-  const walletHash = rampWallet?.walletHash
-  const privkey = await rampWallet.privkey()
-  const verifyingPubkey = await rampWallet.pubkey()
+  const wallet = loadRampWallet()
+  const walletHash = wallet?.walletHash
+  const privkey = await wallet.privkey()
+  const verifyingPubkey = await wallet.pubkey()
   const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
 
   const message = `${Date.now()}`
-  const verifyingPubkeyIndex = rampWallet.addressIndex
-  const signature = await (await rampWallet.raw()).signMessage(message, verifyingPubkeyIndex)
+  const verifyingPubkeyIndex = wallet.addressIndex
+  const signature = await (await wallet.raw()).signMessage(message, verifyingPubkeyIndex)
 
   const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
   const address = bchjs.ECPair.toLegacyAddress(ecPair)
 
-  const valid = await (await rampWallet.raw()).verifyMessage(address, signature, message)
+  const valid = await (await wallet.raw()).verifyMessage(address, signature, message)
   if (!valid) return Promise.reject('invalid signature')
 
   setSignerData(`${walletHash}:${privkey}`)

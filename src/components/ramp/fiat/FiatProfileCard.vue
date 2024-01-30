@@ -178,7 +178,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { rampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 
@@ -274,7 +274,7 @@ export default {
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
-            ref: rampWallet.walletHash,
+            ref: loadRampWallet().walletHash,
             name: response.data.name
           }
           vm.retry = true
