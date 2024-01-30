@@ -16,9 +16,9 @@
               dense
               filled
               :dark="darkMode"
-              :label="data?.contractAddress">
+              :label="data?.contract.address">
               <template v-slot:append>
-                <div v-if="data?.contractAddress" @click="$parent.copyToClipboard(data?.contractAddress)">
+                <div v-if="data?.contract.address" @click="$parent.copyToClipboard(data?.contract.address)">
                   <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
                 </div>
               </template>
@@ -288,12 +288,12 @@ export default {
       const vm = this
       vm.sendErrors = []
       const feContractAddr = await vm.data?.escrow.getAddress()
-      const beContractAddr = vm.data?.contractAddress
+      const beContractAddr = vm.data?.contract.address
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
       }
-      const keypair = await rampWallet.keypair()
-      console.log('escrow:', vm.data?.escrow)
+      const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
+      const keypair = await rampWallet.keypair(sellerMember.address_path)
       vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {

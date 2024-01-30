@@ -198,7 +198,7 @@ export default {
       return {
         orderId: this.order.id,
         type: this.confirmType,
-        contractAddress: this.contract.address,
+        contract: this.contract,
         errors: this.errorMessages,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
@@ -392,7 +392,6 @@ export default {
         const url = `/ramp-p2p/order/${vm.orderData.id}`
         backend.get(url, { authorize: true })
           .then(response => {
-            console.log('fetchOrder:', response.data)
             vm.order = response.data
             vm.updateStatus(vm.order.status)
             resolve(response.data)
@@ -503,7 +502,6 @@ export default {
           authorize: true
         })
           .then(response => {
-            console.log('fetchContract:', response.data)
             vm.contract = response.data
             resolve(response.data)
           })
