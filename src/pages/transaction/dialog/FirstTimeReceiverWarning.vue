@@ -1,5 +1,5 @@
 <template>
-  <q-dialog persistent ref="dialogRef">
+  <q-dialog persistent ref="dialogRef" seamless>
     <q-card class="pt-card" style="border: 3px solid orange;" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
       <q-card-section class="text-h6 text-weight-bold q-pb-xs">
         <q-icon name="warning" color="orange" size="md" />
