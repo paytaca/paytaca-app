@@ -65,14 +65,14 @@
                     <q-chat-message
                       :name="message.chatIdentity.is_user? 'You': message.chatIdentity.name"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
-                      :stamp="new Date(message.createdAt).toLocaleString"
+                      :stamp="formattedDate(message.createdAt)"
                       :sent="message.chatIdentity.is_user"
                       :bg-color="message.chatIdentity.is_user ? 'blue-5': 'blue-grey-2'"
                       :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
                       size="6"
                     >
                       <div class="font-13 text-weight-light">
-                        {{ message.text }}
+                        {{ message._decryptedMessage }}
                       </div>
                     </q-chat-message>
                     <div class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
@@ -149,7 +149,7 @@
                     <q-chat-message
                       :name="message.chatIdentity.is_user ? 'me' : message.chatIdentity.name"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
-                      :stamp="new Date(message.createdAt).toLocaleString()"
+                      :stamp="formattedDate(message.createdAt)"
                       :sent="message.chatIdentity.is_user"
                       :bg-color="message.chatIdentity.is_user ? 'blue-5' : 'blue-grey-2'"
                       :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
@@ -186,6 +186,7 @@
     <!-- Message Input -->
     <div class="row q-py-sm q-px-sm">
       <q-input
+        :loading="sendingMessage"
         class="col q-px-sm"
         :dark="darkMode"
         rounded
@@ -261,6 +262,7 @@ import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { fetchChatMembers, fetchChatPubkeys, sendChatMessage, fetchChatMessages, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
 import { ChatMessage } from 'src/wallet/ramp/chat/objects'
+import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
@@ -356,6 +358,7 @@ export default {
       websocket: null,
       openImage: false,
       selectedImage: null,
+      sendingMessage: false,
 
       users: {
         ad_owner: null,
@@ -423,6 +426,10 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    formattedDate (value) {
+      const relative = true
+      return formatDate(value, relative)
+    },
     openSelectedImage (image) {
       this.selectedImage = image
       this.openImage = true
@@ -528,59 +535,68 @@ export default {
     }, 100),
     async sendMessage (encrypt = true) {
       const vm = this
-      let useFormData = false
-      let message = vm.message
-      let attachment = vm.attachment
-      if (message) {
-        // encrypt message
-        if (encrypt) {
-          const encryptedMessage = encryptMessage({
-            data: message,
-            privkey: vm.keypair.privkey,
-            pubkeys: vm.chatPubkeys
-          })
-          const serializedEncryptedMessage = compressEncryptedMessage(encryptedMessage)
-          message = serializedEncryptedMessage
+      if (!vm.sendingMessage) {
+        this.sendingMessage = true
+        let useFormData = false
+        let message = vm.message.trim()
+        let attachment = vm.attachment
+
+        if (message) {
+          // encrypt message
+          if (encrypt) {
+            const encryptedMessage = encryptMessage({
+              data: message,
+              privkey: vm.keypair.privkey,
+              pubkeys: vm.chatPubkeys
+            })
+            const serializedEncryptedMessage = compressEncryptedMessage(encryptedMessage)
+            message = serializedEncryptedMessage
+          }
         }
-      }
-      if (attachment) {
-        if (encrypt) {
-          const encryptedAttachment = await encryptImage({
-            file: attachment,
-            privkey: vm.keypair.privkey,
-            pubkeys: vm.chatPubkeys
-          })
-          const serializedEncryptedAttachment = await compressEncryptedImage(encryptedAttachment)
-          attachment = serializedEncryptedAttachment
+        if (attachment) {
+          if (encrypt) {
+            const encryptedAttachment = await encryptImage({
+              file: attachment,
+              privkey: vm.keypair.privkey,
+              pubkeys: vm.chatPubkeys
+            })
+            const serializedEncryptedAttachment = await compressEncryptedImage(encryptedAttachment)
+            attachment = serializedEncryptedAttachment
+          }
+          useFormData = true
         }
-        useFormData = true
-      }
-      let data = null
-      const signData = message
-      if (useFormData) {
-        const formdata = new FormData()
-        formdata.set('chat_session_ref', vm.chatRef)
-        formdata.set('encrypted', encrypt)
-        formdata.set('message', message)
-        formdata.set('attachment', attachment)
-        formdata.set('attachment_encrypted', encrypt)
-        data = formdata
-      } else {
-        data = {
-          chat_session_ref: vm.chatRef,
-          message: message,
-          encrypted: encrypt
+        let data = null
+        const signData = message
+        if (useFormData) {
+          const formdata = new FormData()
+          formdata.set('chat_session_ref', vm.chatRef)
+          formdata.set('encrypted', encrypt)
+          formdata.set('message', message)
+          formdata.set('attachment', attachment)
+          formdata.set('attachment_encrypted', encrypt)
+          data = formdata
+        } else {
+          data = {
+            chat_session_ref: vm.chatRef,
+            message: message,
+            encrypted: encrypt
+          }
         }
+        if (message || attachment) {
+          sendChatMessage(data, signData)
+            .then(async (data) => {
+              vm.resetScroll()
+            })
+            .catch(() => {
+              // vm.sendingMessage = false
+              console.log('error')
+            })
+        }
+
+        vm.sendingMessage = false
+        vm.message = ''
+        vm.attachment = null
       }
-      sendChatMessage(data, signData)
-        .then(async (data) => {
-          vm.message = ''
-          vm.attachment = null
-          vm.resetScroll()
-        })
-        .catch(() => {
-          console.log('error')
-        })
     },
     async decryptMessage (message = ChatMessage.parse(), tryAllKeys = false) {
       if (!this.keypair.privkey) await this.loadKeyPair()
