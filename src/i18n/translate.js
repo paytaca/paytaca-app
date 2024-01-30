@@ -511,7 +511,12 @@ const additional = [
     Recipient: "Recipient",
     To: "to",
     SetReceiveAmount: "Set Receive Amount",
-    PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through."
+    PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through.",
+    ReceiverWarningText1: "First time receiving funds for this asset? Please",
+    ReceiverWarningText2: "backup your seed phrase",
+    ReceiverWarningText3: "before proceeding.",
+    GoBack: "Go back",
+    Proceed: "Proceed"
   }
 ]
 
