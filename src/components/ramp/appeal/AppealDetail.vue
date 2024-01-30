@@ -373,7 +373,8 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         if (!vm.escrowContract) reject('escrow contract is null')
-        rampWallet.keypair().then(keypair => {
+        const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+        rampWallet.keypair(arbiterMember.address_path).then(keypair => {
           vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.crypto_amount)
             .then(result => {
               console.log(result)
@@ -407,7 +408,8 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         if (!vm.escrowContract) reject('escrow contract is null')
-        rampWallet.privkey().then(privateKeyWif => {
+        const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+        rampWallet.privkey(null, arbiterMember.address_path).then(privateKeyWif => {
           vm.escrowContract.refund(privateKeyWif, this.order.crypto_amount)
             .then(result => {
               console.log(result)

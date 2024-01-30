@@ -70,7 +70,6 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/au
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { FailedSigCheckError } from 'cashscript'
 
 export default {
   data () {
@@ -131,10 +130,8 @@ export default {
           if (vm.user.is_authenticated) {
             getAuthToken().then(token => {
               if (token) {
-                // vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-                vm.$emit('loggedIn', vm.is_arbiter ? 'arbiter' : 'peer')
+                vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                 vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
-                // vm.loadChatIdentity().then(vm.isLoading = false)
                 vm.savePubkeyAndAddress()
               } else {
                 vm.isLoading = false
@@ -310,12 +307,11 @@ export default {
                     vm.loadChatIdentity().then(vm.loggingIn = false)
                     vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                   })
-                  .catch((error) => { console.error(error) })
                   .finally(() => {
                     vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
                   })
               })
-            })
+            }).catch((error) => { console.error(error) })
           } else {
             vm.loggingIn = false
           }

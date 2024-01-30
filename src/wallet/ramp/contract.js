@@ -67,7 +67,6 @@ export class RampContract {
    * @returns {Promise<number>} A promise that resolves with the balance of the contract in Bitcoin Cash (BCH).
    */
   async getBalance () {
-    console.log('contract:', this.contract)
     const rawBal = await this.contract.getBalance()
     return bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))
   }
