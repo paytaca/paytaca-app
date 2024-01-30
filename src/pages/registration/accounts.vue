@@ -233,6 +233,7 @@
     <pinDialog
       v-model:pin-dialog-action="pinDialogAction"
       v-on:nextAction="executeActionTaken"
+      :new-wallet-mnemonic="mnemonic"
     />
 
   </div>

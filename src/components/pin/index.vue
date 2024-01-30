@@ -95,6 +95,7 @@
 import ProgressLoader from '../../components/ProgressLoader'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
+import { getMnemonic } from '../../wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
@@ -128,7 +129,7 @@ export default {
     }
   },
   components: { ProgressLoader },
-  props: ['pinDialogAction', 'nextAction'],
+  props: ['pinDialogAction', 'nextAction', 'newWalletMnemonic'],
   watch: {
     pinDialogAction () {
       const vm = this
@@ -162,7 +163,7 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    },
+    }
   },
   methods: {
     getDarkModeClass,
@@ -242,10 +243,24 @@ export default {
     },
     async setPin () {
       const vm = this
+      let mnemonic = ''
+
+      if (vm.newWalletMnemonic) {
+        mnemonic = vm.newWalletMnemonic
+      } else {
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        mnemonic = await getMnemonic(walletIndex)
+      }
 
       if (vm.pinDialogAction === 'VERIFY') {
-        const secretKey = await SecureStoragePlugin.get({ key: 'pin' })
-        if (secretKey.value === vm.pin) {
+        let secretKey = null
+        try {
+          secretKey = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+        } catch (error) {
+          // fallback for old process of pin retrieval
+          secretKey = await SecureStoragePlugin.get({ key: 'pin' })
+        }
+        if (secretKey?.value === vm.pin) {
           resetAll()
           vm.$emit('nextAction', 'proceed')
         } else {
@@ -259,7 +274,7 @@ export default {
         vm.resetStatus = false
       } else if (vm.pinStep === 2) {
         vm.loader = true
-        SecureStoragePlugin.set({ key: 'pin', value: vm.pin })
+        SecureStoragePlugin.set({ key: `pin ${mnemonic}`, value: vm.pin })
           .then(() => {
             setTimeout(() => {
               if (vm.pinDialogAction === 'SET UP') {
