@@ -229,7 +229,6 @@ export default {
         ? await this.getSbchTransactions(asset)
         : await this.getBchTransactions(asset)
       this.isRetrieving = false
-      console.log(asset)
 
       if (assetBalance === 0 && transactionsLength === 0 && asset.id.split('/')[1] !== 'unlisted') {
         this.$q.dialog({ component: FirstTimeReceiverWarning })
