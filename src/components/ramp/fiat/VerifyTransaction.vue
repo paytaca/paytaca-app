@@ -141,13 +141,12 @@ export default {
       this.fetchTransactions()
     },
     loadContract () {
-      this.fetchContractBalance()
-      this.fetchContract()
+      this.fetchContract().then(this.fetchContractBalance())
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
         if (!this.data?.escrow) return 0
-        this.data?.escrow?.getBalance()
+        this.data?.escrow?.getBalance(this.contract.address)
           .then(balance => {
             this.contract.balance = balance
             this.balanceLoaded = true

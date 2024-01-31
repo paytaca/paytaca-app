@@ -225,7 +225,7 @@ export default {
     fetchContractBalance () {
       const vm = this
       if (vm.data?.escrow) {
-        vm.data?.escrow.getBalance()
+        vm.data?.escrow.getBalance(vm.data?.contract.address)
           .then(balance => {
             vm.contractBalance = balance
           })
