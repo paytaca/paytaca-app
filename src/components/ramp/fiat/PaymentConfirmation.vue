@@ -110,28 +110,8 @@
               <div v-if="sendingBch" class="sm-font-size">
                 <q-spinner class="q-mx-sm"/>Sending BCH, please wait...
               </div>
-              <div v-else>
-                <q-checkbox :disable="!data?.wsConnected" size="sm" v-model="confirmRelease" :dark="darkMode"/>
-                <span :style="!data?.wsConnected ? 'color: grey': ''" class="sm-font-size text-center">I confirm that I have received payment</span>
-              </div>
-            </div>
-            <div v-if="data?.type === 'buyer'">
-              <q-checkbox :disable="!data?.wsConnected" size="sm" v-model="confirmPayment" :dark="darkMode"/>
-              <span :style="!data?.wsConnected ? 'color: grey': ''" class="sm-font-size text-left"> I confirm that I already sent payment</span>
             </div>
           </div>
-
-          <!-- Confirm  -->
-          <!-- <div v-if="data?.type !== 'seller'" class="row q-pt-sm q-mx-lg q-px-md">
-            <q-btn
-              :disable="!confirmPayment || selectedPaymentMethods.length === 0"
-              rounded
-              label='Confirm Payment'
-              class="q-space text-white"
-              color="blue-6"
-              @click="onConfirm"
-            />
-          </div> -->
         </div>
       </q-scroll-area>
     </q-pull-to-refresh>
@@ -171,8 +151,6 @@ export default {
       isloaded: false,
       countDown: '',
       timer: null,
-      confirmPayment: false,
-      confirmRelease: false,
       paymentMethods: [],
       selectedPaymentMethods: [],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
@@ -195,12 +173,9 @@ export default {
     },
     lockDragSlide () {
       const vm = this
-      let lock = true
-      if (vm.data?.type === 'seller') {
-        lock = !vm.confirmRelease
-      }
+      let lock = false
       if (vm.data?.type === 'buyer') {
-        lock = !vm.confirmPayment || vm.selectedPaymentMethods.length === 0
+        lock = vm.selectedPaymentMethods.length === 0
       }
       return lock
     },

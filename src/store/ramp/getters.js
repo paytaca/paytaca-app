@@ -212,7 +212,6 @@ export function getTxidHistory (state) {
 
 export function getOrderTxid (state) {
   return function (id, action) {
-    console.log('txids:', state.txids[id])
     if (action && state.txids[id]) {
       return state.txids[id][action]
     }

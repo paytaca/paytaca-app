@@ -103,13 +103,10 @@ export function resetUser (state) {
 }
 
 export function saveTxid (state, data) {
-  console.log('saveTxid:', data)
-  console.log('state.txids[data.id]:', state.txids[data.id])
   if (!state.txids[data.id]) {
     state.txids[data.id] = {}
   }
   state.txids[data.id][data.txidInfo.action] = data.txidInfo.txid
-  console.log('txids:', state.txids[data.id])
 }
 
 export function clearOrderTxids (state, id) {
@@ -122,7 +119,6 @@ export function clearOrderTxids (state, id) {
 export function updateStoreBuyListings (state, { overwrite = false, data }) {
   if (overwrite) state.storeBuyListings = data.ads
   else state.storeBuyListings.push(...data.ads)
-  console.log('storeBuyListings:', state.storeBuyListings)
   state.storeBuyTotalPages = data.total_pages
   state.storeBuyItemsCount = data.count
 }
