@@ -1,7 +1,18 @@
 <template>
-  <div class="q-pb-md">
+  <q-card
+    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+      <q-btn
+        flat
+        icon="arrow_back"
+        class="button button-text-primary"
+        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        :class="getDarkModeClass(darkMode)"
+        @click="$emit('back')"
+      />
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-h5 text-center lg-font-size text-weight-bold">
+      <div class="q-mx-lg q-mt-lg q-pt-md text-h5 text-center lg-font-size text-weight-bold">
         <span>VERIFYING TRANSFER</span>
       </div>
       <div class="subtext text-center q-pb-sm md-font-size">ORDER #{{ data?.orderId }}</div>
@@ -38,13 +49,14 @@
             :readonly="disableTxidInput"
             :dark="darkMode"
             :loading="!transactionId"
-            v-model="transactionId">
-            <template v-slot:append v-if="transactionId && disableTxidInput">
+            v-model="transactionId"
+            @click="copyToClipboard(transactionId)">
+            <template v-slot:append>
               <q-icon
                 size="sm"
-                name='o_content_copy'
+                name='edit'
                 color="blue-grey-6"
-                @click="copyToClipboard(transactionId)"/>
+                @click="disableTxidInput = false"/>
             </template>
           </q-input>
           <div v-if="errorMessage" class="q-mx-sm q-my-sm">
@@ -69,7 +81,7 @@
         </div>
       </q-scroll-area>
     </q-pull-to-refresh>
-  </div>
+  </q-card>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -93,8 +105,7 @@ export default {
       hideBtn: false,
       errorMessage: null,
       state: null,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
-
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95,
       txidLoaded: false,
       balanceLoaded: false,
       disableTxidInput: true

@@ -1,6 +1,17 @@
 <template>
-  <div>
-    <div class="text-center lg-font-size text-weight-bold">ESCROW BCH</div>
+  <q-card
+    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+      <q-btn
+        flat
+        icon="arrow_back"
+        class="button button-text-primary"
+        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        :class="getDarkModeClass(darkMode)"
+        @click="$emit('back')"
+      />
+    <div class="q-mt-lg q-pt-md text-center lg-font-size text-weight-bold">ESCROW BCH</div>
     <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size text-weight-bold">(ORDER #{{ order?.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
@@ -109,7 +120,7 @@
       @cancel="onSecurityCancel"
       text="Swipe To Escrow"
     />
-  </div>
+  </q-card>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
@@ -136,8 +147,8 @@ export default {
       showDragSlide: false,
       sendErrors: [],
       sendingBch: false,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
-      dragSlideKey: 0
+      dragSlideKey: 0,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
     }
   },
   emits: ['back', 'success'],
