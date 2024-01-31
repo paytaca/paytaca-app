@@ -44,15 +44,15 @@
             <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
           </div>
         </div>
-        <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
+        <!-- <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
 
         <div class="q-pt-lg q-mx-lg" >
           <div class="row justify-between no-wrap q-mx-lg text-weight-bold">
             <span>Payment Time Limit</span>
-            <!-- <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span> -->
+            <-- <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span> --
             <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
           </div>
-        </div>
+        </div> -->
       </div>
       <div v-if="transactionType === 'sell'">
         <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>

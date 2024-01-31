@@ -102,14 +102,14 @@
                               <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                             </div>
                             <div class="text-right">
-                              <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                              <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
                                 <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
                               </span>
                               <div
                                 v-if="listing.expires_at && isExpired(listing.expires_at) && statusType === 'ONGOING'"
                                 class="text-weight-bold subtext md-font-size" style="color: red">
                                 EXPIRED
-                              </div>
+                              </div> -->
                               <div class="text-weight-bold subtext md-font-size" style=";">
                                 {{ listing.status ? listing.status.label : '' }}
                               </div>

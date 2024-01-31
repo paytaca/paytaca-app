@@ -51,10 +51,10 @@
                   {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency.symbol }}
                 </span>
               </div>
-              <div class="row justify-between no-wrap q-mx-lg">
+              <!-- <div class="row justify-between no-wrap q-mx-lg">
                 <span>Time Limit</span>
                 <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
-              </div>
+              </div> -->
             </div>
 
             <!-- Input -->
@@ -279,9 +279,9 @@ export default {
   },
   emits: ['back', 'orderCanceled'],
   computed: {
-    paymentTimeLimit () {
-      return getPaymentTimeLimit(this.ad.time_duration)
-    },
+    // paymentTimeLimit () {
+    //   return getPaymentTimeLimit(this.ad.time_duration)
+    // },
     equivalentAmount () {
       let amount = this.amount
       if (amount === '' || isNaN(amount)) return 0

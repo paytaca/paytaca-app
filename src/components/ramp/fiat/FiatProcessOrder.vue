@@ -285,13 +285,13 @@ export default {
       const vm = this
       vm.openDialog = false
       const status = vm.status.value
-      if (this.isExpired) {
-        if (!vm.isPdPendingRelease(status) && !vm.isStatusCompleted(status)) {
-          vm.state = 'standby-view'
-          vm.standByDisplayKey++
-          return
-        }
-      }
+      // if (this.isExpired) {
+      //  if (!vm.isPdPendingRelease(status) && !vm.isStatusCompleted(status)) {
+      //    vm.state = 'standby-view'
+      //    vm.standByDisplayKey++
+      //    return
+      //  }
+      // }
       switch (status) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {

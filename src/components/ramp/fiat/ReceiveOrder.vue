@@ -28,10 +28,10 @@
                 {{ parseFloat($parent.getAdLimits?.ceiling) }} BCH
               </span>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
+            <!-- <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
               <span>Time Limit</span>
               <span class="text-nowrap q-ml-xs">{{ formattedPlt(order.ad.time_duration).label }} </span>
-            </div>
+            </div> -->
             <div class="row justify-between no-wrap q-mx-lg pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
               <span>Status</span>
               <span

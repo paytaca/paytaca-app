@@ -180,8 +180,8 @@
           </div>
 
           <!-- Payment Time Limit -->
-          <div class="q-mx-lg q-pt-sm">
-            <div class="q-px-lg">
+          <div class="q-mx-lg">
+            <!-- <div class="q-px-lg">
               <div class="q-pt-sm text-weight-bold">Payment Time Limit</div>
             </div>
             <div class="q-mx-md q-pt-sm">
@@ -204,8 +204,8 @@
                   </q-item>
                 </template>
               </q-select>
-            </div>
-            <div class="q-mx-md q-pt-xs">
+            </div> -->
+            <div class="q-mx-md">
               <q-checkbox
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 v-model="adData.isPublic"

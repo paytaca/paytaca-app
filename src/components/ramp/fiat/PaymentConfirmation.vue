@@ -54,10 +54,10 @@
             </q-input>
           </div>
         </div>
-        <div class="q-pt-sm text-center" v-if="!sendingBch && sendErrors.length === 0">
+        <!-- <div class="q-pt-sm text-center" v-if="!sendingBch && sendErrors.length === 0">
           <span class="sm-font-size" v-if="countDown !== 'Expired'">order expires in</span>
           <div style="font-size: 30px; color: #ed5f59;"> {{ countDown }}</div>
-        </div>
+        </div> -->
         <div class="q-mx-md q-px-md q-pt-sm">
           <!-- Buyer -->
           <div v-if="data?.type === 'buyer'" class="q-pb-xs">
@@ -94,7 +94,7 @@
           </div>
         </div>
         <!-- Checkbox -->
-        <div class="q-mb-sm" v-if="countDown !== 'Expired'">
+        <div class="q-mb-sm">
           <div class="q-mx-lg q-px-md">
             <div v-if="data?.type === 'seller'">
               <div class="row q-mb-sm" v-if="sendErrors.length > 0">
@@ -137,7 +137,7 @@
     </q-pull-to-refresh>
   </div>
   <RampDragSlide
-    v-if="showDragSlide && countDown !== 'Expired' && data?.wsConnected"
+    v-if="showDragSlide && data?.wsConnected"
     :key="dragSlideKey"
     :text="dragSlideTitle"
     :locked="lockDragSlide"
@@ -211,11 +211,12 @@ export default {
     }
   },
   watch: {
-    countDown (value) {
-      if (value === 'Expired') this.$emit('expired')
-    }
+    // countDown (value) {
+    //  if (value === 'Expired') this.$emit('expired')
+    // }
   },
   async mounted () {
+    console.log('payment confirmations')
     const vm = this
     vm.wallet = loadRampWallet()
     if (vm.data?.errors) {

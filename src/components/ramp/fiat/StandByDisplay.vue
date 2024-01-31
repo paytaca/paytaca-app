@@ -6,7 +6,7 @@
           <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
         </div>
         <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
-        <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
+        <!-- <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div> -->
       </div>
       <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
         <div v-if="data?.order?.status?.value === 'APL'">
@@ -74,8 +74,7 @@
           </div>
           <div
             class="row q-px-md q-pt-sm text-center sm-font-size"
-            style="overflow-wrap: break-word;"
-            v-if="!$parent.isExpired">
+            style="overflow-wrap: break-word;">
             <div v-if="hasLabel" class="row">
               <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
               <span class="col text-left q-ml-sm">{{ label }}</span>
@@ -84,7 +83,7 @@
         </div>
         <!-- Countdown Timer -->
         <div v-else class="q-mt-md q-px-md q-mb-sm">
-          <div
+          <!-- <div
             class="row q-px-sm text-center sm-font-size"
             style="overflow-wrap: break-word;"
             v-if="!$parent.isExpired">
@@ -95,7 +94,7 @@
           </div>
             <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
               {{ countDown }}
-            </div>
+            </div> -->
             <!-- Cancel Button -->
             <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
               <q-btn
@@ -256,10 +255,11 @@ export default {
     ProgressLoader
   },
   computed: {
-    showAppealBtn () {
+    showAppealBtn () { // UPDATE LATER // show if User is unresponsive
       const vm = this
-      return ((!vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value)) &&
-        (vm.$parent.isExpired || vm.countDown === 'Expired'))
+      return !vm.isCompletedOrder && !vm.isAppealed
+      // && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value)
+      // && (vm.$parent.isExpired || vm.countDown === 'Expired'))
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
@@ -282,11 +282,11 @@ export default {
       }
       return release
     },
-    hasCountDown () {
-      const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
+    // hasCountDown () {
+    //   const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
 
-      return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
-    },
+    //   return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
+    // },
     hasReview () {
       const stat = ['RLS', 'RFN']
       return stat.includes(this.data?.order?.status.value)
