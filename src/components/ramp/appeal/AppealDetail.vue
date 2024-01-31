@@ -245,7 +245,7 @@ import AdSnapshot from './AdSnapshot.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
-import { rampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -302,6 +302,7 @@ export default {
   async mounted () {
     this.loadData()
     this.fetchContractBalance()
+    this.wallet = loadRampWallet()
   },
   methods: {
     getDarkModeClass,
@@ -373,7 +374,8 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         if (!vm.escrowContract) reject('escrow contract is null')
-        rampWallet.keypair().then(keypair => {
+        const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+        this.wallet.keypair(arbiterMember.address_path).then(keypair => {
           vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.crypto_amount)
             .then(result => {
               console.log(result)
@@ -407,7 +409,8 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         if (!vm.escrowContract) reject('escrow contract is null')
-        rampWallet.privkey().then(privateKeyWif => {
+        const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+        this.wallet.privkey(null, arbiterMember.address_path).then(privateKeyWif => {
           vm.escrowContract.refund(privateKeyWif, this.order.crypto_amount)
             .then(result => {
               console.log(result)

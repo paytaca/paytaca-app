@@ -100,10 +100,7 @@
 import AppealProcess from './AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
-import { rampWallet } from 'src/wallet/ramp/wallet'
-import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -117,11 +114,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      walletIndex: this.$store.getters['global/getWalletIndex'],
-      apiURL: process.env.WATCHTOWER_BASE_URL,
-      authHeaders: this.$store.getters['ramp/authHeaders'],
-      wallet: null,
-      user: null,
       statusType: 'PENDING',
       state: 'appeal-list',
       selectedAppeal: null,
@@ -172,41 +164,10 @@ export default {
   },
   async mounted () {
     this.loading = true
-    await this.$store.dispatch('ramp/loadWallet')
-    this.wallet = this.$store.getters['ramp/wallet']
-    // if (!vm.appeals || vm.appeals.length === 0) {
-    //   vm.loading = true
-    // }
-    // await this.login()
     this.resetAndRefetchListings()
   },
   methods: {
     getDarkModeClass,
-    async login () {
-      try {
-        const { data } = await backend.get('/ramp-p2p/auth/otp/arbiter', { headers: { 'wallet-hash': this.wallet.walletHash } })
-        const signature = await rampWallet.signMessage(this.wallet.privateKeyWif, data.otp)
-        const body = {
-          wallet_hash: rampWallet.walletHash,
-          signature: signature,
-          public_key: this.wallet.publicKey
-        }
-        await backend.post('/ramp-p2p/auth/login/arbiter', body)
-          .then(response => {
-            // save token as cookie and set to expire 1h later
-            document.cookie = `token=${response.data.token}; expires=${new Date(Date.now() + 3600000).toUTCString()}; path=/`
-            this.user = response.data.user
-            if (this.user) {
-              this.$store.commit('ramp/updateUser', response.data.user)
-              this.$store.dispatch('ramp/loadAuthHeaders')
-            }
-          })
-      } catch (error) {
-        console.error(error)
-        console.error(error.response)
-        this.$router.go(-2)
-      }
-    },
     async fetchAppeals (overwrite = false) {
       const vm = this
       vm.loading = true
@@ -230,7 +191,7 @@ export default {
     },
     async loadMoreData (_, done) {
       const vm = this
-      if (!vm.hasMoreData || !vm.wallet) {
+      if (!vm.hasMoreData) {
         done(true)
         return
       }

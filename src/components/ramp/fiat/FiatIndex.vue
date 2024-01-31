@@ -19,7 +19,7 @@
           v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
         />
       </div>
-      <footerMenu v-on:clicked="switchMenu" ref="footer"/>
+      <footerMenu v-if="showFooterMenu" v-on:clicked="switchMenu" ref="footer"/>
     </div>
   </div>
 </template>
@@ -31,6 +31,7 @@ import FiatAds from './FiatAds.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -47,7 +48,8 @@ export default {
       createUser: false,
       initStatusType: 'ONGOING',
       hasAccount: false,
-      userType: null
+      userType: null,
+      showFooterMenu: true
     }
   },
   components: {
@@ -57,6 +59,10 @@ export default {
     FiatAds,
     FiatProfileCard,
     ProgressLoader
+  },
+  created () {
+    bus.on('hide-menu', this.hideMenu)
+    bus.on('show-menu', this.showMenu)
   },
   async mounted () {
     this.isLoading = false
@@ -72,6 +78,12 @@ export default {
   },
   methods: {
     isNotDefaultTheme,
+    hideMenu () {
+      this.showFooterMenu = false
+    },
+    showMenu () {
+      this.showFooterMenu = true
+    },
     switchMenu (item) {
       this.menu = item
       this.$refs.footer.selectMenu(this.menu)

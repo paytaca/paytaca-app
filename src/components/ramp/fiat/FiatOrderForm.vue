@@ -1,9 +1,10 @@
 <template>
   <q-card
-   class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
-   :class="getDarkModeClass(darkMode)"
-   :style="`height: ${minHeight}px;`">
-   <!-- Form Body -->
+    v-if="state === 'initial'"
+    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`">
+    <!-- Form Body -->
     <div v-if="state === 'initial'">
       <div v-if="isloaded">
         <div>
@@ -209,19 +210,11 @@
         @submit="$emit('back')"
       />
     </div>
-    <!-- Process Order -->
-    <div v-if="state === 'order-process'">
-      <FiatProcessOrder
-        :order-data="order"
-        @back="onBack"
-      />
-      <!-- <FiatStoreBuyProcess
-        :order-data="order"
-        @back="onBack"
-        @canceled="onOrderCanceled"
-      /> -->
-    </div>
-   </q-card>
+  </q-card>
+  <!-- Process Order -->
+  <div v-if="state === 'order-process'">
+    <FiatProcessOrder :order-data="order" @back="onBack"/>
+  </div>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
@@ -400,6 +393,42 @@ export default {
         .then(chatRef => addChatMembers(chatRef, chatMembers))
         .catch(console.error)
     },
+    // WIP
+    // exponentialBackoff (fn, retries, delayDuration, ...info) {
+    //   const vm = this
+    //   const payload = info[0]
+
+    //   return fn(payload)
+    //     .then((data) => {
+    //       if (data.data) {
+    //         const chatIdentity = data.data
+    //         vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+    //         vm.retry = false
+    //       }
+
+    //       if (vm.retry) {
+    //         console.log('retrying')
+    //         if (retries > 0) {
+    //           return vm.delay(delayDuration)
+    //             .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
+    //         } else {
+    //           vm.retry = false
+    //         }
+    //       }
+    //     })
+    //     .catch(error => {
+    //       console.log(error)
+    //       if (retries > 0) {
+    //         return vm.delay(delayDuration)
+    //           .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
+    //       } else {
+    //         vm.retry = false
+    //       }
+    //     })
+    // },
+    // delay (duration) {
+    //   return new Promise(resolve => setTimeout(resolve, duration))
+    // },
     formattedCurrency (value, currency = null) {
       if (currency) {
         return formatCurrency(value, currency)

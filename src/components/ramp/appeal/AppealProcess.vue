@@ -5,7 +5,7 @@
         :key="appealDetailKey"
         :data="appealDetailData"
         :escrowContract="escrowContract"
-        :state="state"
+        :initstate="state"
         @back="$emit('back')"
         @success="onSendSuccess"
         @refresh="refreshData"

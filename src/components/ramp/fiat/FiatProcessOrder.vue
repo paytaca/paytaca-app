@@ -1,19 +1,14 @@
 <template>
-  <div>
-    <q-btn
-      flat
-      padding="md md xs md"
-      icon="arrow_back"
-      class="button button-text-primary"
-      :class="getDarkModeClass(darkMode)"
-      @click="$emit('back')"
-    />
-    </div>
   <!-- Progress Loader -->
   <div v-if="!isloaded">
-    <div class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
+    <q-card
+    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+    </q-card>
   </div>
 
   <!-- Order Process Pages -->
@@ -25,30 +20,32 @@
       @confirm="confirmingOrder"
       @cancel="cancellingOrder"
       @refresh="$emit('refresh')"
+      @back="onBack"
     />
     <EscrowTransfer
       v-if="state === 'escrow-bch'"
       :key="escrowTransferKey"
       :data="escrowTransferData"
-      @back="onBack"
       @success="onEscrowSuccess"
+      @back="onBack"
     />
     <VerifyTransaction
       v-if="state === 'tx-confirmation'"
       :key="verifyTransactionKey"
       :data="verifyTransactionData"
-      @back="onBack"
       @success="onVerifyTxSuccess"
       @refresh="$emit('refresh')"
+      @back="onBack"
     />
     <!-- Waiting Page -->
-    <div v-if="state === 'standby-view'" class="q-px-lg">
+    <div v-if="state === 'standby-view'">
       <StandByDisplay
         :key="standByDisplayKey"
         :data="standByDisplayData"
         @send-feedback="sendFeedback"
         @submit-appeal="submitAppeal"
         @refresh="$emit('refresh')"
+        @back="onBack"
       />
     </div>
 
@@ -60,11 +57,12 @@
         @expired="handleExpired"
         @verify-release="handleVerifyRelease"
         @refresh="$emit('refresh')"
+        @back="onBack"
       />
     </div>
 
     <!-- Chat button -->
-    <div class="fixed" style="right: 35px; bottom: 100px;" v-if="status.value !== 'RLS'">
+    <div class="fixed" style="right: 35px;" :style="$q.platform.is.ios ? 'bottom: 100px;' : 'bottom: 100px'" v-if="status.value !== 'RLS'">
       <q-btn size="md" padding="sm" dense ripple round class="button" icon="comment" @click="openChat = true"/>
     </div>
 
@@ -72,7 +70,6 @@
       <q-spinner-ios size="1.5em"/>
     </div>
   </div>
-
   <!-- Dialogs -->
   <div v-if="openDialog" >
     <MiscDialogs
@@ -146,7 +143,8 @@ export default {
       errorMessages: [],
       selectedPaymentMethods: [],
       autoReconWebSocket: true,
-      reconnectingWebSocket: false
+      reconnectingWebSocket: false,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
     }
   },
   components: {
@@ -169,8 +167,8 @@ export default {
     escrowTransferData () {
       return {
         order: this.order,
-        arbiter: this.order.arbiter,
-        contractAddress: this.contract.address,
+        arbiter: this.order?.arbiter,
+        contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
         fees: this.fees,
         wsConnected: !this.reconnectingWebSocket
@@ -198,7 +196,7 @@ export default {
       return {
         orderId: this.order.id,
         type: this.confirmType,
-        contractAddress: this.contract.address,
+        contract: this.contract,
         errors: this.errorMessages,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
@@ -247,6 +245,9 @@ export default {
     reconnectingWebSocket () {
       this.reloadChildComponents()
     }
+  },
+  created () {
+    bus.emit('hide-menu')
   },
   async mounted () {
     const vm = this
@@ -661,7 +662,7 @@ export default {
       switch (vm.dialogType) {
         case 'confirmCancelOrder':
           vm.cancelOrder()
-          vm.$emit('back')
+          vm.onBack()
           break
         case 'confirmOrder':
           vm.confirmOrder()
@@ -705,9 +706,6 @@ export default {
     onVerifyTxSuccess (status) {
       this.updateStatus(status)
     },
-    onBack () {
-      this.state = 'order-list'
-    },
     onEscrowSuccess (txid) {
       this.txid = txid
       this.fetchOrder()
@@ -731,28 +729,19 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        if (data) {
-          if (data.success) {
-            if (data.status) {
-              this.updateStatus(data.status.status)
-            }
-          }
-          if (data.error) {
-            this.errorMessages.push(data.error)
-            this.verifyTransactionKey++
-          } else if (data.errors) {
-            this.errorMessages.push(...data.errors)
-            this.verifyTransactionKey++
-          }
-          if (data.txid) {
-            this.txid = data.txid
-          }
-          if (data.contract_address) {
-            if (this.contract) {
-              this.contract.address = data.contract_address
-            }
-            this.escrowTransferKey++
-          }
+        this.updateStatus(data?.status?.status)
+        // if (data.error) {
+        //   this.errorMessages.push(data.error)
+        //   this.verifyTransactionKey++
+        // } else if (data.errors) {
+        //   this.errorMessages.push(...data.errors)
+        //   this.verifyTransactionKey++
+        // }
+        // if (data.txid) {
+        //   this.txid = data.txid
+        // }
+        if (data?.contract_address) {
+          this.fetchOrder().then(this.fetchContract().then(() => { this.escrowTransferKey++ }))
         }
       }
       this.websocket.onclose = () => {
@@ -772,6 +761,10 @@ export default {
     },
     delay (duration) {
       return new Promise(resolve => setTimeout(resolve, duration))
+    },
+    onBack () {
+      bus.emit('show-menu')
+      this.$emit('back')
     }
   }
 }

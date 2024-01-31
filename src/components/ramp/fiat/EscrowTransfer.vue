@@ -1,6 +1,17 @@
 <template>
-  <div>
-    <div class="text-center lg-font-size text-weight-bold">ESCROW BCH</div>
+  <q-card
+    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+      <q-btn
+        flat
+        icon="arrow_back"
+        class="button button-text-primary"
+        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        :class="getDarkModeClass(darkMode)"
+        @click="$emit('back')"
+      />
+    <div class="q-mt-lg q-pt-md text-center lg-font-size text-weight-bold">ESCROW BCH</div>
     <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size text-weight-bold">(ORDER #{{ order?.id }})</div>
     <q-separator :dark="darkMode" class="q-mx-lg"/>
     <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
@@ -16,6 +27,7 @@
           :label="selectedArbiter ? selectedArbiter.address : ''"
           :options="arbiterOptions"
           :disable="!contractAddress || sendingBch"
+          @update:model-value="selectArbiter"
           behavior="dialog">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
@@ -108,12 +120,12 @@
       @cancel="onSecurityCancel"
       text="Swipe To Escrow"
     />
-  </div>
+  </q-card>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import { rampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
@@ -121,10 +133,8 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
-      wallet: this.$store.getters['ramp/wallet'],
+      wallet: null,
       loading: false,
       order: null,
       adData: null,
@@ -137,8 +147,8 @@ export default {
       showDragSlide: false,
       sendErrors: [],
       sendingBch: false,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
-      dragSlideKey: 0
+      dragSlideKey: 0,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
     }
   },
   emits: ['back', 'success'],
@@ -149,11 +159,6 @@ export default {
     data: Object
   },
   watch: {
-    selectedArbiter (newValue, oldValue) {
-      if (!oldValue || oldValue?.id === newValue?.id) return
-      this.contractAddress = null
-      this.generateContractAddress()
-    },
     fees (value) {
       if (value) this.showDragSlide = true
     }
@@ -179,9 +184,14 @@ export default {
     vm.loading = true
     vm.loadData()
     vm.loadContract()
+    vm.wallet = loadRampWallet()
   },
   methods: {
     getDarkModeClass,
+    selectArbiter (value) {
+      this.contractAddress = null
+      this.generateContractAddress()
+    },
     loadContract () {
       const vm = this
       vm.fetchArbiters().then(() => {
@@ -212,8 +222,9 @@ export default {
     escrowBch () {
       return new Promise((resolve, reject) => {
         const vm = this
+        vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
         vm.sendingBch = true
-        rampWallet.raw().then(wallet =>
+        this.wallet.raw().then(wallet =>
           wallet.sendBch(vm.transferAmount, vm.contractAddress).then(result => {
             console.log('sendBch:', result)
             if (result.success) {
@@ -286,7 +297,7 @@ export default {
                 vm.selectedArbiter = vm.arbiterOptions[0]
               } else {
                 vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
-                  return obj.id === vm.selectedArbiter.id
+                  return Number(obj.id) === vm.selectedArbiter.id
                 })
               }
             }
@@ -312,10 +323,9 @@ export default {
         }
         backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
           .then(response => {
-            if (response.data.data) {
-              const data = response.data.data
-              if (data.contract_address) {
-                vm.contractAddress = data.contract_address
+            if (response.data) {
+              if (response.data.address) {
+                vm.contractAddress = response.data.address
               }
             }
             resolve(response.data)

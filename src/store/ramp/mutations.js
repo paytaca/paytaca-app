@@ -111,6 +111,7 @@ export function saveTxid (state, data) {
 
 export function clearOrderTxids (state, id) {
   delete state.txids[id]
+  console.log(`cleared order ${id} txids`)
 }
 
 // ~ store mutations ~ //
@@ -118,7 +119,6 @@ export function clearOrderTxids (state, id) {
 export function updateStoreBuyListings (state, { overwrite = false, data }) {
   if (overwrite) state.storeBuyListings = data.ads
   else state.storeBuyListings.push(...data.ads)
-  console.log('storeBuyListings:', state.storeBuyListings)
   state.storeBuyTotalPages = data.total_pages
   state.storeBuyItemsCount = data.count
 }
