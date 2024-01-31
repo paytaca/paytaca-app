@@ -19,10 +19,28 @@
             />
             <q-card class="row justify-evenly bg-grey-7">
               <q-card-section class="q-pa-sm">
+                <div class="row items-center q-pb-xs text-capitalize text-weight-bold">
+                  <q-radio
+                    size="xs"
+                    class="prev-radio"
+                    :val="`${themeElem.value} light`"
+                    v-model="selectedMode"
+                  />
+                  {{ $t('LightMode') }}
+                </div>
                 <PreviewTemplate :theme="themeElem.value" :mode="`light`" />
               </q-card-section>
               <q-separator inset vertical color="white" />
               <q-card-section class="q-pa-sm">
+                <div class="row items-center q-pb-xs text-capitalize text-weight-bold">
+                  <q-radio
+                    size="xs"
+                    class="prev-radio"
+                    :val="`${themeElem.value} dark`"
+                    v-model="selectedMode"
+                  />
+                  {{ $t('DarkMode') }}
+                </div>
                 <PreviewTemplate :theme="themeElem.value" :mode="`dark`" />
               </q-card-section>
             </q-card>
@@ -51,6 +69,7 @@ export default {
   data () {
     return {
       selectedTheme: 'default',
+      selectedMode: 'default dark',
       themesList: [
         { value: 'default', label: this.$t('Default') }
       ]
@@ -73,6 +92,13 @@ export default {
   watch: {
     selectedTheme () {
       this.$store.commit('global/setTheme', this.selectedTheme)
+      this.selectedMode = `${this.selectedTheme} ${this.darkMode ? 'dark' : 'light'}`
+    },
+    selectedMode () {
+      const themeMode = this.selectedMode.split(' ')
+      this.$store.commit('global/setTheme', themeMode[0])
+      this.$store.commit('darkmode/setDarkmodeSatus', themeMode[1] === 'dark')
+      this.selectedTheme = themeMode[0]
     }
   }
 }
@@ -82,5 +108,11 @@ export default {
   .themes-preview-container {
     max-height: 47vh;
     overflow-y: scroll;
+  }
+</style>
+
+<style lang="scss">
+  .prev-radio.q-radio > .q-radio__inner--truthy {
+    color: #4FC3F7 !important;
   }
 </style>
