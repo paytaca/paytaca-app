@@ -742,7 +742,8 @@ export default {
           vm.$store.commit(updateAssetBalance, {
             id: id,
             balance: response.balance,
-            spendable: response.spendable
+            spendable: response.spendable,
+            yield: response.yield
           })
           vm.balanceLoaded = true
         })

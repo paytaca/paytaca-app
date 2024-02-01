@@ -1,189 +1,200 @@
 <template>
-  <div v-if="isloaded" class="q-mb-sm q-pb-sm">
-    <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg text-center text-weight-bold">
-        <div class="lg-font-size">
-          <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
-        </div>
-        <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
-        <!-- <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div> -->
-      </div>
-      <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
-        <div v-if="data?.order?.status?.value === 'APL'">
-          <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
-            <q-card-section>
-              <div class="text-weight-bold md-font-size">Appeal reasons</div>
-              <div v-if="appeal">
-                <q-badge
-                  v-for="reason in appeal.reasons"
-                  :key="reason"
-                  rounded
-                  size="sm"
-                  outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                  :label="reason" />
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="q-px-sm q-pt-sm">
-          <div class="sm-font-size q-pb-xs q-ml-xs">Amount</div>
-          <q-input
-            class="q-pb-xs md-font-size"
-            readonly
-            dense
-            filled
-            :dark="darkMode"
-            v-model="cryptoAmount">
-            <template v-slot:append>
-              <span>{{ data?.order?.crypto_currency?.symbol }}</span>
-            </template>
-          </q-input>
-          <div class="col text-right sm-font-size q-pl-sm">
-            = {{ fiatAmount }} {{ data?.order?.fiat_currency?.symbol }}
+  <q-card
+    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    <div v-if="isloaded">
+      <q-btn
+        flat
+        icon="arrow_back"
+        class="button button-text-primary"
+        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        :class="getDarkModeClass(darkMode)"
+        @click="$emit('back')"
+      />
+      <q-pull-to-refresh @refresh="$emit('refresh')" class="q-mx-lg">
+        <div class="q-mt-lg q-pt-md text-center text-weight-bold">
+          <div class="lg-font-size">
+            <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
           </div>
+          <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
+          <!-- <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div> -->
         </div>
-        <div v-if="displayContractInfo">
-          <div class="q-mx-sm">
-            <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input
-              class="q-pb-xs md-font-size"
-              readonly
-              dense
-              filled
-              :dark="darkMode"
-              :label="data?.contractAddress">
-              <template v-slot:append>
-                <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
-                  <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+        <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
+          <div v-if="data?.order?.status?.value === 'APL'">
+            <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
+              <q-card-section>
+                <div class="text-weight-bold md-font-size">Appeal reasons</div>
+                <div v-if="appeal">
+                  <q-badge
+                    v-for="reason in appeal.reasons"
+                    :key="reason"
+                    rounded
+                    size="sm"
+                    outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                    :label="reason" />
                 </div>
-              </template>
-            </q-input>
-            <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="q-px-sm q-pt-sm">
+            <div class="sm-font-size q-pb-xs q-ml-xs">Amount</div>
             <q-input
               class="q-pb-xs md-font-size"
               readonly
               dense
               filled
-              :loading="!contractBalance"
               :dark="darkMode"
-              v-model="contractBalance">
+              v-model="cryptoAmount">
               <template v-slot:append>
-                <span>BCH</span>
+                <span>{{ data?.order?.crypto_currency?.symbol }}</span>
               </template>
             </q-input>
-          </div>
-          <div
-            class="row q-px-md q-pt-sm text-center sm-font-size"
-            style="overflow-wrap: break-word;">
-            <div v-if="hasLabel" class="row">
-              <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-              <span class="col text-left q-ml-sm">{{ label }}</span>
+            <div class="col text-right sm-font-size q-pl-sm">
+              = {{ fiatAmount }} {{ data?.order?.fiat_currency?.symbol }}
             </div>
           </div>
-        </div>
-        <!-- Countdown Timer -->
-        <div v-else class="q-mt-md q-px-md q-mb-sm">
-          <!-- <div
-            class="row q-px-sm text-center sm-font-size"
-            style="overflow-wrap: break-word;"
-            v-if="!$parent.isExpired">
-            <div v-if="hasLabel && !forRelease" class="row">
-              <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-              <span class="col text-left q-ml-sm">{{ label }}</span>
+          <div v-if="displayContractInfo">
+            <div class="q-mx-sm">
+              <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
+              <q-input
+                class="q-pb-xs md-font-size"
+                readonly
+                dense
+                filled
+                :dark="darkMode"
+                :label="data?.contractAddress">
+                <template v-slot:append>
+                  <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
+                    <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+                  </div>
+                </template>
+              </q-input>
+              <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+              <q-input
+                class="q-pb-xs md-font-size"
+                readonly
+                dense
+                filled
+                :loading="!contractBalance"
+                :dark="darkMode"
+                v-model="contractBalance">
+                <template v-slot:append>
+                  <span>BCH</span>
+                </template>
+              </q-input>
+            </div>
+            <div
+              class="row q-px-md q-pt-sm text-center sm-font-size"
+              style="overflow-wrap: break-word;">
+              <div v-if="hasLabel" class="row">
+                <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+                <span class="col text-left q-ml-sm">{{ label }}</span>
+              </div>
             </div>
           </div>
-            <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
-              {{ countDown }}
+          <!-- Countdown Timer -->
+          <div v-else class="q-mt-md q-px-md q-mb-sm">
+            <!-- <div
+              class="row q-px-sm text-center sm-font-size"
+              style="overflow-wrap: break-word;"
+              v-if="!$parent.isExpired">
+              <div v-if="hasLabel && !forRelease" class="row">
+                <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+                <span class="col text-left q-ml-sm">{{ label }}</span>
+              </div>
             </div> -->
-            <!-- Cancel Button -->
-            <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
+              <!-- <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
+                {{ countDown }}
+              </div> -->
+              <!-- Cancel Button -->
+              <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
+                <q-btn
+                  rounded
+                  no-caps
+                  label='Cancel Order'
+                  class="q-space text-white"
+                  style="background-color: #ed5f59;"
+                  @click="$parent.cancellingOrder()"
+                />
+              </div>
+          </div>
+          <!-- Appeal Button -->
+          <div v-if="showAppealBtn">
+            <div class="row q-pt-xs q-px-md">
               <q-btn
                 rounded
                 no-caps
-                label='Cancel Order'
-                class="q-space text-white"
-                style="background-color: #ed5f59;"
-                @click="$parent.cancellingOrder()"
+                :disable="!data?.wsConnected"
+                label='Appeal'
+                class="q-space text-white button"
+                color="blue-6"
+                @click="openDialog = true"
               />
             </div>
-        </div>
-        <!-- Appeal Button -->
-        <div v-if="showAppealBtn">
-          <div class="row q-pt-xs q-px-md">
-            <q-btn
-              rounded
-              no-caps
-              :disable="!data?.wsConnected"
-              label='Appeal'
-              class="q-space text-white button"
-              color="blue-6"
-              @click="openDialog = true"
-            />
           </div>
-        </div>
-        <!-- Feedback -->
-        <div class="q-pt-md q-mx-md" v-if="hasReview">
-          <div class="md-font-size text-center">
-            <span v-if="!feedbackForm.is_posted">Rate your experience</span>
-            <span v-else>Your Review</span>
+          <!-- Feedback -->
+          <div class="q-pt-md q-mx-md" v-if="hasReview">
+            <div class="md-font-size text-center">
+              <span v-if="!feedbackForm.is_posted">Rate your experience</span>
+              <span v-else>Your Review</span>
+            </div>
+            <!-- <div class="lg-font-size text-weight-bold text-center">{{ nickname }}</div> -->
+            <div>
+              <div class="q-py-xs text-center">
+                <q-rating
+                  :readonly="feedbackForm.is_posted"
+                  v-model="feedbackForm.rating"
+                  size="2em"
+                  color="yellow-9"
+                  icon="star"
+                />
+              </div>
+              <div class="q-pt-sm q-px-xs">
+                <q-input
+                  v-if="!feedbackForm.is_posted || (feedbackForm.is_posted && feedbackForm.comment)"
+                  v-model="feedbackForm.comment"
+                  :dark="darkMode"
+                  :readonly="feedbackForm.is_posted"
+                  placeholder="Add comment here..."
+                  dense
+                  outlined
+                  autogrow
+                  :counter="!feedbackForm.is_posted"
+                  maxlength="200"
+                />
+              </div>
+              <div class="row q-pt-xs q-px-xs">
+                <q-btn
+                  v-if="!feedbackForm.is_posted"
+                  :disable="!feedbackForm.rating"
+                  rounded
+                  label='Post Review'
+                  class="q-space text-white"
+                  color="blue-8"
+                  @click="postingFeedback"
+                />
+                <!-- <q-btn
+                  v-else
+                  rounded
+                  label='Edit Review'
+                  class="q-space text-white"
+                  color="blue-8"
+                /> -->
+              </div>
+              <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
+            </div>
           </div>
-          <!-- <div class="lg-font-size text-weight-bold text-center">{{ nickname }}</div> -->
-          <div>
-            <div class="q-py-xs text-center">
-              <q-rating
-                :readonly="feedbackForm.is_posted"
-                v-model="feedbackForm.rating"
-                size="2em"
-                color="yellow-9"
-                icon="star"
-              />
-            </div>
-            <div class="q-pt-sm q-px-xs">
-              <q-input
-                v-if="!feedbackForm.is_posted || (feedbackForm.is_posted && feedbackForm.comment)"
-                v-model="feedbackForm.comment"
-                :dark="darkMode"
-                :readonly="feedbackForm.is_posted"
-                placeholder="Add comment here..."
-                dense
-                outlined
-                autogrow
-                :counter="!feedbackForm.is_posted"
-                maxlength="200"
-              />
-            </div>
-            <div class="row q-pt-xs q-px-xs">
-              <q-btn
-                v-if="!feedbackForm.is_posted"
-                :disable="!feedbackForm.rating"
-                rounded
-                label='Post Review'
-                class="q-space text-white"
-                color="blue-8"
-                @click="postingFeedback"
-              />
-              <!-- <q-btn
-                v-else
-                rounded
-                label='Edit Review'
-                class="q-space text-white"
-                color="blue-8"
-              /> -->
-            </div>
-            <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
-          </div>
-        </div>
-      </q-scroll-area>
-    </q-pull-to-refresh>
-  </div>
-
-  <!-- Progress Loader -->
-  <div v-if="!isloaded">
-    <div class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        </q-scroll-area>
+      </q-pull-to-refresh>
     </div>
-  </div>
-
+    <!-- Progress Loader -->
+    <div v-if="!isloaded">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+    </div>
+  </q-card>
   <!-- Dialogs -->
   <div v-if="openDialog">
     <MiscDialogs
@@ -241,14 +252,13 @@ export default {
         is_posted: false
       },
       contractBalance: null,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.25
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100)
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
     }
   },
   props: {
     data: Object
   },
-  emits: ['sendFeedback', 'submitAppeal', 'refresh'],
+  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
   components: {
     MiscDialogs,
     FeedbackDialog,
@@ -363,7 +373,7 @@ export default {
     fetchContractBalance () {
       const vm = this
       if (this.data?.escrow) {
-        vm.data?.escrow?.getBalance()
+        vm.data?.escrow?.getBalance(vm.data?.contractAddress)
           .then(balance => {
             vm.contractBalance = balance.toString()
           })

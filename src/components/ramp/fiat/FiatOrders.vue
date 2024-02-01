@@ -3,8 +3,7 @@
       class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
       :class="getDarkModeClass(darkMode)"
       :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
-      v-if="!viewProfile"
-    >
+      v-if="state == 'order-list' && !viewProfile">
       <div v-if="state === 'order-list'">
         <div>
           <!-- <q-pull-to-refresh @refresh="refreshData"> -->
@@ -125,16 +124,14 @@
           </q-pull-to-refresh>
         </div>
       </div>
-      <div v-if="state === 'view-order'">
-        <FiatProcessOrder
-          :key="fiatProcessOrderKey"
-          :order-data="selectedOrder"
-          @back="returnOrderList()"
-          @refresh="refreshOrder"
-        />
-        <!-- check which step the order are in -->
-      </div>
     </q-card>
+    <FiatProcessOrder
+      v-if="state === 'view-order'"
+      :key="fiatProcessOrderKey"
+      :order-data="selectedOrder"
+      @back="returnOrderList()"
+      @refresh="refreshOrder"
+    />
     <FiatProfileCard
       v-if="viewProfile"
       :userInfo="selectedUser"
@@ -195,9 +192,8 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - this.$q.screen.height * 0.17 : this.$q.screen.height - this.$q.screen.height * 0.17,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (70 + 120) : this.$q.screen.height - (70 + 100),
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 185 : this.$q.screen.height - 140,
       viewProfile: false,
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,

@@ -11,7 +11,7 @@
           flat
           icon="close"
           round
-          :class="darkMode ? 'text-white' : 'text-black'"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -64,7 +64,7 @@
                 ]"
               >
                 <q-item-section v-if="token.logo" side>
-                  <img :src="token.logo" height="30">
+                  <img :src="token.logo" height="30" alt="">
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>
@@ -122,7 +122,7 @@
       </q-card-section>
       <q-card-section class="row q-gutter-sm justify-around">
         <q-btn
-          v-if="parsedTokens.length > 0 && !loading"
+          v-if="parsedTokens.length > 0 && !loading && !checkifAnyAlreadyExists"
           no-caps
           rounded
           :label="`${$t('AddAll')} ${parsedTokens.length}`"
@@ -137,7 +137,6 @@
 import ProgressLoader from './ProgressLoader.vue'
 import TokenTypeBadge from './TokenTypeBadge.vue'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
-
 
 export default {
   name: 'TokenSuggestionsDialog',
@@ -225,6 +224,12 @@ export default {
           }
         })
         .filter(Boolean)
+    },
+    checkifAnyAlreadyExists () {
+      if (this.parsedTokens.length > 0) {
+        return this.parsedTokens.filter(token => this.assetIdExists(token.id)).length > 0
+      }
+      return false
     }
   },
   methods: {

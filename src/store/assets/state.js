@@ -7,7 +7,8 @@ export default function () {
         name: 'Bitcoin Cash',
         logo: 'bch-logo.png',
         balance: 0,
-        spendable: 0
+        spendable: 0,
+        yield: {}
       }
     ],
     chipnet__assets: [
@@ -17,7 +18,8 @@ export default function () {
         name: 'Bitcoin Cash',
         logo: 'bch-logo.png',
         balance: 0,
-        spendable: 0
+        spendable: 0,
+        yield: {}
       }
     ],
     ignoredAssets: [],

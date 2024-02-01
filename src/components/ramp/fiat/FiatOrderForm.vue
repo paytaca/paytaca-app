@@ -1,9 +1,10 @@
 <template>
   <q-card
-   class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
-   :class="getDarkModeClass(darkMode)"
-   :style="`height: ${minHeight}px;`">
-   <!-- Form Body -->
+    v-if="state === 'initial'"
+    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`">
+    <!-- Form Body -->
     <div v-if="state === 'initial'">
       <div v-if="isloaded">
         <div>
@@ -209,19 +210,11 @@
         @submit="$emit('back')"
       />
     </div>
-    <!-- Process Order -->
-    <div v-if="state === 'order-process'">
-      <FiatProcessOrder
-        :order-data="order"
-        @back="onBack"
-      />
-      <!-- <FiatStoreBuyProcess
-        :order-data="order"
-        @back="onBack"
-        @canceled="onOrderCanceled"
-      /> -->
-    </div>
-   </q-card>
+  </q-card>
+  <!-- Process Order -->
+  <div v-if="state === 'order-process'">
+    <FiatProcessOrder :order-data="order" @back="onBack"/>
+  </div>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
