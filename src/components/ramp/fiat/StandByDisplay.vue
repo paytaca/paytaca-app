@@ -47,11 +47,11 @@
               :dark="darkMode"
               v-model="cryptoAmount">
               <template v-slot:append>
-                <span>{{ data?.order?.crypto_currency?.symbol }}</span>
+                <span>{{ data?.order?.ad?.crypto_currency?.symbol }}</span>
               </template>
             </q-input>
             <div class="col text-right sm-font-size q-pl-sm">
-              = {{ fiatAmount }} {{ data?.order?.fiat_currency?.symbol }}
+              = {{ fiatAmount }} {{ data?.order?.ad?.fiat_currency?.symbol }}
             </div>
           </div>
           <div v-if="displayContractInfo">
@@ -125,8 +125,8 @@
               <q-btn
                 rounded
                 no-caps
-                :disable="!data?.wsConnected"
-                label='Appeal'
+                :disable="!data?.wsConnected || countDown !== null"
+                :label="appealBtnLabel"
                 class="q-space text-white button"
                 color="blue-6"
                 @click="openDialog = true"
@@ -227,7 +227,6 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
@@ -241,7 +240,8 @@ export default {
       nickname: this.$store.getters['ramp/getUser'].name,
       appeal: null,
       isloaded: false,
-      countDown: '',
+      countDown: null,
+      countDownLoading: true,
       timer: null,
       type: 'ongoing',
       openDialog: false,
@@ -265,11 +265,14 @@ export default {
     ProgressLoader
   },
   computed: {
+    appealBtnLabel () {
+      if (this.countDown) return `Appealable in ${this.countDown}`
+      return 'Appeal'
+    },
     showAppealBtn () { // UPDATE LATER // show if User is unresponsive
       const vm = this
-      return !vm.isCompletedOrder && !vm.isAppealed
+      return !vm.isCompletedOrder && !vm.isAppealed && !vm.countDownLoading
       // && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value)
-      // && (vm.$parent.isExpired || vm.countDown === 'Expired'))
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
@@ -333,8 +336,8 @@ export default {
         SBM: 'Please wait for the Ad Owner  to confirm your order.',
         CNF: 'Please wait for the Seller to Escrow the funds.',
         ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
-        ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
-        PD_PN: 'Please wait for the seller to confirm your fiat payment.',
+        ESCRW: 'Please wait for the buyer to send and confirm their fiat payment.',
+        PD_PN: 'Please wait for the seller to release the funds.',
         PD: 'Please wait for the fund release.',
         RLS_PN: 'Please wait for the fund release.'
       }
@@ -359,7 +362,7 @@ export default {
       if (this.data?.order?.status?.value === 'APL') {
         this.fetchAppeal()
       }
-      this.paymentCountdown()
+      this.appealCountdown()
       this.checkStatus()
       this.fetchContractBalance()
     },
@@ -395,30 +398,27 @@ export default {
       this.openDialog = false
       this.$emit('submitAppeal', data)
     },
-    paymentCountdown () {
+    appealCountdown () {
       const vm = this
-      if (vm.data?.order?.expires_at) {
-        const expiryDate = new Date(vm.data?.order?.expires_at)
+      if (vm.data?.order?.appealable_at) {
+        const appealableDate = new Date(vm.data?.order?.appealable_at)
         vm.timer = setInterval(function () {
           const now = new Date().getTime()
-          const distance = expiryDate - now
+          const distance = appealableDate - now
 
           const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-          let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-          let seconds = Math.floor((distance % (1000 * 60)) / 1000)
-          if (seconds.toString().length < 2) {
-            seconds = '0' + seconds
-          }
-          if (minutes.toString().length < 2) {
-            minutes = '0' + minutes
-          }
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-          vm.countDown = `${hours}:${minutes}:${seconds}`
+          if (hours > 0) vm.countDown = `${hours}h`
+          else if (minutes > 0) vm.countDown = `${minutes}m`
+          else if (seconds > 0) vm.countDown = `${seconds}s`
 
           if (distance < 0) {
             clearInterval(vm.timer)
-            vm.countDown = 'Expired'
+            vm.countDown = null
           }
+          vm.countDownLoading = false
         }, 1000)
       }
     },

@@ -148,22 +148,22 @@ export function formatRelativeDate (date) {
   return dateString
 }
 
-export function getPaymentTimeLimit (timeValue) {
+export function getAppealCooldown (timeValue) {
   switch (timeValue) {
     case 5:
-      return { label: '5 min', value: 5 }
+      return { label: '5 minutes', value: 5 }
     case 15:
-      return { label: '15 min', value: 15 }
+      return { label: '15 minutes', value: 15 }
     case 30:
-      return { label: '30 min', value: 30 }
+      return { label: '30 minutes', value: 30 }
     case 60:
-      return { label: '1 hr', value: 60 }
+      return { label: '1 hour', value: 60 }
     case 300:
-      return { label: '5 hr', value: 300 }
+      return { label: '5 hours', value: 300 }
     case 720:
-      return { label: '12 hr', value: 720 }
+      return { label: '12 hours', value: 720 }
     case 1440:
-      return { label: '24 hr', value: 1440 }
+      return { label: '24 hours', value: 1440 }
     default:
       return ''
   }
