@@ -21,7 +21,7 @@
           <!-- <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div> -->
         </div>
         <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
-          <div v-if="data?.order?.status?.value === 'APL'">
+          <div v-if="isAppealed">
             <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
               <q-card-section>
                 <div class="text-weight-bold md-font-size">Appeal reasons</div>
@@ -269,10 +269,9 @@ export default {
       if (this.countDown) return `Appealable in ${this.countDown}`
       return 'Appeal'
     },
-    showAppealBtn () { // UPDATE LATER // show if User is unresponsive
-      const vm = this
-      return !vm.isCompletedOrder && !vm.isAppealed && !vm.countDownLoading
-      // && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value)
+    showAppealBtn () {
+      const stat = ['ESCRW', 'PD_PN', 'PD']
+      return stat.includes(this.data?.order?.status.value)
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
@@ -359,7 +358,7 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     loadData () {
-      if (this.data?.order?.status?.value === 'APL') {
+      if (this.isAppealed) {
         this.fetchAppeal()
       }
       this.appealCountdown()
