@@ -539,7 +539,9 @@ export default {
     submitAppeal (data) {
       const vm = this
       backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
-        .then(response => vm.updateStatus(response.data.status))
+        .then(response => {
+          vm.updateStatus(response.data.status.status)
+        })
         .then(vm.addArbiterToChat())
         .catch(error => {
           if (error.response) {

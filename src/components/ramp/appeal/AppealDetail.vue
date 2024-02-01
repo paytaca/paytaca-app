@@ -23,12 +23,12 @@
           />
           <q-icon v-if="!appeal.resolved_at" class="q-pl-lg" size="sm" name='o_question_answer'/>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - minHeight * .2}px`" style="overflow-y:auto;">
-          <div class="text-center">
-            <div v-if="appeal.resolved_at" class="text-weight-bold lg-font-size" >{{ appeal.order.status.label.toUpperCase() }} </div>
-            <div v-if="!appeal.resolved_at" class="text-weight-bold lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
-            <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
-          </div>
+        <div class="text-center q-pb-sm">
+          <div v-if="appeal.resolved_at" class="text-weight-bold lg-font-size" >{{ appeal.order.status.label.toUpperCase() }} </div>
+          <div v-if="!appeal.resolved_at" class="text-weight-bold lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
+          <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
+        </div>
+        <q-scroll-area :style="`height: ${minHeight - minHeight * .25}px`" style="overflow-y:auto;">
           <div class="q-mx-lg">
             <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
               <q-card-section>
