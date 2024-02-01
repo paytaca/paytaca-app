@@ -1,19 +1,10 @@
 <template>
   <q-card
+    v-if="state === 'selection'"
     class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
-  >
-    <div v-if="state !== 'selection'">
-      <FiatAdsForm
-        @back="onFormBack()"
-        @submit="onSubmit()"
-        :adsState="state"
-        :transactionType="transactionType"
-        :selectedAdId="selectedAdId"
-      />
-    </div>
-    <div v-if="state === 'selection'"  class="q-mb-lg q-pb-lg">
+    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    <div class="q-mb-lg q-pb-lg">
       <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
         <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' />
         <q-btn
@@ -130,6 +121,14 @@
       </div>
     </div>
   </q-card>
+  <FiatAdsForm
+    v-if="state !== 'selection'"
+    @back="onFormBack()"
+    @submit="onSubmit()"
+    :adsState="state"
+    :transactionType="transactionType"
+    :selectedAdId="selectedAdId"
+  />
   <FiatAdsDialogs
     v-if="openDialog === true"
     :type="dialogName"
@@ -327,6 +326,7 @@ export default {
       const vm = this
       vm.state = 'selection'
       vm.selectedAdId = null
+      bus.emit('show-menu')
     },
     onEditAd (id) {
       const vm = this

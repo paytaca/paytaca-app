@@ -1,68 +1,79 @@
 <template>
   <div class="q-pb-md" v-if="isLoaded">
-    <div>
-      <q-btn
-        flat
-        padding="md"
-        icon="close"
-        class="close-button"
-        @click="$emit('back')"
-      />
-    </div>
-
-    <div class="text-center md-font-size text-weight-bold">Please check to confirm...</div>
-
+    <q-btn
+      flat
+      icon="arrow_back"
+      class="button button-text-primary"
+      style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+      :class="getDarkModeClass(darkMode)"
+      @click="$emit('back')"
+    />
+    <div class="text-center text-weight-bold q-mt-lg q-pt-md" style="font-size: large;">CONFIRM AD DETAILS</div>
     <div v-if="type === 'ads'">
       <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
-        <div class="q-pt-lg q-mx-lg ">
-          <div class="row justify-between no-wrap q-mx-lg">
-            <span>Fiat Currency</span>
-            <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.symbol }}</span>
+        <div class="q-pt-lg q-mx-md">
+          <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+            <span>Price Setting</span>
           </div>
-          <div class="row justify-between no-wrap q-mx-lg">
-            <span>Price Type</span>
-            <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
+          <div class="q-mx-sm">
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Fiat Currency</span>
+              <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.symbol }}</span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Price Type</span>
+              <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
+            </div>
+            <div v-if="adData.priceType === 'FLOATING'" class="row justify-between no-wrap q-mx-lg">
+              <span>Floating Price</span>
+              <span class="text-nowrap q-ml-xs">
+                {{ adData.floatingPrice }}%
+              </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+              <span>Price</span>
+              <span v-if="marketPrice && adData.priceType === 'FLOATING'" class="text-nowrap q-ml-xs">
+                {{ formattedCurrency(((marketPrice * adData.floatingPrice) / 100), postData.fiatCurrency.symbol) }}
+              </span>
+              <span v-if="adData.priceType === 'FIXED'" class="text-nowrap q-ml-xs">
+                {{ formattedCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) }}
+              </span>
+            </div>
           </div>
-          <div class="row justify-between no-wrap q-mx-lg text-weight-bold">
-            <span>{{ adData.priceType === 'FIXED' ? 'Fixed Price' : 'Floating Price Margin' }}</span>
-            <!-- <span>Price:</span> -->
-            <span class="text-nowrap q-ml-xs">
-              {{ adData.priceType === 'FIXED' ? formattedCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) : adData.floatingPrice }} {{ adData.priceType === 'FLOATING' ? '%' : '' }}
-            </span>
+          <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
+          <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+            <span>Trade Limits</span>
           </div>
-        </div>
-
-        <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
-
-        <div class="q-pt-lg q-mx-lg">
-          <div class="row justify-between no-wrap q-mx-lg">
-            <span>Trade Limit</span>
-            <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} - {{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
+          <div class="q-mx-sm">
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Quantity</span>
+              <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Floor (min)</span>
+              <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} BCH </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Ceiling (max)</span>
+              <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Appeal Time</span>
+              <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }} </span>
+            </div>
           </div>
-          <div class="row justify-between no-wrap q-mx-lg text-weight-bold">
-            <span>Trade Amount</span>
-            <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
-          </div>
-        </div>
-        <!-- <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
-
-        <div class="q-pt-lg q-mx-lg" >
-          <div class="row justify-between no-wrap q-mx-lg text-weight-bold">
-            <span>Payment Time Limit</span>
-            <-- <span class="text-nowrap q-ml-xs">{{ adData.time_duration }}</span> --
-            <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
-          </div>
-        </div> -->
-      </div>
-      <div v-if="transactionType === 'sell'">
-        <q-separator :dark="darkMode" class="q-mt-lg q-mx-md"/>
-
-        <div class="q-mx-lg q-pt-lg">
-          <div class="q-px-lg text-weight-bold">
-            Payment Methods
+          <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
+          <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+            <span>Payment Methods</span>
           </div>
           <div class="q-gutter-sm q-pt-sm q-px-lg">
-            <q-badge v-for="method in postData.paymentMethods" :key="method.id" rounded outline color="red" :label="method.paymentType.name" />
+            <q-badge
+              v-for="method in postData.paymentMethods"
+              :key="method.id"
+              :label="method?.payment_type?.name"
+              rounded
+              outline
+              color="red"/>
           </div>
         </div>
       </div>
@@ -143,12 +154,14 @@
       text="Swipe To Confirm"
     />
   </div>
-  <!-- else progress loader -->
 </template>
 <script>
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/wallet/ramp/backend'
+import { bus } from 'src/wallet/event-bus'
+
 export default {
   data () {
     return {
@@ -156,10 +169,10 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       adData: null,
       isLoaded: false,
-      paymentTimeLimit: null,
       wallet: null,
       showDragSlide: true,
-      dragSlideKey: 0
+      dragSlideKey: 0,
+      marketPrice: null
     }
   },
   emits: ['back', 'submit'],
@@ -173,10 +186,6 @@ export default {
     },
     transactionType: String,
     postData: Object,
-    ptl: {
-      type: Object,
-      default: null
-    },
     fiatAmount: {
       type: Number,
       default: null
@@ -190,10 +199,15 @@ export default {
       default: null
     }
   },
+  computed: {
+    appealCooldown () {
+      return getAppealCooldown(this.adData.appealCooldownChoice)
+    }
+  },
   async mounted () {
     const vm = this
     vm.adData = vm.postData
-    vm.paymentTimeLimit = vm.ptl
+    vm.fetchMarketPrice()
     vm.isLoaded = true
   },
   methods: {
@@ -212,7 +226,21 @@ export default {
         const matched = adMethod.map(p => p.payment_type)
         console.log('matched:', matched)
       }
-    }
+    },
+    async fetchMarketPrice () {
+      const vm = this
+      const url = vm.apiURL + '/utils/market-price'
+      try {
+        const response = await backend.get(url, { params: { currency: vm.adData?.fiatCurrency?.symbol } })
+        vm.marketPrice = parseFloat(response.data.price)
+        console.log(response)
+      } catch (error) {
+        console.error(error.response)
+        if (error.response && error.response.status === 403) {
+          bus.emit('session-expired')
+        }
+      }
+    },
   }
 }
 </script>

@@ -1,5 +1,16 @@
 <template>
-  <div class="q-pb-md">
+  <q-card
+  class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+  :class="getDarkModeClass(darkMode)"
+  :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    <!-- <q-btn
+      flat
+      icon="arrow_back"
+      class="button button-text-primary"
+      style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+      :class="getDarkModeClass(darkMode)"
+      @click="$emit('back')"
+    /> -->
     <div v-if="step < 3">
       <q-btn
         flat
@@ -75,7 +86,7 @@
                 </q-select>
               </div>
               <div class="col">
-                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price Margin' }}</div>
+                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price' }}</div>
                 <q-input
                   dense
                   rounded
@@ -251,7 +262,7 @@
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
-  </div>
+  </q-card>
 </template>
 <script>
 import AddPaymentMethods from './AddPaymentMethods.vue'
@@ -288,7 +299,6 @@ export default {
       apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'market-price/',
       authHeaders: this.$store.getters['ramp/authHeaders'],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
@@ -320,26 +330,26 @@ export default {
       },
       cdSelection: [
         {
-          label: '5 min',
+          label: '5 minutes',
           value: 5
         },
         {
-          label: '15 min',
+          label: '15 minutes',
           value: 15
         }, {
-          label: '30 min',
+          label: '30 minutes',
           value: 30
         }, {
-          label: '1 hr',
+          label: '1 hour',
           value: 60
         }, {
-          label: '5 hrs',
+          label: '5 hours',
           value: 300
         }, {
-          label: '12 hrs',
+          label: '12 hours',
           value: 720
         }, {
-          label: '24 hrs',
+          label: '24 hours',
           value: 1440
         }],
       fiatCurrencies: [],
@@ -357,13 +367,17 @@ export default {
         (val) => !!val || 'This field is required',
         (val) => val > 0 || 'Value must be greater than 0',
         (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Value less than minimum trade limit'
-      ]
+      ],
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
     }
   },
   props: {
     transactionType: String,
     adsState: String,
     selectedAdId: Number
+  },
+  created () {
+    bus.emit('hide-menu')
   },
   async mounted () {
     const vm = this
@@ -488,7 +502,7 @@ export default {
       const url = vm.apiURL + '/utils/market-price'
       try {
         const response = await backend.get(url, { params: { currency: vm.selectedCurrency.symbol } })
-        vm.marketPrice = parseFloat(response.data[0].price)
+        vm.marketPrice = parseFloat(response.data?.price)
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)
         }
@@ -585,7 +599,7 @@ export default {
         case 'FIXED':
           if (vm.adsState === 'create') value = vm.priceAmount
           if (vm.adsState === 'edit') value = vm.adData.fixedPrice
-          if (override) value = vm.marketPrice
+          if (value === 0 || override) value = vm.marketPrice
           vm.priceValue = value
           break
         case 'FLOATING':
@@ -643,10 +657,10 @@ export default {
       vm.step++
     },
     decPriceValue () {
-      this.priceValue--
+      this.priceValue = Number((this.priceValue - 0.1).toFixed(2))
     },
     incPriceValue () {
-      this.priceValue++
+      this.priceValue = Number((this.priceValue + 0.1).toFixed(2))
     },
     updateAppealCooldown () {
       const vm = this
