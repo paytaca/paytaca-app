@@ -11,20 +11,17 @@
               <div
                 class="col-9 row br-15 text-center pt-card btn-transaction md-font-size"
                 :class="getDarkModeClass(darkMode)"
-                :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
-              >
+                :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
                 <button
                   class="col br-15 btn-custom fiat-tab q-mt-none"
                   :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
-                  @click="statusType='ONGOING'"
-                >
+                  @click="statusType='ONGOING'">
                   Ongoing
                 </button>
                 <button
                   class="col br-15 btn-custom fiat-tab q-mt-none"
                   :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
-                  @click="statusType='COMPLETED'"
-                >
+                  @click="statusType='COMPLETED'">
                   Completed
                 </button>
               </div>
@@ -79,25 +76,21 @@
                               >
                                 ORDER #{{ listing.id }}
                               </div>
-                              <!-- <span
-                                class=" pt-label md-font-size"
+                              <span
+                                class=" pt-label md-font-size text-weight-bold"
                                 :class="getDarkModeClass(darkMode)"
                                 @click.stop.prevent="viewUserProfile(listing)">
-                                {{ listing.ad.owner.name }} <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
-                              </span> -->
+                                {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
+                              </span>
                               <div
                                 class="col-transaction text-uppercase pt-label lg-font-size"
                                 :class="getDarkModeClass(darkMode)"
                                 :style="amountColor(listing.trade_type)"
                               >
-                                {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
+                                {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
                               </div>
                               <div class="sm-font-size">
                                 {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                              <!-- <div class="sm-font-size">
-                                <span class="q-pr-sm">Price</span>
-                                <span>{{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}/BCH</span>
-                              </div> -->
                               <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                             </div>
                             <div class="text-right">
@@ -233,6 +226,7 @@ export default {
       return []
     },
     ongoingOrders () {
+      console.log('ongoingOrders:', this.$store.getters['ramp/getOngoingOrders'])
       return this.$store.getters['ramp/getOngoingOrders']
     },
     completedOrders () {

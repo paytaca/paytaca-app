@@ -708,7 +708,7 @@
 </template>
 
 <script>
-import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
@@ -996,7 +996,7 @@ export default {
       }
     },
     paymentTimeLimit (timeValue) {
-      return getPaymentTimeLimit(timeValue).label
+      return getAppealCooldown(timeValue).label
     },
     addNewPaymentMethod () {
       const vm = this

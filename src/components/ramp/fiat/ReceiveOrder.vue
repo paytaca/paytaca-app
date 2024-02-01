@@ -23,8 +23,8 @@
         <q-scroll-area style="overflow-y:auto;" :style="`height: ${ minHeight - 170 }px;`">
           <div class="q-mx-md">
               <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
-                <span>Locked Price</span>
-                <span class="text-nowrap q-ml-xs">{{ price }}/{{ order.crypto_currency.symbol }}</span>
+                <span>Price</span>
+                <span class="text-nowrap q-ml-xs">{{ price }}/{{ order.ad?.crypto_currency?.symbol }}</span>
               </div>
               <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
                 <span>Min Trade Limit</span>
@@ -63,7 +63,7 @@
               :dark="darkMode"
               v-model="amount">
               <template v-slot:append>
-                <span class="lg-font-size">{{ byFiat ? order.fiat_currency.symbol : order.crypto_currency.symbol }}</span>
+                <span class="lg-font-size">{{ byFiat ? order?.ad?.fiat_currency?.symbol : order?.ad?.crypto_currency?.symbol }}</span>
               </template>
             </q-input>
             <q-btn
@@ -73,7 +73,7 @@
               no-caps
               color="primary"
               @click="byFiat = !byFiat">
-              View amount in {{ byFiat ? 'BCH' : order.fiat_currency.symbol }}
+              View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}
             </q-btn>
             <div class="no-wrap sm-font-size subtext q-pt-sm">
               <span>Balance: </span>
@@ -110,7 +110,7 @@
 <script>
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { getAppealCooldown } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -144,14 +144,14 @@ export default {
   },
   async mounted () {
     this.order = this.data?.order
-    this.price = this.$parent.formattedCurrency(this.order.locked_price, this.order.fiat_currency.symbol)
+    this.price = this.$parent.formattedCurrency(this.order?.locked_price, this.order?.ad?.fiat_currency?.symbol)
     this.updateInput()
     this.isloaded = true
   },
   methods: {
     getDarkModeClass,
     formattedPlt (value) {
-      return getPaymentTimeLimit(value)
+      return getAppealCooldown(value)
     },
     updateInput () {
       let amount = 0

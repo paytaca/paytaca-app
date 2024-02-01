@@ -78,7 +78,7 @@
           </template>
         </q-input>
         <div class="col text-right sm-font-size q-pl-sm">
-          = {{ fiatAmount }} {{ order?.fiat_currency.symbol }}
+          = {{ fiatAmount }} {{ order?.ad?.fiat_currency?.symbol }}
         </div>
         <!-- </div> -->
         <div class="row q-mb-md" v-if="sendErrors.length > 0">

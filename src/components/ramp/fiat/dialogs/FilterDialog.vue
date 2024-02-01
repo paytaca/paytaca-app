@@ -259,7 +259,7 @@
 </template>
 
 <script>
-import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -508,7 +508,7 @@ export default {
       }
     },
     paymentTimeLimit (timeValue) {
-      return getPaymentTimeLimit(timeValue).label
+      return getAppealCooldown(timeValue).label
     },
     resetFilters (type) {
       let filters = null

@@ -61,7 +61,7 @@
                 :rules="[$parent.isValidInputAmount]"
                 v-model="fiatAmount">
                 <template v-slot:append>
-                  <span>{{ order.fiat_currency.symbol }}</span>
+                  <span>{{ order?.ad?.fiat_currency?.symbol }}</span>
                 </template>
               </q-input>
             </div>
@@ -73,9 +73,9 @@
           <div class="q-mx-md q-px-sm q-pt-sm">
             <!-- Buyer -->
             <div v-if="data?.type === 'buyer'" class="q-pb-xs">
-              <q-separator :dark="darkMode" class="q-mx-sm q-mb-md"/>
+              <!-- <q-separator :dark="darkMode" class="q-mx-sm q-mb-md"/> -->
               <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
-              <div class="sm-font-size q-mx-md q-mb-sm">Select the payment methods you used to pay the seller</div>
+              <div class="sm-font-size q-mx-md q-mb-sm">Select the payment method(s) you used to pay the seller</div>
               <div class="full-width">
                   <div v-for="(method, index) in paymentMethods" :key="index">
                     <div class="q-px-sm">

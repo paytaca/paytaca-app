@@ -179,10 +179,10 @@
             </div>
           </div>
 
-          <!-- Payment Time Limit -->
+          <!-- Appeal Cooldown -->
           <div class="q-mx-lg">
-            <!-- <div class="q-px-lg">
-              <div class="q-pt-sm text-weight-bold">Payment Time Limit</div>
+            <div class="q-px-lg">
+              <div class="q-pt-sm">Set orders appealable after</div>
             </div>
             <div class="q-mx-md q-pt-sm">
               <q-select
@@ -191,9 +191,9 @@
                   rounded
                   :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   :dark="darkMode"
-                  v-model="paymentTimeLimit"
-                  :options="ptlSelection"
-                  @update:modelValue="updatePaymentTimeLimit()">
+                  v-model="appealCooldown"
+                  :options="cdSelection"
+                  @update:modelValue="updateAppealCooldown()">
                 <template v-slot:option="scope">
                   <q-item v-bind="scope.itemProps">
                     <q-item-section>
@@ -204,7 +204,7 @@
                   </q-item>
                 </template>
               </q-select>
-            </div> -->
+            </div>
             <div class="q-mx-md">
               <q-checkbox
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
@@ -240,7 +240,7 @@
     <div v-if="step === 3">
       <DisplayConfirmation
         :post-data="adData"
-        :ptl="paymentTimeLimit"
+        :ptl="appealCooldown"
         :transaction-type="transactionType"
         v-on:back="step = 1"
         @submit="onSubmit()"
@@ -258,7 +258,7 @@ import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import { debounce } from 'quasar'
-import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -297,7 +297,7 @@ export default {
       step: 1,
       priceAmount: 0,
       floatingPrice: 100, // default: 100%
-      paymentTimeLimit: {
+      appealCooldown: {
         label: '24 hrs',
         value: 1440
       },
@@ -305,7 +305,7 @@ export default {
         tradeType: this.transactionType,
         priceType: 'FLOATING',
         fiatCurrency: this.$store.getters['market/selectedCurrency'],
-        cryptoCurrency: { // get crypro_currency ID
+        cryptoCurrency: {
           name: 'Bitcoin Cash',
           symbol: 'BCH'
         },
@@ -314,11 +314,11 @@ export default {
         tradeFloor: 0.02,
         tradeCeiling: 100,
         tradeAmount: 100,
-        timeDurationChoice: 1440,
+        appealCooldownChoice: 1440,
         paymentMethods: [],
         isPublic: true
       },
-      ptlSelection: [
+      cdSelection: [
         {
           label: '5 min',
           value: 5
@@ -427,7 +427,7 @@ export default {
           vm.adData.tradeCeiling = parseFloat(data.trade_ceiling) ? parseFloat(data.trade_ceiling) : parseFloat(data.trade_amount)
           vm.adData.paymentMethods = data.payment_methods
           vm.adData.isPublic = data.is_public
-          vm.paymentTimeLimit = getPaymentTimeLimit(data.time_duration)
+          vm.appealCooldown = getAppealCooldown(data.appeal_cooldown)
           vm.selectedCurrency = data.fiat_currency
         })
         .catch(error => {
@@ -569,7 +569,7 @@ export default {
         trade_floor: parseFloat(data.tradeFloor),
         trade_ceiling: parseFloat(data.tradeCeiling),
         trade_amount: parseFloat(data.tradeAmount),
-        time_duration_choice: data.timeDurationChoice,
+        appeal_cooldown_choice: data.appealCooldownChoice,
         payment_methods: idList,
         is_public: data.isPublic
       }
@@ -648,9 +648,9 @@ export default {
     incPriceValue () {
       this.priceValue++
     },
-    updatePaymentTimeLimit () {
+    updateAppealCooldown () {
       const vm = this
-      vm.adData.timeDurationChoice = vm.paymentTimeLimit.value
+      vm.adData.appealCooldownChoice = vm.appealCooldown.value
     },
     checkPostData () {
       const vm = this
