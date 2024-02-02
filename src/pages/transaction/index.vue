@@ -510,7 +510,6 @@ export default {
       return asset
     },
     mainchainAssets() {
-      console.log('assets', this.$store.getters['assets/getAssets'])
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') return item
       })
@@ -1100,7 +1099,6 @@ export default {
       })
       if (online === true) {
         if (!vm.wallet) await vm.loadWallets()
-        console.log('connectivity assets', vm.assets)
         vm.assets.map((asset) => vm.getBalance(asset.id))
 
         if (Array.isArray(vm.assets) && vm.assets.length > 0) {
