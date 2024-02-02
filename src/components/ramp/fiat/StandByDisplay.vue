@@ -228,6 +228,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { backend } from 'src/wallet/ramp/backend'
+import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -258,6 +259,9 @@ export default {
   props: {
     data: Object
   },
+  // created () {
+  //   bus.emit('hide-chat')
+  // },
   emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
   components: {
     MiscDialogs,
@@ -348,7 +352,10 @@ export default {
       this.feedbackForm = this.data?.feedback
     }
     this.loadData()
-    setTimeout(() => { this.isloaded = true }, 500)
+    setTimeout(() => {
+      this.isloaded = true
+      // bus.emit('show-chat')
+    }, 500)
   },
   beforeUnmount () {
     clearInterval(this.timer)
