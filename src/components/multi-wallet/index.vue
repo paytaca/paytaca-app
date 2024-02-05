@@ -19,7 +19,10 @@
           clickable
           class="q-pr-md text-blue-9 create-import-button"
           :class="{'text-grad': isNotDefaultTheme(theme)}"
-          @click="$router.push('/accounts')"
+          @click="() => {
+            $router.push('/accounts')
+            hide()
+          }"
         >
           {{ $t('CreateOrImportWallet') }}
         </div>
