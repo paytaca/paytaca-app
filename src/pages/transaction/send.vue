@@ -855,15 +855,13 @@ export default {
       // Set the new amount
       if (this.setAmountInFiat) {
         currentInputExtras.sendAmountInFiat = currentAmount
-        const converted = this.convertFiatToSelectedAsset(currentAmount)
-        currentRecipient.amount = converted
-        currentInputExtras.amountFormatted = this.customNumberFormatting(
-          getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
-        )
+        this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
       } else {
         currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
         currentInputExtras.amountFormatted = currentAmount
       }
+
+      this.adjustWalletBalance()
     },
     makeKeyAction (action) {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
@@ -872,7 +870,9 @@ export default {
       if (action === 'backspace') {
         // Backspace
         if (this.setAmountInFiat) {
-          currentInputExtras.sendAmountInFiat = String(currentInputExtras.sendAmountInFiat).slice(0, -1)
+          const currentAmount = String(currentInputExtras.sendAmountInFiat).slice(0, -1)
+          currentInputExtras.sendAmountInFiat = currentAmount
+          this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
         } else {
           currentRecipient.amount = String(currentRecipient.amount).slice(0, -1)
           currentInputExtras.amountFormatted = String(currentInputExtras.amountFormatted).slice(0, -1)
@@ -881,16 +881,23 @@ export default {
         // Delete
         if (this.setAmountInFiat) {
           currentInputExtras.sendAmountInFiat = ''
-        } else {
-          currentRecipient.amount = ''
-          currentInputExtras.amountFormatted = ''
         }
+        currentRecipient.amount = ''
+        currentInputExtras.amountFormatted = ''
       } else {
         // Enabled submit slider
         this.sliderStatus = !currentInputExtras.balanceExceeded
         this.customKeyboardState = 'dismiss'
-        this.adjustWalletBalance()
       }
+
+      this.adjustWalletBalance()
+    },
+    recomputeAmount (currentRecipient, currentInputExtras, amount) {
+      const converted = this.convertFiatToSelectedAsset(amount)
+      currentRecipient.amount = converted
+      currentInputExtras.amountFormatted = this.customNumberFormatting(
+        getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
+      )
     },
     slideToSubmit ({ reset }) {
       setTimeout(() => { reset() }, 2000)
@@ -1402,6 +1409,7 @@ export default {
       this.inputExtras.forEach((input) => {
         input.amountFormatted = 0
       })
+      this.currentWalletBalance = this.asset.balance
     },
     onBIP21Amount (value) {
       const amount = this.getBIP21Amount(value)
