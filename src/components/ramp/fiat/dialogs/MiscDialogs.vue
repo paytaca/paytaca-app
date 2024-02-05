@@ -79,17 +79,16 @@
             </div>
           </div>
           <div class="q-mx-lg q-pt-sm">
-            <span class="md-font-size" v-if="paymentMethod.payment_type.format === 'number'">
-              Account Number
+            <span class="md-font-size">
+                  {{ paymentTypeFormat[paymentMethod.payment_type.format] }}
             </span>
-            <span class="md-font-size" v-if="paymentMethod.payment_type.format === 'email'">
-              Email
-            </span>
+
             <div class="text-center q-pt-sm">
               <q-input
                 dense
                 filled
                 :dark="darkMode"
+                :rules="[paymentTypeRules]"
                 v-model="paymentMethod.account_identifier">
                 <template v-slot:append>
                   <q-icon size="xs" name="close" @click="paymentMethod.account_identifier = ''"/>&nbsp;
@@ -824,7 +823,13 @@ export default {
         { value: 'RLS_PN', label: 'Release Pending' },
         { value: 'RFN_PN', label: 'Refund Pending' }
       ],
-      completedStatuses: ['CNCL', 'RLS', 'RFN']
+      completedStatuses: ['CNCL', 'RLS', 'RFN'],
+      paymentTypeFormat: {
+        email: 'Email Address',
+        number: 'Account Number',
+        'bank-number': 'Bank Account Number',
+        'mobile-number': 'Mobile Number'
+      }
     }
   },
   watch: {
@@ -860,6 +865,20 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    paymentTypeRules (val) {
+      const format = this.paymentMethod.payment_type.format
+
+      switch (format) {
+        case 'email':
+          if (/^[\w\\.~!$%^&*=+}{'?-]+@([\w-]+\.)+[\w-]{2,4}$/.test(val)) {
+            return true
+          } else {
+            return 'Invalid Email Address'
+          }
+        default:
+          return true
+      }
+    },
     filterSelectAll (type) {
       const vm = this
       switch (type) {

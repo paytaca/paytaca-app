@@ -62,11 +62,11 @@
     </div>
 
     <!-- Chat button -->
-    <div class="fixed" style="right: 35px;" :style="$q.platform.is.ios ? 'bottom: 100px;' : 'bottom: 100px'" v-if="status.value !== 'RLS'">
-      <q-btn size="md" padding="sm" dense ripple round class="button" icon="comment" @click="openChat = true"/>
+    <div class="fixed" style="right: 45px; top: 135px" v-if="hasChat">
+      <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon" icon="comment" @click="openChat = true"/>
     </div>
 
-    <div v-if="reconnectingWebSocket" class="fixed" style="right: 40px; top: 145px;">
+    <div v-if="reconnectingWebSocket" class="fixed" style="right: 45px; top: 190px;">
       <q-spinner-ios size="1.5em"/>
     </div>
   </div>
@@ -119,6 +119,7 @@ export default {
       dialogType: '',
       openDialog: false,
       openChat: false,
+      showChatButton: true,
 
       ad: null,
       order: null,
@@ -225,6 +226,10 @@ export default {
     cryptoAmount () {
       return (this.fiatAmount / this.order.locked_price).toFixed(8)
     },
+    hasChat () {
+      const stat = ['RFN', 'RLS', 'CNCL']
+      return !stat.includes(this.status.value) && this.showChatButton
+    },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
@@ -248,6 +253,10 @@ export default {
   },
   created () {
     bus.emit('hide-menu')
+
+    // WIP
+    // bus.on('hide-chat', this.hideChat())
+    // bus.on('show-chat', this.showChat())
   },
   async mounted () {
     const vm = this
@@ -281,6 +290,12 @@ export default {
       vm.status = status
       vm.order.status = status
       vm.checkStep()
+    },
+    hideChat () {
+      this.showChatButton = false
+    },
+    showChat () {
+      this.showChatButton = true
     },
     checkStep () {
       const vm = this
