@@ -509,7 +509,7 @@ export default {
       this.formatBCHCardBalance(this.denomination, asset?.balance || 0)
       return asset
     },
-    mainchainAssets () {
+    mainchainAssets() {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') return item
       })

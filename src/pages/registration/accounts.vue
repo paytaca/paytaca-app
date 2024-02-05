@@ -370,7 +370,15 @@ export default {
       asset = JSON.stringify(asset)
       asset = JSON.parse(asset)
 
+      // remove all assets in assets and chip assets except bch
+      const adjustedAssets = asset.asset.filter((a) => a?.id === 'bch')
+      const adjustedChipnetAssets = asset.chipnet_assets.filter((a) => a?.id === 'bch')
+
+      asset.asset = adjustedAssets
+      asset.chipnet_assets = adjustedChipnetAssets
+
       this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
+      this.$store.commit('assets/updatedCurrentAssets', this.walletIndex)
     },
     continueToDashboard () {
       const vm = this
