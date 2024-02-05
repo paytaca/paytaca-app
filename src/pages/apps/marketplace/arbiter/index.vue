@@ -33,34 +33,37 @@
           />
         </q-item-section>
       </q-item>
-      <q-tabs v-model="activeTab" active-color="brandblue">
-        <q-tab v-for="tab in tabs" :key="tab.value" v-bind="tab"/>
-      </q-tabs>
-
-      <q-tab-panels v-model="activeTab" animated keep-alive style="background:inherit;">
-        <q-tab-panel name="chats" class="q-pa-none">
-          <ChatTabPanel
-            ref="chatPanel"
-            :chat-identity="chatIdentity" :custom-backend="chatBackend"
-            @open-order-escrow-contracts="filterOrderEscrowContracts"
-          />
-        </q-tab-panel>
-        <q-tab-panel name="escrow-contracts" class="q-pa-none">
-          <EscrowContractsTabPanel
-            ref="escrowContractPanel"
-            :keys="keys"
-            :arbiter-address="keys?.address"
-            :chat-identity="chatIdentity"
-            @open-chat-dialog="onRequestOpenChatDialog"
-          />
-        </q-tab-panel>
-      </q-tab-panels>
+      <EscrowContractsTabPanel
+        ref="escrowContractPanel"
+        :keys="keys"
+        :arbiter-address="keys?.address"
+        :chat-identity="chatIdentity"
+        @open-chat-dialog="onRequestOpenChatDialog"
+      />
     </div>
+    <div class="fixed-bottom q-pa-sm">
+      <q-btn
+        rounded
+        icon="chat"
+        padding="md"
+        color="brandblue"
+        @click="() => displayChats = true"
+      />
+    </div>
+    <ChatWidget
+      ref="chatWidget"
+      v-model="displayChats"
+      :chat-identity="chatIdentity" :custom-backend="chatBackend"
+      @open-order-escrow-contracts="filterOrderEscrowContracts"
+    />
   </q-pull-to-refresh>
 </template>
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+import { backend } from "src/marketplace/backend";
+import { ChatIdentity } from "src/marketplace/objects";
 import { getWifAddress, getWifPubkey } from "src/marketplace/arbiter";
+import { createBackend } from "src/marketplace/chat/backend";
 import { generateKeypair, getDeviceId } from "src/marketplace/chat/keys";
 import { convertCashAddress } from "src/wallet/chipnet";
 import { loadWallet } from "src/wallet";
@@ -68,13 +71,10 @@ import BCHJS from "@psf/bch-js"
 import { SecureStoragePlugin } from "capacitor-secure-storage-plugin";
 import { useQuasar } from "quasar";
 import { useStore } from "vuex";
-import { computed, onMounted, ref, watch, watchEffect } from "vue";
+import { computed, onActivated, onMounted, ref, watch, watchEffect } from "vue";
 import HeaderNav from "src/components/header-nav.vue";
-import { ChatIdentity } from "src/marketplace/objects";
-import { backend } from "src/marketplace/backend";
-import { createBackend } from "src/marketplace/chat/backend";
-import ChatTabPanel from "./chat-tab-panel.vue";
 import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
+import ChatWidget from "./chat-widget.vue";
 
 const STORAGE_KEY = 'marketplace-arbiter-wif'
 const bchjs = new BCHJS()
@@ -83,7 +83,9 @@ const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
 
+const initialized = ref(false)
 onMounted(() => refreshPage())
+onActivated(() => initialized.value ? refreshPage() : null)
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 watch(isChipnet, () => setPrivkey(keys.value?.privkey))
@@ -168,12 +170,8 @@ async function registerChatIdentity() {
     })
 }
 
-const tabs = [
-  { label: 'Chats', name: 'chats' },
-  { label: 'Escrow Contracts', name: 'escrow-contracts' },
-]
-const activeTab = ref(tabs?.[0]?.name)
-const chatPanel = ref()
+const displayChats = ref(false)
+const chatWidget = ref()
 const escrowContractPanel = ref()
 async function refreshEscrowContractPanel() {
   await escrowContractPanel.value?.fetchEscrowContracts?.()
@@ -181,19 +179,15 @@ async function refreshEscrowContractPanel() {
 
 async function filterOrderEscrowContracts(orderId) {
   if (!orderId) return
-  activeTab.value = 'escrow-contracts'
-  setTimeout(() => {
-    if (escrowContractPanel.value?.filterOpts) {
-      escrowContractPanel.value.filterOpts.orderId = orderId
-    }
-  }, 100)
+  if (escrowContractPanel.value?.filterOpts) {
+    displayChats.value = !(chatWidget.value?.openChatDialog)
+    escrowContractPanel.value.filterOpts.orderId = orderId
+  }
 }
 
 async function onRequestOpenChatDialog(chatSession) {
-  activeTab.value = 'chats' 
-  setTimeout(() => {
-    chatPanel.value?.openChatDialog?.(chatSession)
-  }, 100)
+  displayChats.value = !(chatWidget.value?.openChatDialog)
+  chatWidget.value?.openChatDialog?.(chatSession)
 }
 
 async function refreshPage(done=() => {}) {
@@ -202,6 +196,7 @@ async function refreshPage(done=() => {}) {
     if (privkey) setPrivkey(privkey)
     setTimeout(() => refreshEscrowContractPanel(), 100)
   } finally {
+    initialized.value =true
     done()
   }
 }

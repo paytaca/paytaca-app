@@ -1,6 +1,7 @@
 <template>
   <div class="q-pa-sm">
     <div class="row items-center">
+      <div class="text-h6">Escrow contracts</div>
       <q-space/>
       <q-btn :disable="fetchingEscrowContracts" flat padding="sm" icon="tune" :color="filterOpts.status != 'all' ? 'brandblue' : undefined">
         <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
@@ -27,7 +28,7 @@
               :disable="fetchingEscrowContracts"
               class="text-grey"
               clickable v-close-popup
-              @click="() => toggleOrderingField()"
+              @click="() => toggleOrderingField(undefined, 100)"
             >
               <q-item-section>
                 <q-item-label>Remove ordering</q-item-label>
@@ -261,7 +262,14 @@ const filterOpts = ref({
   descending: true,
 })
 watch(filterOpts, () => fetchEscrowContracts(), { deep: true })
-function toggleOrderingField(value) {
+
+async function sleepPromise(duration=0) {
+  if (!Number.isInteger(duration) || duration <= 0) return
+  return new Promise((resolve) => setTimeout(resolve, duration))
+}
+async function toggleOrderingField(value, delay=0) {
+  if (Number.isInteger(delay) && delay > 0) await sleepPromise(delay)
+
   if (!value) {
     filterOpts.value.orderingField = undefined
     filterOpts.value.descending = false

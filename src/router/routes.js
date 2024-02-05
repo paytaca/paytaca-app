@@ -104,7 +104,6 @@ const routes = [
           { path: 'orders/', component: () => import('src/pages/apps/marketplace/orders.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-orders' },
           { path: 'customer', component: () => import('src/pages/apps/marketplace/customer.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-customer' },
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true } },
-          { path: 'arbiter2', component: () => import('src/pages/apps/marketplace/arbiter2.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter2', meta: { hideCartBtn: true } },
         ],
       },
       { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
