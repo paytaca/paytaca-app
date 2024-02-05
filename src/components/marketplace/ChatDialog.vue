@@ -202,7 +202,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
-    const chatBackend = props.customBackend || backend
+    const chatBackend = computed(() => props.customBackend || backend)
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -221,7 +221,7 @@ export default defineComponent({
     const chatSession = ref(ChatSession.parse())
     const fetchChatSession = debounce(function() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
-      return chatBackend.get(`chat/sessions/${props.chatRef}/`, { forceSign: true })
+      return chatBackend.value.get(`chat/sessions/${props.chatRef}/`, { forceSign: true })
         .then(response => {
           chatSession.value.raw = response?.data
         })
@@ -236,7 +236,7 @@ export default defineComponent({
     watch(() => [props.chatRef], () => fetchMembersPubkeys())
     function fetchMembersPubkeys() {
       if (!props.chatRef) return Promise.reject()
-      chatBackend.get(`chat/sessions/${props.chatRef}/pubkeys/`)
+      chatBackend.value.get(`chat/sessions/${props.chatRef}/pubkeys/`)
         .then(response => {
           if (!Array.isArray(response?.data)) return Promise.reject({ response })
           membersPubkeys.value = response?.data
@@ -270,7 +270,7 @@ export default defineComponent({
       if (!params.chat_ref) return Promise.resolve('Missing chat ref')
 
       fetchingMessages.value = true
-      return chatBackend.get(`chat/messages/`, { params, forceSign: true })
+      return chatBackend.value.get(`chat/messages/`, { params, forceSign: true })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 
@@ -418,7 +418,7 @@ export default defineComponent({
       }
 
       sendingMessage.value = true
-      return chatBackend.post(`chat/messages/`, data, { signData })
+      return chatBackend.value.post(`chat/messages/`, data, { signData })
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           message.value = ''
@@ -442,7 +442,7 @@ export default defineComponent({
     const fetchChatMember = debounce(function() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
 
-      chatBackend.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
+      chatBackend.value.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
           return response
@@ -458,7 +458,7 @@ export default defineComponent({
         last_read_timestamp: new Date(latest+1000),
       }
 
-      return chatBackend.post(`chat/sessions/${props.chatRef}/chat_member/`, data)
+      return chatBackend.value.post(`chat/sessions/${props.chatRef}/chat_member/`, data)
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
           return response
@@ -484,7 +484,7 @@ export default defineComponent({
     watch(innerVal, () => websocket.value?.readyState !== WebSocket.OPEN ? initWebsocket() : null)
     function initWebsocket() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
-      const backendUrl = new URL(chatBackend.defaults.baseURL)
+      const backendUrl = new URL(chatBackend.value.defaults.baseURL)
       const host = backendUrl.host
       const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
       const url = `${scheme}://${host}/ws/chat/sessions/${props.chatRef}/`
