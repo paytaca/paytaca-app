@@ -36,13 +36,17 @@
               v-slot="{ item: message }"
             >
               <q-chat-message
-                :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
+                :bg-color="!isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
-                :name="message?.name"
-                :sent="!isOwnMessage(message)"
+                :sent="isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
+                <template v-slot:name>
+                  <div class="ellipsis" style="max-width:80vw;">
+                    {{ message?.name }}
+                  </div>
+                </template>
                 <template v-slot:stamp>
                   <div>
                     {{ formatDateRelative(message?.createdAt) }}
@@ -184,6 +188,7 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     chatRef: String,
+    customBackend: { required: false, default: () => backend },
   },
   emits: [
     'update:modelValue',
@@ -194,6 +199,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const chatBackend = props.customBackend || backend
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -204,7 +210,7 @@ export default defineComponent({
 
     const customer = computed(() => $store.getters['marketplace/customer'])
     function isOwnMessage(message=ChatMessage.parse()) {
-      return customer.value?.id && customer.value?.id !== message?.customer?.id
+      return chatMember.value.chatIdentity?.id === message?.chatIdentity?.id
     }
 
     onMounted(() => fetchChatSession())
@@ -212,7 +218,7 @@ export default defineComponent({
     const chatSession = ref(ChatSession.parse())
     const fetchChatSession = debounce(function() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
-      return backend.get(`chat/sessions/${props.chatRef}/`, { forceSign: true })
+      return chatBackend.get(`chat/sessions/${props.chatRef}/`, { forceSign: true })
         .then(response => {
           chatSession.value.raw = response?.data
         })
@@ -227,7 +233,7 @@ export default defineComponent({
     watch(() => [props.chatRef], () => fetchMembersPubkeys())
     function fetchMembersPubkeys() {
       if (!props.chatRef) return Promise.reject()
-      backend.get(`chat/sessions/${props.chatRef}/pubkeys/`)
+      chatBackend.get(`chat/sessions/${props.chatRef}/pubkeys/`)
         .then(response => {
           if (!Array.isArray(response?.data)) return Promise.reject({ response })
           membersPubkeys.value = response?.data
@@ -261,7 +267,7 @@ export default defineComponent({
       if (!params.chat_ref) return Promise.resolve('Missing chat ref')
 
       fetchingMessages.value = true
-      return backend.get(`chat/messages/`, { params, forceSign: true })
+      return chatBackend.get(`chat/messages/`, { params, forceSign: true })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 
@@ -409,7 +415,7 @@ export default defineComponent({
       }
 
       sendingMessage.value = true
-      return backend.post(`chat/messages/`, data, { signData })
+      return chatBackend.post(`chat/messages/`, data, { signData })
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           message.value = ''
@@ -433,7 +439,7 @@ export default defineComponent({
     const fetchChatMember = debounce(function() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
 
-      backend.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
+      chatBackend.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
           return response
@@ -449,7 +455,7 @@ export default defineComponent({
         last_read_timestamp: new Date(latest+1000),
       }
 
-      return backend.post(`chat/sessions/${props.chatRef}/chat_member/`, data)
+      return chatBackend.post(`chat/sessions/${props.chatRef}/chat_member/`, data)
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
           return response
@@ -475,7 +481,7 @@ export default defineComponent({
     watch(innerVal, () => websocket.value?.readyState !== WebSocket.OPEN ? initWebsocket() : null)
     function initWebsocket() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
-      const backendUrl = new URL(backend.defaults.baseURL)
+      const backendUrl = new URL(chatBackend.defaults.baseURL)
       const host = backendUrl.host
       const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
       const url = `${scheme}://${host}/ws/chat/sessions/${props.chatRef}/`

@@ -15,6 +15,7 @@
     <div class="row items-center fixed-bottom q-pa-sm footer-panel">
       <q-space/>
       <q-btn
+        v-if="!$route.meta?.hideCartBtn"
         class="button"
         :round="!activeStorefrontCart?.totalItemsCount"
         :rounded="Boolean(activeStorefrontCart?.totalItemsCount)"
