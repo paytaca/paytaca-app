@@ -44,6 +44,9 @@
               >
                 <template v-slot:name>
                   <div class="ellipsis" style="max-width:80vw;">
+                    <span v-if="message?.memberNickname" class="text-grey">
+                      ({{ message?.memberNickname }})
+                    </span>
                     {{ message?.name }}
                   </div>
                 </template>

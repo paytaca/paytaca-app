@@ -1469,8 +1469,8 @@ export class ChatMessage {
    * @param {String} data.attachment_url
    * @param {String} data.encrypted_attachment_url
    * @param {String} data.created_at
-   * @param {{ id:Number, first_name: String, last_name:String }} [data.user]
-   * @param {{ id:Number, first_name: String, last_name:String }} [data.customer]
+   * @param {Object} [data.chat_identity]
+   * @param {String} [data.member_nickname]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1483,6 +1483,7 @@ export class ChatMessage {
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.chatIdentity = ChatIdentity.parse(data?.chat_identity)
+    this.memberNickname = data?.member_nickname
   }
 
   get user() {
@@ -1600,6 +1601,7 @@ export class ChatMember {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} data.nickname
    * @param {String} data.chat_session_ref
    * @param {Number} data.unread_count
    * @param {String} data.last_read_timestamp
@@ -1611,6 +1613,7 @@ export class ChatMember {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
     this.id = data?.id
+    this.nickanme = data?.nickname
     this.chatSessionRef = data?.chat_session_ref
     this.unreadCount = data?.unread_count
     if (data?.last_read_timestamp) this.lastReadTimestamp = new Date(data?.last_read_timestamp)
