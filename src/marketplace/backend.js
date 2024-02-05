@@ -6,9 +6,27 @@ const bchjs = new BCHJS()
 
 export const backend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
+
+  /**
+   * @param {import('axios').AxiosRequestConfig} config 
+   * @param {{ data:any, isCustomSignData:Boolean, timestamp:Number }} opts 
+   */
+  signFunction: async (config, opts={data, isCustomSignData, timestamp}) => {
+    const data = opts?.data
+    const isCustomSignData = opts?.isCustomSignData
+    const timestamp = opts?.timestamp
+
+    const signResponse = await signPaytacaCustomerData(data)
+    if (!signResponse.signature) return config
+
+    if (isCustomSignData) config.headers['X-Paytaca-Signdata'] = data
+    config.headers['X-Paytaca-Customer'] = [signResponse.walletHash, timestamp, signResponse.signature].join(':')
+
+    return config
+  },
 })
 
-backend.interceptors.request.use(async (config) => {
+export async function sigAuthInterceptor(config) {
   if (['get', 'option'].indexOf(config.method) >= 0 && !config.forceSign) return config
   if (config.skipSigning) return config
 
@@ -18,20 +36,19 @@ backend.interceptors.request.use(async (config) => {
     data = JSON.stringify(data)
   } catch(error) {}
 
+  let isCustomSignData = false
   if (config.signData) {
     data = config.signData
-    config.headers['X-Paytaca-Signdata'] = data
+    isCustomSignData = true
   }
 
   if (data === null || data === undefined) data = ''
   data = Buffer.from(`${data}${timestamp}`).toString('hex')
 
-  const signResponse = await signPaytacaCustomerData(data)
-  if (!signResponse.signature) return config
-
-  config.headers['X-Paytaca-Customer'] = [signResponse.walletHash, timestamp, signResponse.signature].join(':')
-  return config
-})
+  if (typeof config?.signFunction !== 'function') return config
+  return await config.signFunction?.(config, { data, isCustomSignData, timestamp })
+}
+backend.interceptors.request.use(sigAuthInterceptor)
 
 const SIGNER_STORAGE_KEY = 'marketplace-api-customer-signer-data'
 
