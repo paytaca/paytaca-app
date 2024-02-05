@@ -244,6 +244,11 @@ const $emit = defineEmits([
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
+async function dialogPromise(qDialogOptions) {
+  return new Promise((resolve, reject) => {
+    $q.dialog(qDialogOptions).onOk(resolve).onDismiss(reject)
+  })
+}
 
 onMounted(() => fetchEscrowContracts())
 watch(() => [props.arbiterAddress], () => fetchEscrowContracts())
@@ -361,16 +366,47 @@ function showEscrowContract(escrowContract=EscrowContract.parse()) {
 async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts={ type: '' }) {
   const settlementType = opts?.type
   if (!['release', 'refund'].includes(settlementType)) return
-  const dialog = $q.dialog({
-    title: settlementType  === 'release' ? 'Complete escrow' : 'Refund escrow',
-    progress: true,
-    persistent: true,
-    color: 'brandblue',
-    ok: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
-  })
+
+  const orderStatus = escrowContract?.payments?.[0]?.order?.status
+  if (orderStatus) {
+    if (settlementType === 'refund' && orderStatus !== 'cancelled') {
+      await dialogPromise({
+        title: 'Refund escrow',
+        message: 'Related order for this payment is not cancelled. Proceed to refund?',
+        color: 'brandblue',
+        persistent: true,
+        ok: { label: 'Refund', noCaps: true },
+        cancel: { label: 'Cancel', noCaps: true, color: 'grey', flat: true },
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+      })
+    }
+    if (settlementType === 'release' && orderStatus !== 'completed') {
+      await dialogPromise({
+        title: 'Complete escrow',
+        message: 'Related order for this payment is not yet completed. Proceed to release funds?',
+        color: 'brandblue',
+        persistent: true,
+        ok: { label: 'Proceed', noCaps: true },
+        cancel: { label: 'Cancel', noCaps: true, color: 'grey', flat: true },
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+      }) 
+    }
+  }
+
+  // creating tx is sometimes too fast that the dialog isn't necessary
+  let dialog
+  const dialogTimeout = setTimeout(() => {
+    dialog = $q.dialog({
+      title: settlementType  === 'release' ? 'Complete escrow' : 'Refund escrow',
+      progress: true,
+      persistent: true,
+      color: 'brandblue',
+      ok: false,
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+    })
+  }, 10)
   try {
-    dialog.update({ message: 'Compiling contract' })
+    dialog?.update?.({ message: 'Compiling contract' })
     const escrow = compileEscrowSmartContract(escrowContract)
     console.log('NETWORK', escrow.network)
     const contract = escrow.getContract()
@@ -383,7 +419,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
       "vout": escrowContract.fundingVout,
       "satoshis": escrowContract.fundingSats,
     }
-    dialog.update({ message: 'Creating transaction' })
+    dialog?.update?.({ message: 'Creating transaction' })
     let promise
     if(settlementType === 'release') {
       promise = escrow.release(fundingUtxo, props.keys?.privkey)
@@ -393,7 +429,8 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
         : escrow.fullRefund(fundingUtxo, props.keys?.privkey)
     }
     const transaction = await promise
-    setTimeout(() => dialog.hide(), 100)
+    dialog?.hide?.()
+    clearTimeout(dialogTimeout)
 
     $q.dialog({
       component: SettlementTransactionPreviewDialog,
@@ -408,9 +445,9 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     if (typeof error?.message === 'string' && error?.message?.length < 200) errorMessage = error?.message
     if (error?.cause == 'invalid_compilation') errorMessage = error?.message
 
-    dialog.update({ message: errorMessage || 'Unknown error occurred' })
+    dialog?.update?.({ message: errorMessage || 'Unknown error occurred' })
   } finally {
-    dialog.update({ persistent: false, progress: false, ok: true })
+    dialog?.update?.({ persistent: false, progress: false, ok: true })
   }
 }
 
@@ -431,9 +468,11 @@ async function sendSettlementTx(escrowContract, transaction) {
     dialog.update({ message: 'Building transaction'})
     const txHex = await transaction.build()
     const data = { settlement_tx_hex: txHex }
+    dialog.update({ message: 'Broadcasting transaction' })
     return await backend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
       .then(response => {
         escrowContract.raw = response?.data
+        dialog.hide()
         return response
       })
       .catch(error => {
