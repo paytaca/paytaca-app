@@ -958,6 +958,11 @@ export class Order {
     return parseOrderStatusColor(this.status)
   }
 
+  get markupAmount() {
+    const markupAmount = parseFloat(this.markupSubtotal - this.subtotal)
+    return Math.round(markupAmount * 10 ** 3) / 10 ** 3
+  }
+
   get total() {
     const total = Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal)
     return Math.round(total * 10 ** 3) / 10 ** 3
@@ -1164,6 +1169,7 @@ export class Payment {
    * @param {Number} data.id
    * @param {Number} data.checkout_id
    * @param {Number} data.order_id
+   * @param {Object} [data.order]
    * @param {{ code:String, symbol:String }} data.currency
    * @param {String} data.status
    * @param {Object} data.bch_price
@@ -1192,6 +1198,9 @@ export class Payment {
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.escrowContractAddress = data?.escrow_contract_address
+
+    if (data?.order?.id) this.order = Order.parse(data?.order)
+    else if (data?.order?.id != this?.order?.id) delete this.order
   }
 
   get bchTotalAmount() {
@@ -1221,6 +1230,15 @@ export class Payment {
         return response
       })
   }
+
+  async fetchOrder() {
+    if (this.orderId) return Promise.reject()
+    return backend.get(`connecta/orders/${this.orderId}`)
+      .then(response => {
+        this.order = Order.parse(response?.data)
+        return response
+      })
+  }
 }
 
 export class EscrowContract {
@@ -1238,6 +1256,7 @@ export class EscrowContract {
 
   /**
    * @param {Object} data
+   * @param {String} data.contract_version
    * @param {String} data.address
    * @param {String} data.buyer_address
    * @param {String} data.seller_address
@@ -1265,10 +1284,12 @@ export class EscrowContract {
    * 
    * @param {String} [data.settlement_txid]
    * @param {String} [data.settlement_type]
+   * @param {Object[]} [data.payments]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
+    this.contractVersion = data?.contract_version
     this.address = data?.address
     this.buyerAddress = data?.buyer_address
     this.sellerAddress = data?.seller_address
@@ -1300,6 +1321,7 @@ export class EscrowContract {
     this.fundingSats = data?.funding_sats
     this.settlementTxid = data?.settlement_txid
     this.settlementType = data?.settlement_type
+    if (Array.isArray(data?.payments)) this.payments = data.payments.map(Payment.parse)
   }
 
   get sats() {
@@ -1339,6 +1361,23 @@ export class EscrowContract {
   
   get isSettled() {
     return Boolean(this.settlementTxid)
+  }
+
+  get fiatAmount() {
+    const bchPrice = parseFloat(this.payments?.[0]?.bchPrice?.price)
+    const currency = this.payments?.[0]?.bchPrice?.currency?.symbol
+    if (!Number.isFinite(bchPrice)) return
+
+    const ROUND_MULTIPLIER = 10 ** 6
+    const round = val => Math.round(val * ROUND_MULTIPLIER) / ROUND_MULTIPLIER
+    return {
+      total: round(this.bchAmounts.total * bchPrice),
+      serviceFee: round(this.bchAmounts.serviceFee),
+      arbitrationFee: round(this.bchAmounts.arbitrationFee),
+      deliveryFee: round(this.bchAmounts.deliveryFee),
+      networkFee: round(this.bchAmounts.networkFee),
+      currency: currency,
+    }
   }
 
   get fundingTxLink() {
@@ -1382,6 +1421,7 @@ export class ChatSession {
    * @param {Object} data
    * @param {String} data.ref
    * @param {String} data.title
+   * @param {Number} [data.order_id]
    * @param {String} data.first_message_at
    * @param {String} data.last_message_at
    * @param {String} data.created_at
@@ -1390,6 +1430,7 @@ export class ChatSession {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.ref = data?.ref
     this.title = data?.title
+    this.orderId = data?.order_id
     if (data?.first_message_at) this.firstMessageAt = new Date(data?.first_message_at)
     else if (this.firstMessageAt) delete this.firstMessageAt
 
@@ -1558,15 +1599,18 @@ export class ChatMember {
 
   /**
    * @param {Object} data
+   * @param {Number} data.id
    * @param {String} data.chat_session_ref
    * @param {Number} data.unread_count
    * @param {String} data.last_read_timestamp
    * @param {String} data.created_at
    * @param {Object} data.chat_identity
+   * @param {Object} [data.chat_session]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
+    this.id = data?.id
     this.chatSessionRef = data?.chat_session_ref
     this.unreadCount = data?.unread_count
     if (data?.last_read_timestamp) this.lastReadTimestamp = new Date(data?.last_read_timestamp)
@@ -1576,6 +1620,10 @@ export class ChatMember {
     else if (this.createdAt) delete this.createdAt
 
     this.chatIdentity = ChatIdentity.parse(data?.chat_identity)
+    if (data?.chat_session) {
+      this.chatSession = ChatSession.parse(data?.chat_session)
+      if (!this.chatSessionRef) this.chatSessionRef = this.chatSession?.ref
+    }
   }
 
   get name() {
