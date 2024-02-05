@@ -271,7 +271,7 @@ export default {
     },
     showAppealBtn () {
       const stat = ['ESCRW', 'PD_PN', 'PD']
-      return stat.includes(this.data?.order?.status.value)
+      return stat.includes(this.data?.order?.status.value) && this.data?.order?.appealable_at && !this.countDownLoading
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
@@ -399,6 +399,7 @@ export default {
     },
     appealCountdown () {
       const vm = this
+      console.log('appealCountdown:', vm.data?.order)
       if (vm.data?.order?.appealable_at) {
         const appealableDate = new Date(vm.data?.order?.appealable_at)
         vm.timer = setInterval(function () {

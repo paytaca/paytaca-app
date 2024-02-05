@@ -1,34 +1,29 @@
 <template>
   <q-card class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${ minHeight }px;`" v-if="state === 'form'"
-  >
-    <q-pull-to-refresh
-      @refresh="$emit('refresh')">
+    :style="`height: ${ minHeight }px;`" v-if="state === 'form'">
+    <q-btn
+      flat
+      padding="md"
+      icon="arrow_back"
+      class="fixed button button-text-primary"
+      :class="getDarkModeClass(darkMode)"
+      @click="$emit('back')"
+    />
+    <q-icon class="fixed q-pl-lg" style="right: 35px; top: 125px" size="sm" name='comment'/>
+    <q-pull-to-refresh class="q-mt-lg q-pt-md q-mb-md" @refresh="$emit('refresh')">
       <div v-if="loading">
-        <!-- Progress Loader -->
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
           <ProgressLoader/>
         </div>
       </div>
       <div v-else class="q-pt-sm">
-        <div class="row items-center justify-between q-mt-sm q-mr-lg q-pb-xs q-px-sm">
-          <q-btn
-            flat
-            padding="md"
-            icon="arrow_back"
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            @click="$emit('back')"
-          />
-          <q-icon v-if="!appeal.resolved_at" class="q-pl-lg" size="sm" name='o_question_answer'/>
-        </div>
         <div class="text-center q-pb-sm">
-          <div v-if="appeal.resolved_at" class="text-weight-bold lg-font-size" >{{ appeal.order.status.label.toUpperCase() }} </div>
-          <div v-if="!appeal.resolved_at" class="text-weight-bold lg-font-size" >{{ appeal.type.label.toUpperCase() }} APPEAL</div>
-          <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Order #{{ appeal.order.id }})</div>
+          <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
+          <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
+          <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">Order #{{ appeal?.order?.id }}</div>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - minHeight * .25}px`" style="overflow-y:auto;">
+        <q-scroll-area ref="scrollArea" :style="`height: ${minHeight - 210}px`" style="overflow-y:auto;">
           <div class="q-mx-lg">
             <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
               <q-card-section>
@@ -38,24 +33,24 @@
             </q-card>
 
             <div class="q-pt-md q-px-sm">
-              <div class="sm-font-size q-pb-xs text-italic">Buyer Receives</div>
-              <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="buyerReceivesAmount">
+              <div class="sm-font-size q-pb-xs">Buyer Receives</div>
+              <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="buyerReceivesAmount">
                 <template v-slot:append>
-                  <span class="sm-font-size text-weight-bold">BCH</span>
+                  <span class="sm-font-size">BCH</span>
                 </template>
               </q-input>
 
-              <div class="sm-font-size q-pb-xs text-italic">Seller Receives</div>
-              <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="sellerReceivesAmount">
+              <div class="sm-font-size q-pb-xs">Seller Receives</div>
+              <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="sellerReceivesAmount.toFixed(2)">
                 <template v-slot:append>
-                  <span class="sm-font-size text-weight-bold">USD</span>
+                  <span class="sm-font-size">{{ ad_snapshot?.fiat_currency?.symbol?.toUpperCase() }}</span>
                 </template>
               </q-input>
             </div>
 
             <div class="sm-font-size q-pt-md q-px-lg">
               <!-- FLOATING -->
-              <div v-if="order.trade_type === 'FLOATING'">
+              <div v-if="ad_snapshot?.price_type === 'FLOATING'">
                 <div class="row justify-between no-wrap q-mx-xs">
                   <span>Market Price</span>
                   <span class="text-nowrap q-ml-xs">
@@ -65,7 +60,7 @@
                 <div class="row justify-between no-wrap q-mx-xs">
                   <span>Floating Price</span>
                   <span class="text-nowrap q-ml-xs">
-                    {{ formattedCurrency(ad_snapshot.floating_price) }}
+                    {{ formattedCurrency(ad_snapshot.floating_price) }}%
                   </span>
                 </div>
               </div>
@@ -149,17 +144,29 @@
               </q-card>
             </div>
             <div>
-              <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
+              <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
                 <div class="text-center q-py-xs text-weight-bold text-uppercase">
                   Contract Information
                 </div>
                 <q-separator class="q-my-sm" :dark="darkMode"/>
                 <div class="q-mx-lg">
                   <div class="sm-font-size q-pb-xs text-italic">Address</div>
-                  <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="contractAddress">
+                  <q-input
+                    class="q-pb-xs"
+                    readonly
+                    dense
+                    filled
+                    :dark="darkMode"
+                    v-model="contractAddress">
                   </q-input>
                   <div class="sm-font-size q-pb-xs text-italic">Balance</div>
-                  <q-input class="q-pb-xs" disable dense filled :dark="darkMode" v-model="contractBalance">
+                  <q-input
+                    class="q-pb-xs"
+                    readonly
+                    dense
+                    filled
+                    :dark="darkMode"
+                    v-model="contractBalance">
                     <template v-slot:append>
                       <span class="sm-font-size text-weight-bold">BCH</span>
                     </template>
@@ -167,22 +174,21 @@
                 </div>
               </q-card>
             </div>
-            <!-- Simplified this -->
-            <div v-if="!appeal.resolved_at" class="q-pb-md q-mb-lg">
-              <q-card class="br-15 q-mt-md q-py-sm q-mb-md" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
+            <div v-if="state === 'form'">
+              <q-card v-if="appeal?.resolved_at === null" class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
                 <div class="text-center q-py-xs text-weight-bold text-uppercase">
                   Select Action
                 </div>
                 <q-separator class="q-my-sm" :dark="darkMode"/>
-                <!-- <div> -->
                   <div class="row justify-between no-wrap q-mx-lg">
                     <span class="sm-font-size">Release</span>
                     <span class="text-nowrap q-ml-xs">
                       <q-btn
-                        :outline="selectedAction !== 'release'"
                         rounded
                         size="sm"
                         icon="done"
+                        :disable="sendingBch"
+                        :outline="selectedAction !== 'release'"
                         :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
                         class="q-ml-xs"
                         @click="selectReleaseType('release')"
@@ -194,19 +200,28 @@
                     <span class="sm-font-size">Refund</span>
                     <span class="text-nowrap q-ml-xs">
                       <q-btn
-                        :outline="selectedAction !== 'refund'"
                         rounded
                         size="sm"
                         icon="done"
+                        :disable="sendingBch"
+                        :outline="selectedAction !== 'refund'"
                         :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
                         class="q-ml-xs"
                         @click="selectReleaseType('refund')"
                       />
                     </span>
                   </div>
-                <!-- </div> -->
               </q-card>
             </div>
+          </div>
+          <div class="q-mx-lg q-px-md q-my-sm" v-if="sendingBch">
+            <q-spinner class="q-mr-xs"/>{{ selectedAction === 'release' ? 'Releasing' : 'Refunding'}} BCH, please wait.
+          </div>
+          <div v-if="sendError" class="q-mx-lg q-px-lg q-my-sm">
+            <q-card flat class="col q-pa-md pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">
+              <q-icon name="error" left/>
+              {{ sendError }}
+            </q-card>
           </div>
         </q-scroll-area>
       </div>
@@ -271,10 +286,11 @@ export default {
         seller: 105500
       },
       selectedAction: null,
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       showDragSlide: false,
-      dragSlideKey: 0
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
+      dragSlideKey: 0,
+      sendingBch: false,
+      sendError: null,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 95
     }
   },
   props: {
@@ -287,6 +303,19 @@ export default {
     RampDragSlide,
     AdSnapshot,
     ProgressLoader
+  },
+  watch: {
+    sendError (value) {
+      console.log('sendError:', value)
+    },
+    sendingBch (value) {
+      if (value) {
+        this.$nextTick(() => {
+          const scrollHeight = this.$refs.scrollArea.$el.scrollHeight
+          this.$refs.scrollArea.setScrollPosition('vertical', scrollHeight * 3, 0)
+        })
+      }
+    }
   },
   computed: {
     buyerReceivesAmount () {
@@ -337,6 +366,7 @@ export default {
     async onSubmit () {
       const vm = this
       vm.showDragSlide = false
+      vm.sendingBch = true
       if (vm.selectedAction === 'release') {
         vm.releaseBch().then(txid => {
           const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-release`
@@ -351,6 +381,7 @@ export default {
                 bus.emit('session-expired')
               }
             })
+            .finally(() => { vm.sendingBch = false })
         })
       }
       if (vm.selectedAction === 'refund') {
@@ -367,6 +398,7 @@ export default {
                 bus.emit('session-expired')
               }
             })
+            .finally(() => { vm.sendingBch = false })
         })
       }
     },
@@ -392,10 +424,11 @@ export default {
                 vm.$emit('verify-release', txid)
                 resolve(txid)
               } else {
-                vm.sendErrors = [result.reason]
+                vm.sendError = result.reason
+                console.log('sendError:', vm.sendError)
                 vm.sendingBch = false
                 vm.showDragSlide = true
-                reject(vm.sendErrors)
+                reject(vm.sendError)
               }
             })
             .catch(error => {
@@ -427,10 +460,11 @@ export default {
                 vm.$emit('verify-release', txid)
                 resolve(txid)
               } else {
-                vm.sendErrors = [result.reason]
+                vm.sendError = result.reason
+                console.log('sendError:', vm.sendError)
                 vm.sendingBch = false
                 vm.showDragSlide = true
-                reject(vm.sendErrors)
+                reject(vm.sendError)
               }
               resolve(result)
             })

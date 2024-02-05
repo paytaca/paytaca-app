@@ -731,7 +731,8 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        this.updateStatus(data?.status?.status)
+        this.fetchOrder()
+        // this.updateStatus(data?.status?.status)
         // if (data.error) {
         //   this.errorMessages.push(data.error)
         //   this.verifyTransactionKey++

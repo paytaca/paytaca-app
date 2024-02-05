@@ -257,9 +257,10 @@ export default {
         console.log('WebSocket data:', data)
         if (data) {
           if (data.success) {
-            if (data.status) {
-              this.updateStatus(data.status.status)
-            }
+            // if (data.status) {
+            //   this.updateStatus(data.status.status)
+            // }
+            this.fetchAppeal().then(this.reloadChildComponents())
           } else if (data.error) {
             this.errorMessages.push(data.error)
             this.verifyTransferKey++
