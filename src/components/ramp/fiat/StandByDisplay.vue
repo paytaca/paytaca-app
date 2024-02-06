@@ -8,7 +8,8 @@
         flat
         icon="arrow_back"
         class="button button-text-primary"
-        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        style="position: fixed; left: 20px; z-index: 3;"
+        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
@@ -417,9 +418,9 @@ export default {
           const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
           const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-          if (hours > 0) vm.countDown = `${hours}h`
-          else if (minutes > 0) vm.countDown = `${minutes}m`
-          else if (seconds > 0) vm.countDown = `${seconds}s`
+          if (hours > 0) vm.countDown = `${hours} hr`
+          else if (minutes > 0) vm.countDown = `${minutes} min`
+          else if (seconds > 0) vm.countDown = `${seconds} s`
 
           if (distance < 0) {
             clearInterval(vm.timer)
