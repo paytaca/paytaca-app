@@ -112,7 +112,7 @@
           </div>
           <div class="col">
             <q-btn
-              :disable="paymentMethod.account_identifier === '' || paymentMethod.payment_type === ''"
+              :disable="paymentConfirm"
               rounded
               label="Confirm"
               class="q-space text-white full-width button"
@@ -843,6 +843,13 @@ export default {
   computed: {
     isNameValid () {
       return this.nickname && this.nickname.length > 0
+    },
+    paymentConfirm () {
+      if (this.paymentMethod.account_identifier === '' || this.paymentMethod.payment_type === '' || typeof this.paymentTypeRules(this.paymentMethod.account_identifier) === 'string') {
+        return true
+      } else {
+        return false
+      }
     }
   },
   async mounted () {
@@ -872,6 +879,18 @@ export default {
             return true
           } else {
             return 'Invalid Email Address'
+          }
+        case 'mobile-number':
+          if (/^(\d{9,15})$/.test(val)) {
+            return true
+          } else {
+            return 'Invalid Phone Number'
+          }
+        case 'bank-number':
+          if (/^(\d{9,35})$/.test(val)) {
+            return true
+          } else {
+            return 'Invalid Account Number'
           }
         default:
           return true

@@ -266,6 +266,7 @@ export default {
       if (data !== undefined) {
         this.paymentMethods = data
       }
+      this.dialogType = ''
       this.openDialog = false
     },
     receiveDialogInfo (data) {
@@ -321,7 +322,7 @@ export default {
       this.openDialog = true
     },
     editMethod (data) {
-      this.info = data
+      this.info = { ...data }
       this.selectedMethodIndex = data.id
 
       this.dialogType = 'editPaymentMethod'
@@ -346,7 +347,6 @@ export default {
       } else {
         this.selectedMethods.push(data)
       }
-      // console.log(this.selectedMethods)
     },
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type.name)
@@ -480,9 +480,11 @@ export default {
         }
       }
 
-      if (this.dialogType === 'addMethodFromAd') {
-        this.fetchPaymentMethod()
-      }
+      this.fetchPaymentMethod()
+
+      // if (this.dialogType === 'addMethodFromAd') {
+      //   this.fetchPaymentMethod()
+      // }
     },
     submitPaymentMethod () {
       if (this.type === 'General') {
