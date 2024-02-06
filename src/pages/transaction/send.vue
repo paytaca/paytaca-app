@@ -825,6 +825,10 @@ export default {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       let currentSendAmount, currentAmount
+      const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.amountInput.nativeEl.selectionStart
+      const fiatCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.fiatInput?.nativeEl.selectionStart
 
       if (this.setAmountInFiat) {
         currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
@@ -844,13 +848,17 @@ export default {
             } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
               currentAmount = 0
             } else {
-              currentAmount += key.toString()
+              currentAmount = currentAmount.split('')
+                .toSpliced(fiatCaretPosition ?? amountCaretPosition, 0, key.toString()).join('')
             }
           } else {
-            currentAmount += key.toString()
+            currentAmount = currentAmount.split('')
+              .toSpliced(fiatCaretPosition ?? amountCaretPosition, 0, key.toString()).join('')
           }
         } else {
-          currentAmount += key !== '.' ? key.toString() : ''
+          const tbdKey = key !== '.' ? key.toString() : ''
+          currentAmount = currentAmount.split('')
+            .toSpliced(fiatCaretPosition ?? amountCaretPosition, 0, tbdKey).join('')
         }
       }
 
