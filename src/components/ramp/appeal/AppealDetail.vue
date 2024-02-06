@@ -10,7 +10,10 @@
       :class="getDarkModeClass(darkMode)"
       @click="$emit('back')"
     />
-    <q-icon class="fixed q-pl-lg" style="right: 35px; top: 125px" size="sm" name='comment'/>
+    <!-- chat button -->
+    <div class="fixed" style="right: 30px; top: 118px">
+      <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon" icon="comment" @click="openChat = true"/>
+    </div>
     <q-pull-to-refresh class="q-mt-lg q-pt-md q-mb-md" @refresh="$emit('refresh')">
       <div v-if="loading">
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -21,7 +24,7 @@
         <div class="text-center q-pb-sm">
           <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
           <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
-          <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">Order #{{ appeal?.order?.id }}</div>
+          <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
         </div>
         <q-scroll-area ref="scrollArea" :style="`height: ${minHeight - 210}px`" style="overflow-y:auto;">
           <div class="q-mx-lg">
@@ -290,7 +293,7 @@ export default {
       dragSlideKey: 0,
       sendingBch: false,
       sendError: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 95
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85
     }
   },
   props: {

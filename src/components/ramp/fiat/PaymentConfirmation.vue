@@ -129,8 +129,7 @@
         </q-scroll-area>
       </q-pull-to-refresh>
     </q-card>
-  </div>
-  <RampDragSlide
+    <RampDragSlide
     v-if="showDragSlide && data?.wsConnected"
     :key="dragSlideKey"
     :text="dragSlideTitle"
@@ -144,6 +143,7 @@
     }"
     @ok="onSecurityOk"
     @cancel="onSecurityCancel"/>
+  </div>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
