@@ -80,8 +80,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       openDialog: this.openReviews,
       isloaded: false,
       reviewList: [],

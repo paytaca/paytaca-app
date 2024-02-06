@@ -42,7 +42,7 @@
           </div>
           <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
           <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
-            <span>Trade Limits</span>
+            <span>Limits per Trade</span>
           </div>
           <div class="q-mx-sm">
             <div class="row justify-between no-wrap q-mx-lg">
@@ -50,16 +50,16 @@
               <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Floor (min)</span>
+              <span>Minimum</span>
               <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} BCH </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Ceiling (max)</span>
+              <span>Maximum</span>
               <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Appeal Time</span>
-              <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }} </span>
+              <span>Appealable after</span>
+              <span class="text-nowrap q-ml-xs">{{ adData?.appealCooldown?.label }} </span>
             </div>
           </div>
           <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
@@ -157,7 +157,7 @@
 </template>
 <script>
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 import { bus } from 'src/wallet/event-bus'
@@ -166,7 +166,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       adData: null,
       isLoaded: false,
       wallet: null,
@@ -199,11 +198,6 @@ export default {
       default: null
     }
   },
-  computed: {
-    appealCooldown () {
-      return getAppealCooldown(this.adData.appealCooldownChoice)
-    }
-  },
   async mounted () {
     const vm = this
     vm.adData = vm.postData
@@ -229,9 +223,8 @@ export default {
     },
     async fetchMarketPrice () {
       const vm = this
-      const url = vm.apiURL + '/utils/market-price'
       try {
-        const response = await backend.get(url, { params: { currency: vm.adData?.fiatCurrency?.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price', { params: { currency: vm.adData?.fiatCurrency?.symbol } })
         vm.marketPrice = parseFloat(response.data.price)
         console.log(response)
       } catch (error) {

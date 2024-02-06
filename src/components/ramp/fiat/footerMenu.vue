@@ -37,12 +37,18 @@ export default {
       activeButton: 'store'
     }
   },
+  emits: ['clicked'],
+  props: {
+    tab: String
+  },
   computed: {
     isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
     }
   },
-  emits: ['clicked'],
+  mounted () {
+    if (this.tab) this.activeButton = this.tab
+  },
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')

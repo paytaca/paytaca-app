@@ -134,7 +134,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: process.env.RAMP_WS_URL + 'order/',
       wallet: null,
       loading: false,
       order: null,

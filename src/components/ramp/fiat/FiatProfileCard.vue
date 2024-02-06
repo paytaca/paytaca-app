@@ -187,8 +187,6 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
       user: null,
       userId: null,
