@@ -162,6 +162,23 @@ function fetchChatMembers(opts={limit: 0, offset: 0}) {
       fetchingChatSessions.value = false
     })
 }
+function refetchChatMember(opts={ chatMemberId: 0, append: false }) {
+  const chatMemberId = opts?.chatMemberId
+  if (!chatMemberId) return Promise.resolve()
+
+  const chatIdentityIndex = chatMembers.value?.map(cm => cm?.id).indexOf(chatMemberId)
+  if (!opts?.append && chatIdentityIndex < 0) return Promise.resolve()
+
+  props.customBackend.get(`chat/members/${chatMemberId}/`, { forceSign: true })
+    .then(response => {
+      if (response?.data?.id) return Promise.reject({ response })
+      const chatMember = ChatMember.parse(response?.data)
+      const index = chatMembers.value.findIndex(cm => cm?.id === chatMember?.id)
+      if (index >= 0) chatMembers.value[index] = chatMember
+      else if (opts?.append) chatMembers.value.push(chatMember)
+      return response
+    })
+}
 
 
 const chatDialog = ref({show: false, chatSession: ChatSession.parse() })
@@ -180,5 +197,7 @@ function onNewMesageInDialog(chatMessage= ChatMessage.parse()) {
 
 defineExpose({
   openChatDialog,
+  fetchChatMembers,
+  refetchChatMember,
 })
 </script>

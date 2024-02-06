@@ -67,11 +67,12 @@ import { createBackend } from "src/marketplace/chat/backend";
 import { generateKeypair, getDeviceId } from "src/marketplace/chat/keys";
 import { convertCashAddress } from "src/wallet/chipnet";
 import { loadWallet } from "src/wallet";
+import { RpcWebSocketClient } from 'rpc-websocket-client';
 import BCHJS from "@psf/bch-js"
 import { SecureStoragePlugin } from "capacitor-secure-storage-plugin";
 import { useQuasar } from "quasar";
 import { useStore } from "vuex";
-import { computed, onActivated, onMounted, ref, watch, watchEffect } from "vue";
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
 import HeaderNav from "src/components/header-nav.vue";
 import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
 import ChatWidget from "./chat-widget.vue";
@@ -170,6 +171,69 @@ async function registerChatIdentity() {
     })
 }
 
+onActivated(() => connectRpcClient())
+onDeactivated(() => disconnectRpcClient())
+onUnmounted(() => disconnectRpcClient())
+watch(() => chatIdentity.value?.id, () => {
+  if (!isRpcClientOpen()) connectRpcClient()
+  else subscribeRpcEvents()
+})
+const rpcClientRecon = ref({
+  enable: true,
+  timeoutId: 0,
+  retries: 0,
+})
+const rpcClient = new RpcWebSocketClient()
+let rpcClientIdCtr = 0
+rpcClient.customId(() => ++rpcClientIdCtr)
+const isRpcClientOpen = () => rpcClient.ws?.readyState === WebSocket.OPEN
+rpcClient.onClose(event => {
+  if (event?.srcElement !== rpcClient.ws) return
+  if (rpcClientRecon.value.retries >= 5) {
+    return console.log('Websocket closed. Reached max reconnections')
+  } else if(rpcClientRecon.value.enable)
+  console.log('Websocket closed. Reconnecting')
+  rpcClientRecon.value.timeoutId = setTimeout(() => connectRpcClient(), 5000)
+  rpcClientRecon.value.retries = (rpcClientRecon.value.retries || 0) + 1
+})
+rpcClient.onNotification.push(rpcEvent => {
+  console.log('rpc notification', rpcEvent)
+  const eventName = rpcEvent?.event
+  const data = rpcEvent?.data
+  if (eventName === rpcEventNames.newMember) refreshChatList()
+  if (eventName === rpcEventNames.updateMember) refetchChatMember(data?.id)
+})
+rpcClient.onOpen(() => {
+  clearTimeout(rpcClientRecon.value.timeoutId)
+  rpcClientRecon.value = { timeoutId: 0, retries: 0, enable: true }
+  subscribeRpcEvents()
+})
+async function connectRpcClient() {
+  const backendUrl = new URL(chatBackend.value.defaults.baseURL)
+  const host = backendUrl.host
+  const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
+  const url = `${scheme}://${host}/ws/chat/rpc/`
+  const prevWs = rpcClient.ws
+  await rpcClient.connect(url)
+  prevWs?.close?.()
+}
+async function disconnectRpcClient() {
+  rpcClientRecon.value.enable = false
+  rpcClient.ws?.close?.()
+}
+
+const rpcEventNames = Object.freeze({ newMember: 'chat.new_member', updateMember: 'chat.update_member'})
+async function subscribeRpcEvents() {
+  if (!isRpcClientOpen()) return console.log('Not subscribing on close websocket')
+  await rpcClient.call('clear_subscribed_events')
+  if (!chatIdentity.value?.id) return console.log('Not subscribing without chat identity id')
+  await Promise.all([
+    rpcClient.call('subscribe', [rpcEventNames.newMember, { chat_identity_id: chatIdentity.value?.id }]),
+    rpcClient.call('subscribe', [rpcEventNames.updateMember, { chat_identity_id: chatIdentity.value?.id }]),
+  ])
+}
+
+
 const displayChats = ref(false)
 const chatWidget = ref()
 const escrowContractPanel = ref()
@@ -188,6 +252,14 @@ async function filterOrderEscrowContracts(orderId) {
 async function onRequestOpenChatDialog(chatSession) {
   displayChats.value = !(chatWidget.value?.openChatDialog)
   chatWidget.value?.openChatDialog?.(chatSession)
+}
+
+async function refreshChatList() {
+  chatWidget.value?.fetchChatMembers?.()
+}
+
+async function refetchChatMember(chatMemberId) {
+  chatWidget.value?.refetchChatMember?.({ chatMemberId: chatMemberId })
 }
 
 async function refreshPage(done=() => {}) {
