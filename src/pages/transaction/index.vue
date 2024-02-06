@@ -363,6 +363,7 @@ import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -722,32 +723,10 @@ export default {
       if (!id) {
         id = vm.selectedAsset.id
       }
-
-      const tokenId = id.split('/')[1]
       vm.transactionsPageHasNext = false
-      const updateAssetBalance = 'assets/updateAssetBalance'
-
-      if (id.indexOf('slp/') > -1) {
-        getWalletByNetwork(vm.wallet, 'slp').getBalance(tokenId).then(function (response) {
-          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
-          vm.balanceLoaded = true
-        })
-      } else if (id.indexOf('ct/') > -1) {
-        getWalletByNetwork(vm.wallet, 'bch').getBalance(tokenId).then(response => {
-          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
-          vm.balanceLoaded = true
-        })
-      } else {
-        getWalletByNetwork(vm.wallet, 'bch').getBalance().then(function (response) {
-          vm.$store.commit(updateAssetBalance, {
-            id: id,
-            balance: response.balance,
-            spendable: response.spendable,
-            yield: response.yield
-          })
-          vm.balanceLoaded = true
-        })
-      }
+      await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store).then(() => {
+        vm.balanceLoaded = true
+      })
     },
     scrollToBottomTransactionList() {
       this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
