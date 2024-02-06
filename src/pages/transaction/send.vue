@@ -848,17 +848,20 @@ export default {
             } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
               currentAmount = 0
             } else {
-              currentAmount = currentAmount.split('')
-                .toSpliced(fiatCaretPosition ?? amountCaretPosition, 0, key.toString()).join('')
+              currentAmount = this.adjustSplicedAmount(
+                currentAmount, fiatCaretPosition ?? amountCaretPosition, key.toString()
+              )
             }
           } else {
-            currentAmount = currentAmount.split('')
-              .toSpliced(fiatCaretPosition ?? amountCaretPosition, 0, key.toString()).join('')
+            currentAmount = this.adjustSplicedAmount(
+              currentAmount, fiatCaretPosition ?? amountCaretPosition, key.toString()
+            )
           }
         } else {
-          const tbdKey = key !== '.' ? key.toString() : ''
-          currentAmount = currentAmount.split('')
-            .toSpliced(fiatCaretPosition ?? amountCaretPosition, 0, tbdKey).join('')
+          const tbaKey = key !== '.' ? key.toString() : ''
+          currentAmount = this.adjustSplicedAmount(
+            currentAmount, fiatCaretPosition ?? amountCaretPosition, tbaKey
+          )
         }
       }
 
@@ -884,14 +887,18 @@ export default {
       if (action === 'backspace') {
         // Backspace
         if (this.setAmountInFiat && fiatCaretPosition > -1) {
-          const currentAmount = String(currentInputExtras.sendAmountInFiat)
-            .split('').toSpliced(fiatCaretPosition, 1).join('')
+          const currentAmount = this.adjustSplicedAmount(
+            String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
+          )
           currentInputExtras.sendAmountInFiat = currentAmount
           this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
         } else if (!this.setAmountInFiat && amountCaretPosition > -1) {
-          currentInputExtras.amountFormatted = String(currentInputExtras.amountFormatted)
-            .split('').toSpliced(amountCaretPosition, 1).join('')
-          currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted)
+          currentInputExtras.amountFormatted = this.adjustSplicedAmount(
+            String(currentInputExtras.amountFormatted), amountCaretPosition
+          )
+          currentRecipient.amount = convertToBCH(
+            currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
+          )
         }
       } else if (action === 'delete') {
         // Delete
@@ -914,6 +921,12 @@ export default {
       currentInputExtras.amountFormatted = this.customNumberFormatting(
         getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
       )
+    },
+    adjustSplicedAmount (amountString, caretPosition, addedItem = null) {
+      if (addedItem) {
+        return amountString.split('').toSpliced(caretPosition, 0, addedItem).join('')
+      }
+      return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     slideToSubmit ({ reset }) {
       setTimeout(() => { reset() }, 2000)
