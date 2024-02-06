@@ -124,6 +124,7 @@
                       @on-empty-recipient="onEmptyRecipient"
                       @on-selected-denomination-change="onSelectedDenomination"
                       :key="generateKeys(index)"
+                      ref="sendPageRef"
                     />
                   </q-expansion-item>
                 </template>
@@ -150,6 +151,7 @@
                     @on-empty-recipient="onEmptyRecipient"
                     @on-selected-denomination-change="onSelectedDenomination"
                     :key="generateKeys(index)"
+                    ref="sendPageRef"
                   />
                 </template>
               </q-list>
@@ -866,16 +868,22 @@ export default {
     makeKeyAction (action) {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex] ?? ''
+      const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.amountInput.nativeEl.selectionStart - 1
+      const fiatCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.fiatInput?.nativeEl.selectionStart - 1
 
       if (action === 'backspace') {
         // Backspace
-        if (this.setAmountInFiat) {
-          const currentAmount = String(currentInputExtras.sendAmountInFiat).slice(0, -1)
+        if (this.setAmountInFiat && fiatCaretPosition > -1) {
+          const currentAmount = String(currentInputExtras.sendAmountInFiat)
+            .split('').toSpliced(fiatCaretPosition, 1).join('')
           currentInputExtras.sendAmountInFiat = currentAmount
           this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
-        } else {
-          currentRecipient.amount = String(currentRecipient.amount).slice(0, -1)
-          currentInputExtras.amountFormatted = String(currentInputExtras.amountFormatted).slice(0, -1)
+        } else if (!this.setAmountInFiat && amountCaretPosition > -1) {
+          currentInputExtras.amountFormatted = String(currentInputExtras.amountFormatted)
+            .split('').toSpliced(amountCaretPosition, 1).join('')
+          currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted)
         }
       } else if (action === 'delete') {
         // Delete
