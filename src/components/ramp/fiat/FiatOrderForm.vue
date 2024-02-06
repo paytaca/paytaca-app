@@ -234,12 +234,8 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
-      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-
       ad: null,
       state: 'initial',
       byFiat: false,

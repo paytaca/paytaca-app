@@ -76,35 +76,53 @@
                               {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
                             </span>
                             <span class="sm-font-size">/BCH</span>
-                            <div class="row sm-font-size">
-                              <span class="col-3 q-mr-md">Quantity</span>
-                              <span class="col">{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
+                            <div class="sm-font-size row q-gutter-md">
+                              <span>Quantity</span>
+                              <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
                             </div>
-                            <div class="sm-font-size">
-                              <span class="col-3 q-mr-md q-pr-md">Limits</span>
-                              <span class="col-auto">{{ parseFloat(listing.trade_floor) }} - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                            <div class="sm-font-size row q-gutter-md">
+                              <span>Limits</span>
+                              <span>{{ parseFloat(listing.trade_floor) }} - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
                             </div>
-                            <!-- <div class="row" style="font-size: 12px; color: grey">{{ formattedDate(listing.created_at) }}</div> -->
+                            <div class="row sm-font-size q-gutter-md">
+                              <span>Appealable in </span>
+                              <span class="text-weight-bold">{{ appealCooldown(listing.appeal_cooldown).label }}</span>
+                            </div>
                           </div>
                           <div class="text-right">
-                            <q-btn
-                              outline
-                              rounded
-                              padding="sm"
-                              icon="edit"
-                              size="sm"
-                              class="button"
-                              @click="onEditAd(listing.id)"
-                            />
-                            <q-btn
-                              outline
-                              rounded
-                              padding="sm"
-                              size="sm"
-                              icon="delete"
-                              class="q-ml-xs button"
-                              @click="onDeleteAd(listing.id)"
-                            />
+                            <div class="row q-gutter-xs justify-end">
+                              <q-btn
+                                outline
+                                rounded
+                                padding="sm"
+                                icon="edit"
+                                size="sm"
+                                color="button"
+                                @click="onEditAd(listing.id)"
+                              />
+                              <q-btn
+                                outline
+                                rounded
+                                padding="sm"
+                                size="sm"
+                                icon="delete"
+                                color="button"
+                                @click="onDeleteAd(listing.id)"
+                              />
+                            </div>
+                            <div class="row justify-end q-mt-sm">
+                              <q-btn
+                                outline
+                                rounded
+                                disable
+                                padding="xs sm"
+                                size="sm"
+                                class="q-ml-xs text-weight-bold"
+                                :color="listing.is_public ? 'green' : 'red'"
+                                :icon="listing.is_public ? 'visibility' : 'visibility_off'">
+                                <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
+                              </q-btn>
+                            </div>
                           </div>
                         </div>
                         <div class="q-gutter-sm q-pt-xs">
@@ -147,7 +165,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
 import FooterLoading from './FooterLoading.vue'
-import { formatCurrency, formatDate } from 'src/wallet/ramp'
+import { formatCurrency, formatDate, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -171,8 +189,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       openMiscDialog: false,
       openDialog: false,
@@ -218,7 +234,6 @@ export default {
     sellListings () {
       return this.$store.getters['ramp/getAdsSellListings']
     },
-
     hasMoreData () {
       const vm = this
       vm.updatePaginationValues()
@@ -236,6 +251,9 @@ export default {
       } else {
         return parseFloat(tradeCeiling)
       }
+    },
+    appealCooldown (appealCooldownChoice) {
+      return getAppealCooldown(appealCooldownChoice)
     },
     fetchAds (overwrite = false) {
       const vm = this
@@ -304,7 +322,6 @@ export default {
       this.openMiscDialog = true
     },
     receiveFilter (data) {
-      console.log('data: ', data)
       this.openMiscDialog = false
     },
     onSubmit () {
@@ -312,6 +329,7 @@ export default {
       vm.state = 'selection'
       vm.selectedAdId = null
       vm.resetAndRefetchListings()
+      bus.emit('show-menu', 'ads')
     },
     onDialogBack () {
       const vm = this
@@ -326,7 +344,7 @@ export default {
       const vm = this
       vm.state = 'selection'
       vm.selectedAdId = null
-      bus.emit('show-menu')
+      bus.emit('show-menu', 'ads')
     },
     onEditAd (id) {
       const vm = this

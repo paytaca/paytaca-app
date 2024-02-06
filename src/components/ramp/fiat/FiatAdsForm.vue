@@ -120,10 +120,10 @@
             </div>
           </div>
 
-          <!-- Trade Amount -->
+          <!-- Trade Quantity -->
           <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
-              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Amount</div>
+              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Quantity</div>
                 <q-input
                   ref="tradeAmountRef"
                   dense
@@ -172,12 +172,11 @@
                     ref="tradeCeilingRef"
                     dense
                     outlined
-                    rounded=""
+                    rounded
+                    type="number"
                     :dark="darkMode"
                     :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    type="number"
                     :rules="tradeLimitValidation"
-                    lazy-rules
                     v-model="adData.tradeCeiling"
                     @blur="$refs.tradeFloorRef.validate(); $refs.tradeAmountRef.validate()"
                   >
@@ -193,7 +192,7 @@
           <!-- Appeal Cooldown -->
           <div class="q-mx-lg">
             <div class="q-px-lg">
-              <div class="q-pt-sm">Set orders appealable after</div>
+              <div class="q-pt-md">Set orders appealable after</div>
             </div>
             <div class="q-mx-md q-pt-sm">
               <q-select
@@ -242,7 +241,7 @@
       <div class="q-px-md">
         <AddPaymentMethods
           :type="'Ads'"
-          :confirm-label="'Post Ad'"
+          :confirm-label="'Next'"
           :currentPaymentMethods="adData.paymentMethods"
           v-on:submit="appendPaymentMethods"
         />
@@ -253,7 +252,7 @@
         :post-data="adData"
         :ptl="appealCooldown"
         :transaction-type="transactionType"
-        v-on:back="step = 1"
+        v-on:back="step--"
         @submit="onSubmit()"
       />
     </div>
@@ -322,11 +321,14 @@ export default {
         fixedPrice: 0,
         floatingPrice: 100,
         tradeFloor: 0.02,
-        tradeCeiling: 100,
-        tradeAmount: 100,
-        appealCooldownChoice: 1440,
+        tradeCeiling: 1,
+        tradeAmount: 1,
         paymentMethods: [],
-        isPublic: true
+        isPublic: true,
+        appealCooldown: {
+          label: '24 hrs',
+          value: 1440
+        }
       },
       cdSelection: [
         {
@@ -354,19 +356,19 @@ export default {
         }],
       fiatCurrencies: [],
       numberValidation: [
-        (val) => !!val || 'This field is required',
-        (val) => val > 0 || 'Value must be greater than 0'
+        (val) => !!val || 'This is required',
+        (val) => val > 0 || 'Cannot be zero'
       ],
       tradeLimitValidation: [
-        (val) => !!val || 'This field is required',
-        (val) => val > 0 || 'Value must be greater than 0',
-        (val) => Number(val) <= Number(this.adData.tradeAmount) || 'Value exceeds trade amount',
-        () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || 'Min exceeds max'
+        (val) => !!val || 'This is required',
+        (val) => val > 0 || 'Cannot be zero',
+        (val) => Number(val) <= Number(this.adData.tradeAmount) || 'Cannot exceed trade quantity',
+        () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || 'Invalid range'
       ],
       tradeAmountValidation: [
-        (val) => !!val || 'This field is required',
-        (val) => val > 0 || 'Value must be greater than 0',
-        (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Value less than minimum trade limit'
+        (val) => !!val || 'This is required',
+        (val) => val > 0 || 'Cannot be zero',
+        (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
       ],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
     }
@@ -442,6 +444,7 @@ export default {
           vm.adData.paymentMethods = data.payment_methods
           vm.adData.isPublic = data.is_public
           vm.appealCooldown = getAppealCooldown(data.appeal_cooldown)
+          vm.adData.appealCooldown = vm.appealCooldown
           vm.selectedCurrency = data.fiat_currency
         })
         .catch(error => {
@@ -453,6 +456,7 @@ export default {
       const vm = this
       return new Promise((resolve, reject) => {
         const body = vm.transformPostData()
+        console.log('createAd:', body)
         backend.post('/ramp-p2p/ad/', body, { authorize: true })
           .then(response => {
             console.log(response)
@@ -583,7 +587,7 @@ export default {
         trade_floor: parseFloat(data.tradeFloor),
         trade_ceiling: parseFloat(data.tradeCeiling),
         trade_amount: parseFloat(data.tradeAmount),
-        appeal_cooldown_choice: data.appealCooldownChoice,
+        appeal_cooldown_choice: data.appealCooldown.value,
         payment_methods: idList,
         is_public: data.isPublic
       }
@@ -663,16 +667,26 @@ export default {
       this.priceValue = Number((this.priceValue + 0.1).toFixed(2))
     },
     updateAppealCooldown () {
-      const vm = this
-      vm.adData.appealCooldownChoice = vm.appealCooldown.value
+      this.adData.appealCooldown = this.appealCooldown
     },
     checkPostData () {
       const vm = this
-      if (!vm.isAmountValid(vm.priceAmount) || !vm.isAmountValid(vm.adData.tradeAmount) || !vm.isAmountValid(vm.adData.tradeCeiling) || !vm.isAmountValid(vm.adData.tradeFloor)) {
+      if (!vm.isAmountValid(vm.priceAmount) ||
+          !vm.isAmountValid(vm.adData.tradeAmount) ||
+          !vm.isAmountValid(vm.adData.tradeCeiling) ||
+          !vm.isAmountValid(vm.adData.tradeFloor) ||
+          !vm.tradeLimitsValid()) {
         return true
       } else {
         return false
       }
+    },
+    tradeLimitsValid () {
+      const vm = this
+      const floor = vm.adData?.tradeFloor
+      const ceiling = vm.adData?.tradeCeiling
+      const quantity = vm.adData?.tradeAmount
+      return floor > 0 && floor <= ceiling && ceiling <= quantity
     },
     isAmountValid (value) {
       // amount with comma and decimal regex

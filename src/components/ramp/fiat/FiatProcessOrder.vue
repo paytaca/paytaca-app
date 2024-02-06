@@ -781,7 +781,7 @@ export default {
       return new Promise(resolve => setTimeout(resolve, duration))
     },
     onBack () {
-      bus.emit('show-menu')
+      bus.emit('show-menu', 'orders')
       this.$emit('back')
     }
   }

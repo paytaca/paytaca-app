@@ -43,9 +43,7 @@ export default {
   data () {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       wsURL: process.env.RAMP_WS_URL + 'order/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: this.$store.getters['ramp/wallet'],
       websocket: null,
       state: 'release-form',
