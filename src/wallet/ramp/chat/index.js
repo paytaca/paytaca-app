@@ -1,7 +1,8 @@
 import { updatePubkey, savePrivkey, generateKeypair, sha256 } from './keys'
 import { loadWallet } from 'src/wallet'
 import { Store } from 'src/store'
-import { chatBackend, backend } from './backend'
+import { backend } from '../backend'
+import { chatBackend } from './backend'
 
 export async function updatePeerChatIdentityId (id) {
   return new Promise((resolve, reject) => {

@@ -1,22 +1,9 @@
 import BCHJS from '@psf/bch-js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
-import { getCookie } from '..'
 import axios from 'axios'
 
 const bchjs = new BCHJS()
-
-export const backend = axios.create({
-  baseURL: process.env.WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
-})
-
-backend.interceptors.request.use(async (config) => {
-  if (config.authorize) {
-    config.headers['wallet-hash'] = loadRampWallet().walletHash
-    config.headers.Authorization = `Token ${getCookie('token')}`
-  }
-  return config
-})
 
 export const chatBackend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api'

@@ -91,7 +91,7 @@
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { addChatMembers } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
@@ -110,7 +110,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      wsURL: process.env.RAMP_WS_URL + 'order/',
       websocket: null,
       state: '',
       isloaded: false,
@@ -738,7 +737,7 @@ export default {
     },
 
     setupWebsocket (retries, delayDuration) {
-      const wsUrl = `${this.wsURL}${this.order.id}/`
+      const wsUrl = `${getBackendWsUrl()}order/${this.order.id}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
         console.log('WebSocket connection established to ' + wsUrl)

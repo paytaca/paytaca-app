@@ -272,7 +272,7 @@ import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -295,9 +295,6 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      wsURL: process.env.RAMP_WS_URL + 'market-price/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       loading: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
@@ -503,9 +500,8 @@ export default {
     },
     async getInitialMarketPrice () {
       const vm = this
-      const url = vm.apiURL + '/utils/market-price'
       try {
-        const response = await backend.get(url, { params: { currency: vm.selectedCurrency.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price', { params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data?.price)
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)
@@ -638,7 +634,7 @@ export default {
       }
     },
     setupWebsocket () {
-      const wsUrl = this.wsURL + this.selectedCurrency.symbol + '/'
+      const wsUrl = `${getBackendWsUrl()}market-price/${this.selectedCurrency.symbol}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
         console.log('WebSocket connection established to ' + wsUrl)
