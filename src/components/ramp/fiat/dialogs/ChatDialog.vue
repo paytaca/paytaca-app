@@ -421,7 +421,7 @@ export default {
   computed: {
     userName () {
       const vm = this
-      return vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+      return this.$store.getters['ramp/chatIdentity'].name
     }
   },
   methods: {
@@ -616,7 +616,8 @@ export default {
         .then(decryptedMessages => {
           console.log('decryptedMessages:', decryptedMessages)
 
-          const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+          const username = vm.$store.getters['ramp/chatIdentity'].name
+          // const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
           const temp = decryptedMessages
           temp.map(item => {
             item.chatIdentity.is_user = item.chatIdentity.name === username

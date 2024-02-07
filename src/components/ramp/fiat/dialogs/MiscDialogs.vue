@@ -825,8 +825,8 @@ export default {
       paymentTypeFormat: {
         email: 'Email Address',
         number: 'Account Number',
-        'bank-number': 'Bank Account Number',
-        'mobile-number': 'Mobile Number'
+        bank: 'Bank Account Number',
+        phone: 'Mobile Number'
       }
     }
   },
@@ -880,13 +880,13 @@ export default {
           } else {
             return 'Invalid Email Address'
           }
-        case 'mobile-number':
+        case 'phone':
           if (/^(\d{9,15})$/.test(val)) {
             return true
           } else {
             return 'Invalid Phone Number'
           }
-        case 'bank-number':
+        case 'bank':
           if (/^(\d{9,35})$/.test(val)) {
             return true
           } else {
