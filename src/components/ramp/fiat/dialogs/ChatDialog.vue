@@ -354,7 +354,7 @@ export default {
       openChat: this.openDialog,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: 'wss://commercehub.paytaca.com/ws/chat/sessions/',
+      wsURL: process.env.MARKETPLACE_WS_URL,
       websocket: null,
       openImage: false,
       selectedImage: null,
@@ -437,7 +437,6 @@ export default {
     async setupWebsocket () {
       const vm = this
       console.log('setting up websocket')
-      // vm.chatRef = `ramp-order-${this.data.id}-chat`
       const wsUrl = `${vm.wsURL}${vm.chatRef}/`
       this.websocket = new WebSocket(wsUrl)
 

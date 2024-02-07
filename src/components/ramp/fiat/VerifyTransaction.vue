@@ -93,7 +93,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: process.env.RAMP_WS_URL + 'order/',
       loading: true,
       contract: {
         balance: null,
