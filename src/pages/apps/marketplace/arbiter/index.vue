@@ -202,6 +202,8 @@ rpcClient.onNotification.push(rpcEvent => {
   const data = rpcEvent?.data
   if (eventName === rpcEventNames.newMember) refreshChatList()
   if (eventName === rpcEventNames.updateMember) refetchChatMember(data?.id)
+  if (eventName === rpcEventNames.escrowFunding) refetchEscrowContract(data?.address)
+  if (eventName === rpcEventNames.escrowSettlement) refetchEscrowContract(data?.address)
 })
 rpcClient.onOpen(() => {
   clearTimeout(rpcClientRecon.value.timeoutId)
@@ -222,15 +224,35 @@ async function disconnectRpcClient() {
   rpcClient.ws?.close?.()
 }
 
-const rpcEventNames = Object.freeze({ newMember: 'chat.new_member', updateMember: 'chat.update_member'})
+const rpcEventNames = Object.freeze({
+  newMember: 'chat.new_member',
+  updateMember: 'chat.update_member',
+  escrowFunding: 'escrow_contract_funding',
+  escrowSettlement: 'escrow_contract_settlement',
+})
 async function subscribeRpcEvents() {
   if (!isRpcClientOpen()) return console.log('Not subscribing on close websocket')
   await rpcClient.call('clear_subscribed_events')
-  if (!chatIdentity.value?.id) return console.log('Not subscribing without chat identity id')
-  await Promise.all([
-    rpcClient.call('subscribe', [rpcEventNames.newMember, { chat_identity_id: chatIdentity.value?.id }]),
-    rpcClient.call('subscribe', [rpcEventNames.updateMember, { chat_identity_id: chatIdentity.value?.id }]),
-  ])
+  const promises = []
+  if (chatIdentity.value?.id) {
+    promises.push(
+      rpcClient.call('subscribe', [rpcEventNames.newMember, { chat_identity_id: chatIdentity.value?.id }]),
+      rpcClient.call('subscribe', [rpcEventNames.updateMember, { chat_identity_id: chatIdentity.value?.id }]),
+    )  
+  } else {
+    console.log('Not subscribing chat updates without chat identity id')
+  }
+
+  if (keys.value.address) {
+    promises.push(
+      rpcClient.call('subscribe', [rpcEventNames.escrowFunding, { arbiter_address: keys.value?.address }]),
+      rpcClient.call('subscribe', [rpcEventNames.escrowSettlement, { chat_identity_id: keys.value?.address }]),
+    )
+  } else {
+    console.log('Not subscribing escrow updates without arbiter address')
+  }
+
+  await Promise.all(promises)
 }
 
 
@@ -247,6 +269,10 @@ async function filterOrderEscrowContracts(orderId) {
     displayChats.value = !(chatWidget.value?.openChatDialog)
     escrowContractPanel.value.filterOpts.orderId = orderId
   }
+}
+
+async function refetchEscrowContract(address) {
+  await escrowContractPanel.value?.refetchEscrowContracts?.({addresses: [address], append: false})
 }
 
 async function onRequestOpenChatDialog(chatSession) {

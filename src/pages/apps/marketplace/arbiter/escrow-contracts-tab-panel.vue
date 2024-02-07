@@ -101,7 +101,7 @@
         <q-icon
           size="1.5em"
           name="check_circle"
-          :color="resolveEscrowContractStatusIcon(escrowContract)?.color"
+          v-bind="resolveEscrowContractStatusIcon(escrowContract)"
           @click.stop
         >
           <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
@@ -127,6 +127,12 @@
         <q-space/>
         <div v-if="escrowContract?.payments?.[0]?.orderId">
           Order #{{ escrowContract?.payments?.[0]?.orderId }}
+          <q-badge
+            v-if="escrowContract?.payments?.[0]?.order?.status"
+            :color="parseOrderStatusColor(escrowContract?.payments?.[0]?.order?.status)"
+          >
+            {{ formatOrderStatus(escrowContract?.payments?.[0]?.order?.status) }}
+          </q-badge>
         </div>
         <div v-else class="text-grey">No order</div>
       </div>
@@ -219,7 +225,7 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { backend } from "src/marketplace/backend"
 import { ChatIdentity, ChatMember, EscrowContract, Order } from "src/marketplace/objects"
 import { compileEscrowSmartContract } from "src/marketplace/escrow/"
-import { round } from "src/marketplace/utils"
+import { formatOrderStatus, parseOrderStatusColor, round } from "src/marketplace/utils"
 import { setupCache } from "axios-cache-interceptor";
 import axios from "axios";
 import { useQuasar } from "quasar";
@@ -340,6 +346,33 @@ function fetchEscrowContracts(opts={ limit: 0, offset: 0 }) {
     })
     .finally(() => {
       fetchingEscrowContracts.value = false
+    })
+}
+
+function refetchEscrowContracts(opts={addresses: [].map(String), append: false}) {
+  let addresses = opts?.addresses
+  const append = opts?.append
+  if (!append) {
+    addresses = addresses?.filter?.(address => {
+      return escrowContracts.value.findIndex(ec => ec?.address === address) >= 0
+    })
+  }
+
+  if (!addresses?.length) return Promise.resolve()
+
+  const params = { addresses: addresses.join(','), limit: addresses?.length || 0 }
+
+  return backend.get(`connecta/escrow/`, { params })
+    .then(response => {
+      if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+      response?.data?.results?.map?.(EscrowContract.parse)
+        .forEach(escrowContract => {
+          const index = escrowContracts.value.findIndex(ec => ec?.address === escrowContract?.address)
+          if (index >= 0) escrowContracts.value[index] = escrowContract
+          else if (opts?.append) escrowContracts.value.push(escrowContract)
+        })
+
+      return response
     })
 }
 
@@ -589,5 +622,6 @@ function openOrderChat(escrowContract=EscrowContract.parse()) {
 defineExpose({
   filterOpts,
   fetchEscrowContracts,
+  refetchEscrowContracts,
 })
 </script>
