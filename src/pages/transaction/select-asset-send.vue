@@ -83,12 +83,15 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
+import { getMnemonic, Wallet } from 'src/wallet'
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 export default {
   name: 'Send-select-asset',
@@ -192,11 +195,22 @@ export default {
       })
     }
   },
-  mounted () {
-    this.$store.dispatch('market/updateAssetPrices', {})
-    const assets = this.$store.getters['assets/getAssets']
+  async mounted () {
     const vm = this
+    vm.$store.dispatch('market/updateAssetPrices', {})
+    const assets = vm.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+
+    // update balance of assets
+    await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      let wallet = new Wallet(mnemonic, vm.network)
+      wallet = markRaw(wallet)
+      if (vm.selectedNetwork === 'sBCH') wallet.sBCH.getOrInitWallet()
+
+      assets.forEach(async (asset) => {
+        await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
+      })
+    })
   }
 }
 </script>

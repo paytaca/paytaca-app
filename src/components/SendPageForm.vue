@@ -42,6 +42,7 @@
           inputmode="none"
           filled
           v-model="amountFormatted"
+          ref="amountInput"
           @focus="readonlyState(true), onInputFocus(index)"
           @blur="readonlyState(false)"
           :label="$t('Amount')"
@@ -80,6 +81,7 @@
           type="text"
           inputmode="none"
           filled
+          ref="fiatInput"
           v-model="sendAmountInFiat"
           @focus="readonlyState(true), onInputFocus(index)"
           @blur="readonlyState(false)"
