@@ -220,7 +220,8 @@ async function connectRpcClient() {
   prevWs?.close?.()
 }
 async function disconnectRpcClient() {
-  rpcClientRecon.value.enable = false
+  clearTimeout(rpcClientRecon.value?.timeoutId)
+  rpcClientRecon.value = { timeoutId: 0, retries: 0, enable: false }
   rpcClient.ws?.close?.()
 }
 
