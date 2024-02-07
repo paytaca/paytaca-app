@@ -19,7 +19,7 @@
           v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
         />
       </div>
-      <footerMenu v-if="showFooterMenu" v-on:clicked="switchMenu" ref="footer"/>
+      <footerMenu v-if="showFooterMenu" :tab="menu" v-on:clicked="switchMenu" ref="footer"/>
     </div>
   </div>
 </template>
@@ -38,7 +38,6 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      apiURL: process.env.WATCHTOWER_BASE_URL,
       wallet: this.$store.getters['ramp/wallet'],
       network: 'BCH',
       menu: 'store',
@@ -81,7 +80,8 @@ export default {
     hideMenu () {
       this.showFooterMenu = false
     },
-    showMenu () {
+    showMenu (tab) {
+      if (tab) this.menu = tab
       this.showFooterMenu = true
     },
     switchMenu (item) {

@@ -37,24 +37,24 @@
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Fiat Price</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(ad.price, ad.fiat_currency.symbol) }}
+                  {{ formattedCurrency(ad.price, ad?.fiat_currency?.symbol) }}
                 </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Min Trade Limit</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency.symbol }}
+                  {{ parseFloat(ad.trade_floor) }} {{ ad?.crypto_currency?.symbol }}
                 </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Max Trade Limit</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency.symbol }}
+                  {{ parseFloat(ad.trade_amount) }} {{ ad?.crypto_currency?.symbol }}
                 </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
-                <span>Time Limit</span>
-                <span class="text-nowrap q-ml-xs">{{ paymentTimeLimit.label }}</span>
+                <span>Appealable after</span>
+                <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }}</span>
               </div>
             </div>
 
@@ -71,12 +71,12 @@
                 v-model="amount"
                 @blur="resetInput">
                 <template v-slot:append>
-                  <span class="text-weight-bold sm-font-size">{{ byFiat ? ad.fiat_currency.symbol : 'BCH' }}</span>
+                  <span class="text-weight-bold sm-font-size">{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
                 </template>
               </q-input>
               <div class="row justify-between">
                 <div class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                  = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad.fiat_currency.symbol : 'BCH' }}
+                  = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}
                 </div>
                 <div class="justify-end q-gutter-sm q-pr-sm">
                   <q-btn
@@ -104,7 +104,7 @@
                   no-caps
                   :class="getDarkModeClass(darkMode)"
                   @click="byFiat = !byFiat">
-                  Set amount in {{ byFiat ? 'BCH' : ad.fiat_currency.symbol }}
+                  Set amount in {{ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }}
                 </q-btn>
               </div>
               <div v-if="ad.trade_type === 'BUY'">
@@ -223,7 +223,7 @@ import FiatAdsForm from './FiatAdsForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
-import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, addChatMembers } from 'src/wallet/ramp/chat'
 import { backend } from 'src/wallet/ramp/backend'
@@ -234,12 +234,8 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       isloaded: false,
-      // minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-
       ad: null,
       state: 'initial',
       byFiat: false,
@@ -272,8 +268,8 @@ export default {
   },
   emits: ['back', 'orderCanceled'],
   computed: {
-    paymentTimeLimit () {
-      return getPaymentTimeLimit(this.ad.time_duration)
+    appealCooldown () {
+      return getAppealCooldown(this.ad?.appeal_cooldown)
     },
     equivalentAmount () {
       let amount = this.amount

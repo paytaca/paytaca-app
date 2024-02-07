@@ -7,13 +7,14 @@
         flat
         icon="arrow_back"
         class="button button-text-primary"
-        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        style="position: fixed; left: 20px; z-index: 3;"
+        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
     <q-pull-to-refresh @refresh="$emit('refresh')">
       <div class="q-mx-lg q-mt-lg q-pt-md text-h5 text-center lg-font-size text-weight-bold">
-        <span>VERIFYING TRANSFER</span>
+        <span>VERIFYING {{ data?.action }}</span>
       </div>
       <div class="subtext text-center q-pb-sm md-font-size">ORDER #{{ data?.orderId }}</div>
       <q-separator :dark="darkMode" class="q-mx-lg"/>
@@ -92,9 +93,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      wsURL: process.env.RAMP_WS_URL + 'order/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       loading: true,
       contract: {
         balance: null,

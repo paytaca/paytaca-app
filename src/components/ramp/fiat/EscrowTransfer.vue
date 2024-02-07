@@ -7,7 +7,8 @@
         flat
         icon="arrow_back"
         class="button button-text-primary"
-        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        style="position: fixed; left: 20px; z-index: 3;"
+        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
@@ -78,7 +79,7 @@
           </template>
         </q-input>
         <div class="col text-right sm-font-size q-pl-sm">
-          = {{ fiatAmount }} {{ order?.fiat_currency.symbol }}
+          = {{ fiatAmount }} {{ order?.ad?.fiat_currency?.symbol }}
         </div>
         <!-- </div> -->
         <div class="row q-mb-md" v-if="sendErrors.length > 0">
@@ -133,7 +134,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: process.env.RAMP_WS_URL + 'order/',
       wallet: null,
       loading: false,
       order: null,

@@ -259,15 +259,13 @@
 </template>
 
 <script>
-import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       info: {},
       loading: false,
       dialogType: '',
@@ -508,7 +506,7 @@ export default {
       }
     },
     paymentTimeLimit (timeValue) {
-      return getPaymentTimeLimit(timeValue).label
+      return getAppealCooldown(timeValue).label
     },
     resetFilters (type) {
       let filters = null

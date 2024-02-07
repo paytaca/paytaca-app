@@ -89,7 +89,7 @@
     </q-card>
 </template>
 <script>
-import { formatCurrency, getPaymentTimeLimit } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -114,7 +114,7 @@ export default {
       }
     },
     formattedTimeLimit (value) {
-      return getPaymentTimeLimit(value)
+      return getAppealCooldown(value)
     }
   }
 }

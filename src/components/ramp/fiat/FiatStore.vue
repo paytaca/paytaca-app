@@ -203,8 +203,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       viewProfile: false,
       transactionType: 'SELL',
       loading: false,
@@ -218,7 +216,8 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 185 : this.$q.screen.height - 140,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 190 : this.$q.screen.height - 140,
       defaultFilters: {
         price_order: 'ascending',
         price_types: ['FIXED', 'FLOATING'],

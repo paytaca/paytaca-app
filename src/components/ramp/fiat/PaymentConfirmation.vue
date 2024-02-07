@@ -61,21 +61,21 @@
                 :rules="[$parent.isValidInputAmount]"
                 v-model="fiatAmount">
                 <template v-slot:append>
-                  <span>{{ order.fiat_currency.symbol }}</span>
+                  <span>{{ order?.ad?.fiat_currency?.symbol }}</span>
                 </template>
               </q-input>
             </div>
           </div>
-          <div class="q-pt-sm text-center" v-if="!sendingBch && sendErrors.length === 0">
+          <!-- <div class="q-pt-sm text-center" v-if="!sendingBch && sendErrors.length === 0">
             <span class="sm-font-size" v-if="countDown !== 'Expired'">order expires in</span>
             <div style="font-size: 30px; color: #ed5f59;"> {{ countDown }}</div>
-          </div>
+          </div> -->
           <div class="q-mx-md q-px-sm q-pt-sm">
             <!-- Buyer -->
             <div v-if="data?.type === 'buyer'" class="q-pb-xs">
-              <q-separator :dark="darkMode" class="q-mx-sm q-mb-md"/>
+              <!-- <q-separator :dark="darkMode" class="q-mx-sm q-mb-md"/> -->
               <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
-              <div class="sm-font-size q-mx-md q-mb-sm">Select the payment methods you used to pay the seller</div>
+              <div class="sm-font-size q-mx-md q-mb-sm">Select the payment method(s) you used to pay the seller</div>
               <div class="full-width">
                   <div v-for="(method, index) in paymentMethods" :key="index">
                     <div class="q-px-sm">
@@ -107,7 +107,7 @@
             </div>
           </div>
           <!-- Checkbox -->
-          <div class="q-mb-sm" v-if="countDown !== 'Expired'">
+          <div class="q-mb-sm">
             <div class="q-mx-lg q-px-md">
               <div v-if="data?.type === 'seller'">
                 <div class="row q-mb-sm" v-if="sendErrors.length > 0">
@@ -129,9 +129,8 @@
         </q-scroll-area>
       </q-pull-to-refresh>
     </q-card>
-  </div>
-  <RampDragSlide
-    v-if="showDragSlide && countDown !== 'Expired' && data?.wsConnected"
+    <RampDragSlide
+    v-if="showDragSlide && data?.wsConnected"
     :key="dragSlideKey"
     :text="dragSlideTitle"
     :locked="lockDragSlide"
@@ -144,6 +143,7 @@
     }"
     @ok="onSecurityOk"
     @cancel="onSecurityCancel"/>
+  </div>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
@@ -156,8 +156,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       wallet: null,
       contractBalance: null,
       order: null,
@@ -200,11 +198,12 @@ export default {
     }
   },
   watch: {
-    countDown (value) {
-      if (value === 'Expired') this.$emit('expired')
-    }
+    // countDown (value) {
+    //  if (value === 'Expired') this.$emit('expired')
+    // }
   },
   async mounted () {
+    console.log('payment confirmations')
     const vm = this
     vm.wallet = loadRampWallet()
     if (vm.data?.errors) {

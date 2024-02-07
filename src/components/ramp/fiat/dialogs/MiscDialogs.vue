@@ -79,17 +79,16 @@
             </div>
           </div>
           <div class="q-mx-lg q-pt-sm">
-            <span class="md-font-size" v-if="paymentMethod.payment_type.format === 'number'">
-              Account Number
+            <span class="md-font-size">
+                  {{ paymentTypeFormat[paymentMethod.payment_type.format] }}
             </span>
-            <span class="md-font-size" v-if="paymentMethod.payment_type.format === 'email'">
-              Email
-            </span>
+
             <div class="text-center q-pt-sm">
               <q-input
                 dense
                 filled
                 :dark="darkMode"
+                :rules="[paymentTypeRules]"
                 v-model="paymentMethod.account_identifier">
                 <template v-slot:append>
                   <q-icon size="xs" name="close" @click="paymentMethod.account_identifier = ''"/>&nbsp;
@@ -113,7 +112,7 @@
           </div>
           <div class="col">
             <q-btn
-              :disable="paymentMethod.account_identifier === '' || paymentMethod.payment_type === ''"
+              :disable="paymentConfirm"
               rounded
               label="Confirm"
               class="q-space text-white full-width button"
@@ -708,7 +707,7 @@
 </template>
 
 <script>
-import { getPaymentTimeLimit } from 'src/wallet/ramp'
+import { getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
@@ -735,8 +734,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       info: {},
       loading: false,
       dialogType: '',
@@ -824,7 +821,13 @@ export default {
         { value: 'RLS_PN', label: 'Release Pending' },
         { value: 'RFN_PN', label: 'Refund Pending' }
       ],
-      completedStatuses: ['CNCL', 'RLS', 'RFN']
+      completedStatuses: ['CNCL', 'RLS', 'RFN'],
+      paymentTypeFormat: {
+        email: 'Email Address',
+        number: 'Account Number',
+        bank: 'Bank Account Number',
+        phone: 'Mobile Number'
+      }
     }
   },
   watch: {
@@ -840,6 +843,13 @@ export default {
   computed: {
     isNameValid () {
       return this.nickname && this.nickname.length > 0
+    },
+    paymentConfirm () {
+      if (this.paymentMethod.account_identifier === '' || this.paymentMethod.payment_type === '' || typeof this.paymentTypeRules(this.paymentMethod.account_identifier) === 'string') {
+        return true
+      } else {
+        return false
+      }
     }
   },
   async mounted () {
@@ -860,6 +870,32 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    paymentTypeRules (val) {
+      const format = this.paymentMethod.payment_type.format
+
+      switch (format) {
+        case 'email':
+          if (/^[\w\\.~!$%^&*=+}{'?-]+@([\w-]+\.)+[\w-]{2,4}$/.test(val)) {
+            return true
+          } else {
+            return 'Invalid Email Address'
+          }
+        case 'phone':
+          if (/^(\d{9,15})$/.test(val)) {
+            return true
+          } else {
+            return 'Invalid Phone Number'
+          }
+        case 'bank':
+          if (/^(\d{9,35})$/.test(val)) {
+            return true
+          } else {
+            return 'Invalid Account Number'
+          }
+        default:
+          return true
+      }
+    },
     filterSelectAll (type) {
       const vm = this
       switch (type) {
@@ -996,7 +1032,7 @@ export default {
       }
     },
     paymentTimeLimit (timeValue) {
-      return getPaymentTimeLimit(timeValue).label
+      return getAppealCooldown(timeValue).label
     },
     addNewPaymentMethod () {
       const vm = this

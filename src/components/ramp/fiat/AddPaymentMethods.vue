@@ -201,8 +201,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
       paymentMethods: [],
       paymentTypes: [],
@@ -268,6 +266,7 @@ export default {
       if (data !== undefined) {
         this.paymentMethods = data
       }
+      this.dialogType = ''
       this.openDialog = false
     },
     receiveDialogInfo (data) {
@@ -323,7 +322,7 @@ export default {
       this.openDialog = true
     },
     editMethod (data) {
-      this.info = data
+      this.info = { ...data }
       this.selectedMethodIndex = data.id
 
       this.dialogType = 'editPaymentMethod'
@@ -348,7 +347,6 @@ export default {
       } else {
         this.selectedMethods.push(data)
       }
-      // console.log(this.selectedMethods)
     },
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type.name)
@@ -482,9 +480,11 @@ export default {
         }
       }
 
-      if (this.dialogType === 'addMethodFromAd') {
-        this.fetchPaymentMethod()
-      }
+      this.fetchPaymentMethod()
+
+      // if (this.dialogType === 'addMethodFromAd') {
+      //   this.fetchPaymentMethod()
+      // }
     },
     submitPaymentMethod () {
       if (this.type === 'General') {

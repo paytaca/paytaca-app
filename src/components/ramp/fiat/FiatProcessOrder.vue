@@ -62,11 +62,11 @@
     </div>
 
     <!-- Chat button -->
-    <div class="fixed" style="right: 35px;" :style="$q.platform.is.ios ? 'bottom: 100px;' : 'bottom: 100px'" v-if="status.value !== 'RLS'">
-      <q-btn size="md" padding="sm" dense ripple round class="button" icon="comment" @click="openChat = true"/>
+    <div class="fixed" style="right: 35px" :style="$q.platform.is.ios ? `top:135px` : 'top: 110px'" v-if="hasChat">
+      <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon" icon="comment" @click="openChat = true"/>
     </div>
 
-    <div v-if="reconnectingWebSocket" class="fixed" style="right: 40px; top: 145px;">
+    <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 240px' : 'top: 210px;'">
       <q-spinner-ios size="1.5em"/>
     </div>
   </div>
@@ -91,7 +91,7 @@
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { addChatMembers } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
@@ -110,7 +110,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      wsURL: process.env.RAMP_WS_URL + 'order/',
       websocket: null,
       state: '',
       isloaded: false,
@@ -119,6 +118,7 @@ export default {
       dialogType: '',
       openDialog: false,
       openChat: false,
+      showChatButton: true,
 
       ad: null,
       order: null,
@@ -225,6 +225,10 @@ export default {
     cryptoAmount () {
       return (this.fiatAmount / this.order.locked_price).toFixed(8)
     },
+    hasChat () {
+      const stat = ['RFN', 'RLS', 'CNCL']
+      return !stat.includes(this.status.value) && this.showChatButton
+    },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
@@ -248,6 +252,10 @@ export default {
   },
   created () {
     bus.emit('hide-menu')
+
+    // WIP
+    // bus.on('hide-chat', this.hideChat())
+    // bus.on('show-chat', this.showChat())
   },
   async mounted () {
     const vm = this
@@ -282,17 +290,23 @@ export default {
       vm.order.status = status
       vm.checkStep()
     },
+    hideChat () {
+      this.showChatButton = false
+    },
+    showChat () {
+      this.showChatButton = true
+    },
     checkStep () {
       const vm = this
       vm.openDialog = false
       const status = vm.status.value
-      if (this.isExpired) {
-        if (!vm.isPdPendingRelease(status) && !vm.isStatusCompleted(status)) {
-          vm.state = 'standby-view'
-          vm.standByDisplayKey++
-          return
-        }
-      }
+      // if (this.isExpired) {
+      //  if (!vm.isPdPendingRelease(status) && !vm.isStatusCompleted(status)) {
+      //    vm.state = 'standby-view'
+      //    vm.standByDisplayKey++
+      //    return
+      //  }
+      // }
       switch (status) {
         case 'SBM': // Submitted
           if (this.order.is_ad_owner) {
@@ -539,7 +553,9 @@ export default {
     submitAppeal (data) {
       const vm = this
       backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
-        .then(response => vm.updateStatus(response.data.status))
+        .then(response => {
+          vm.updateStatus(response.data.status.status)
+        })
         .then(vm.addArbiterToChat())
         .catch(error => {
           if (error.response) {
@@ -721,7 +737,7 @@ export default {
     },
 
     setupWebsocket (retries, delayDuration) {
-      const wsUrl = `${this.wsURL}${this.order.id}/`
+      const wsUrl = `${getBackendWsUrl()}order/${this.order.id}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
         console.log('WebSocket connection established to ' + wsUrl)
@@ -729,7 +745,8 @@ export default {
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        this.updateStatus(data?.status?.status)
+        this.fetchOrder()
+        // this.updateStatus(data?.status?.status)
         // if (data.error) {
         //   this.errorMessages.push(data.error)
         //   this.verifyTransactionKey++
@@ -763,7 +780,7 @@ export default {
       return new Promise(resolve => setTimeout(resolve, duration))
     },
     onBack () {
-      bus.emit('show-menu')
+      bus.emit('show-menu', 'orders')
       this.$emit('back')
     }
   }
