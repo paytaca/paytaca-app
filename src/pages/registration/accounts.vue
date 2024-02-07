@@ -353,7 +353,6 @@ export default {
         await bchWallet.getNewAddressSet(0).then(function (response) {
           const addresses = response?.addresses || null
           const pgpIdentity = response?.pgpIdentity || null
-          const purelypeerVaultSigner = response?.purelypeerVaultSigner || null
 
           vm.$store.commit('global/updateWallet', {
             isChipnet,
@@ -363,7 +362,6 @@ export default {
             lastAddress: addresses !== null ? addresses.receiving : '',
             lastChangeAddress: addresses !== null ? addresses.change : '',
             lastAddressIndex: 0,
-            purelypeerVaultSigner
           })
           vm.$store.dispatch('chat/addIdentity', pgpIdentity)
           vm.steps += 1

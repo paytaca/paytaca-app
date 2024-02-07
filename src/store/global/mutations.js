@@ -93,11 +93,6 @@ export function enableSmartBCH (state) {
   state.enableSmartBCH = !state.enableSmartBCH
 }
 
-export function updatePurelypeerVaultSigner (state, details) {
-  const wallet = getWalletData(state, details)
-  wallet.purelypeerVaultSigner = details.purelypeerVaultSigner
-}
-
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
 
@@ -109,7 +104,6 @@ export function updateWallet (state, details) {
   wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
   wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
   wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
-  wallet.purelypeerVaultSigner = details.purelypeerVaultSigner ?? wallet.purelypeerVaultSigner
 }
 
 export function setLanguage (state, language) {
