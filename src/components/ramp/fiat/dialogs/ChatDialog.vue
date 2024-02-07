@@ -487,7 +487,9 @@ export default {
     },
     loadData () {
       const vm = this
-      const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+      console.log(vm.data)
+      const username = this.$store.getters['ramp/chatIdentity'].name
+      // const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
       vm.chatRef = `ramp-order-${this.data.id}-chat`
       fetchChatMembers(vm.chatRef)
         .then(members => {
@@ -499,6 +501,7 @@ export default {
               pubkeys: member.chat_identity.pubkeys
             }
           })
+          console.log('members: ', vm.chatMembers)
         })
       fetchChatPubkeys(vm.chatRef)
         .then(pubkeys => {
