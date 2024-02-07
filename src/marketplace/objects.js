@@ -896,6 +896,8 @@ export class Order {
    * @param {String | Number} [data.auto_complete_at]
    * @param {String | Number} [data.preparation_deadline]
    * @param {String | Number} [data.delivery_deadline]
+   * @param {Boolean} data.has_ongoing_dispute
+   * @param {Object} [data.dispute]
   */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -934,6 +936,9 @@ export class Order {
 
     if (data?.delivery_deadline) this.deliveryDeadline = new Date(data?.delivery_deadline)
     else delete this.deliveryDeadline
+
+    this.hasOngoingDispute = data?.has_ongoing_dispute
+    if (data?.dispute) this.dispute = OrderDispute.parse(data?.dispute)
   }
 
   get isCancelled() {
@@ -1033,6 +1038,16 @@ export class Order {
       })
   }
 
+  async fetchDispute() {
+    if (!this.id) return Promise.reject()
+    return backend.get(`connecta/orders/${this.id}/dispute/`)
+    .then(response => {
+      if (!response?.data?.id) return Promise.reject({ response })
+      this.dispute = OrderDispute.parse(response?.data)
+      return response 
+    })      
+  }
+
   refetch() {
     if (!this.id) return Promise.reject()
     return backend.get(`connecta/orders/${this.id}/`)
@@ -1041,6 +1056,53 @@ export class Order {
         this.raw = response?.data
         return response 
       })
+  }
+}
+
+export class OrderDispute {
+  static parse(data) {
+    return new OrderDispute(data) 
+  }
+
+  static get resolveActions() {
+    return {
+      doNothing: 'do_nothing',
+      completeOrder: 'complete_order',
+      cancelOrder: 'cancel_order',
+    }
+  }
+  static get resolveActionsList() {
+    return Object.getOwnPropertyNames(this.resolveActions).map(name => this.resolveActions[name])
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.order_id
+   * @param {String[]} data.reasons
+   * @param {String | null} data.resolve_action
+   * @param {String | null} data.resolved_at
+   * @param {String} data.created_at
+   * @param {Object} data.created_by
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.orderId = data?.order_id
+    this.reasons = Array.isArray(data?.reasons) ? data?.reasons : []
+    this.resolveAction = data?.resolve_action
+    if (data?.resolved_at) this.resolvedAt = new Date(data?.resolved_at)
+    else if (this.resolvedAt) delete this.resolvedAt
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
   }
 }
 

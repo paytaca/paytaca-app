@@ -1,15 +1,19 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" full-height>
-    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pb-none">
+        <slot name="header" v-bind="{ chatRef, chatSession }">
+
         <div class="row items-center q-pb-sm">
-          <div class="q-space">
-            <div class="text-h5">Chat</div>
-            <div class="text-caption text-grey bottom">{{ chatRef }}</div>
+            <div class="q-space">
+              <div class="text-h5">Chat</div>
+              <div class="text-caption text-grey bottom">{{ chatRef }}</div>
+            </div>
+            <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
           </div>
-          <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
-        </div>
+        </slot>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
+          <slot name="before-messages"></slot>
           <q-space/>
           <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;">
             <div class="row justify-center">
@@ -564,6 +568,7 @@ export default defineComponent({
 
       customer,
       isOwnMessage,
+      chatSession,
 
       hasMoreMessages,
       fetchingMessages,
