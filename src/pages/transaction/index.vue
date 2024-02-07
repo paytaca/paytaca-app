@@ -1011,10 +1011,7 @@ export default {
         // Create change addresses if nothing is set yet
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
-        getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({
-          addresses,
-          purelypeerVaultSigner
-        }) {
+        getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({ addresses }) {
           if (bchChangeAddress.length === 0) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
@@ -1023,16 +1020,6 @@ export default {
               lastAddress: addresses.receiving,
               lastChangeAddress: addresses.change,
               lastAddressIndex: 0,
-              purelypeerVaultSigner
-            })
-          }
-
-          const ppvs = vm.$store.getters['global/getPurelypeerVaultSigner']
-          const ppvsData = ppvs.receiving && ppvs.change
-          if (!ppvsData) {
-            vm.$store.commit('global/updatePurelypeerVaultSigner', {
-              type: 'bch',
-              purelypeerVaultSigner,
             })
           }
         })

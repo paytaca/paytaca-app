@@ -34,10 +34,6 @@ export class BchWallet {
     this.projectId = projectId
     this.walletHash = this.getWalletHash()
     this.baseUrl = getWatchtowerApiUrl(isChipnet)
-    this.purelypeerVaultSigner = {
-      index: 0,
-      derivationPath: "m/44'/145'/1'"
-    }
   }
 
   getWalletHash (derivationPath = '') {
@@ -95,16 +91,9 @@ export class BchWallet {
 
   async getAddressSetAt(index) {
     const { receivingAddressNode, changeAddressNode } = await this.getChildNode(index, this.derivationPath)
-    const merchantNode = await this.getChildNode(
-      this.purelypeerVaultSigner.index,
-      this.purelypeerVaultSigner.derivationPath
-    )
 
     let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
     let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
-
-    let merchantReceivingAddress = bchjs.HDNode.toCashAddress(merchantNode.receivingAddressNode)
-    let merchantChangeAddress = bchjs.HDNode.toCashAddress(merchantNode.changeAddressNode)
 
     // Generate a new PGP key
     const userID = receivingAddress.split(':')[1]
@@ -128,8 +117,6 @@ export class BchWallet {
     if (this.isChipnet) {
       receivingAddress = convertCashAddress(receivingAddress, this.isChipnet, false)
       changeAddress = convertCashAddress(changeAddress, this.isChipnet, false)
-      merchantReceivingAddress = convertCashAddress(merchantReceivingAddress, this.isChipnet, false)
-      merchantChangeAddress = convertCashAddress(merchantChangeAddress, this.isChipnet, false)
     }
 
     const pgpIdentity = {
@@ -144,18 +131,12 @@ export class BchWallet {
       change: changeAddress,
       pgpInfo: pgpInfo,
       pgpIdentity: pgpIdentity,
-      purelypeerVaultSigner: {
-        receiving: merchantReceivingAddress,
-        change: merchantChangeAddress,
-        derivationPath: this.purelypeerVaultSigner.derivationPath
-      }
     }
   }
 
   async getNewAddressSet (index) {
     const addresses = await this.getAddressSetAt(index)
     const addressSet = { receiving: addresses.receiving, change: addresses.change }
-    const purelypeerVaultSigner = addresses.purelypeerVaultSigner
 
     const data = {
       addresses: addressSet,
@@ -164,23 +145,12 @@ export class BchWallet {
       addressIndex: index,
       chatIdentity: addresses.pgpInfo
     }
-    const ppVaultSignerData = {
-      addresses: {
-        receiving: purelypeerVaultSigner.receiving,
-        change: purelypeerVaultSigner.change,
-      },
-      projectId: this.projectId,
-      walletHash: this.getWalletHash(this.purelypeerVaultSigner.derivationPath),
-      addressIndex: this.purelypeerVaultSigner.index
-    }
     const result = await this.watchtower.subscribe(data)
-    const ppVaultSignerResult = await this.watchtower.subscribe(ppVaultSignerData)
 
-    if (result.success && ppVaultSignerResult.success) {
+    if (result.success) {
       return {
         addresses: addressSet,
         pgpIdentity: addresses.pgpIdentity,
-        purelypeerVaultSigner
       }
     } else {
       return null
