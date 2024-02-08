@@ -92,7 +92,7 @@
   <div v-if="state === 'appeal-process'">
     <AppealProcess
       :selectedAppeal="selectedAppeal"
-      @back="state = 'appeal-list'"
+      @back="this.state = 'appeal-list'"
     />
   </div>
 </template>
