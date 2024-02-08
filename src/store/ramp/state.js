@@ -65,7 +65,8 @@ export default function () {
       sort_type: 'ascending',
       sort_by: 'created_at',
       status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
-      expired_only: false,
+      appealable: true,
+      not_appealable: true,
       payment_types: [],
       time_limits: [5, 15, 30, 60, 300, 720, 1440],
       ownership: {

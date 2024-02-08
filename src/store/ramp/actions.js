@@ -163,7 +163,8 @@ export async function fetchOrders (context, { statusType = null, params = null, 
         sort_type: params.sort_type,
         sort_by: params.sort_by,
         owned: owned,
-        expired_only: params.expired_only
+        appealable: params.appealable,
+        not_appealable: params.not_appealable
       }
       if (params.trade_type.buy !== params.trade_type.sell) {
         if (params.trade_type.buy) {

@@ -30,13 +30,12 @@
                   unelevated
                   ripple
                   dense
-                  size="md"
-                  icon="sym_o_filter_list"
+                  size="lg"
+                  :icon="!defaultFiltersOn ? 'filter_list' : 'filter_list_off'"
                   class="button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
-                  @click="openFilter()"
-                >
-                  <q-badge v-if="!defaultFiltersOn" floating color="red"/>
+                  @click="openFilter()">
+                  <q-badge v-if="!defaultFiltersOn" floating color="green">ON</q-badge>
                 </q-btn>
               </div>
             </div>
@@ -190,14 +189,20 @@ export default {
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,
       defaultFilters: {
-        sortType: 'ascending',
-        sortBy: 'created_at',
+        sort_type: 'ascending',
+        sort_by: 'created_at',
         status: [],
-        selectedPaymentTypes: [],
-        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
+        appealable: true,
+        not_appealable: true,
+        payment_types: [],
+        time_limits: [5, 15, 30, 60, 300, 720, 1440],
         ownership: {
           owned: true,
           notOwned: true
+        },
+        trade_type: {
+          buy: true,
+          sell: true
         }
       },
       filters: {},
@@ -270,10 +275,34 @@ export default {
         })
     },
     isdefaultFiltersOn (filters) {
-      if (JSON.stringify(this.defaultFilters?.payment_types?.sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
-          JSON.stringify(this.defaultFilters?.time_limits?.sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
+      filters = { ...filters }
+      const defaultFilters = { ...this.defaultFilters }
+      if (JSON.stringify(defaultFilters?.payment_types?.sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
+          JSON.stringify(defaultFilters?.time_limits?.sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
         return false
       }
+
+      const defStatusLen = defaultFilters.status.length
+      const statusLen = filters.status.length
+      if (defStatusLen === 0) {
+        if (statusLen !== 9) {
+          return false
+        }
+      } else {
+        if (defStatusLen !== statusLen) return false
+        const statusMatch = JSON.stringify(defaultFilters?.status?.sort()) !== JSON.stringify(filters?.status?.sort())
+        if (!statusMatch) return false
+      }
+
+      delete filters.payment_types
+      delete filters.time_limits
+      delete filters.status
+      delete defaultFilters.payment_types
+      delete defaultFilters.time_limits
+      delete defaultFilters.status
+
+      const match = JSON.stringify(defaultFilters) === JSON.stringify(filters)
+      if (!match) return false
       return true
     },
     openFilter () {
