@@ -183,11 +183,14 @@
               <div class="row" id="mnemonic">
                 <template v-if="steps === totalSteps">
                   <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                    <ul>
+                    <!-- <ul>
                       <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
                         <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
                       </li>
-                    </ul>
+                    </ul> -->
+                    <SeedPhraseContainer
+                      :mnemonic="mnemonic"
+                    />
                   </div>
                   <div v-else>
                     <div>
@@ -241,20 +244,22 @@
 
 <script>
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
+import { getMnemonic } from '../../wallet'
+import { utils } from 'ethers'
+import { Device } from '@capacitor/device'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { supportedLangs as supportedLangsI18n } from '../../i18n'
+
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
 import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
-import { NativeBiometric } from 'capacitor-native-biometric'
-import { getMnemonic } from '../../wallet'
-import { utils } from 'ethers'
-import { Device } from '@capacitor/device'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { supportedLangs as supportedLangsI18n } from '../../i18n'
+import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 
 function countWords(str) {
   if (str) {
@@ -280,7 +285,8 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
-    ThemeSelectorPreview
+    ThemeSelectorPreview,
+    SeedPhraseContainer
   },
   data () {
     return {
@@ -728,28 +734,28 @@ export default {
   background-color: #F9F8FF;
   padding-top: 28px !important;
 }
-ul {
-  list-style: none;
-  display: block;
-  margin-left: -40px;
-  text-align: justify;
-}
-ul li {
-  display: inline-block;
-  font-size: 18px;
-  padding: 10px;
-}
-li span {
-  background:#AAB2E9;
-  padding: 5px 15px;
-  border-radius: 20px;
-  color: #fff;
-}
-li pre {
-  display: inline;
-  color: #D36EE1;
-  padding-right: 5px;
-}
+// ul {
+//   list-style: none;
+//   display: block;
+//   margin-left: -40px;
+//   text-align: justify;
+// }
+// ul li {
+//   display: inline-block;
+//   font-size: 18px;
+//   padding: 10px;
+// }
+// li span {
+//   background:#AAB2E9;
+//   padding: 5px 15px;
+//   border-radius: 20px;
+//   color: #fff;
+// }
+// li pre {
+//   display: inline;
+//   color: #D36EE1;
+//   padding-right: 5px;
+// }
 .font-lg {
   font-size: 20px;
 }
