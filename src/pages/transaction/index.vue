@@ -1233,9 +1233,17 @@ export default {
       forceRecreate = true
     } else if (preferredSecurity === 'pin') {
       // If using PIN, check if it's 6 digits
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
       try {
-        const pin =  await SecureStoragePlugin.get({ key: 'pin' })
-        if (pin.value.length < 6) {
+        let pin = null
+        try {
+          pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+        } catch (error) {
+          // fallback for old process of pin retrieval
+          pin = await SecureStoragePlugin.get({ key: 'pin' })
+        }
+        if (pin?.value.length < 6) {
           forceRecreate = true
         }
       } catch {
