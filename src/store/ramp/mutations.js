@@ -77,8 +77,11 @@ export function resetStoreFilters (state) {
 
 export function resetStoreBuyFilters (state) {
   state.storeBuyFilters = {
-    price_order: 'descending',
-    price_types: ['FIXED', 'FLOATING'],
+    sort_type: 'descending',
+    price_type: {
+      fixed: true,
+      floating: true
+    },
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440]
   }
@@ -86,8 +89,11 @@ export function resetStoreBuyFilters (state) {
 
 export function resetStoreSellFilters (state) {
   state.storeSellFilters = {
-    price_order: 'ascending',
-    price_types: ['FIXED', 'FLOATING'],
+    sort_type: 'ascending',
+    price_type: {
+      fixed: true,
+      floating: true
+    },
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440]
   }

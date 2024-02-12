@@ -256,12 +256,15 @@ export default {
     },
     fetchAds (overwrite = false) {
       const vm = this
-      const params = { trade_type: vm.transactionType, owned: true }
+      const params = {
+        trade_type: vm.transactionType,
+        owned: true
+      }
       vm.loading = true
       vm.$store.dispatch('ramp/fetchAds', { component: 'ads', params: params, overwrite: overwrite })
         .then(() => {
-          vm.loading = false
           vm.updatePaginationValues()
+          vm.loading = false
         })
         .catch(error => {
           vm.loading = false
@@ -409,8 +412,8 @@ font-size: 16px;
 background-color: rgb(242, 243, 252);
 border-radius: 24px;
 padding: 4px;
-margin-left: 12%;
-margin-right: 12%;
+margin-left: 7%;
+margin-right: 7%;
 margin-top: 10px;
 }
 .btn-custom {

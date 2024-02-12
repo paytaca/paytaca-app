@@ -49,20 +49,17 @@
           <div
             class="row br-15 text-center pt-card btn-transaction"
             :class="getDarkModeClass(darkMode)"
-            :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
-          >
+            :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
             <button
               class="col br-15 btn-custom fiat-tab q-mt-none"
               :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"
-              @click="transactionType='SELL'"
-            >
+              @click="transactionType='SELL'">
               Buy BCH
             </button>
             <button
               class="col br-15 btn-custom fiat-tab q-mt-none"
               :class="[{'dark': darkMode}, {'active-sell-btn': transactionType == 'BUY'}]"
-              @click="transactionType='BUY'"
-            >
+              @click="transactionType='BUY'">
               Sell BCH
             </button>
           </div>
@@ -161,9 +158,9 @@
       />
     </div>
     <div v-if="openDialog">
-      <MiscDialogs
+      <FilterDialog
         :type="dialogType"
-        :filters="storeFilters"
+        :filters="filters"
         @back="openDialog = false"
         @submit="receiveDialog"
       />
@@ -178,7 +175,8 @@
 <script>
 import FiatOrderForm from './FiatOrderForm.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import MiscDialogs from './dialogs/MiscDialogs.vue'
+// import MiscDialogs from './dialogs/MiscDialogs.vue'
+import FilterDialog from './dialogs/FilterDialog.vue'
 import { formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -197,7 +195,7 @@ export default {
   components: {
     FiatOrderForm,
     FiatProfileCard,
-    MiscDialogs,
+    FilterDialog,
     FooterLoading
   },
   data () {
@@ -218,23 +216,26 @@ export default {
       dialogType: '',
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       defaultFilters: {
-        price_order: 'ascending',
-        price_types: ['FIXED', 'FLOATING'],
+        sort_type: 'ascending',
+        price_type: {
+          fixed: true,
+          floating: true
+        },
         payment_types: [],
         time_limits: [5, 15, 30, 60, 300, 720, 1440]
       },
-      storeFilters: {},
+      filters: {},
       defaultFiltersOn: true
     }
   },
   watch: {
-    transactionType (val) {
+    transactionType (value) {
       const vm = this
+      vm.switchFilterDefaults(value)
+      vm.updateFilters()
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
       vm.resetAndRefetchListings()
-      vm.defaultFilters.price_order = val === 'SELL' ? 'ascending' : 'descending'
-      vm.updateFilters()
     },
     async selectedCurrency () {
       this.resetAndRefetchListings()
@@ -274,8 +275,10 @@ export default {
   },
   async mounted () {
     const vm = this
+    vm.fetchPaymentTypes()
     vm.fetchFiatCurrencies()
-    vm.updateFilters().then(() => { vm.resetAndRefetchListings() })
+    vm.updateFilters()
+    vm.resetAndRefetchListings()
   },
   methods: {
     getDarkModeClass,
@@ -320,8 +323,15 @@ export default {
       const vm = this
       if (this.selectedCurrency) {
         vm.loading = true
-        const params = vm.storeFilters
-        vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: overwrite })
+        const params = vm.filters
+        params.currency = vm.selectedCurrency.symbol
+        params.trade_type = vm.transactionType
+        vm.$store.dispatch('ramp/fetchAds',
+          {
+            component: 'store',
+            params: params,
+            overwrite: overwrite
+          })
           .then(response => {
             vm.updatePaginationValues()
             vm.loading = false
@@ -337,6 +347,57 @@ export default {
             }
           })
       }
+    },
+    async receiveDialog (data) {
+      const vm = this
+      const mutationName = (
+        vm.transactionType === 'SELL'
+          ? 'ramp/updateStoreSellFilters'
+          : 'ramp/updateStoreBuyFilters')
+      vm.openDialog = false
+      vm.$store.commit(mutationName, data)
+      vm.updateFilters()
+      vm.resetAndRefetchListings()
+    },
+    openFilter () {
+      this.dialogType = this.transactionType === 'SELL' ? 'filterSellAd' : 'filterBuyAd'
+      this.openDialog = true
+    },
+    switchFilterDefaults (adType) {
+      const vm = this
+      vm.defaultFilters.sort_type = adType === 'SELL' ? 'ascending' : 'descending'
+    },
+    isdefaultFiltersOn (filters) {
+      filters = { ...filters }
+      const defaultFilters = { ...this.defaultFilters }
+      if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
+          JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
+        return false
+      }
+
+      if (filters.currency) delete filters.currency
+      if (filters.trade_type) delete filters.trade_type
+      delete filters.payment_types
+      delete filters.time_limits
+      delete defaultFilters.payment_types
+      delete defaultFilters.time_limits
+
+      const match = JSON.stringify(defaultFilters) === JSON.stringify(filters)
+      if (!match) return false
+      return true
+    },
+    updateFilters () {
+      const vm = this
+      const defaultPaymentTypes = vm.$store.getters['ramp/paymentTypes']
+      vm.defaultFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
+
+      const getterName = vm.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
+      const filters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
+      if (filters.paymentTypes?.length === 0) {
+        filters.paymentTypes = Array.from(vm.defaultFilters.payment_types)
+      }
+      vm.filters = filters
+      vm.defaultFiltersOn = vm.isdefaultFiltersOn(filters)
     },
     loadMoreData (_, done) {
       const vm = this
@@ -358,26 +419,6 @@ export default {
       const vm = this
       vm.$store.commit('ramp/resetStorePagination')
       vm.fetchStoreListings(true)
-    },
-    filterAds () {
-      const vm = this
-      const params = vm.storeFilters
-      vm.loading = true
-      vm.$store.commit('ramp/resetStorePagination')
-      vm.$store.dispatch('ramp/fetchAds', { component: 'store', params: params, overwrite: true })
-        .then(() => {
-          vm.loading = false
-          vm.updatePaginationValues()
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          }
-        })
     },
     updatePaginationValues () {
       const vm = this
@@ -431,62 +472,6 @@ export default {
       } else {
         return parseFloat(tradeCeiling)
       }
-    },
-    async receiveDialog (data) {
-      const vm = this
-      const mutationName = this.transactionType === 'SELL' ? 'ramp/updateStoreSellFilters' : 'ramp/updateStoreBuyFilters'
-      vm.openDialog = false
-      vm.$store.commit(mutationName, data)
-      await vm.updateFilters()
-      vm.filterAds()
-    },
-    isdefaultFiltersOn (filters) {
-      if ((this.defaultFilters.price_order !== filters.price_order) ||
-          (JSON.stringify(this.defaultFilters.price_types.sort()) !== JSON.stringify(filters.price_types.sort())) ||
-          JSON.stringify(this.defaultFilters.payment_types.sort()) !== JSON.stringify(filters.payment_types.sort()) ||
-          JSON.stringify(this.defaultFilters.time_limits.sort()) !== JSON.stringify(filters.time_limits.sort())) {
-        return false
-      }
-      return true
-    },
-    openFilter () {
-      this.openDialog = true
-      this.dialogType = 'filterAd'
-    },
-    updateFilters () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        vm.fetchPaymentTypes().then(() => {
-          // fetch saved filters
-          const getterName = vm.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
-          const savedFilters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
-          let paymentTypes = savedFilters.payment_types
-          if (paymentTypes.length === 0) {
-            // set default: all payment types selected
-            paymentTypes = Array.from(vm.defaultFilters.payment_types)
-          }
-          vm.storeFilters = {
-            owned: false,
-            currency: vm.selectedCurrency.symbol,
-            trade_type: vm.transactionType,
-            payment_types: paymentTypes,
-            time_limits: savedFilters.time_limits,
-            price_order: savedFilters.price_order,
-            price_types: savedFilters.price_types
-          }
-          vm.defaultFiltersOn = vm.isdefaultFiltersOn(vm.storeFilters)
-          resolve(vm.storeFilters)
-        })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            }
-            reject(error)
-          })
-      })
     }
   }
 }
@@ -530,8 +515,8 @@ export default {
   background-color: rgb(242, 243, 252);
   border-radius: 24px;
   padding: 4px;
-  margin-left: 12%;
-  margin-right: 12%;
+  margin-left: 7%;
+  margin-right: 7%;
   margin-top: 10px;
 }
 .ib-text {

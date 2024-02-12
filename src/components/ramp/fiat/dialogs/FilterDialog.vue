@@ -160,84 +160,95 @@
         <!-- <div class="q-mt-md q-pl-md">
           <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
         </div> -->
-        <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter Ads</div>
+        <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter {{ type === 'filterSellAd' ? 'Sell' : 'Buy' }} Ads</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
         <div class="q-px-lg q-mx-sm">
-          <div v-if="storeFilters.priceTypes" class="q-pt-md">
+          <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Price Type</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 rounded
                 color="blue-grey-6"
                 class="q-pa-sm"
-                :outline="isOutlined('FIXED','price-types')"
-                @click="addFilterInfo('FIXED', 'price-types')">
+                :outline="!storeAllSelected('price-type')"
+                @click="storeSetAllSelected('price-type')">
+                Default: All
+              </q-badge>
+              <q-badge
+                rounded
+                color="blue-grey-6"
+                class="q-pa-sm"
+                :outline="!storeFilters?.price_type?.fixed"
+                @click="storeFilters.price_type.fixed = !storeFilters?.price_type?.fixed">
                 Fixed
               </q-badge>
               <q-badge
                 rounded
                 color="blue-grey-6"
                 class="q-pa-sm"
-                :outline="isOutlined('FLOATING','price-types')"
-                @click="addFilterInfo('FLOATING', 'price-types')">
+                :outline="!storeFilters?.price_type?.floating"
+                @click="storeFilters.price_type.floating = !storeFilters?.price_type?.floating">
                 Floating
               </q-badge>
             </div>
           </div>
-          <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
+
+          <!-- Ad Payment Type -->
+          <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Payment Type</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="storeFilters.selectedPaymentTypes.length < paymentTypes.length"
-                @click="addFilterInfo('all', 'all-payment-type')">
-                All
+                :outline="!storeAllSelected('payment-type')"
+                @click="storeSetAllSelected('payment-type')">
+                Default: All
               </q-badge>
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="isOutlined(method,'payment-types')"
-                @click="addFilterInfo(method, 'payment-types')"
-                v-for="method in paymentTypes"
-                :key="method.id">
-                {{ method.name }}
+                v-for="payment in paymentTypes"
+                :outline="!storeFilters.payment_types.includes(payment.id)"
+                @click="setStoreFilter('payment-type', payment.id)"
+                :key="payment.id">
+                {{ payment.name }}
               </q-badge>
             </div>
           </div>
 
-          <div v-if="storeFilters.selectedPTL" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Time Limit</div>
+          <!-- Ad Appealable Time -->
+          <div class="q-pt-md">
+            <div class="sm-font-size text-weight-bold">Appealable Time</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="storeFilters.selectedPTL.length < ptl.length"
-                @click="addFilterInfo('all', 'all-time-limits')">
-                All
+                :outline="!storeAllSelected('time-limit')"
+                @click="storeSetAllSelected('time-limit')">
+                Default: All
               </q-badge>
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="isOutlined(method, 'time-limits')"
-                @click="addFilterInfo(method, 'time-limits')"
-                v-for="(method, index) in ptl"
+                v-for="(value, index) in ptl"
+                :outline="!storeFilters.time_limits?.includes(value)"
+                @click="setStoreFilter('time-limit', value)"
                 :key="index">
-                {{ paymentTimeLimit(method) }}
+                {{ paymentTimeLimit(value) }}
               </q-badge>
             </div>
           </div>
 
-          <div v-if="storeFilters.priceOrder" class="q-pt-md">
+          <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Price Order</div>
             <div class="q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'ascending'" @click="storeFilters.priceOrder = 'ascending'">Ascending</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'descending'" @click="storeFilters.priceOrder = 'descending'">Descending</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'ascending'" @click="storeFilters.sort_type = 'ascending'">{{ type === 'filterSellAd' ? 'Default: ' : '' }} Ascending</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'descending'" @click="storeFilters.sort_type = 'descending'">{{ type === 'filterBuyAd' ? 'Default: ' : '' }} Descending</q-badge>
             </div>
           </div>
 
@@ -286,10 +297,13 @@ export default {
       paymentTypes: this.$store.getters['ramp/paymentTypes'],
       priceTypeOpts: ['FIXED', 'FLOATING'],
       storeFilters: {
-        selectedPaymentTypes: [],
-        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
-        priceOrder: null,
-        priceTypes: ['FIXED', 'FLOATING']
+        payment_types: [],
+        time_limits: [5, 15, 30, 60, 300, 720, 1440],
+        sort_type: 'ascending',
+        price_type: {
+          fixed: true,
+          floating: true
+        }
       },
       orderFilters: {
         sort_type: 'ascending',
@@ -344,6 +358,7 @@ export default {
     }
   },
   async mounted () {
+    console.log('type:', this.type)
     this.checkDialogType()
   },
   methods: {
@@ -355,7 +370,8 @@ export default {
         filters = toRaw(filters)
       }
       switch (vm.type) {
-        case 'filterAd':
+        case 'filterSellAd':
+        case 'filterBuyAd':
           vm.filterAd = true
           vm.updateStoreFilters(filters)
           break
@@ -369,19 +385,21 @@ export default {
     submitData () {
       const vm = this
       switch (vm.type) {
-        case 'filterAd':
-          vm.info = {
-            price_order: vm.storeFilters.priceOrder
-          }
-          if (vm.storeFilters.selectedPaymentTypes) {
-            vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
-          }
-          if (vm.storeFilters.selectedPTL) {
-            vm.info.time_limits = vm.storeFilters.selectedPTL
-          }
-          if (vm.storeFilters.priceTypes) {
-            vm.info.price_types = vm.storeFilters.priceTypes
-          }
+        case 'filterSellAd':
+        case 'filterBuyAd':
+          // vm.info = {
+          //   price_order: vm.storeFilters.priceOrder
+          // }
+          // if (vm.storeFilters.selectedPaymentTypes) {
+          //   vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
+          // }
+          // if (vm.storeFilters.selectedPTL) {
+          //   vm.info.time_limits = vm.storeFilters.selectedPTL
+          // }
+          // if (vm.storeFilters.priceTypes) {
+          //   vm.info.price_types = vm.storeFilters.priceTypes
+          // }
+          vm.info = vm.storeFilters
           break
         case 'filterOngoingOrder':
         case 'filterCompletedOrder':
@@ -474,70 +492,67 @@ export default {
         }
       }
     },
+    storeSetAllSelected (type) {
+      const vm = this
+      switch (type) {
+        case 'price-type':
+          vm.storeFilters.price_type.fixed = true
+          vm.storeFilters.price_type.floating = true
+          break
+        case 'payment-type':
+          vm.storeFilters.payment_types = vm.paymentTypes.map(e => e.id)
+          break
+        case 'time-limit':
+          vm.storeFilters.time_limits = vm.ptl
+          break
+      }
+    },
+    storeAllSelected (type) {
+      const vm = this
+      switch (type) {
+        case 'price-type':
+          return vm.storeFilters.price_type.fixed && vm.storeFilters.price_type.floating
+        case 'payment-type':
+          return vm.storeFilters.payment_types.length === vm.paymentTypes.length
+        case 'time-limit':
+          return vm.storeFilters.time_limits.length === vm.ptl.length
+      }
+    },
+    setStoreFilter (type, value) {
+      const vm = this
+      switch (type) {
+        case 'payment-type': {
+          const paymentTypes = vm.storeFilters.payment_types
+          if (paymentTypes.includes(value)) {
+            vm.storeFilters.payment_types = paymentTypes.filter(e => e !== value)
+          } else {
+            vm.storeFilters.payment_types.push(value)
+          }
+          break
+        }
+        case 'time-limit': {
+          const timeLimits = vm.storeFilters.time_limits
+          if (timeLimits.includes(value)) {
+            vm.storeFilters.time_limits = timeLimits.filter(e => e !== value)
+          } else {
+            vm.storeFilters.time_limits.push(value)
+          }
+          break
+        }
+      }
+    },
     updateStoreFilters (filters) {
       if (!filters) return
-      this.storeFilters.priceOrder = filters.price_order
-      this.storeFilters.priceTypes = filters.price_types
-      this.storeFilters.selectedPaymentTypes = filters.payment_types
-      this.storeFilters.selectedPTL = filters.time_limits
+      this.storeFilters = filters
+      this.storeFilters.price_type = { ...filters.price_type }
+      console.log('storeFilters???:', this.storeFilters)
     },
     updateOrderFilters (filters) {
       if (!filters) return
       this.orderFilters = filters
       this.orderFilters.ownership = { ...filters.ownership }
       this.orderFilters.trade_type = { ...filters.trade_type }
-    },
-    addFilterInfo (data, type = '') {
-      let temp = null
-      if (data === 'all') {
-        if (type === 'all-payment-type') {
-          this.storeFilters.selectedPaymentTypes = this.paymentTypes.map(p => p.id)
-        }
-        if (type === 'all-time-limits') {
-          this.storeFilters.selectedPTL = this.ptl
-        }
-      } else {
-        if (type === 'payment-types') {
-          temp = this.storeFilters.selectedPaymentTypes
-          if (temp.includes(data.id)) {
-            if (temp.length > 1) {
-              this.storeFilters.selectedPaymentTypes = this.storeFilters.selectedPaymentTypes.filter(p => p !== data.id)
-            }
-          } else {
-            this.storeFilters.selectedPaymentTypes.push(data.id)
-          }
-        }
-        if (type === 'time-limits') {
-          temp = this.storeFilters.selectedPTL
-          if (temp.includes(data)) {
-            this.storeFilters.selectedPTL = this.storeFilters.selectedPTL.filter(p => p !== data)
-          } else {
-            this.storeFilters.selectedPTL.push(data)
-          }
-        }
-        if (type === 'price-types') {
-          temp = this.storeFilters.priceTypes
-          if (temp.includes(data)) {
-            if (temp.length > 1) {
-              this.storeFilters.priceTypes = this.storeFilters.priceTypes.filter(p => p !== data)
-            }
-          } else {
-            this.storeFilters.priceTypes.push(data)
-          }
-        }
-      }
-    },
-    isOutlined (data, type = '') {
-      if (type === 'payment-types') {
-        const temp = this.storeFilters.selectedPaymentTypes
-        return !temp.includes(data.id)
-      }
-      if (type === 'time-limits') {
-        return !this.storeFilters.selectedPTL.includes(data)
-      }
-      if (type === 'price-types') {
-        return !this.storeFilters.priceTypes.includes(data)
-      }
+      console.log('orderFilters:', this.orderFilters)
     },
     paymentTimeLimit (timeValue) {
       return getAppealCooldown(timeValue).label

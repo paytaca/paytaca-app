@@ -34,7 +34,7 @@
                 class="button button-text-primary col-auto q-mt-sm q-pa-none"
                 :class="getDarkModeClass(darkMode)"
                 @click="openFilter()">
-                <q-badge v-if="!defaultFiltersOn" left floating color="green"/>
+                <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
               </q-btn>
             </div>
           <!-- </q-pull-to-refresh> -->
@@ -222,7 +222,7 @@ export default {
   watch: {
     statusType (value) {
       const vm = this
-      vm.switchDefaults(value)
+      vm.switchFilterDefaults(value)
       vm.updateFilters()
       vm.resetAndScrollToTop()
       vm.resetAndRefetchListings()
@@ -260,19 +260,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    switchDefaults (statusType) {
-      const vm = this
-      if (statusType === 'ONGOING') {
-        vm.defaultFilters.status = vm.defaultStatuses.ongoing
-        vm.defaultFilters.sort_type = vm.defaultSortType.ongoing
-        vm.defaultFilters.sort_by = vm.defaultSortBy.ongoing
-      }
-      if (statusType === 'COMPLETED') {
-        vm.defaultFilters.status = vm.defaultStatuses.completed
-        vm.defaultFilters.sort_type = vm.defaultSortType.completed
-        vm.defaultFilters.sort_by = vm.defaultSortBy.completed
-      }
-    },
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
@@ -296,6 +283,34 @@ export default {
             }
           }
         })
+    },
+    receiveDialog (data) {
+      const vm = this
+      const mutationName = (
+        vm.statusType === 'ONGOING'
+          ? 'ramp/updateOngoingOrderFilters'
+          : 'ramp/updateCompletedOrderFilters')
+      vm.openDialog = false
+      vm.$store.commit(mutationName, data)
+      vm.updateFilters()
+      vm.resetAndRefetchListings()
+    },
+    openFilter () {
+      this.openDialog = true
+      this.dialogType = this.statusType === 'ONGOING' ? 'filterOngoingOrder' : 'filterCompletedOrder'
+    },
+    switchFilterDefaults (statusType) {
+      const vm = this
+      if (statusType === 'ONGOING') {
+        vm.defaultFilters.status = vm.defaultStatuses.ongoing
+        vm.defaultFilters.sort_type = vm.defaultSortType.ongoing
+        vm.defaultFilters.sort_by = vm.defaultSortBy.ongoing
+      }
+      if (statusType === 'COMPLETED') {
+        vm.defaultFilters.status = vm.defaultStatuses.completed
+        vm.defaultFilters.sort_type = vm.defaultSortType.completed
+        vm.defaultFilters.sort_by = vm.defaultSortBy.completed
+      }
     },
     isdefaultFiltersOn (filters) {
       filters = { ...filters }
@@ -324,21 +339,6 @@ export default {
       const match = JSON.stringify(defaultFilters) === JSON.stringify(filters)
       if (!match) return false
       return true
-    },
-    openFilter () {
-      this.openDialog = true
-      this.dialogType = this.statusType === 'ONGOING' ? 'filterOngoingOrder' : 'filterCompletedOrder'
-    },
-    receiveDialog (data) {
-      const vm = this
-      const mutationName = (
-        vm.statusType === 'ONGOING'
-          ? 'ramp/updateOngoingOrderFilters'
-          : 'ramp/updateCompletedOrderFilters')
-      vm.openDialog = false
-      vm.$store.commit(mutationName, data)
-      vm.updateFilters()
-      vm.resetAndRefetchListings()
     },
     updateFilters () {
       const vm = this
