@@ -10,16 +10,16 @@
             <div v-if="orderFilters.sort_by" class="q-pt-md">
               <div class="sm-font-size text-weight-bold">Sort By</div>
               <div class="q-ml-xs q-pt-xs q-gutter-sm">
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">Default: Last Created</q-badge>
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">Last Updated</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Created at</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Updated at</q-badge>
               </div>
             </div>
             <!-- Sort type -->
             <div v-if="orderFilters.sort_type" class="q-pt-md">
               <div class="sm-font-size text-weight-bold">Sort Type</div>
               <div class="q-ml-xs q-pt-xs q-gutter-sm">
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">Default: Oldest</q-badge>
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">Newest</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Oldest</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Newest</q-badge>
               </div>
             </div>
             <!-- Ownership -->
@@ -159,10 +159,10 @@
     <!-- Filter Ads -->
     <q-dialog v-model="filterAd" @before-hide="$emit('back')">
       <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
-        <div class="q-mt-md q-pl-md">
+        <!-- <div class="q-mt-md q-pl-md">
           <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
-        </div>
-        <div class="text-center text-weight-bold lg-font-size">Filter Ads</div>
+        </div> -->
+        <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter Ads</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
         <div class="q-px-lg q-mx-sm">
@@ -428,8 +428,12 @@ export default {
           return vm.orderFilters.ownership.owned && vm.orderFilters.ownership.notOwned
         case 'trade-type':
           return vm.orderFilters.trade_type.buy && vm.orderFilters.trade_type.sell
-        case 'status':
-          return vm.orderFilters.status.length === vm.statuses.length && vm.orderFilters.appealable && vm.orderFilters.not_appealable
+        case 'status': {
+          const allStatus = vm.orderFilters.status.length === vm.statuses.length
+          const allAppeal = vm.orderFilters.appealable && vm.orderFilters.not_appealable
+          if (vm.type === 'filterOngoingOrder') return allStatus && allAppeal
+          return allStatus
+        }
         case 'payment-type':
           return vm.orderFilters.payment_types.length === vm.paymentTypes.length
         case 'time-limit':
