@@ -82,6 +82,8 @@ export default function () {
       sort_type: 'descending',
       sort_by: 'last_modified_at',
       status: ['CNCL', 'RLS', 'RFN'],
+      appealable: true,
+      not_appealable: true,
       payment_types: [],
       time_limits: [5, 15, 30, 60, 300, 720, 1440],
       ownership: {
