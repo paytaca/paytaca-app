@@ -11,20 +11,17 @@
               <div
                 class="col-9 row br-15 text-center pt-card btn-transaction md-font-size"
                 :class="getDarkModeClass(darkMode)"
-                :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
-              >
+                :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
                 <button
                   class="col br-15 btn-custom fiat-tab q-mt-none"
                   :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
-                  @click="statusType='ONGOING'"
-                >
+                  @click="statusType='ONGOING'">
                   Ongoing
                 </button>
                 <button
                   class="col br-15 btn-custom fiat-tab q-mt-none"
                   :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
-                  @click="statusType='COMPLETED'"
-                >
+                  @click="statusType='COMPLETED'">
                   Completed
                 </button>
               </div>
@@ -79,38 +76,35 @@
                               >
                                 ORDER #{{ listing.id }}
                               </div>
-                              <!-- <span
-                                class=" pt-label md-font-size"
+                              <span
+                                class=" pt-label md-font-size text-weight-bold"
                                 :class="getDarkModeClass(darkMode)"
                                 @click.stop.prevent="viewUserProfile(listing)">
-                                {{ listing.ad.owner.name }} <q-badge v-if="listing.ad.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
-                              </span> -->
+                                {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
+                              </span>
                               <div
                                 class="col-transaction text-uppercase pt-label lg-font-size"
                                 :class="getDarkModeClass(darkMode)"
                                 :style="amountColor(listing.trade_type)"
                               >
-                                {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.fiat_currency.symbol) }}
+                                {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
                               </div>
                               <div class="sm-font-size">
                                 {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                              <!-- <div class="sm-font-size">
-                                <span class="q-pr-sm">Price</span>
-                                <span>{{ formattedCurrency(listing.locked_price, listing.fiat_currency.symbol) }}/BCH</span>
-                              </div> -->
                               <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                             </div>
                             <div class="text-right">
-                              <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                              <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
                                 <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
-                              </span>
+                              </span> -->
                               <div
-                                v-if="listing.expires_at && isExpired(listing.expires_at) && statusType === 'ONGOING'"
-                                class="text-weight-bold subtext md-font-size" style="color: red">
-                                EXPIRED
+                                v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
+                                class="text-weight-bold subtext md-font-size" style="color: blue">
+                                Appealable
                               </div>
-                              <div class="text-weight-bold subtext md-font-size" style=";">
-                                {{ listing.status ? listing.status.label : '' }}
+                              <div class="text-weight-bold subtext md-font-size">
+                                <span v-if="listing.status?.value === 'APL'" style="color: red"> {{ listing.status?.label }} </span>
+                                <span v-else> {{ listing.status?.label }} </span>
                               </div>
                             </div>
                           </div>
@@ -181,9 +175,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       selectedOrder: null,
       selectedUser: null,
       statusType: this.initStatusType,
@@ -192,8 +184,8 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 185 : this.$q.screen.height - 140,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 190 : this.$q.screen.height - 140,
       viewProfile: false,
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,
@@ -373,10 +365,10 @@ export default {
       this.selectedOrder = data
       this.state = 'view-order'
     },
-    getElapsedTime (expirationDate) {
+    getElapsedTime (targetTime) {
       const currentTime = new Date().getTime() // Replace with your start timestamp
-      expirationDate = new Date(expirationDate)
-      const distance = expirationDate - currentTime
+      targetTime = new Date(targetTime)
+      const distance = targetTime - currentTime
 
       const days = Math.floor(distance / (24 * 3600 * 1000))
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
@@ -409,10 +401,13 @@ export default {
 
       return formattedElapsedTime
     },
-    isExpired (expirationDate, status) {
-      const [days, hours, minutes] = this.getElapsedTime(expirationDate)
-      if (days < 0 || hours < 0 || minutes < 0) return true
-      return false
+    isAppealable (appealableAt, status) {
+      if (!appealableAt) return false
+      const [days, hours, minutes] = this.getElapsedTime(appealableAt)
+      let appealable = false
+      if (days < 0 || hours < 0 || minutes < 0) appealable = true
+      if (['APL'].includes(status)) appealable = false
+      return appealable
     },
     isCompleted (status) {
       if (status === 'Released' || status === 'Refunded' || status === 'Canceled') return true

@@ -354,7 +354,7 @@ export default {
       openChat: this.openDialog,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: 'wss://commercehub.paytaca.com/ws/chat/sessions/',
+      wsURL: process.env.MARKETPLACE_WS_URL,
       websocket: null,
       openImage: false,
       selectedImage: null,
@@ -421,7 +421,7 @@ export default {
   computed: {
     userName () {
       const vm = this
-      return vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+      return this.$store.getters['ramp/chatIdentity'].name
     }
   },
   methods: {
@@ -437,7 +437,6 @@ export default {
     async setupWebsocket () {
       const vm = this
       console.log('setting up websocket')
-      // vm.chatRef = `ramp-order-${this.data.id}-chat`
       const wsUrl = `${vm.wsURL}${vm.chatRef}/`
       this.websocket = new WebSocket(wsUrl)
 
@@ -488,7 +487,9 @@ export default {
     },
     loadData () {
       const vm = this
-      const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+      console.log(vm.data)
+      const username = this.$store.getters['ramp/chatIdentity'].name
+      // const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
       vm.chatRef = `ramp-order-${this.data.id}-chat`
       fetchChatMembers(vm.chatRef)
         .then(members => {
@@ -500,6 +501,7 @@ export default {
               pubkeys: member.chat_identity.pubkeys
             }
           })
+          console.log('members: ', vm.chatMembers)
         })
       fetchChatPubkeys(vm.chatRef)
         .then(pubkeys => {
@@ -613,7 +615,8 @@ export default {
         .then(decryptedMessages => {
           console.log('decryptedMessages:', decryptedMessages)
 
-          const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
+          const username = vm.$store.getters['ramp/chatIdentity'].name
+          // const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
           const temp = decryptedMessages
           temp.map(item => {
             item.chatIdentity.is_user = item.chatIdentity.name === username

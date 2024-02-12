@@ -8,7 +8,8 @@
         flat
         icon="arrow_back"
         class="button button-text-primary"
-        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        style="position: fixed; left: 20px; z-index: 3;"
+        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
@@ -18,10 +19,10 @@
             <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
           </div>
           <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
-          <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div>
+          <!-- <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div> -->
         </div>
         <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
-          <div v-if="data?.order?.status?.value === 'APL'">
+          <div v-if="isAppealed">
             <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
               <q-card-section>
                 <div class="text-weight-bold md-font-size">Appeal reasons</div>
@@ -47,11 +48,11 @@
               :dark="darkMode"
               v-model="cryptoAmount">
               <template v-slot:append>
-                <span>{{ data?.order?.crypto_currency?.symbol }}</span>
+                <span>{{ data?.order?.ad?.crypto_currency?.symbol }}</span>
               </template>
             </q-input>
             <div class="col text-right sm-font-size q-pl-sm">
-              = {{ fiatAmount }} {{ data?.order?.fiat_currency?.symbol }}
+              = {{ fiatAmount }} {{ data?.order?.ad?.fiat_currency?.symbol }}
             </div>
           </div>
           <div v-if="displayContractInfo">
@@ -86,8 +87,7 @@
             </div>
             <div
               class="row q-px-md q-pt-sm text-center sm-font-size"
-              style="overflow-wrap: break-word;"
-              v-if="!$parent.isExpired">
+              style="overflow-wrap: break-word;">
               <div v-if="hasLabel" class="row">
                 <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
                 <span class="col text-left q-ml-sm">{{ label }}</span>
@@ -96,7 +96,7 @@
           </div>
           <!-- Countdown Timer -->
           <div v-else class="q-mt-md q-px-md q-mb-sm">
-            <div
+            <!-- <div
               class="row q-px-sm text-center sm-font-size"
               style="overflow-wrap: break-word;"
               v-if="!$parent.isExpired">
@@ -104,10 +104,10 @@
                 <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
                 <span class="col text-left q-ml-sm">{{ label }}</span>
               </div>
-            </div>
-              <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
+            </div> -->
+              <!-- <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
                 {{ countDown }}
-              </div>
+              </div> -->
               <!-- Cancel Button -->
               <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
                 <q-btn
@@ -126,8 +126,8 @@
               <q-btn
                 rounded
                 no-caps
-                :disable="!data?.wsConnected"
-                label='Appeal'
+                :disable="!data?.wsConnected || countDown !== null"
+                :label="appealBtnLabel"
                 class="q-space text-white button"
                 color="blue-6"
                 @click="openDialog = true"
@@ -228,8 +228,8 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
+import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -237,12 +237,11 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
       nickname: this.$store.getters['ramp/getUser'].name,
       appeal: null,
       isloaded: false,
-      countDown: '',
+      countDown: null,
+      countDownLoading: true,
       timer: null,
       type: 'ongoing',
       openDialog: false,
@@ -259,6 +258,9 @@ export default {
   props: {
     data: Object
   },
+  // created () {
+  //   bus.emit('hide-chat')
+  // },
   emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
   components: {
     MiscDialogs,
@@ -266,10 +268,13 @@ export default {
     ProgressLoader
   },
   computed: {
+    appealBtnLabel () {
+      if (this.countDown) return `Appealable in ${this.countDown}`
+      return 'Appeal'
+    },
     showAppealBtn () {
-      const vm = this
-      return ((!vm.isCompletedOrder && !vm.isAppealed && !vm.$parent.isPdPendingRelease(vm.data?.order?.status.value)) &&
-        (vm.$parent.isExpired || vm.countDown === 'Expired'))
+      const stat = ['ESCRW', 'PD_PN', 'PD']
+      return stat.includes(this.data?.order?.status.value) && this.data?.order?.appealable_at && !this.countDownLoading
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
@@ -292,11 +297,11 @@ export default {
       }
       return release
     },
-    hasCountDown () {
-      const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
+    // hasCountDown () {
+    //   const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
 
-      return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
-    },
+    //   return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
+    // },
     hasReview () {
       const stat = ['RLS', 'RFN']
       return stat.includes(this.data?.order?.status.value)
@@ -333,8 +338,8 @@ export default {
         SBM: 'Please wait for the Ad Owner  to confirm your order.',
         CNF: 'Please wait for the Seller to Escrow the funds.',
         ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
-        ESCRW: 'Please wait for the buyer to confirm their fiat payment.',
-        PD_PN: 'Please wait for the seller to confirm your fiat payment.',
+        ESCRW: 'Please wait for the buyer to send and confirm their fiat payment.',
+        PD_PN: 'Please wait for the seller to release the funds.',
         PD: 'Please wait for the fund release.',
         RLS_PN: 'Please wait for the fund release.'
       }
@@ -346,7 +351,10 @@ export default {
       this.feedbackForm = this.data?.feedback
     }
     this.loadData()
-    setTimeout(() => { this.isloaded = true }, 500)
+    setTimeout(() => {
+      this.isloaded = true
+      // bus.emit('show-chat')
+    }, 500)
   },
   beforeUnmount () {
     clearInterval(this.timer)
@@ -356,10 +364,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     loadData () {
-      if (this.data?.order?.status?.value === 'APL') {
+      if (this.isAppealed) {
         this.fetchAppeal()
       }
-      this.paymentCountdown()
+      this.appealCountdown()
       this.checkStatus()
       this.fetchContractBalance()
     },
@@ -395,30 +403,28 @@ export default {
       this.openDialog = false
       this.$emit('submitAppeal', data)
     },
-    paymentCountdown () {
+    appealCountdown () {
       const vm = this
-      if (vm.data?.order?.expires_at) {
-        const expiryDate = new Date(vm.data?.order?.expires_at)
+      console.log('appealCountdown:', vm.data?.order)
+      if (vm.data?.order?.appealable_at) {
+        const appealableDate = new Date(vm.data?.order?.appealable_at)
         vm.timer = setInterval(function () {
           const now = new Date().getTime()
-          const distance = expiryDate - now
+          const distance = appealableDate - now
 
           const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-          let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-          let seconds = Math.floor((distance % (1000 * 60)) / 1000)
-          if (seconds.toString().length < 2) {
-            seconds = '0' + seconds
-          }
-          if (minutes.toString().length < 2) {
-            minutes = '0' + minutes
-          }
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-          vm.countDown = `${hours}:${minutes}:${seconds}`
+          if (hours > 0) vm.countDown = `${hours} hr`
+          else if (minutes > 0) vm.countDown = `${minutes} min`
+          else if (seconds > 0) vm.countDown = `${seconds} s`
 
           if (distance < 0) {
             clearInterval(vm.timer)
-            vm.countDown = 'Expired'
+            vm.countDown = null
           }
+          vm.countDownLoading = false
         }, 1000)
       }
     },

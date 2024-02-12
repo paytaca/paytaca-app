@@ -37,16 +37,12 @@ import RampContract from 'src/wallet/ramp/contract'
 import AppealDetail from './AppealDetail.vue'
 import VerifyTransfer from './AppealTransfer.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
-      apiURL: process.env.WATCHTOWER_BASE_URL + '/ramp-p2p',
-      wsURL: process.env.RAMP_WS_URL + 'order/',
-      authHeaders: this.$store.getters['ramp/authHeaders'],
-      wallet: this.$store.getters['ramp/wallet'],
       websocket: null,
       state: 'release-form',
       actionState: 'verifying',
@@ -247,7 +243,7 @@ export default {
       })
     },
     setupWebsocket () {
-      const wsUrl = `${this.wsURL}${this.appeal.order.id}/`
+      const wsUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
         console.log('WebSocket connection established to ' + wsUrl)
@@ -257,9 +253,10 @@ export default {
         console.log('WebSocket data:', data)
         if (data) {
           if (data.success) {
-            if (data.status) {
-              this.updateStatus(data.status.status)
-            }
+            // if (data.status) {
+            //   this.updateStatus(data.status.status)
+            // }
+            this.fetchAppeal().then(this.reloadChildComponents())
           } else if (data.error) {
             this.errorMessages.push(data.error)
             this.verifyTransferKey++
