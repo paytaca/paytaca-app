@@ -70,10 +70,14 @@
           class="text-white bg-green q-r-mx-sm"
         >
           <div class="row items-center justify-between">
+            <q-icon name="check_circle" :size="resolveActionText ? '2.5em' : '1.2em'"/>
             <div>
-              <q-icon name="check_circle" size="1.2em"/>
               Resolved
+              <div v-if="resolveActionText" class="text-caption bottom text-grey-4">
+                {{ resolveActionText }}
+              </div>
             </div>
+            <q-space/>
             <div>{{ formatDateRelative(orderDispute?.resolvedAt) }}</div>
           </div>
         </q-banner>
@@ -115,6 +119,13 @@ watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 const innerReadonly = ref(props.readonly)
 watch(() => [props.modelValue], () => innerReadonly.value = props.readonly)
 watch(innerReadonly, () => $emit('update:readonly', innerReadonly.value))
+
+const resolveActionText = computed(() => {
+  const resolveAction = props.orderDispute?.resolveAction
+  if (resolveAction == OrderDispute.resolveActions.cancelOrder) return 'Order cancelled'
+  if (resolveAction == OrderDispute.resolveActions.completeOrder) return 'Order completed'
+  return ''
+})
 
 const reasonOptions = [
   'Defective or Damaged Goods',

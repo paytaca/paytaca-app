@@ -382,7 +382,7 @@
         ref="chatButton"
         :order-id="orderId"  
       >
-        <template v-if="order?.inProgress || hasOngoingDispute" v-slot:before-messages>
+        <template v-if="order?.inProgress || orderDispute?.id" v-slot:before-messages>
           <div class="row item-center q-r-mt-sm q-pb-xs">
             <q-btn
               outline
@@ -1225,13 +1225,14 @@ function createOrUpdateDispute(opts={ reasons:[].map(String) }) {
 }
 const orderUpdateEventName = 'order_updates'
 const onNotificationHandler = notification  => {
+  console.log('Notifications', notification)
   const eventName = notification?.event
   const data = notification?.data
-  if (eventName != orderUpdateEventName) return
-  if (data?.id != props.orderId) return
-
+  if (eventName != orderUpdateEventName) return console.log('Wrong event')
+  if (data?.id != props.orderId) return console.log('Not matching id')
+  console.log('typeof data?.has_ongoing_dispute', typeof data?.has_ongoing_dispute)
   fetchOrder()
-  if (typeof data?.has_ongoing_dispute === 'bool') fetchOrderDispute()
+  if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
 }
 
 watch(() => [props.orderId], () => {
