@@ -37,9 +37,6 @@
           Sell Ads
         </button>
       </div>
-      <div v-if="loading">
-        <FooterLoading/>
-      </div>
       <div class="q-mt-md q-mx-md">
         <q-pull-to-refresh
           @refresh="refreshData">
@@ -139,6 +136,9 @@
       </div>
     </div>
   </q-card>
+  <div v-if="loading">
+    <FooterLoading/>
+  </div>
   <FiatAdsForm
     v-if="state !== 'selection'"
     @back="onFormBack()"

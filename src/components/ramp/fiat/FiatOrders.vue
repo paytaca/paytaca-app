@@ -39,9 +39,6 @@
             </div>
           <!-- </q-pull-to-refresh> -->
         </div>
-        <div v-if="loading">
-          <FooterLoading/>
-        </div>
         <div class="q-mt-md">
           <q-pull-to-refresh @refresh="refreshData">
             <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
@@ -116,6 +113,9 @@
         </div>
       </div>
     </q-card>
+    <div v-if="loading">
+      <FooterLoading/>
+    </div>
     <FiatProcessOrder
       v-if="state === 'view-order'"
       :key="fiatProcessOrderKey"

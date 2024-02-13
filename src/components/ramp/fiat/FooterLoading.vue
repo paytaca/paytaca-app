@@ -29,10 +29,12 @@ export default {
     position: fixed;
     height: 70px;
     padding-top: 5px;
-    width: 91%;
+    width: 100%;
     bottom: 40px;
     background-color: #fff;
-    border-radius: 0 !important;
+    // border-radius: 0 !important;
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
     box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
     z-index: 5;
 

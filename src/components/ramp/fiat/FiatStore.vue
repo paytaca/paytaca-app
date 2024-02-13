@@ -66,9 +66,6 @@
         <!-- </q-pull-to-refresh> -->
         <div class="q-mt-md">
           <q-pull-to-refresh @refresh="refreshData">
-            <div v-if="loading">
-              <FooterLoading/>
-            </div>
             <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
               <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
               <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
@@ -149,6 +146,9 @@
         </div>
       </div>
     </q-card>
+    <div v-if="loading">
+      <FooterLoading/>
+    </div>
     <!-- Buy/Sell Form Here -->
     <div v-if="state !== 'SELECT' && !viewProfile">
       <FiatOrderForm
