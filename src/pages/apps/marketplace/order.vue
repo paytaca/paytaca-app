@@ -489,7 +489,7 @@ import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import OrderChatButton from 'src/components/marketplace/OrderChatButton.vue'
 import OrderDisputeFormDialog from 'src/components/marketplace/order/OrderDisputeFormDialog.vue'
 import { loadWallet, Wallet } from 'src/wallet'
-import { TransactionListener } from 'src/wallet/transaction-listener'
+import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
@@ -981,8 +981,9 @@ async function sendBchPayment() {
 
   const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
   bchWallet.sendBch(amount, address, changeAddress)
-    .then(result => {
+    .then(async result => {
       if (!result.success) return Promise.reject(result)
+      await asyncSleep(1000)
       savePaymentFundingTx({ txid: result.txid, address: address }).then(() => {
         showPaymentDialog.value = false
       })
