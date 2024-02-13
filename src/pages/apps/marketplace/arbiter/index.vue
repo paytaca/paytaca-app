@@ -15,22 +15,37 @@
       />
     </div>
     <div v-else class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-      <q-item
-        dense class="q-r-mx-md q-mb-sm"
-        clickable v-ripple
-        @click="() => {}"
-      >
+      <q-item dense class="q-r-mx-md q-mb-sm">
         <q-item-section>
           <q-item-label class="text-caption text-grey top">Arbiter Address</q-item-label>
           <q-item-label style="word-break: break-all;">{{ keys?.address }}</q-item-label>
         </q-item-section>
         <q-item-section avatar>
-          <q-btn
+          <q-btn-dropdown
             flat
             padding="sm"
-            icon="settings"
-            @click.stop="() => promptSetPrivkey()"
-          />
+            dropdown-icon="settings"
+            @click.stop
+            :content-style="{color: darkMode ? 'white' : 'black'}"
+            :content-class="['pt-card-2 text-bow', getDarkModeClass(darkMode)]"
+          >
+            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.privkey, 'Private key copied to clipboard')">
+              <q-item-section>
+                <q-item-label>Copy private key</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.pubkey, 'Public key copied to clipboard')">
+              <q-item-section>
+                <q-item-label>Copy public key</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-separator/>
+            <q-item clickable v-close-popup @click="() => promptSetPrivkey()">
+              <q-item-section>
+                <q-item-label>Change address</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-btn-dropdown>
         </q-item-section>
       </q-item>
       <EscrowContractsTabPanel
@@ -72,7 +87,7 @@ import BCHJS from "@psf/bch-js"
 import { SecureStoragePlugin } from "capacitor-secure-storage-plugin";
 import { useQuasar } from "quasar";
 import { useStore } from "vuex";
-import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
+import { computed, inject, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
 import HeaderNav from "src/components/header-nav.vue";
 import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
 import ChatWidget from "./chat-widget.vue";
@@ -80,6 +95,7 @@ import ChatWidget from "./chat-widget.vue";
 const STORAGE_KEY = 'marketplace-arbiter-wif'
 const bchjs = new BCHJS()
 
+const $copyText = inject('$copyText')
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
@@ -298,5 +314,15 @@ async function refreshPage(done=() => {}) {
     initialized.value =true
     done()
   }
+}
+
+function copyToClipboard(value, message) {
+  $copyText(value)
+  $q.notify({
+    message: message || 'Copied to clipboard',
+    timeout: 800,
+    color: 'blue-9',
+    icon: 'mdi-clipboard-check'
+  })
 }
 </script>

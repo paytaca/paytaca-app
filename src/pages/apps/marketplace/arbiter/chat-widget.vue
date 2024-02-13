@@ -36,7 +36,7 @@
             @update:modelValue="fetchChatMembers"
           />
         </div>
-        <q-list separator class="q-mb-md">
+        <q-list separator class="q-mb-md" style="max-height:calc(75vh - 6rem);overflow:auto;">
           <q-item-label v-if="!chatMembers?.length" header class="text-center">
             No data
           </q-item-label>
@@ -142,7 +142,7 @@ const chatSessionsPagination = ref({ count: 0, limi: 0, offset: 0 })
 const chatMembers = ref([].map(ChatMember.parse))
 function fetchChatMembers(opts={limit: 0, offset: 0}) {
   const params = {
-    limit: opts?.limit || 3,
+    limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
     has_unread: filterOpts.value.hasUnread || undefined,
     chat_identity_id: props.chatIdentity?.id || 0,

@@ -589,7 +589,6 @@ function getOrderChatMembers() {
     .then(response => {
       const chatMembers = response?.data?.results?.map?.(ChatMember.parse)
       chatMembers.forEach(chatMember => {
-        console.log('chatMember', chatMember)
         if (!chatMember.chatSession?.orderId) return
         orderIdChatMemberMap.value[chatMember.chatSession?.orderId] = chatMember
       })
