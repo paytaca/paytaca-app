@@ -65,7 +65,7 @@ export function fetchAds (context, { component = null, params = null, overwrite 
       const parameters = {
         page: pageNumber,
         limit: state.itemsPerPage,
-        price_order: params.price_order,
+        price_order: params.sort_type,
         currency: params.currency,
         owned: params.owned,
         trade_type: params.trade_type
@@ -83,10 +83,12 @@ export function fetchAds (context, { component = null, params = null, overwrite 
         apiURL = `${apiURL}${prefix}time_limits=${timeLimits}`
         appendParam = true
       }
-      if (params.price_types && params.price_types.length > 0) {
-        const priceTypes = params.price_types.join('&price_types=')
+      const priceTypes = []
+      if (params.price_type?.fixed) priceTypes.push('FIXED')
+      if (params.price_type?.floating) priceTypes.push('FLOATING')
+      if (priceTypes.length > 0) {
         const prefix = appendParam ? '&' : '?'
-        apiURL = `${apiURL}${prefix}price_types=${priceTypes}`
+        apiURL = `${apiURL}${prefix}price_types=${priceTypes.join('&price_types=')}`
       }
 
       backend.get(apiURL, { params: parameters, authorize: true })
@@ -163,7 +165,8 @@ export async function fetchOrders (context, { statusType = null, params = null, 
         sort_type: params.sort_type,
         sort_by: params.sort_by,
         owned: owned,
-        expired_only: params.expired_only
+        appealable: params.appealable,
+        not_appealable: params.not_appealable
       }
       if (params.trade_type.buy !== params.trade_type.sell) {
         if (params.trade_type.buy) {

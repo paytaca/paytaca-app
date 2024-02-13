@@ -24,7 +24,8 @@ export function resetOngoingOrderFilters (state) {
     sort_type: 'ascending',
     sort_by: 'created_at',
     status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
-    expired_only: false,
+    appealable: true,
+    not_appealable: true,
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440],
     ownership: {
@@ -76,8 +77,11 @@ export function resetStoreFilters (state) {
 
 export function resetStoreBuyFilters (state) {
   state.storeBuyFilters = {
-    price_order: 'descending',
-    price_types: ['FIXED', 'FLOATING'],
+    sort_type: 'descending',
+    price_type: {
+      fixed: true,
+      floating: true
+    },
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440]
   }
@@ -85,8 +89,11 @@ export function resetStoreBuyFilters (state) {
 
 export function resetStoreSellFilters (state) {
   state.storeSellFilters = {
-    price_order: 'ascending',
-    price_types: ['FIXED', 'FLOATING'],
+    sort_type: 'ascending',
+    price_type: {
+      fixed: true,
+      floating: true
+    },
     payment_types: state.paymentTypes.map(p => p.id),
     time_limits: [5, 15, 30, 60, 300, 720, 1440]
   }

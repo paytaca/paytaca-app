@@ -159,7 +159,6 @@ export default {
     },
     async loadChatIdentity () {
       // check if chatIdentity exist
-      console.log('loading chat identity')
       const chatIdentity = this.$store.getters['ramp/chatIdentity']
       if (!chatIdentity) {
         await updateSignerData()
@@ -183,6 +182,7 @@ export default {
                   })
               } else if (!vm.user.chat_identity_id) {
                 vm.retry.updatePeerChatIdentityId = true
+                console.log('save')
                 // updatePeerChatIdentityId(identity.id)
                 vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
               }

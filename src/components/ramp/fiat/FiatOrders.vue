@@ -7,38 +7,35 @@
       <div v-if="state === 'order-list'">
         <div>
           <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-            <div class="row no-wrap items-center q-pa-sm q-pt-md">
+            <div class="row justify-start items-center q-mx-none q-px-sm q-pt-md">
               <div
                 class="col-9 row br-15 text-center pt-card btn-transaction md-font-size"
                 :class="getDarkModeClass(darkMode)"
                 :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
                 <button
-                  class="col br-15 btn-custom fiat-tab q-mt-none"
+                  class="col-grow br-15 btn-custom fiat-tab q-mt-none"
                   :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
                   @click="statusType='ONGOING'">
                   Ongoing
                 </button>
                 <button
-                  class="col br-15 btn-custom fiat-tab q-mt-none"
+                  class="col-grow br-15 btn-custom fiat-tab q-mt-none"
                   :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
                   @click="statusType='COMPLETED'">
                   Completed
                 </button>
               </div>
-              <div class="col-auto q-mt-sm q-pr-md">
-                <q-btn
-                  unelevated
-                  ripple
-                  dense
-                  size="md"
-                  icon="sym_o_filter_list"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="openFilter()"
-                >
-                  <q-badge v-if="!defaultFiltersOn" floating color="red"/>
-                </q-btn>
-              </div>
+              <q-btn
+                unelevated
+                ripple
+                dense
+                size="1.2em"
+                :icon="'filter_list'"
+                class="button button-text-primary col-auto q-mt-sm q-pa-none"
+                :class="getDarkModeClass(darkMode)"
+                @click="openFilter()">
+                <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
+              </q-btn>
             </div>
           <!-- </q-pull-to-refresh> -->
         </div>
@@ -184,21 +181,38 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
-      // minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 190 : this.$q.screen.height - 140,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       viewProfile: false,
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,
       defaultFilters: {
-        sortType: 'ascending',
-        sortBy: 'created_at',
-        status: [],
-        selectedPaymentTypes: [],
-        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
+        sort_type: 'ascending',
+        sort_by: 'created_at',
+        status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
+        appealable: true,
+        not_appealable: true,
+        payment_types: [],
+        time_limits: [5, 15, 30, 60, 300, 720, 1440],
         ownership: {
           owned: true,
           notOwned: true
+        },
+        trade_type: {
+          buy: true,
+          sell: true
         }
+      },
+      defaultStatuses: {
+        ongoing: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
+        completed: ['CNCL', 'RLS', 'RFN']
+      },
+      defaultSortType: {
+        ongoing: 'ascending',
+        completed: 'descending'
+      },
+      defaultSortBy: {
+        ongoing: 'created_at',
+        completed: 'last_modified_at'
       },
       filters: {},
       openDialog: false,
@@ -206,8 +220,9 @@ export default {
     }
   },
   watch: {
-    statusType () {
+    statusType (value) {
       const vm = this
+      vm.switchFilterDefaults(value)
       vm.updateFilters()
       vm.resetAndScrollToTop()
       vm.resetAndRefetchListings()
@@ -269,17 +284,6 @@ export default {
           }
         })
     },
-    isdefaultFiltersOn (filters) {
-      if (JSON.stringify(this.defaultFilters?.payment_types?.sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
-          JSON.stringify(this.defaultFilters?.time_limits?.sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
-        return false
-      }
-      return true
-    },
-    openFilter () {
-      this.openDialog = true
-      this.dialogType = this.statusType === 'ONGOING' ? 'filterOngoingOrder' : 'filterCompletedOrder'
-    },
     receiveDialog (data) {
       const vm = this
       const mutationName = (
@@ -291,14 +295,58 @@ export default {
       vm.updateFilters()
       vm.resetAndRefetchListings()
     },
+    openFilter () {
+      this.openDialog = true
+      this.dialogType = this.statusType === 'ONGOING' ? 'filterOngoingOrder' : 'filterCompletedOrder'
+    },
+    switchFilterDefaults (statusType) {
+      const vm = this
+      if (statusType === 'ONGOING') {
+        vm.defaultFilters.status = vm.defaultStatuses.ongoing
+        vm.defaultFilters.sort_type = vm.defaultSortType.ongoing
+        vm.defaultFilters.sort_by = vm.defaultSortBy.ongoing
+      }
+      if (statusType === 'COMPLETED') {
+        vm.defaultFilters.status = vm.defaultStatuses.completed
+        vm.defaultFilters.sort_type = vm.defaultSortType.completed
+        vm.defaultFilters.sort_by = vm.defaultSortBy.completed
+      }
+    },
+    isdefaultFiltersOn (filters) {
+      filters = { ...filters }
+      const defaultFilters = { ...this.defaultFilters }
+      if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
+          JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
+        return false
+      }
+
+      const defStatusLen = defaultFilters.status.length
+      const statusLen = filters.status.length
+      if (defStatusLen !== statusLen) {
+        return false
+      } else {
+        const statusMatch = JSON.stringify([...defaultFilters?.status].sort()) === JSON.stringify(filters?.status?.sort())
+        if (!statusMatch) return false
+      }
+
+      delete filters.payment_types
+      delete filters.time_limits
+      delete filters.status
+      delete defaultFilters.payment_types
+      delete defaultFilters.time_limits
+      delete defaultFilters.status
+
+      const match = JSON.stringify(defaultFilters) === JSON.stringify(filters)
+      if (!match) return false
+      return true
+    },
     updateFilters () {
       const vm = this
       const defaultPaymentTypes = vm.$store.getters['ramp/paymentTypes']
       vm.defaultFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
 
       const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'
-      const savedFilters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
-      const filters = savedFilters
+      const filters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
       if (filters.paymentTypes?.length === 0) {
         filters.paymentTypes = Array.from(vm.defaultFilters.payment_types)
       }

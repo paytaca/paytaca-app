@@ -251,11 +251,12 @@ export default {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         mnemonic = await getMnemonic(walletIndex)
       }
+      const pinKey = `pin ${mnemonic}`
 
       if (vm.pinDialogAction === 'VERIFY') {
         let secretKey = null
         try {
-          secretKey = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+          secretKey = await SecureStoragePlugin.get({ key: pinKey })
         } catch (error) {
           // fallback for old process of pin retrieval
           secretKey = await SecureStoragePlugin.get({ key: 'pin' })
@@ -274,7 +275,7 @@ export default {
         vm.resetStatus = false
       } else if (vm.pinStep === 2) {
         vm.loader = true
-        SecureStoragePlugin.set({ key: `pin ${mnemonic}`, value: vm.pin })
+        SecureStoragePlugin.set({ key: pinKey, value: vm.pin })
           .then(() => {
             setTimeout(() => {
               if (vm.pinDialogAction === 'SET UP') {
