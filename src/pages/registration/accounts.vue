@@ -93,7 +93,7 @@
                   icon="arrow_back"
                   class="button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
-                  :label="`Enter seed phrase one by one`"
+                  :label="$t('EnterOneByOne')"
                   @click="useTextArea = false, seedPhraseBackup = ''"
                 />
               </div>
@@ -108,7 +108,7 @@
                   icon-right="arrow_forward"
                   class="button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
-                  :label="`Paste entire seed phrase instead`"
+                  :label="$t('PasteSeedPhrase')"
                   @click="useTextArea = true, seedPhraseBackup = ''"
                 />
               </div>

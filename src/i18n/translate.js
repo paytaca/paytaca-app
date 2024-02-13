@@ -515,7 +515,9 @@ const additional = [
     PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through.",
     LightMode: "Light Mode",
     ThemePreferenceTitle: "Set Theme Preference",
-    ThemePreferenceSubtitle: "Adjust theme to fit your native experience"
+    ThemePreferenceSubtitle: "Adjust theme to fit your native experience",
+    EnterOneByOne: "Enter seed phrase one by one",
+    PasteSeedPhrase: "Paste entire seed phrase instead"
   }
 ]
 
