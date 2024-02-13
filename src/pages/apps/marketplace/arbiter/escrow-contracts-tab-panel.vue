@@ -61,10 +61,10 @@
       </q-btn>
     </div>
     <div class="row items-center justify-end q-my-xs">
-      <q-chip v-if="filterOpts.status != 'all'" removable @remove="filterOpts.status = 'all'">
+      <q-chip v-if="filterOpts.status != 'all'" removable @remove="filterOpts.status = 'all'" :outline="darkMode">
         {{ capitalize(filterOpts.status) }}
       </q-chip>
-      <q-chip v-if="filterOpts.orderId" removable @remove="filterOpts.orderId = undefined">
+      <q-chip v-if="filterOpts.orderId" removable @remove="filterOpts.orderId = undefined" :outline="darkMode">
         Order #{{ filterOpts?.orderId }}
       </q-chip>
       <q-space/>

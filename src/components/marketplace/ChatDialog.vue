@@ -200,6 +200,7 @@ export default defineComponent({
   emits: [
     'update:modelValue',
     'new-message',
+    'chat-member',
 
     // REQUIRED; need to specify some events that your
     // component will emit through useDialogPluginComponent()
@@ -346,6 +347,7 @@ export default defineComponent({
       const customerId = chatMember.value?.chatIdentity?.customer?.id
       if (newMessage.user?.id != userId && newMessage.customer?.id != customerId) {
         chatMember.value.unreadCount = (chatMember.value.unreadCount || 0) + 1
+        $emit('chat-member', chatMember.value)
       }
     }
 
@@ -449,6 +451,7 @@ export default defineComponent({
       chatBackend.value.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
+          $emit('chat-member', chatMember.value)
           return response
         })
     }, 250)
@@ -465,6 +468,7 @@ export default defineComponent({
       return chatBackend.value.post(`chat/sessions/${props.chatRef}/chat_member/`, data)
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
+          $emit('chat-member', chatMember.value)
           return response
         })
     }

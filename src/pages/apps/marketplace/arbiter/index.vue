@@ -63,13 +63,18 @@
         padding="md"
         color="brandblue"
         @click="() => displayChats = true"
-      />
+      >
+        <q-badge v-if="unreadChatSessionCount > 0" color="red" floating>
+          {{ unreadChatSessionCount }}
+        </q-badge>
+      </q-btn>
     </div>
     <ChatWidget
       ref="chatWidget"
       v-model="displayChats"
       :chat-identity="chatIdentity" :custom-backend="chatBackend"
       @open-order-escrow-contracts="filterOrderEscrowContracts"
+      @hide="() => updateUnreadChatSessionCount()"
     />
   </q-pull-to-refresh>
 </template>
@@ -85,7 +90,7 @@ import { loadWallet } from "src/wallet";
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import BCHJS from "@psf/bch-js"
 import { SecureStoragePlugin } from "capacitor-secure-storage-plugin";
-import { useQuasar } from "quasar";
+import { debounce, useQuasar } from "quasar";
 import { useStore } from "vuex";
 import { computed, inject, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
 import HeaderNav from "src/components/header-nav.vue";
@@ -216,8 +221,14 @@ rpcClient.onNotification.push(rpcEvent => {
   console.log('rpc notification', rpcEvent)
   const eventName = rpcEvent?.event
   const data = rpcEvent?.data
-  if (eventName === rpcEventNames.newMember) refreshChatList()
-  if (eventName === rpcEventNames.updateMember) refetchChatMember(data?.id)
+  if (eventName === rpcEventNames.newMember) {
+    refreshChatList()
+    updateUnreadChatSessionCount()
+  }
+  if (eventName === rpcEventNames.updateMember) {
+    refetchChatMember(data?.id)
+    updateUnreadChatSessionCount()
+  }
   if (eventName === rpcEventNames.escrowFunding) refetchEscrowContract(data?.address)
   if (eventName === rpcEventNames.escrowSettlement) refetchEscrowContract(data?.address)
 })
@@ -304,6 +315,24 @@ async function refreshChatList() {
 async function refetchChatMember(chatMemberId) {
   chatWidget.value?.refetchChatMember?.({ chatMemberId: chatMemberId })
 }
+
+const unreadChatSessionCount = ref([].map(Number)[0])
+watch(() => [chatIdentity.value?.id], () => updateUnreadChatSessionCount())
+const updateUnreadChatSessionCount = debounce(() => {
+  const params = {
+    limit: 1,
+    offset: 999,
+    has_unread: true,
+    chat_identity_id: chatIdentity.value?.id || 0,
+  }
+
+  return chatBackend.value.get(`chat/members/full_info/`, { params })
+    .then(response => {
+      unreadChatSessionCount.value = response?.data?.count
+      return response
+    })
+}, 2500)
+
 
 async function refreshPage(done=() => {}) {
   try {

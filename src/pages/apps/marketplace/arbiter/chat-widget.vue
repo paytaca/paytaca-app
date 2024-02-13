@@ -1,6 +1,11 @@
 <template>
   <div>
-    <q-dialog ref="dialogRef" v-model="innerVal" position="bottom" full-width>
+    <q-dialog
+      ref="dialogRef" v-model="innerVal"
+      position="bottom" full-width
+      @show="() => $emit('show')"
+      @hide="() => $emit('hide')"
+    >
       <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section class="q-pb-none">
           <div class="row items-center no-wrap">
@@ -91,7 +96,7 @@
       v-model="chatDialog.show"
       :chat-ref="chatDialog.chatSession?.ref"
       :custom-backend="customBackend"
-      @new-message="onNewMesageInDialog"
+      @chat-member="onChatMemberUpdate"
     />
   </div>
 </template>
@@ -109,6 +114,8 @@ import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
 const $emit = defineEmits([
   'update:modelValue',
   'open-order-escrow-contracts',
+  'show',
+  'hide',
 
   ...useDialogPluginComponent.emits,
 ])
@@ -171,7 +178,7 @@ function refetchChatMember(opts={ chatMemberId: 0, append: false }) {
 
   props.customBackend.get(`chat/members/${chatMemberId}/`, { forceSign: true })
     .then(response => {
-      if (response?.data?.id) return Promise.reject({ response })
+      if (!response?.data?.id) return Promise.reject({ response })
       const chatMember = ChatMember.parse(response?.data)
       const index = chatMembers.value.findIndex(cm => cm?.id === chatMember?.id)
       if (index >= 0) chatMembers.value[index] = chatMember
@@ -186,13 +193,9 @@ function openChatDialog(chatSession = ChatSession.parse()) {
   chatDialog.value.chatSession = chatSession
   chatDialog.value.show = true
 }
-function onNewMesageInDialog(chatMessage= ChatMessage.parse()) {
-  chatMembers.value.filter(member => member?.id)
-    .filter(member => member?.chatSessionRef == chatMessage?.chatSessionRef)
-    .map(member => {
-      return props.customBackend.get(`chat/members/${member.id}/`)
-        .then(response => member.raw = response?.data)
-    })
+function onChatMemberUpdate(chatMember=ChatMember.parse()) {
+  const index = chatMembers.value.findIndex(cm => cm?.id === chatMember?.id)
+  if (index >= 0) chatMembers.value[index].raw = Object.assign({}, chatMembers.value[index].raw, chatMember.raw)
 }
 
 defineExpose({
