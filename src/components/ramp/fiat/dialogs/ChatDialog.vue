@@ -323,11 +323,9 @@ export default {
         if (isloaded.value && !loadMessage.value) {
           if (totalMessages.value > offset.value) {
             setTimeout(() => {
-              console.log('Loading More Messages ')
+              // console.log('Loading More Messages ')
               fetchChatMessages(chatRef.value, offset.value, 10)
                 .then(data => {
-                  console.log(data)
-
                   scrollSnapshot.value = infiniteScroll.value.$el.clientHeight
                   offset.value += data.results.length
                   totalMessages.value = data.count
@@ -421,7 +419,7 @@ export default {
   computed: {
     userName () {
       const vm = this
-      return this.$store.getters['ramp/chatIdentity'].name
+      return vm.$store.getters['ramp/chatIdentity'].name
     }
   },
   methods: {
@@ -501,7 +499,7 @@ export default {
               pubkeys: member.chat_identity.pubkeys
             }
           })
-          console.log('members: ', vm.chatMembers)
+          // console.log('members: ', vm.chatMembers)
         })
       fetchChatPubkeys(vm.chatRef)
         .then(pubkeys => {
@@ -613,7 +611,7 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          console.log('decryptedMessages:', decryptedMessages)
+          // console.log('decryptedMessages:', decryptedMessages)
 
           const username = vm.$store.getters['ramp/chatIdentity'].name
           // const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name

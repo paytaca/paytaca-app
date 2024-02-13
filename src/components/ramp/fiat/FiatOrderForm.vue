@@ -200,17 +200,17 @@
         @back="openReviews = false"
       />
     </div>
-    <!-- Edit Ad -->
-    <div v-if="state === 'edit-ad'">
-      <FiatAdsForm
-        @back="state = 'initial'"
-        :adsState="'edit'"
-        :transactionType="ad.trade_type"
-        :selectedAdId="ad.id"
-        @submit="$emit('back')"
-      />
-    </div>
   </q-card>
+  <!-- Edit Ad -->
+  <div v-if="state === 'edit-ad'">
+    <FiatAdsForm
+      @back="onBackEditAds()"
+      :adsState="'edit'"
+      :transactionType="ad.trade_type"
+      :selectedAdId="ad.id"
+      @submit="onSubmitEditAds()"
+    />
+  </div>
   <!-- Process Order -->
   <div v-if="state === 'order-process'">
     <FiatProcessOrder :order-data="order" @back="onBack"/>
@@ -310,6 +310,15 @@ export default {
       } else {
         return parseFloat(tradeCeiling)
       }
+    },
+    onBackEditAds () {
+      console.log('back to menu')
+      this.state = 'initial'
+      bus.emit('show-menu', 'store')
+    },
+    onSubmitEditAds () {
+      this.$emit('back')
+      bus.emit('show-menu', 'store')
     },
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'

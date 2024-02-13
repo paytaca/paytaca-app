@@ -6,13 +6,14 @@
       flat
       padding="md"
       icon="arrow_back"
-      class="fixed button button-text-primary"
       :class="getDarkModeClass(darkMode)"
+      class="fixed button button-text-primary"
       @click="$emit('back')"
+      style="z-index: 2; top: 110px; left: 25px"
     />
     <!-- chat button -->
-    <div class="fixed" style="right: 30px; top: 118px">
-      <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon" icon="comment" @click="openChat = true"/>
+    <div class="fixed" style="right: 30px; top: 118px; z-index: 2">
+      <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon"  icon="comment" @click="openChat = true"/>
     </div>
     <q-pull-to-refresh class="q-mt-lg q-pt-md q-mb-md" @refresh="$emit('refresh')">
       <div v-if="loading">
@@ -239,6 +240,15 @@
     @back="state = 'form'"
   />
 
+  <!-- Chat Dialog -->
+  <div v-if="openChat">
+    <ChatDialog
+      :openDialog="openChat"
+      :data="order"
+      v-on:close="openChat = false"
+    />
+  </div>
+
   <!-- Add DragSlide -->
   <RampDragSlide
     :key="dragSlideKey"
@@ -260,6 +270,7 @@
 import ProgressLoader from '../../ProgressLoader.vue'
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import AdSnapshot from './AdSnapshot.vue'
+import ChatDialog from '../fiat/dialogs/ChatDialog.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
@@ -291,6 +302,7 @@ export default {
       dragSlideKey: 0,
       sendingBch: false,
       sendError: null,
+      openChat: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85
     }
   },
@@ -303,6 +315,7 @@ export default {
   components: {
     RampDragSlide,
     AdSnapshot,
+    ChatDialog,
     ProgressLoader
   },
   watch: {

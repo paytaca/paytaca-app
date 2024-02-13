@@ -2,143 +2,155 @@
     <!-- Filter orders -->
     <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
       <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
-        <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter Orders</div>
+        <div class="q-mt-lg text-center text-weight-bold lg-font-size">Filter and Sort Orders</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
-        <div class="q-px-lg q-mx-sm">
-          <!-- Trade type -->
-          <div class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Trade Type</div>
-            <div class="q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="orderFilters.trade_type.buy = !orderFilters.trade_type?.buy">Buy</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="orderFilters.trade_type.sell = !orderFilters.trade_type?.sell">Sell</q-badge>
+        <q-scroll-area style="overflow-y:auto;" :style="`height: ${this.$q.screen.height*.65}px`">
+          <div class="q-px-lg q-mx-sm">
+            <!-- Sort by -->
+            <div v-if="orderFilters.sort_by" class="q-pt-md">
+              <div class="sm-font-size text-weight-bold">Sort By</div>
+              <div class="q-ml-xs q-pt-xs q-gutter-sm">
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Created at</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Updated at</q-badge>
+              </div>
+            </div>
+            <!-- Sort type -->
+            <div v-if="orderFilters.sort_type" class="q-pt-md">
+              <div class="sm-font-size text-weight-bold">Sort Type</div>
+              <div class="q-ml-xs q-pt-xs q-gutter-sm">
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Oldest</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Newest</q-badge>
+              </div>
+            </div>
+            <!-- Ownership -->
+            <div class="q-pt-md">
+              <div class="sm-font-size text-weight-bold">Ownership</div>
+              <div class="q-ml-xs q-pt-xs q-gutter-sm">
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('ownership')" @click="orderSetAllSelected('ownership')">Default: All</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Owned by me</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not owned by me</q-badge>
+              </div>
+            </div>
+            <!-- Trade type -->
+            <div class="q-pt-md">
+              <div class="sm-font-size text-weight-bold">Trade Type</div>
+              <div class="q-ml-xs q-pt-xs q-gutter-sm">
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('trade-type')" @click="orderSetAllSelected('trade-type')">Default: All</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="orderFilters.trade_type.buy = !orderFilters.trade_type?.buy">Buy Orders</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="orderFilters.trade_type.sell = !orderFilters.trade_type?.sell">Sell Orders</q-badge>
+              </div>
+            </div>
+            <!-- Order status -->
+            <div v-if="orderFilters.status" class="q-pt-md">
+              <div class="sm-font-size text-weight-bold">Status</div>
+              <div class="q-ml-xs q-gutter-sm q-pt-sm">
+                <q-badge
+                  rounded
+                  color="blue-grey-6"
+                  class="q-pa-sm"
+                  :outline="!orderAllSelected('status')"
+                  @click="orderSetAllSelected('status')">
+                  Default: All
+                </q-badge>
+                <q-badge
+                  v-for="(status, index) in statuses"
+                  :key="index"
+                  rounded
+                  color="blue-grey-6"
+                  class="q-pa-sm"
+                  :outline="!orderFilters.status.includes(status.value)"
+                  @click="setOrderFilter('status', status?.value)">
+                  {{ status.label }}
+                </q-badge>
+              </div>
+              <div class="q-ml-xs q-mt-xs q-gutter-sm" v-if="type !== 'filterCompletedOrder'">
+                <q-badge
+                  class="q-pa-sm"
+                  color="blue-grey-6"
+                  rounded
+                  :outline="!orderFilters.appealable"
+                  @click="orderFilters.appealable = !orderFilters.appealable">
+                  Appealable
+                </q-badge>
+                <q-badge
+                  class="q-pa-sm"
+                  color="blue-grey-6"
+                  rounded
+                  :outline="!orderFilters.not_appealable"
+                  @click="orderFilters.not_appealable = !orderFilters.not_appealable">
+                  Not Appealable
+                </q-badge>
+              </div>
+            </div>
+            <!-- Order payment types -->
+            <div v-if="orderFilters.payment_types" class="q-pt-md">
+              <div class="sm-font-size text-weight-bold">Payment Type</div>
+              <div class="q-ml-xs q-gutter-sm q-pt-sm">
+                <q-badge
+                  class="q-pa-sm"
+                  color="blue-grey-6"
+                  rounded
+                  :outline="!orderAllSelected('payment-type')"
+                  @click="orderSetAllSelected('payment-type')">
+                  Default: All
+                </q-badge>
+                <q-badge
+                  class="q-pa-sm"
+                  color="blue-grey-6"
+                  rounded
+                  v-for="payment in paymentTypes"
+                  :outline="!orderFilters.payment_types.includes(payment.id)"
+                  @click="setOrderFilter('payment-type', payment.id)"
+                  :key="payment.id">
+                  {{ payment.name }}
+                </q-badge>
+              </div>
+            </div>
+            <!-- Appealable cooldowns-->
+            <div v-if="orderFilters.time_limits" class="q-pt-md">
+              <div class="sm-font-size text-weight-bold">Appealable after</div>
+              <div class="q-ml-xs q-gutter-sm q-pt-sm">
+                <q-badge
+                  class="q-pa-sm"
+                  color="blue-grey-6"
+                  rounded
+                  :outline="!orderAllSelected('time-limit')"
+                  @click="orderSetAllSelected('time-limit')">
+                  Default: All
+                </q-badge>
+                <q-badge
+                  class="q-pa-sm"
+                  color="blue-grey-6"
+                  rounded
+                  v-for="(value, index) in ptl"
+                  :outline="!orderFilters.time_limits?.includes(value)"
+                  @click="setOrderFilter('time-limit', value)"
+                  :key="index">
+                  {{ paymentTimeLimit(value) }}
+                </q-badge>
+              </div>
             </div>
           </div>
-          <!-- Order status -->
-          <div v-if="orderFilters.status" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Status</div>
-            <div class="q-gutter-sm q-pt-sm">
-              <q-badge
-                rounded
-                color="blue-grey-6"
-                class="q-pa-sm"
-                :outline="!orderAllSelected('status')"
-                @click="orderSetAllSelected('status')">
-                All
-              </q-badge>
-              <q-badge
-                v-for="(status, index) in statuses"
-                :key="index"
-                rounded
-                color="blue-grey-6"
-                class="q-pa-sm"
-                :outline="!orderFilters.status.includes(status.value)"
-                @click="setOrderFilter('status', status?.value)">
-                {{ status.label }}
-              </q-badge>
-            </div>
-          </div>
-          <!-- Order payment types -->
-          <div v-if="orderFilters.payment_types" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Payment Type</div>
-            <div class="q-gutter-sm q-pt-sm">
-              <q-badge
-                class="q-pa-sm"
-                color="blue-grey-6"
-                rounded
-                :outline="!orderAllSelected('payment-type')"
-                @click="orderSetAllSelected('payment-type')">
-                All
-              </q-badge>
-              <q-badge
-                class="q-pa-sm"
-                color="blue-grey-6"
-                rounded
-                v-for="payment in paymentTypes"
-                :outline="!orderFilters.payment_types.includes(payment.id)"
-                @click="setOrderFilter('payment-type', payment.id)"
-                :key="payment.id">
-                {{ payment.name }}
-              </q-badge>
-            </div>
-          </div>
-          <!-- Time limits -->
-          <div v-if="orderFilters.time_limits" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Time Limit</div>
-            <div class="q-gutter-sm q-pt-sm">
-              <q-badge
-                class="q-pa-sm"
-                color="blue-grey-6"
-                rounded
-                :outline="!orderAllSelected('time-limit')"
-                @click="orderSetAllSelected('time-limit')">
-                All
-              </q-badge>
-              <q-badge
-                class="q-pa-sm"
-                color="blue-grey-6"
-                rounded
-                v-for="(value, index) in ptl"
-                :outline="!orderFilters.time_limits?.includes(value)"
-                @click="setOrderFilter('time-limit', value)"
-                :key="index">
-                {{ paymentTimeLimit(value) }}
-              </q-badge>
-            </div>
-          </div>
-          <div class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Ownership</div>
-            <div class="q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Owned</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not Owned</q-badge>
-            </div>
-          </div>
-          <div v-if="orderFilters.sort_type" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Sort Type</div>
-            <div class="q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">Ascending</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">Descending</q-badge>
-            </div>
-          </div>
-          <div v-if="orderFilters.sort_by" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Sort By</div>
-            <div class="q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">Created</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">Last Modified</q-badge>
-            </div>
-          </div>
-          <div class="q-pt-md" v-if="type !== 'filterCompletedOrder'">
-            <div class="sm-font-size text-weight-bold">Misc</div>
-            <div class="q-pt-xs q-gutter-sm">
-              <q-badge
-                rounded
-                color="blue-grey-6"
-                class="q-pa-sm"
-                :outline="!orderFilters.expired_only"
-                @click="orderFilters.expired_only = !orderFilters.expired_only">
-                Expired Only
-              </q-badge>
-            </div>
-          </div>
-          <div class="text-center q-pt-sm q-px-sm q-pb-lg">
-            <div class="row q-gutter-sm q-pt-md">
-              <q-btn
-                rounded
-                no-caps
-                label='Reset'
-                class="q-space button button-icon"
-                :class="getDarkModeClass(darkMode)"
-                outline
-                @click="resetFilters('orders')"
-              />
-              <q-btn
-                rounded
-                no-caps
-                label='Filter'
-                class="q-space button"
-                @click="submitData()"
-                v-close-popup
-              />
-            </div>
+        </q-scroll-area>
+        <div class="text-center q-pt-md q-px-sm q-pb-lg">
+          <div class="row q-gutter-sm">
+            <q-btn
+              rounded
+              no-caps
+              label='Reset'
+              class="q-space button button-icon"
+              :class="getDarkModeClass(darkMode)"
+              outline
+              @click="resetFilters('orders')"
+            />
+            <q-btn
+              rounded
+              no-caps
+              label='Filter'
+              class="q-space button"
+              @click="submitData()"
+              v-close-popup
+            />
           </div>
         </div>
       </q-card>
@@ -147,87 +159,98 @@
     <!-- Filter Ads -->
     <q-dialog v-model="filterAd" @before-hide="$emit('back')">
       <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
-        <div class="q-mt-md q-pl-md">
+        <!-- <div class="q-mt-md q-pl-md">
           <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
-        </div>
-        <div class="text-center text-weight-bold lg-font-size">Filter Ads</div>
+        </div> -->
+        <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter {{ type === 'filterSellAd' ? 'Sell' : 'Buy' }} Ads</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
         <div class="q-px-lg q-mx-sm">
-          <div v-if="storeFilters.priceTypes" class="q-pt-md">
+          <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Price Type</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 rounded
                 color="blue-grey-6"
                 class="q-pa-sm"
-                :outline="isOutlined('FIXED','price-types')"
-                @click="addFilterInfo('FIXED', 'price-types')">
+                :outline="!storeAllSelected('price-type')"
+                @click="storeSetAllSelected('price-type')">
+                Default: All
+              </q-badge>
+              <q-badge
+                rounded
+                color="blue-grey-6"
+                class="q-pa-sm"
+                :outline="!storeFilters?.price_type?.fixed"
+                @click="storeFilters.price_type.fixed = !storeFilters?.price_type?.fixed">
                 Fixed
               </q-badge>
               <q-badge
                 rounded
                 color="blue-grey-6"
                 class="q-pa-sm"
-                :outline="isOutlined('FLOATING','price-types')"
-                @click="addFilterInfo('FLOATING', 'price-types')">
+                :outline="!storeFilters?.price_type?.floating"
+                @click="storeFilters.price_type.floating = !storeFilters?.price_type?.floating">
                 Floating
               </q-badge>
             </div>
           </div>
-          <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
+
+          <!-- Ad Payment Type -->
+          <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Payment Type</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="storeFilters.selectedPaymentTypes.length < paymentTypes.length"
-                @click="addFilterInfo('all', 'all-payment-type')">
-                All
+                :outline="!storeAllSelected('payment-type')"
+                @click="storeSetAllSelected('payment-type')">
+                Default: All
               </q-badge>
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="isOutlined(method,'payment-types')"
-                @click="addFilterInfo(method, 'payment-types')"
-                v-for="method in paymentTypes"
-                :key="method.id">
-                {{ method.name }}
+                v-for="payment in paymentTypes"
+                :outline="!storeFilters.payment_types.includes(payment.id)"
+                @click="setStoreFilter('payment-type', payment.id)"
+                :key="payment.id">
+                {{ payment.name }}
               </q-badge>
             </div>
           </div>
 
-          <div v-if="storeFilters.selectedPTL" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Time Limit</div>
+          <!-- Ad Appealable Time -->
+          <div class="q-pt-md">
+            <div class="sm-font-size text-weight-bold">Appealable Time</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="storeFilters.selectedPTL.length < ptl.length"
-                @click="addFilterInfo('all', 'all-time-limits')">
-                All
+                :outline="!storeAllSelected('time-limit')"
+                @click="storeSetAllSelected('time-limit')">
+                Default: All
               </q-badge>
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
-                :outline="isOutlined(method, 'time-limits')"
-                @click="addFilterInfo(method, 'time-limits')"
-                v-for="(method, index) in ptl"
+                v-for="(value, index) in ptl"
+                :outline="!storeFilters.time_limits?.includes(value)"
+                @click="setStoreFilter('time-limit', value)"
                 :key="index">
-                {{ paymentTimeLimit(method) }}
+                {{ paymentTimeLimit(value) }}
               </q-badge>
             </div>
           </div>
 
-          <div v-if="storeFilters.priceOrder" class="q-pt-md">
+          <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Price Order</div>
             <div class="q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'ascending'" @click="storeFilters.priceOrder = 'ascending'">Ascending</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'descending'" @click="storeFilters.priceOrder = 'descending'">Descending</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'ascending'" @click="storeFilters.sort_type = 'ascending'">{{ type === 'filterSellAd' ? 'Default: ' : '' }} Ascending</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'descending'" @click="storeFilters.sort_type = 'descending'">{{ type === 'filterBuyAd' ? 'Default: ' : '' }} Descending</q-badge>
             </div>
           </div>
 
@@ -261,6 +284,7 @@
 <script>
 import { getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { isProxy, toRaw } from 'vue'
 
 export default {
   data () {
@@ -275,16 +299,20 @@ export default {
       paymentTypes: this.$store.getters['ramp/paymentTypes'],
       priceTypeOpts: ['FIXED', 'FLOATING'],
       storeFilters: {
-        selectedPaymentTypes: [],
-        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
-        priceOrder: null,
-        priceTypes: ['FIXED', 'FLOATING']
+        payment_types: [],
+        time_limits: [5, 15, 30, 60, 300, 720, 1440],
+        sort_type: 'ascending',
+        price_type: {
+          fixed: true,
+          floating: true
+        }
       },
       orderFilters: {
         sort_type: 'ascending',
         sort_by: 'created_at',
         status: [],
-        expired_only: false,
+        appealable: true,
+        not_appealable: true,
         payment_types: [],
         time_limits: [5, 15, 30, 60, 300, 720, 1440],
         ownership: {
@@ -332,40 +360,48 @@ export default {
     }
   },
   async mounted () {
+    console.log('type:', this.type)
     this.checkDialogType()
   },
   methods: {
     getDarkModeClass,
     checkDialogType () {
       const vm = this
+      let filters = vm.filters
+      if (isProxy(filters)) {
+        filters = toRaw(filters)
+      }
       switch (vm.type) {
-        case 'filterAd':
+        case 'filterSellAd':
+        case 'filterBuyAd':
           vm.filterAd = true
-          vm.updateStoreFilters(JSON.parse(JSON.stringify(vm.filters)))
+          vm.updateStoreFilters(filters)
           break
         case 'filterOngoingOrder':
         case 'filterCompletedOrder':
           vm.filterOrder = true
-          vm.updateOrderFilters(JSON.parse(JSON.stringify(vm.filters)))
+          vm.updateOrderFilters(filters)
           break
       }
     },
     submitData () {
       const vm = this
       switch (vm.type) {
-        case 'filterAd':
-          vm.info = {
-            price_order: vm.storeFilters.priceOrder
-          }
-          if (vm.storeFilters.selectedPaymentTypes) {
-            vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
-          }
-          if (vm.storeFilters.selectedPTL) {
-            vm.info.time_limits = vm.storeFilters.selectedPTL
-          }
-          if (vm.storeFilters.priceTypes) {
-            vm.info.price_types = vm.storeFilters.priceTypes
-          }
+        case 'filterSellAd':
+        case 'filterBuyAd':
+          // vm.info = {
+          //   price_order: vm.storeFilters.priceOrder
+          // }
+          // if (vm.storeFilters.selectedPaymentTypes) {
+          //   vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
+          // }
+          // if (vm.storeFilters.selectedPTL) {
+          //   vm.info.time_limits = vm.storeFilters.selectedPTL
+          // }
+          // if (vm.storeFilters.priceTypes) {
+          //   vm.info.price_types = vm.storeFilters.priceTypes
+          // }
+          vm.info = vm.storeFilters
           break
         case 'filterOngoingOrder':
         case 'filterCompletedOrder':
@@ -377,9 +413,19 @@ export default {
     orderSetAllSelected (type) {
       const vm = this
       switch (type) {
+        case 'ownership':
+          vm.orderFilters.ownership.owned = true
+          vm.orderFilters.ownership.notOwned = true
+          break
+        case 'trade-type':
+          vm.orderFilters.trade_type.buy = true
+          vm.orderFilters.trade_type.sell = true
+          break
         case 'status':
           if (vm.type === 'filterOngoingOrder') {
             vm.orderFilters.status = vm.ongoingStatuses.map(e => e.value)
+            vm.orderFilters.appealable = true
+            vm.orderFilters.not_appealable = true
           }
           if (vm.type === 'filterCompletedOrder') {
             vm.orderFilters.status = vm.completedStatuses.map(e => e.value)
@@ -398,8 +444,14 @@ export default {
       switch (type) {
         case 'ownership':
           return vm.orderFilters.ownership.owned && vm.orderFilters.ownership.notOwned
-        case 'status':
-          return vm.orderFilters.status.length === vm.statuses.length
+        case 'trade-type':
+          return vm.orderFilters.trade_type.buy && vm.orderFilters.trade_type.sell
+        case 'status': {
+          const allStatus = vm.orderFilters.status.length === vm.statuses.length
+          const allAppeal = vm.orderFilters.appealable && vm.orderFilters.not_appealable
+          if (vm.type === 'filterOngoingOrder') return allStatus && allAppeal
+          return allStatus
+        }
         case 'payment-type':
           return vm.orderFilters.payment_types.length === vm.paymentTypes.length
         case 'time-limit':
@@ -442,68 +494,67 @@ export default {
         }
       }
     },
+    storeSetAllSelected (type) {
+      const vm = this
+      switch (type) {
+        case 'price-type':
+          vm.storeFilters.price_type.fixed = true
+          vm.storeFilters.price_type.floating = true
+          break
+        case 'payment-type':
+          vm.storeFilters.payment_types = vm.paymentTypes.map(e => e.id)
+          break
+        case 'time-limit':
+          vm.storeFilters.time_limits = vm.ptl
+          break
+      }
+    },
+    storeAllSelected (type) {
+      const vm = this
+      switch (type) {
+        case 'price-type':
+          return vm.storeFilters.price_type.fixed && vm.storeFilters.price_type.floating
+        case 'payment-type':
+          return vm.storeFilters.payment_types.length === vm.paymentTypes.length
+        case 'time-limit':
+          return vm.storeFilters.time_limits.length === vm.ptl.length
+      }
+    },
+    setStoreFilter (type, value) {
+      const vm = this
+      switch (type) {
+        case 'payment-type': {
+          const paymentTypes = vm.storeFilters.payment_types
+          if (paymentTypes.includes(value)) {
+            vm.storeFilters.payment_types = paymentTypes.filter(e => e !== value)
+          } else {
+            vm.storeFilters.payment_types.push(value)
+          }
+          break
+        }
+        case 'time-limit': {
+          const timeLimits = vm.storeFilters.time_limits
+          if (timeLimits.includes(value)) {
+            vm.storeFilters.time_limits = timeLimits.filter(e => e !== value)
+          } else {
+            vm.storeFilters.time_limits.push(value)
+          }
+          break
+        }
+      }
+    },
     updateStoreFilters (filters) {
       if (!filters) return
-      this.storeFilters.priceOrder = filters.price_order
-      this.storeFilters.priceTypes = filters.price_types
-      this.storeFilters.selectedPaymentTypes = filters.payment_types
-      this.storeFilters.selectedPTL = filters.time_limits
+      this.storeFilters = filters
+      this.storeFilters.price_type = { ...filters.price_type }
+      console.log('storeFilters???:', this.storeFilters)
     },
     updateOrderFilters (filters) {
       if (!filters) return
       this.orderFilters = filters
-    },
-    addFilterInfo (data, type = '') {
-      let temp = null
-      if (data === 'all') {
-        if (type === 'all-payment-type') {
-          this.storeFilters.selectedPaymentTypes = this.paymentTypes.map(p => p.id)
-        }
-        if (type === 'all-time-limits') {
-          this.storeFilters.selectedPTL = this.ptl
-        }
-      } else {
-        if (type === 'payment-types') {
-          temp = this.storeFilters.selectedPaymentTypes
-          if (temp.includes(data.id)) {
-            if (temp.length > 1) {
-              this.storeFilters.selectedPaymentTypes = this.storeFilters.selectedPaymentTypes.filter(p => p !== data.id)
-            }
-          } else {
-            this.storeFilters.selectedPaymentTypes.push(data.id)
-          }
-        }
-        if (type === 'time-limits') {
-          temp = this.storeFilters.selectedPTL
-          if (temp.includes(data)) {
-            this.storeFilters.selectedPTL = this.storeFilters.selectedPTL.filter(p => p !== data)
-          } else {
-            this.storeFilters.selectedPTL.push(data)
-          }
-        }
-        if (type === 'price-types') {
-          temp = this.storeFilters.priceTypes
-          if (temp.includes(data)) {
-            if (temp.length > 1) {
-              this.storeFilters.priceTypes = this.storeFilters.priceTypes.filter(p => p !== data)
-            }
-          } else {
-            this.storeFilters.priceTypes.push(data)
-          }
-        }
-      }
-    },
-    isOutlined (data, type = '') {
-      if (type === 'payment-types') {
-        const temp = this.storeFilters.selectedPaymentTypes
-        return !temp.includes(data.id)
-      }
-      if (type === 'time-limits') {
-        return !this.storeFilters.selectedPTL.includes(data)
-      }
-      if (type === 'price-types') {
-        return !this.storeFilters.priceTypes.includes(data)
-      }
+      this.orderFilters.ownership = { ...filters.ownership }
+      this.orderFilters.trade_type = { ...filters.trade_type }
+      console.log('orderFilters:', this.orderFilters)
     },
     paymentTimeLimit (timeValue) {
       return getAppealCooldown(timeValue).label
@@ -513,11 +564,11 @@ export default {
       if (type === 'store') {
         if (this.$parent.transactionType === 'SELL') {
           this.$store.commit('ramp/resetStoreSellFilters')
-          filters = this.$store.getters['ramp/storeSellFilters']
+          filters = { ...this.$store.getters['ramp/storeSellFilters'] }
         }
         if (this.$parent.transactionType === 'BUY') {
           this.$store.commit('ramp/resetStoreBuyFilters')
-          filters = this.$store.getters['ramp/storeBuyFilters']
+          filters = { ...this.$store.getters['ramp/storeBuyFilters'] }
         }
         this.updateStoreFilters(filters)
       }
@@ -525,11 +576,11 @@ export default {
       if (type === 'orders') {
         if (this.$parent.statusType === 'ONGOING') {
           this.$store.commit('ramp/resetOngoingOrderFilters')
-          filters = this.$store.getters['ramp/ongoingOrderFilters']
+          filters = { ...this.$store.getters['ramp/ongoingOrderFilters'] }
         }
         if (this.$parent.statusType === 'COMPLETED') {
           this.$store.commit('ramp/resetCompletedOrderFilters')
-          filters = this.$store.getters['ramp/completedOrderFilters']
+          filters = { ...this.$store.getters['ramp/completedOrderFilters'] }
         }
         this.updateOrderFilters(filters)
       }
@@ -537,7 +588,11 @@ export default {
   }
 }
 </script>
-  <style lang="scss" scoped>
+<style lang="scss" scoped>
+  .q-btn-toggle :deep(.q-btn:not(.q-btn--active)) {
+    border: 1px solid white; /* Change #f00 to the color you want */
+    background-color: transparent;
+  }
   .sm-font-size {
     font-size: small;
   }
