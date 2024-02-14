@@ -475,5 +475,6 @@ export default {
   Yes: "SÍ",
   YouReceive: "Recibes",
   YouSend: "Usted envía",
+  YourMnemonic: "Tu frase de copia de seguridad mnemónica es",
   or: "o"
 }

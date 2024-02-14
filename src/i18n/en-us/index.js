@@ -475,5 +475,6 @@ export default {
   Yes: "YES",
   YouReceive: "You receive",
   YouSend: "You send",
+  YourMnemonic: "Your mnemonic backup phrase is",
   or: "or"
 }

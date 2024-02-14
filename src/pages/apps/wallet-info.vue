@@ -233,17 +233,10 @@
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
           <q-item clickable @click="executeSecurityChecking">
             <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-              <q-item-label v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
-              <q-item-label class="text-center" v-else>{{ $t('ClickToReveal') }}</q-item-label>
+              <q-item-label class="text-center">{{ $t('ClickToReveal') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
-        <div v-if="showMnemonic" :class="darkMode ? 'text-red-5' : 'text-red-6'" class="q-ma-sm">
-          <span class="text-weight-medium">
-            {{ $t('SeedPhraseCaution1') }}
-          </span>
-          <br>{{ $t('SeedPhraseCaution2') }}
-        </div>
       </div>
       <div class="col-12 q-px-lg q-mt-md q-mb-lg">
         <p class="section-title">Wallet Deletion</p>
@@ -261,6 +254,7 @@
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
+import SeedPhraseDialog from 'src/components/wallet-info/SeedPhraseDialog'
 import { getMnemonic, Wallet } from '../../wallet'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -276,7 +270,9 @@ export default {
   components: {
     HeaderNav,
     pinDialog,
-    biometricWarningAttmepts
+    biometricWarningAttmepts,
+    // eslint-disable-next-line vue/no-unused-components
+    SeedPhraseDialog
   },
   data () {
     return {
@@ -661,11 +657,16 @@ export default {
       })
     },
     toggleMnemonicDisplay (action) {
+      this.pinDialogAction = ''
       if (action === 'proceed') {
-        this.pinDialogAction = ''
         this.showMnemonic = !this.showMnemonic
-      } else {
-        this.pinDialogAction = ''
+      } else if (action === undefined) {
+        this.$q.dialog({
+          component: SeedPhraseDialog,
+          componentProps: { mnemonic: this.mnemonic }
+        }).onDismiss(() => {
+          this.toggleMnemonicDisplay('proceed')
+        })
       }
     },
     showDeleteDialog () {

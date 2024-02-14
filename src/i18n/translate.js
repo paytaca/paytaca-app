@@ -517,7 +517,8 @@ const additional = [
     ThemePreferenceTitle: "Set Theme Preference",
     ThemePreferenceSubtitle: "Adjust theme to fit your native experience",
     EnterOneByOne: "Enter seed phrase one by one",
-    PasteSeedPhrase: "Paste entire seed phrase instead"
+    PasteSeedPhrase: "Paste entire seed phrase instead",
+    YourMnemonic: "Your mnemonic backup phrase is"
   }
 ]
 

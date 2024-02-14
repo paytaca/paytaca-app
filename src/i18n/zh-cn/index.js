@@ -475,5 +475,6 @@ export default {
   Yes: "是的",
   YouReceive: "你收到",
   YouSend: "您发送",
+  YourMnemonic: "您的助词备用短语是",
   or: "或者"
 }
