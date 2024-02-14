@@ -11,25 +11,23 @@
     </div>
     <div v-else>
       <div v-if="state === 'initial'">
-        <div>
-          <q-btn
-            flat
-            padding="md md xs md"
-            icon="arrow_back"
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            @click="$emit('back')"
-          />
-        </div>
+        <q-btn
+          flat
+          padding="md md xs md"
+          icon="arrow_back"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          @click="$emit('back')"
+        />
         <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
-          <div v-if="user">
+          <div v-if="user" class="q-mb-lg">
             <div class="text-center q-pt-none">
               <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
               <div class="text-weight-bold lg-font-size q-pt-sm">
                 {{ user.name }}
                 <q-icon
                   @click="editNickname = true"
-                  v-if="type === 'self'"
+                  v-if="user?.self"
                   size="sm"
                   name='o_edit'
                   class="button button-text-primary"
@@ -38,7 +36,7 @@
               </div>
             </div>
             <!-- Edit Payment Methods -->
-            <div class="row q-mx-lg q-px-md q-pt-md" v-if="type === 'self'">
+            <div class="row q-mx-lg q-px-md q-pt-md" v-if="user?.self">
               <q-btn
                 rounded
                 no-caps
@@ -82,66 +80,67 @@
                 <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
             </div>
           </div>
-          <div class="q-px-sm q-pt-sm">
+          <!-- <div class="q-px-sm q-pt-sm">
             <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
-          </div>
+          </div> -->
           <!-- Feedbacks -->
-          <div v-if="userId">
-            <div v-if="!reviewList || reviewList.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+          <div
+            class="row br-15 text-center pt-card btn-transaction md-font-size"
+            :class="getDarkModeClass(darkMode)"
+            :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
+            <button
+              class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+              :class="{'dark': darkMode, 'active-btn': !user?.self && activeTab === 'reviews'}"
+              @click="activeTab = 'reviews'">
+              REVIEWS
+            </button>
+            <button
+              v-if="!user?.self"
+              class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+              :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}"
+              @click="activeTab = 'ads'">
+              ADS
+            </button>
+          </div>
+          <div v-if="activeTab === 'reviews'">
+            <!-- Reviews tab -->
+            <div v-if="reviewList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
               No Reviews Yet
             </div>
-            <div v-else>
-              <div
-                class="row br-15 text-center pt-card btn-transaction md-font-size"
-                :class="getDarkModeClass(darkMode)"
-                :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
-              >
-                <button
-                  class="col br-15 btn-custom fiat-tab q-mt-none"
-                  :class="{'dark': darkMode, 'active-btn': reviewType == 'to-peer-review'}"
-                  @click="switchReviewType('to-peer-review')"
-                >
-                  Ad Review
-                </button>
-                <button
-                  class="col br-15 btn-custom fiat-tab q-mt-none"
-                  :class="{'dark': darkMode, 'active-btn': reviewType == 'from-peer-review'}"
-                  @click="switchReviewType('from-peer-review')"
-                >
-                  User Review
-                </button>
-              </div>
-              <div class="q-mx-lg q-px-md">
-                  <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
-                    <div class="text-weight-bold sm-font-size">{{  review.from_peer.name }}</div>
-                    <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
-                    <div class="sm-font-text">
-                      <q-rating
-                        readonly
-                        v-model="review.rating"
-                        size="1.5em"
-                        color="yellow-9"
-                        icon="star"
-                      />
-                      <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating.toFixed(1) : 0}})</span>
-                    </div>
-                    <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
-                      {{ review.comment }}
-                    </div>
-                    <q-separator :dark="darkMode" class="q-mt-md"/>
+            <div v-else class="q-mx-lg q-px-md">
+                <div class="q-pt-md" v-for="(review, index) in reviewList" :key="index">
+                  <div class="text-weight-bold sm-font-size">{{  review.from_peer.name }}</div>
+                  <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
+                  <div class="sm-font-text">
+                    <q-rating
+                      readonly
+                      v-model="review.rating"
+                      size="1.5em"
+                      color="yellow-9"
+                      icon="star"
+                    />
+                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating.toFixed(1) : 0}})</span>
                   </div>
-                <!-- </q-scroll-area> -->
-                <div class="row">
-                  <q-btn
-                    flat
-                    class="col text-center text-blue sm-font-size q-mt-md"
-                    @click="openReviews=true">
-                    view more
-                    <!-- See All {{ reviewType === 'to-peer-review' ? 'Ad' : 'User' }} Reviews -->
-                  </q-btn>
+                  <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
+                    {{ review.comment }}
+                  </div>
+                  <q-separator :dark="darkMode" class="q-mt-md"/>
                 </div>
+              <div class="row">
+                <q-btn
+                  flat
+                  class="col text-center text-blue sm-font-size q-mt-md"
+                  @click="openReviews=true">
+                  view more
+                </q-btn>
               </div>
             </div>
+          </div>
+          <div v-if="activeTab === 'ads'">
+            <div v-if="adsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+              No Ads Yet
+            </div>
+            <!-- Ads tab -->
           </div>
         </q-scroll-area>
       </div>
@@ -163,9 +162,8 @@
   <div v-if="openReviews">
     <FeedbackDialog
       :openReviews="openReviews"
-      :toPeerID="userId"
-      :fromPeerID="userId"
-      :type="reviewType"
+      :toPeerID="user.id"
+      :fromPeerID="user.id"
       @back="openReviews = false"
     />
   </div>
@@ -187,28 +185,20 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       isloaded: false,
       user: null,
-      userId: null,
       editNickname: false,
+      activeTab: 'reviews', // 'reviews | 'ads'
       state: 'initial',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       reviewList: [],
-      reviewType: 'to-peer-review',
-      statusType: 'ONGOING',
+      adsList: [],
       openReviews: false,
       retry: false
     }
   },
   props: {
-    userInfo: {
-      type: Object,
-      default: null
-    },
-    type: {
-      type: String,
-      default: 'self'
-    }
+    userInfo: Object
   },
   emits: ['back'],
   components: {
@@ -229,25 +219,26 @@ export default {
       return formatDate(value, relative)
     },
     processUserData () {
-      if (this.type === 'self') {
-        this.userId = this.$store.getters['ramp/getUser'].id
+      let self = false
+      if (this.userInfo) {
+        this.user = this.userInfo
+        self = this.userInfo.self
       } else {
-        if (this.userInfo.is_owner) {
-          this.userId = this.$store.getters['ramp/getUser'].id
-        } else {
-          this.userId = this.userInfo.id
-        }
+        this.user = { ...this.$store.getters['ramp/getUser'] }
+        self = true
       }
-      this.getUserInfo()
+      this.getUserInfo(this.user.id).then(user => {
+        this.user = user
+        this.user.self = self
+      })
     },
-    getUserInfo () {
-      const vm = this
-      if (vm.userId) {
-        backend.get('/ramp-p2p/peer/detail', { params: { id: vm.userId }, authorize: true })
+    getUserInfo (userId) {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('/ramp-p2p/peer/detail', { params: { id: userId }, authorize: true })
           .then(response => {
-            vm.user = response.data
-            // console.log('vm.user:', vm.user)
             vm.isloaded = true
+            resolve(response.data)
           })
           .catch(error => {
             console.error(error)
@@ -258,12 +249,9 @@ export default {
               }
             }
             vm.isloaded = true
+            reject(error)
           })
-      } else {
-        // temporary
-        vm.user = vm.userInfo.name
-        vm.isloaded = true
-      }
+      })
     },
     async updateUserName (info) {
       const vm = this
@@ -336,21 +324,17 @@ export default {
     fetchTopReview () {
       const vm = this
       const params = {
-        limit: 3
+        limit: 5
       }
-      if (vm.reviewType === 'to-peer-review') {
-        params.to_peer = this.userId
-      } else {
-        params.from_peer = this.userId
-      }
+      params.to_peer = this.userId
       backend.get('/ramp-p2p/order/feedback/peer', {
         params: params,
         authorize: true
       })
         .then(response => {
           if (response.data) {
-            console.log('response:', response)
             vm.reviewList = response.data.feedbacks
+            console.log('reviews:', response)
             // top 5 review
             if (vm.reviewList && vm.reviewList.length !== 0) {
               vm.reviewList = vm.reviewList.slice(0, 5)
@@ -392,8 +376,8 @@ export default {
   background-color: rgb(242, 243, 252);
   border-radius: 24px;
   padding: 4px;
-  margin-left: 12%;
-  margin-right: 12%;
+  margin-left: 10%;
+  margin-right: 10%;
   margin-top: 10px;
 }
 .btn-custom {
@@ -413,8 +397,8 @@ export default {
   color: #4C4F4F;
 }
 .btn-custom.active-btn {
-  background-color: rgb(172, 177, 180) !important;
-  color: #ffffff;
+  background-color: rgb(60, 100, 246) !important;
+  color: #fff !important;
 }
 .btn-custom.dark {
   background-color: #1c2833;

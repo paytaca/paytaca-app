@@ -122,7 +122,6 @@
   <FiatProfileCard
     v-if="viewProfile"
     :userInfo="selectedUser"
-    :type="selectedUser.is_owner ? 'self' : 'peer'"
     v-on:back="viewProfile = false"
   />
   <div v-if="openDialog">
@@ -478,9 +477,8 @@ export default {
     },
     viewUserProfile (data) {
       this.selectedUser = {
-        id: data.ad.owner.id,
-        name: data.ad.owner.name,
-        is_owner: data.is_ad_owner
+        id: data.owner.id,
+        self: !data.is_ad_owner
       }
       this.viewProfile = true
     }

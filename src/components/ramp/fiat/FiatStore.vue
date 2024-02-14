@@ -92,7 +92,7 @@
                             <span
                               :class="{'pt-label dark': darkMode}"
                               class="md-font-size"
-                              @click.stop.prevent="viewUserProfile(listing.owner, listing)">
+                              @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)">
                               {{ listing.owner.name }}
                             </span>
                             <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
@@ -168,7 +168,6 @@
   <FiatProfileCard
     v-if="viewProfile"
     :userInfo="selectedUser"
-    :type="selectedUser.is_owner ? 'self' : 'peer'"
     v-on:back="viewProfile = false"
   />
 </template>
@@ -458,12 +457,12 @@ export default {
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     },
-    viewUserProfile (user, data) {
-      this.viewProfile = true
+    viewUserProfile (userId, isOwner) {
       this.selectedUser = {
-        name: user,
-        is_owner: data.is_owned
+        id: userId,
+        self: isOwner
       }
+      this.viewProfile = true
     },
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
