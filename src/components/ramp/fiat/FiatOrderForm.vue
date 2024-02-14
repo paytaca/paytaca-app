@@ -362,7 +362,7 @@ export default {
         .then(orderId => {
           vm.fetchOrderMembers(orderId)
             .then(members => {
-              vm.createGroupChat(vm.order.id, members)
+              vm.createGroupChat(vm.order.id, members, vm.order.created_at)
             })
         })
         .catch(error => {
@@ -392,9 +392,9 @@ export default {
           })
       })
     },
-    createGroupChat (orderId, members) {
+    createGroupChat (orderId, members, createdAt) {
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-      createChatSession(orderId)
+      createChatSession(orderId, createdAt)
         .then(chatRef => addChatMembers(chatRef, chatMembers))
         .catch(console.error)
     },

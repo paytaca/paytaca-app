@@ -81,10 +81,11 @@ export async function updateChatIdentity (payload) {
   })
 }
 
-export async function createChatSession (orderId) {
+export async function createChatSession (orderId, createdAt) {
   return new Promise((resolve, reject) => {
+    const chatRef = generateChatRef(orderId, createdAt)
     const payload = {
-      ref: `ramp-order-${orderId}-chat`,
+      ref: chatRef, //`ramp-order-${orderId}-chat`,
       title: `Ramp Order #${orderId} chat`
     }
     chatBackend.post('chat/sessions/', payload, { forceSign: true })
@@ -251,6 +252,11 @@ export async function updateOrCreateKeypair () {
     })
 
   return keypair
+}
+
+export function generateChatRef (id, createdAt) {
+  const hashVal = id + createdAt
+  return sha256(hashVal)
 }
 
 export {
