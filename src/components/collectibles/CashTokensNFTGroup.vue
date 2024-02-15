@@ -3,7 +3,7 @@
     <div v-if="fetchingNfts" class="row items-center justify-center">
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
-    <div class="row items-start q-pa-md">
+    <div class="row items-start justify-between q-pa-md">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
         class="q-ma-sm text-bow"
