@@ -236,7 +236,12 @@ function selectVariantFromProps() {
 }
 
 function serializeCartOptionsData(data) {
-  try { return JSON.stringify(data) } catch {}
+  try {
+    if (Object.keys(data).length === 0) return
+    return JSON.stringify(data)
+  } catch(error) {
+    console.error(error)
+  }
 }
 watch(() => [product.value?.cartOptions], () => resetCartOptionsFormData(), { deep: true })
 watch(cartItem, () => resetCartOptionsFormData())

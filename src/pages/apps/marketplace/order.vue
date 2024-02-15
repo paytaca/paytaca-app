@@ -58,6 +58,20 @@
                 </q-item-section>
               </q-item>
             </template>
+            <template v-if="order?.inProgress || hasOngoingDispute">
+              <q-separator/>
+              <q-item
+                v-close-popup clickable
+                @click="() => showOrderDisputeDialog()"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    Dispute
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+            </template>
           </q-menu>
         </q-btn>
       </div>
@@ -118,8 +132,8 @@
         class="q-mx-xs q-my-sm pt-card text-bow"
         :class="getDarkModeClass(darkMode)"
       >
-        <div class="row items-center q-gutter-y-sm">
-          <div>
+        <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
+          <div class="q-space">
             <div class="text-subtitle1">
               Order delivered!
               <q-spinner v-if="completingOrder"/>
@@ -130,10 +144,21 @@
               Order will be marked completed in {{ autoCompleteTimeRemainingText }} seconds
             </div>
           </div>
-          <q-space/>
+          <q-btn
+            outline
+            rounded
+            no-caps
+            :color="disputeButtonOpts.color"
+            padding="1px sm"
+            @click="() => showOrderDisputeDialog()"
+          >
+            Dispute
+            <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+          </q-btn>
           <q-btn
             rounded
             no-caps
+            :disable="hasOngoingDispute"
             :loading="completingOrder"
             label="Mark as Complete"
             class="button"
@@ -141,6 +166,31 @@
             @click="() => completeOrder()"
           />
         </div>
+      </q-banner>
+      <q-banner
+        v-else-if="hasOngoingDispute" rounded
+        class="q-mx-xs q-my-sm pt-card text-bow"
+        :class="getDarkModeClass(darkMode)"
+      >
+      <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
+        <div>
+          <div class="text-subtitle1">
+            Order dispute
+          </div>
+          <div class="text-caption text-grey">Order is currently in dispute</div>
+        </div>
+        <q-btn
+          outline
+          rounded
+          no-caps
+          :color="disputeButtonOpts.color"
+          padding="1px sm"
+          @click="() => showOrderDisputeDialog()"
+        >
+        Dispute
+        <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+      </q-btn>
+      </div>
       </q-banner>
       <div class="row items-start items-delivery-address-panel">
         <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
@@ -328,7 +378,27 @@
       </div>
     </div>
     <div class="fixed-bottom q-pl-sm q-pb-sm">
-      <OrderChatButton ref="chatButton" :order-id="orderId"/>
+      <OrderChatButton
+        ref="chatButton"
+        :order-id="orderId"  
+      >
+        <template v-if="order?.inProgress || orderDispute?.id" v-slot:before-messages>
+          <div class="row item-center q-r-mt-sm q-pb-xs">
+            <q-btn
+              outline
+              rounded
+              no-caps
+              :color="disputeButtonOpts.color"
+              padding="xs md"
+              @click="() => showOrderDisputeDialog()"
+            >
+              Dispute
+              <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+            </q-btn>
+          </div>
+          <q-separator/>
+        </template>
+      </OrderChatButton>
     </div>
     <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
     <q-dialog v-model="showPaymentDialog" position="bottom">
@@ -405,7 +475,7 @@
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
-import { Delivery, Order, Payment, Storefront } from 'src/marketplace/objects'
+import { Delivery, Order, OrderDispute, Payment, Storefront } from 'src/marketplace/objects'
 import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -417,8 +487,9 @@ import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dia
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import OrderChatButton from 'src/components/marketplace/OrderChatButton.vue'
+import OrderDisputeFormDialog from 'src/components/marketplace/order/OrderDisputeFormDialog.vue'
 import { loadWallet, Wallet } from 'src/wallet'
-import { TransactionListener } from 'src/wallet/transaction-listener'
+import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
@@ -428,6 +499,10 @@ import merchantLocationPin from 'src/assets/merchant_map_marker.png'
 const props = defineProps({
   orderId: [String, Number],  
 })
+
+const pageActive = ref(false)
+onActivated(() => pageActive.value = true)
+onDeactivated(() => pageActive.value = false)
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -498,6 +573,7 @@ function fetchOrder() {
       fetchingOrder.value = false
     })
 }
+fetchOrder.debounced = debounce(fetchOrder, 500)
 
 const orderAmounts = computed(() => {
   const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
@@ -718,6 +794,7 @@ const createPayment = debounce(async () => {
     order_id: order.value.id,
     ignore_pending_payments: true,
     escrow: {
+      // network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
       buyer_address: order.value?.payment?.escrowRefundAddress || bchAddress.value,
     },
   }
@@ -910,8 +987,9 @@ async function sendBchPayment() {
 
   const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
   bchWallet.sendBch(amount, address, changeAddress)
-    .then(result => {
+    .then(async result => {
       if (!result.success) return Promise.reject(result)
+      await asyncSleep(1000)
       savePaymentFundingTx({ txid: result.txid, address: address }).then(() => {
         showPaymentDialog.value = false
       })
@@ -1078,12 +1156,104 @@ function completeOrder() {
     })
 }
 
-const orderUpdateEventName = 'order_updates'
-const onNotificationHandler = notification  => {
-  if (notification?.event != orderUpdateEventName) return
-  if (notification?.data?.id != props.orderId) return
-  fetchOrder()
+const orderDispute = ref([].map(OrderDispute.parse)[0])
+const hasOngoingDispute = computed(() => {
+  if (!orderDispute.value?.id) return order.value?.hasOngoingDispute
+  return !orderDispute.value?.resolvedAt
+})
+const disputeButtonOpts = computed(() => {
+  if (!orderDispute.value?.id) return { color: 'grey', icon: undefined }
+  if (orderDispute.value.id) {
+    if (orderDispute.value.resolvedAt) return { color: 'green', icon: 'done' }
+    else return { color: 'red', icon: undefined }
+  }
+})
+function fetchOrderDispute() {
+  return backend.get(`connecta/orders/${props.orderId}/dispute/`)
+    .then(response => {
+      orderDispute.value = OrderDispute.parse(response?.data)
+      return response
+    })
+    .catch(error => {
+      if (error?.response?.status === 404 && error?.response?.data?.detail) {
+        orderDispute.value = undefined
+      }
+      return Promise.reject(error)
+    })
 }
+function showOrderDisputeDialog() {
+  $q.dialog({
+    component: OrderDisputeFormDialog,
+    componentProps: {
+      readonly: Boolean(orderDispute.value?.id),
+      editable: true,
+      orderDispute: orderDispute.value,
+    }
+  })
+    .onOk(result => {
+      if (result?.action === 'submit') createOrUpdateDispute(result?.data)
+      // else if (result?.action === 'resolve') resolveDispute(result?.data)
+    })
+}
+
+function createOrUpdateDispute(opts={ reasons:[].map(String) }) {
+  const reasons = opts?.reasons
+  if (!reasons?.length) return Promise.resolve()
+
+  const data = { reasons }
+  const dialog = $q.dialog({
+    title: orderDispute.value?.id ? 'Updating dispute' : 'Creating dispute',
+    progress: true,
+    persistent: true,
+    ok: false,
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  })
+  return backend.post(`connecta/orders/${props.orderId}/dispute/`, data)
+    .then(response => {
+      orderDispute.value = OrderDispute.parse(response?.data)
+      dialog.hide()
+      return response
+    })
+    .catch(error => {
+      const data = error?.response?.data
+      let errorMessage = errorParser.firstElementOrValue(data?.non_field_errors) ||
+                         errorParser.firstElementOrValue(data?.detail) ||
+                         errorParser.firstElementOrValue(data?.reasons)
+
+      if (!errorMessage && typeof error?.message === 'string' && error?.message?.length < 200) {
+        errorMessage = error?.message
+      }
+      dialog.update({ message: errorMessage || 'Error encountered in updating dispute' })
+      return Promise.reject(error)
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true, })
+    })
+}
+const rpcEventNames = Object.freeze({
+  orderUpdate: 'order_updates',
+  paymentUpdate: 'payment_updates',
+})
+const onNotificationHandler = notification  => {
+  console.log('Notifications', notification)
+  const eventName = notification?.event
+  const data = notification?.data
+  if (eventName === rpcEventNames.orderUpdate) {
+    if (data?.id != props.orderId) return console.log('Not matching id')
+    fetchOrder.debounced()
+    if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+  }
+  if (eventName === rpcEventNames.paymentUpdate) {
+    if (data?.order_id != props.orderId) return
+    if (data?.status) fetchOrder.debounced()
+    fetchPayments()
+  }
+}
+
+marketplaceRpc.client.onOpen(() => {
+  if (!pageActive.value) return
+  subscribeUpdatesToRpc()
+})
 
 watch(() => [props.orderId], () => {
   unsubscribeUpdatesToRpc().finally(() => subscribeUpdatesToRpc())
@@ -1092,7 +1262,8 @@ onActivated(() => subscribeUpdatesToRpc())
 onDeactivated(() => unsubscribeUpdatesToRpc())
 async function subscribeUpdatesToRpc() {
   if (!marketplaceRpc.isConnected()) await marketplaceRpc.connect()
-  marketplaceRpc.client.call('subscribe', [orderUpdateEventName, { id: parseInt(props.orderId) }])
+  marketplaceRpc.client.call('subscribe', [rpcEventNames.orderUpdate, { id: parseInt(props.orderId) }])
+  marketplaceRpc.client.call('subscribe', [rpcEventNames.paymentUpdate, { order_id: parseInt(props.orderId) }])
 
   if (!marketplaceRpc.client.onNotification.includes(onNotificationHandler)) {
     marketplaceRpc.client.onNotification.push(onNotificationHandler)
@@ -1101,7 +1272,8 @@ async function subscribeUpdatesToRpc() {
 
 async function unsubscribeUpdatesToRpc() {
   if (!marketplaceRpc.isConnected()) return
-  marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
+  marketplaceRpc.client.call('unsubscribe', [rpcEventNames.orderUpdate])
+  marketplaceRpc.client.call('unsubscribe', [rpcEventNames.paymentUpdate])
   marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
     .filter(handler => handler !== onNotificationHandler)
 }
@@ -1135,6 +1307,7 @@ async function refreshPage(done=() => {}) {
       fetchOrder(),
       fetchDelivery(),
       fetchPayments(),
+      fetchOrderDispute(),
       chatButton.value?.refresh?.()
     ])
   } finally {

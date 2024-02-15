@@ -1628,9 +1628,10 @@ async function sendBchPayment() {
 
   const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
   bchWallet.sendBch(amount, address, changeAddress)
-    .then(result => {
+    .then(async result => {
       if (!result.success) return Promise.reject(result)
 
+      await asyncSleep(1000)
       savePaymentFundingTx({ txid: result.txid, address: address }).then(() => {
         if (tabs.value.active == 'payment') nextTab()
       })
