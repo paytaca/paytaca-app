@@ -500,6 +500,10 @@ const props = defineProps({
   orderId: [String, Number],  
 })
 
+const pageActive = ref(false)
+onActivated(() => pageActive.value = true)
+onDeactivated(() => pageActive.value = false)
+
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $q = useQuasar()
@@ -569,6 +573,7 @@ function fetchOrder() {
       fetchingOrder.value = false
     })
 }
+fetchOrder.debounced = debounce(fetchOrder, 500)
 
 const orderAmounts = computed(() => {
   const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
@@ -789,6 +794,7 @@ const createPayment = debounce(async () => {
     order_id: order.value.id,
     ignore_pending_payments: true,
     escrow: {
+      // network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
       buyer_address: order.value?.payment?.escrowRefundAddress || bchAddress.value,
     },
   }
@@ -1224,17 +1230,30 @@ function createOrUpdateDispute(opts={ reasons:[].map(String) }) {
       dialog.update({ persistent: false, progress: false, ok: true, })
     })
 }
-const orderUpdateEventName = 'order_updates'
+const rpcEventNames = Object.freeze({
+  orderUpdate: 'order_updates',
+  paymentUpdate: 'payment_updates',
+})
 const onNotificationHandler = notification  => {
   console.log('Notifications', notification)
   const eventName = notification?.event
   const data = notification?.data
-  if (eventName != orderUpdateEventName) return console.log('Wrong event')
-  if (data?.id != props.orderId) return console.log('Not matching id')
-  console.log('typeof data?.has_ongoing_dispute', typeof data?.has_ongoing_dispute)
-  fetchOrder()
-  if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+  if (eventName === rpcEventNames.orderUpdate) {
+    if (data?.id != props.orderId) return console.log('Not matching id')
+    fetchOrder.debounced()
+    if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+  }
+  if (eventName === rpcEventNames.paymentUpdate) {
+    if (data?.order_id != props.orderId) return
+    if (data?.status) fetchOrder.debounced()
+    fetchPayments()
+  }
 }
+
+marketplaceRpc.client.onOpen(() => {
+  if (!pageActive.value) return
+  subscribeUpdatesToRpc()
+})
 
 watch(() => [props.orderId], () => {
   unsubscribeUpdatesToRpc().finally(() => subscribeUpdatesToRpc())
@@ -1243,7 +1262,8 @@ onActivated(() => subscribeUpdatesToRpc())
 onDeactivated(() => unsubscribeUpdatesToRpc())
 async function subscribeUpdatesToRpc() {
   if (!marketplaceRpc.isConnected()) await marketplaceRpc.connect()
-  marketplaceRpc.client.call('subscribe', [orderUpdateEventName, { id: parseInt(props.orderId) }])
+  marketplaceRpc.client.call('subscribe', [rpcEventNames.orderUpdate, { id: parseInt(props.orderId) }])
+  marketplaceRpc.client.call('subscribe', [rpcEventNames.paymentUpdate, { order_id: parseInt(props.orderId) }])
 
   if (!marketplaceRpc.client.onNotification.includes(onNotificationHandler)) {
     marketplaceRpc.client.onNotification.push(onNotificationHandler)
@@ -1252,7 +1272,8 @@ async function subscribeUpdatesToRpc() {
 
 async function unsubscribeUpdatesToRpc() {
   if (!marketplaceRpc.isConnected()) return
-  marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
+  marketplaceRpc.client.call('unsubscribe', [rpcEventNames.orderUpdate])
+  marketplaceRpc.client.call('unsubscribe', [rpcEventNames.paymentUpdate])
   marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
     .filter(handler => handler !== onNotificationHandler)
 }

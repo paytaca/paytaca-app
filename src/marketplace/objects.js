@@ -64,6 +64,65 @@ export class Location {
   }
 }
 
+
+export class User {
+  static parse(data) {
+    return new User(data)
+  }
+
+  static parseShopRole(shopRole) {
+    return {
+      shopId: shopRole?.shop_id,
+      roles: Array.isArray(shopRole?.roles) ? shopRole?.roles : [],
+    }
+  }
+
+  constructor(data) {
+    this.raw = data
+    this.$state = {
+      updating: false,
+    }
+  }
+
+  get raw() {
+    return this.$raw
+  }
+  
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} [data.email]
+   * @param {String} [data.username]
+   * @param {String} data.first_name
+   * @param {String} data.last_name
+   * @param {{ user_id:Number, shop_id:Number, roles:String[] }[]} [data.shop_roles]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.email = data?.email
+    this.username = data?.username
+    this.firstName = data?.first_name
+    this.lastName = data?.last_name
+    if (Array.isArray(data?.shop_roles)) {
+      this.shopRoles = data.shop_roles.map(User.parseShopRole)
+    } else {
+      this.shopRoles = [].map(User.parseShopRole)
+    }
+  }
+
+  get fullName() {
+    return [this.firstName, this.lastName].filter(Boolean).join(' ')
+  }
+
+  getRolesFromShop(shopId) {
+    const shopRole = this.shopRoles?.find?.(shopRole => shopRole?.shopId == shopId)
+    if (Array.isArray(shopRole?.roles)) return shopRole.roles
+    return []
+  }
+}
+
+
 export class Storefront {
   static parse(data) {
     return new Storefront(data)
@@ -1090,6 +1149,7 @@ export class OrderDispute {
    * @param {String[]} data.reasons
    * @param {String | null} data.resolve_action
    * @param {String | null} data.resolved_at
+   * @param {Object} [data.resolved_by]
    * @param {String} data.created_at
    * @param {Object} data.created_by
    */
@@ -1101,8 +1161,15 @@ export class OrderDispute {
     this.resolveAction = data?.resolve_action
     if (data?.resolved_at) this.resolvedAt = new Date(data?.resolved_at)
     else if (this.resolvedAt) delete this.resolvedAt
+
+    if (data?.resolved_by) this.resolvedBy = User.parse(data?.resolved_by)
+    else if (this.resolvedBy) delete this.resolvedBy
+
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
+
+    if (data?.created_by) this.createdBy = User.parse(data?.created_by)
+    else if (this.createdBy) delete this.createdBy
   }
 }
 
