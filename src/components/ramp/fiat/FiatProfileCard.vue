@@ -1,6 +1,6 @@
 <template>
   <q-card
-    v-if="!selectedListing"
+    v-if="!selectedListing && state === 'initial'"
     class="br-15 q-pt-sm q-mx-md q-mb-lg q-pb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
@@ -189,14 +189,13 @@
           </div>
         </q-scroll-area>
       </div>
-      <div v-if="state === 'edit-pm'">
-        <AddPaymentMethods
-          :type="'Profile'"
-          v-on:back="state = 'initial'"
-        />
-      </div>
     </div>
   </q-card>
+  <AddPaymentMethods
+    v-if="state === 'edit-pm'"
+    :type="'Profile'"
+    v-on:back="state = 'initial'"
+  />
   <MiscDialogs
     v-if="editNickname"
     :type="'editNickname'"

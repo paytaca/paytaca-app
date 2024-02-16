@@ -1,157 +1,140 @@
 <template>
-  <div>
-    <q-btn
-      flat
-      padding="md"
-      icon="arrow_back"
-      class="button button-text-primary"
-      :class="getDarkModeClass(darkMode)"
-      @click="$emit('back')"
-      v-if="type !== 'Ads'"
-    />
-  </div>
-  <div class="q-mx-lg" v-if="isloaded">
-    <div
-      class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size"
-      :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-      PAYMENT METHODS
-    </div>
-    <!-- <div class="subtext q-pt-xs q-pl-lg"><i>Add up to 5 methods</i></div> -->
+  <q-card
+    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`">
     <div>
-      <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
-        <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
-        <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
-      </div>
-      <div v-else>
-        <q-card-section :style="`max-height: ${minHeight - 230}px`" style="overflow-y:auto;">
-          <q-virtual-scroll :items="paymentMethods">
-            <template v-slot="{ item: method }">
-              <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <q-item-section>
-                  <div class="row">
-                    <div class="col">
-                      <div class="text-h5" style="font-size: 15px;">
-                        {{ method.payment_type.name.toUpperCase() }}
-                      </div>
-                      <div class="subtext text-weight-bold">
-                        {{ method.account_name }}
-                      </div>
-                      <div class="subtext text-weight-bold">
-                        {{ method.account_identifier }}
-                      </div>
-                    </div>
-                    <div class="text-right q-pt-sm" v-if="type === 'Profile'">
-                      <q-btn
-                        outline
-                        rounded
-                        padding="sm"
-                        icon="edit"
-                        size="sm"
-                        class="button button-icon"
-                        :class="getDarkModeClass(darkMode)"
-                        @click="editMethod(method)"
-                      />
-                      <q-btn
-                        outline
-                        rounded
-                        padding="sm"
-                        size="sm"
-                        icon="delete"
-                        color="red-6"
-                        class="q-ml-xs"
-                        @click="deleteMethod(method)"
-                        />
-                    </div>
-                    <div class="text-right q-pt-sm"  v-if="type === 'General'">
-                      <q-btn
-                        outline
-                        rounded
-                        padding="sm"
-                        size="sm"
-                        icon="done"
-                        :color="selectButtonColor(method.payment_type.name)"
-                        class="q-ml-xs"
-                        @click="selectMethod(method)"
-                        />
-                    </div>
-                  </div>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-virtual-scroll>
-          <div v-if="type === 'General' && emptyPaymentMethods.length !== 0">
-            <q-virtual-scroll :items="emptyPaymentMethods">
-            <template v-slot="{ item: method, index }">
-              <q-item clickable :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <q-item-section>
-                  <div class="row">
-                    <div class="col">
-                      <div class="text-h5" style="font-size: 15px;">
-                        {{ method }}
-                      </div>
-                      <div class="subtext text-weight-bold">
-                        <div class="row q-pt-sm">
-                          <q-btn
-                            outline
-                            rounded
-                            no-caps
-                            icon="add"
-                            class="q-space text-white"
-                            color="blue-6"
-                            @click="addMethodFromAd(method, index)"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-virtual-scroll>
-          </div>
-        </q-card-section>
-      </div>
-    </div>
-    <div>
-      <div class="row q-pt-lg q-mx-sm" v-if="type === 'Ads'">
-        <q-btn
-          outline
-          rounded
-          no-caps
-          label='Select Methods'
-          class="q-space text-white"
-          color="blue-6"
-          @click="addMethod"
-        />
-      </div>
-    </div>
-    <div class="row q-pt-xs q-mx-sm" v-if="type !== 'Profile'">
       <q-btn
-        :disable="disableSubmit"
-        rounded
-        no-caps
-        :label="confirmLabel"
-        class="q-space text-white"
-        color="blue-6"
-        @click="submitPaymentMethod()"
-      />
+        flat
+        padding="md"
+        icon="arrow_back"
+        class="button button-text-primary"
+        :class="getDarkModeClass(darkMode)"
+        @click="onBack"/>
     </div>
-    <div>
-      <div class="row q-mx-sm" v-if="type === 'Profile'">
-        <q-btn
-          v-if="paymentMethods.length - paymentTypes.length !== 0"
-          outline
-          rounded
-          no-caps
-          label='Add Method'
-          class="q-space button button-icon"
-          :class="getDarkModeClass(darkMode)"
-          @click="createMethod"
-        />
+    <div class="q-mx-md" v-if="isloaded">
+      <div class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size">
+        {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
       </div>
+      <q-separator :dark="darkMode" class="q-mx-md q-mt-sm"/>
+      <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mb-sm"><i>{{ instructionMessage }}</i></div>
+      <q-card-section :style="`max-height: ${minHeight - 190}px`" style="overflow-y:auto;">
+        <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
+          <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
+          <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
+        </div>
+        <q-item v-for="(method, index) in paymentMethods" :key="index">
+          <q-item-section>
+            <div class="row">
+              <div class="col">
+                <div class="md-font-size">
+                  {{ method.payment_type.name }}
+                </div>
+                <div class="subtext">
+                  {{ method.account_name }}
+                </div>
+                <div class="subtext">
+                  {{ method.account_identifier }}
+                </div>
+              </div>
+              <div class="text-right" v-if="type === 'Profile'">
+                <q-btn
+                  outline
+                  rounded
+                  padding="sm"
+                  icon="edit"
+                  size="sm"
+                  class="button button-icon"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="editMethod(method)"
+                />
+                <q-btn
+                  outline
+                  rounded
+                  padding="sm"
+                  size="sm"
+                  icon="delete"
+                  color="red-6"
+                  class="q-ml-xs"
+                  @click="deleteMethod(method)"
+                  />
+              </div>
+              <div class="col justify-end text-right"  v-if="type === 'General'">
+                <q-btn
+                  :outline="!isPaymentSelected(method)"
+                  rounded
+                  padding="sm"
+                  size="sm"
+                  icon="done"
+                  color="blue-6"
+                  class="q-ml-xs"
+                  @click="selectMethod(method)"
+                  />
+              </div>
+            </div>
+            <q-separator :dark="darkMode" class="q-my-sm"/>
+          </q-item-section>
+        </q-item>
+        <div v-if="type === 'General' && emptyPaymentMethods.length !== 0">
+          <q-item v-for="(method, index) in emptyPaymentMethods" :key="index">
+            <q-item-section>
+              <div class="row">
+                <div class="col text-h5" style="font-size: 15px;">
+                  {{ method }}
+                </div>
+                <q-btn
+                  outline
+                  rounded
+                  dense
+                  padding="xs"
+                  size="md"
+                  icon="add"
+                  class="col-auto"
+                  color="blue-6"
+                  @click="addMethodFromAd(method, index)"
+                />
+              </div>
+              <q-separator :dark="darkMode" class="q-my-md"/>
+            </q-item-section>
+          </q-item>
+        </div>
+        <div class="row q-pt-lg q-mx-md" v-if="type === 'Ads'">
+          <q-btn
+            outline
+            rounded
+            no-caps
+            label="Select Methods"
+            class="q-space text-white"
+            color="blue-6"
+            @click="addMethod">
+          </q-btn>
+        </div>
+        <div class="row q-pt-xs q-mx-md" v-if="type !== 'Profile'">
+          <q-btn
+            :disable="disableSubmit"
+            rounded
+            no-caps
+            :label="confirmLabel"
+            class="q-space text-white"
+            color="blue-6"
+            @click="submitPaymentMethod()"
+          />
+        </div>
+        <div class="row q-mx-md q-py-md" v-if="type === 'Profile'">
+          <q-btn
+            v-if="paymentMethods.length - paymentTypes.length !== 0"
+            outline
+            rounded
+            no-caps
+            label='Add Method'
+            class="q-space button button-icon"
+            :class="getDarkModeClass(darkMode)"
+            @click="createMethod"
+          />
+        </div>
+      </q-card-section>
     </div>
-  </div>
-
+  </q-card>
   <div v-if="openDialog">
     <MiscDialogs
       :key="miscDialogsKey"
@@ -160,7 +143,7 @@
       :current-payment-methods="paymentMethods"
       :title="title"
       :text="text"
-      v-on:back="onBack"
+      v-on:back="onPaymentMethodBack"
       v-on:submit="receiveDialogInfo"
     />
   </div>
@@ -201,7 +184,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
       paymentMethods: [],
       paymentTypes: [],
       selectedMethods: [],
@@ -222,16 +205,9 @@ export default {
     }
   },
   emits: ['submit', 'back'],
-  // watch: {
-  //   paymentMethods (value) {
-  //     console.log('paymentMethods:', value)
-  //   }
-  // },
   async mounted () {
     const vm = this
-    // get payment type list
-    // const walletInfo = vm.$store.getters['global/getWallet']('bch')
-
+    console.log('AddPaymentMethods')
     switch (vm.type) {
       case 'General':
         await vm.fetchPaymentMethod()
@@ -243,6 +219,7 @@ export default {
       case 'Profile':
         await vm.fetchPaymentMethod()
         await this.fetchPaymentTypes()
+        bus.emit('hide-menu')
         break
     }
 
@@ -258,11 +235,26 @@ export default {
         isDisabled = true
       }
       return isDisabled
+    },
+    instructionMessage () {
+      switch (this.type) {
+        case 'General':
+          return 'This ad accepts the following payment types'
+        case 'Ads':
+          return 'Your ad will accept the following payment types'
+      }
+      return ''
     }
   },
   methods: {
     getDarkModeClass,
-    onBack (data) {
+    onBack () {
+      if (this.type === 'Profile') {
+        bus.emit('show-menu')
+      }
+      this.$emit('back')
+    },
+    onPaymentMethodBack (data) {
       if (data !== undefined) {
         this.paymentMethods = data
       }
@@ -347,6 +339,11 @@ export default {
       } else {
         this.selectedMethods.push(data)
       }
+    },
+    isPaymentSelected (payment) {
+      const temp = this.selectedMethods.map(p => p.payment_type.name)
+      console.log('isPaymentSelected:', (temp.includes(payment?.payment_type?.name)))
+      return (temp.includes(payment?.payment_type?.name))
     },
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type.name)

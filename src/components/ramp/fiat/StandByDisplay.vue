@@ -229,7 +229,6 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { backend } from 'src/wallet/ramp/backend'
-import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -252,15 +251,12 @@ export default {
         is_posted: false
       },
       contractBalance: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
     }
   },
   props: {
     data: Object
   },
-  // created () {
-  //   bus.emit('hide-chat')
-  // },
   emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
   components: {
     MiscDialogs,

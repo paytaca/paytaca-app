@@ -123,7 +123,7 @@ export default {
       byFiat: false,
       amount: null,
       price: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
     }
   },
   props: {

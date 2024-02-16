@@ -165,7 +165,7 @@ export default {
       timer: null,
       paymentMethods: [],
       selectedPaymentMethods: [],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
       showDragSlide: true,
       dragSlideKey: 0,
       sendingBch: false,

@@ -103,7 +103,7 @@ export default {
       hideBtn: false,
       errorMessage: null,
       state: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
       txidLoaded: false,
       balanceLoaded: false,
       disableTxidInput: true

@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <!-- Form Body -->
-    <div v-if="state === 'initial'">
+    <div>
       <div v-if="isloaded">
         <div>
           <q-btn
@@ -166,23 +166,12 @@
           </div>
         </q-scroll-area>
       </div>
-
       <!-- Progress Loader -->
       <div v-else>
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
           <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
       </div>
-
-    </div>
-    <!-- Add payment method -->
-    <div v-if="state === 'add-payment-method'">
-      <AddPaymentMethods
-        :type="'General'"
-        :ad-payment-method="ad.payment_methods"
-        v-on:back="state = 'initial'"
-        v-on:submit="recievePaymentMethods"
-      />
     </div>
     <!-- Dialogs -->
     <div v-if="openDialog">
@@ -201,6 +190,19 @@
       />
     </div>
   </q-card>
+  <!-- Add payment method -->
+  <div v-if="state === 'add-payment-method'">
+    <AddPaymentMethods
+      :type="'General'"
+      :ad-payment-method="ad.payment_methods"
+      v-on:back="state = 'initial'"
+      v-on:submit="recievePaymentMethods"
+    />
+  </div>
+  <!-- Process Order -->
+  <div v-if="state === 'order-process'">
+    <FiatProcessOrder :order-data="order" @back="onBack"/>
+  </div>
   <!-- Edit Ad -->
   <div v-if="state === 'edit-ad'">
     <FiatAdsForm
@@ -210,10 +212,6 @@
       :selectedAdId="ad.id"
       @submit="onSubmitEditAds()"
     />
-  </div>
-  <!-- Process Order -->
-  <div v-if="state === 'order-process'">
-    <FiatProcessOrder :order-data="order" @back="onBack"/>
   </div>
 </template>
 <script>
@@ -235,7 +233,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isloaded: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (95 + 120) : this.$q.screen.height - (70 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (70 + 100),
       ad: null,
       state: 'initial',
       byFiat: false,
@@ -289,6 +287,9 @@ export default {
     }
   },
   watch: {
+    state (value) {
+      console.log('state:', value)
+    },
     byFiat () {
       this.updateInput()
     }
@@ -496,6 +497,7 @@ export default {
     },
     submit () {
       const vm = this
+      console.log('trade_type:', vm.ad.trade_type)
       switch (vm.ad.trade_type) {
         case 'SELL':
           vm.orderConfirm()
@@ -504,6 +506,7 @@ export default {
           vm.state = 'add-payment-method'
           break
       }
+      console.log('state:', vm.state)
     },
     countDecimals (value) {
       if (Math.floor(value) === value) return 0
