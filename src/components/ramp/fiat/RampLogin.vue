@@ -126,7 +126,6 @@ export default {
           vm.user = response.data
           vm.usernickname = vm.user?.name
           vm.$store.commit('ramp/updateUser', vm.user)
-          // vm.$store.dispatch('ramp/loadAuthHeaders')
           console.log('user:', vm.user)
           if (vm.user.is_authenticated) {
             getAuthToken().then(token => {
@@ -351,7 +350,7 @@ export default {
     async revokeAuth () {
       const url = `${this.apiURL}/auth/revoke`
       try {
-        await backend.post(url, null, { authrize: true })
+        await backend.post(url, null, { authorize: true })
       } catch (error) {
         console.error(error)
         console.error(error.response)
