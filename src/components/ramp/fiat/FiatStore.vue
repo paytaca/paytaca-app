@@ -88,7 +88,7 @@
                     <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                       <div class="row">
                         <div class="col ib-text">
-                          <div class="">
+                          <div>
                             <span
                               :class="{'pt-label dark': darkMode}"
                               class="md-font-size"
@@ -113,8 +113,7 @@
                           </div>
                           <span
                             class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                            :class="getDarkModeClass(darkMode)"
-                          >
+                            :class="getDarkModeClass(darkMode)">
                             {{ formattedCurrency(listing.price) }}
                           </span>
                           <span class="sm-font-size">/BCH</span><br>
