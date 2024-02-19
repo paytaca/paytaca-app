@@ -529,7 +529,7 @@ async function sendSettlementTx(escrowContract, transaction) {
 
 }
 
-function showEscrowOrder(escrowContract=EscrowContract.parse()) {
+async function showEscrowOrder(escrowContract=EscrowContract.parse()) {
   const orderId = escrowContract?.payments?.[0]?.orderId
   if (!orderId) return
 
@@ -541,6 +541,7 @@ function showEscrowOrder(escrowContract=EscrowContract.parse()) {
     ok: false,
     cancel: false,
     persistent: true,
+    color: 'brandblue',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }), 100)
 

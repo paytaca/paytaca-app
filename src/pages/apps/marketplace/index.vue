@@ -227,6 +227,7 @@ function openStorefrontListOptsForm() {
       type: 'number',
       suffix: 'km',
     },
+    color: 'brandblue',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
   })
   .onOk(data => $store.commit('marketplace/setShopListOpts', { radius: parseFloat(data) }))

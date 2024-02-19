@@ -110,7 +110,6 @@
           </div>
         </q-tab-panel>
         <q-tab-panel name="delivery" :dark="darkMode">
-          <template v-if="formData?.delivery?.rider?.id">
             <div class="text-subtitle1">Rider</div>
             <q-field
               dense outlined readonly
@@ -119,13 +118,24 @@
               class="q-mb-sm"
             >
               <template v-slot:control>
-                <div class="">
+                <div v-if="formData?.delivery?.rider?.id" class="">
                   <div>{{ formData?.delivery?.rider?.fullName }}</div>
                   <div>{{ formData?.delivery?.rider?.phoneNumber }}</div>
                 </div>
+                <div v-else class="text-grey">
+                  No rider in the area
+                </div>
+              </template>
+              <template v-slot:append>
+                <q-btn
+                  :disable="loadingState.rider"
+                  flat
+                  icon="search"
+                  padding="sm"
+                  @click="() => findRider({ replaceExisting: true, displayDialog: true })"
+                />
               </template>
             </q-field>
-          </template>
           <q-form @submit="() => submitDeliveryAddress().then(() => nextTab())">
             <q-banner v-if="formErrors?.delivery?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
               <div v-if="formErrors?.delivery?.detail?.length === 1">
@@ -1193,7 +1203,7 @@ function setAsDeliveryLocation(location=Location.parse()) {
 }
 
 
-async function findRider(opts={ replaceExisting: false, displayDialog: false }) {
+async function findRider(opts={ replaceExisting: false, skipReplaceIfEmpty: false, displayDialog: false }) {
   if (!opts?.replaceExisting && formData.value?.delivery?.rider?.id) return
   loadingState.value.rider = true
   loadingMsg.value = 'Finding a rider'
@@ -1212,7 +1222,11 @@ async function findRider(opts={ replaceExisting: false, displayDialog: false }) 
       })
     }
 
-    const riders = await findRiders().catch(() => [])
+    const excludeIds = []
+    if (opts?.replaceExisting && formData.value?.delivery?.rider?.id) {
+      excludeIds.push(formData.value?.delivery?.rider?.id)
+    }
+    const riders = await findRiders(excludeIds).catch(() => [])
     loadingState.value.rider = false
     loadingMsg.value = resolveLoadingMsg()
     formData.value.delivery.rider = riders[0]
@@ -1245,13 +1259,15 @@ async function findRider(opts={ replaceExisting: false, displayDialog: false }) 
   }
 }
 
-function findRiders() {
+function findRiders(excludeIds=[]) {
+  const excludeRiderIds = !Array.isArray(excludeIds) ? [] : excludeIds.map(Number).filter(Number.isInteger)
   const data = {
     pickup_location: {
       longitude: checkoutStorefront.value?.location?.longitude,
       latitude: checkoutStorefront.value?.location?.latitude,
     },
     radius: 7500,
+    exclude_rider_ids: excludeRiderIds?.length ? excludeRiderIds : undefined,
     max_active_deliveries: 2,
   }
 

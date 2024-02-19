@@ -1080,7 +1080,7 @@ function confirmCancelOrder() {
     message: 'Are you sure?',
     color: 'brandblue',
     ok: { noCaps: true, label: 'Cancel Order', color: 'red' },
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(() => cancelOrder())
 }
 
@@ -1091,7 +1091,7 @@ function cancelOrder() {
     progress: true,
     persistent: true,
     color: 'brandblue',
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
  return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
