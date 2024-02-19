@@ -94,7 +94,7 @@
                             // if (message?.$state?.decryptingAttachment) {
                               decryptMessageAttachment(message)
                                 .then(() => {
-                                  if (!tempMessage && message?.decryptedAttachmentFile?.url) { resetScroll() }
+                                  if (!tempMessage) { resetScroll() }
                                 })
                             // }
                           }"
@@ -136,7 +136,8 @@
                               // if (message?.$state?.decryptingAttachment) {
                                 decryptMessageAttachment(message)
                                   .then(() => {
-                                    if (!tempMessage && message?.decryptedAttachmentFile?.url) { resetScroll() }
+                                    // message?.decryptedAttachmentFile?.url
+                                    if (!tempMessage) { resetScroll() }
                                   })
                             }"
                           >
@@ -197,6 +198,7 @@
     <div class="row q-py-sm q-px-sm">
       <q-input
         :loading="sendingMessage"
+        :disable="!isloaded"
         class="col q-px-sm"
         :dark="darkMode"
         rounded

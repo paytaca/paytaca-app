@@ -17,7 +17,7 @@
         {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
       </div>
       <q-separator :dark="darkMode" class="q-mx-md q-mt-sm"/>
-      <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mb-sm"><i>{{ instructionMessage }}</i></div>
+      <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm"><i>{{ instructionMessage }}</i></div>
       <q-card-section :style="`max-height: ${minHeight - 190}px`" style="overflow-y:auto;">
         <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
           <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
