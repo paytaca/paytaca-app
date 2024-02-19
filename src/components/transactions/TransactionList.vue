@@ -1,24 +1,33 @@
 <template>
   <div class="transaction-list">
     <template v-if="transactionsLoaded">
-      <TransactionListItem
-        v-for="(transaction, index) in transactions"
-        :key="'tx-' + index"
-        :transaction="transaction"
-        :selected-asset="selectedAsset"
-        :denominationTabSelected="denominationTabSelected"
-        @click="() => $emit('on-show-transaction-details', transaction)"
-      />
-      <div ref="bottom-transactions-list"></div>
-      <TransactionListItemSkeleton v-if="transactionsAppending"/>
-      <div
-        v-else-if="transactionsPageHasNext"
-        class="pt-label show-more-label"
-        :class="getDarkModeClass(darkMode, '', isNotDefaultTheme(theme) ? '' : 'default')"
-      >
-        <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
+      <template v-if="!transactionsAppending">
+        <TransactionListItem
+          v-for="(transaction, index) in transactions"
+          :key="'tx-' + index"
+          :transaction="transaction"
+          :selected-asset="selectedAsset"
+          :denominationTabSelected="denominationTabSelected"
+          @click="() => $emit('on-show-transaction-details', transaction)"
+        />
+      </template>
+      <template v-else>
+        <div ref="bottom-transactions-list"></div>
+        <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
+      </template>
+      <div v-if="transactions.length > 0" class="q-mt-md">
+        <q-pagination
+          class="justify-center"
+          padding="xs"
+          :modelValue="transactionsPage"
+          :max="transactionsMaxPage"
+          :max-pages="6"
+          :dark="darkMode"
+          :class="getDarkModeClass(darkMode)"
+          @update:modelValue="(val) => getTransactions(val)"
+        />
       </div>
-      <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
+      <div v-else class="relative text-center q-pt-md">
         <q-img class="vertical-top q-my-md no-transaction-img" src="empty-wallet.svg" />
         <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
       </div>
@@ -34,9 +43,14 @@ import TransactionListItem from 'src/components/transactions/TransactionListItem
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton'
 
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const sep20IdRegexp = /sep20\/(.*)/
+const recordTypeMap = {
+  all: 'all',
+  sent: 'outgoing',
+  received: 'incoming'
+}
 
 export default {
   name: 'TransactionList',
@@ -65,6 +79,7 @@ export default {
       transactionsLoaded: false,
       transactionsAppending: false,
       transactionsFilter: 'all',
+      transactionsMaxPage: 0,
       selectedNetwork: 'BCH',
       selectedAsset: {
         id: 'bch',
@@ -85,14 +100,11 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    theme () {
-      return this.$store.getters['global/theme']
-    },
     earliestBlock () {
       if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
       return Math.min(
         ...this.transactions
-          .map(tx => tx && tx.block)
+          .map(tx => tx?.block)
           .filter(Boolean)
           .filter(Number.isSafeInteger)
       )
@@ -101,7 +113,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     scrollToBottomTransactionList () {
       this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
     },
@@ -117,11 +128,10 @@ export default {
       const asset = vm.selectedAsset
       const id = String(vm.selectedAsset.id)
 
-      const filterOpts = { limit: 10, includeTimestamp: true }
-      if (vm.transactionsFilter === 'sent') {
-        filterOpts.type = 'outgoing'
-      } else if (vm.transactionsFilter === 'received') {
-        filterOpts.type = 'incoming'
+      const filterOpts = {
+        limit: 10,
+        includeTimestamp: true,
+        type: recordTypeMap[vm.transactionsFilter]
       }
 
       let appendResults = false
@@ -150,6 +160,7 @@ export default {
       vm.transactionsAppending = true
       requestPromise
         .then(response => {
+          console.log('sbch response', response)
           vm.transactionsPageHasNext = false
           if (Array.isArray(response.transactions)) {
             vm.transactionsPageHasNext = response.hasNextPage
@@ -162,7 +173,9 @@ export default {
                 return tx
               })
             )
-            if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
+            // TODO set max pages and page for sBch (since they are not included in the response)
+            // vm.transactionsMaxPage = response?.num_pages
+            // vm.transactionsPage = page
           }
         })
         .finally(() => {
@@ -174,13 +187,8 @@ export default {
       const vm = this
       const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
-      if (page === 1) vm.transactionsLoaded = false
-      let recordType = 'all'
-      if (vm.transactionsFilter === 'sent') {
-        recordType = 'outgoing'
-      } else if (vm.transactionsFilter === 'received') {
-        recordType = 'incoming'
-      }
+      const recordType = recordTypeMap[vm.transactionsFilter]
+
       let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
@@ -196,21 +204,25 @@ export default {
       vm.transactionsAppending = true
       requestPromise
         .then(function (response) {
-          console.log(response) // TODO remove
           const transactions = response.history || response
           const page = Number(response?.page)
           const hasNext = response?.has_next
+
           if (!Array.isArray(transactions)) return
-          if (page > vm.transactionsPage) vm.transactionsPage = page
+
+          vm.transactions = []
           transactions.map(function (item) {
             item.asset = asset
             return vm.transactions.push(item)
           })
+
+          vm.transactionsPage = page
+          vm.transactionsMaxPage = response?.num_pages
           vm.transactionsLoaded = true
+
           setTimeout(() => {
             vm.transactionsPageHasNext = hasNext
           }, 250)
-          if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
         })
         .catch(error => {
           console.error('error:', error.response)
@@ -226,6 +238,11 @@ export default {
       this.transactions = []
       this.transactionsPage = 0
       this.transactionsLoaded = false
+      this.pagination = {
+        count: 0,
+        limit: 0,
+        offset: 0
+      }
     }
   }
 }
@@ -241,14 +258,6 @@ export default {
   @media (min-width: 280px) and (max-width: 320px) {
     .transaction-list {
       height: 430px;
-    }
-  }
-  .show-more-label {
-    margin-top: 20px;
-    width: 100%;
-    text-align: center;
-    &.light.default {
-      color: #3b7bf6 !important;
     }
   }
   .no-transaction-img {
