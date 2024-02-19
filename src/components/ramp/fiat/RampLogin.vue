@@ -159,6 +159,7 @@ export default {
     async loadChatIdentity () {
       // check if chatIdentity exist
       const chatIdentity = this.$store.getters['ramp/chatIdentity']
+
       if (!chatIdentity) {
         await updateSignerData()
         return new Promise((resolve, reject) => {
@@ -198,6 +199,9 @@ export default {
               reject(error)
             })
         })
+      } else {
+        console.log('updating chat identity id')
+        this.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, chatIdentity.id)
       }
     },
     exponentialBackoff (fn, retries, delayDuration, ...data) {
