@@ -59,7 +59,7 @@ export default {
     handleSessionEvent (_data) {
       this.loggedIn = false
       this.errorMessage = 'Session expired'
-      this.deleteAuthToken()
+      deleteAuthToken()
     },
     loggedInAs (userType) {
       this.loggedIn = true

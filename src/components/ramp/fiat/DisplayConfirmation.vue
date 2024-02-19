@@ -177,7 +177,7 @@ export default {
       showDragSlide: true,
       dragSlideKey: 0,
       marketPrice: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 110
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   emits: ['back', 'submit'],
@@ -239,7 +239,7 @@ export default {
           bus.emit('session-expired')
         }
       }
-    },
+    }
   }
 }
 </script>

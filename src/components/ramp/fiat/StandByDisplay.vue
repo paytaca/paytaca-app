@@ -94,41 +94,27 @@
               </div>
             </div>
           </div>
-          <!-- Countdown Timer -->
           <div v-else class="q-mt-md q-px-md q-mb-sm">
-            <!-- <div
-              class="row q-px-sm text-center sm-font-size"
-              style="overflow-wrap: break-word;"
-              v-if="!$parent.isExpired">
-              <div v-if="hasLabel && !forRelease" class="row">
-                <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-                <span class="col text-left q-ml-sm">{{ label }}</span>
-              </div>
-            </div> -->
-              <!-- <div class="text-center" style="font-size: 32px; color: #ed5f59;" v-if="hasCountDown && !forRelease">
-                {{ countDown }}
-              </div> -->
-              <!-- Cancel Button -->
-              <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
-                <q-btn
-                  rounded
-                  no-caps
-                  label='Cancel Order'
-                  class="q-space text-white"
-                  style="background-color: #ed5f59;"
-                  @click="$parent.cancellingOrder()"
-                />
-              </div>
+            <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
+              <q-btn
+                rounded
+                no-caps
+                label='Cancel Order'
+                class="q-space text-white"
+                style="background-color: #ed5f59;"
+                @click="$parent.cancellingOrder()"
+              />
+            </div>
           </div>
           <!-- Appeal Button -->
           <div v-if="showAppealBtn">
             <div class="row q-pt-xs q-px-md">
               <q-btn
-                rounded
+                flat
                 no-caps
                 :disable="!data?.wsConnected || countDown !== null"
                 :label="appealBtnLabel"
-                class="q-space text-white button"
+                class="q-space text-white"
                 color="blue-6"
                 @click="openDialog = true"
               />
@@ -251,7 +237,7 @@ export default {
         is_posted: false
       },
       contractBalance: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   props: {
@@ -266,7 +252,7 @@ export default {
   computed: {
     appealBtnLabel () {
       if (this.countDown) return `Appealable in ${this.countDown}`
-      return 'Appeal'
+      return 'Submit an appeal'
     },
     showAppealBtn () {
       const stat = ['ESCRW', 'PD_PN', 'PD']
@@ -293,11 +279,6 @@ export default {
       }
       return release
     },
-    // hasCountDown () {
-    //   const stat = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN']
-
-    //   return stat.includes(this.data?.order?.status.value) && !this.$parent.isExpired
-    // },
     hasReview () {
       const stat = ['RLS', 'RFN']
       return stat.includes(this.data?.order?.status.value)
@@ -401,7 +382,6 @@ export default {
     },
     appealCountdown () {
       const vm = this
-      console.log('appealCountdown:', vm.data?.order)
       if (vm.data?.order?.appealable_at) {
         const appealableDate = new Date(vm.data?.order?.appealable_at)
         vm.timer = setInterval(function () {
@@ -412,9 +392,9 @@ export default {
           const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
           const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-          if (hours > 0) vm.countDown = `${hours} hr`
-          else if (minutes > 0) vm.countDown = `${minutes} min`
-          else if (seconds > 0) vm.countDown = `${seconds} s`
+          if (hours > 0) vm.countDown = `${hours} hour(s)`
+          else if (minutes > 0) vm.countDown = `${minutes} minute(s)`
+          else if (seconds > 0) vm.countDown = `${seconds} second(s)`
 
           if (distance < 0) {
             clearInterval(vm.timer)

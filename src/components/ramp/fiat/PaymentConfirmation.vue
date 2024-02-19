@@ -18,7 +18,7 @@
           <span v-else>RECEIVE FIAT</span>
         </div>
         <div style="opacity: .5;" class="text-center q-pb-sm md-font-size text-weight-bold">ORDER #{{ order.id }}</div>
-        <q-scroll-area :style="`height: ${minHeight - 190}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
           <div class="q-mt-sm q-mx-md q-px-md">
             <div class="q-my-sm">
               <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
@@ -66,14 +66,9 @@
               </q-input>
             </div>
           </div>
-          <!-- <div class="q-pt-sm text-center" v-if="!sendingBch && sendErrors.length === 0">
-            <span class="sm-font-size" v-if="countDown !== 'Expired'">order expires in</span>
-            <div style="font-size: 30px; color: #ed5f59;"> {{ countDown }}</div>
-          </div> -->
           <div class="q-mx-md q-px-sm q-pt-sm">
             <!-- Buyer -->
             <div v-if="data?.type === 'buyer'" class="q-pb-xs">
-              <!-- <q-separator :dark="darkMode" class="q-mx-sm q-mb-md"/> -->
               <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
               <div class="sm-font-size q-mx-md q-mb-sm">Select the payment method(s) you used to pay the seller</div>
               <div class="full-width">
@@ -106,10 +101,10 @@
               </div>
             </div>
           </div>
-          <!-- Checkbox -->
           <div class="q-mb-sm">
             <div class="q-mx-lg q-px-md">
               <div v-if="data?.type === 'seller'">
+                <!-- Errors -->
                 <div class="row q-mb-sm" v-if="sendErrors.length > 0">
                   <div class="col">
                     <ul style="margin-left: -40px; list-style: none;">
@@ -120,10 +115,29 @@
                     </ul>
                   </div>
                 </div>
+                <!-- Info messages -->
                 <div v-if="sendingBch" class="sm-font-size">
                   <q-spinner class="q-mx-sm"/>Sending BCH, please wait...
                 </div>
+                <div v-else class="row justify-center q-pt-xs q-px-xs">
+                  <div class="row text-center sm-font-size" style="overflow-wrap: break-word;">
+                    <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+                    <span class="col text-left q-ml-sm">Please release the funds if you have received fiat payment.</span>
+                  </div>
+                </div>
               </div>
+            </div>
+            <!-- Appeal Button -->
+            <div class="row justify-center" v-if="countDown !== null">
+              <q-btn
+                flat
+                no-caps
+                :disable="!data?.wsConnected || countDown !== ''"
+                :label="appealBtnLabel"
+                class=""
+                color="blue-6"
+                @click="onOpenAppealForm"
+              />
             </div>
           </div>
         </q-scroll-area>
@@ -143,6 +157,11 @@
     }"
     @ok="onSecurityOk"
     @cancel="onSecurityCancel"/>
+    <AppealForm
+    v-if="showAppealForm"
+    :order="order"
+    @back="showAppealForm = false"
+    />
   </div>
 </template>
 <script>
@@ -151,6 +170,7 @@ import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
+import AppealForm from './dialogs/AppealForm.vue'
 
 export default {
   data () {
@@ -161,25 +181,31 @@ export default {
       order: null,
       txid: null,
       isloaded: false,
-      countDown: '',
+      countDown: null,
       timer: null,
       paymentMethods: [],
       selectedPaymentMethods: [],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showDragSlide: true,
+      showAppealForm: false,
       dragSlideKey: 0,
       sendingBch: false,
       sendErrors: []
     }
   },
   components: {
-    RampDragSlide
+    RampDragSlide,
+    AppealForm
   },
-  emits: ['back', 'expired', 'verify-release', 'refresh'],
+  emits: ['back', 'verify-release', 'refresh'],
   props: {
     data: Object
   },
   computed: {
+    appealBtnLabel () {
+      if (this.countDown) return `Appealable in ${this.countDown}`
+      return 'Submit an appeal'
+    },
     dragSlideTitle () {
       return this.data?.type === 'seller' ? 'Release Crypto' : 'Confirm Payment'
     },
@@ -197,23 +223,8 @@ export default {
       return this.$parent.formattedCurrency(amount)
     }
   },
-  watch: {
-    // countDown (value) {
-    //  if (value === 'Expired') this.$emit('expired')
-    // }
-  },
   async mounted () {
-    console.log('payment confirmations')
-    const vm = this
-    vm.wallet = loadRampWallet()
-    if (vm.data?.errors) {
-      vm.sendErrors = vm.data?.errors
-    }
-    vm.fetchOrderDetail().then(() => {
-      vm.paymentCountdown()
-      vm.isloaded = true
-    })
-    vm.fetchContractBalance()
+    this.loadData()
   },
   beforeUnmount () {
     clearInterval(this.timer)
@@ -221,6 +232,15 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    loadData () {
+      const vm = this
+      vm.wallet = loadRampWallet()
+      vm.fetchOrderDetail().then(() => {
+        vm.appealCountdown()
+        vm.isloaded = true
+      })
+      vm.fetchContractBalance()
+    },
     fetchContractBalance () {
       const vm = this
       if (vm.data?.escrow) {
@@ -346,9 +366,6 @@ export default {
         }
       }
     },
-    // onConfirm () {
-    //   this.$emit('confirm', this.selectedPaymentMethods)
-    // },
     onSecurityOk () {
       this.showDragSlide = false
       this.dragSlideKey++
@@ -359,33 +376,31 @@ export default {
       this.showDragSlide = true
       this.dragSlideKey++
     },
-    paymentCountdown () {
+    onOpenAppealForm () {
+      this.showAppealForm = true
+    },
+    appealCountdown () {
       const vm = this
-      const expiryDate = new Date(vm.order.expires_at)
+      if (vm.order?.appealable_at) {
+        const appealableDate = new Date(vm.order?.appealable_at)
+        vm.timer = setInterval(function () {
+          const now = new Date().getTime()
+          const distance = appealableDate - now
 
-      vm.timer = setInterval(function () {
-        const now = new Date().getTime()
-        const distance = expiryDate - now
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-        let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-        let seconds = Math.floor((distance % (1000 * 60)) / 1000)
-        if (seconds.toString().length < 2) {
-          seconds = '0' + seconds
-        }
-        if (minutes.toString().length < 2) {
-          minutes = '0' + minutes
-        }
+          if (hours > 0) vm.countDown = `${hours} hour(s)`
+          else if (minutes > 0) vm.countDown = `${minutes} minute(s)`
+          else if (seconds > 0) vm.countDown = `${seconds} second(s)`
 
-        vm.countDown = `${hours}:${minutes}:${seconds}`
-
-        if (distance < 0) {
-          clearInterval(vm.timer)
-          vm.countDown = 'Expired'
-          // vm.order.status = 'Expired'
-          // vm.shiftExpired = true
-        }
-      }, 1000)
+          if (distance < 0) {
+            clearInterval(vm.timer)
+            vm.countDown = ''
+          }
+        }, 1000)
+      }
     }
   }
 }
