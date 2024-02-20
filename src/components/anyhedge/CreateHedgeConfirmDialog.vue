@@ -17,12 +17,12 @@
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="isPositionOffer">
             Position offer
-            <template v-if="position === 'hedge'">(Hedge)</template>
-            <template v-else-if="position === 'long'">(Long)</template>
+            <template v-if="position === 'hedge'">({{ $t('Hedge') }})</template>
+            <template v-else-if="position === 'long'">({{ $t('Long') }})</template>
           </template>
           <template v-else>
-            <template v-if="position === 'hedge'">Stabilize (Hedge)</template>
-            <template v-else-if="position === 'long'">Leverage (Long)</template>
+            <template v-if="position === 'hedge'">Stabilize ({{ $t('Hedge') }})</template>
+            <template v-else-if="position === 'long'">Leverage ({{ $t('Long') }})</template>
             <template v-else>Hedge Contract</template>
           </template>
         </div>
@@ -31,6 +31,7 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <q-card-section class="q-gutter-y-sm q-pt-none hedge-details-container">
@@ -38,7 +39,7 @@
           <div class="text-grey text-subtitle1">Contract Value</div>
           <div class="row items-start">
             <div class="col-6">
-              <div class="text-grey-7">Hedge</div>
+              <div class="text-grey-7">{{ $t('Hedge') }}</div>
               <div v-if="contractValues.priceValue">
                 {{ formatUnits(contractValues.hedge.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
@@ -47,7 +48,7 @@
               </div>
             </div>
             <div class="col-6">
-              <div class="text-grey-7">Long</div>
+              <div class="text-grey-7">{{ $t('Long') }}</div>
               <div v-if="contractValues.priceValue">
                 {{ formatUnits(contractValues.long.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
@@ -92,7 +93,7 @@
                   }"
                 />
               </div>
-              <div class="text-body1 text-grey">Hedge</div>
+              <div class="text-body1 text-grey">{{ $t('Hedge') }}</div>
               <div class="q-space text-body1 text-right">
                 {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.total / (10**8)) }}
               </div>
@@ -195,7 +196,7 @@
                   }"
                 />
               </div>
-              <div class="text-body1 text-grey">Long</div>
+              <div class="text-body1 text-grey">{{ $t('Long') }}</div>
               <div class="q-space text-body1 text-right">
                 {{ getAssetDenomination(denomination, fundingAmounts?.long?.total / (10**8)) }}
               </div>
@@ -310,7 +311,7 @@
             </div>
             <div class="row">
               <div class="col-6">
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Low</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Low') }}</div>
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.low.price, oracleInfo?.assetDecimals || 0) }}
@@ -321,7 +322,7 @@
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">High</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('High') }}</div>
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.high.price, oracleInfo?.assetDecimals || 0) }}
@@ -339,11 +340,11 @@
         <div>
           <div class="text-grey text-subtitle1">Payout addresses</div>
           <div v-if="!isPositionOffer || pubkeys.hedgeAddress" class="q-mb-xs">
-            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">Hedge:</div>
+            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">{{ $t('Hedge') }}:</div>
             <div class="q-space" style="word-break:break-all;">{{pubkeys.hedgeAddress}}</div>
           </div>
           <div v-if="!isPositionOffer || pubkeys.longAddress" class="q-mb-xs">
-            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">Long:</div>
+            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">{{ $t('Long') }}:</div>
             <div class="q-space" style="word-break:break-all;">{{pubkeys.longAddress}}</div>
           </div>
           <q-separator :dark="darkMode"/>
@@ -369,7 +370,7 @@
             <q-icon class="material-icons q-mr-md" size="lg">
               task_alt
             </q-icon>
-            Security Check
+            {{ $t('SecurityCheck') }}
             </div>
           </template>
 

@@ -71,7 +71,7 @@
     <div class="row items-center">
       <div class="q-space">
         <div v-if="createHedgeForm.selectedAsset?.latestPrice?.priceValue">
-          Current price:
+          {{ $t('CurrentPrice') }}:
           {{ createHedgeForm.selectedAsset.latestPrice.priceValue / 10 ** (createHedgeForm.selectedAsset.assetDecimals || 0) }}
           <template v-if="createHedgeForm.selectedAsset?.assetCurrency">
             {{ `${createHedgeForm.selectedAsset.assetCurrency} / ${denomination} ` }}
@@ -81,7 +81,7 @@
           <q-popup-proxy :breakpoint="0">
             <div class="q-px-md q-py-sm pt-label pt-card-2" :class="getDarkModeClass(darkMode)">
               <div class="q-py-xs">
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Asset Name</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('AssetName') }}</div>
                 <span>
                   {{ createHedgeForm.selectedAsset?.assetName }}
                 </span>
@@ -99,7 +99,7 @@
                 </span>
               </div>
               <div v-if="Number.isFinite(createHedgeForm.selectedAsset?.latestPrice?.messageTimestamp)" class="q-py-xs">
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Price timestamp</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('PriceTimestamp') }}</div>
                 <span>
                   {{ formatTimestampToText(createHedgeForm.selectedAsset?.latestPrice?.messageTimestamp * 1000) }}
                 </span>
@@ -129,7 +129,10 @@
       />
     </div>
     <div v-if="position === 'long'" class="row items-center q-gutter-x-sm">
-      <span>Approx hedge amount: {{ getAssetDenomination(denomination, createHedgeFormMetadata.intentAmountBCH) }}</span>
+      <span>
+        {{ $t('ApproxHedgeAmount') }}:
+        {{ getAssetDenomination(denomination, createHedgeFormMetadata.intentAmountBCH) }}
+      </span>
       <q-icon
         :color="darkMode ? 'grey-7' : 'black'"
         size="sm"
@@ -137,7 +140,7 @@
       >
         <q-popup-proxy :breakpoint="0">
           <div class="q-px-md q-py-sm text-caption pt-label pt-card-2" :class="getDarkModeClass(darkMode)">
-            Hedge amount is calculated from long amount below & low liquidation percentage below
+            {{ $t('ApproxHedgeAmountDescription') }}
           </div>
         </q-popup-proxy>
       </q-icon>
@@ -197,8 +200,20 @@
       reactive-rules
       :rules="[
         val => val >= 0 || 'Invalid duration',
-        (val, units, formatValue) => val >= createHedgeFormConstraints.minimumDuration || `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`,
-        (val, units, formatValue) => val <= createHedgeFormConstraints.maximumDuration || `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`,
+        (val, units, formatValue) =>
+          val >= createHedgeFormConstraints.minimumDuration
+            || `${$t(
+              'MustAtLeastBe',
+              { amount: formatValue(createHedgeFormConstraints.minimumDuration) },
+              `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`
+            )}`,
+        (val, units, formatValue) =>
+          val <= createHedgeFormConstraints.maximumDuration
+            || `${$t(
+              'MustAtMostBe',
+              { amount: formatValue(createHedgeFormConstraints.maximumDuration) },
+              `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`
+            )}`,
       ]"
       @focus="readonlyState(true, 'duration')"
       @blur="readonlyState(false, 'duration')"
@@ -220,8 +235,20 @@
         v-model="createHedgeForm.lowLiquidationMultiplierPctg"
         reactive-rules
         :rules="[
-          val => val/100 >= createHedgeFormConstraints.minimumLiquidationLimit || `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}%`,
-          val => val/100 <= createHedgeFormConstraints.maximumLiquidationLimit || `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}%`,
+          val =>
+            val/100 >= createHedgeFormConstraints.minimumLiquidationLimit
+              || `${$t(
+                'MustBeAtLeast',
+                { amount: createHedgeFormConstraints.minimumLiquidationLimit * 100 },
+                `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}`
+              )}%`,
+          val =>
+            val/100 <= createHedgeFormConstraints.maximumLiquidationLimit
+              || `${$t(
+                'MustBeAtMost',
+                { amount: createHedgeFormConstraints.maximumLiquidationLimit * 100 },
+                `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}`
+              )}%`,
         ]"
         :readonly="inputState.lowLiquidationMultiplierPctg"
       >
@@ -249,8 +276,8 @@
         :disable="loading"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
-          val => (val > 100) || 'Must be greater than 100%',
-          val => (val <= 1000) || 'Must not be higher than 1000%'
+          val => (val > 100) || $t('GreaterThanHundredError'),
+          val => (val <= 1000) || $t('HigherThanThousandError')
         ]"
         :readonly="inputState.highLiquidationMultiplierPctg"
       >
@@ -360,6 +387,7 @@ import SecurityCheckDialog from '../SecurityCheckDialog.vue';
 import DurationField from './DurationField.vue';
 import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 
 function alertError(...args) {
@@ -369,6 +397,7 @@ function alertError(...args) {
 // misc
 const $store = useStore()
 const $q = useQuasar()
+const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
 
@@ -492,7 +521,7 @@ function copyText(value, message='') {
   $copyText(value)
   $q.notify({
     color: 'blue-9',
-    message: message || 'Copied to clipboard',
+    message: message || $t('CopiedToClipboard'),
     icon: 'mdi-clipboard-check',
     timeout: 200
   })
@@ -544,12 +573,12 @@ const liquidityPoolOpts = ref([
   {
     label: 'BCH Bull',
     value: 'anyhedge_LP',
-    description: 'Create anyhedge contracts instantly with a liquidity provider.',
+    description: $t('BCHBullDescription')
   },
   {
     label: 'Peer-to-peer',
     value: 'watchtower_P2P',
-    description: 'Create anyhedge contract offers & find a match with other users',
+    description: $t('P2PDescription')
   },
 ])
 
@@ -716,7 +745,7 @@ onMounted(() => window.a = getAddressesFromStore)
 async function getAddresses() {
   const response = { success: false, error: null, addressSet: { change: '', receiving: '', pubkey: '', index: 0, privateKey: ''} }
   try {
-    loadingMsg.value = 'Generating receiving address'
+    loadingMsg.value = $t('GenerateReceivingAddress')
     loading.value = true
 
     const getAddressesFromStoreResponse = await getAddressesFromStore()
@@ -737,7 +766,7 @@ async function getAddresses() {
     response.success = true
     return response
   } catch(error) {
-    mainError.value = 'Error generating addresses'
+    mainError.value = $t('GeneratingAddressesError')
     errors.value = []
     response.error = error
     response.success = false
@@ -842,7 +871,7 @@ async function createHedgePosition() {
   if (misc.autoMatchPoolTarget === 'anyhedge_LP') {
     try {
       loading.value = true
-      loadingMsg.value = 'Calculating contract fees'
+      loadingMsg.value = $t('CalculatingContractFees')
       const generalProtocolsLPFeeResponse = await calculateGeneralProtocolsLPFee(
         intent, pubkeys, priceData, liquidityServiceInfo.value, addressSet.privateKey, position,
       )
@@ -904,16 +933,16 @@ async function createHedgePosition() {
       funding.prepareFunding = true
     } catch(error) {
       console.error(error)
-      mainError.value = 'Error calculating contract fees'
+      mainError.value = $t('CalculateFeesError')
 
       if (error?.error?.name === 'PrepareContractPositionError')
-        mainError.value = 'Encountered error in preparing contract position'
+        mainError.value = $t('PreparingContractError')
       if (error?.error?.name === 'ContractCompileError')
-        mainError.value = 'Encountered error in compiling contract'
+        mainError.value = $t('CompilingContractError')
       if (error?.error?.name === 'ContractProposalError')
-        mainError.value = 'Encountered error in contract proposal'
+        mainError.value = $t('ContractProposalError')
       if (error?.error?.name === 'ContractStatusError')
-        mainError.value = 'Encountered error in fetching contract status'
+        mainError.value = $t('FetchingContractStatusError')
 
       errors.value = typeof error?.error === 'string' ? [error.error]: []
       if (Array.isArray(error?.errorMessages) && error?.errorMessages?.length) {
@@ -934,7 +963,7 @@ async function createHedgePosition() {
     }
     try {
       loading.value = true
-      loadingMsg.value = 'Finding matching contract'
+      loadingMsg.value = $t('FindingMatchingContract')
       const findMatchData = {
         wallet_hash: misc.walletHash,
         position: position,
@@ -952,9 +981,12 @@ async function createHedgePosition() {
       p2pMatchOpts.similarPositionOffers = findMatchResp?.data?.similar_position_offers
     } catch(error) {
       console.error(error)
-      errors.value = [
-        `Error in finding matching ${position === 'hedge' ? 'long' : 'hedge' } position`,
-      ]
+      const hedgeLongPosition = position === 'hedge' ? 'long' : 'hedge'
+      errors.value = [$t(
+        'FindingMatchingPositionError',
+        { hedgeLongPosition },
+        `Error in finding matching ${hedgeLongPosition} position`
+      )]
       return
     } finally {
       loading.value = false
@@ -966,10 +998,10 @@ async function createHedgePosition() {
     } else if (p2pMatchOpts.similarPositionOffers?.length) {
       try {
         loading.value = true
-        loadingMsg.value = 'Similar offers found'
+        loadingMsg.value = $t('SimilarOffersFound')
         await dialogPromise({
-          title: 'No matching offer',
-          message: `No matching offers found but found similar offers. Select one instead?`,
+          title: $t('NoMatchingOfferTitle'),
+          message: $t('SimilarOffersError'),
           ok: true,
           seamless: true,
           cancel: true,
@@ -985,7 +1017,7 @@ async function createHedgePosition() {
 
       try {
         loading.value = true
-        loadingMsg.value = 'Selecting from similar offers'
+        loadingMsg.value = $t('SelectingFromOffers')
         const selectedSimilarOffer = await dialogPromise({
           component: HedgePositionOfferSelectionDialog,
           componentProps: {
@@ -1006,8 +1038,8 @@ async function createHedgePosition() {
     if (!misc.matchedHedgePositionOffer?.id) {
       try {
         await dialogPromise({
-          title: 'No matching offer',
-          message: `No matching offers found, create one instead?`,
+          title: $t('NoMatchingOfferTitle'),
+          message: $t('NoMatchingOfferError'),
           ok: true,
           seamless: true,
           cancel: true,
@@ -1018,9 +1050,12 @@ async function createHedgePosition() {
         funding.fees = []
       } catch(error) {
         console.error(error)
-        errors.value = [
-          `No matching ${position === 'hedge' ? 'long' : 'hedge' } position found`,
-        ]
+        const hedgeLongPosition = position === 'hedge' ? 'long' : 'hedge'
+        errors.value = [$t(
+          'NoMatchingPositionError',
+          { hedgeLongPosition },
+          `No matching ${hedgeLongPosition} position found`
+        )]
         return
       } finally {
         loading.value = false
@@ -1031,7 +1066,7 @@ async function createHedgePosition() {
     if (misc.matchedHedgePositionOffer?.id) {
       try {
         loading.value = true
-        loadingMsg.value = 'Found existing offer. Accepting position offer'
+        loadingMsg.value = $t('FoundExistingOffer')
         const acceptOfferData = {
           wallet_hash: misc.walletHash,
           address: position === 'hedge' ? pubkeys.hedgeAddress : pubkeys.longAddress,
@@ -1078,8 +1113,8 @@ async function createHedgePosition() {
           funding.fees.push({
             address: matchedOffer?.counterPartyInfo?.settlementServiceFeeAddress,
             satoshis: matchedOffer?.counterPartyInfo?.settlementServiceFee,
-            name: 'Settlement Service',
-            description: 'Settlement service fee for Paytaca',
+            name: $t('SettlementService'),
+            description: $t('SettlementServiceDescription')
           })
         }
         funding.liquidityFee = 0
@@ -1090,16 +1125,16 @@ async function createHedgePosition() {
           errors.value = error?.response?.data.map(errorMsg => {
             if (typeof errorMsg !== 'string') return
             if (errorMsg.indexOf('price') >= 0 && errorMsg.indexOf('outdated') >= 0) {
-              return 'Starting price is outdated'
+              return $t('OutdatedPriceError')
             } else if (errorMsg.indexOf('invalid') >= 0 && errorMsg.indexOf('hedge position offer') >= 0) {
-              return 'Position offer is invalid'
+              return $t('InvalidOfferError')
             } else if (errorMsg.indexOf('hedge position offer') >= 0 && (errorMsg.indexOf('no longer active') >= 0 || errorMsg.indexOf('inactive') >= 0)) {
-              return 'Position offer is no longer available'
+              return $t('UnavailableOfferError')
             }
           }).filter(Boolean)
         }
 
-        if (!errors.value.length) errors.value = ['Encountered error in accepting matching position offer']
+        if (!errors.value.length) errors.value = [$t('MatchingPositionError')]
         return
       } finally {
         loading.value = false
@@ -1110,7 +1145,7 @@ async function createHedgePosition() {
 
   try {
     loading.value = true
-    loadingMsg.value = 'Confirm'
+    loadingMsg.value = $t('Confirm')
     await dialogPromise({
       component: CreateHedgeConfirmDialog,
       componentProps: {
@@ -1137,11 +1172,11 @@ async function createHedgePosition() {
 
   try {
     loading.value = true
-    loadingMsg.value = 'Security check'
+    loadingMsg.value = $t('SecurityCheck')
     await dialogPromise({component: SecurityCheckDialog})
   } catch(error) {
     console.error(error)
-    mainError.value = 'Security check failed'
+    mainError.value = $t('SecurityCheckFailed')
     errors.value = []
     cancelAcceptedPositionOffer()
     return
@@ -1159,13 +1194,13 @@ async function createHedgePosition() {
         !priceData.oraclePubkey || !priceData.priceValue || !priceData.messageTimestamp ||
         !priceData.messageSequence || !priceData.message || !priceData.signature
       ) {
-        mainError.value = 'Unable to create funding utxo due to incomplete data'
+        mainError.value = $t('IncompleteDataError')
         errors.value = []
         return
       }
 
       loading.value = true
-      loadingMsg.value = 'Creating utxo for funding proposal'
+      loadingMsg.value = $t('CreatingUTXO')
       const contractCreationParameters = {
         address: funding.contractCreationParams.address,
         anyhedge_contract_version: funding.contractCreationParams.version,
@@ -1189,7 +1224,7 @@ async function createHedgePosition() {
       }
       const contractData = await parseHedgePositionData(contractCreationParameters)
       if (contractData.address !== funding.contractCreationParams.address) {
-        throw "Contract address mismatch. Unable to create funding utxo"
+        throw $t('ContractAddressMismatch')
       }
 
       const { fundingUtxo, signedFundingProposal } = await createFundingProposal(
@@ -1203,7 +1238,7 @@ async function createHedgePosition() {
       funding.contractData = contractData
     } catch(error) {
       console.error(error)
-      mainError.value = 'Encountered error in preparing funding transaction'
+      mainError.value = $t('PrepareFundingError')
       errors.value = []
       if (typeof error?.response?.data === 'string') errors.value = [error?.response?.data]
       else if (typeof error?.response?.data?.error === 'string') errors.value = [error?.response?.data?.error]
@@ -1300,13 +1335,13 @@ async function createHedgePosition() {
   }
 
   loading.value = true
-  loadingMsg.value = isResponseOffer ? 'Creating hedge position offer' : 'Finalizing hedge position'
+  loadingMsg.value = isResponseOffer ? $t('CreateHedge') : $t('FinalizeHedge')
   if (isResponseOffer) {
-    if (position === 'hedge') loadingMsg.value = 'Creating hedge position offer'
-    if (position === 'long') loadingMsg.value = 'Creating long position offer'
+    if (position === 'hedge') loadingMsg.value = $t('CreateHedge')
+    if (position === 'long') loadingMsg.value = $t('CreateLong')
   } else {
-    if (position === 'hedge') loadingMsg.value = 'Finalizing hedge position'
-    if (position === 'long') loadingMsg.value = 'Finalizing long position'
+    if (position === 'hedge') loadingMsg.value = $t('FinalizeHedge')
+    if (position === 'long') loadingMsg.value = $t('FinalizeLong')
   }
 
   anyhedgeBackend.post(path, data)
@@ -1329,10 +1364,10 @@ async function createHedgePosition() {
     })
     .catch(error => {
       console.log(error)
-      let errorMsg = 'Encountered error creating contract'
-      if (position === 'hedge') errorMsg = 'Encountered error in creating hedge position'
-      if (position === 'long') errorMsg = 'Encountered error in creating long position'
-      if (isResponseOffer) errorMsg += ' offer'
+      let errorMsg = $t('CreateContractError')
+      if (position === 'hedge') errorMsg = $t('CreateHedgeError')
+      if (position === 'long') errorMsg = $t('CreateLongError')
+      if (isResponseOffer) errorMsg += ` ${$t('Offer')}`
       mainError.value = errorMsg
       errors.value = []
       if (typeof error?.response?.data == 'string') errors.value = [error?.response?.data]
@@ -1379,13 +1414,25 @@ function amountRules (val) {
   const convertedMaximumAmount = getAssetDenomination(denominationValue, maximumAmount)
 
   if (spendableBchValue !== null && val > parseFloat(spendableBchValue)) {
-    return `Exceeding balance ${spendableBchValue}`
+    return $t(
+      'ExceededBalanceError',
+      { spendableBchValue },
+      `Exceeding balance ${spendableBchValue}`
+    )
   }
   if (val < parseFloat(convertedMinimumAmount)) {
-    return `Liquidity requires at least ${convertedMinimumAmount}`
+    return $t(
+      'LiquidityLeastError',
+      { convertedMinimumAmount },
+      `Liquidity requires at least ${convertedMinimumAmount}`
+    )
   }
   if (val > parseFloat(convertedMaximumAmount)) {
-    return `Liquidity requires at most ${convertedMaximumAmount}`
+    return $t(
+      'LiquidityMostError',
+      { convertedMaximumAmount },
+      `Liquidity requires at most ${convertedMaximumAmount}`
+    )
   }
 
   return true
