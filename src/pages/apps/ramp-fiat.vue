@@ -21,6 +21,7 @@ import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
+import { deleteAuthToken } from 'src/wallet/ramp/auth'
 
 export default {
   components: {
@@ -58,7 +59,7 @@ export default {
     handleSessionEvent (_data) {
       this.loggedIn = false
       this.errorMessage = 'Session expired'
-      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+      deleteAuthToken()
     },
     loggedInAs (userType) {
       this.loggedIn = true

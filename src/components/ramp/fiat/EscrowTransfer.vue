@@ -148,7 +148,7 @@ export default {
       sendErrors: [],
       sendingBch: false,
       dragSlideKey: 0,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   emits: ['back', 'success'],

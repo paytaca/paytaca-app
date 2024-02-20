@@ -56,12 +56,15 @@
           </div>
         </template>
 
+        <div class="row justify-center q-py-lg" v-if="!isloaded">
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        </div>
         <div v-if="convo.messages.length !== 0 && isloaded">
           <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
             <q-item>
               <q-item-section>
                 <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
-                  <div v-if="message.message">
+                  <div v-if="message.message" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
                       :name="message.chatIdentity.is_user? 'You': message.chatIdentity.name"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
@@ -84,12 +87,16 @@
                         alt=""
                       />
                       <div v-else class="row items-center">
+                        <!-- @click="() => decryptMessageAttachment(message, true)" -->
                         <div
                           class="text-grey encrypted-attachment-text"
-                          @click="() => decryptMessageAttachment(message, true)"
                           v-element-visibility="() => {
-                            decryptMessageAttachment(message)
-                            if (!tempMessage) { resetScroll() }
+                            // if (message?.$state?.decryptingAttachment) {
+                              decryptMessageAttachment(message)
+                                .then(() => {
+                                  if (!tempMessage) { resetScroll() }
+                                })
+                            // }
                           }"
                         >
                           Attachment encrypted
@@ -98,7 +105,7 @@
                       </div>
                     </div>
                   </div>
-                  <div v-else>
+                  <div v-else :style="!message?.decryptedAttachmentFile?.url && !message?.$state?.decryptingAttachment ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <div
                       class="font-13"
                       :class="message.chatIdentity.is_user? 'text-right' : ''"
@@ -122,12 +129,16 @@
                           alt=""
                         />
                         <div v-else class="row items-center">
+                          <!-- @click="() => decryptMessageAttachment(message, true)" -->
                           <div
                             class="text-grey encrypted-attachment-text"
-                            @click="() => decryptMessageAttachment(message, true)"
                             v-element-visibility="() => {
-                              decryptMessageAttachment(message)
-                              if (!tempMessage) { resetScroll() }
+                              // if (message?.$state?.decryptingAttachment) {
+                                decryptMessageAttachment(message)
+                                  .then(() => {
+                                    // message?.decryptedAttachmentFile?.url
+                                    if (!tempMessage) { resetScroll() }
+                                  })
                             }"
                           >
                             Attachment encrypted
@@ -145,7 +156,7 @@
                   </div>
                 </div>
                 <div class="q-px-md row justify-center" v-else>
-                  <div style="width: 100%;">
+                  <div style="width: 100%;" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
                       :name="message.chatIdentity.is_user ? 'me' : message.chatIdentity.name"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
@@ -187,6 +198,7 @@
     <div class="row q-py-sm q-px-sm">
       <q-input
         :loading="sendingMessage"
+        :disable="!isloaded"
         class="col q-px-sm"
         :dark="darkMode"
         rounded
@@ -239,6 +251,7 @@
         <div class="justify-end">
           <q-btn
             flat
+            :dark="!darkMode"
             icon="cancel"
             padding="sm"
             class="close-button"
@@ -258,15 +271,16 @@
   </q-dialog>
 </template>
 <script>
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
-import { fetchChatMembers, fetchChatPubkeys, sendChatMessage, fetchChatMessages, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
+import { fetchChatMembers, fetchChatPubkeys, sendChatMessage, fetchChatMessages, updateOrCreateKeypair, generateChatRef } from 'src/wallet/ramp/chat'
 import { ChatMessage } from 'src/wallet/ramp/chat/objects'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   directives: {
@@ -386,6 +400,9 @@ export default {
       default: null
     }
   },
+  components: {
+    ProgressLoader
+  },
   watch: {
     attachment (newVal, oldVal) {
       if (newVal) this.attachmentUrl = URL.createObjectURL(newVal)
@@ -408,7 +425,7 @@ export default {
   emits: ['close'],
   async mounted () {
     // Set Data Here
-    this.chatRef = `ramp-order-${this.data.id}-chat`
+    this.chatRef = generateChatRef(this.data.id, this.data.created_at)
     this.loadKeyPair()
     this.setupWebsocket()
     this.loadData()
@@ -420,9 +437,13 @@ export default {
     userName () {
       const vm = this
       return vm.$store.getters['ramp/chatIdentity'].name
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
+    isNotDefaultTheme,
     getDarkModeClass,
     formattedDate (value) {
       const relative = true
@@ -487,8 +508,6 @@ export default {
       const vm = this
       console.log(vm.data)
       const username = this.$store.getters['ramp/chatIdentity'].name
-      // const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
-      vm.chatRef = `ramp-order-${this.data.id}-chat`
       fetchChatMembers(vm.chatRef)
         .then(members => {
           vm.chatMembers = members.map(member => {
@@ -611,10 +630,7 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          // console.log('decryptedMessages:', decryptedMessages)
-
           const username = vm.$store.getters['ramp/chatIdentity'].name
-          // const username = vm.data.is_ad_owner ? vm.data.ad.owner.name : vm.data.owner.name
           const temp = decryptedMessages
           temp.map(item => {
             item.chatIdentity.is_user = item.chatIdentity.name === username
@@ -649,7 +665,7 @@ export default {
   }
   .encrypted-attachment-text {
     max-width: 75%;
-    text-decoration: underline;
+    // text-decoration: underline;
     border: 0.5px solid $grey;
     border-radius: map-get($space-xs, 'x');
     padding: map-get($space-xs, 'y') map-get($space-sm, 'x');

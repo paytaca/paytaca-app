@@ -1,159 +1,164 @@
 <template>
-  <div class="q-pb-md" v-if="isLoaded">
-    <q-btn
-      flat
-      icon="arrow_back"
-      class="button button-text-primary"
-      style="position: fixed; left: 20px; top: 135px; z-index: 3;"
-      :class="getDarkModeClass(darkMode)"
-      @click="$emit('back')"
-    />
-    <div class="text-center text-weight-bold q-mt-lg q-pt-md" style="font-size: large;">CONFIRM AD DETAILS</div>
-    <div v-if="type === 'ads'">
-      <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
-        <div class="q-pt-lg q-mx-md">
-          <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
-            <span>Price Setting</span>
-          </div>
-          <div class="q-mx-sm">
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Fiat Currency</span>
-              <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.symbol }}</span>
+  <q-card
+    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`">
+    <div class="q-pb-md" v-if="isLoaded">
+      <q-btn
+        flat
+        icon="arrow_back"
+        class="button button-text-primary"
+        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        :class="getDarkModeClass(darkMode)"
+        @click="$emit('back')"
+      />
+      <div class="text-center text-weight-bold q-mt-lg q-pt-md" style="font-size: large;">CONFIRM AD DETAILS</div>
+      <div v-if="type === 'ads'" :style="`height: ${minHeight - 170}px;`" style="overflow-y:auto;">
+        <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
+          <div class="q-pt-sm q-mx-md">
+            <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+              <span>Price Setting</span>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Price Type</span>
-              <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
+            <div class="q-mx-sm">
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Fiat Currency</span>
+                <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.symbol }}</span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Price Type</span>
+                <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
+              </div>
+              <div v-if="adData.priceType === 'FLOATING'" class="row justify-between no-wrap q-mx-lg">
+                <span>Floating Price</span>
+                <span class="text-nowrap q-ml-xs">
+                  {{ adData.floatingPrice }}%
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+                <span>Price</span>
+                <span v-if="marketPrice && adData.priceType === 'FLOATING'" class="text-nowrap q-ml-xs">
+                  {{ formattedCurrency(((marketPrice * adData.floatingPrice) / 100), postData.fiatCurrency.symbol) }}
+                </span>
+                <span v-if="adData.priceType === 'FIXED'" class="text-nowrap q-ml-xs">
+                  {{ formattedCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) }}
+                </span>
+              </div>
             </div>
-            <div v-if="adData.priceType === 'FLOATING'" class="row justify-between no-wrap q-mx-lg">
-              <span>Floating Price</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ adData.floatingPrice }}%
-              </span>
+            <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
+            <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+              <span>Limits per Trade</span>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
-              <span>Price</span>
-              <span v-if="marketPrice && adData.priceType === 'FLOATING'" class="text-nowrap q-ml-xs">
-                {{ formattedCurrency(((marketPrice * adData.floatingPrice) / 100), postData.fiatCurrency.symbol) }}
-              </span>
-              <span v-if="adData.priceType === 'FIXED'" class="text-nowrap q-ml-xs">
-                {{ formattedCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) }}
-              </span>
+            <div class="q-mx-sm">
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Quantity</span>
+                <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Minimum</span>
+                <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} BCH </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Maximum</span>
+                <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Appealable after</span>
+                <span class="text-nowrap q-ml-xs">{{ adData?.appealCooldown?.label }} </span>
+              </div>
             </div>
-          </div>
-          <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
-          <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
-            <span>Limits per Trade</span>
-          </div>
-          <div class="q-mx-sm">
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Quantity</span>
-              <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
+            <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
+            <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+              <span>Payment Methods</span>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Minimum</span>
-              <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} BCH </span>
+            <div class="q-gutter-sm q-pt-sm q-px-lg">
+              <q-badge
+                v-for="method in postData.paymentMethods"
+                :key="method.id"
+                :label="method?.payment_type?.name"
+                rounded
+                outline
+                color="red"/>
             </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Maximum</span>
-              <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Appealable after</span>
-              <span class="text-nowrap q-ml-xs">{{ adData?.appealCooldown?.label }} </span>
-            </div>
-          </div>
-          <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
-          <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
-            <span>Payment Methods</span>
-          </div>
-          <div class="q-gutter-sm q-pt-sm q-px-lg">
-            <q-badge
-              v-for="method in postData.paymentMethods"
-              :key="method.id"
-              :label="method?.payment_type?.name"
-              rounded
-              outline
-              color="red"/>
           </div>
         </div>
       </div>
-    </div>
 
-    <div v-if="type === 'order'">
-      <div class="q-pt-lg">
-        <div class="text-center lg-font-size text-weight-bold" :class="transactionType === 'SELL' ? 'buy-color' : 'sell-color'">
-          <span>{{ transactionType === 'SELL' ? 'Buying': 'Selling' }} BCH {{ transactionType === 'SELL' ? 'from': 'to' }}</span><br>
-          <span>
-            <u>{{ adData.owner}}</u>
-          </span>
-        </div>
-        <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
-        <div :class="getDarkModeClass(darkMode)" class="q-px-lg q-pt-md md-font-size pt-label">
-          <div class="text-weight-bold subtext">
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Fiat Amount</span>
-              <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ adData.fiat_currency.symbol }}</span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Crypto Amount</span>
-              <span class="text-nowrap q-ml-xs">{{ cryptoAmount.toFixed(8) }} BCH</span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>Payment Time Duration</span>
-              <span class="text-nowrap q-ml-xs">{{ adData.time_duration/60 }} hours</span>
+      <div v-if="type === 'order'">
+        <div class="q-pt-lg">
+          <div class="text-center lg-font-size text-weight-bold" :class="transactionType === 'SELL' ? 'buy-color' : 'sell-color'">
+            <span>{{ transactionType === 'SELL' ? 'Buying': 'Selling' }} BCH {{ transactionType === 'SELL' ? 'from': 'to' }}</span><br>
+            <span>
+              <u>{{ adData.owner}}</u>
+            </span>
+          </div>
+          <q-separator :dark="darkMode" class="q-mx-lg q-mt-md"/>
+          <div :class="getDarkModeClass(darkMode)" class="q-px-lg q-pt-md md-font-size pt-label">
+            <div class="text-weight-bold subtext">
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Fiat Amount</span>
+                <span class="text-nowrap q-ml-xs">{{ fiatAmount }} {{ adData.fiat_currency.symbol }}</span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Crypto Amount</span>
+                <span class="text-nowrap q-ml-xs">{{ cryptoAmount.toFixed(8) }} BCH</span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>Payment Time Duration</span>
+                <span class="text-nowrap q-ml-xs">{{ adData.time_duration/60 }} hours</span>
+              </div>
             </div>
           </div>
-        </div>
-        <q-separator :dark="darkMode" class="q-mx-lg q-mt-lg"/>
-        <div class="text-center q-px-md">
-          <div class="md-font-size text-weight-bold q-py-sm">Pay With</div>
-          <div class="q-gutter-sm q-px-lg">
-            <q-badge v-for="method in adData.payment_methods" :key="method.id" rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
-              {{ method.payment_type }}
-            </q-badge>
+          <q-separator :dark="darkMode" class="q-mx-lg q-mt-lg"/>
+          <div class="text-center q-px-md">
+            <div class="md-font-size text-weight-bold q-py-sm">Pay With</div>
+            <div class="q-gutter-sm q-px-lg">
+              <q-badge v-for="method in adData.payment_methods" :key="method.id" rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+                {{ method.payment_type }}
+              </q-badge>
+            </div>
           </div>
-        </div>
-        <div class="text-center q-px-md">
-          <div class="md-font-size text-weight-bold q-py-sm">Your Payment Methods</div>
-          <q-list bordered class="q-mx-lg" :dark="darkMode">
-            <div
-              v-for="(method, index) in paymentMethods"
-              :key="index"
-            >
-              <q-expansion-item
-                group="somegroup"
-                :label="method.payment_type.name.toUpperCase()"
+          <div class="text-center q-px-md">
+            <div class="md-font-size text-weight-bold q-py-sm">Your Payment Methods</div>
+            <q-list bordered class="q-mx-lg" :dark="darkMode">
+              <div
+                v-for="(method, index) in paymentMethods"
+                :key="index"
               >
-                <!-- ^ higlight header-class payment method on seller/buyer list -->
-                <q-card flat class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                  <q-card-section>
-                    <!-- <span>{{ method.account_name }}</span><br> -->
-                    <span class="subtext">{{ method.account_identifier }}</span>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              <q-separator :dark="darkMode" />
-            </div>
-          </q-list>
+                <q-expansion-item
+                  group="somegroup"
+                  :label="method.payment_type.name.toUpperCase()"
+                >
+                  <!-- ^ higlight header-class payment method on seller/buyer list -->
+                  <q-card flat class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                    <q-card-section>
+                      <!-- <span>{{ method.account_name }}</span><br> -->
+                      <span class="subtext">{{ method.account_identifier }}</span>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
+                <q-separator :dark="darkMode" />
+              </div>
+            </q-list>
+          </div>
         </div>
       </div>
-    </div>
 
-    <RampDragSlide
-      :key="dragSlideKey"
-      v-if="showDragSlide"
-      :style="{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1500,
-      }"
-      @ok="$emit('submit')"
-      @cancel="showDragSlide=true; dragSlideKey++"
-      text="Swipe To Confirm"
-    />
-  </div>
+      <RampDragSlide
+        :key="dragSlideKey"
+        v-if="showDragSlide"
+        :style="{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1500,
+        }"
+        @ok="$emit('submit')"
+        @cancel="showDragSlide=true; dragSlideKey++"
+        text="Swipe To Confirm"
+      />
+    </div>
+  </q-card>
 </template>
 <script>
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -171,7 +176,8 @@ export default {
       wallet: null,
       showDragSlide: true,
       dragSlideKey: 0,
-      marketPrice: null
+      marketPrice: null,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   emits: ['back', 'submit'],
@@ -233,7 +239,7 @@ export default {
           bus.emit('session-expired')
         }
       }
-    },
+    }
   }
 }
 </script>

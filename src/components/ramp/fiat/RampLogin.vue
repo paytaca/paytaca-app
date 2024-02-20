@@ -126,12 +126,11 @@ export default {
           vm.user = response.data
           vm.usernickname = vm.user?.name
           vm.$store.commit('ramp/updateUser', vm.user)
-          // vm.$store.dispatch('ramp/loadAuthHeaders')
           console.log('user:', vm.user)
           if (vm.user.is_authenticated) {
             getAuthToken().then(token => {
               if (token) {
-                vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
+                vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(() => { vm.loggingIn = false })
                 vm.savePubkeyAndAddress()
                 vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
               } else {
@@ -147,7 +146,7 @@ export default {
         })
         .catch(error => {
           if (error.response) {
-            console.log(error.response)
+            console.error(error.response)
             if (error.response.status === 404) {
               vm.register = true
             }
@@ -177,13 +176,12 @@ export default {
                   .then(payload => createChatIdentity(payload))
                   .then(identity => {
                     vm.retry.updatePeerChatIdentityId = true
-                    // updatePeerChatIdentityId(identity.id)
+                    updatePeerChatIdentityId(identity.id)
                     vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
                   })
               } else if (!vm.user.chat_identity_id) {
                 vm.retry.updatePeerChatIdentityId = true
-                console.log('save')
-                // updatePeerChatIdentityId(identity.id)
+                updatePeerChatIdentityId(identity.id)
                 vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
               }
               vm.$store.commit('ramp/updateChatIdentity', identity)
@@ -191,7 +189,7 @@ export default {
             .then(updateOrCreateKeypair())
             .finally(() => {
               vm.retry.loadChatIdentity = false
-              // vm.retry.updatePeerChatIdentityId = false
+              vm.retry.updatePeerChatIdentityId = false
               resolve()
             })
             .catch(error => {
@@ -200,6 +198,9 @@ export default {
               reject(error)
             })
         })
+      } else {
+        console.log('updating chat identity id')
+        this.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, chatIdentity.id)
       }
     },
     exponentialBackoff (fn, retries, delayDuration, ...data) {
@@ -303,17 +304,19 @@ export default {
                   .then((response) => {
                     if (vm.user) vm.$store.commit('ramp/updateUser', vm.user)
                     saveAuthToken(response.data.token)
-                    vm.loadChatIdentity().then(vm.loggingIn = false)
                     vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
                   })
                   .finally(() => {
-                    vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(vm.loggingIn = false)
+                    vm.loadChatIdentity().then(() => { vm.loggingIn = false })
                   })
               })
             }).catch((error) => { console.error(error) })
           } else {
             vm.loggingIn = false
           }
+        })
+        .catch(error => {
+          console.error(error)
         })
     },
     async createRampUser () {
@@ -351,33 +354,40 @@ export default {
     async revokeAuth () {
       const url = `${this.apiURL}/auth/revoke`
       try {
-        await backend.post(url, null, { authrize: true })
+        await backend.post(url, null, { authorize: true })
       } catch (error) {
         console.error(error)
         console.error(error.response)
       }
     },
     checkSecurity (securityType) {
-      return new Promise((resolve) => {
+      const vm = this
+      return new Promise((resolve, reject) => {
         if (this.register) return resolve(true)
         if (!securityType || securityType === 'pin') {
-          this.showSecurityDialog().then(result => {
-            resolve(result)
-          })
+          vm.showSecurityDialog()
+            .then(result => {
+              resolve(result)
+            })
+            .catch(error => {
+              reject(error)
+            })
         } else if (securityType === 'biometric') {
           NativeBiometric.isAvailable()
             .then(() => {
               this.hasBiometric = true
-              this.verifyBiometric().then(result => {
-                resolve(result)
-              })
+              this.verifyBiometric()
+                .then(result => { resolve(result) })
+                .catch(error => { reject(error) })
             })
             .catch((error) => {
               console.error('Implementation error: ', error)
-              this.showSecurityDialog().then(result => {
-                resolve(result)
-              })
+              this.showSecurityDialog()
+                .then(result => { resolve(result) })
+                .catch(error => { reject(error) })
             })
+        } else {
+          reject()
         }
       })
     },
@@ -389,19 +399,28 @@ export default {
       this.login(type)
     },
     showSecurityDialog () {
-      return new Promise((resolve) => {
-        const securityDialog = Dialog.create({
-          component: SecurityCheckDialog
-        })
-          .onOk(() => {
-            securityDialog.hide()
-            this.securityDialogUp = false
-            resolve(true)
+      return new Promise((resolve, reject) => {
+        try {
+          const securityDialog = Dialog.create({
+            component: SecurityCheckDialog
           })
-          .onCancel(() => {
-            this.securityDialogUp = false
-            resolve(false)
-          })
+            .onOk(() => {
+              securityDialog.hide()
+              this.securityDialogUp = false
+              resolve(true)
+            })
+            .onCancel(() => {
+              this.securityDialogUp = false
+              resolve(false)
+            })
+            .onDismiss(() => {
+              this.securityDialogUp = false
+              resolve(false)
+            })
+        } catch (error) {
+          console.error(error)
+          reject(error)
+        }
       })
     },
     verifyBiometric () {

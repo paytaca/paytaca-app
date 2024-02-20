@@ -37,9 +37,6 @@
           Sell Ads
         </button>
       </div>
-      <div v-if="loading">
-        <FooterLoading/>
-      </div>
       <div class="q-mt-md q-mx-md">
         <q-pull-to-refresh
           @refresh="refreshData">
@@ -138,6 +135,9 @@
         </q-pull-to-refresh>
       </div>
     </div>
+    <q-inner-loading :showing="loading">
+      <ProgressLoader/>
+    </q-inner-loading>
   </q-card>
   <FiatAdsForm
     v-if="state !== 'selection'"
@@ -164,7 +164,7 @@
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
-import FooterLoading from './FooterLoading.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { formatCurrency, formatDate, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
@@ -184,7 +184,7 @@ export default {
     FiatAdsForm,
     FiatAdsDialogs,
     MiscDialogs,
-    FooterLoading
+    ProgressLoader
   },
   data () {
     return {
