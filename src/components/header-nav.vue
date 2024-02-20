@@ -61,12 +61,6 @@ export default {
     if (headerNavHeight === 70) { // not iOS
       this.$refs['header-nav'].setAttribute('style', `height: ${headerTitleHeight > 32 ? '100' : '70'}px;`)
     }
-
-    // adjust header-title div class when text gets too long but
-    // does not wrap, causing the arrow to be overlapped by text
-    const headerTitleWidth = this.$refs['header-title'].clientWidth
-
-    console.log(headerTitleWidth)
   }
 }
 </script>

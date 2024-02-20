@@ -132,10 +132,10 @@
           <div class="q-pa-lg" style="padding-top: 28px;">
             <div class="row" v-if="openSettings">
               <div class="col">
-                <div class="row justify-center">
+                <div class="row justify-center text-center">
                   <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5><br />
                 </div>
-                <div class="row justify-center">
+                <div class="row justify-center text-center">
                   <p class="dim-text" style="margin-top: 10px;">
                     {{ $t('OnBoardSettingDescription') }}
                   </p>
