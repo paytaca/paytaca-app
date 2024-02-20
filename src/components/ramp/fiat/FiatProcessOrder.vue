@@ -164,6 +164,13 @@ export default {
     }
   },
   computed: {
+    counterparty () {
+      let counterparty = this.ad.owner
+      if (this.order.is_ad_owner) {
+        counterparty = this.order.owner
+      }
+      return counterparty
+    },
     escrowTransferData () {
       return {
         order: this.order,
@@ -186,6 +193,7 @@ export default {
     standByDisplayData () {
       return {
         order: this.order,
+        ad: this.ad,
         feedback: this.feedback,
         contractAddress: this.contract.address,
         escrow: this.escrowContract,
@@ -194,7 +202,8 @@ export default {
     },
     paymentConfirmationData () {
       return {
-        orderId: this.order.id,
+        order: this.order,
+        ad: this.ad,
         type: this.confirmType,
         contract: this.contract,
         errors: this.errorMessages,
@@ -444,6 +453,7 @@ export default {
             }
             reject(error)
           })
+          .finally(() => { this.reloadChildComponents() })
       })
     },
     confirmOrder () {

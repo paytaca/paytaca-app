@@ -130,7 +130,7 @@ export default {
           if (vm.user.is_authenticated) {
             getAuthToken().then(token => {
               if (token) {
-                vm.loadChatIdentity().then(() => { vm.loggingIn = false })
+                vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(() => { vm.loggingIn = false })
                 vm.savePubkeyAndAddress()
                 vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
               } else {
@@ -159,7 +159,6 @@ export default {
     async loadChatIdentity () {
       // check if chatIdentity exist
       const chatIdentity = this.$store.getters['ramp/chatIdentity']
-
       if (!chatIdentity) {
         await updateSignerData()
         return new Promise((resolve, reject) => {
@@ -176,21 +175,21 @@ export default {
                 vm.buildChatIdentityPayload(data)
                   .then(payload => createChatIdentity(payload))
                   .then(identity => {
-                    // vm.retry.updatePeerChatIdentityId = true
+                    vm.retry.updatePeerChatIdentityId = true
                     updatePeerChatIdentityId(identity.id)
-                    // vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
+                    vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
                   })
               } else if (!vm.user.chat_identity_id) {
-                // vm.retry.updatePeerChatIdentityId = true
+                vm.retry.updatePeerChatIdentityId = true
                 updatePeerChatIdentityId(identity.id)
-                // vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
+                vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
               }
               vm.$store.commit('ramp/updateChatIdentity', identity)
             })
             .then(updateOrCreateKeypair())
             .finally(() => {
-              // vm.retry.loadChatIdentity = false
-              // vm.retry.updatePeerChatIdentityId = false
+              vm.retry.loadChatIdentity = false
+              vm.retry.updatePeerChatIdentityId = false
               resolve()
             })
             .catch(error => {
@@ -287,7 +286,6 @@ export default {
       })
     },
     login (securityType) {
-      console.log('login')
       const vm = this
       vm.loggingIn = true
       // security check before login

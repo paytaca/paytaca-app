@@ -114,13 +114,13 @@
                           <span
                             class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                             :class="getDarkModeClass(darkMode)">
-                            {{ formattedCurrency(listing.price) }}
+                            {{ formattedCurrency(listing.price, selectedCurrency.symbol) }}
                           </span>
                           <span class="sm-font-size">/BCH</span><br>
                           <div class="sm-font-size">
                             <div class="row">
                               <span class="col-3">Quantity</span>
-                              <span class="col">{{ formattedCurrency(listing.trade_amount, false) }} BCH</span>
+                              <span class="col">{{ formattedCurrency(listing.trade_amount) }} BCH</span>
                             </div>
                             <div class="row">
                               <span class="col-3">Limit</span>
@@ -434,9 +434,8 @@ export default {
         scrollElement.scrollTop = 0
       }
     },
-    formattedCurrency (value, fiat = true) {
-      if (fiat) {
-        const currency = this.selectedCurrency.symbol
+    formattedCurrency (value, currency) {
+      if (currency) {
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)

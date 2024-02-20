@@ -20,7 +20,41 @@
         <div style="opacity: .5;" class="text-center q-pb-sm md-font-size text-weight-bold">ORDER #{{ order.id }}</div>
         <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
           <div class="q-mt-sm q-mx-md q-px-md">
-            <div class="q-my-sm">
+            <!-- Counterparty & Price info -->
+            <q-card flat bordered :dark="darkMode">
+              <q-card-section bordered class="pt-card" :class="darkMode ? 'dark': 'bg-grey-2'">
+                <div class="xs-font-size">Trading with</div>
+                <q-btn flat no-caps dense padding="none" color="primary" class="q-py-none q-my-none row lg-font-size text-weight-bold">{{ $parent.counterparty.name }}</q-btn>
+                <div class="row">
+                  <q-rating
+                    readonly
+                    :model-value="data?.ad?.owner?.rating || 0"
+                    :v-model="data?.ad?.owner?.rating || 0"
+                    size="1em"
+                    color="yellow-9"
+                    icon="star"/>
+                  <span class="q-mx-xs sm-font-size">({{ data.ad?.owner?.rating ? data.ad?.owner?.rating : 0 }})</span>
+                </div>
+                <q-separator class="q-my-sm"/>
+                <div class="row justify-end">
+                  <div class="col-auto">
+                    <div class="xs-font-size">Locked price</div>
+                    <span
+                      class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                      :class="getDarkModeClass(darkMode)">
+                      {{ lockedPrice }}
+                    </span>
+                    <span class="sm-font-size"> /BCH</span>
+                  </div>
+                  <q-space/>
+                  <div class="col-auto q-py-sm q-mx-sm">
+                    <q-btn dense flat padding="none" color="primary" label="view ad" class="sm-font-size" style="text-decoration: underline;"/>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+            <!-- Contract Address -->
+            <div class="q-my-sm q-pt-md">
               <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
               <q-input
                 class="q-pb-xs"
@@ -35,7 +69,7 @@
                   </div>
                 </template>
               </q-input>
-              <div class="sm-font-size q-py-xs q-ml-xs">Balance</div>
+              <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
               <q-input
                 class="q-pb-xs md-font-size"
                 readonly
@@ -72,32 +106,32 @@
               <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
               <div class="sm-font-size q-mx-md q-mb-sm">Select the payment method(s) you used to pay the seller</div>
               <div class="full-width">
-                  <div v-for="(method, index) in paymentMethods" :key="index">
-                    <div class="q-px-sm">
-                      <q-card flat bordered :dark="darkMode">
-                        <q-expansion-item
-                          class="pt-card text-bow"
-                          :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
-                          :default-opened=true
-                          :label="method.payment_type"
-                          expand-separator >
-                          <q-card>
-                            <q-card-section class="pt-card" :class="getDarkModeClass(darkMode)">
-                              <div class="row">
-                                <div class="col">
-                                  <div>{{ method.account_name }}</div>
-                                  <div>{{ method.account_identifier }}</div>
-                                </div>
-                                <div>
-                                  <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
-                                </div>
+                <div v-for="(method, index) in paymentMethods" :key="index">
+                  <div class="q-px-sm">
+                    <q-card flat bordered :dark="darkMode">
+                      <q-expansion-item
+                        class="pt-card text-bow"
+                        :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
+                        :default-opened=true
+                        :label="method.payment_type"
+                        expand-separator >
+                        <q-card>
+                          <q-card-section class="pt-card" :class="getDarkModeClass(darkMode)">
+                            <div class="row">
+                              <div class="col">
+                                <div>{{ method.account_name }}</div>
+                                <div>{{ method.account_identifier }}</div>
                               </div>
-                            </q-card-section>
-                          </q-card>
-                        </q-expansion-item>
-                      </q-card>
-                    </div>
+                              <div>
+                                <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
+                              </div>
+                            </div>
+                          </q-card-section>
+                        </q-card>
+                      </q-expansion-item>
+                    </q-card>
                   </div>
+                </div>
               </div>
             </div>
           </div>
@@ -180,6 +214,7 @@ export default {
       contractBalance: null,
       order: null,
       txid: null,
+      lockedPrice: '',
       isloaded: false,
       countDown: null,
       timer: null,
@@ -218,9 +253,8 @@ export default {
       return lock
     },
     fiatAmount () {
-      let amount = Number(parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
-      if (amount > 1) amount = amount.toFixed(2)
-      return this.$parent.formattedCurrency(amount)
+      const amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+      return this.$parent.formattedCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol)
     }
   },
   async mounted () {
@@ -240,6 +274,7 @@ export default {
         vm.isloaded = true
       })
       vm.fetchContractBalance()
+      vm.lockedPrice = vm.$parent.formattedCurrency(vm.data.order?.locked_price, vm.data.order?.ad?.fiat_currency?.symbol)
     },
     fetchContractBalance () {
       const vm = this
@@ -330,7 +365,7 @@ export default {
     fetchOrderDetail () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get(`/ramp-p2p/order/${vm.data?.orderId}`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${vm.data.order.id}`, { authorize: true })
           .then(response => {
             vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
@@ -407,7 +442,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .xs-font-size {
-  font-size: x-small;
+  font-size: smaller;
 }
 .sm-font-size {
   font-size: small;
