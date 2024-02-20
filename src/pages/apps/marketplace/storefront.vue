@@ -8,8 +8,8 @@
     <HeaderNav title="Marketplace" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row items-center q-px-xs q-mb-md">
-        <div class="text-h5 q-mr-xs">{{ storefront?.name }}</div>
+      <div class="row items-center q-px-sm q-mb-md">
+        <div class="text-h5 q-mr-xs q-space">{{ storefront?.name }}</div>
         <template v-if="storefront?.id">
           <q-icon
             size="1.25rem"
@@ -37,53 +37,51 @@
           </div>
         </template>
       </div>
+      <div v-if="storefront?.id" class="q-px-sm q-mb-sm">
+        <q-input
+          outlined
+          dense
+          :loading="Boolean(fetchingCollections) || fetchingProducts"
+          clearable
+          v-model="searchBar.text"
+          placeholder="Search product/collection name"
+          color="brandblue"
+          debounce="500"
+        >
+          <template v-slot:append>
+            <q-icon name="search"/>
+          </template>
+        </q-input>
+      </div>
       <div class="row items-center justify-center">
         <q-spinner v-if="!initialized && fetchingStorefront" size="4em" color="brandblue"/>
       </div>
-      <div v-if="collections?.length" class="q-mb-md">
+      <div v-if="collections?.length" class="q-mb-lg">
         <div class="q-px-sm row items-center" @click="expandCollections = !expandCollections">
           <div class="text-h6 q-space">Collections</div>
           <q-icon :name="expandCollections ? 'expand_less' : 'expand_more'"/>
         </div>
         <q-slide-transition>
-          <div v-if="expandCollections" class="row items-start" style="overflow:auto;">
-
-            <div class="col-12 row items-center q-px-sm">
-              <q-space/>
-              <LimitOffsetPagination
-                :pagination-props="{
-                  maxPages: 5,
-                  rounded: true,
-                  padding: 'sm md',
-                  boundaryNumbers: true,
-                  disable: fetchingCollections,
-                }"
-                class="q-my-sm"
-                :hide-below-pages="2"
-                :modelValue="collectionsPagination"
-                @update:modelValue="fetchCollections"
-              />
-            </div>
-            <div
-              v-for="collection in collections" :key="collection?.id"
-              class="col-6 col-sm-4 col-md-3 q-pa-sm"
-            >
-              <q-card
-                class="pt-card text-bow"
-                :class="getDarkModeClass(darkMode)"
-                @click="() => $router.push({ name: 'app-marketplace-collection', params: { collectionId: collection?.id }})"
+          <div v-if="expandCollections">
+            <div class="row items-start no-wrap" style="overflow:auto;">
+              <div
+                v-if="collectionsPagination.canPrepend"
+                v-element-visibility="() => fetchCollectionsIfNotLoading({ prepend: true, limit: 2 })"
               >
-                <q-img :src="collection?.imageUrl || noImage" ratio="1">
-                  <div class="absolute-bottom text-subtitle2 text-center">
-                    <div>{{ collection?.name }}</div>
-                    <div v-if="collection?.productsCount" class="text-caption">
-                      {{ collection?.productsCount }}
-                      {{ collection?.productsCount === 1 ? 'product' : 'products' }}
-                    </div>
-                  </div>
-
-                  <template v-slot:error>
-                    <img :src="noImage" class="q-img__image q-img__image--with-transition q-img__image--loaded" alt="" />
+              </div>
+              <div v-if="fetchingCollections === 'prepending'" class="row items-center self-center q-pa-sm">
+                <q-spinner size="3rem" color="brandblue"/>
+              </div>
+              <div
+                v-for="collection in collections" :key="collection?.id"
+                class="col-12 col-sm-6 col-md-3 q-pa-sm"
+              >
+                <q-card
+                  class="pt-card text-bow"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="() => $router.push({ name: 'app-marketplace-collection', params: { collectionId: collection?.id }})"
+                >
+                  <q-img :src="collection?.imageUrl || noImage" ratio="1.75">
                     <div class="absolute-bottom text-subtitle2 text-center">
                       <div>{{ collection?.name }}</div>
                       <div v-if="collection?.productsCount" class="text-caption">
@@ -91,20 +89,36 @@
                         {{ collection?.productsCount === 1 ? 'product' : 'products' }}
                       </div>
                     </div>
-                  </template>
-                </q-img>
-              </q-card>
+  
+                    <template v-slot:error>
+                      <img :src="noImage" class="q-img__image q-img__image--with-transition q-img__image--loaded" alt="" />
+                      <div class="absolute-bottom text-subtitle2 text-center">
+                        <div>{{ collection?.name }}</div>
+                        <div v-if="collection?.productsCount" class="text-caption">
+                          {{ collection?.productsCount }}
+                          {{ collection?.productsCount === 1 ? 'product' : 'products' }}
+                        </div>
+                      </div>
+                    </template>
+                  </q-img>
+                </q-card>
+              </div>
+              <div
+                v-if="collectionsPagination.canAppend"
+                v-element-visibility="() => fetchCollectionsIfNotLoading({ append: true, limit: 2 })"
+                class="self-center"
+              >
+              </div>
+              <div v-if="fetchingCollections === 'appending'" class="row items-center self-center q-pa-sm">
+                <q-spinner size="3rem" color="brandblue"/>
+              </div>
             </div>
           </div>
         </q-slide-transition>
       </div>
       <div v-if="initialized || products?.length" class="row items-start">
-        <div class="text-h6 col-12 q-px-sm">
-          Products
-          <q-spinner v-if="fetchingProducts"/>
-        </div>
-        <template v-if="products?.length">
-          <div class="col-12 row items-center no-wrap q-gutter-sm q-mx-xs" style="overflow:auto;">
+        <div class="col-12 q-pr-xs q-pl-sm">
+          <div class="row items-center no-wrap q-gutter-sm" style="overflow:auto;">
             <q-chip
               v-for="category in productCategories" :key="category"
               :outline="category !== selectedCategory"
@@ -116,6 +130,12 @@
               {{ category }}
             </q-chip>
           </div>
+        </div>
+        <div class="col-12 q-px-sm q-mt-sm">
+          <q-linear-progress v-if="fetchingProducts" indeterminate color="brandblue" size="4px"/>
+          <div v-else style="height:4px;"></div>
+        </div>
+        <template v-if="products?.length">
           <div class="col-12 row items-center q-px-sm">
             <q-space/>
             <LimitOffsetPagination
@@ -174,11 +194,19 @@ import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
 import { formatDateRelative } from 'src/marketplace/utils'
+import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onActivated, onDeactivated } from 'vue'
+import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffect } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
+
+defineOptions({
+  directives: {
+    'element-visibility': vElementVisibility
+  }
+})
 
 const props = defineProps({
   storefrontId: [Number, String],
@@ -199,6 +227,8 @@ function resetPage() {
 
   products.value = []
   productsPagination.value = { count: 0, limit: 0, offset: 0 }
+
+  searchBar.value.text = ''
   initialized.value = false
 }
 
@@ -208,6 +238,27 @@ watch(() => [props?.storefrontId], () => {
   resetPage()
   refreshPage()
 })
+
+const searchBar = ref({
+  text: '',
+  loading: false,
+  lastSearch: '',
+})
+watch(() => searchBar.value.text, async () => {
+  if (searchBar.value.loading) {
+    searchBar.value.text = searchBar.value.lastSearch
+    return
+  }
+
+  searchBar.value.lastSearch = searchBar.value.text
+  searchBar.value.loading = true
+  await Promise.allSettled([
+    fetchProducts(),
+    fetchCollections(),
+  ])
+  searchBar.value.loading = false
+})
+
 
 const fetchingStorefront = ref(false)
 const storefront = ref(Storefront.parse())
@@ -266,18 +317,65 @@ function updateLivenessStatus() {
 const expandCollections = ref(true)
 const fetchingCollections = ref(false)
 const collections = ref([].map(Collection.parse))
-const collectionsPagination = ref({ count: 0, limit: 0, offset: 0 })
-function fetchCollections(opts={ limit: 0, offset: 0 }) {
+const collectionsPagination = ref({
+  count: 0, limit: 0, offset: 0,
+  canAppend: false, canPrepend: false,
+})
+
+watchEffect(() => {
+  collectionsPagination.value.canAppend = collectionsPagination.value.count > collectionsPagination.value.limit + collectionsPagination.value.offset
+  collectionsPagination.value.canPrepend = collectionsPagination.value.offset > 0
+})
+
+function fetchCollectionsIfNotLoading(opts) {
+  if (fetchingCollections.value) return Promise.resolve()
+  return fetchCollections(opts)
+}
+
+function fetchCollections(opts={ limit: 0, offset: 0, append: false, prepend: false }) {
+  if (opts?.append && !collectionsPagination.value.canAppend) return Promise.resolve()
+  if (opts?.prepend && !collectionsPagination.value.canPrepend) return Promise.resolve()
+  if (opts?.append && opts?.prepend) return Promise.resolve()
+
   const params = {
     storefront_id: props.storefrontId || null,
-    limit: opts?.limit || 10,
+    limit: opts?.limit || 4,
     offset: opts?.offset || undefined,
+    s: searchBar.value?.text || undefined,
+    ordering: '-created_at',
+  }
+
+  if (opts?.append) {
+    params.offset = collectionsPagination.value.offset + collectionsPagination.value.limit
+  } else if (opts?.prepend) {
+    params.offset = Math.max(collectionsPagination.value.offset - params?.limit, 0)
   }
 
   fetchingCollections.value = true
+  if (opts?.append) fetchingCollections.value = 'appending'
+  if (opts?.prepend) fetchingCollections.value = 'prepending'
   return backend.get(`connecta/collections/`, { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+
+      const results = response?.data?.results.map(Collection.parse)
+      if (opts?.append || opts?.prepend) {
+        if (opts?.prepend) results.reverse()
+        results.forEach(collection => {
+          const index = collections.value.findIndex(_collection => _collection?.id === collection?.id)
+          if (index >= 0) return collections.value[index] = collection
+          if (opts?.prepend) collections.value.unshift(collection)
+          else collections.value.push(collection)
+        })
+        const newLength = collections.value.length
+        collectionsPagination.value.count = response?.data?.count
+        collectionsPagination.value.limit = collections.value.length
+        // response?.data?.offset + prevLength + (results.length + (newLength - prevLength))
+        collectionsPagination.value.offset = response?.data?.offset + (results?.length - newLength)
+        if (opts?.prepend) collectionsPagination.value.offset = response?.data?.offset
+
+        return response
+      }
 
       collections.value = response?.data?.results.map(Collection.parse)
       collectionsPagination.value.count = response?.data?.count
@@ -319,6 +417,7 @@ function fetchProducts(opts={ limit: 0, offset: 0 }) {
     limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
     categories: selectedCategory.value || undefined,
+    s: searchBar.value?.text || undefined,
   }
 
   fetchingProducts.value = true
