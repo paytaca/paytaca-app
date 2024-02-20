@@ -8,7 +8,8 @@
         flat
         icon="arrow_back"
         class="button button-text-primary"
-        style="position: fixed; left: 20px; top: 135px; z-index: 3;"
+        style="position: fixed; left: 20px; z-index: 3;"
+        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
@@ -70,7 +71,11 @@
             <!-- Buyer -->
             <div v-if="data?.type === 'buyer'" class="q-pb-xs">
               <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
-              <div class="sm-font-size q-mx-md q-mb-sm">Select the payment method(s) you used to pay the seller</div>
+                <div class="text-center sm-font-size q-mx-md q-mb-sm">
+                <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
+                <span>Select the payment method(s) you used to pay the seller</span>
+              </div>
+              <!-- <div class="sm-font-size q-mx-md q-mb-sm">Select the payment method(s) you used to pay the seller</div> -->
               <div class="full-width">
                   <div v-for="(method, index) in paymentMethods" :key="index">
                     <div class="q-px-sm">
@@ -121,7 +126,7 @@
                 </div>
                 <div v-else class="row justify-center q-pt-xs q-px-xs">
                   <div class="row text-center sm-font-size" style="overflow-wrap: break-word;">
-                    <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+                    <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
                     <span class="col text-left q-ml-sm">Please release the funds if you have received fiat payment.</span>
                   </div>
                 </div>

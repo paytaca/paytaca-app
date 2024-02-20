@@ -85,14 +85,6 @@
                 </template>
               </q-input>
             </div>
-            <div
-              class="row q-px-md q-pt-sm text-center sm-font-size"
-              style="overflow-wrap: break-word;">
-              <div v-if="hasLabel" class="row">
-                <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-                <span class="col text-left q-ml-sm">{{ label }}</span>
-              </div>
-            </div>
           </div>
           <div v-else class="q-mt-md q-px-md q-mb-sm">
             <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
@@ -105,6 +97,14 @@
                 @click="$parent.cancellingOrder()"
               />
             </div>
+          </div>
+          <div
+              class="row q-px-md q-pt-sm text-center sm-font-size"
+              style="overflow-wrap: break-word;">
+              <div v-if="hasLabel" class="row">
+                <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
+                <span class="col text-left q-ml-sm">{{ label }}</span>
+              </div>
           </div>
           <!-- Appeal Button -->
           <div v-if="showAppealBtn">

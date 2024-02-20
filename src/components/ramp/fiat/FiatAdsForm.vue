@@ -32,7 +32,12 @@
         <q-scroll-area :style="`height: ${minHeight - 135}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
-              Price Setting
+              <span>Price Setting</span>&nbsp;
+              <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6">
+                <q-tooltip>
+                  Some text as content of Tooltip
+                </q-tooltip>
+              </q-icon>
             </div>
             <div class="text-center q-mx-md">
               <q-btn-toggle

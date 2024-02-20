@@ -103,6 +103,18 @@
               @click="$emit('cancel')"
             />
           </div>
+          <div class="text-center sm-font-size">
+            <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
+            <span>Please <b>Confirm</b> or <b>Decline</b> the incoming order.</span>
+          </div>
+          <!-- <div
+            class="row q-px-md q-pt-sm text-center sm-font-size"
+            style="overflow-wrap: break-word; text-align: center;">
+            <div class="row">
+              <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+              <span class="col text-left q-ml-sm">Please confirm the incoming order.</span>
+            </div>
+          </div> -->
         </q-scroll-area>
       </q-pull-to-refresh>
     </q-card>

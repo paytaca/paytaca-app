@@ -704,6 +704,11 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- WIP instruction dialog fot ad form -->
+  <q-dialog>
+    <div></div>
+  </q-dialog>
 </template>
 
 <script>
