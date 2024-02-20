@@ -207,7 +207,7 @@
               :class="getDarkModeClass(darkMode)"
               @click="() => showMap = true"
             />
-            <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
+            <LeafletMapDialog ref="mapDialog" v-model="showMap" :locations="mapLocations"/>
             <div class="text-subtitle1">Delivery</div>
             <q-separator :dark="darkMode"/>
             <div>
@@ -694,8 +694,13 @@ async function updateRiderLocation() {
 }
 onUnmounted(() => stopTrackRider())
 
+const mapDialog = ref()
 const showMap = ref(false)
 watch(showMap, () => showMap.value ? trackRider() : stopTrackRider())
+watch(showMap, () => setTimeout(() => {
+  if (!showMap.value) return
+  mapDialog.value?.centerMap?.()
+}, 250))
 const mapLocations = computed(() => {
   const data = []
   if (storefront.value?.location?.validCoordinates) {
