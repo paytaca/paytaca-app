@@ -578,7 +578,26 @@ const additional = [
     GeneratingAddressesError: "Error generating addresses",
     GenerateReceivingAddress: "Generating receiving address",
     GreaterThanHundredError: "Must be greater than 100%",
-    HigherThanThousandError: "Must not be higher than 1000%"
+    HigherThanThousandError: "Must not be higher than 1000%",
+    PositionOffer: "Position offer",
+    StabilizeHedge: "Stabilize (Hedge)",
+    LeverageLong: "Leverage (Long)",
+    HedgeContract: "Hedge Contract",
+    ContractValue: "Contract Value",
+    LongAmountDescription: "Long amount is only an approximation without a starting price value on the asset",
+    Funding: "Funding",
+    Contract: "Contract",
+    Fees: "Fees",
+    NetworkFee: "Network fee",
+    OfValue: "of position's value",
+    Premium: "Premium",
+    PremiumIs: "Premium is",
+    ContractDuration: "Contract Duration",
+    LiquidationParameters: "Liquidation Parameters",
+    StartPrice: "Start price",
+    Units: "units",
+    PayoutAddresses: "Payout addresses",
+    SwipeToConfirm: "SWIPE TO CONFIRM"
   }
 ]
 
