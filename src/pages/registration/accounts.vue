@@ -660,8 +660,9 @@ export default {
 
     this.currencySelectorRerender = true
 
-    vm.$axios.get('https://watchtower.cash', { timeout: 30000 }).then(response => {
+    vm.$axios.get('https://watchtower.cash/api/status/', { timeout: 30000 }).then(response => {
       if (response.status !== 200) return Promise.reject()
+      if (response.data.status !== 'up') return Promise.reject()
       vm.serverOnline = true
     }).catch(function () {
       vm.serverOnline = false

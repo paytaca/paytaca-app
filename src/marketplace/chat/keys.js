@@ -7,7 +7,7 @@ import { Device } from "@capacitor/device";
 const AES_STORAGE_KEY = 'marketplace-chat-aes-key'
 
 let deviceId
-async function getDeviceId() {
+export async function getDeviceId() {
   if (!deviceId) {
     const deviceIdResp = await Device.getId()
     deviceId = deviceIdResp?.uuid

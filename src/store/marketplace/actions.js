@@ -196,7 +196,7 @@ export async function refreshStorefrontCarts(context, opts={ storefrontId: 0 }) 
     limit: 5,
   }
 
-  return backend.get(`connecta/carts`, { params })
+  return backend.get(`connecta/carts/`, { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
       context.commit('removeStorefrontCarts', opts?.storefrontId)

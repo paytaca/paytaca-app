@@ -1,13 +1,11 @@
 <template>
   <q-pull-to-refresh
-    style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px;padding-bottom:50px;"
-    :class="{'pt-card-3 dark': darkMode}"
+    id="app-container"
+    class="marketplace-container"
+    :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Marketplace"
-      style="position: fixed; top: 0; background: #ECF3F3; width: 100%; z-index: 100 !important;"
-    />
+    <HeaderNav title="Marketplace" class="header-nav" />
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="row items-center">
         <div class="q-space text-h5 q-px-sm">{{ product?.name }}</div>
@@ -16,7 +14,7 @@
         </q-chip>
       </div>
       <q-btn
-        v-if="collection?.id == collectionId" class="text-subtitle1 q-mx-sm"
+        v-if="collectionId && collection?.id == collectionId" class="text-subtitle1 q-mx-sm"
         no-caps flat padding="none"
         :to="{ name: 'app-marketplace-collection', params: { collectionId: collection?.id } }"
       >
@@ -236,7 +234,13 @@ function selectVariantFromProps() {
 }
 
 function serializeCartOptionsData(data) {
-  try { return JSON.stringify(data) } catch {}
+  try {
+    if (Object.keys(data).length === 0) return
+    return JSON.stringify(data)
+  } catch {
+    // console.error(error)
+    return
+  }
 }
 watch(() => [product.value?.cartOptions], () => resetCartOptionsFormData(), { deep: true })
 watch(cartItem, () => resetCartOptionsFormData())

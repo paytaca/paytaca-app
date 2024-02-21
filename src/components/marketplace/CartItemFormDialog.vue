@@ -91,8 +91,6 @@ watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 watchEffect(() => {
   if (props.cartItem?.properties?.schema) return
   const product = props.cartItem?.variant?.product
-  console.log('product?.hasCartOptions', product?.hasCartOptions)
-  console.log('product?.hasCartOptions !== undefined', product?.hasCartOptions !== undefined)
   if (!product?.hasCartOptions || product?.cartOptions !== undefined) return
   product?.fetchCartOptions?.()
 })

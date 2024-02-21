@@ -36,6 +36,12 @@ $font-family_1: "Rubik", sans-serif;
   border-radius: 15px !important;
 }
 
+.q-dialog__inner--bottom:not(.q-dialog__inner--animating) > div.br-15 {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+
 .br-40 {
   border-radius: 40px !important;
 }

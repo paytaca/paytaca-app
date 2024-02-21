@@ -19,7 +19,6 @@
             <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
           </div>
           <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
-          <!-- <div v-if="data?.order?.status?.value !== 'APL' && !isCompletedOrder && $parent.isExpired" :class="statusColor">EXPIRED</div> -->
         </div>
         <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
           <div v-if="isAppealed">
@@ -38,8 +37,43 @@
               </q-card-section>
             </q-card>
           </div>
-          <div class="q-px-sm q-pt-sm">
-            <div class="sm-font-size q-pb-xs q-ml-xs">Amount</div>
+          <!-- Counterparty & Price info -->
+          <div class="q-px-sm q-pt-md">
+            <q-card flat bordered :dark="darkMode">
+              <q-card-section bordered class="pt-card" :class="darkMode ? 'dark': 'bg-grey-2'">
+                <div class="xs-font-size">Trading with</div>
+                <q-btn flat no-caps dense padding="none" color="primary" class="q-py-none q-my-none row lg-font-size text-weight-bold">{{ $parent.counterparty.name }}</q-btn>
+                <div class="row">
+                  <q-rating
+                    readonly
+                    :model-value="data?.ad?.owner?.rating || 0"
+                    :v-model="data?.ad?.owner?.rating || 0"
+                    size="1em"
+                    color="yellow-9"
+                    icon="star"/>
+                  <span class="q-mx-xs sm-font-size">({{ data.ad?.owner?.rating ? data.ad?.owner?.rating : 0 }})</span>
+                </div>
+                <q-separator class="q-my-sm"/>
+                <div class="row justify-end">
+                  <div class="col-auto">
+                    <div class="xs-font-size">Locked price</div>
+                    <span
+                      class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                      :class="getDarkModeClass(darkMode)">
+                      {{ lockedPrice }}
+                    </span>
+                    <span class="sm-font-size"> /BCH</span>
+                  </div>
+                  <q-space/>
+                  <div class="col-auto q-py-sm q-mx-sm">
+                    <q-btn dense flat padding="none" color="primary" label="view ad" class="sm-font-size" style="text-decoration: underline;"/>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <div class="q-px-sm q-pt-md">
+            <div class="sm-font-size q-pb-xs q-ml-xs">Trade Amount</div>
             <q-input
               class="q-pb-xs md-font-size"
               readonly
@@ -48,11 +82,20 @@
               :dark="darkMode"
               v-model="cryptoAmount">
               <template v-slot:append>
-                <span>{{ data?.order?.ad?.crypto_currency?.symbol }}</span>
+                <span>{{ !byFiat ? 'BCH' : data.order?.ad?.fiat_currency?.symbol }}</span>
               </template>
             </q-input>
-            <div class="col text-right sm-font-size q-pl-sm">
-              = {{ fiatAmount }} {{ data?.order?.ad?.fiat_currency?.symbol }}
+            <div class="row justify-end">
+              <q-space/>
+              <q-btn
+                class="sm-font-size"
+                padding="none"
+                flat
+                no-caps
+                color="primary"
+                @click="byFiat = !byFiat">
+                View amount in {{ byFiat ? 'BCH' : data.order?.ad?.fiat_currency?.symbol }}
+              </q-btn>
             </div>
           </div>
           <div v-if="displayContractInfo">
@@ -237,6 +280,8 @@ export default {
         is_posted: false
       },
       contractBalance: null,
+      lockedPrice: '',
+      byFiat: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -288,7 +333,13 @@ export default {
       return stat.includes(this.data?.order?.status.value)
     },
     cryptoAmount () {
-      return this.$parent.formattedCurrency(this.data?.order?.crypto_amount)
+      let amount = 0
+      if (this.byFiat) {
+        amount = this.$parent.formattedCurrency(parseFloat(this.data.order?.crypto_amount) * parseFloat(this.data.order?.locked_price), this.data.order?.ad?.fiat_currency?.symbol)
+      } else {
+        amount = this.$parent.formattedCurrency(parseFloat(this.data.order?.crypto_amount))
+      }
+      return amount
     },
     fiatAmount () {
       let amount = Number(parseFloat(this.data?.order?.crypto_amount) * parseFloat(this.data?.order?.locked_price))
@@ -347,6 +398,7 @@ export default {
       this.appealCountdown()
       this.checkStatus()
       this.fetchContractBalance()
+      this.lockedPrice = this.$parent.formattedCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
     },
     fetchAppeal () {
       const vm = this
@@ -417,6 +469,10 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+
+.xs-font-size {
+  font-size: smaller;
+}
 .sm-font-size {
   font-size: small;
 }
