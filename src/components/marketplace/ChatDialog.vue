@@ -296,6 +296,11 @@ export default defineComponent({
             moveMessagesToBottom({ delay: 250 })
             fetchChatMember()
           }
+          if (opts?.append || opts?.prepend) {
+            parsedMessages.filter((msg, index, array) => {
+              return index === array.findIndex(_msg => msg?.chatIdentity?.id == _msg?.chatIdentity?.id)
+            }).forEach(setChatIdentityNicknameFromMessage)
+          }
           return response
         })
         .finally(() => {
@@ -330,6 +335,7 @@ export default defineComponent({
 
     function onNewMessage(newMessage=ChatMessage.parse()) {
       $emit('new-message', newMessage)
+      setChatIdentityNicknameFromMessage(newMessage)
       const index = messages.value.findIndex(msg => msg?.id === newMessage?.id)
       if (index < 0) {
         messages.value.unshift(newMessage)
@@ -361,6 +367,14 @@ export default defineComponent({
     async function moveMessagesToBottom(opts={ delay: 250 }) {
       if (Number.isFinite(opts?.delay) && opts?.delay) await asyncSleep(opts?.delay)
       messagesPanel.value?.scrollTo(0, messagesPanel.value?.scrollHeight)
+    }
+
+    function setChatIdentityNicknameFromMessage(chatMessage=ChatMessage.parse()) {
+      if (!chatMessage.chatIdentity?.id) return
+      messages.value.forEach(message => {
+        if (message.chatIdentity?.id != chatMessage.chatIdentity?.id) return
+        message.memberNickname = chatMessage?.memberNickname
+      })
     }
 
     const sendingMessage = ref(false)
