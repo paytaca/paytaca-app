@@ -598,6 +598,27 @@ const additional = [
     Units: "units",
     PayoutAddresses: "Payout addresses",
     SwipeToConfirm: "SWIPE TO CONFIRM"
+  },
+  {
+    Session: "Session",
+    ScanNewSession: "Scan new session",
+    PasteURL: "Paste URL",
+    PendingSessionRequests: "Pending session requests",
+    SelectActiveSession: "Select active session",
+    NoActiveSessionsConnectNew: "No active sessions, connect new session",
+    NoActiveSessions: "No active sessions",
+    Requests: "Requests",
+    NoPendingRequests: "No pending requests",
+    Method: "Method",
+    Chain: "Chain",
+    Topic: "Topic",
+    SessionProposals: "Session Proposals",
+    NoPendingSessionProposals: "No pending session proposals",
+    Connecting: "Connecting",
+    NewSession: "New Session",
+    SessionURL: "Session URL",
+    ApprovingSession: "Approving session",
+    ActiveSessions: "Active Sessions"
   }
 ]
 
