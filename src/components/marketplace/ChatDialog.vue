@@ -135,7 +135,7 @@
                 flat
                 icon="attach_file"
                 padding="sm"
-                @click="getPhotoFromCamera"
+                @click="selectAttachment"
               />
             </template>
           </q-input>
@@ -157,7 +157,7 @@
                 'max-height': 'min(10rem, 50vh)',
                 'max-width': 'calc(100% - 5rem)',
               }"
-              @click="getPhotoFromCamera"
+              @click="selectAttachment"
               alt=""
             >
             <q-btn
@@ -425,20 +425,6 @@ export default defineComponent({
         presentationStyle: 'popover',
         resultType: 'dataUrl',
       })
-        .catch(error => {
-          console.error(error)
-          let errorMsg = ''
-          if (typeof error?.message === 'string' && error?.message?.length < 250) {
-            errorMsg = error?.message
-          }
-          if (!errorMsg || errorMsg?.includes('cancel')) return Promise.reject(error)
-          $q.dialog({
-            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
-            color: 'brandblue',
-            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-          })
-          return Promise.reject(error)
-        })
         .then(async (photo) => {
           let file
           if (photo?.base64String) file = base64ImageToFile(photo?.base64String)
@@ -448,6 +434,27 @@ export default defineComponent({
           const resized = await resizeImage({ file, maxWidthHeight: 640 })
           attachment.value = resized
           return photo
+        })
+    }
+
+    function selectAttachment(evt) {
+      return getPhotoFromCamera()
+        .catch(error => {
+          console.error(error)
+          let errorMsg = error?.message
+          if (typeof errorMsg !== 'string') return Promise.reject(error)
+          if (errorMsg?.includes('cancel')) return Promise.resolve()
+          if (errorMsg.match(/user.*denied.*access/i)) {
+            openFileAttachementField(evt)
+            return Promise.resolve()
+          }
+
+          if (errorMsg?.length < 250) return Promise.reject(error)
+          $q.dialog({
+            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
+            color: 'brandblue',
+            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+          })
         })
     }
 
@@ -660,6 +667,7 @@ export default defineComponent({
       openFileAttachementField,
       resizeAttachment,
       getPhotoFromCamera,
+      selectAttachment,
       sendMessage,
 
       chatMember,
