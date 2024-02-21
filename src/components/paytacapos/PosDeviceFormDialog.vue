@@ -23,7 +23,7 @@
           <q-input
             outlined
             dense
-            label="Device name"
+            :label="$t('DeviceName')"
             :disable="loading"
             :dark="darkMode"
             v-model="posDeviceForm.name"
@@ -34,7 +34,7 @@
           <q-select
             outlined
             dense
-            label="Branch"
+            :label="$t('Branch')"
             :disable="loading"
             :dark="darkMode"
             :options="branchOpts"
