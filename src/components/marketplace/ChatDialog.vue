@@ -79,7 +79,7 @@
               <div
                 :class="[
                   'row q-mb-xs',
-                  !isOwnMessage(message) ? 'justify-end' : 'justify-start'
+                  isOwnMessage(message) ? 'justify-end' : 'justify-start'
                 ]"
               >
                 <img
