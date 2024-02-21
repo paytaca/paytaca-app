@@ -1,7 +1,7 @@
 <template>
-  <q-card
+  <div
     v-if="step === 1"
-    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    class="q-pt-sm q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <div v-if="step < 3">
@@ -33,11 +33,7 @@
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
               <span>Price Setting</span>&nbsp;
-              <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6">
-                <q-tooltip>
-                  Some text as content of Tooltip
-                </q-tooltip>
-              </q-icon>
+              <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openDialog = true"/>
             </div>
             <div class="text-center q-mx-md">
               <q-btn-toggle
@@ -118,7 +114,10 @@
           <!-- Trade Quantity -->
           <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
-              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Quantity</div>
+              <div class="q-pb-xs q-pl-sm text-weight-bold">
+                <span>Trade Quantity</span>&nbsp;
+                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openDialog = true"/>
+              </div>
                 <q-input
                   ref="tradeAmountRef"
                   dense
@@ -138,7 +137,10 @@
                 </q-input>
               </div>
             <div class="q-px-md q-mt-sm">
-              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Limit</div>
+              <div class="q-pb-xs q-pl-sm text-weight-bold">
+                <span>Trade Limit</span>&nbsp;
+                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openDialog = true"/>
+              </div>
               <div class="row">
                 <div class="col">
                   <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
@@ -237,7 +239,7 @@
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
-  </q-card>
+  </div>
   <div v-if="step === 2">
     <AddPaymentMethods
       :type="'Ads'"
@@ -256,11 +258,18 @@
       @submit="onSubmit()"
     />
   </div>
+  <!-- <div v-if="openDialog" >
+    <MiscDialogs
+      :type="'instructionDialog'"
+      v-on:back="openDialog = false"
+    />
+  </div> -->
 </template>
 <script>
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { debounce } from 'quasar'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -282,7 +291,8 @@ export default {
   components: {
     AddPaymentMethods,
     DisplayConfirmation,
-    ProgressLoader
+    ProgressLoader,
+    MiscDialogs
   },
   emits: ['back', 'submit'],
   data () {
@@ -290,6 +300,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       loading: false,
+      openDialog: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
       marketPrice: null,

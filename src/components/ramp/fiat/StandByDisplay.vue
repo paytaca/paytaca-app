@@ -1,8 +1,8 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+  <div
+    class="q-pt-sm q-mx-md q-mt-sm text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    :style="`height: ${minHeight}px;`">
     <div v-if="isloaded">
       <q-btn
         flat
@@ -224,7 +224,7 @@
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
-  </q-card>
+  </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
     <MiscDialogs

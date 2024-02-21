@@ -1,8 +1,8 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+  <div
+    class="q-pt-sm q-mx-md q-mt-sm text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    :style="`height: ${minHeight}px;`">
       <q-btn
         flat
         icon="arrow_back"
@@ -121,7 +121,7 @@
       @cancel="onSecurityCancel"
       text="Swipe To Escrow"
     />
-  </q-card>
+    </div>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'

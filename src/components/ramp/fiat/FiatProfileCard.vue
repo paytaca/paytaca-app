@@ -1,9 +1,9 @@
 <template>
-  <q-card
+  <div
     v-if="!selectedListing && state === 'initial'"
-    class="br-15 q-pt-sm q-mx-md q-mb-lg q-pb-lg text-bow"
+    class="q-pt-sm q-mx-md q-mb-lg q-pb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    :style="`height: ${minHeight}px;`">
     <div v-if="!isloaded">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
@@ -82,7 +82,7 @@
         <div
           class="row q-mb-md br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}"
@@ -97,7 +97,7 @@
             ADS
           </button>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - 300}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - 350}px`" style="overflow-y:auto;">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
@@ -190,7 +190,7 @@
         </q-scroll-area>
       </div>
     </div>
-  </q-card>
+  </div>
   <AddPaymentMethods
     v-if="state === 'edit-pm'"
     :type="'Profile'"

@@ -1,9 +1,9 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mb-lg text-bow"
-    :class="getDarkModeClass(darkMode)"
-    style="overflow:hidden;"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
+  <!-- :class="getDarkModeClass(darkMode)"
+    style="overflow:hidden;" -->
+  <div
+    class="q-pt-sm q-mx-md q-mb-lg text-bow"
+    :style="`height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
     <div class="q-mb-lg q-pb-lg">
       <!-- <q-pull-to-refresh @refresh="refreshData"> -->
@@ -49,7 +49,7 @@
       <div
         class="row br-15 text-center pt-card btn-transaction"
         :class="getDarkModeClass(darkMode)"
-        :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
+        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
         <button
           class="col br-15 btn-custom fiat-tab q-mt-none"
           :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"
@@ -147,7 +147,7 @@
     <q-inner-loading :showing="loading">
       <ProgressLoader/>
     </q-inner-loading>
-  </q-card>
+  </div>
   <!-- Buy/Sell Form Here -->
   <div v-if="state !== 'SELECT' && !viewProfile">
     <FiatOrderForm

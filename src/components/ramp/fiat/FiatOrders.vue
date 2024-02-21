@@ -1,15 +1,15 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
+  <div
+    class="q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
+    :style="`height: ${minHeight}px;`"
     v-if="state == 'order-list' && !viewProfile">
     <div v-if="state === 'order-list'">
       <div class="row justify-start items-center q-mx-none q-px-sm q-pt-md">
         <div
           class="col-9 row br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
@@ -111,7 +111,7 @@
     <q-inner-loading :showing="loading">
       <ProgressLoader/>
     </q-inner-loading>
-  </q-card>
+  </div>
   <FiatProcessOrder
     v-if="state === 'view-order'"
     :key="fiatProcessOrderKey"
