@@ -147,7 +147,7 @@
                   </div>
                 </template>
                 <div v-else class="pt-label" :class="getDarkModeClass(darkMode)">
-                  Select Collection
+                  {{ $t('SelectCollection') }}
                 </div>
               </div>
             </template>
@@ -312,7 +312,11 @@ export default {
     },
     confirmRemoveERC721Asset (asset) {
       const title = this.$t('RemoveAsset')
-      const message = 'Remove asset "' + asset.name + '". Are you sure?'
+      const message = this.$t(
+        'RemoveAssetPrompt',
+        { assetName: asset.name },
+        `Remove asset ${asset.name}. Are you sure?`
+      )
       let dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       dialogStyleClass += ' br-15'
 
@@ -323,11 +327,13 @@ export default {
         seamless: true,
         class: dialogStyleClass,
         ok: {
-          rounded: true
+          rounded: true,
+          label: this.$t('OK')
         },
         cancel: {
           rounded: true,
-          flat: true
+          flat: true,
+          label: this.$t('Cancel')
         }
       }).onOk(() => {
         const commitName = 'sep20/removeNftAsset'

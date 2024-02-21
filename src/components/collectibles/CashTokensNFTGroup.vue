@@ -17,7 +17,7 @@
         >
           <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
             <q-spinner size="35px"/>
-            <span class="text-caption">Loading metadata ...</span>
+            <span class="text-caption">{{ $t('LoadingMetadata') }} ...</span>
           </q-inner-loading>
         </q-img>
         <q-card-section v-if="nft?.parsedMetadata?.name || nft?.parsedMetadata?.description" class="q-pa-sm">
@@ -28,7 +28,7 @@
     </div>
     <template v-if="!nfts.length && !fetchingNfts">
       <p class="text-center pt-label no-nfts-label" :class="getDarkModeClass(darkMode)">
-        You don't own any CashToken NFTs yet.
+        {{ $t('NoCashTokens') }}
       </p>
     </template>
     <div class="row items-center justify-end q-px-md">

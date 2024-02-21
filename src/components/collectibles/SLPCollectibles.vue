@@ -5,7 +5,7 @@
     </div>
     <template v-if="collectibles.length > 0">
       <div class="q-mx-md q-px-sm row items-center">
-        <div class="q-space text-h5 q-ml">SLP Collectibles</div>
+        <div class="q-space text-h5 q-ml">{{ $t('SLPCollectibles') }}</div>
         <div v-if="groupedCollectibles.length" class="row justify-end">
           <q-btn-toggle
             flat
@@ -28,7 +28,7 @@
           >
             <div class="ellipsis q-space" :class="darkMode ? 'text-grad' : 'text-grey-8'">
               <span v-if="group.token.ungrouped_tokens">
-                Ungrouped Collectibles
+                {{ $t('UngroupedCollectibles') }}
               </span>
               <span v-else >
                 {{ group.token.name || `Group #${group.token.token_id}` }}

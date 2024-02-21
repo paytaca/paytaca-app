@@ -452,6 +452,7 @@ const phrases = {
       MustAtMostBe: "Must at most be {amount}",
       MustBeAtLeast: "Must be at least {amount}",
       MustBeAtMost: "Must be at most {amount}",
+      RemoveAssetPrompt: "Remove asset {assetName}. Are you sure?"
     }
   ]
 }
@@ -618,7 +619,13 @@ const additional = [
     NewSession: "New Session",
     SessionURL: "Session URL",
     ApprovingSession: "Approving session",
-    ActiveSessions: "Active Sessions"
+    ActiveSessions: "Active Sessions",
+    OK: "OK",
+    SelectCollection: "Select Collection",
+    NoCashTokens: "You don't own any CashToken NFTs yet.",
+    Properties: "Properties",
+    SLPCollectibles: "SLP Collectibles",
+    UngroupedCollectibles: "Ungrouped Collectibles"
   }
 ]
 
