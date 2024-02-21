@@ -38,7 +38,7 @@
                 class="rounded-borders q-mt-sm q-mb-md pt-card-2 text-bow"
                 :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
               >
-                UTXO scan completed at {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
+                {{ $t('UTXOScanComplete') }} {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
@@ -80,7 +80,7 @@
                   </template>
                   <template v-else-if="bchUtxoScanOngoing">
                     <template v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.queueInfo?.time_start">
-                      UTXO scan ongoing, started {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                      {{ $t('UTXOScanOngoing') }} {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
                     </template>
                     <template>
                       {{ $t('ScanningForUtxos') }}
@@ -131,7 +131,7 @@
                 class="rounded-borders q-mt-sm q-mb-md pt-card-2 text-bow"
                 :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
               >
-                UTXO scan completed at {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
+                {{ $t('UTXOScanComplete') }} {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
@@ -173,7 +173,7 @@
                   </template>
                   <template v-else-if="slpUtxoScanOngoing">
                     <template v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.queueInfo?.time_start">
-                      UTXO scan ongoing, started {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                      {{ $t('UTXOScanOngoing') }} {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
                     </template>
                     <template>
                       {{ $t('ScanningForUtxos') }}
@@ -239,9 +239,9 @@
         </q-list>
       </div>
       <div class="col-12 q-px-lg q-mt-md q-mb-lg">
-        <p class="section-title">Wallet Deletion</p>
+        <p class="section-title">{{ $t('WalletDeletion') }}</p>
         <q-btn color="red" style="width: 100%;" @click="showDeleteDialog()" :disable="disableDeleteButton">
-          Delete Wallet Now
+          {{ $t('DeleteWalletNow') }}
         </q-btn>
       </div>
     </div>
@@ -673,12 +673,12 @@ export default {
       const vm = this
       vm.disableDeleteButton = true
       vm.$q.dialog({
-        title: 'Delete Wallet',
-        message: 'Are you sure you want to delete this wallet?',
+        title: this.$t('DeleteWallet'),
+        message: this.$t('DeleteWalletDescription'),
         dark: true,
-        cancel: true,
+        cancel: this.$t('Cancel'),
         seamless: true,
-        ok: 'Yes',
+        ok: this.$t('Yes')
       }).onOk(() => {
         vm.deleteWallet()
       }).onCancel(() => {

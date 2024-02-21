@@ -651,7 +651,13 @@ const additional = [
     Ago: "ago",
     Seconds: "seconds",
     Second: "second",
-    MainBranch: "Main Branch"
+    MainBranch: "Main Branch",
+    WalletDeletion: "Wallet Deletion",
+    DeleteWalletNow: "Delete Wallet Now",
+    DeleteWallet: "Delete Wallet",
+    DeleteWalletDescription: "Are you sure you want to delete this wallet?",
+    UTXOScanComplete: "UTXO scan completed at",
+    UTXOScanOngoing: "UTXO scan ongoing, started"
   }
 ]
 
