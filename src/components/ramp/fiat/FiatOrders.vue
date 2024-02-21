@@ -170,7 +170,7 @@ export default {
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       selectedOrder: null,
       selectedUser: null,
-      statusType: this.initStatusType,
+      statusType: 'ONGOING',
       state: 'order-list',
       transactionType: '',
       loading: false,

@@ -211,7 +211,6 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       defaultFilters: {
         sort_type: 'ascending',
         price_type: {
@@ -222,7 +221,8 @@ export default {
         time_limits: [5, 15, 30, 60, 300, 720, 1440]
       },
       filters: {},
-      defaultFiltersOn: true
+      defaultFiltersOn: true,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100)
     }
   },
   watch: {

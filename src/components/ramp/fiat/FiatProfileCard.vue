@@ -80,7 +80,7 @@
           </div>
         </div>
         <div
-          class="row q-mb-md br-15 text-center pt-card btn-transaction md-font-size"
+          class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
           :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
           <button
@@ -97,7 +97,7 @@
             ADS
           </button>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - 300}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - 350}px`" style="overflow-y:auto;">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
@@ -223,7 +223,7 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
-import FiatOrderForm from './FiatOrderForm.vue'
+import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
 import { updateChatIdentity } from 'src/wallet/ramp/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -236,7 +236,6 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       isloaded: false,
       user: null,
       editNickname: false,
@@ -254,7 +253,8 @@ export default {
 
       adsTotalPages: null,
       adsPageNumber: 1,
-      loadingAds: false
+      loadingAds: false,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
     }
   },
   props: {
@@ -520,7 +520,7 @@ export default {
   margin-top: 10px;
 }
 .btn-custom {
-  height: 35px;
+  height: 30px;
   width: 47%;
   border-radius: 20px;
   border: none;

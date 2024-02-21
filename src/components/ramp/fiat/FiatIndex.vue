@@ -5,21 +5,9 @@
     </div>
     <div v-else>
       <div class="q-mt-md">
-        <FiatStore
-          v-if="menu === 'store'"
-          @order-canceled="onOrderCanceled"
-        />
-        <FiatOrders
-          v-if="menu === 'orders'"
-          :init-status-type="initStatusType"
-        />
-        <FiatAds v-if="menu === 'ads'"/>
-        <FiatProfileCard
-          v-if="menu === 'profile'"
-          v-on:back="menu = 'store'; $refs.footer.selectMenu('store')"
-        />
+        <component :is="currentPage"></component>
       </div>
-      <footerMenu v-if="showFooterMenu" :tab="menu" v-on:clicked="switchMenu" ref="footer"/>
+      <footerMenu v-if="showFooterMenu" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
     </div>
   </div>
 </template>
@@ -48,7 +36,8 @@ export default {
       initStatusType: 'ONGOING',
       hasAccount: false,
       userType: null,
-      showFooterMenu: true
+      showFooterMenu: true,
+      currentPage: 'FiatStore'
     }
   },
   components: {
@@ -62,6 +51,7 @@ export default {
   created () {
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
+    bus.on('switch-menu', this.switchMenu)
   },
   async mounted () {
     this.isLoading = false
@@ -84,9 +74,8 @@ export default {
       if (tab) this.menu = tab
       this.showFooterMenu = true
     },
-    switchMenu (item) {
-      this.menu = item
-      this.$refs.footer.selectMenu(this.menu)
+    switchMenu (data) {
+      this.currentPage = data.name
     },
     processDialog () {
       if (!this.proceed && !this.createUser) {
