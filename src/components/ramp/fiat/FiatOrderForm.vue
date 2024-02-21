@@ -1,7 +1,7 @@
 <template>
-  <q-card
+  <div
     v-if="state === 'initial'"
-    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    class="q-pt-sm q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <!-- Form Body -->
@@ -189,7 +189,7 @@
         @back="openReviews = false"
       />
     </div>
-  </q-card>
+  </div>
   <!-- Add payment method -->
   <div v-if="state === 'add-payment-method'">
     <AddPaymentMethods

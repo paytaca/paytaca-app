@@ -194,6 +194,8 @@ import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
 import { formatDateRelative } from 'src/marketplace/utils'
+import { setupCache } from 'axios-cache-interceptor'
+import axios from 'axios'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffect } from 'vue'
@@ -201,6 +203,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
+const cachedBackend = setupCache(axios.create({...backend.defaults}), { ttl: 30 * 1000 })
 
 defineOptions({
   directives: {
@@ -354,7 +357,7 @@ function fetchCollections(opts={ limit: 0, offset: 0, append: false, prepend: fa
   fetchingCollections.value = true
   if (opts?.append) fetchingCollections.value = 'appending'
   if (opts?.prepend) fetchingCollections.value = 'prepending'
-  return backend.get(`connecta/collections/`, { params })
+  return cachedBackend.get(`connecta/collections/`, { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 
@@ -395,7 +398,7 @@ watch(selectedCategory, () => fetchProducts())
 function fetchProductCategories() {
   const params = { storefront_id: props?.storefrontId }
   fetchingProductCategories.value = true
-  return backend.get(`product-categories/`, { params })
+  return cachedBackend.get(`product-categories/`, { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
       productCategories.value = response?.data?.results

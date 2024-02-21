@@ -1,9 +1,9 @@
 <template>
   <div v-if="isloaded">
-    <q-card
-    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    <div
+      class="q-pt-sm q-mx-md q-mt-sm text-bow"
+      :class="getDarkModeClass(darkMode)"
+      :style="`height: ${minHeight}px;`">
       <q-btn
         flat
         icon="arrow_back"
@@ -103,9 +103,21 @@
               @click="$emit('cancel')"
             />
           </div>
+          <div class="text-center sm-font-size">
+            <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
+            <span>Please <b>Confirm</b> or <b>Decline</b> the incoming order.</span>
+          </div>
+          <!-- <div
+            class="row q-px-md q-pt-sm text-center sm-font-size"
+            style="overflow-wrap: break-word; text-align: center;">
+            <div class="row">
+              <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+              <span class="col text-left q-ml-sm">Please confirm the incoming order.</span>
+            </div>
+          </div> -->
         </q-scroll-area>
       </q-pull-to-refresh>
-    </q-card>
+    </div>
   </div>
 </template>
 <script>

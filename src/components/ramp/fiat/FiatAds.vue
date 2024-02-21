@@ -1,9 +1,9 @@
 <template>
-  <q-card
+  <div
     v-if="state === 'selection'"
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
+    class="q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    :style="`height: ${minHeight}px;`">
     <div class="q-mb-lg q-pb-lg">
       <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
         <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' />
@@ -20,7 +20,7 @@
       <div
         class="row br-15 text-center pt-card btn-transaction md-font-size"
         :class="getDarkModeClass(darkMode)"
-        :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
+        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
       >
         <button
           class="col br-15 btn-custom fiat-tab q-mt-none"
@@ -138,7 +138,7 @@
     <q-inner-loading :showing="loading">
       <ProgressLoader/>
     </q-inner-loading>
-  </q-card>
+  </div>
   <FiatAdsForm
     v-if="state !== 'selection'"
     @back="onFormBack()"

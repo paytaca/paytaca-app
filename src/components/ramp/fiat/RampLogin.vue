@@ -160,6 +160,7 @@ export default {
       // check if chatIdentity exist
       const chatIdentity = this.$store.getters['ramp/chatIdentity']
       if (!chatIdentity) {
+        console.log('fetching chat identity')
         await updateSignerData()
         return new Promise((resolve, reject) => {
           const vm = this

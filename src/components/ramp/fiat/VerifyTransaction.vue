@@ -1,8 +1,8 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
+  <div
+    class="q-pt-sm q-mx-md q-mt-sm text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    :style="`height: ${minHeight}px;`">
       <q-btn
         flat
         icon="arrow_back"
@@ -82,7 +82,7 @@
         </div>
       </q-scroll-area>
     </q-pull-to-refresh>
-  </q-card>
+  </div>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'

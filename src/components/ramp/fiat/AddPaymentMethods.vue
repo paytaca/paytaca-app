@@ -1,6 +1,6 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+  <div
+    class="q-pt-sm q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <div>
@@ -134,7 +134,7 @@
         </div>
       </q-card-section>
     </div>
-  </q-card>
+  </div>
   <div v-if="openDialog">
     <MiscDialogs
       :key="miscDialogsKey"
