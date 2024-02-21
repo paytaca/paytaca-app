@@ -14,11 +14,11 @@ export function createBackend(opts={ chatIdentityRef: '', privkey: '' }) {
     ...backend.defaults,
     signFunction: async (config, opts) => {
       const data = opts?.data
-      const isCustomSignData = opts?.isCustomSignData
+      const customSignData = opts?.customSignData
       const timestamp = opts?.timestamp
   
       const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
-      if (isCustomSignData) config.headers['X-Chat-Signdata'] = data
+      if (customSignData) config.headers['X-Chat-Identity-Signdata'] = customSignData    
       config.headers['X-Chat-Identity'] = [chatIdentityRef, timestamp, signature].join(':')
   
       return config
