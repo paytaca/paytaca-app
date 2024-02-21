@@ -135,7 +135,7 @@
                 flat
                 icon="attach_file"
                 padding="sm"
-                @click="openFileAttachementField"
+                @click="getPhotoFromCamera"
               />
             </template>
           </q-input>
@@ -157,7 +157,7 @@
                 'max-height': 'min(10rem, 50vh)',
                 'max-width': 'calc(100% - 5rem)',
               }"
-              @click="openFileAttachementField"
+              @click="getPhotoFromCamera"
               alt=""
             >
             <q-btn
@@ -176,9 +176,10 @@ import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
-import { resizeImage } from 'src/marketplace/chat/attachment'
+import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
+import { Camera } from '@capacitor/camera'
 import { useDialogPluginComponent, debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -187,6 +188,7 @@ import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 
+window.C = Camera
 export default defineComponent({
   name: 'ChatDialog',
   directives: {
@@ -398,6 +400,57 @@ export default defineComponent({
       })
     }
 
+    async function checkOrRequestCameraPermissions() {
+      let permission = await Camera.checkPermissions()
+      const promptStatuses = ['prompt','prompt-with-rationale', 'limited']
+      const request = promptStatuses.includes(permission.photos) || promptStatuses.includes(permission.camera)
+      if (request) permission = await Camera.requestPermissions()
+      return {
+        camera: permission.camera === 'granted',
+        photos: permission.photos === 'photos',
+      }
+    }
+
+    async function getPhotoFromCamera() {
+      const granted = await checkOrRequestCameraPermissions()
+      if (!granted.camera && !granted.photos) {
+        $q.dialog({
+          title: 'Select photo', message: 'Permission denied',
+          color: 'brandblue',
+          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        })
+        return Promise.reject(new Error('Permission Denied'))
+      }
+      return Camera.getPhoto({
+        presentationStyle: 'popover',
+        resultType: 'dataUrl',
+      })
+        .catch(error => {
+          console.error(error)
+          let errorMsg = ''
+          if (typeof error?.message === 'string' && error?.message?.length < 250) {
+            errorMsg = error?.message
+          }
+          if (!errorMsg || errorMsg?.includes('cancel')) return Promise.reject(error)
+          $q.dialog({
+            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
+            color: 'brandblue',
+            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+          })
+          return Promise.reject(error)
+        })
+        .then(async (photo) => {
+          let file
+          if (photo?.base64String) file = base64ImageToFile(photo?.base64String)
+          else if (photo?.dataUrl) file = dataUrlToFile(photo?.dataUrl)
+          if (!file) return photo
+
+          const resized = await resizeImage({ file, maxWidthHeight: 640 })
+          attachment.value = resized
+          return photo
+        })
+    }
+
     const sendMessage = debounce(async function() {
       if (!message.value && !attachment.value) return
       let signData = undefined
@@ -606,6 +659,7 @@ export default defineComponent({
       fileAttachmentField,
       openFileAttachementField,
       resizeAttachment,
+      getPhotoFromCamera,
       sendMessage,
 
       chatMember,
@@ -640,5 +694,10 @@ export default defineComponent({
 .messages-panel .bottom-anchor {
   overflow-anchor: auto;
   height: 1px;
+}
+</style>
+<style>
+pwa-camera-modal-instance {
+  z-index: 10000
 }
 </style>
