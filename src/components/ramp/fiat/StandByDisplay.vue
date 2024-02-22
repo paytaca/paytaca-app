@@ -1,14 +1,14 @@
 <template>
-  <div :class="getDarkModeClass(darkMode)" class="q-mx-sm text-bow">
+  <div :class="getDarkModeClass(darkMode)" class="text-bow">
     <div v-if="isloaded">
       <q-pull-to-refresh @refresh="$emit('refresh')" class="q-mx-lg">
-        <div class="q-mt-lg q-pt-md text-center text-weight-bold">
+        <div class="q-pt-md text-center text-weight-bold">
           <div class="lg-font-size">
             <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
           </div>
-          <div class="text-center subtext md-font-size">ORDER #{{ data?.order?.id }}</div>
+          <div class="text-center subtext md-font-size q-mb-sm">ORDER #{{ data?.order?.id }}</div>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
           <div class="q-px-sm">
             <div v-if="isAppealed">
               <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
@@ -26,74 +26,15 @@
                 </q-card-section>
               </q-card>
             </div>
-            <!-- Counterparty & Price info -->
-            <!-- <div class="q-pt-md">
-              <q-card flat bordered :dark="darkMode">
-                <q-card-section bordered class="pt-card" :class="getDarkModeClass(darkMode)">
-                  <div class="xs-font-size">Trading with</div>
-                  <q-btn flat no-caps dense
-                    padding="none"
-                    color="primary"
-                    class="q-py-none q-my-none row lg-font-size text-weight-bold"
-                    @click="viewUserProfile($parent.counterparty)">
-                    {{ $parent.counterparty.name }}
-                  </q-btn>
-                  <div class="row">
-                    <q-rating
-                      readonly
-                      :model-value="data?.ad?.owner?.rating || 0"
-                      :v-model="data?.ad?.owner?.rating || 0"
-                      size="1em"
-                      color="yellow-9"
-                      icon="star"/>
-                    <span class="q-mx-xs sm-font-size">({{ data.ad?.owner?.rating ? data.ad?.owner?.rating : 0 }})</span>
-                  </div>
-                  <q-separator class="q-my-sm"/>
-                  <div class="row justify-end">
-                    <div class="col-auto">
-                      <div class="xs-font-size">Locked price</div>
-                      <span
-                        class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                        :class="getDarkModeClass(darkMode)">
-                        {{ lockedPrice }}
-                      </span>
-                      <span class="sm-font-size"> /BCH</span>
-                    </div>
-                    <q-space/>
-                    <div class="col-auto q-py-sm q-mx-sm">
-                      <q-btn dense flat padding="none" color="primary" label="view ad" class="sm-font-size" @click="onViewAd(data.order.ad.id)"/>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div> -->
-            <div class="q-pt-md">
-              <div class="sm-font-size q-pb-xs q-ml-xs">Trade Amount</div>
-              <q-input
-                class="q-pb-xs md-font-size"
-                readonly
-                dense
-                filled
-                :dark="darkMode"
-                v-model="cryptoAmount">
-                <template v-slot:append>
-                  <span>{{ !byFiat ? 'BCH' : data.order?.ad?.fiat_currency?.symbol }}</span>
-                </template>
-              </q-input>
-              <div class="row justify-end">
-                <q-space/>
-                <q-btn
-                  class="sm-font-size"
-                  padding="none"
-                  flat
-                  no-caps
-                  color="primary"
-                  @click="byFiat = !byFiat">
-                  View amount in {{ byFiat ? 'BCH' : data.order?.ad?.fiat_currency?.symbol }}
-                </q-btn>
-              </div>
-            </div>
-            <div v-if="displayContractInfo">
+            <!-- Trade Info Card -->
+            <TradeInfoCard
+              :order="data.order"
+              :ad="data.ad"
+              @view-ad="showAdSnapshot=true"
+              @view-peer="onViewPeer"
+              @view-reviews="showReviews=true"
+              @view-chat="openChat=true"/>
+            <div v-if="displayContractInfo" class="q-mt-md q-mx-sm">
               <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
               <q-input
                 class="q-pb-xs md-font-size"
@@ -245,16 +186,9 @@
       @back="openReviews = false"
     />
   </div>
-  <UserProfileDialog
-    v-if="showUserProfile"
-    :userInfo="profileInfo"
-    @back="showUserProfile = false"
-  />
-  <AdSnapshotDialog
-    v-if="showAdSnapshot"
-    :snapshot="adSnapshot"
-    @back="showAdSnapshot = false"
-  />
+  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="data.order?.ad?.id" @back="showAdSnapshot=false"/>
+  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+  <ChatDialog v-if="openChat" :data="data.order" @close="openChat=false"/>
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
@@ -262,6 +196,8 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import UserProfileDialog from './dialogs/UserProfileDialog.vue'
 import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
+import TradeInfoCard from './TradeInfoCard.vue'
+import ChatDialog from './dialogs/ChatDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -288,9 +224,10 @@ export default {
       contractBalance: null,
       lockedPrice: '',
       byFiat: false,
-      profileInfo: {},
-      showUserProfile: false,
       showAdSnapshot: false,
+      showPeerProfile: false,
+      openChat: false,
+      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -303,7 +240,9 @@ export default {
     FeedbackDialog,
     ProgressLoader,
     UserProfileDialog,
-    AdSnapshotDialog
+    AdSnapshotDialog,
+    TradeInfoCard,
+    ChatDialog
   },
   computed: {
     appealBtnLabel () {
@@ -500,6 +439,10 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
+    },
+    onViewPeer (data) {
+      this.peerInfo = data
+      this.showPeerProfile = true
     }
   }
 }

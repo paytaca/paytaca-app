@@ -54,18 +54,11 @@
       <PaymentConfirmation
         :key="paymentConfirmationKey"
         :data="paymentConfirmationData"
-        @expired="handleExpired"
         @verify-release="handleVerifyRelease"
         @refresh="$emit('refresh')"
         @back="onBack"
       />
     </div>
-
-    <!-- Chat button -->
-    <div class="fixed" style="right: 35px" :style="$q.platform.is.ios ? `top:135px` : 'top: 110px'" v-if="hasChat">
-      <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon" icon="comment" @click="openChat = true"/>
-    </div>
-
     <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 240px' : 'top: 190px;'">
       <q-spinner-ios size="1.5em"/>
     </div>

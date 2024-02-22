@@ -15,49 +15,22 @@
       />
       <q-pull-to-refresh @refresh="$emit('refresh')">
         <!-- <div v-if="isloaded"> -->
-          <div class="q-mx-lg q-mt-lg q-pt-md text-h5 text-center lg-font-size text-weight-bold">
+          <div class="q-mx-lg text-h5 text-center lg-font-size text-weight-bold">
             <span v-if="data?.type === 'buyer'">PAY BY FIAT</span>
             <span v-else>RECEIVE FIAT</span>
           </div>
           <div style="opacity: .5;" class="text-center q-pb-sm md-font-size text-weight-bold">ORDER #{{ order.id }}</div>
-          <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
-            <div class="q-mt-sm q-mx-md q-px-md">
-              <!-- Counterparty & Price info -->
-              <q-card flat bordered :dark="darkMode">
-                <q-card-section bordered class="pt-card" :class="darkMode ? 'dark': 'bg-grey-2'">
-                  <div class="xs-font-size">Trading with</div>
-                  <q-btn flat no-caps dense padding="none" color="primary" class="q-py-none q-my-none row lg-font-size text-weight-bold">{{ $parent.counterparty.name }}</q-btn>
-                  <div class="row">
-                    <q-rating
-                      readonly
-                      :model-value="data?.ad?.owner?.rating || 0"
-                      :v-model="data?.ad?.owner?.rating || 0"
-                      size="1em"
-                      color="yellow-9"
-                      icon="star"/>
-                    <span class="q-mx-xs sm-font-size">({{ data.ad?.owner?.rating ? data.ad?.owner?.rating : 0 }})</span>
-                  </div>
-                  <q-separator class="q-my-sm"/>
-                  <div class="row justify-end">
-                    <div class="col-auto">
-                      <div class="xs-font-size">Locked price</div>
-                      <span
-                        class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                        :class="getDarkModeClass(darkMode)">
-                        {{ lockedPrice }}
-                      </span>
-                      <span class="sm-font-size"> /BCH</span>
-                    </div>
-                    <q-space/>
-                    <div class="col-auto q-py-sm q-mx-sm">
-                      <q-btn dense flat padding="none" color="primary" label="view ad" class="sm-font-size" style="text-decoration: underline;"/>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-              <!-- Contract Address -->
-              <div class="q-my-sm q-pt-md">
-                <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
+          <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
+            <div class="q-mx-md">
+              <TradeInfoCard
+                :order="data.order"
+                :ad="data.ad"
+                @view-ad="showAdSnapshot=true"
+                @view-peer="onViewPeer"
+                @view-reviews="showReviews=true"
+                @view-chat="openChat=true"/>
+              <div class="q-mt-md q-mx-sm">
+                <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
                 <q-input
                   class="q-pb-xs"
                   readonly
@@ -84,22 +57,21 @@
                     <span>BCH</span>
                   </template>
                 </q-input>
-              </div>
-              <div v-if="data?.type === 'buyer'" class="sm-font-size q-pb-xs q-ml-xs">Pay the seller</div>
-              <div v-else class="sm-font-size q-pb-xs q-ml-xs">Expect fiat payment of</div>
-              <div @click="$parent.copyToClipboard(fiatAmount)">
-                <q-input
-                  class="q-pb-xs md-font-size"
-                  readonly
-                  dense
-                  filled
-                  :dark="darkMode"
-                  :rules="[$parent.isValidInputAmount]"
-                  v-model="fiatAmount">
-                  <template v-slot:append>
-                    <span>{{ order?.ad?.fiat_currency?.symbol }}</span>
-                  </template>
-                </q-input>
+                <div class="sm-font-size q-py-xs q-ml-xs">{{ data?.type === 'buyer' ? 'Pay the seller' : 'Expect fiat payment of' }}</div>
+                <div @click="$parent.copyToClipboard(fiatAmount)">
+                  <q-input
+                    class="q-pb-xs md-font-size"
+                    readonly
+                    dense
+                    filled
+                    :dark="darkMode"
+                    :rules="[$parent.isValidInputAmount]"
+                    v-model="fiatAmount">
+                    <template v-slot:append>
+                      <span>{{ order?.ad?.fiat_currency?.symbol }}</span>
+                    </template>
+                  </q-input>
+                </div>
               </div>
             </div>
             <div class="q-mx-md q-px-sm q-pt-sm">
@@ -110,7 +82,6 @@
                   <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
                   <span>Select the payment method(s) you used to pay the seller</span>
                 </div>
-                <!-- <div class="sm-font-size q-mx-md q-mb-sm">Select the payment method(s) you used to pay the seller</div> -->
                 <div class="full-width">
                   <div v-for="(method, index) in paymentMethods" :key="index">
                     <div class="q-px-sm">
@@ -142,7 +113,7 @@
               </div>
             </div>
             <div class="q-mb-sm">
-              <div class="q-mx-lg q-px-md">
+              <div class="q-mx-md q-px-md">
                 <div v-if="data?.type === 'seller'">
                   <!-- Errors -->
                   <div class="row q-mb-sm" v-if="sendErrors.length > 0">
@@ -157,19 +128,18 @@
                   </div>
                   <!-- Info messages -->
                   <div v-if="sendingBch" class="sm-font-size">
-                    <q-spinner class="q-mx-sm"/>Sending BCH, please wait...
+                    <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
                   </div>
-                  <div v-else class="row justify-center q-pt-xs q-px-xs">
-                    <div class="row text-center sm-font-size" style="overflow-wrap: break-word;">
-                      <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-                      <span class="col text-left q-ml-sm">Please release the funds if you have received fiat payment.</span>
-                    </div>
+                  <div v-else class="row justify-center sm-font-size" style="overflow-wrap: break-word;">
+                    <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
+                    <span class="col text-left q-ml-sm">Please release the funds if you have received the fiat payment.</span>
                   </div>
                 </div>
               </div>
               <!-- Appeal Button -->
               <div class="row justify-center" v-if="countDown !== null">
                 <q-btn
+                  v-if="!sendingBch"
                   flat
                   no-caps
                   :disable="!data?.wsConnected || countDown !== ''"
@@ -204,6 +174,9 @@
     @back="showAppealForm = false"
     />
   </div>
+  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
+  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
@@ -212,6 +185,10 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
+import TradeInfoCard from './TradeInfoCard.vue'
+import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
+import UserProfileDialog from './dialogs/UserProfileDialog.vue'
+import ChatDialog from './dialogs/ChatDialog.vue'
 
 export default {
   data () {
@@ -227,17 +204,25 @@ export default {
       timer: null,
       paymentMethods: [],
       selectedPaymentMethods: [],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showDragSlide: true,
       showAppealForm: false,
       dragSlideKey: 0,
       sendingBch: false,
-      sendErrors: []
+      sendErrors: [],
+      showAdSnapshot: false,
+      showPeerProfile: false,
+      openChat: false,
+      peerInfo: {},
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   components: {
     RampDragSlide,
-    AppealForm
+    AppealForm,
+    TradeInfoCard,
+    AdSnapshotDialog,
+    UserProfileDialog,
+    ChatDialog
   },
   emits: ['back', 'verify-release', 'refresh'],
   props: {
@@ -443,6 +428,10 @@ export default {
           }
         }, 1000)
       }
+    },
+    onViewPeer (data) {
+      this.peerInfo = data
+      this.showPeerProfile = true
     }
   }
 }

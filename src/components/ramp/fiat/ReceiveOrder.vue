@@ -22,7 +22,7 @@
           <!-- <q-separator class="q-my-sm q-mx-sm" :dark="darkMode"/> -->
         </div>
         <q-scroll-area style="overflow-y:auto;" :style="`height: ${ minHeight - 80 }px;`">
-          <!-- Counterparty & Price info -->
+          <!-- Trade Info Card -->
           <div class="q-my-sm q-mx-md">
             <TradeInfoCard
               :order="data.order"
@@ -146,7 +146,6 @@ export default {
     },
     onViewPeer (data) {
       this.peerInfo = data
-      console.log('onViewPeer:', this.peerInfo)
       this.showPeerProfile = true
     }
   }

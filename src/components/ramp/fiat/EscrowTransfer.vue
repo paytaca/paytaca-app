@@ -12,11 +12,20 @@
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
-    <div class="q-mt-lg q-pt-md text-center lg-font-size text-weight-bold">ESCROW BCH</div>
+    <div class="text-center lg-font-size text-weight-bold">ESCROW BCH</div>
     <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size text-weight-bold">(ORDER #{{ order?.id }})</div>
-    <q-separator :dark="darkMode" class="q-mx-lg"/>
-    <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
-      <div class="q-mx-lg q-px-lg q-pt-md">
+    <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
+      <!-- Trade Info Card -->
+      <div class="q-my-sm q-mx-md">
+        <TradeInfoCard
+          :order="data.order"
+          :ad="data.ad"
+          @view-ad="showAdSnapshot=true"
+          @view-peer="onViewPeer"
+          @view-reviews="showReviews=true"
+          @view-chat="openChat=true"/>
+      </div>
+      <div class="q-mx-sm q-px-md q-pt-sm">
         <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
         <q-select
           class="q-pb-sm"
@@ -45,9 +54,6 @@
               </span>
             </template>
         </q-select>
-        <!-- </div> -->
-        <!-- <div class="row q-mt-md"> -->
-
         <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
         <q-input
           class="q-pb-sm"
@@ -78,10 +84,6 @@
             <div class="md-font-size">BCH</div>
           </template>
         </q-input>
-        <div class="col text-right sm-font-size q-pl-sm">
-          = {{ fiatAmount }} {{ order?.ad?.fiat_currency?.symbol }}
-        </div>
-        <!-- </div> -->
         <div class="row q-mb-md" v-if="sendErrors.length > 0">
           <div class="col">
             <ul style="margin-left: -40px; list-style: none;">
@@ -121,14 +123,21 @@
       @cancel="onSecurityCancel"
       text="Swipe To Escrow"
     />
-    </div>
+  </div>
+  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
+  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import RampDragSlide from './dialogs/RampDragSlide.vue'
+import TradeInfoCard from './TradeInfoCard.vue'
+import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
+import UserProfileDialog from './dialogs/UserProfileDialog.vue'
+import ChatDialog from './dialogs/ChatDialog.vue'
 
 export default {
   data () {
@@ -148,12 +157,20 @@ export default {
       sendErrors: [],
       sendingBch: false,
       dragSlideKey: 0,
+      showAdSnapshot: false,
+      showPeerProfile: false,
+      openChat: false,
+      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   emits: ['back', 'success'],
   components: {
-    RampDragSlide
+    RampDragSlide,
+    TradeInfoCard,
+    AdSnapshotDialog,
+    UserProfileDialog,
+    ChatDialog
   },
   props: {
     data: Object
@@ -371,6 +388,10 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
+    },
+    onViewPeer (data) {
+      this.peerInfo = data
+      this.showPeerProfile = true
     }
   }
 }
