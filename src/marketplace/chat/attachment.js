@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 /**
  * @param {Object} opts
  * @param {File} opts.file
@@ -57,4 +58,23 @@ export async function fileToImage(file) {
     fileReader.addEventListener('error', reject)
     fileReader.readAsDataURL(file)
   })
+}
+
+
+/**
+ * @param {String} base64 
+ * @returns File
+ */
+export function base64ImageToFile(base64) {
+  const dataBin = Buffer.from(base64, 'base64')
+  const fileHash = crypto.createHash('sha256').update(dataBin).digest().toString('hex')
+  return new File([dataBin], fileHash)
+}
+
+export function dataUrlToFile(dataUrl) {
+  const arr = dataUrl.split(',')
+  const mime = arr[0].match(/:(.*?);/)[1]
+  const dataBin = Buffer.from(arr[arr.length - 1], 'base64')
+  const fileHash = crypto.createHash('sha256').update(dataBin).digest().toString('hex')
+  return new File([dataBin], fileHash, {type:mime});
 }
