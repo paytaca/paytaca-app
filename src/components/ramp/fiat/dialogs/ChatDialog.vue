@@ -363,7 +363,7 @@ export default {
   },
   data () {
     return {
-      openChat: this.openDialog,
+      openChat: true,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
       wsURL: process.env.MARKETPLACE_WS_URL,

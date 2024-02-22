@@ -164,13 +164,6 @@ export default {
     }
   },
   computed: {
-    counterparty () {
-      let counterparty = this.ad.owner
-      if (this.order.is_ad_owner) {
-        counterparty = this.order.owner
-      }
-      return counterparty
-    },
     escrowTransferData () {
       return {
         order: this.order,
@@ -213,7 +206,8 @@ export default {
     },
     receiveOrderData () {
       return {
-        order: this.order
+        order: this.order,
+        ad: this.ad
       }
     },
     transferAmount () {

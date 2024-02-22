@@ -4,7 +4,7 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div v-else>
-      <div class="q-mt-md">
+      <div class="">
         <component :is="currentPage"></component>
       </div>
       <footerMenu v-if="showFooterMenu" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>

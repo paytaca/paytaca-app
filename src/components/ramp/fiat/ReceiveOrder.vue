@@ -1,7 +1,7 @@
 <template>
   <div v-if="isloaded">
     <div
-      class="q-pt-sm q-mx-md q-mt-sm text-bow"
+      class="q-mx-md text-bow"
       :class="getDarkModeClass(darkMode)"
       :style="`height: ${minHeight}px;`">
       <q-btn
@@ -14,89 +14,42 @@
         @click="$emit('back')"
       />
       <q-pull-to-refresh @refresh="$emit('refresh')">
-        <div class="q-mx-lg q-mt-lg q-pt-md text-center">
+        <div class="q-mx-lg q-pt-md text-center">
           <div class="lg-font-size text-weight-bold">
             <span>{{ order?.status?.label?.toUpperCase() }}</span>
           </div>
           <div class="text-center subtext md-font-size">ORDER #{{ order.id }}</div>
-          <q-separator class="q-my-sm q-mx-sm" :dark="darkMode"/>
+          <!-- <q-separator class="q-my-sm q-mx-sm" :dark="darkMode"/> -->
         </div>
-        <q-scroll-area style="overflow-y:auto;" :style="`height: ${ minHeight - 170 }px;`">
-          <div class="q-mx-md">
-              <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
-                <span>Price</span>
-                <span class="text-nowrap q-ml-xs">{{ price }}/{{ order.ad?.crypto_currency?.symbol }}</span>
-              </div>
-              <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
-                <span>Min Trade Limit</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ parseFloat($parent.getAdLimits?.floor) }} BCH
-                </span>
-              </div>
-              <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap q-mx-lg pt-label">
-                <span>Max Trade Limit</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ parseFloat($parent.getAdLimits?.ceiling) }} BCH
-                </span>
-              </div>
-              <!-- <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-                <span>Time Limit</span>
-                <span class="text-nowrap q-ml-xs">{{ formattedPlt(order.ad.time_duration).label }} </span>
-              </div> -->
-              <div class="row justify-between no-wrap q-mx-lg pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
-                <span>Status</span>
-                <span
-                  class="text-nowrap q-ml-xs"
-                  :class="order.status.label.toLowerCase().includes('released') ? 'text-green-6' : 'text-orange-6'"
-                >
-                  {{ order.status.label }}
-                </span>
-              </div>
-            <!-- </q-card> -->
+        <q-scroll-area style="overflow-y:auto;" :style="`height: ${ minHeight - 80 }px;`">
+          <!-- Counterparty & Price info -->
+          <div class="q-my-sm q-mx-md">
+            <TradeInfoCard
+              :order="data.order"
+              :ad="data.ad"
+              @view-ad="showAdSnapshot=true"
+              @view-peer="onViewPeer"
+              @view-reviews="showReviews=true"
+              @view-chat="openChat=true"/>
           </div>
-
-          <div class="q-mt-md q-mx-lg q-px-md">
-            <div class="sm-font-size q-pb-xs">Amount</div>
-            <q-input
-              class="q-pb-xs"
-              readonly
-              filled
-              :dark="darkMode"
-              v-model="amount">
-              <template v-slot:append>
-                <span class="lg-font-size">{{ byFiat ? order?.ad?.fiat_currency?.symbol : order?.ad?.crypto_currency?.symbol }}</span>
-              </template>
-            </q-input>
-            <q-btn
-              class="sm-font-size"
-              padding="none"
-              flat
-              no-caps
-              color="primary"
-              @click="byFiat = !byFiat">
-              View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}
-            </q-btn>
-            <div class="no-wrap sm-font-size subtext q-pt-sm">
-              <span>Balance: </span>
-              <span class="text-nowrap q-ml-xs">
-                {{ $parent.bchBalance }} BCH
-              </span>
-            </div>
+          <div class="sm-font-size subtext q-pt-sm q-mx-md q-px-sm">
+            <span>Balance: </span>
+            <span class="text-nowrap q-ml-xs">
+              {{ $parent.bchBalance }} BCH
+            </span>
           </div>
-          <div class="row q-pt-md q-mx-lg q-px-md">
+          <div class="row q-pt-md q-mx-md q-px-sm">
             <q-btn
               rounded
-              no-caps
-              label='CONFIRM'
+              label='confirm'
               class="q-space text-white q-mx-md button"
               @click="$emit('confirm')"
             />
           </div>
-          <div class="row q-pt-sm q-pb-md q-mx-lg q-px-md">
+          <div class="row q-pt-sm q-pb-md q-mx-md q-px-sm">
             <q-btn
               rounded
-              no-caps
-              label='DECLINE'
+              label='decline'
               class="q-space text-white q-mx-md"
               color="white"
               text-color="black"
@@ -119,11 +72,17 @@
       </q-pull-to-refresh>
     </div>
   </div>
+  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
+  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>
 <script>
-
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAppealCooldown } from 'src/wallet/ramp'
+import TradeInfoCard from './TradeInfoCard.vue'
+import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
+import UserProfileDialog from './dialogs/UserProfileDialog.vue'
+import ChatDialog from './dialogs/ChatDialog.vue'
 
 export default {
   data () {
@@ -135,8 +94,18 @@ export default {
       byFiat: false,
       amount: null,
       price: null,
+      showAdSnapshot: false,
+      showPeerProfile: false,
+      openChat: false,
+      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
+  },
+  components: {
+    TradeInfoCard,
+    AdSnapshotDialog,
+    UserProfileDialog,
+    ChatDialog
   },
   props: {
     data: Object
@@ -174,6 +143,11 @@ export default {
         amount = parseFloat(this.order.crypto_amount)
       }
       this.amount = Number(amount)
+    },
+    onViewPeer (data) {
+      this.peerInfo = data
+      console.log('onViewPeer:', this.peerInfo)
+      this.showPeerProfile = true
     }
   }
 }

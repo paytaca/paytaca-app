@@ -2,14 +2,15 @@
   <!-- :class="getDarkModeClass(darkMode)"
     style="overflow:hidden;" -->
   <div
+    :class="getDarkModeClass(darkMode)"
     class="q-pt-sm q-mx-md q-mb-lg text-bow"
     :style="`height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
-    <div class="q-mb-lg q-pb-lg">
+    <div class="q-mb-sm q-pb-sm">
       <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-      <div class="row no-wrap items-center q-pa-sm q-pt-md">
+      <div class="row items-center q-pa-sm q-pt-md">
         <!-- currency dropdown -->
-        <div>
+        <div class="col-auto">
           <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
             {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
@@ -30,7 +31,7 @@
         </div>
         <q-space />
         <!-- filters -->
-        <div class="q-pr-md">
+        <div class="col-auto q-pr-md">
           <q-btn
             unelevated
             ripple
@@ -39,8 +40,7 @@
             icon="filter_list"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
-            @click="openFilter()"
-          >
+            @click="openFilter()">
             <q-badge v-if="!defaultFiltersOn" floating color="red"/>
           </q-btn>
         </div>
@@ -64,14 +64,14 @@
         </button>
       </div>
       <!-- </q-pull-to-refresh> -->
-      <div class="q-mt-md">
+      <div class="q-mt-sm">
         <q-pull-to-refresh @refresh="refreshData">
           <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
           </div>
           <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 120}px`" style="overflow:auto;">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"

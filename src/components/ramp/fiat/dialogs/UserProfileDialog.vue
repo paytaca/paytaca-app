@@ -204,7 +204,6 @@ export default {
     }
   },
   mounted () {
-    console.log('userprofiledialog')
     this.processUserData()
     this.fetchReviews()
   },

@@ -27,7 +27,7 @@
               </q-card>
             </div>
             <!-- Counterparty & Price info -->
-            <div class="q-pt-md">
+            <!-- <div class="q-pt-md">
               <q-card flat bordered :dark="darkMode">
                 <q-card-section bordered class="pt-card" :class="getDarkModeClass(darkMode)">
                   <div class="xs-font-size">Trading with</div>
@@ -66,7 +66,7 @@
                   </div>
                 </q-card-section>
               </q-card>
-            </div>
+            </div> -->
             <div class="q-pt-md">
               <div class="sm-font-size q-pb-xs q-ml-xs">Trade Amount</div>
               <q-input
