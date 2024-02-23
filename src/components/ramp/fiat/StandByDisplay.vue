@@ -2,16 +2,9 @@
   <div :class="getDarkModeClass(darkMode)" class="text-bow">
     <div v-if="isloaded">
       <q-pull-to-refresh @refresh="$emit('refresh')" class="q-mx-lg">
-        <div class="q-pt-md text-center text-weight-bold">
-          <div class="lg-font-size">
-            <span v-if="appeal">{{ appeal.type?.label.toUpperCase() }}</span> <span>{{ orderStatus }}</span>
-          </div>
-          <div class="text-center subtext md-font-size q-mb-sm">ORDER #{{ data?.order?.id }}</div>
-        </div>
-        <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
           <div class="q-px-sm">
             <div v-if="isAppealed">
-              <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
+              <q-card class="br-15 pt-card" bordered flat :class="getDarkModeClass(darkMode)">
                 <q-card-section>
                   <div class="text-weight-bold md-font-size">Appeal reasons</div>
                   <div v-if="appeal">
@@ -21,19 +14,12 @@
                       rounded
                       size="sm"
                       outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                      class="q-mr-xs"
                       :label="reason" />
                   </div>
                 </q-card-section>
               </q-card>
             </div>
-            <!-- Trade Info Card -->
-            <TradeInfoCard
-              :order="data.order"
-              :ad="data.ad"
-              @view-ad="showAdSnapshot=true"
-              @view-peer="onViewPeer"
-              @view-reviews="showReviews=true"
-              @view-chat="openChat=true"/>
             <div v-if="displayContractInfo" class="q-mt-md q-mx-sm">
               <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
               <q-input
@@ -71,8 +57,12 @@
                 </div>
               </div>
             </div>
-            <div v-else class="q-mt-md q-px-md q-mb-sm">
-              <div class="row q-pt-md" v-if="type === 'ongoing' && hasCancel">
+            <div v-else class="q-mt-sm q-px-md q-mb-sm">
+              <div v-if="instructionMessage" class="row sm-font-size q-mx-sm">
+                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="blue-6"/>&nbsp;
+                <div class="col">{{ instructionMessage }}</div>
+              </div>
+              <div class="row q-pt-sm" v-if="type === 'ongoing' && hasCancel">
                 <q-btn
                   rounded
                   no-caps
@@ -150,7 +140,6 @@
               </div>
             </div>
           </div>
-        </q-scroll-area>
       </q-pull-to-refresh>
     </div>
     <!-- Progress Loader -->
@@ -186,18 +175,11 @@
       @back="openReviews = false"
     />
   </div>
-  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="data.order?.ad?.id" @back="showAdSnapshot=false"/>
-  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-  <ChatDialog v-if="openChat" :data="data.order" @close="openChat=false"/>
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import UserProfileDialog from './dialogs/UserProfileDialog.vue'
-import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
-import TradeInfoCard from './TradeInfoCard.vue'
-import ChatDialog from './dialogs/ChatDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -224,10 +206,6 @@ export default {
       contractBalance: null,
       lockedPrice: '',
       byFiat: false,
-      showAdSnapshot: false,
-      showPeerProfile: false,
-      openChat: false,
-      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -238,13 +216,19 @@ export default {
   components: {
     MiscDialogs,
     FeedbackDialog,
-    ProgressLoader,
-    UserProfileDialog,
-    AdSnapshotDialog,
-    TradeInfoCard,
-    ChatDialog
+    ProgressLoader
   },
   computed: {
+    instructionMessage () {
+      const status = this.data?.order?.status?.value
+      if (!status) return
+      switch (status) {
+        case 'SBM':
+          return 'Please wait for the order to be confirmed.'
+        default:
+          return null
+      }
+    },
     appealBtnLabel () {
       if (this.countDown) return `Appealable in ${this.countDown}`
       return 'Submit an appeal'

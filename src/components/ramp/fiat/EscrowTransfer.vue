@@ -1,8 +1,7 @@
 <template>
   <div
-    class="q-pt-sm q-mx-md q-mt-sm text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+    class="q-pt-sm q-mx-md text-bow"
+    :class="getDarkModeClass(darkMode)">
       <q-btn
         flat
         icon="arrow_back"
@@ -12,103 +11,89 @@
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
-    <div class="text-center lg-font-size text-weight-bold">ESCROW BCH</div>
-    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size text-weight-bold">(ORDER #{{ order?.id }})</div>
-    <q-scroll-area :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
-      <!-- Trade Info Card -->
-      <div class="q-my-sm q-mx-md">
-        <TradeInfoCard
-          :order="data.order"
-          :ad="data.ad"
-          @view-ad="showAdSnapshot=true"
-          @view-peer="onViewPeer"
-          @view-reviews="showReviews=true"
-          @view-chat="openChat=true"/>
-      </div>
-      <div class="q-mx-sm q-px-md q-pt-sm">
-        <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
-        <q-select
-          class="q-pb-sm"
-          :dark="darkMode"
-          filled
-          dense
-          v-model="selectedArbiter"
-          :loading="!selectedArbiter"
-          :label="selectedArbiter ? selectedArbiter.address : ''"
-          :options="arbiterOptions"
-          :disable="!contractAddress || sendingBch"
-          @update:model-value="selectArbiter"
-          behavior="dialog">
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section>
-                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                    {{ scope.opt.name }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-            <template v-slot:selected v-if="selectedArbiter">
-              <span :style="darkMode ? 'color: white;' : 'color: black;'">
-                {{ selectedArbiter.name }}
-              </span>
-            </template>
-        </q-select>
-        <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
-        <q-input
-          class="q-pb-sm"
-          readonly
-          :dark="darkMode"
-          filled
-          dense
-          :label="contractAddress"
-          :loading="!contractAddress">
-          <template v-slot:append v-if="contractAddress">
-            <div @click="copyToClipboard(contractAddress)">
-              <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-            </div>
+    <div class="q-mx-sm q-px-md">
+      <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
+      <q-select
+        class="q-pb-sm"
+        :dark="darkMode"
+        filled
+        dense
+        v-model="selectedArbiter"
+        :loading="!selectedArbiter"
+        :label="selectedArbiter ? selectedArbiter.address : ''"
+        :options="arbiterOptions"
+        :disable="!contractAddress || sendingBch"
+        @update:model-value="selectArbiter"
+        behavior="dialog">
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                  {{ scope.opt.name }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
           </template>
-        </q-input>
+          <template v-slot:selected v-if="selectedArbiter">
+            <span :style="darkMode ? 'color: white;' : 'color: black;'">
+              {{ selectedArbiter.name }}
+            </span>
+          </template>
+      </q-select>
+      <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
+      <q-input
+        class="q-pb-sm"
+        readonly
+        :dark="darkMode"
+        filled
+        dense
+        :label="contractAddress"
+        :loading="!contractAddress">
+        <template v-slot:append v-if="contractAddress">
+          <div @click="copyToClipboard(contractAddress)">
+            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+          </div>
+        </template>
+      </q-input>
 
-        <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
-        <q-input
-          class="q-pb-xs md-font-size"
-          readonly
-          filled
-          dense
-          :dark="darkMode"
-          v-model="transferAmount"
-          :error="balanceExceeded"
-          :error-message="balanceExceeded? $t('Insufficient balance') : ''">
-          <template #append>
-            <div class="md-font-size">BCH</div>
-          </template>
-        </q-input>
-        <div class="row q-mb-md" v-if="sendErrors.length > 0">
-          <div class="col">
-            <ul style="margin-left: -40px; list-style: none;">
-              <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-                <q-icon name="error" left/>
-                {{ error }}
-              </li>
-            </ul>
-          </div>
+      <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
+      <q-input
+        class="q-pb-xs md-font-size"
+        readonly
+        filled
+        dense
+        :dark="darkMode"
+        v-model="transferAmount"
+        :error="balanceExceeded"
+        :error-message="balanceExceeded? $t('Insufficient balance') : ''">
+        <template #append>
+          <div class="md-font-size">BCH</div>
+        </template>
+      </q-input>
+      <div class="row q-mb-md" v-if="sendErrors.length > 0">
+        <div class="col">
+          <ul style="margin-left: -40px; list-style: none;">
+            <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
+              <q-icon name="error" left/>
+              {{ error }}
+            </li>
+          </ul>
         </div>
-        <div v-else>
-          <div v-if="sendingBch" class="sm-font-size">
-            <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+      </div>
+      <div v-else>
+        <div v-if="sendingBch" class="sm-font-size">
+          <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+        </div>
+        <div v-else class="sm-font-size q-mt-sm">
+          <div class="row q-ml-xs">
+            Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
           </div>
-          <div v-else class="sm-font-size q-mt-sm">
-            <div class="row q-ml-xs">
-              Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
-            </div>
-            <div class="row q-ml-xs">
-              Balance: {{ balance }} BCH
-            </div>
+          <div class="row q-ml-xs">
+            Balance: {{ balance }} BCH
           </div>
         </div>
       </div>
-    </q-scroll-area>
+    </div>
     <RampDragSlide
       :key="dragSlideKey"
       v-if="showDragSlide && data?.wsConnected && !sendingBch && contractAddress"
@@ -124,9 +109,6 @@
       text="Swipe To Escrow"
     />
   </div>
-  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
-  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
@@ -134,10 +116,6 @@ import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import TradeInfoCard from './TradeInfoCard.vue'
-import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
-import UserProfileDialog from './dialogs/UserProfileDialog.vue'
-import ChatDialog from './dialogs/ChatDialog.vue'
 
 export default {
   data () {
@@ -157,20 +135,12 @@ export default {
       sendErrors: [],
       sendingBch: false,
       dragSlideKey: 0,
-      showAdSnapshot: false,
-      showPeerProfile: false,
-      openChat: false,
-      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   emits: ['back', 'success'],
   components: {
-    RampDragSlide,
-    TradeInfoCard,
-    AdSnapshotDialog,
-    UserProfileDialog,
-    ChatDialog
+    RampDragSlide
   },
   props: {
     data: Object
