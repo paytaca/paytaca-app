@@ -1,7 +1,7 @@
 <template>
-  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg text-bow"
+  <div class="q-pt-sm q-mx-md q-mx-none q-my-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
+    :style="`height: ${minHeight}px;`"
     v-if="state === 'appeal-list'"
   >
     <div class="q-pt-md">
@@ -9,7 +9,7 @@
         <div
           class="row br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
         >
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
@@ -86,7 +86,7 @@
         </q-list>
       </q-pull-to-refresh>
     </div>
-  </q-card>
+  </div>
 
   <!-- Appeal Process -->
   <div v-if="state === 'appeal-process'">

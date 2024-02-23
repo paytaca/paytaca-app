@@ -314,6 +314,7 @@ export default {
         this.user = user
         this.user.self = self
       })
+      console.log('self: ', self)
     },
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {

@@ -1,5 +1,5 @@
 <template>
-  <q-card class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+  <div class="q-pt-sm q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${ minHeight }px;`" v-if="state === 'form'">
     <q-btn
@@ -230,7 +230,7 @@
         </q-scroll-area>
       </div>
     </q-pull-to-refresh>
-  </q-card>
+  </div>
 
   <!-- Ad Snapshot -->
   <AdSnapshot

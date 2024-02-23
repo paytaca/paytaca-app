@@ -33,7 +33,7 @@
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
               <span>Price Setting</span>&nbsp;
-              <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openDialog = true"/>
+              <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('price-setting')"/>
             </div>
             <div class="text-center q-mx-md">
               <q-btn-toggle
@@ -116,7 +116,7 @@
             <div class="q-mt-sm q-px-md">
               <div class="q-pb-xs q-pl-sm text-weight-bold">
                 <span>Trade Quantity</span>&nbsp;
-                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openDialog = true"/>
+                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('trade-quantity')"/>
               </div>
                 <q-input
                   ref="tradeAmountRef"
@@ -139,7 +139,7 @@
             <div class="q-px-md q-mt-sm">
               <div class="q-pb-xs q-pl-sm text-weight-bold">
                 <span>Trade Limit</span>&nbsp;
-                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openDialog = true"/>
+                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('trade-limit')"/>
               </div>
               <div class="row">
                 <div class="col">
@@ -261,6 +261,8 @@
   <!-- <div v-if="openDialog" >
     <MiscDialogs
       :type="'instructionDialog'"
+      :title=title
+      :text=text
       v-on:back="openDialog = false"
     />
   </div> -->
@@ -429,6 +431,10 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    openInstructionDialog (type) {
+      console.log('type: ', type)
+      this.openDialog = true
+    },
     fetchAd () {
       const vm = this
       if (!vm.selectedAdId) return

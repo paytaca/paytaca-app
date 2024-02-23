@@ -20,7 +20,7 @@
                     color="yellow-9"
                     icon="star"
                     @click="onViewReviews"/>
-                    <span class="q-mx-xs sm-font-size">({{ ad?.owner?.rating ? ad?.owner?.rating : 0 }})</span>
+                    <span class="q-mx-xs sm-font-size">({{ ad?.owner?.rating ? ad?.owner?.rating.toFixed(1) : 0 }})</span>
                 </div>
             </div>
             <div class="col-auto q-mx-sm">

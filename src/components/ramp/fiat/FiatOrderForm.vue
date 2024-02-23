@@ -1,4 +1,5 @@
 <template>
+  <!-- <div class="fixed" style="background-color: aqua; height: 50px; width: 50px;" @click="$emit('back')"></div> -->
   <div
     v-if="state === 'initial'"
     class="q-pt-sm q-mx-md q-mx-none text-bow"

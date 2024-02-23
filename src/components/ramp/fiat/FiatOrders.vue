@@ -74,9 +74,9 @@
                             </span>
                             <div
                               class="col-transaction text-uppercase pt-label lg-font-size"
-                              :class="getDarkModeClass(darkMode)"
-                              :style="amountColor(listing.trade_type)"
+                              :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
                             >
+                            <!-- :style="amountColor(listing.trade_type)" -->
                               {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
                             </div>
                             <div class="sm-font-size">
@@ -89,12 +89,14 @@
                             </span> -->
                             <div
                               v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
-                              class="text-weight-bold subtext md-font-size" style="color: blue">
+                              class="text-weight-bold subtext sm-font-size text-blue">
                               Appealable
                             </div>
-                            <div class="text-weight-bold subtext md-font-size">
-                              <span v-if="listing.status?.value === 'APL'" style="color: red"> {{ listing.status?.label }} </span>
-                              <span v-else> {{ listing.status?.label }} </span>
+                            <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
+                              {{ listing.status?.label }}
+                            </div>
+                            <div class="text-weight-bold subtext sm-font-size" v-else>
+                              {{ listing.status?.label }}
                             </div>
                           </div>
                         </div>
@@ -421,9 +423,9 @@ export default {
     },
     amountColor (tradeType) {
       if (tradeType === 'BUY') {
-        return 'color: blue;'
+        return 'text-blue'
       } else {
-        return 'color: red;'
+        return 'text-red'
       }
     },
     formatExpiration (expirationDate) {

@@ -11,7 +11,7 @@
         <q-scroll-area :style="`height: ${minHeight - 100}px`" style="overflow-y:auto;">
           <div class="q-px-sm">
             <div v-if="isAppealed">
-              <q-card class="br-15 q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
+              <q-card class="q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
                 <q-card-section>
                   <div class="text-weight-bold md-font-size">Appeal reasons</div>
                   <div v-if="appeal">
@@ -66,7 +66,7 @@
                 class="row q-px-md q-pt-sm text-center sm-font-size"
                 style="overflow-wrap: break-word;">
                 <div v-if="hasLabel" class="row">
-                  <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
+                  <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
                   <span class="col text-left q-ml-sm">{{ label }}</span>
                 </div>
               </div>
@@ -162,11 +162,15 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <MiscDialogs
+    <AppealForm
+      :order="data?.order"
+      @back="openDialog = false"
+      />
+    <!-- <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
       @submit="onSubmitAppeal"
-    />
+    /> -->
       <div class="row q-pt-xs q-mb-lg q-pb-lg q-mx-md" v-if="forRelease">
         <q-btn
           rounded
@@ -191,6 +195,7 @@
   <ChatDialog v-if="openChat" :data="data.order" @close="openChat=false"/>
 </template>
 <script>
+import AppealForm from './dialogs/AppealForm.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -242,7 +247,8 @@ export default {
     UserProfileDialog,
     AdSnapshotDialog,
     TradeInfoCard,
-    ChatDialog
+    ChatDialog,
+    AppealForm
   },
   computed: {
     appealBtnLabel () {

@@ -1,6 +1,4 @@
 <template>
-  <!-- :class="getDarkModeClass(darkMode)"
-    style="overflow:hidden;" -->
   <div
     :class="getDarkModeClass(darkMode)"
     class="q-pt-sm q-mx-md q-mb-lg text-bow"
@@ -131,7 +129,7 @@
                       </div>
                       <div class="q-gutter-sm q-pt-xs">
                         <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                        rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+                        rounded outline :color="transactionType === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
                         {{ method.payment_type }}
                         </q-badge>
                       </div>

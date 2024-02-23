@@ -115,7 +115,7 @@
                                 padding="xs sm"
                                 size="sm"
                                 class="q-ml-xs text-weight-bold"
-                                :color="listing.is_public ? 'green' : 'red'"
+                                :color="listing.is_public ? darkMode ? 'green-13' : 'green' : darkMode ? 'red-13' : 'red'"
                                 :icon="listing.is_public ? 'visibility' : 'visibility_off'">
                                 <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
                               </q-btn>
