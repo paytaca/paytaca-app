@@ -152,10 +152,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
-import TradeInfoCard from './TradeInfoCard.vue'
-import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
-import UserProfileDialog from './dialogs/UserProfileDialog.vue'
-import ChatDialog from './dialogs/ChatDialog.vue'
 
 export default {
   data () {
@@ -185,11 +181,7 @@ export default {
   },
   components: {
     RampDragSlide,
-    AppealForm,
-    TradeInfoCard,
-    AdSnapshotDialog,
-    UserProfileDialog,
-    ChatDialog
+    AppealForm
   },
   emits: ['back', 'verify-release', 'refresh'],
   props: {
@@ -395,10 +387,6 @@ export default {
           }
         }, 1000)
       }
-    },
-    onViewPeer (data) {
-      this.peerInfo = data
-      this.showPeerProfile = true
     }
   }
 }

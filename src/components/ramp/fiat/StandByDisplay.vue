@@ -423,10 +423,6 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
-    },
-    onViewPeer (data) {
-      this.peerInfo = data
-      this.showPeerProfile = true
     }
   }
 }

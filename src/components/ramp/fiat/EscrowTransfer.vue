@@ -358,10 +358,6 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
-    },
-    onViewPeer (data) {
-      this.peerInfo = data
-      this.showPeerProfile = true
     }
   }
 }

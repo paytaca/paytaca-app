@@ -95,10 +95,6 @@ export default {
         amount = parseFloat(this.order.crypto_amount)
       }
       this.amount = Number(amount)
-    },
-    onViewPeer (data) {
-      this.peerInfo = data
-      this.showPeerProfile = true
     }
   }
 }
