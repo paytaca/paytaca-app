@@ -1,8 +1,7 @@
 <template>
   <div
-    class="q-pt-sm q-mx-md q-mt-sm text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+    class="q-pt-sm q-mx-md text-bow"
+    :class="getDarkModeClass(darkMode)">
       <q-btn
         flat
         icon="arrow_back"
@@ -13,74 +12,67 @@
         @click="$emit('back')"
       />
     <q-pull-to-refresh @refresh="$emit('refresh')">
-      <div class="q-mx-lg q-mt-lg q-pt-md text-h5 text-center lg-font-size text-weight-bold">
-        <span>VERIFYING {{ data?.action }}</span>
-      </div>
-      <div class="subtext text-center q-pb-sm md-font-size">ORDER #{{ data?.orderId }}</div>
-      <q-separator :dark="darkMode" class="q-mx-lg"/>
-      <q-scroll-area :style="`height: ${minHeight - 200}px`" style="overflow-y:auto;">
-        <div class="q-mx-md q-px-md q-pt-md">
-          <div>
-            <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-            <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
-              <template v-slot:append>
-                <div v-if="contract.address" @click="copyToClipboard(contract.address)">
-                  <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-                </div>
-              </template>
-            </q-input>
-            <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-            <q-input
-              class="q-pb-xs md-font-size"
-              readonly
-              dense
-              filled
-              :loading="!balanceLoaded || retryBalance(contract.balance)"
-              :dark="darkMode"
-              v-model="contract.balance">
-              <template v-slot:append>
-                <span>BCH</span>
-              </template>
-            </q-input>
-          </div>
-          <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
-          <q-input
-            filled
-            dense
-            :readonly="disableTxidInput"
-            :dark="darkMode"
-            :loading="!transactionId"
-            v-model="transactionId"
-            @click="copyToClipboard(transactionId)">
+      <div class="q-mx-md q-px-md">
+        <div>
+          <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
+          <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
             <template v-slot:append>
-              <q-icon
-                size="sm"
-                name='edit'
-                color="blue-grey-6"
-                @click="disableTxidInput = false"/>
+              <div v-if="contract.address" @click="copyToClipboard(contract.address)">
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              </div>
             </template>
           </q-input>
-          <div v-if="errorMessage" class="q-mx-sm q-my-sm">
-            <q-card flat class="col q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                <q-icon name="error" left/>
-                Error: {{ errorMessage }}
-            </q-card>
-          </div>
-          <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm q-pt-md">
-            <q-btn
-              rounded
-              :loading="loading"
-              :disable="disableBtn || !data?.wsConnected"
-              label="Retry"
-              class="col q-mx-lg button"
-              @click="submitAction">
-            </q-btn>
-          </div>
-          <div class="q-my-sm" v-if="state === 'verifying' && hideBtn">
-            <q-spinner class="q-mr-sm"/>Verifying, please wait...
-          </div>
+          <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+          <q-input
+            class="q-pb-xs md-font-size"
+            readonly
+            dense
+            filled
+            :loading="!balanceLoaded || retryBalance(contract.balance)"
+            :dark="darkMode"
+            v-model="contract.balance">
+            <template v-slot:append>
+              <span>BCH</span>
+            </template>
+          </q-input>
         </div>
-      </q-scroll-area>
+        <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
+        <q-input
+          filled
+          dense
+          :readonly="disableTxidInput"
+          :dark="darkMode"
+          :loading="!transactionId"
+          v-model="transactionId"
+          @click="copyToClipboard(transactionId)">
+          <template v-slot:append>
+            <q-icon
+              size="sm"
+              name='edit'
+              color="blue-grey-6"
+              @click="disableTxidInput = false"/>
+          </template>
+        </q-input>
+        <div v-if="errorMessage" class="q-mx-sm q-my-sm">
+          <q-card flat class="col q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+              <q-icon name="error" left/>
+              Error: {{ errorMessage }}
+          </q-card>
+        </div>
+        <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm q-pt-md">
+          <q-btn
+            rounded
+            :loading="loading"
+            :disable="disableBtn || !data?.wsConnected"
+            label="Retry"
+            class="col q-mx-lg button"
+            @click="submitAction">
+          </q-btn>
+        </div>
+        <div class="q-my-sm" v-if="state === 'verifying' && hideBtn">
+          <q-spinner class="q-mr-sm"/>Verifying, please wait...
+        </div>
+      </div>
     </q-pull-to-refresh>
   </div>
 </template>
@@ -103,10 +95,10 @@ export default {
       hideBtn: false,
       errorMessage: null,
       state: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       txidLoaded: false,
       balanceLoaded: false,
-      disableTxidInput: true
+      disableTxidInput: true,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   emits: ['back', 'success', 'refresh'],

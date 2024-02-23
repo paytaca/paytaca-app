@@ -1,14 +1,10 @@
 <template>
-  <div>
-    <div v-if="isLoading" class="row justify-center q-py-lg" style="margin-top: 50%">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
-    <div v-else>
-      <div class="">
-        <component :is="currentPage"></component>
-      </div>
-      <footerMenu v-if="showFooterMenu" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
-    </div>
+  <div v-if="isLoading" class="row justify-center q-py-lg" style="margin-top: 50%">
+    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+  </div>
+  <div v-else>
+    <component :is="currentPage"></component>
+    <footerMenu v-if="showFooterMenu" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
   </div>
 </template>
 <script>

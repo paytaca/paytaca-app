@@ -1,8 +1,7 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+  <div
+    class="q-mx-md text-bow"
+    :class="getDarkModeClass(darkMode)">
     <div class="q-pb-md" v-if="isLoaded">
       <q-btn
         flat
@@ -12,7 +11,7 @@
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
       />
-      <div class="text-center text-weight-bold q-mt-lg q-pt-md" style="font-size: large;">CONFIRM AD DETAILS</div>
+      <div class="text-center text-weight-bold q-mt-lg" style="font-size: large;">CONFIRM AD DETAILS</div>
       <div v-if="type === 'ads'" :style="`height: ${minHeight - 170}px;`" style="overflow-y:auto;">
         <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
           <div class="q-pt-sm q-mx-md">
@@ -158,7 +157,7 @@
         text="Swipe To Confirm"
       />
     </div>
-  </q-card>
+  </div>
 </template>
 <script>
 import RampDragSlide from './dialogs/RampDragSlide.vue'

@@ -14,75 +14,37 @@
         @click="$emit('back')"
       />
       <q-pull-to-refresh @refresh="$emit('refresh')">
-        <div class="q-mx-lg q-pt-md text-center">
-          <div class="lg-font-size text-weight-bold">
-            <span>{{ order?.status?.label?.toUpperCase() }}</span>
-          </div>
-          <div class="text-center subtext md-font-size">ORDER #{{ order.id }}</div>
-          <!-- <q-separator class="q-my-sm q-mx-sm" :dark="darkMode"/> -->
+        <div class="sm-font-size subtext q-pt-sm q-mx-md q-px-sm">
+          <span>Balance: </span>
+          <span class="text-nowrap q-ml-xs">
+            {{ $parent.bchBalance }} BCH
+          </span>
         </div>
-        <q-scroll-area style="overflow-y:auto;" :style="`height: ${ minHeight - 80 }px;`">
-          <!-- Trade Info Card -->
-          <div class="q-my-sm q-mx-md">
-            <TradeInfoCard
-              :order="data.order"
-              :ad="data.ad"
-              @view-ad="showAdSnapshot=true"
-              @view-peer="onViewPeer"
-              @view-reviews="showReviews=true"
-              @view-chat="openChat=true"/>
-          </div>
-          <div class="sm-font-size subtext q-pt-sm q-mx-md q-px-sm">
-            <span>Balance: </span>
-            <span class="text-nowrap q-ml-xs">
-              {{ $parent.bchBalance }} BCH
-            </span>
-          </div>
-          <div class="row q-pt-md q-mx-md q-px-sm">
-            <q-btn
-              rounded
-              label='confirm'
-              class="q-space text-white q-mx-md button"
-              @click="$emit('confirm')"
-            />
-          </div>
-          <div class="row q-pt-sm q-pb-md q-mx-md q-px-sm">
-            <q-btn
-              rounded
-              label='decline'
-              class="q-space text-white q-mx-md"
-              color="white"
-              text-color="black"
-              @click="$emit('cancel')"
-            />
-          </div>
-          <div class="text-center sm-font-size">
-            <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-            <span>Please <b>Confirm</b> or <b>Decline</b> the incoming order.</span>
-          </div>
-          <!-- <div
-            class="row q-px-md q-pt-sm text-center sm-font-size"
-            style="overflow-wrap: break-word; text-align: center;">
-            <div class="row">
-              <q-icon class="col-auto" size="sm" name="info" color="blue-6"/>&nbsp;
-              <span class="col text-left q-ml-sm">Please confirm the incoming order.</span>
-            </div>
-          </div> -->
-        </q-scroll-area>
+        <div class="row q-pt-md q-mx-md q-px-sm">
+          <q-btn
+            rounded
+            label='confirm'
+            class="q-space text-white q-mx-md button"
+            @click="$emit('confirm')"
+          />
+        </div>
+        <div class="row q-pt-sm q-pb-md q-mx-md q-px-sm">
+          <q-btn
+            rounded
+            label='decline'
+            class="q-space text-white q-mx-md"
+            color="white"
+            text-color="black"
+            @click="$emit('cancel')"
+          />
+        </div>
       </q-pull-to-refresh>
     </div>
   </div>
-  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
-  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAppealCooldown } from 'src/wallet/ramp'
-import TradeInfoCard from './TradeInfoCard.vue'
-import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
-import UserProfileDialog from './dialogs/UserProfileDialog.vue'
-import ChatDialog from './dialogs/ChatDialog.vue'
 
 export default {
   data () {
@@ -94,18 +56,8 @@ export default {
       byFiat: false,
       amount: null,
       price: null,
-      showAdSnapshot: false,
-      showPeerProfile: false,
-      openChat: false,
-      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
-  },
-  components: {
-    TradeInfoCard,
-    AdSnapshotDialog,
-    UserProfileDialog,
-    ChatDialog
   },
   props: {
     data: Object
@@ -143,10 +95,6 @@ export default {
         amount = parseFloat(this.order.crypto_amount)
       }
       this.amount = Number(amount)
-    },
-    onViewPeer (data) {
-      this.peerInfo = data
-      this.showPeerProfile = true
     }
   }
 }
