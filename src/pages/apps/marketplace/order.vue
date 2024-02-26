@@ -1359,6 +1359,7 @@ const onNotificationHandler = notification  => {
     if (data?.id != props.orderId) return console.log('Not matching id')
     fetchOrder.debounced()
     if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+    if (['on_delivery', 'delivered'].includes(data?.status)) fetchDelivery()
   }
   if (eventName === rpcEventNames.paymentUpdate) {
     if (data?.order_id != props.orderId) return
