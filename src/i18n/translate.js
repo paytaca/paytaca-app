@@ -455,7 +455,8 @@ const phrases = {
       RemoveAssetPrompt: "Remove asset {assetName}. Are you sure?",
       MustBeGreaterThan: "Must be greater than {amount}",
       MustBeLessThan: "Must be less than {amount}",
-      InvalidHedgeSatoshis: "Invalid hedge satoshis, expected {amount}"
+      InvalidHedgeSatoshis: "Invalid hedge satoshis, expected {amount}",
+      RecoverGiftDescription: "Recover gift of {amount} BCH. Proceed?"
     }
   ]
 }
@@ -823,6 +824,42 @@ const additional = [
     LongPosition: "Long Position",
     HedgePositionCreated: "Hedge position created.",
     LongPositionCreated: "Long position created"
+  },
+  {
+    CreateGift: "Create Gift",
+    ClaimGift: "Claim Gift",
+    GiftsYouCreated: "Gifts you created",
+    Claimed: "Claimed",
+    Unclaimed: "Unclaimed",
+    NoGifts: "No gifts",
+    DateCreated: "Date Created",
+    Campaign: "Campaign",
+    Recovered: "Recovered",
+    RecoverGift: "Recover Gift",
+    ClaimGift: "Claim Gift",
+    RecoveringGift: "Recovering gift...",
+    ClaimingGift: "Claiming gift...",
+    PasteGiftCodeHere: "Paste gift code here",
+    Claim: "Claim",
+    Recover: "Recover",
+    ClaimGiftCompleted: "Claim gift completed!",
+    RecoverGiftCompleted: "Recover gift completed!",
+    GiftAlreadyClaimed: "This gift has been claimed! Try another one.",
+    CreatingGift: "Creating gift...",
+    FieldIsRequired: "Field is required",
+    AmountGreaterThanBalance: "Amount is greater than your balance",
+    SelectExistingCampaign: "Select existing campaign",
+    CampaignName: "Campaign Name",
+    MaxAmountPerWallet: "Max Amount Per Wallet",
+    CannotBeLowerThanGiftAmount: "This cannot be lower than the gift amount",
+    CampaignOptional: "Campaign (optional)",
+    CampaignDescription: "You can group together gifts under a campaign where you can set the maximum sum of gifts that a wallet user can claim within the same campaign.",
+    SelectCampaign: "Select Campaign",
+    Generate: "Generate",
+    ScanClaimGift: "Scan to claim the gift",
+    ShareGiftLink: "Share gift link",
+    CampaignLimitError: "Campaign limit per wallet cannot be greater than the gift amount",
+    CreateNewCampaign: "Create New Campaign"
   }
 ]
 
