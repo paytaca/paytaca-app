@@ -1,14 +1,33 @@
 import BCHJS from '@psf/bch-js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import axios from 'axios'
+import { binToHex } from '@bitauth/libauth';
 
 const bchjs = new BCHJS()
 
 export const backend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
+
+  /**
+   * @param {import('axios').AxiosRequestConfig} config 
+   * @param {{ data:any, customSignData:String, timestamp:Number }} opts 
+   */
+  signFunction: async (config, opts={data, customSignData, timestamp}) => {
+    const data = opts?.data
+    const customSignData = opts?.customSignData
+    const timestamp = opts?.timestamp
+
+    const signResponse = await signPaytacaCustomerData(data)
+    if (!signResponse.signature) return config
+
+    if (customSignData) config.headers['X-Paytaca-Signdata'] = customSignData
+    config.headers['X-Paytaca-Customer'] = [signResponse.walletHash, timestamp, signResponse.signature].join(':')
+
+    return config
+  },
 })
 
-backend.interceptors.request.use(async (config) => {
+export async function sigAuthInterceptor(config) {
   if (['get', 'option'].indexOf(config.method) >= 0 && !config.forceSign) return config
   if (config.skipSigning) return config
 
@@ -18,20 +37,21 @@ backend.interceptors.request.use(async (config) => {
     data = JSON.stringify(data)
   } catch(error) {}
 
+  let customSignData
   if (config.signData) {
     data = config.signData
-    config.headers['X-Paytaca-Signdata'] = data
+    customSignData = config.signData
   }
 
   if (data === null || data === undefined) data = ''
-  data = Buffer.from(`${data}${timestamp}`).toString('hex')
+  if (customSignData) console.log('Custom sign data before', data)
+  const dataBuffer = Buffer.from(`${data}${timestamp}`, 'utf-8')
+  data = dataBuffer.toString('hex')
 
-  const signResponse = await signPaytacaCustomerData(data)
-  if (!signResponse.signature) return config
-
-  config.headers['X-Paytaca-Customer'] = [signResponse.walletHash, timestamp, signResponse.signature].join(':')
-  return config
-})
+  if (typeof config?.signFunction !== 'function') return config
+  return await config.signFunction?.(config, { data, customSignData, timestamp })
+}
+backend.interceptors.request.use(sigAuthInterceptor)
 
 const SIGNER_STORAGE_KEY = 'marketplace-api-customer-signer-data'
 

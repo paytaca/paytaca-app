@@ -547,14 +547,12 @@ export default {
       if (!filters) return
       this.storeFilters = filters
       this.storeFilters.price_type = { ...filters.price_type }
-      console.log('storeFilters???:', this.storeFilters)
     },
     updateOrderFilters (filters) {
       if (!filters) return
       this.orderFilters = filters
       this.orderFilters.ownership = { ...filters.ownership }
       this.orderFilters.trade_type = { ...filters.trade_type }
-      console.log('orderFilters:', this.orderFilters)
     },
     paymentTimeLimit (timeValue) {
       return getAppealCooldown(timeValue).label

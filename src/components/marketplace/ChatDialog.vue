@@ -1,15 +1,19 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" full-height>
-    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pb-none">
+        <slot name="header" v-bind="{ chatRef, chatSession }">
+
         <div class="row items-center q-pb-sm">
-          <div class="q-space">
-            <div class="text-h5">Chat</div>
-            <div class="text-caption text-grey bottom">{{ chatRef }}</div>
+            <div class="q-space">
+              <div class="text-h5">Chat</div>
+              <div class="text-caption text-grey bottom">{{ chatRef }}</div>
+            </div>
+            <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
           </div>
-          <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
-        </div>
+        </slot>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
+          <slot name="before-messages"></slot>
           <q-space/>
           <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;">
             <div class="row justify-center">
@@ -36,13 +40,20 @@
               v-slot="{ item: message }"
             >
               <q-chat-message
-                :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
+                :bg-color="!isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
-                :name="message?.name"
-                :sent="!isOwnMessage(message)"
+                :sent="isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
+                <template v-slot:name>
+                  <div class="ellipsis" style="max-width:80vw;">
+                    <span v-if="message?.memberNickname" class="text-grey">
+                      ({{ message?.memberNickname }})
+                    </span>
+                    {{ message?.name }}
+                  </div>
+                </template>
                 <template v-slot:stamp>
                   <div>
                     {{ formatDateRelative(message?.createdAt) }}
@@ -68,7 +79,7 @@
               <div
                 :class="[
                   'row q-mb-xs',
-                  !isOwnMessage(message) ? 'justify-end' : 'justify-start'
+                  isOwnMessage(message) ? 'justify-end' : 'justify-start'
                 ]"
               >
                 <img
@@ -124,7 +135,7 @@
                 flat
                 icon="attach_file"
                 padding="sm"
-                @click="openFileAttachementField"
+                @click="selectAttachment"
               />
             </template>
           </q-input>
@@ -146,7 +157,7 @@
                 'max-height': 'min(10rem, 50vh)',
                 'max-width': 'calc(100% - 5rem)',
               }"
-              @click="openFileAttachementField"
+              @click="selectAttachment"
               alt=""
             >
             <q-btn
@@ -165,9 +176,10 @@ import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
-import { resizeImage } from 'src/marketplace/chat/attachment'
+import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
+import { Camera } from '@capacitor/camera'
 import { useDialogPluginComponent, debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -176,6 +188,7 @@ import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 
+window.C = Camera
 export default defineComponent({
   name: 'ChatDialog',
   directives: {
@@ -184,16 +197,19 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     chatRef: String,
+    customBackend: { required: false, default: () => backend },
   },
   emits: [
     'update:modelValue',
     'new-message',
+    'chat-member',
 
     // REQUIRED; need to specify some events that your
     // component will emit through useDialogPluginComponent()
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const chatBackend = computed(() => props.customBackend || backend)
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -204,7 +220,7 @@ export default defineComponent({
 
     const customer = computed(() => $store.getters['marketplace/customer'])
     function isOwnMessage(message=ChatMessage.parse()) {
-      return customer.value?.id && customer.value?.id !== message?.customer?.id
+      return chatMember.value.chatIdentity?.id === message?.chatIdentity?.id
     }
 
     onMounted(() => fetchChatSession())
@@ -212,7 +228,7 @@ export default defineComponent({
     const chatSession = ref(ChatSession.parse())
     const fetchChatSession = debounce(function() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
-      return backend.get(`chat/sessions/${props.chatRef}/`, { forceSign: true })
+      return chatBackend.value.get(`chat/sessions/${props.chatRef}/`, { forceSign: true })
         .then(response => {
           chatSession.value.raw = response?.data
         })
@@ -227,7 +243,7 @@ export default defineComponent({
     watch(() => [props.chatRef], () => fetchMembersPubkeys())
     function fetchMembersPubkeys() {
       if (!props.chatRef) return Promise.reject()
-      backend.get(`chat/sessions/${props.chatRef}/pubkeys/`)
+      chatBackend.value.get(`chat/sessions/${props.chatRef}/pubkeys/`)
         .then(response => {
           if (!Array.isArray(response?.data)) return Promise.reject({ response })
           membersPubkeys.value = response?.data
@@ -261,7 +277,7 @@ export default defineComponent({
       if (!params.chat_ref) return Promise.resolve('Missing chat ref')
 
       fetchingMessages.value = true
-      return backend.get(`chat/messages/`, { params, forceSign: true })
+      return chatBackend.value.get(`chat/messages/`, { params, forceSign: true })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 
@@ -281,6 +297,11 @@ export default defineComponent({
           if (!opts?.append && prevLength !== newLength) {
             moveMessagesToBottom({ delay: 250 })
             fetchChatMember()
+          }
+          if (opts?.append || opts?.prepend) {
+            parsedMessages.filter((msg, index, array) => {
+              return index === array.findIndex(_msg => msg?.chatIdentity?.id == _msg?.chatIdentity?.id)
+            }).forEach(setChatIdentityNicknameFromMessage)
           }
           return response
         })
@@ -316,6 +337,7 @@ export default defineComponent({
 
     function onNewMessage(newMessage=ChatMessage.parse()) {
       $emit('new-message', newMessage)
+      setChatIdentityNicknameFromMessage(newMessage)
       const index = messages.value.findIndex(msg => msg?.id === newMessage?.id)
       if (index < 0) {
         messages.value.unshift(newMessage)
@@ -333,6 +355,7 @@ export default defineComponent({
       const customerId = chatMember.value?.chatIdentity?.customer?.id
       if (newMessage.user?.id != userId && newMessage.customer?.id != customerId) {
         chatMember.value.unreadCount = (chatMember.value.unreadCount || 0) + 1
+        $emit('chat-member', chatMember.value)
       }
     }
 
@@ -346,6 +369,14 @@ export default defineComponent({
     async function moveMessagesToBottom(opts={ delay: 250 }) {
       if (Number.isFinite(opts?.delay) && opts?.delay) await asyncSleep(opts?.delay)
       messagesPanel.value?.scrollTo(0, messagesPanel.value?.scrollHeight)
+    }
+
+    function setChatIdentityNicknameFromMessage(chatMessage=ChatMessage.parse()) {
+      if (!chatMessage.chatIdentity?.id) return
+      messages.value.forEach(message => {
+        if (message.chatIdentity?.id != chatMessage.chatIdentity?.id) return
+        message.memberNickname = chatMessage?.memberNickname
+      })
     }
 
     const sendingMessage = ref(false)
@@ -367,6 +398,64 @@ export default defineComponent({
         file: attachment.value,
         maxWidthHeight: 640, // based on recommended dimensions for mobile
       })
+    }
+
+    async function checkOrRequestCameraPermissions() {
+      let permission = await Camera.checkPermissions()
+      const promptStatuses = ['prompt','prompt-with-rationale', 'limited']
+      const request = promptStatuses.includes(permission.photos) || promptStatuses.includes(permission.camera)
+      if (request) permission = await Camera.requestPermissions()
+      return {
+        camera: permission.camera === 'granted',
+        photos: permission.photos === 'photos',
+      }
+    }
+
+    async function getPhotoFromCamera() {
+      const granted = await checkOrRequestCameraPermissions()
+      if (!granted.camera && !granted.photos) {
+        $q.dialog({
+          title: 'Select photo', message: 'Permission denied',
+          color: 'brandblue',
+          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        })
+        return Promise.reject(new Error('Permission Denied'))
+      }
+      return Camera.getPhoto({
+        presentationStyle: 'popover',
+        resultType: 'dataUrl',
+      })
+        .then(async (photo) => {
+          let file
+          if (photo?.base64String) file = base64ImageToFile(photo?.base64String)
+          else if (photo?.dataUrl) file = dataUrlToFile(photo?.dataUrl)
+          if (!file) return photo
+
+          const resized = await resizeImage({ file, maxWidthHeight: 640 })
+          attachment.value = resized
+          return photo
+        })
+    }
+
+    function selectAttachment(evt) {
+      return getPhotoFromCamera()
+        .catch(error => {
+          console.error(error)
+          let errorMsg = error?.message
+          if (typeof errorMsg !== 'string') return Promise.reject(error)
+          if (errorMsg?.includes('cancel')) return Promise.resolve()
+          if (errorMsg.match(/user.*denied.*access/i)) {
+            openFileAttachementField(evt)
+            return Promise.resolve()
+          }
+
+          if (errorMsg?.length < 250) return Promise.reject(error)
+          $q.dialog({
+            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
+            color: 'brandblue',
+            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+          })
+        })
     }
 
     const sendMessage = debounce(async function() {
@@ -409,7 +498,7 @@ export default defineComponent({
       }
 
       sendingMessage.value = true
-      return backend.post(`chat/messages/`, data, { signData })
+      return chatBackend.value.post(`chat/messages/`, data, { signData })
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           message.value = ''
@@ -433,9 +522,10 @@ export default defineComponent({
     const fetchChatMember = debounce(function() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
 
-      backend.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
+      chatBackend.value.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
+          $emit('chat-member', chatMember.value)
           return response
         })
     }, 250)
@@ -449,9 +539,10 @@ export default defineComponent({
         last_read_timestamp: new Date(latest+1000),
       }
 
-      return backend.post(`chat/sessions/${props.chatRef}/chat_member/`, data)
+      return chatBackend.value.post(`chat/sessions/${props.chatRef}/chat_member/`, data)
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
+          $emit('chat-member', chatMember.value)
           return response
         })
     }
@@ -475,7 +566,7 @@ export default defineComponent({
     watch(innerVal, () => websocket.value?.readyState !== WebSocket.OPEN ? initWebsocket() : null)
     function initWebsocket() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
-      const backendUrl = new URL(backend.defaults.baseURL)
+      const backendUrl = new URL(chatBackend.value.defaults.baseURL)
       const host = backendUrl.host
       const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
       const url = `${scheme}://${host}/ws/chat/sessions/${props.chatRef}/`
@@ -555,6 +646,7 @@ export default defineComponent({
 
       customer,
       isOwnMessage,
+      chatSession,
 
       hasMoreMessages,
       fetchingMessages,
@@ -574,6 +666,8 @@ export default defineComponent({
       fileAttachmentField,
       openFileAttachementField,
       resizeAttachment,
+      getPhotoFromCamera,
+      selectAttachment,
       sendMessage,
 
       chatMember,
@@ -608,5 +702,10 @@ export default defineComponent({
 .messages-panel .bottom-anchor {
   overflow-anchor: auto;
   height: 1px;
+}
+</style>
+<style>
+pwa-camera-modal-instance {
+  z-index: 10000
 }
 </style>

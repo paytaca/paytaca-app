@@ -92,7 +92,7 @@
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { addChatMembers } from 'src/wallet/ramp/chat'
+import { addChatMembers, generateChatRef } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -144,7 +144,7 @@ export default {
       selectedPaymentMethods: [],
       autoReconWebSocket: true,
       reconnectingWebSocket: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
   components: {
@@ -164,6 +164,13 @@ export default {
     }
   },
   computed: {
+    counterparty () {
+      let counterparty = this.ad.owner
+      if (this.order.is_ad_owner) {
+        counterparty = this.order.owner
+      }
+      return counterparty
+    },
     escrowTransferData () {
       return {
         order: this.order,
@@ -186,6 +193,7 @@ export default {
     standByDisplayData () {
       return {
         order: this.order,
+        ad: this.ad,
         feedback: this.feedback,
         contractAddress: this.contract.address,
         escrow: this.escrowContract,
@@ -194,7 +202,8 @@ export default {
     },
     paymentConfirmationData () {
       return {
-        orderId: this.order.id,
+        order: this.order,
+        ad: this.ad,
         type: this.confirmType,
         contract: this.contract,
         errors: this.errorMessages,
@@ -444,6 +453,7 @@ export default {
             }
             reject(error)
           })
+          .finally(() => { this.reloadChildComponents() })
       })
     },
     confirmOrder () {
@@ -656,7 +666,8 @@ export default {
     },
     addArbiterToChat () {
       const vm = this
-      const chatRef = `ramp-order-${vm.order.id}-chat`
+      const chatRef = generateChatRef(vm.order.id, vm.order.created_at) // `ramp-order-${vm.order.id}-chat`
+      console.log(chatRef)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)

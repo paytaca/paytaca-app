@@ -9,20 +9,20 @@
     <div v-if="$q.platform.is.ios" style="padding-top:25px;"></div>
     <router-view v-slot="{ Component }">
       <keep-alive>
-        <component :is="Component" />
+        <component :is="Component" v-bind="{ cartDialog: { value: showCartsDialog, toggle: toggleShowCartsDialog, cart: activeStorefrontCart } }"/>
       </keep-alive>
     </router-view>
     <div class="row items-center fixed-bottom q-pa-sm footer-panel">
       <q-space/>
       <q-btn
+        v-if="!$route.meta?.hideCartBtn"
         class="button"
         :round="!activeStorefrontCart?.totalItemsCount"
         :rounded="Boolean(activeStorefrontCart?.totalItemsCount)"
         :icon="showCartsDialog ? 'close' : 'shopping_cart'"
-        direction="up"
         :label="activeStorefrontCart?.totalItemsCount || undefined"
         :padding="activeStorefrontCart?.totalItemsCount ? '15px 18px' : '18px'"
-        @click="() => showCartsDialog = true"
+        @click="() => toggleShowCartsDialog()"
       />
     </div>
     <q-dialog v-model="showCartsDialog" position="bottom">
@@ -287,6 +287,9 @@ export default {
     onUnmounted(() => backend.interceptors.response.eject(interceptor))
 
     const showCartsDialog = ref(false)
+    function toggleShowCartsDialog() {
+      showCartsDialog.value = !showCartsDialog.value
+    }
 
     const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
     const activeStorefrontIsActive = computed(() => activeStorefront.value?.active)
@@ -333,6 +336,7 @@ export default {
       customer,
 
       showCartsDialog,
+      toggleShowCartsDialog,
 
       activeStorefront,
 

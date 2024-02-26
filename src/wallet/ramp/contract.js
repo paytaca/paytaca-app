@@ -1,6 +1,6 @@
 import escrowSrcCode from 'src/cashscripts/escrow.cash'
-import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
-import { compileString } from 'cashc'
+import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript0.7.5'
+import { compileString } from 'cashc0.7.5'
 import { backend } from './backend'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'

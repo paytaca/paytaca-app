@@ -10,7 +10,7 @@
         </template>
         <q-item class="bg-grad text-white q-py-sm">
           <q-item-section avatar>
-            <q-icon v-if="locked" name="lock" size="md" class="bg-blue q-pa-sm" style="border-radius: 50%" />
+            <q-icon v-if="locked" name="lock" size="sm" class="bg-blue q-pa-sm" style="border-radius: 50%" />
             <q-icon v-else name="mdi-chevron-double-right" size="lg" class="bg-blue" style="border-radius: 50%" />
           </q-item-section>
           <q-item-section class="text-right">

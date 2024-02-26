@@ -20,6 +20,7 @@
                 {'apps-border' : isNotDefaultTheme(theme)}
               ]"
               @click="openApp(app)"
+              v-on-long-press="[e => onLongPressApp(e, app), { delay: 1000, modifiers: { stop: true, prevent: true } }]"
             >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
@@ -38,11 +39,16 @@
 </template>
 
 <script>
+import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import appSelectionDialog from 'src/components/ramp/appSelectionDialog.vue'
+import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
 
 export default {
   name: 'apps',
+  directives: {
+    'on-long-press': vOnLongPress,
+  },
   components: {
     appSelectionDialog
   },
@@ -53,7 +59,13 @@ export default {
           name: 'Marketplace',
           iconName: 'storefront',
           path: '/apps/marketplace',
-          active: true
+          active: true,
+          onLongPress: (event) => {
+            event?.preventDefault?.()
+            this.$q.dialog({
+              component: MarketplaceAppSelectionDialog,
+            })
+          }
         },
         {
           name: 'AnyHedge',
@@ -192,6 +204,10 @@ export default {
           this.$router.push(app.path)
         }
       }
+    },
+    onLongPressApp(event, app) {
+      event.preventDefault()
+      app?.onLongPress?.(event)
     }
   },
   created () {

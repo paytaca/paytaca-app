@@ -1,16 +1,9 @@
 <template>
   <q-card
-  class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
-  :class="getDarkModeClass(darkMode)"
-  :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
-    <!-- <q-btn
-      flat
-      icon="arrow_back"
-      class="button button-text-primary"
-      style="position: fixed; left: 20px; top: 135px; z-index: 3;"
-      :class="getDarkModeClass(darkMode)"
-      @click="$emit('back')"
-    /> -->
+    v-if="step === 1"
+    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`">
     <div v-if="step < 3">
       <q-btn
         flat
@@ -22,15 +15,12 @@
       />
     </div>
     <div v-if="step === 1">
-      <div>
-        <div
-          class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
-          :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
-          :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"
-        >
-          <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
-          <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
-        </div>
+      <div
+        class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
+        :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
+        :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
+        <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
       </div>
       <!-- Price Settings -->
       <div v-if="loading">
@@ -237,31 +227,30 @@
         </q-scroll-area>
       </div>
     </div>
-    <div v-if="step === 2">
-      <div class="q-px-md">
-        <AddPaymentMethods
-          :type="'Ads'"
-          :confirm-label="'Next'"
-          :currentPaymentMethods="adData.paymentMethods"
-          v-on:submit="appendPaymentMethods"
-        />
-      </div>
-    </div>
-    <div v-if="step === 3">
-      <DisplayConfirmation
-        :post-data="adData"
-        :ptl="appealCooldown"
-        :transaction-type="transactionType"
-        v-on:back="step--"
-        @submit="onSubmit()"
-      />
-    </div>
     <div v-if="step > 3">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
   </q-card>
+  <div v-if="step === 2">
+    <AddPaymentMethods
+      :type="'Ads'"
+      :confirm-label="'Next'"
+      :currentPaymentMethods="adData.paymentMethods"
+      v-on:submit="appendPaymentMethods"
+      @back="step--"
+    />
+  </div>
+  <div v-if="step === 3">
+    <DisplayConfirmation
+      :post-data="adData"
+      :ptl="appealCooldown"
+      :transaction-type="transactionType"
+      v-on:back="step--"
+      @submit="onSubmit()"
+    />
+  </div>
 </template>
 <script>
 import AddPaymentMethods from './AddPaymentMethods.vue'
@@ -367,7 +356,7 @@ export default {
         (val) => val > 0 || 'Cannot be zero',
         (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
       ],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 125 : this.$q.screen.height - 95
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
     }
   },
   props: {
