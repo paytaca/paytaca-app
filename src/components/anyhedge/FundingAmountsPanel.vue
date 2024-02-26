@@ -10,22 +10,22 @@
       </div>
     </div>
     <div v-if="data?.sats" class="row">
-      <div class="q-space">Amount:</div>
+      <div class="q-space">{{ $t('Amount') }}:</div>
       <div>
         {{ getAssetDenomination(denomination, data?.total / 10 ** 8) }}
       </div>
     </div>
     <div :class="darkMode ? 'text-grey' : 'text-grey-7'">
       <div v-if="data?.fees?.network" class="row q-pl-md">
-        <div class="q-space">Network fee:</div>
+        <div class="q-space">{{ $t('NetworkFee') }}:</div>
         <div>{{ getAssetDenomination(denomination, data?.fees?.network / 10 ** 8) }}</div>
       </div>
       <div v-if="data?.fees?.premium" class="row q-pl-md">
-        <div class="q-space">Premium:</div>
+        <div class="q-space">{{ $t('Premium') }}:</div>
         <div>{{ getAssetDenomination(denomination, data?.fees?.premium / 10 ** 8) }}</div>
       </div>
       <div v-if="data?.fees?.service" class="row q-pl-md">
-        <div class="q-space">Service fee{{ data?.fees?.serviceFees?.length > 1 ? 's' : '' }}:</div>
+        <div class="q-space">{{ data?.fees?.serviceFees?.length > 1 ? $t('ServiceFees') : $t('ServiceFee') }}:</div>
         <div>{{ getAssetDenomination(denomination, data?.fees?.service / 10 ** 8) }}</div>
         <q-popup-proxy :breakpoint="0">
           <div class="q-px-md q-py-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
@@ -55,7 +55,7 @@
       </div>
     </div>
     <div v-if="totalBottom" class="row">
-      <div class="q-space">Total:</div>
+      <div class="q-space">{{ $t('Total') }}:</div>
       <div v-if="data?.total">
         {{ getAssetDenomination(denomination, data?.total / 10 ** 8) }}
       </div>

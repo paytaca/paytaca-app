@@ -1002,9 +1002,9 @@ async function createHedgePosition() {
         await dialogPromise({
           title: $t('NoMatchingOfferTitle'),
           message: $t('SimilarOffersError'),
-          ok: true,
+          ok: $t('OK'),
           seamless: true,
-          cancel: true,
+          cancel: $t('Cancel'),
           class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
       } catch(error) {
@@ -1040,9 +1040,9 @@ async function createHedgePosition() {
         await dialogPromise({
           title: $t('NoMatchingOfferTitle'),
           message: $t('NoMatchingOfferError'),
-          ok: true,
+          ok: $t('OK'),
           seamless: true,
-          cancel: true,
+          cancel: $t('Cancel'),
           class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
         misc.isPositionOffer = true

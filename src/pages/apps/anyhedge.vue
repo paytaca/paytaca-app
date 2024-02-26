@@ -351,6 +351,7 @@ import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilt
 import CustomKeyboard from '../transaction/dialog/CustomKeyboard.vue'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 
@@ -358,6 +359,7 @@ const { getScrollTarget, setVerticalScrollPosition } = scroll
 const DEFAULT_PAGE_SIZE = 10
 const $copyText = inject('$copyText')
 const $q = useQuasar()
+const $t = useI18n().t
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
@@ -750,9 +752,10 @@ function onHedgeFormCreate(data) {
     if (data.hedgePositionOffer?.position === 'hedge') updateHedgeOffersCount()
     if (data.hedgePositionOffer?.position === 'long') updateLongOffersCount()
     $q.dialog({
-      title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position Offer`,
-      message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position offer created`,
+      title: `${data?.position === 'long' ? $t('LongPositionOffer') : $t('HedgePositionOffer')}`,
+      message: `${data?.position === 'long' ? $t('LongPositionOfferCreated') : $t('HedgePositionOfferCreated')}`,
       class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+      ok: $t('OK'),
       seamless: true,
       style: 'word-break:break-all;',
     })
@@ -766,9 +769,11 @@ function onHedgeFormCreate(data) {
     const contractAddress = data.hedgePosition?.address || data?.hedgePositionOffer?.hedge_position?.address
     fetchSummary(data?.position)
     const fetchHedgeContractsResponse = data?.position === 'long' ? fetchLongPositions() : fetchHedgeContracts()
+    const message = `${data?.position === 'long' ? $t('LongPositionCreated') : $t('HedgePositionCreated')}.<br/>${$t('Address')}: ${contractAddress}`
     $q.dialog({
-      title: `${data?.position === 'long' ? 'Long' : 'Hedge'} Position`,
-      message: `${data?.position === 'long' ? 'Long' : 'Hedge'} position created.<br/>Address: ` + contractAddress,
+      title: `${data?.position === 'long' ? $t('LongPosition') : $t('HedgePosition')}`,
+      message,
+      ok: $t('OK'),
       html: true,
       seamless: true,
       class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
@@ -1107,9 +1112,9 @@ async function displayContractFromNotification(data={address: '', position: '' }
     hedgesListRef?.value?.displayContractInDialog?.(contract)
   } else {
     $q.dialog({
-      message: 'Unable to find contract',
+      message: $t('UnableToFindContract'),
       seamless: true,
-      ok: true,
+      ok: $t('OK'),
       class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
     })
   }

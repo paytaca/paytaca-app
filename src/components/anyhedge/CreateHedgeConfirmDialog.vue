@@ -21,8 +21,8 @@
             <template v-else-if="position === 'long'">({{ $t('Long') }})</template>
           </template>
           <template v-else>
-            <template v-if="position === 'hedge'">{{ $t('StabilizeHedge') }}</template>
-            <template v-else-if="position === 'long'">{{ $t('LeverageLong') }}</template>
+            <template v-if="position === 'hedge'">{{ $t('Stabilize') }} ({{ $t('Hedge') }})</template>
+            <template v-else-if="position === 'long'">{{ $t('Leverage') }} ({{ $t('Long') }})</template>
             <template v-else>{{ $t('HedgeContract') }}</template>
           </template>
         </div>
