@@ -1,11 +1,11 @@
 <template>
   <div
-    class="q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
+    class="q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`"
     v-if="state == 'order-list' && !viewProfile">
     <div v-if="state === 'order-list'">
-      <div class="row justify-start items-center q-mx-none q-px-sm q-pt-md">
+      <div class="row justify-start items-center q-mx-none q-px-sm">
         <div
           class="col-9 row br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
@@ -36,78 +36,80 @@
         </q-btn>
       </div>
       <div class="q-mt-sm">
-        <q-pull-to-refresh @refresh="refreshData">
+        <!-- <q-pull-to-refresh @refresh="refreshData"> -->
           <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
           </div>
           <div v-else class="q-mb-none">
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
-              <q-infinite-scroll
-              ref="infiniteScroll"
-              :items="listings"
-              @load="loadMoreData"
-              :offset="0"
-              :scroll-target="scrollTargetRef">
-                <template v-slot:loading>
-                  <div class="row justify-center q-my-md" v-if="hasMoreData">
-                    <q-spinner-dots color="primary" size="40px" />
-                  </div>
-                </template>
-                <div v-for="(listing, index) in listings" :key="index">
-                  <q-item clickable @click="selectOrder(listing)">
-                    <q-item-section>
-                      <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                        <div class="row q-mx-md">
-                          <div class="col ib-text">
-                            <div
-                              class="q-mb-none pt-label sm-font-size"
-                              :class="getDarkModeClass(darkMode)"
-                            >
-                              ORDER #{{ listing.id }}
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 75}px`" style="overflow:auto;">
+              <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
+                <q-infinite-scroll
+                  ref="infiniteScroll"
+                  :items="listings"
+                  @load="loadMoreData"
+                  :offset="0"
+                  :scroll-target="scrollTargetRef">
+                  <template v-slot:loading>
+                    <div class="row justify-center q-my-md" v-if="hasMoreData">
+                      <q-spinner-dots color="primary" size="40px" />
+                    </div>
+                  </template>
+                  <div v-for="(listing, index) in listings" :key="index">
+                    <q-item clickable @click="selectOrder(listing)">
+                      <q-item-section>
+                        <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                          <div class="row q-mx-md">
+                            <div class="col ib-text">
+                              <div
+                                class="q-mb-none pt-label sm-font-size"
+                                :class="getDarkModeClass(darkMode)"
+                              >
+                                ORDER #{{ listing.id }}
+                              </div>
+                              <span
+                                class=" pt-label md-font-size text-weight-bold"
+                                :class="getDarkModeClass(darkMode)"
+                                @click.stop.prevent="viewUserProfile(listing)">
+                                {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
+                              </span>
+                              <div
+                                class="col-transaction text-uppercase pt-label lg-font-size"
+                                :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
+                              >
+                              <!-- :style="amountColor(listing.trade_type)" -->
+                                {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
+                              </div>
+                              <div class="sm-font-size">
+                                {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
+                              <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
                             </div>
-                            <span
-                              class=" pt-label md-font-size text-weight-bold"
-                              :class="getDarkModeClass(darkMode)"
-                              @click.stop.prevent="viewUserProfile(listing)">
-                              {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
-                            </span>
-                            <div
-                              class="col-transaction text-uppercase pt-label lg-font-size"
-                              :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
-                            >
-                            <!-- :style="amountColor(listing.trade_type)" -->
-                              {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
-                            </div>
-                            <div class="sm-font-size">
-                              {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                            <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
-                          </div>
-                          <div class="text-right">
-                            <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
-                              <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
-                            </span> -->
-                            <div
-                              v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
-                              class="text-weight-bold subtext sm-font-size text-blue">
-                              Appealable
-                            </div>
-                            <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
-                              {{ listing.status?.label }}
-                            </div>
-                            <div class="text-weight-bold subtext sm-font-size" v-else>
-                              {{ listing.status?.label }}
+                            <div class="text-right">
+                              <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                                <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
+                              </span> -->
+                              <div
+                                v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
+                                class="text-weight-bold subtext sm-font-size text-blue">
+                                Appealable
+                              </div>
+                              <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
+                                {{ listing.status?.label }}
+                              </div>
+                              <div class="text-weight-bold subtext sm-font-size" v-else>
+                                {{ listing.status?.label }}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </q-item-section>
-                  </q-item>
-                </div>
-              </q-infinite-scroll>
+                      </q-item-section>
+                    </q-item>
+                  </div>
+                </q-infinite-scroll>
+              </q-pull-to-refresh>
             </q-list>
           </div>
-        </q-pull-to-refresh>
+        <!-- </q-pull-to-refresh> -->
       </div>
     </div>
     <q-inner-loading :showing="loading">
@@ -178,7 +180,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       viewProfile: false,
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,

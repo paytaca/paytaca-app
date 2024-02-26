@@ -27,8 +27,7 @@
           </button>
         </div>
       </div>
-      <q-pull-to-refresh
-        @refresh="refreshData">
+      <!-- <q-pull-to-refresh @refresh="refreshData"> -->
         <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
           <!-- Loading icon -->
           <div class="row justify-center">
@@ -46,45 +45,47 @@
           </div>
           <!-- List -->
           <div v-else>
-            <q-infinite-scroll
-            ref="infiniteScroll"
-            :items="appeals"
-            @load="loadMoreData"
-            :offset="0"
-            :scroll-target="scrollTargetRef">
-              <template v-slot:loading>
-                <div class="row justify-center q-my-md" v-if="hasMoreData">
-                  <q-spinner-dots color="primary" size="40px" />
-                </div>
-              </template>
-              <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
-                <q-item clickable @click="selectAppeal(index)">
-                  <q-item-section class="q-py-sm">
-                    <div class="row q-mx-md">
-                      <div class="col ib-text">
-                        <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
-                        <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
-                        <div class="md-font-size">ORDER #{{ appeal.order.id }}</div>
-                        <div class="row text-weight-bold" style="font-size: medium;">
-                          {{ appeal.owner.name}}
-                        </div>
-                        <div class="sm-font-size">
-                          <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
-                          <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
-                        </div>
-                        <div v-for="(reason, index) in appeal.reasons" :key="index">
-                          <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
+            <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
+              <q-infinite-scroll
+                ref="infiniteScroll"
+                :items="appeals"
+                @load="loadMoreData"
+                :offset="0"
+                :scroll-target="scrollTargetRef">
+                <template v-slot:loading>
+                  <div class="row justify-center q-my-md" v-if="hasMoreData">
+                    <q-spinner-dots color="primary" size="40px" />
+                  </div>
+                </template>
+                <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
+                  <q-item clickable @click="selectAppeal(index)">
+                    <q-item-section class="q-py-sm">
+                      <div class="row q-mx-md">
+                        <div class="col ib-text">
+                          <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                          <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+                          <div class="md-font-size">ORDER #{{ appeal.order.id }}</div>
+                          <div class="row text-weight-bold" style="font-size: medium;">
+                            {{ appeal.owner.name}}
+                          </div>
+                          <div class="sm-font-size">
+                            <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
+                            <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
+                          </div>
+                          <div v-for="(reason, index) in appeal.reasons" :key="index">
+                            <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-                <q-separator class="q-mx-lg" :dark="darkMode"/>
-              </div>
-            </q-infinite-scroll>
+                    </q-item-section>
+                  </q-item>
+                  <q-separator class="q-mx-lg" :dark="darkMode"/>
+                </div>
+              </q-infinite-scroll>
+            </q-pull-to-refresh>
           </div>
         </q-list>
-      </q-pull-to-refresh>
+      <!-- </q-pull-to-refresh> -->
     </div>
   </div>
 

@@ -706,10 +706,10 @@
   </q-dialog>
 
   <!-- WIP instruction dialog fot ad form -->
-  <q-dialog persistent v-model="instructionDialog" @before-hide="$emit('back')" full-width position="bottom">
+  <q-dialog v-model="instructionDialog" @before-hide="$emit('back')" full-width position="bottom">
     <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-center">Title Here</div>
+        <div class="text-h6 text-center">{{ title }}</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
@@ -717,13 +717,12 @@
       </q-card-section>
 
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
         <q-btn
           flat
           label="Confirm"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
-          @click="submitData()"
+          @click="$emit('back')"
           v-close-popup
         />
       </q-card-actions>

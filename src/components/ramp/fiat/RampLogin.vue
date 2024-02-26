@@ -1,6 +1,6 @@
 <template>
-  <q-card
-  class="q-pt-md q-mx-md q-mb-lg pt-card text-bow"
+  <div
+  class="q-pt-md q-mx-md q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"
   :style="`height: ${minHeight}px;`">
     <div v-if="isLoading">
@@ -55,7 +55,7 @@
           <span>{{ user?.is_arbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
       </div>
     </div>
-  </q-card>
+  </div>
 </template>
 <script>
 import { loadRampWallet } from 'src/wallet/ramp/wallet'

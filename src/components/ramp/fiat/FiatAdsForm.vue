@@ -258,14 +258,14 @@
       @submit="onSubmit()"
     />
   </div>
-  <!-- <div v-if="openDialog" >
+  <div v-if="openDialog" >
     <MiscDialogs
       :type="'instructionDialog'"
       :title=title
       :text=text
       v-on:back="openDialog = false"
     />
-  </div> -->
+  </div>
 </template>
 <script>
 import AddPaymentMethods from './AddPaymentMethods.vue'
@@ -374,7 +374,23 @@ export default {
         (val) => val > 0 || 'Cannot be zero',
         (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
       ],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
+      instruction: { // temp
+        'price-setting': {
+          title: 'Price Setting',
+          text: null
+        },
+        'trade-quantity': {
+          title: 'Trade Quantity',
+          text: null
+        },
+        'trade-limit': {
+          title: 'Trade Limit',
+          text: null
+        }
+      },
+      title: '',
+      text: ''
     }
   },
   props: {
@@ -433,6 +449,11 @@ export default {
     isNotDefaultTheme,
     openInstructionDialog (type) {
       console.log('type: ', type)
+
+      const temp = this.instruction[type]
+      this.title = temp.title
+      this.text = temp.text
+
       this.openDialog = true
     },
     fetchAd () {

@@ -226,7 +226,7 @@ export default {
     // AdSnapshotDialog,
     // TradeInfoCard,
     // ChatDialog,
-    // AppealForm
+    AppealForm,
     ProgressLoader
   },
   computed: {

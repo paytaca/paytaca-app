@@ -1,12 +1,12 @@
 <template>
   <div
     :class="getDarkModeClass(darkMode)"
-    class="q-pt-sm q-mx-md q-mb-lg text-bow"
+    class="q-mx-md q-mb-lg text-bow"
     :style="`height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
     <div class="q-mb-sm q-pb-sm">
       <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-      <div class="row items-center q-pa-sm q-pt-md">
+      <div class="row items-center q-px-sm">
         <!-- currency dropdown -->
         <div class="col-auto">
           <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
@@ -63,13 +63,13 @@
       </div>
       <!-- </q-pull-to-refresh> -->
       <div class="q-mt-sm">
-        <q-pull-to-refresh @refresh="refreshData">
-          <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
-          </div>
-          <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 120}px`" style="overflow:auto;">
+        <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
+        </div>
+        <div v-else>
+          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+            <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"
@@ -137,9 +137,9 @@
                   </q-item-section>
                 </q-item>
               </q-infinite-scroll>
-            </q-list>
-          </div>
-        </q-pull-to-refresh>
+            </q-pull-to-refresh>
+          </q-list>
+        </div>
       </div>
     </div>
     <q-inner-loading :showing="loading">
@@ -220,7 +220,7 @@ export default {
       },
       filters: {},
       defaultFiltersOn: true,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100)
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
     }
   },
   watch: {

@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="!selectedListing && state === 'initial'"
-    class="q-pt-sm q-mx-md q-mb-lg q-pb-lg text-bow"
+    class="q-mx-md q-mb-lg q-pb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <div v-if="!isloaded">
@@ -13,7 +13,7 @@
       <div v-if="state === 'initial'">
         <q-btn
           flat
-          padding="md md xs md"
+          padding="none md xs md"
           icon="arrow_back"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
@@ -97,7 +97,7 @@
             ADS
           </button>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - 350}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - 320}px`" style="overflow-y:auto;">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
@@ -254,7 +254,7 @@ export default {
       adsTotalPages: null,
       adsPageNumber: 1,
       loadingAds: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
     }
   },
   props: {
