@@ -84,7 +84,36 @@
             <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
               {{ $t('RestoreWalletDescription') }}
             </p>
-            <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+            <template v-if="useTextArea">
+              <div class="row justify-start q-mb-sm">
+                <q-btn
+                  flat
+                  no-caps
+                  padding="xs sm"
+                  icon="arrow_back"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  :label="$t('EnterOneByOne')"
+                  @click="useTextArea = false, seedPhraseBackup = ''"
+                />
+              </div>
+              <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+            </template>
+            <template v-else>
+              <div class="row justify-end q-mb-xs">
+                <q-btn
+                  flat
+                  no-caps
+                  padding="xs sm"
+                  icon-right="arrow_forward"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  :label="$t('PasteSeedPhrase')"
+                  @click="useTextArea = true, seedPhraseBackup = ''"
+                />
+              </div>
+              <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
+            </template>
             <q-btn
               rounded
               class="full-width q-mt-md button"
@@ -103,10 +132,10 @@
           <div class="q-pa-lg" style="padding-top: 28px;">
             <div class="row" v-if="openSettings">
               <div class="col">
-                <div class="row justify-center">
+                <div class="row justify-center text-center">
                   <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5><br />
                 </div>
-                <div class="row justify-center">
+                <div class="row justify-center text-center">
                   <p class="dim-text" style="margin-top: 10px;">
                     {{ $t('OnBoardSettingDescription') }}
                   </p>
@@ -183,11 +212,7 @@
               <div class="row" id="mnemonic">
                 <template v-if="steps === totalSteps">
                   <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                    <ul>
-                      <li v-for="(word, index) in mnemonic.split(' ')" :key="'word-' + index">
-                        <pre class="q-mr-sm">{{ index + 1 }}</pre><span>{{ word }}</span>
-                      </li>
-                    </ul>
+                    <SeedPhraseContainer :mnemonic="mnemonic" />
                   </div>
                   <div v-else>
                     <div>
@@ -241,20 +266,22 @@
 
 <script>
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
+import { getMnemonic } from '../../wallet'
+import { utils } from 'ethers'
+import { Device } from '@capacitor/device'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { supportedLangs as supportedLangsI18n } from '../../i18n'
+
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
 import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
-import { NativeBiometric } from 'capacitor-native-biometric'
-import { getMnemonic } from '../../wallet'
-import { utils } from 'ethers'
-import { Device } from '@capacitor/device'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { supportedLangs as supportedLangsI18n } from '../../i18n'
+import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 
 function countWords(str) {
   if (str) {
@@ -280,7 +307,8 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
-    ThemeSelectorPreview
+    ThemeSelectorPreview,
+    SeedPhraseContainer
   },
   data () {
     return {
@@ -298,7 +326,8 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       walletIndex: 0,
       currencySelectorRerender: false,
-      openThemeSelector: false
+      openThemeSelector: false,
+      useTextArea: false
     }
   },
   watch: {
@@ -557,6 +586,11 @@ export default {
         this.openSettings = false
         this.openThemeSelector = true
       }
+    },
+    onInputEnter (inputArray) {
+      if (inputArray.indexOf('') === -1) {
+        this.seedPhraseBackup = inputArray.join(' ')
+      }
     }
   },
   async mounted () {
@@ -728,28 +762,6 @@ export default {
   border-top-right-radius: 22px;
   background-color: #F9F8FF;
   padding-top: 28px !important;
-}
-ul {
-  list-style: none;
-  display: block;
-  margin-left: -40px;
-  text-align: justify;
-}
-ul li {
-  display: inline-block;
-  font-size: 18px;
-  padding: 10px;
-}
-li span {
-  background:#AAB2E9;
-  padding: 5px 15px;
-  border-radius: 20px;
-  color: #fff;
-}
-li pre {
-  display: inline;
-  color: #D36EE1;
-  padding-right: 5px;
 }
 .font-lg {
   font-size: 20px;

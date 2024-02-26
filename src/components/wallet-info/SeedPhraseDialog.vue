@@ -1,0 +1,51 @@
+<template>
+  <q-dialog persistent seamless>
+    <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="row justify-end">
+        <q-btn
+          flat
+          round
+          padding="xs"
+          icon="close"
+          class="close-button"
+          v-close-popup
+        />
+      </div>
+      <span>{{ $t('YourMnemonic') }}:</span>
+      <SeedPhraseContainer :mnemonic="mnemonic" class="q-mt-sm" />
+      <div :class="darkMode ? 'text-red-5' : 'text-red-6'">
+        <span class="text-weight-medium">
+          {{ $t('SeedPhraseCaution1') }}
+        </span>
+        <br>{{ $t('SeedPhraseCaution2') }}
+      </div>
+    </q-card>
+  </q-dialog>
+</template>
+
+<script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+
+export default {
+  name: 'SeedPhraseDialog',
+
+  props: {
+    mnemonic: String
+  },
+
+  components: {
+    SeedPhraseContainer
+  },
+
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    }
+  },
+
+  methods: {
+    getDarkModeClass
+  }
+}
+</script>

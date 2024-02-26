@@ -12,7 +12,7 @@
           {{ errorMessage }}
         </template>
         <div v-else-if="spendingTx">
-          Spending transaction:
+          {{ $t('SpendingTransaction') }}:
           <div class="row items-center no-wrap">
             <div @click="copyText(spendingTx)" v-ripple style="position:relative;">
               {{ ellipsisText(spendingTx, {start: 5, end: 10}) }}
@@ -31,7 +31,7 @@
       <q-card-actions class="row justify-end q-px-lg q-pb-lg">
         <q-btn
           no-caps
-          label="OK"
+          :label="$t('OK')"
           color="brandblue"
           padding="sm lg"
           v-close-popup
@@ -45,8 +45,9 @@ import { ellipsisText } from 'src/wallet/anyhedge/formatters'
 import { isUtxoSpent } from 'src/wallet/anyhedge/funding'
 import { computed, inject, onMounted, ref } from 'vue'
 import { useStore } from 'vuex'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useDialogPluginComponent, useQuasar, format } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 // dialog plugins requirement
 const emit = defineEmits([
@@ -61,13 +62,15 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
 const $q = useQuasar()
+const $t = useI18n().t
+const { capitalize } = format
 
 const $copyText = inject('$copyText')
 function copyText(value) {
   $copyText(value)
   $q.notify({
     color: 'blue-9',
-    message: 'Copied to clipboard',
+    message: $t('CopiedToClipboard'),
     icon: 'mdi-clipboard-check',
     timeout: 200
   })
@@ -80,14 +83,15 @@ const props = defineProps({
 
 const loading = ref(false)
 const errorMessage = ref('')
-const title = ref(`Verifying ${ props.position } funding proposal`)
+const titleText = $t(`Verifying${ capitalize(props.position) }FundingProposal`)
+const title = ref(titleText)
 const spendingTx = ref('')
 async function verifyFundingProposalUtxo() {
   loading.value = true
   if (props.position !== 'hedge' && props.position !== 'long') {
     loading.value = false
-    title.value = 'Invalid data'
-    errorMessage.value = 'Unable to determine position to verify'
+    title.value = $t('InvalidData')
+    errorMessage.value = $t('DetermineProposalError')
     return
   }
 
@@ -97,19 +101,19 @@ async function verifyFundingProposalUtxo() {
     const isUtxoSpentResponse = await isUtxoSpent(fundingProposal?.tx_hash, fundingProposal?.tx_index)
     if (isUtxoSpentResponse.success) {
       if (isUtxoSpentResponse.spent) {
-        title.value = 'Funding proposal is already used'
+        title.value = $t('UsedFundingProposal')
         spendingTx.value = isUtxoSpentResponse.spendingTx
       } else {
-        title.value = 'Funding proposal valid'
+        title.value = $t('ValidFundingProposal')
       }
       loading.value = false
     } else {
       throw isUtxoSpentResponse.error
     }
   } catch(error) {
-    errorMessage.value = 'Encountered error in verifying funding proposal'
+    errorMessage.value = $t('VerifyFundingProposalError')
     if (error?.message) errorMessage.value = error?.message
-    title.value = 'Funding proposal verification failed'
+    title.value = $t('FundingValidationFailed')
   } finally {
     loading.value = false
   }

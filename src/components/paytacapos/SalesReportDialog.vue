@@ -18,7 +18,7 @@
         <q-card class="pt-card">
           <q-card-section>
             <div class="row items-center">
-              <div class="q-space text-subtitle1">Total sales</div>
+              <div class="q-space text-subtitle1">{{ $t('TotalSales') }}</div>
               <div class="text-right">
                 <div class="text-subtitle1">{{ getAssetDenomination(denomination, totalSales.total) }}</div>
                 <div v-if="(totalSales.totalMarketValue && totalSales.currency)" class="text-subtitle2">
@@ -29,12 +29,12 @@
             <q-separator :dark="darkMode" spaced/>
             <div class="row items-start">
               <div class="q-space">
-                <div>Range: {{ formatRangeType(salesReportData?.range_type) }}</div>
+                <div>{{ $t('Range') }}: {{ formatRangeType(salesReportData?.range_type) }}</div>
                 <div v-if="salesReportData?.timestamp_from">
-                  Date from: {{ formatTimestampToDate(salesReportData?.timestamp_from * 1000) }}
+                  {{ $t('DateFrom') }}: {{ formatTimestampToDate(salesReportData?.timestamp_from * 1000) }}
                 </div>
                 <div v-if="salesReportData?.timestamp_to">
-                  Date to: {{ formatTimestampToDate(salesReportData?.timestamp_to * 1000) }}
+                  {{ $t('DateTo') }}: {{ formatTimestampToDate(salesReportData?.timestamp_to * 1000) }}
                 </div>
               </div>
               <q-btn
@@ -86,8 +86,10 @@ import Watchtower from 'watchtower-cash-js';
 import SalesReportFilterFormDialog from './SalesReportFilterFormDialog.vue';
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 const watchtower = new Watchtower()
+const $t = useI18n().t
 
 // dialog plugins requirement
 defineEmits([
@@ -187,8 +189,8 @@ function formatTimestampToDate(timestamp) {
   return Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(timestamp)
 }
 function formatRangeType(value) {
-  if (value === 'day') return 'daily'
-  if (value === 'month') return 'monthly'
+  if (value === 'day') return $t('Daily')
+  if (value === 'month') return $t('Monthly')
   return value
 }
 </script>

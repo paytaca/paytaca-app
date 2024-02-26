@@ -1,14 +1,14 @@
 <template>
   <q-card-section v-ripple style="position:relative">
     <div class="row q-mb-sm">
-      <q-badge v-if="isPending && isExpired" color="red">Expired</q-badge>
-      <q-badge v-else :color="resolvePositionOfferColor(hedgePositionOffer?.status)">{{ formatPositionOfferStatus(hedgePositionOffer?.status) }}</q-badge>
+      <q-badge v-if="isPending && isExpired" color="red">{{ $t('Expired') }}</q-badge>
+      <q-badge v-else :color="resolvePositionOfferColor(hedgePositionOffer?.status)">{{ $t(formatPositionOfferStatus(hedgePositionOffer?.status)) }}</q-badge>
       <q-badge v-if="hedgePositionOffer?.id" color="grey" class="q-ml-xs">#{{ hedgePositionOffer?.id }}</q-badge>
       <div class="q-space"></div>
       <div class="text-grey">{{ formatDate(hedgePositionOffer?.createdAt * 1000) }}</div>
     </div>
     <div v-if="hedgePositionOffer?.expiresAt">
-      Expires at: {{ formatTimestampToText(hedgePositionOffer?.expiresAt * 1000) }}
+      {{ $t('ExpiresAt') }}: {{ formatTimestampToText(hedgePositionOffer?.expiresAt * 1000) }}
     </div>
     <div class="row">
       <div class="col">
@@ -33,7 +33,7 @@
           @click="viewHedgePosition()"
         >
           <q-item-section>
-            <q-item-label>View contract</q-item-label>
+            <q-item-label>{{ $t('ViewContract') }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item
@@ -45,8 +45,8 @@
         >
           <q-item-section>
             <q-item-label>
-              <template v-if="hedgePositionOffer?.expiresAt">Update expiry</template>
-              <template v-else>Set expiration</template>
+              <template v-if="hedgePositionOffer?.expiresAt">{{ $t('UpdateExpiry') }}</template>
+              <template v-else>{{ $t('SetExpiration') }}</template>
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -58,7 +58,7 @@
           @click="confirmRemoveHedgeOffer()"
         >
           <q-item-section>
-            <q-item-label>Remove offer</q-item-label>
+            <q-item-label>{{ $t('RemoveOffer') }}</q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
@@ -74,12 +74,14 @@ import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from './HedgeContractDetailDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 const { capitalize } = format
 const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
 const denomination = computed(() => store.getters['global/denomination'])
 const $q = useQuasar()
+const $t = useI18n().t
 
 const $emit = defineEmits([
   'removed',
@@ -126,7 +128,7 @@ function openUpdateExpirationForm() {
   }
   console.log(initialValue)
   $q.dialog({
-    title: 'Set expiration',
+    title: $t('SetExpiration'),
     prompt: {
       type: 'datetime-local',
       model: initialValue,
@@ -135,12 +137,13 @@ function openUpdateExpirationForm() {
       dense: true,
       dark: darkMode.value,
       rules: [
-        val => !val || new Date(val) > Date.now() || 'Must be after current time',
+        val => !val || new Date(val) > Date.now() || $t('CurrentTimeError')
       ]
     },
-    cancel: true,
+    ok: $t('OK'),
+    cancel: $t('Cancel'),
     seamless: true,
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode)}`
   })
     .onOk(updateExpiration)
 }
@@ -150,16 +153,16 @@ function updateExpiration(expirationTime) {
     expires_at: expirationTime ? new Date(expirationTime).toISOString() : null,
   }
   const dialog = $q.dialog({
-    title: expirationTime ? 'Updating expiration' : 'Removing expiration',
+    title: expirationTime ? $t('UpdatingExpiration') : $t('RemovingExpiration'),
     progress: true,
     persistent: true,
     seamless: true,
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode)}`
   })
   anyhedgeBackend.patch(`anyhedge/hedge-position-offers/${props.hedgePositionOffer?.id}/`, data)
     .then(async (response) => {
       if (!response?.data?.id) return Promise.reject({ response })
-      dialog.update({ title: 'Expiration updated' })
+      dialog.update({ title: $t('ExpirationUpdated') })
       const updatedData = parseHedgePositionOffer(response?.data)
       if (updatedData?.hedgePosition) updatedData.hedgePosition = await updatedData?.hedgePosition
       Object.assign(props.hedgePositionOffer, updatedData)
@@ -172,24 +175,29 @@ function updateExpiration(expirationTime) {
 }
 
 function confirmRemoveHedgeOffer() {
+  const position = props.hedgePositionOffer.position
+  const title = $t(`Remove${capitalize(position)}PositionOffer`)
+  const message = $t(`Remove${capitalize(position)}PositionOfferDescription`)
   $q.dialog({
-    title: `Remove ${props.hedgePositionOffer.position} position offer`,
-    message: `Removing ${props.hedgePositionOffer.position} position offer. Are you sure?`,
-    ok: true,
-    cancel: true,
+    title,
+    message,
+    ok: $t('OK'),
+    cancel: $t('Cancel'),
     seamless: true,
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode)}`
   })
     .onOk(() => removeHedgePositionOffer())
 }
 function removeHedgePositionOffer() {
+  const position = props.hedgePositionOffer.position
+  const message = $t(`Removing${capitalize(position)}PositionOffer`)
   const dialog = $q.dialog({
-    title: 'Removing',
-    message: `Removing ${props.hedgePositionOffer.position} position offer`,
+    title: $t('Removing'),
+    message,
     persistent: true,
     progress: true,
     seamless: true,
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode)}`
   })
   anyhedgeBackend.delete(`anyhedge/hedge-position-offers/${props.hedgePositionOffer.id}/`)
     .catch(error => {
@@ -198,17 +206,17 @@ function removeHedgePositionOffer() {
     })
     .then(() => {
       dialog.update({
-        title: 'Removed',
-        message: `${capitalize(props.hedgePositionOffer.position)} position offer removed`,
+        title: $t('Removed'),
+        message: $t(`${capitalize(position)}PositionOfferRemoved`)
       }).onDismiss(() => $emit('removed', props.hedgePositionOffer))
     })
     .catch(error => {
       console.error(error)
-      let message = `Failed to remove ${props.hedgePositionOffer.position} position offer`
+      let message = $t(`Remove${capitalize(position)}PositionError`)
       if (typeof error?.request?.data === 'string') message = error?.request?.data
       else if (error?.request?.data?.[0]) message = error?.request?.data?.[0]
       dialog.update({
-        title: 'Error',
+        title: $t('Error'),
         message: message,
       })
     })

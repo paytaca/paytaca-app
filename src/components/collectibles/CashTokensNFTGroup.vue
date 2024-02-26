@@ -3,7 +3,7 @@
     <div v-if="fetchingNfts" class="row items-center justify-center">
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
-    <div class="row items-start q-pa-md">
+    <div class="row items-start justify-between q-pa-md">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
         class="q-ma-sm text-bow"
@@ -17,7 +17,7 @@
         >
           <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
             <q-spinner size="35px"/>
-            <span class="text-caption">Loading metadata ...</span>
+            <span class="text-caption">{{ $t('LoadingMetadata') }} ...</span>
           </q-inner-loading>
         </q-img>
         <q-card-section v-if="nft?.parsedMetadata?.name || nft?.parsedMetadata?.description" class="q-pa-sm">
@@ -28,7 +28,7 @@
     </div>
     <template v-if="!nfts.length && !fetchingNfts">
       <p class="text-center pt-label no-nfts-label" :class="getDarkModeClass(darkMode)">
-        You don't own any CashToken NFTs yet.
+        {{ $t('NoCashTokens') }}
       </p>
     </template>
     <div class="row items-center justify-end q-px-md">

@@ -53,7 +53,7 @@
         <q-card class="q-mt-sm br-15 pt-card" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <q-banner v-if="bridgeDisabled" inline-actions class="text-white bg-red text-center">
-              The bridge is temporarily disabled until further notice
+              {{ $t('BridgeDisabled') }}
             </q-banner>
           </q-card-section>
           <q-card-section>

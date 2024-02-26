@@ -38,7 +38,7 @@
                 class="rounded-borders q-mt-sm q-mb-md pt-card-2 text-bow"
                 :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
               >
-                UTXO scan completed at {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
+                {{ $t('UTXOScanComplete') }} {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
@@ -80,7 +80,7 @@
                   </template>
                   <template v-else-if="bchUtxoScanOngoing">
                     <template v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.queueInfo?.time_start">
-                      UTXO scan ongoing, started {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                      {{ $t('UTXOScanOngoing') }} {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
                     </template>
                     <template>
                       {{ $t('ScanningForUtxos') }}
@@ -131,7 +131,7 @@
                 class="rounded-borders q-mt-sm q-mb-md pt-card-2 text-bow"
                 :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
               >
-                UTXO scan completed at {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
+                {{ $t('UTXOScanComplete') }} {{ formatTimestampToText(slpUtxoScanTaskInfo?.completedAt) }}
                 <template v-slot:action>
                   <q-btn
                     no-caps flat
@@ -173,7 +173,7 @@
                   </template>
                   <template v-else-if="slpUtxoScanOngoing">
                     <template v-if="slpUtxoScanTaskInfo?.taskId && slpUtxoScanTaskInfo?.queueInfo?.time_start">
-                      UTXO scan ongoing, started {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
+                      {{ $t('UTXOScanOngoing') }} {{ formatRelativeTime(slpUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
                     </template>
                     <template>
                       {{ $t('ScanningForUtxos') }}
@@ -233,22 +233,15 @@
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
           <q-item clickable @click="executeSecurityChecking">
             <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-              <q-item-label v-if="showMnemonic">{{ mnemonicDisplay }}</q-item-label>
-              <q-item-label class="text-center" v-else>{{ $t('ClickToReveal') }}</q-item-label>
+              <q-item-label class="text-center">{{ $t('ClickToReveal') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
-        <div v-if="showMnemonic" :class="darkMode ? 'text-red-5' : 'text-red-6'" class="q-ma-sm">
-          <span class="text-weight-medium">
-            {{ $t('SeedPhraseCaution1') }}
-          </span>
-          <br>{{ $t('SeedPhraseCaution2') }}
-        </div>
       </div>
       <div class="col-12 q-px-lg q-mt-md q-mb-lg">
-        <p class="section-title">Wallet Deletion</p>
+        <p class="section-title">{{ $t('WalletDeletion') }}</p>
         <q-btn color="red" style="width: 100%;" @click="showDeleteDialog()" :disable="disableDeleteButton">
-          Delete Wallet Now
+          {{ $t('DeleteWalletNow') }}
         </q-btn>
       </div>
     </div>
@@ -261,6 +254,7 @@
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
+import SeedPhraseDialog from 'src/components/wallet-info/SeedPhraseDialog'
 import { getMnemonic, Wallet } from '../../wallet'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -276,7 +270,9 @@ export default {
   components: {
     HeaderNav,
     pinDialog,
-    biometricWarningAttmepts
+    biometricWarningAttmepts,
+    // eslint-disable-next-line vue/no-unused-components
+    SeedPhraseDialog
   },
   data () {
     return {
@@ -661,23 +657,28 @@ export default {
       })
     },
     toggleMnemonicDisplay (action) {
+      this.pinDialogAction = ''
       if (action === 'proceed') {
-        this.pinDialogAction = ''
         this.showMnemonic = !this.showMnemonic
-      } else {
-        this.pinDialogAction = ''
+      } else if (action === undefined) {
+        this.$q.dialog({
+          component: SeedPhraseDialog,
+          componentProps: { mnemonic: this.mnemonic }
+        }).onDismiss(() => {
+          this.toggleMnemonicDisplay('proceed')
+        })
       }
     },
     showDeleteDialog () {
       const vm = this
       vm.disableDeleteButton = true
       vm.$q.dialog({
-        title: 'Delete Wallet',
-        message: 'Are you sure you want to delete this wallet?',
+        title: this.$t('DeleteWallet'),
+        message: this.$t('DeleteWalletDescription'),
         dark: true,
-        cancel: true,
+        cancel: this.$t('Cancel'),
         seamless: true,
-        ok: 'Yes',
+        ok: this.$t('Yes')
       }).onOk(() => {
         vm.deleteWallet()
       }).onCancel(() => {

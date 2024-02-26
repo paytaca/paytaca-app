@@ -51,7 +51,7 @@
           :disabled="setAmountInFiat || inputExtras.isBip21"
           :readonly="setAmountInFiat || inputExtras.isBip21"
           :error="balanceExceeded"
-          :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
+          :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
           :key="inputExtras.amountFormatted"
         >
           <template v-slot:append>

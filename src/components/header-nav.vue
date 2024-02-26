@@ -1,30 +1,32 @@
 <template>
   <div>
-    <div class="row">
-      <div class="col 12">
-        <div
-          class="pt-header"
-          :style="{'padding-top': $q.platform.is.ios ? '60px' : '18px', 'height': $q.platform.is.ios ? '100px' : '70px'}"
-          :class="{'pt-card-3': darkMode}"
+    <div
+      ref="header-nav"
+      class="pt-header row"
+      :style="{'padding-top': $q.platform.is.ios ? '60px' : '18px', 'height': $q.platform.is.ios ? '100px' : '70px'}"
+      :class="{'pt-card-3': darkMode}"
+    >
+      <div class="col-1">
+        <router-link
+          :to="{ path: backnavpath }"
+          class="pt-arrow-left-link"
+          :class="{'text-grad': isNotDefaultTheme || darkMode}"
+          :style="{width: $q.platform.is.bex ? '375px' : '94%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
         >
-          <router-link
-            :to="{ path: backnavpath }"
-            class="pt-arrow-left-link"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '94%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-          >
-            <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
-                arrow_back
-            </span>
-          </router-link>
-          <p
-            class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-          >
-            {{ title }}
-          </p>
-        </div>
+          <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
+              arrow_back
+          </span>
+        </router-link>
+      </div>
+      <div class="col-10">
+        <p
+          ref="header-title"
+          class="text-h5 text-uppercase text-center q-my-none"
+          :class="{'text-grad': isNotDefaultTheme || darkMode}"
+          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+        >
+          {{ title }}
+        </p>
       </div>
     </div>
   </div>
@@ -40,7 +42,7 @@ export default {
     },
     backnavpath: {
       type: String,
-      default: '',
+      default: ''
     }
   },
   computed: {
@@ -49,6 +51,15 @@ export default {
     },
     isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
+    }
+  },
+  mounted () {
+    // adjust header-nav div height when header title breaks into two lines
+    const headerTitleHeight = this.$refs['header-title'].clientHeight
+    const headerNavHeight = this.$refs['header-nav'].clientHeight
+
+    if (headerNavHeight === 70) { // not iOS
+      this.$refs['header-nav'].setAttribute('style', `height: ${headerTitleHeight > 32 ? '100' : '70'}px;`)
     }
   }
 }

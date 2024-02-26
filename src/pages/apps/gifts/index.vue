@@ -2,7 +2,7 @@
   <div class="static-container">
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
-        title="Gifts"
+        :title="$t('Gifts')"
         backnavpath="/apps"
         class="q-px-sm apps-header gift-app-header"
       />
@@ -11,24 +11,24 @@
           <q-btn
             no-caps
             color="primary"
-            label="Create Gift"
+            :label="$t('CreateGift')"
             class="button"
             :to="{ name: 'create-gift'}"
           />
           <q-btn
             no-caps
             color="primary"
-            label="Claim Gift"
+            :label="$t('ClaimGift')"
             class="button"
             :to="{ name: 'claim-gift'}"
           />
         </div>
         <div class="q-pa-md" :class="{'text-black': !darkMode}" style="margin-top: -10px;">
           <div class="q-px-xs row items-start">
-            <div class="q-table__title q-space">Gifts you created</div>
+            <div class="q-table__title q-space">{{ $t('GiftsYouCreated') }}</div>
             <q-btn-dropdown
               color="primary"
-              no-caps :label="capitalize(filterOpts.recordType.active)"
+              no-caps :label="$t(capitalize(filterOpts.recordType.active))"
               dense
               class="q-pl-sm button"
               :dark="darkMode"
@@ -36,14 +36,15 @@
             >
               <q-list dense>
                 <q-item
-                  v-for="recordType in filterOpts.recordType.options"
+                  v-for="(recordType, index) in filterOpts.recordType.options"
+                  :key="index"
                   :index="recordType"
                   clickable v-close-popup
                   :active="recordType === filterOpts.recordType.active"
                   @click="() => fetchGifts({ recordType: recordType, limit: 10 })"
                 >
                   <q-item-section>
-                    <q-item-label>{{ capitalize(recordType) }}</q-item-label>
+                    <q-item-label>{{ $t(capitalize(recordType)) }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -70,7 +71,7 @@
               class="row items-center justify-center q-space text-center text-grey q-my-md q-gutter-sm"
               style="font-size:2rem"
             >
-              <div>No gifts</div>
+              <div>{{ $t('NoGifts') }}</div>
               <q-icon name="mdi-gift" size="1.25em"/>
             </div>
             <template v-else>
@@ -85,19 +86,19 @@
                   :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
                 >
                   <div class="row">
-                    <div class="q-space">Amount</div>
+                    <div class="q-space">{{ $t('Amount') }}</div>
                     <div class="text-caption text-grey">
                       {{ getAssetDenomination(gift?.amount) }}
                     </div>
                   </div>
                   <div class="row">
-                    <div class="q-space">Date Created</div>
+                    <div class="q-space">{{ $t('DateCreated') }}</div>
                     <div class="text-caption text-grey">
                       {{formatRelativeTimestamp(gift?.date_created)}}
                     </div>
                   </div>
                   <div class="row" v-if="gift?.campaign_name">
-                    <div class="q-space">Campaign</div>
+                    <div class="q-space">{{ $t('Campaign') }}</div>
                     <div class="text-caption text-grey">
                       <a style="text-decoration: underline;" @click="filterByCampaign(gift)">{{ gift?.campaign_name }}</a>
                     </div>
@@ -105,7 +106,7 @@
                   <q-separator spaced :dark="darkMode"/>
                   <div v-if="gift.date_claimed === 'None'" class="row items-center q-gutter-sm">
                     <div class="q-space">
-                      <q-badge color="grey" class="q-my-xs">Unclaimed</q-badge>
+                      <q-badge color="grey" class="q-my-xs">{{ $t('Unclaimed') }}</q-badge>
                     </div>
                     <div v-if="getGiftShare(gift?.gift_code_hash)">
                       <q-btn
@@ -145,10 +146,10 @@
                   <div v-else class="row items-center q-gutter-sm">
                     <div class="q-space">
                       <q-badge v-if="gift?.recovered" color="blue" class="q-my-xs">
-                        Recovered
+                        {{ $t('Recovered') }}
                       </q-badge>
                       <q-badge v-else color="green" class="q-my-xs">
-                        Claimed
+                        {{ $t('Claimed') }}
                       </q-badge>
                     </div>
                     <div class="text-caption text-grey">
@@ -313,10 +314,10 @@ export default {
     },
     confirmRecoverGift(gift) {
       this.$q.dialog({
-        title: 'Recover gift',
-        message: `Recover gift of ${gift.amount} BCH. Proceed?`,
-        ok: true,
-        cancel: true,
+        title: this.$t('RecoverGift'),
+        message: this.$t('RecoverGiftDescription', { amount: gift.amount }, `Recover gift of ${gift.amount} BCH. Proceed?`),
+        ok: this.$t('OK'),
+        cancel: this.$t('Cancel'),
         seamless: true,
         class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })

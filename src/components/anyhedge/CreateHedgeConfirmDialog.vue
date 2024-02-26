@@ -16,14 +16,14 @@
       <div class="row no-wrap items-center justify-center q-pl-md q-mb-md">
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="isPositionOffer">
-            Position offer
-            <template v-if="position === 'hedge'">(Hedge)</template>
-            <template v-else-if="position === 'long'">(Long)</template>
+            {{ $t('PositionOffer') }}
+            <template v-if="position === 'hedge'">({{ $t('Hedge') }})</template>
+            <template v-else-if="position === 'long'">({{ $t('Long') }})</template>
           </template>
           <template v-else>
-            <template v-if="position === 'hedge'">Stabilize (Hedge)</template>
-            <template v-else-if="position === 'long'">Leverage (Long)</template>
-            <template v-else>Hedge Contract</template>
+            <template v-if="position === 'hedge'">{{ $t('Stabilize') }} ({{ $t('Hedge') }})</template>
+            <template v-else-if="position === 'long'">{{ $t('Leverage') }} ({{ $t('Long') }})</template>
+            <template v-else>{{ $t('HedgeContract') }}</template>
           </template>
         </div>
         <q-btn
@@ -31,14 +31,15 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <q-card-section class="q-gutter-y-sm q-pt-none hedge-details-container">
         <div>
-          <div class="text-grey text-subtitle1">Contract Value</div>
+          <div class="text-grey text-subtitle1">{{ $t('ContractValue') }}</div>
           <div class="row items-start">
             <div class="col-6">
-              <div class="text-grey-7">Hedge</div>
+              <div class="text-grey-7">{{ $t('Hedge') }}</div>
               <div v-if="contractValues.priceValue">
                 {{ formatUnits(contractValues.hedge.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
@@ -47,7 +48,7 @@
               </div>
             </div>
             <div class="col-6">
-              <div class="text-grey-7">Long</div>
+              <div class="text-grey-7">{{ $t('Long') }}</div>
               <div v-if="contractValues.priceValue">
                 {{ formatUnits(contractValues.long.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
@@ -65,7 +66,7 @@
                       class="text-caption q-px-md q-py-sm pt-card pt-label"
                       :class="getDarkModeClass(darkMode)"
                     >
-                      Long amount is only an approximation without a starting price value on the asset
+                      {{ $t('LongAmountDescription') }}
                     </div>
                   </q-popup-proxy>
                 </q-icon>
@@ -75,7 +76,7 @@
           <q-separator :dark="darkMode"/>
         </div>
         <div v-if="fundingAmounts && !isPositionOffer">
-          <div class="text-grey text-subtitle1">Funding</div>
+          <div class="text-grey text-subtitle1">{{ $t('Funding') }}</div>
           <div>
             <div
               class="row items-start q-pr-md"
@@ -92,7 +93,7 @@
                   }"
                 />
               </div>
-              <div class="text-body1 text-grey">Hedge</div>
+              <div class="text-body1 text-grey">{{ $t('Hedge') }}</div>
               <div class="q-space text-body1 text-right">
                 {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.total / (10**8)) }}
               </div>
@@ -100,15 +101,15 @@
             <q-slide-transition>
               <div v-if="expandFundingAmounts.hedge" class="q-pl-md">
                 <div class="row items-start q-pr-md">
-                  <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
+                  <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Contract') }}</div>
                   <div class="q-space text-right">
                     {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.sats / (10**8)) }}
                   </div>
                 </div>
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Fees') }}</div>
                 <div class="q-pl-md">
                   <div class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('NetworkFee') }}</div>
                     <div class="q-space text-right">
                       {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.fees?.network / (10**8)) }}
                     </div>
@@ -139,7 +140,7 @@
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(fee?.stats?.pctg, 2) }}%
                             </span>
-                            of position's value
+                            {{ $t('OfValue') }}
                           </div>
                           <template v-if="fee?.description">
                             <q-separator :dark="darkMode"/>
@@ -153,7 +154,7 @@
                   <!-- Keeping this section for backward compabitibility -->
                   <div v-if="premiumFeeMetadata?.hedge?.pctg" class="row items-start q-pr-md">
                     <div class="text-caption text-grey row-items-center" style="margin-bottom:-0.5em">
-                      Premium
+                      {{ $t('Premium') }}
                       <q-icon
                         v-if="premiumFeeMetadata?.hedge"
                         :color="premiumFeeMetadata?.hedge?.icon?.color"
@@ -162,11 +163,11 @@
                       >
                         <q-popup-proxy :breakpoint="0">
                           <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
-                            Premium is
+                            {{ $t('PremiumIs') }}
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.hedge?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.hedge?.pctg, 2) }}%
                             </span>
-                            of position's value
+                            {{ $t('OfValue') }}
                           </div>
                         </q-popup-proxy>
                       </q-icon>
@@ -195,7 +196,7 @@
                   }"
                 />
               </div>
-              <div class="text-body1 text-grey">Long</div>
+              <div class="text-body1 text-grey">{{ $t('Long') }}</div>
               <div class="q-space text-body1 text-right">
                 {{ getAssetDenomination(denomination, fundingAmounts?.long?.total / (10**8)) }}
               </div>
@@ -203,15 +204,15 @@
             <q-slide-transition>
               <div v-if="expandFundingAmounts.long" class="q-pl-md">
                 <div class="row items-start q-pr-md">
-                  <div class="text-caption text-grey" style="margin-bottom:-0.5em">Contract</div>
+                  <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Contract') }}</div>
                   <div class="q-space text-right">
                     {{ getAssetDenomination(denomination, fundingAmounts?.long?.sats / (10**8)) }}
                   </div>
                 </div>
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Fees</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Fees') }}</div>
                 <div class="q-pl-md">
                   <div class="row items-start q-pr-md">
-                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">Network fee</div>
+                    <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('NetworkFee') }}</div>
                     <div class="q-space text-right">
                       {{ getAssetDenomination(denomination, fundingAmounts?.long?.fees?.network / (10**8)) }}
                     </div>
@@ -242,7 +243,7 @@
                             <span :class="['text-weight-medium', `text-${fee?.stats?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(fee?.stats?.pctg, 2) }}%
                             </span>
-                            of position's value
+                            {{ $t('OfValue') }}
                           </div>
                           <template v-if="fee?.description">
                             <q-separator :dark="darkMode"/>
@@ -255,7 +256,7 @@
                   <!-- Keeping this section for backward compabitibility -->
                   <div v-if="premiumFeeMetadata?.long?.pctg" class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">
-                      Premium
+                      {{ $t('Premium') }}
                       <q-icon
                         v-if="premiumFeeMetadata?.long"
                         :color="premiumFeeMetadata?.long?.icon?.color"
@@ -264,11 +265,11 @@
                       >
                         <q-popup-proxy :breakpoint="0">
                           <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
-                            Premium is
+                            {{ $t('PremiumIs') }}
                             <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.long?.icon?.color}`]" style="word-break: keep-all;">
                               {{ formatUnits(premiumFeeMetadata?.long?.pctg, 2) }}%
                             </span>
-                            of position's value
+                            {{ $t('OfValue') }}
                           </div>
                         </q-popup-proxy>
                       </q-icon>
@@ -285,7 +286,7 @@
         </div>
 
         <div>
-          <div class="text-grey text-subtitle1">Contract Duration</div>
+          <div class="text-grey text-subtitle1">{{ $t('ContractDuration') }}</div>
           <div>
             <template v-if="durationData.startTimestamp">
               {{ formatTimestampToText(durationData.startTimestamp * 1000) }} -
@@ -300,17 +301,17 @@
         </div>
 
         <div>
-          <div class="text-grey text-subtitle1">Liquidation Parameters</div>
+          <div class="text-grey text-subtitle1">{{ $t('LiquidationParameters') }}</div>
           <div>
             <div v-if="liquidationData.priceValue">
-              <span class="text-caption text-grey">Start price:</span>
+              <span class="text-caption text-grey">{{ $t('StartPrice') }}:</span>
               <span class="q-ml-xs">
                 {{ formatUnits(liquidationData.priceValue, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency }}
               </span>
             </div>
             <div class="row">
               <div class="col-6">
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">Low</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Low') }}</div>
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.low.price, oracleInfo?.assetDecimals || 0) }}
@@ -321,7 +322,7 @@
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-caption text-grey" style="margin-bottom:-0.5em">High</div>
+                <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('High') }}</div>
                 <div>
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.high.price, oracleInfo?.assetDecimals || 0) }}
@@ -337,13 +338,13 @@
         </div>
 
         <div>
-          <div class="text-grey text-subtitle1">Payout addresses</div>
+          <div class="text-grey text-subtitle1">{{ $t('PayoutAddresses') }}</div>
           <div v-if="!isPositionOffer || pubkeys.hedgeAddress" class="q-mb-xs">
-            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">Hedge:</div>
+            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">{{ $t('Hedge') }}:</div>
             <div class="q-space" style="word-break:break-all;">{{pubkeys.hedgeAddress}}</div>
           </div>
           <div v-if="!isPositionOffer || pubkeys.longAddress" class="q-mb-xs">
-            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">Long:</div>
+            <div class="text-caption text-grey" style="margin-bottom:-0.5em;">{{ $t('Long') }}:</div>
             <div class="q-space" style="word-break:break-all;">{{pubkeys.longAddress}}</div>
           </div>
           <q-separator :dark="darkMode"/>
@@ -369,7 +370,7 @@
             <q-icon class="material-icons q-mr-md" size="lg">
               task_alt
             </q-icon>
-            Security Check
+            {{ $t('SecurityCheck') }}
             </div>
           </template>
 
@@ -378,7 +379,7 @@
               <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
             </q-item-section>
             <q-item-section class="text-right">
-              <h5 class="q-my-sm text-grey-4" style="font-size: large;">SWIPE TO CONFIRM</h5>
+              <h5 class="q-my-sm text-grey-4" style="font-size: large;">{{ $t('SwipeToConfirm') }}</h5>
             </q-item-section>
           </q-item>
         </q-slide-item>
