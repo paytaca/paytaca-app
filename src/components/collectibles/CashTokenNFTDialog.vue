@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="innerVal" full-width seamless>
+  <q-dialog v-model="innerVal" full-width seamless ref="nftDialog">
     <q-card style="max-width:90vw;" class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="row items-start no-wrap nft-dialog-header" >
         <div class="text-h6 q-space" :class="{'text-grad': darkMode}" style="text-overflow:clip">
@@ -173,8 +173,8 @@ import 'vue-json-pretty/lib/styles.css';
 import { ellipsisText } from "src/wallet/anyhedge/formatters";
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
-import { computed, inject, ref, watch } from "vue";
-import VueJsonPretty from 'vue-json-pretty';
+import { computed, inject, ref, watch, onMounted } from "vue";
+import VueJsonPretty from 'vue-json-pretty'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -210,6 +210,7 @@ const props = defineProps({
 })
 
 const innerVal = ref(props.modelValue)
+const nftDialog = ref(null)
 watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 watch(innerVal, () => {
@@ -253,6 +254,12 @@ function isNotDefaultTheme () {
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
   return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
+
+onMounted(() => {
+  document.addEventListener('backbutton', () => {
+    nftDialog?.value.hide()
+  })
+})
 </script>
 
 <style lang="scss" scoped>
