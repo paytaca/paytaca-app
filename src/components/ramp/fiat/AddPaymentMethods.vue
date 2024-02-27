@@ -1,9 +1,9 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+  <div
+    class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
-    <div>
+    <!-- <div>
       <q-btn
         flat
         padding="md"
@@ -11,7 +11,7 @@
         class="button button-text-primary"
         :class="getDarkModeClass(darkMode)"
         @click="onBack"/>
-    </div>
+    </div> -->
     <div class="q-mx-md" v-if="isloaded">
       <div class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size">
         {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
@@ -134,7 +134,7 @@
         </div>
       </q-card-section>
     </div>
-  </q-card>
+  </div>
   <div v-if="openDialog">
     <MiscDialogs
       :key="miscDialogsKey"
@@ -250,7 +250,7 @@ export default {
     getDarkModeClass,
     onBack () {
       if (this.type === 'Profile') {
-        bus.emit('show-menu')
+      bus.emit('show-menu')
       }
       this.$emit('back')
     },

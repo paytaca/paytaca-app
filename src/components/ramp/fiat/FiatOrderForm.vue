@@ -1,13 +1,14 @@
 <template>
-  <q-card
+  <!-- <div class="fixed" style="background-color: aqua; height: 50px; width: 50px;" @click="$emit('back')"></div> -->
+  <div
     v-if="state === 'initial'"
-    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <!-- Form Body -->
     <div>
       <div v-if="isloaded">
-        <div>
+        <!-- <div>
           <q-btn
             flat
             padding="md md 0 md"
@@ -16,7 +17,7 @@
             :class="getDarkModeClass(darkMode)"
             @click="$emit('back')"
           />
-        </div>
+        </div> -->
         <div
           class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size"
           :class="ad.trade_type === 'SELL' ? 'buy-color' : 'sell-color'"
@@ -139,7 +140,10 @@
                 label="Edit Ad"
                 :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
                 class="q-space"
-                @click="state = 'edit-ad'">
+                @click="() => {
+                  state = 'edit-ad'
+                  $emit('updatePageName', 'ad-form-1')
+                  }">
               </q-btn>
             </div>
 
@@ -189,7 +193,7 @@
         @back="openReviews = false"
       />
     </div>
-  </q-card>
+  </div>
   <!-- Add payment method -->
   <div v-if="state === 'add-payment-method'">
     <AddPaymentMethods
@@ -206,11 +210,15 @@
   <!-- Edit Ad -->
   <div v-if="state === 'edit-ad'">
     <FiatAdsForm
+      ref="fiatAdsForm"
       @back="onBackEditAds()"
       :adsState="'edit'"
       :transactionType="ad.trade_type"
       :selectedAdId="ad.id"
       @submit="onSubmitEditAds()"
+      @update-page-name="(val) => {
+        $emit('updatePageName', val)
+      }"
     />
   </div>
 </template>
@@ -264,7 +272,7 @@ export default {
     FiatProcessOrder,
     MiscDialogs
   },
-  emits: ['back', 'orderCanceled'],
+  emits: ['back', 'orderCanceled', 'updatePageName'],
   computed: {
     appealCooldown () {
       return getAppealCooldown(this.ad?.appeal_cooldown)
@@ -312,6 +320,9 @@ export default {
         return parseFloat(tradeCeiling)
       }
     },
+    customBackEditAds () {
+      this.$refs.fiatAdsForm.step--
+    },
     onBackEditAds () {
       console.log('back to menu')
       this.state = 'initial'
@@ -319,6 +330,7 @@ export default {
     },
     onSubmitEditAds () {
       this.$emit('back')
+      this.$emit('updatePageName', 'main')
       bus.emit('show-menu', 'store')
     },
     orderConfirm () {
@@ -358,6 +370,7 @@ export default {
         .then(response => {
           vm.order = response.data.order
           vm.state = 'order-process'
+          vm.$emit('updatePageName', 'order-process')
           return vm.order.id
         })
         .then(orderId => {

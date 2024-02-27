@@ -1,15 +1,17 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mb-lg text-bow"
+  <!-- back button -->
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
+  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
+  <div
     :class="getDarkModeClass(darkMode)"
-    style="overflow:hidden;"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`"
+    class="q-mx-md q-mb-lg text-bow"
+    :style="`height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
-    <div class="q-mb-lg q-pb-lg">
+    <div class="q-mb-sm q-pb-sm">
       <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-      <div class="row no-wrap items-center q-pa-sm q-pt-md">
+      <div class="row items-center q-px-sm">
         <!-- currency dropdown -->
-        <div>
+        <div class="col-auto">
           <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
             {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
           </div>
@@ -30,7 +32,7 @@
         </div>
         <q-space />
         <!-- filters -->
-        <div class="q-pr-md">
+        <div class="col-auto q-pr-md">
           <q-btn
             unelevated
             ripple
@@ -39,8 +41,7 @@
             icon="filter_list"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
-            @click="openFilter()"
-          >
+            @click="openFilter()">
             <q-badge v-if="!defaultFiltersOn" floating color="red"/>
           </q-btn>
         </div>
@@ -49,7 +50,7 @@
       <div
         class="row br-15 text-center pt-card btn-transaction"
         :class="getDarkModeClass(darkMode)"
-        :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
+        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
         <button
           class="col br-15 btn-custom fiat-tab q-mt-none"
           :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"
@@ -64,14 +65,14 @@
         </button>
       </div>
       <!-- </q-pull-to-refresh> -->
-      <div class="q-mt-md">
-        <q-pull-to-refresh @refresh="refreshData">
-          <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
-          </div>
-          <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
+      <div class="q-mt-sm">
+        <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
+        </div>
+        <div v-else>
+          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+            <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"
@@ -131,7 +132,7 @@
                       </div>
                       <div class="q-gutter-sm q-pt-xs">
                         <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                        rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+                        rounded outline :color="transactionType === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
                         {{ method.payment_type }}
                         </q-badge>
                       </div>
@@ -139,21 +140,23 @@
                   </q-item-section>
                 </q-item>
               </q-infinite-scroll>
-            </q-list>
-          </div>
-        </q-pull-to-refresh>
+            </q-pull-to-refresh>
+          </q-list>
+        </div>
       </div>
     </div>
     <q-inner-loading :showing="loading">
       <ProgressLoader/>
     </q-inner-loading>
-  </q-card>
+  </div>
   <!-- Buy/Sell Form Here -->
   <div v-if="state !== 'SELECT' && !viewProfile">
     <FiatOrderForm
+      ref="orderForm"
       :ad-id="selectedListing.id"
       v-on:back="state = 'SELECT'"
       @order-canceled="onOrderCanceled"
+      @update-page-name="updatePageName"
     />
   </div>
   <div v-if="openDialog">
@@ -165,12 +168,15 @@
     />
   </div>
   <FiatProfileCard
+    ref="fiatProfileCard"
     v-if="viewProfile"
     :userInfo="selectedUser"
     v-on:back="viewProfile = false"
+    @update-page-name="updatePageName"
   />
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
@@ -193,7 +199,8 @@ export default {
     FiatOrderForm,
     FiatProfileCard,
     FilterDialog,
-    ProgressLoader
+    ProgressLoader,
+    HeaderNav
   },
   data () {
     return {
@@ -211,7 +218,6 @@ export default {
       pageNumber: null,
       openDialog: false,
       dialogType: '',
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       defaultFilters: {
         sort_type: 'ascending',
         price_type: {
@@ -222,7 +228,9 @@ export default {
         time_limits: [5, 15, 30, 60, 300, 720, 1440]
       },
       filters: {},
-      defaultFiltersOn: true
+      defaultFiltersOn: true,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
+      pageName: 'main'
     }
   },
   watch: {
@@ -279,6 +287,41 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updatePageName (name) {
+      this.pageName = name
+    },
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'order-process':
+        case 'order-form':
+          bus.emit('show-menu', 'store')
+          vm.state = 'SELECT'
+          vm.pageName = 'main'
+          break
+        case 'view-profile':
+          vm.viewProfile = false
+          vm.pageName = 'main'
+          break
+        case 'edit-pm':
+          // vm.$refs.fiatProfileCard.state = 'initial'
+          vm.$refs.fiatProfileCard.onBackPM()
+          vm.pageName = 'view-profile'
+          break
+        case 'ad-form-1':
+          vm.$refs.orderForm.onBackEditAds()
+          vm.pageName = 'order-form'
+          break
+        case 'ad-form-2':
+          vm.$refs.orderForm.customBackEditAds()
+          vm.pageName = 'ad-form-1'
+          break
+        case 'ad-form-3':
+          vm.$refs.orderForm.customBackEditAds()
+          vm.pageName = 'ad-form-2'
+          break
+      }
+    },
     fetchPaymentTypes () {
       const vm = this
       return new Promise((resolve, reject) => {
@@ -451,6 +494,7 @@ export default {
       const vm = this
       vm.selectedListing = listing
       vm.state = vm.transactionType
+      vm.pageName = 'order-form'
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
@@ -461,6 +505,7 @@ export default {
         self: isOwner
       }
       this.viewProfile = true
+      this.pageName = 'view-profile'
     },
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
@@ -521,5 +566,12 @@ export default {
 .col-transaction {
   padding-top: 2px;
   font-weight: 500;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>

@@ -24,42 +24,44 @@
             No Reviews Yet
           </div>
         </div>
-        <q-pull-to-refresh @refresh="refreshReviews">
-          <q-scroll-area ref="scrollTargetRef" :style="`height: ${maxHeight - (maxHeight*.2)}px`" style="overflow:auto;">
-            <q-infinite-scroll
-              ref="infiniteScroll"
-              :items="reviewList"
-              @load="loadMoreData"
-              :offset="0"
-              :scroll-target="scrollTargetRef">
-              <template v-slot:loading>
-                <div class="row justify-center q-my-md" v-if="hasMoreData">
-                  <q-spinner-dots color="primary" size="40px" />
-                </div>
-              </template>
-              <q-item class="q-mx-lg q-pb-sm q-px-md" v-for="(review, index) in reviewList" :key="index">
-                <q-item-section>
-                  <div class="row text-weight-bold md-font-size">{{  review.from_peer.name }}</div>
-                  <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
-                  <div class="row q-py-xs q-pb-sm">
-                    <q-rating
-                      readonly
-                      v-model="review.rating"
-                      size="1.5em"
-                      color="yellow-9"
-                      icon="star"
-                    />
-                    <span class="sm-font-size q-mx-sm">({{ review.rating }})</span>
+        <!-- <q-pull-to-refresh @refresh="refreshReviews"> -->
+          <q-list ref="scrollTargetRef" :style="`height: ${maxHeight - (maxHeight*.2)}px`" style="overflow:auto;">
+            <q-pull-to-refresh @refresh="refreshReviews" :scroll-target="scrollTargetRef">
+              <q-infinite-scroll
+                ref="infiniteScroll"
+                :items="reviewList"
+                @load="loadMoreData"
+                :offset="0"
+                :scroll-target="scrollTargetRef">
+                <template v-slot:loading>
+                  <div class="row justify-center q-my-md" v-if="hasMoreData">
+                    <q-spinner-dots color="primary" size="40px" />
                   </div>
-                  <div class="row md-font-size q-mx-sm" v-if="review.comment.length > 0">
-                    {{ review.comment }}
-                  </div>
-                  <q-separator :dark="darkMode" class="q-mt-md"/>
-                </q-item-section>
-              </q-item>
-            </q-infinite-scroll>
-          </q-scroll-area>
-        </q-pull-to-refresh>
+                </template>
+                <q-item class="q-mx-lg q-pb-sm q-px-md" v-for="(review, index) in reviewList" :key="index">
+                  <q-item-section>
+                    <div class="row text-weight-bold md-font-size">{{  review.from_peer.name }}</div>
+                    <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
+                    <div class="row q-py-xs q-pb-sm">
+                      <q-rating
+                        readonly
+                        v-model="review.rating"
+                        size="1.5em"
+                        color="yellow-9"
+                        icon="star"
+                      />
+                      <span class="sm-font-size q-mx-sm">({{ review.rating }})</span>
+                    </div>
+                    <div class="row md-font-size q-mx-sm" v-if="review.comment.length > 0">
+                      {{ review.comment }}
+                    </div>
+                    <q-separator :dark="darkMode" class="q-mt-md"/>
+                  </q-item-section>
+                </q-item>
+              </q-infinite-scroll>
+            </q-pull-to-refresh>
+          </q-list>
+        <!-- </q-pull-to-refresh> -->
       </div>
     </q-card>
   </q-dialog>

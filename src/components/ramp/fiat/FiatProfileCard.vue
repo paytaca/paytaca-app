@@ -1,9 +1,11 @@
 <template>
-  <q-card
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
+  <HeaderNav v-if="pageName" :title="`Fiat Ramp`" backnavpath="/apps"/>
+  <div
     v-if="!selectedListing && state === 'initial'"
-    class="br-15 q-pt-sm q-mx-md q-mb-lg q-pb-lg text-bow"
+    class="q-mx-md q-mb-lg q-pb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
+    :style="`height: ${minHeight}px;`">
     <div v-if="!isloaded">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
@@ -11,14 +13,14 @@
     </div>
     <div v-else>
       <div v-if="state === 'initial'">
-        <q-btn
+        <!-- <q-btn
           flat
-          padding="md md xs md"
+          padding="none md xs md"
           icon="arrow_back"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
           @click="$emit('back')"
-        />
+        /> -->
         <div v-if="user" class="q-mb-lg">
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
@@ -42,7 +44,14 @@
               label="Edit Payment Methods"
               color="blue-8"
               class="q-space q-mx-md button"
-              @click="state= 'edit-pm'"
+              @click="() => {
+                state= 'edit-pm'
+                if (!userInfo) {
+                  pageName = state
+                } else {
+                  $emit('updatePageName', state)
+                }
+              }"
               icon="o_payments"
               >
             </q-btn>
@@ -80,9 +89,9 @@
           </div>
         </div>
         <div
-          class="row q-mb-md br-15 text-center pt-card btn-transaction md-font-size"
+          class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}"
@@ -97,7 +106,7 @@
             ADS
           </button>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - 300}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight - 320}px`" style="overflow-y:auto;">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
@@ -190,8 +199,9 @@
         </q-scroll-area>
       </div>
     </div>
-  </q-card>
+  </div>
   <AddPaymentMethods
+    ref="addPaymentMethods"
     v-if="state === 'edit-pm'"
     :type="'Profile'"
     v-on:back="state = 'initial'"
@@ -219,11 +229,12 @@
   />
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
-import FiatOrderForm from './FiatOrderForm.vue'
+import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
 import { updateChatIdentity } from 'src/wallet/ramp/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -236,7 +247,6 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
       isloaded: false,
       user: null,
       editNickname: false,
@@ -254,19 +264,22 @@ export default {
 
       adsTotalPages: null,
       adsPageNumber: 1,
-      loadingAds: false
+      loadingAds: false,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
+      pageName: null
     }
   },
   props: {
     userInfo: Object
   },
-  emits: ['back'],
+  emits: ['back', 'updatePageName'],
   components: {
     MiscDialogs,
     AddPaymentMethods,
     ProgressLoader,
     FeedbackDialog,
-    FiatOrderForm
+    FiatOrderForm,
+    HeaderNav
   },
   watch: {
     activeTab (value) {
@@ -291,12 +304,28 @@ export default {
     }
   },
   mounted () {
+    if (!this.userInfo) {
+      this.pageName = 'main'
+    }
+
     this.processUserData()
     this.fetchReviews()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    onBackPM () {
+      this.$refs.addPaymentMethods.onBack()
+    },
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'edit-pm':
+          vm.onBackPM()
+          vm.pageName = 'main'
+          break
+      }
+    },
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
@@ -314,6 +343,7 @@ export default {
         this.user = user
         this.user.self = self
       })
+      console.log('self: ', self)
     },
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
@@ -520,7 +550,7 @@ export default {
   margin-top: 10px;
 }
 .btn-custom {
-  height: 35px;
+  height: 30px;
   width: 47%;
   border-radius: 20px;
   border: none;
@@ -545,5 +575,12 @@ export default {
 .col-transaction {
   padding-top: 2px;
   font-weight: 500;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>

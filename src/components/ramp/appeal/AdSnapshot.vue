@@ -2,7 +2,7 @@
   <q-card
     bordered
     flat
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card text-bow"
+    class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card-2 text-bow"
     :class="getDarkModeClass(darkMode)"
   >
       <div>

@@ -33,10 +33,10 @@ export function formatCurrency (value, currency) {
   let formattedNumber = null
   const parsedValue = parseFloat(value)
   if (currency) {
-    const maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 2
-    // if (parsedValue < 1) {
-    //   maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 8
-    // }
+    let maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 2
+    if (parsedValue < 1) {
+      maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 8
+    }
     formattedNumber = parsedValue.toLocaleString(undefined, {
       style: 'currency',
       currency: currency,

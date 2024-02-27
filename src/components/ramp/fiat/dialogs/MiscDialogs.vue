@@ -704,6 +704,30 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- WIP instruction dialog fot ad form -->
+  <q-dialog v-model="instructionDialog" @before-hide="$emit('back')" full-width position="bottom">
+    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+      <q-card-section>
+        <div class="text-h6 text-center">{{ title }}</div>
+      </q-card-section>
+
+      <q-card-section class="text-center q-pt-none">
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+      </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn
+          flat
+          label="Confirm"
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          @click="$emit('back')"
+          v-close-popup
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -757,6 +781,7 @@ export default {
       filterOrder: false,
       appeal: false,
       appealForm: false,
+      instructionDialog: false,
 
       // Input Model
       nickname: '',
@@ -1148,6 +1173,9 @@ export default {
           break
         case 'appeal':
           vm.appealForm = true
+          break
+        case 'instructionDialog':
+          vm.instructionDialog = true
           break
         case 'genericDialog':
         case 'confirmPayment':
