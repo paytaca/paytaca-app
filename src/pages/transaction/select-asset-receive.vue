@@ -217,13 +217,47 @@ export default {
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
+    },
+    getWallet (type) {
+      return this.$store.getters['global/getWallet'](type)
+    },
+    async getMainchainTokens () {
+      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
+      const mainchainTokens = []
+
+      for (const tokenWalletHash of tokenWalletHashes) {
+        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
+
+        const tokens = await this.$store.dispatch(
+          'assets/getMissingAssets',
+          {
+            isCashToken,
+            walletHash: tokenWalletHash,
+            includeIgnoredTokens: false
+          }
+        )
+
+        mainchainTokens.push(...tokens)
+      }
+
+      return mainchainTokens
+    },
+    async getSmartchainTokens () {
+      const tokens = await this.$store.dispatch(
+        'sep20/getMissingAssets',
+        {
+          address: this.getWallet('sbch').lastAddress,
+          icludeIgnoredTokens: false
+        }
+      )
+      return tokens
     }
   },
   async mounted () {
     const vm = this
     vm.$store.dispatch('market/updateAssetPrices', {})
-    const assets = vm.$store.getters['assets/getAssets']
-    assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+    const bchAssets = vm.$store.getters['assets/getAssets']
+    bchAssets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
     // update balance of assets
     await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
@@ -231,10 +265,28 @@ export default {
       wallet = markRaw(wallet)
       if (vm.selectedNetwork === 'sBCH') wallet.sBCH.getOrInitWallet()
 
-      assets.forEach(async (asset) => {
+      bchAssets.forEach(async (asset) => {
         await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
       })
     })
+
+    // check for newly-received token(s) then add it to asset list
+    // only run condition if user went back to receive page from receive
+    // unlisted token page to avoid accidentally adding back removed tokens
+    const previousRoute = vm.$router.options.history.state.back
+    const isSBCH = vm.selectedNetwork === 'sBCH'
+    if (previousRoute.includes('receive') && previousRoute.includes('unlisted')) {
+      const ignoredAssets = vm.$store.getters[`${isSBCH ? 'sep20' : 'assets'}/ignoredAssets`]
+      const missingAssets = isSBCH ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+      const combinedAssets = [...vm.assets.map(a => a.id), ...ignoredAssets.map(a => a.id)]
+
+      missingAssets.forEach(asset => {
+        if (combinedAssets.indexOf(asset.id) === -1) {
+          console.log(asset.isSep20 ? 'sep20' : 'assets')
+          vm.$store.commit(`${asset.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, asset)
+        }
+      })
+    }
   }
 }
 </script>
