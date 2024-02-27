@@ -1,152 +1,148 @@
 <template>
   <div :class="getDarkModeClass(darkMode)" class="text-bow">
     <div v-if="isloaded">
-      <q-pull-to-refresh @refresh="$emit('refresh')" class="q-mx-lg">
-          <div class="q-px-sm">
-            <div v-if="isAppealed">
-              <q-card class="q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
-                <q-card-section>
-                  <div class="text-weight-bold md-font-size">Appeal reasons</div>
-                  <div v-if="appeal">
-                    <q-badge
-                      v-for="reason in appeal.reasons"
-                      :key="reason"
-                      rounded
-                      size="sm"
-                      outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                      class="q-mr-xs"
-                      :label="reason" />
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-            <div v-if="displayContractInfo" class="q-mt-md q-mx-sm">
-              <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-              <q-input
-                class="q-pb-xs md-font-size"
-                readonly
-                dense
-                filled
-                :dark="darkMode"
-                :label="data?.contractAddress">
-                <template v-slot:append>
-                  <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
-                    <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-                  </div>
-                </template>
-              </q-input>
-              <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-              <q-input
-                class="q-pb-xs md-font-size"
-                readonly
-                dense
-                filled
-                :loading="!contractBalance"
-                :dark="darkMode"
-                v-model="contractBalance">
-                <template v-slot:append>
-                  <span>BCH</span>
-                </template>
-              </q-input>
-              <div
-                class="row q-px-md q-pt-sm text-center sm-font-size"
-                style="overflow-wrap: break-word;">
-                <div v-if="hasLabel" class="row">
-                  <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-                  <span class="col text-left q-ml-sm">{{ label }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="q-mt-sm q-px-md q-mb-sm">
-              <div v-if="instructionMessage" class="row sm-font-size q-mx-sm">
-                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="blue-6"/>&nbsp;
-                <div class="col">{{ instructionMessage }}</div>
-              </div>
-              <div class="row q-pt-sm" v-if="type === 'ongoing' && hasCancel">
-                <q-btn
+      <div class="q-px-sm q-mx-lg">
+        <div v-if="isAppealed">
+          <q-card class="q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
+            <q-card-section>
+              <div class="text-weight-bold md-font-size">Appeal reasons</div>
+              <div v-if="appeal">
+                <q-badge
+                  v-for="reason in appeal.reasons"
+                  :key="reason"
                   rounded
-                  no-caps
-                  label='Cancel Order'
-                  class="q-space text-white"
-                  style="background-color: #ed5f59;"
-                  @click="$parent.cancellingOrder()"
-                />
+                  size="sm"
+                  outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                  class="q-mr-xs"
+                  :label="reason" />
               </div>
-            </div>
-            <!-- Appeal Button -->
-            <div v-if="showAppealBtn">
-              <div class="row q-pt-xs q-px-md">
-                <q-btn
-                  flat
-                  no-caps
-                  :disable="!data?.wsConnected || countDown !== null"
-                  :label="appealBtnLabel"
-                  class="q-space text-white"
-                  color="blue-6"
-                  @click="openDialog = true"
-                />
+            </q-card-section>
+          </q-card>
+        </div>
+        <div v-if="displayContractInfo" class="q-mt-md q-mx-sm">
+          <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
+          <q-input
+            class="q-pb-xs md-font-size"
+            readonly
+            dense
+            filled
+            :dark="darkMode"
+            :label="data?.contractAddress">
+            <template v-slot:append>
+              <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
               </div>
-            </div>
-            <!-- Feedback -->
-            <div class="q-pt-md q-mx-md" v-if="hasReview">
-              <div class="md-font-size text-center">
-                <span v-if="!feedbackForm.is_posted">Rate your experience</span>
-                <span v-else>Your Review</span>
-              </div>
-              <!-- <div class="lg-font-size text-weight-bold text-center">{{ nickname }}</div> -->
-              <div>
-                <div class="q-py-xs text-center">
-                  <q-rating
-                    :readonly="feedbackForm.is_posted"
-                    v-model="feedbackForm.rating"
-                    size="2em"
-                    color="yellow-9"
-                    icon="star"
-                  />
-                </div>
-                <div class="q-pt-sm q-px-xs">
-                  <q-input
-                    v-if="!feedbackForm.is_posted || (feedbackForm.is_posted && feedbackForm.comment)"
-                    v-model="feedbackForm.comment"
-                    :dark="darkMode"
-                    :readonly="feedbackForm.is_posted"
-                    placeholder="Add comment here..."
-                    dense
-                    outlined
-                    autogrow
-                    :counter="!feedbackForm.is_posted"
-                    maxlength="200"
-                  />
-                </div>
-                <div class="row q-pt-xs q-px-xs">
-                  <q-btn
-                    v-if="!feedbackForm.is_posted"
-                    :disable="!feedbackForm.rating"
-                    rounded
-                    label='Post Review'
-                    class="q-space text-white"
-                    color="blue-8"
-                    @click="postingFeedback"
-                  />
-                  <!-- <q-btn
-                    v-else
-                    rounded
-                    label='Edit Review'
-                    class="q-space text-white"
-                    color="blue-8"
-                  /> -->
-                </div>
-                <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
-              </div>
+            </template>
+          </q-input>
+          <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+          <q-input
+            class="q-pb-xs md-font-size"
+            readonly
+            dense
+            filled
+            :loading="!contractBalance"
+            :dark="darkMode"
+            v-model="contractBalance">
+            <template v-slot:append>
+              <span>BCH</span>
+            </template>
+          </q-input>
+          <div
+            class="row q-px-md q-pt-sm text-center sm-font-size"
+            style="overflow-wrap: break-word;">
+            <div v-if="hasLabel" class="row">
+              <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
+              <span class="col text-left q-ml-sm">{{ label }}</span>
             </div>
           </div>
-      </q-pull-to-refresh>
+        </div>
+        <div v-else class="q-mt-sm q-px-md q-mb-sm">
+          <div v-if="instructionMessage" class="row sm-font-size q-mx-sm">
+            <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="blue-6"/>&nbsp;
+            <div class="col">{{ instructionMessage }}</div>
+          </div>
+          <div class="row q-pt-sm" v-if="type === 'ongoing' && hasCancel">
+            <q-btn
+              rounded
+              no-caps
+              label='Cancel Order'
+              class="q-space text-white"
+              style="background-color: #ed5f59;"
+              @click="$parent.cancellingOrder()"
+            />
+          </div>
+        </div>
+        <!-- Appeal Button -->
+        <div v-if="showAppealBtn">
+          <div class="row q-pt-xs q-px-md">
+            <q-btn
+              flat
+              no-caps
+              :disable="!data?.wsConnected || countDown !== null"
+              :label="appealBtnLabel"
+              class="q-space text-white"
+              color="blue-6"
+              @click="openDialog = true"
+            />
+          </div>
+        </div>
+        <!-- Feedback -->
+        <div class="q-pt-md q-mx-md" v-if="hasReview">
+          <div class="md-font-size text-center">
+            <span v-if="!feedbackForm.is_posted">Rate your experience</span>
+            <span v-else>Your Review</span>
+          </div>
+          <!-- <div class="lg-font-size text-weight-bold text-center">{{ nickname }}</div> -->
+          <div>
+            <div class="q-py-xs text-center">
+              <q-rating
+                :readonly="feedbackForm.is_posted"
+                v-model="feedbackForm.rating"
+                size="2em"
+                color="yellow-9"
+                icon="star"
+              />
+            </div>
+            <div class="q-pt-sm q-px-xs">
+              <q-input
+                v-if="!feedbackForm.is_posted || (feedbackForm.is_posted && feedbackForm.comment)"
+                v-model="feedbackForm.comment"
+                :dark="darkMode"
+                :readonly="feedbackForm.is_posted"
+                placeholder="Add comment here..."
+                dense
+                outlined
+                autogrow
+                :counter="!feedbackForm.is_posted"
+                maxlength="200"
+              />
+            </div>
+            <div class="row q-pt-xs q-px-xs">
+              <q-btn
+                v-if="!feedbackForm.is_posted"
+                :disable="!feedbackForm.rating"
+                rounded
+                label='Post Review'
+                class="q-space text-white"
+                color="blue-8"
+                @click="postingFeedback"
+              />
+              <!-- <q-btn
+                v-else
+                rounded
+                label='Edit Review'
+                class="q-space text-white"
+                color="blue-8"
+              /> -->
+            </div>
+            <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- Progress Loader -->
-    <div v-if="!isloaded">
-      <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </div>
+    <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
   </div>
   <!-- Dialogs -->
@@ -182,12 +178,12 @@
 </template>
 <script>
 import AppealForm from './dialogs/AppealForm.vue'
-import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { formatCurrency } from 'src/wallet/ramp'
 
 export default {
   data () {
@@ -217,15 +213,9 @@ export default {
   props: {
     data: Object
   },
-  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
+  emits: ['back', 'sendFeedback', 'submitAppeal'],
   components: {
-    MiscDialogs,
     FeedbackDialog,
-    // ProgressLoader,
-    // UserProfileDialog,
-    // AdSnapshotDialog,
-    // TradeInfoCard,
-    // ChatDialog,
     AppealForm,
     ProgressLoader
   },
@@ -280,16 +270,16 @@ export default {
     cryptoAmount () {
       let amount = 0
       if (this.byFiat) {
-        amount = this.$parent.formattedCurrency(parseFloat(this.data.order?.crypto_amount) * parseFloat(this.data.order?.locked_price), this.data.order?.ad?.fiat_currency?.symbol)
+        amount = this.formatCurrency(parseFloat(this.data.order?.crypto_amount) * parseFloat(this.data.order?.locked_price), this.data.order?.ad?.fiat_currency?.symbol)
       } else {
-        amount = this.$parent.formattedCurrency(parseFloat(this.data.order?.crypto_amount))
+        amount = this.formatCurrency(parseFloat(this.data.order?.crypto_amount))
       }
       return amount
     },
     fiatAmount () {
       let amount = Number(parseFloat(this.data?.order?.crypto_amount) * parseFloat(this.data?.order?.locked_price))
       if (amount > 1) amount = amount.toFixed(2)
-      return this.$parent.formattedCurrency(amount)
+      return this.formatCurrency(amount)
     },
     statusColor () {
       const stat = this.data?.order?.status.value
@@ -334,6 +324,7 @@ export default {
     this.timer = null
   },
   methods: {
+    formatCurrency,
     getDarkModeClass,
     isNotDefaultTheme,
     loadData () {
@@ -343,7 +334,7 @@ export default {
       this.appealCountdown()
       this.checkStatus()
       this.fetchContractBalance()
-      this.lockedPrice = this.$parent.formattedCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
+      this.lockedPrice = this.formatCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
     },
     fetchAppeal () {
       const vm = this
@@ -434,6 +425,9 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
+    },
+    refreshContent () {
+      console.log('refresh content')
     }
   }
 }

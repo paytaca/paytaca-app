@@ -71,6 +71,7 @@ export class RampContract {
     if (!address) address = this.contract.address
     try {
       const response = await backend.get(`/balance/bch/${address}`)
+      console.log(response)
       return response.data.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)
