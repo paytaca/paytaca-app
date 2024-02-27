@@ -1,10 +1,10 @@
 <template>
   <div
     v-if="step === 1"
-    class="q-pt-sm q-mx-md q-mx-none text-bow"
+    class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
-    <div v-if="step < 3">
+    <!--<div v-if="step < 3">
       <q-btn
         flat
         padding="md md 0 md"
@@ -13,7 +13,7 @@
         :class="getDarkModeClass(darkMode)"
         @click="step > 1 ? step-- : $emit('back')"
       />
-    </div>
+    </div>-->
     <div v-if="step === 1">
       <div
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
@@ -296,7 +296,7 @@ export default {
     ProgressLoader,
     MiscDialogs
   },
-  emits: ['back', 'submit'],
+  emits: ['back', 'submit', 'updatePageName'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -416,6 +416,9 @@ export default {
     this.closeWSConnection()
   },
   watch: {
+    step (value) {
+      this.$emit('updatePageName', `ad-form-${value}`)
+    },
     marketPrice (value) {
       const vm = this
       if (vm.adData.priceType === 'FLOATING') {

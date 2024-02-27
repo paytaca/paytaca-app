@@ -3,15 +3,15 @@
     class="q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-pb-md" v-if="isLoaded">
-      <q-btn
+      <!-- <q-btn
         flat
         icon="arrow_back"
         class="button button-text-primary"
         style="position: fixed; left: 20px; top: 135px; z-index: 3;"
         :class="getDarkModeClass(darkMode)"
         @click="$emit('back')"
-      />
-      <div class="text-center text-weight-bold q-mt-lg" style="font-size: large;">CONFIRM AD DETAILS</div>
+      /> -->
+      <div class="text-center text-weight-bold q-mt-sm" style="font-size: large;">CONFIRM AD DETAILS</div>
       <div v-if="type === 'ads'" :style="`height: ${minHeight - 170}px;`" style="overflow-y:auto;">
         <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
           <div class="q-pt-sm q-mx-md">

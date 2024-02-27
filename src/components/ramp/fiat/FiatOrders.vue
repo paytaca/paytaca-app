@@ -1,4 +1,6 @@
 <template>
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
+  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
   <div
     class="q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
@@ -124,9 +126,11 @@
     @refresh="refreshOrder"
   />
   <FiatProfileCard
+    ref="fiatProfileCard"
     v-if="viewProfile"
     :userInfo="selectedUser"
     v-on:back="viewProfile = false"
+    @update-page-name="updatePageName"
   />
   <div v-if="openDialog">
     <FilterDialog
@@ -138,6 +142,7 @@
   </div>
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import FilterDialog from './dialogs/FilterDialog.vue'
@@ -160,7 +165,8 @@ export default {
     FiatProcessOrder,
     FiatProfileCard,
     ProgressLoader,
-    FilterDialog
+    FilterDialog,
+    HeaderNav
   },
   props: {
     initStatusType: {
@@ -215,7 +221,8 @@ export default {
       },
       filters: {},
       openDialog: false,
-      dialogType: ''
+      dialogType: '',
+      pageName: 'main'
     }
   },
   watch: {
@@ -259,6 +266,27 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updatePageName (name) {
+      this.pageName = name
+    },
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'order-process':
+          bus.emit('show-menu', 'orders')
+          vm.returnOrderList()
+          vm.pageName = 'main'
+          break
+        case 'view-profile':
+          vm.viewProfile = false
+          vm.pageName = 'main'
+          break
+        case 'edit-pm':
+          vm.$refs.fiatProfileCard.onBackPM()
+          vm.pageName = 'view-profile'
+          break
+      }
+    },
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
@@ -411,6 +439,7 @@ export default {
     selectOrder (data) {
       this.selectedOrder = data
       this.state = 'view-order'
+      this.pageName = 'order-process'
     },
     getElapsedTime (targetTime) {
       const currentTime = new Date().getTime() // Replace with your start timestamp
@@ -485,6 +514,7 @@ export default {
         self: !data.is_ad_owner
       }
       this.viewProfile = true
+      this.pageName = 'view-profile'
     }
   }
 }
@@ -548,5 +578,12 @@ export default {
 .subtext {
   font-size: 13px;
   opacity: .5;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>

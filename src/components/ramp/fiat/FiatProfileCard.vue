@@ -1,4 +1,6 @@
 <template>
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
+  <HeaderNav v-if="pageName" :title="`Fiat Ramp`" backnavpath="/apps"/>
   <div
     v-if="!selectedListing && state === 'initial'"
     class="q-mx-md q-mb-lg q-pb-lg text-bow"
@@ -11,14 +13,14 @@
     </div>
     <div v-else>
       <div v-if="state === 'initial'">
-        <q-btn
+        <!-- <q-btn
           flat
           padding="none md xs md"
           icon="arrow_back"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
           @click="$emit('back')"
-        />
+        /> -->
         <div v-if="user" class="q-mb-lg">
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
@@ -42,7 +44,14 @@
               label="Edit Payment Methods"
               color="blue-8"
               class="q-space q-mx-md button"
-              @click="state= 'edit-pm'"
+              @click="() => {
+                state= 'edit-pm'
+                if (!userInfo) {
+                  pageName = state
+                } else {
+                  $emit('updatePageName', state)
+                }
+              }"
               icon="o_payments"
               >
             </q-btn>
@@ -192,6 +201,7 @@
     </div>
   </div>
   <AddPaymentMethods
+    ref="addPaymentMethods"
     v-if="state === 'edit-pm'"
     :type="'Profile'"
     v-on:back="state = 'initial'"
@@ -219,6 +229,7 @@
   />
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -255,18 +266,20 @@ export default {
       adsPageNumber: 1,
       loadingAds: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
+      pageName: null
     }
   },
   props: {
     userInfo: Object
   },
-  emits: ['back'],
+  emits: ['back', 'updatePageName'],
   components: {
     MiscDialogs,
     AddPaymentMethods,
     ProgressLoader,
     FeedbackDialog,
-    FiatOrderForm
+    FiatOrderForm,
+    HeaderNav
   },
   watch: {
     activeTab (value) {
@@ -291,12 +304,28 @@ export default {
     }
   },
   mounted () {
+    if (!this.userInfo) {
+      this.pageName = 'main'
+    }
+
     this.processUserData()
     this.fetchReviews()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    onBackPM () {
+      this.$refs.addPaymentMethods.onBack()
+    },
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'edit-pm':
+          vm.onBackPM()
+          vm.pageName = 'main'
+          break
+      }
+    },
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
@@ -546,5 +575,12 @@ export default {
 .col-transaction {
   padding-top: 2px;
   font-weight: 500;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>

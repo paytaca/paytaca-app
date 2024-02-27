@@ -1,4 +1,7 @@
 <template>
+  <!-- back button -->
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
+  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
   <div
     :class="getDarkModeClass(darkMode)"
     class="q-mx-md q-mb-lg text-bow"
@@ -149,9 +152,11 @@
   <!-- Buy/Sell Form Here -->
   <div v-if="state !== 'SELECT' && !viewProfile">
     <FiatOrderForm
+      ref="orderForm"
       :ad-id="selectedListing.id"
       v-on:back="state = 'SELECT'"
       @order-canceled="onOrderCanceled"
+      @update-page-name="updatePageName"
     />
   </div>
   <div v-if="openDialog">
@@ -163,12 +168,15 @@
     />
   </div>
   <FiatProfileCard
+    ref="fiatProfileCard"
     v-if="viewProfile"
     :userInfo="selectedUser"
     v-on:back="viewProfile = false"
+    @update-page-name="updatePageName"
   />
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
@@ -191,7 +199,8 @@ export default {
     FiatOrderForm,
     FiatProfileCard,
     FilterDialog,
-    ProgressLoader
+    ProgressLoader,
+    HeaderNav
   },
   data () {
     return {
@@ -220,7 +229,8 @@ export default {
       },
       filters: {},
       defaultFiltersOn: true,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
+      pageName: 'main'
     }
   },
   watch: {
@@ -277,6 +287,41 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updatePageName (name) {
+      this.pageName = name
+    },
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'order-process':
+        case 'order-form':
+          bus.emit('show-menu', 'store')
+          vm.state = 'SELECT'
+          vm.pageName = 'main'
+          break
+        case 'view-profile':
+          vm.viewProfile = false
+          vm.pageName = 'main'
+          break
+        case 'edit-pm':
+          // vm.$refs.fiatProfileCard.state = 'initial'
+          vm.$refs.fiatProfileCard.onBackPM()
+          vm.pageName = 'view-profile'
+          break
+        case 'ad-form-1':
+          vm.$refs.orderForm.onBackEditAds()
+          vm.pageName = 'order-form'
+          break
+        case 'ad-form-2':
+          vm.$refs.orderForm.customBackEditAds()
+          vm.pageName = 'ad-form-1'
+          break
+        case 'ad-form-3':
+          vm.$refs.orderForm.customBackEditAds()
+          vm.pageName = 'ad-form-2'
+          break
+      }
+    },
     fetchPaymentTypes () {
       const vm = this
       return new Promise((resolve, reject) => {
@@ -449,6 +494,7 @@ export default {
       const vm = this
       vm.selectedListing = listing
       vm.state = vm.transactionType
+      vm.pageName = 'order-form'
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
@@ -459,6 +505,7 @@ export default {
         self: isOwner
       }
       this.viewProfile = true
+      this.pageName = 'view-profile'
     },
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
@@ -519,5 +566,12 @@ export default {
 .col-transaction {
   padding-top: 2px;
   font-weight: 500;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>

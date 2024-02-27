@@ -1,10 +1,10 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="`${appTitle.toLocaleUpperCase()} Ramp`" backnavpath="/apps"/>
+    <!-- <HeaderNav :title="`${appTitle.toLocaleUpperCase()} Ramp`" backnavpath="/apps"/> -->
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
     </div>
-    <div v-else-if="!loggedIn" class="q-mt-md">
+    <div v-else-if="!loggedIn">
       <RampLogin @loggedIn="loggedInAs" :error="errorMessage"/>
     </div>
     <div v-else>

@@ -1,6 +1,7 @@
 <template>
+  <HeaderNav :title="`${user?.is_arbiter ? 'Appeal' : 'Fiat'} Ramp`" backnavpath="/apps"/>
   <div
-  class="q-pt-md q-mx-md q-mb-lg text-bow"
+  class="q-mt-md q-pt-md q-mx-md q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"
   :style="`height: ${minHeight}px;`">
     <div v-if="isLoading">
@@ -70,6 +71,7 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/au
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import HeaderNav from 'src/components/header-nav.vue'
 
 export default {
   data () {
@@ -97,7 +99,8 @@ export default {
     }
   },
   components: {
-    ProgressLoader
+    ProgressLoader,
+    HeaderNav
   },
   emits: ['loggedIn'],
   props: {

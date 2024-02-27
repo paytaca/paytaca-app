@@ -1,4 +1,8 @@
 <template>
+  <!-- back button -->
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
+  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
+
   <div
     v-if="state === 'selection'"
     class="q-mx-md q-mx-none q-mb-lg text-bow"
@@ -15,7 +19,10 @@
             class="q-ml-md"
             icon="add"
             :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
-            @click="state = 'create'"
+            @click="() => {
+              state = 'create'
+              pageName = 'ad-form-1'
+            }"
           />
         </div>
         <div
@@ -143,12 +150,17 @@
     </q-inner-loading>
   </div>
   <FiatAdsForm
+    ref="fiatAdsForm"
     v-if="state !== 'selection'"
     @back="onFormBack()"
     @submit="onSubmit()"
     :adsState="state"
     :transactionType="transactionType"
     :selectedAdId="selectedAdId"
+    @update-page-name="(val) => {
+        pageName = val
+        console.log(pageName)
+      }"
   />
   <FiatAdsDialogs
     v-if="openDialog === true"
@@ -164,6 +176,7 @@
   />
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
@@ -187,7 +200,8 @@ export default {
     FiatAdsForm,
     FiatAdsDialogs,
     MiscDialogs,
-    ProgressLoader
+    ProgressLoader,
+    HeaderNav
   },
   data () {
     return {
@@ -204,6 +218,7 @@ export default {
       totalPages: null,
       pageNumber: null,
       selectedAdId: null,
+      pageName: 'main',
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
     }
   },
@@ -247,6 +262,23 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'ad-form-1':
+          vm.onFormBack()
+          vm.pageName = 'main'
+          break
+        case 'ad-form-2':
+          vm.$refs.fiatAdsForm.step--
+          vm.pageName = 'ad-form-1'
+          break
+        case 'ad-form-3':
+          vm.$refs.fiatAdsForm.step--
+          vm.pageName = 'ad-form-2'
+          break
+      }
+    },
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
         return parseFloat(tradeAmount)
@@ -335,6 +367,7 @@ export default {
       vm.selectedAdId = null
       vm.resetAndRefetchListings()
       bus.emit('show-menu', 'ads')
+      vm.pageName = 'main'
     },
     onDialogBack () {
       const vm = this
@@ -355,6 +388,7 @@ export default {
       const vm = this
       vm.state = 'edit'
       vm.selectedAdId = id
+      vm.pageName = 'ad-form-1'
     },
     onDeleteAd (id) {
       const vm = this
@@ -457,5 +491,12 @@ color: #fff;
 .sell-add-btn {
   background-color: #ed5f59;
   color: white;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>
