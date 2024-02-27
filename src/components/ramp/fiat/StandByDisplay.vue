@@ -28,7 +28,7 @@
             filled
             :dark="darkMode"
             :label="data?.arbiter?.address"
-            v-model="data.arbiter.name">
+            v-model="arbiterName">
           </q-input>
           <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
           <q-input
@@ -97,56 +97,8 @@
           </div>
         </div>
         <!-- Feedback -->
-        <div class="q-pt-md q-mx-md" v-if="hasReview">
-          <div class="md-font-size text-center">
-            <span v-if="!feedbackForm.is_posted">Rate your experience</span>
-            <span v-else>Your Review</span>
-          </div>
-          <!-- <div class="lg-font-size text-weight-bold text-center">{{ nickname }}</div> -->
-          <div>
-            <div class="q-py-xs text-center">
-              <q-rating
-                :readonly="feedbackForm.is_posted"
-                v-model="feedbackForm.rating"
-                size="2em"
-                color="yellow-9"
-                icon="star"
-              />
-            </div>
-            <div class="q-pt-sm q-px-xs">
-              <q-input
-                v-if="!feedbackForm.is_posted || (feedbackForm.is_posted && feedbackForm.comment)"
-                v-model="feedbackForm.comment"
-                :dark="darkMode"
-                :readonly="feedbackForm.is_posted"
-                placeholder="Add comment here..."
-                dense
-                outlined
-                autogrow
-                :counter="!feedbackForm.is_posted"
-                maxlength="200"
-              />
-            </div>
-            <div class="row q-pt-xs q-px-xs">
-              <q-btn
-                v-if="!feedbackForm.is_posted"
-                :disable="!feedbackForm.rating"
-                rounded
-                label='Post Review'
-                class="q-space text-white"
-                color="blue-8"
-                @click="postingFeedback"
-              />
-              <!-- <q-btn
-                v-else
-                rounded
-                label='Edit Review'
-                class="q-space text-white"
-                color="blue-8"
-              /> -->
-            </div>
-            <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div>
-          </div>
+        <div class="q-pt-none q-mx-md md-font-size text-center" v-if="hasReview">
+          <q-btn no-caps flat color="primary" @click="openReviewForm = true">{{ feedback ? 'View my Feedback' : 'Submit Feedback' }}</q-btn>
         </div>
       </div>
     </div>
@@ -185,11 +137,17 @@
       @back="openReviews = false"
     />
   </div>
+  <FeedbackForm
+    v-if="isloaded && hasReview && openReviewForm"
+    :order-id="data.order?.id"
+    @back="openReviewForm = false"
+    @submit="onSubmitFeedback"/>
 </template>
 <script>
 import AppealForm from './dialogs/AppealForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import FeedbackForm from './dialogs/FeedbackForm.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -209,11 +167,8 @@ export default {
       type: 'ongoing',
       openDialog: false,
       openReviews: false,
-      feedbackForm: {
-        rating: 0,
-        comment: '',
-        is_posted: false
-      },
+      openReviewForm: !this.data?.feedback || false,
+      feedback: {},
       contractBalance: null,
       lockedPrice: '',
       byFiat: false,
@@ -223,13 +178,17 @@ export default {
   props: {
     data: Object
   },
-  emits: ['back', 'sendFeedback', 'submitAppeal'],
+  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
   components: {
     FeedbackDialog,
     AppealForm,
-    ProgressLoader
+    ProgressLoader,
+    FeedbackForm
   },
   computed: {
+    arbiterName () {
+      return this.data?.arbiter?.name
+    },
     instructionMessage () {
       const status = this.data?.order?.status?.value
       if (!status) return
@@ -320,9 +279,6 @@ export default {
     }
   },
   async mounted () {
-    if (this.data?.feedback) {
-      this.feedbackForm = this.data?.feedback
-    }
     this.loadData()
     setTimeout(() => {
       this.isloaded = true
@@ -345,6 +301,7 @@ export default {
       this.checkStatus()
       this.fetchContractBalance()
       this.lockedPrice = this.formatCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
+      this.feedback = this.data.feedback
     },
     fetchAppeal () {
       const vm = this
@@ -402,6 +359,10 @@ export default {
     onSubmitAppeal (data) {
       this.openDialog = false
       this.$emit('submitAppeal', data)
+    },
+    onSubmitFeedback (feedback) {
+      console.log('onSubmitFeedback:', feedback)
+      this.feedback = feedback
     },
     appealCountdown () {
       const vm = this

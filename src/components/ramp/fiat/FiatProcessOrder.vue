@@ -9,7 +9,7 @@
       </div>
       <div class="text-center subtext sm-font-size q-mb-sm">ORDER ID: {{ order?.id }}</div>
     </div>
-    <q-pull-to-refresh @refresh="refreshContent">
+    <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
       <div class="q-mx-lg q-px-sm q-mb-sm">
         <TradeInfoCard
           :order="order"
@@ -50,6 +50,7 @@
             @send-feedback="sendFeedback"
             @submit-appeal="submitAppeal"
             @back="onBack"
+            @refresh="refreshContent"
           />
         </div>
 
@@ -219,15 +220,19 @@ export default {
       }
     },
     standByDisplayData () {
+      let arbiter = null
+      if (this.order?.arbiter) {
+        arbiter = {
+          name: this.order.arbiter.name,
+          address: this.contract.addresses.arbiter
+        }
+      }
       return {
         order: this.order,
         ad: this.ad,
         feedback: this.feedback,
         contractAddress: this.contract.address,
-        arbiter: {
-          name: this.order.arbiter.name,
-          address: this.contract.addresses.arbiter
-        },
+        arbiter: arbiter,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
@@ -817,7 +822,8 @@ export default {
       this.showPeerProfile = true
     },
     refreshContent (done) {
-      this.$emit('refresh', done)
+      if (done) this.$emit('refresh', done)
+      else this.$refs.pullToRefresh.trigger()
     }
   }
 }
