@@ -89,7 +89,7 @@
               <q-separator class="q-mb-sm q-mx-md" style="height: 2px;" />
               <div class="text-bow" :class="getDarkModeClass(darkMode)">
                 <div class="receive-label">
-                  You Will Receive
+                  {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
                   {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}

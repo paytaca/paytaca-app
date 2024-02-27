@@ -32,8 +32,10 @@
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue';
 import { useFormChild } from 'quasar'
+import { useI18n } from 'vue-i18n'
 
 const $emit = defineEmits(['update:modelValue', 'focus', 'blur'])
+const $t = useI18n().t
 
 const props = defineProps({
   modelValue: Number,
@@ -56,11 +58,11 @@ watch(
 )
 
 const unitOptions = ref([
-  { label: 'minutes', singular: 'minute', value: 60 },
-  { label: 'hours', singular: 'hour', value: 3600 },
-  { label: 'days', singular: 'day', value: 86400 },
-  { label: 'weeks', singular: 'week', value: 86400 * 7 },
-  { label: 'months', singular: 'month', value: 86400 * 30 }
+  { label: $t('Minutes'), singular: 'minute', value: 60 },
+  { label: $t('Hours'), singular: 'hour', value: 3600 },
+  { label: $t('Days'), singular: 'day', value: 86400 },
+  { label: $t('Weeks'), singular: 'week', value: 86400 * 7 },
+  { label: $t('Months'), singular: 'month', value: 86400 * 30 }
 ])
 
 const innerModelValue = ref({ amount: 0, units: unitOptions.value[1] })

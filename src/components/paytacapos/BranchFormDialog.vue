@@ -4,7 +4,7 @@
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm">
           <template v-if="newBranch">
-            New branch
+            {{ $t('NewBranch') }}
           </template>
           <template v-else>
             {{ branchInfo?.name }}
@@ -47,7 +47,7 @@
               <q-checkbox
                 dense
                 :dark="darkMode"
-                label="Is main branch"
+                :label="$t('IsNewBranch')"
                 v-model="branchInfoForm.isMain"
               />
             </div>

@@ -193,8 +193,59 @@
       </div>
       </q-banner>
       <div class="row items-start items-delivery-address-panel">
-        <div v-if="order?.deliveryAddress?.id" class="col-12 col-sm-4 q-pa-xs">
+        <div v-if="order?.deliveryAddress?.id || delivery?.id" class="col-12 col-sm-4 q-pa-xs">
           <q-card
+            v-if="order?.assignedStaff?.id && storefront?.id"
+            class="q-px-md q-py-sm pt-card text-bow q-mb-sm"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <div class="text-subtitle1">{{ storefront?.name || 'Assigned staff' }}</div>
+            <q-separator class="q-mb-sm"/>
+            <div>
+              <q-btn
+                v-if="order?.assignedStaff?.phoneNumber && storefront?.phoneNumber"
+                flat
+                padding="sm"
+                icon="phone"
+                class="float-right"
+              >
+                <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                  <q-item
+                    clickable v-close-popup
+                    :href="`tel:${order?.assignedStaff?.phoneNumber}`"
+                  >
+                    <q-item-section>
+                      <q-item-label caption>Staff</q-item-label>
+                      <q-item-label>{{ order?.assignedStaff?.phoneNumber }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item
+                    clickable v-close-popup
+                    :href="`tel:${order?.assignedStaff?.phoneNumber}`"
+                  >
+                    <q-item-section>
+                      <q-item-label caption>Shop</q-item-label>
+                      <q-item-label>{{ storefront?.phoneNumber }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-menu>
+              </q-btn>
+              <q-btn
+                v-else-if="order?.assignedStaff?.phoneNumber || storefront?.phoneNumber"
+                flat
+                padding="sm"
+                icon="phone"
+                class="float-right"
+                :href="`tel:${order?.assignedStaff?.phoneNumber || storefront?.phoneNumber}`"
+              >
+              </q-btn>
+              <div>{{ order?.assignedStaff?.fullName }}</div>
+              <div>{{ order?.assignedStaff?.phoneNumber }}</div>
+              <div>{{ storefront?.phoneNumber }}</div>
+            </div>
+          </q-card>
+          <q-card
+            v-if="order?.deliveryAddress?.id || delivery?.id"
             class="q-px-md q-py-sm pt-card text-bow"
             :class="getDarkModeClass(darkMode)"
           >
@@ -208,62 +259,101 @@
               @click="() => showMap = true"
             />
             <LeafletMapDialog ref="mapDialog" v-model="showMap" :locations="mapLocations"/>
-            <div class="text-subtitle1">Delivery</div>
-            <q-separator :dark="darkMode"/>
-            <div>
-              {{ order?.deliveryAddress?.firstName }}
-              {{ order?.deliveryAddress?.lastName }}
-            </div>
-            <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
-            <div v-if="delivery?.id" class="q-mt-sm">
-              <q-separator :dark="darkMode"/>
-              <div>
-                <div class="q-mt-xs float-right">
-                  <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
-                    <q-menu class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-                      Rider has accepted delivery
-                      <span v-if="delivery?.acceptedAt">({{  formatDateRelative(delivery?.acceptedAt) }})</span>
-                    </q-menu>
-                  </q-icon>
-                  <q-icon
-                    v-if="delivery?.pickedUpAt || delivery?.deliveredAt"
-                    name="delivery_dining"
-                    size="2em"
-                    :color="delivery?.deliveredAt ? 'green' : 'amber'"
-                    class="q-mx-sm"
-                  >
-                    <q-menu class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-                      <div v-if="delivery.pickedUpAt">
-                        Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
-                      </div>
-                      <div v-if="delivery.deliveredAt">
-                        Delivered {{ formatDateRelative(delivery.deliveredAt) }}
-                      </div>
-                    </q-menu>
-                  </q-icon>
-                </div>
-                <div class="text-subtitle1">Delivery status</div>
-                <div class="text-caption bottom">Delivery #{{ delivery?.id }}</div>
-                <div v-if="delivery?.rider?.id" class="q-mt-xs">
-                  <div class="text-subtitle2">Rider</div>
-                  <div class="row items-start q-gutter-x-xs">
-                    <div style="line-height:1.25;">
-                      <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
-                      <div>{{ delivery?.rider?.phoneNumber }}</div>
-                    </div>
-                    <q-space/>
-                    <q-btn
-                      v-if="delivery?.rider?.id && delivery?.rider?.phoneNumber"
-                      flat
-                      padding="sm"
-                      icon="phone"
-                      class="float-right"
-                      :href="`tel:${delivery?.rider?.phoneNumber}`"
-                    />
+            <div class="text-subtitle1">
+              Delivery
+              <span v-if="delivery?.id" class="text-grey">#{{ delivery?.id }}</span>
+              <!-- <q-icon
+                v-if="delivery?.id && (delivery?.pickedUpAt || delivery?.deliveredAt)"
+                name="delivery_dining"
+                size="1.75em"
+                :color="delivery?.deliveredAt ? 'green' : 'amber'"
+              >
+                <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                  <div v-if="delivery.pickedUpAt">
+                    Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
                   </div>
+                  <div v-if="delivery.deliveredAt">
+                    Delivered {{ formatDateRelative(delivery.deliveredAt) }}
+                  </div>
+                </q-menu>
+              </q-icon> -->
+            </div>
+            <q-separator :dark="darkMode" class="q-mb-sm"/>
+            <!-- <div v-if="delivery?.id" class="text-caption row items-center no-wrap">
+              <div>{{ formatTimestampToText(delivery?.createdAt) }}</div>
+              <q-space/>
+              <div>#{{ delivery?.id }}</div>
+            </div> -->
+            <div v-if="delivery?.id">
+              <div
+                v-if="delivery.deliveredAt || delivery.pickedUpAt"
+                class="row items-center q-mb-sm q-pa-sm rounded-borders pt-card-2 shadow-1"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon
+                  name="delivery_dining"
+                  size="1.75em"
+                  :color="delivery?.deliveredAt ? 'green' : 'amber'"
+                  class="q-mr-xs"
+                />
+                <div v-if="delivery.deliveredAt && delivery.pickedUpAt">Order picked up and delivered</div>
+                <div v-else-if="delivery.deliveredAt">Order delivered</div>
+                <div v-else-if="delivery.pickedUpAt">Order picked up</div>
+                <q-space/>
+                <div class="text-grey">
+                  {{ formatDateRelative(delivery.deliveredAt || delivery.pickedUpAt) }}
+                  <q-menu
+                    class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)"
+                  >
+                    <div v-if="delivery.pickedUpAt">
+                      Picked up {{ formatTimestampToText(delivery.pickedUpAt) }}
+                    </div>
+                    <div v-if="delivery.deliveredAt">
+                      Delivered {{ formatTimestampToText(delivery.deliveredAt) }}
+                    </div>
+                  </q-menu>
                 </div>
-                <div v-else class="text-grey">No rider yet</div>
+              </div>
+              <div class="row items-start no-wrap">
+                <img :src="riderLocationPin" style="height:1.9rem;" class="q-mb-xs q-mr-xs"/>
+                <div class="q-space">
+                  <q-btn
+                    v-if="delivery?.rider?.id && delivery?.rider?.phoneNumber"
+                    flat
+                    padding="sm"
+                    icon="phone"
+                    class="float-right"
+                    :href="`tel:${delivery?.rider?.phoneNumber}`"
+                  />
+                  <div class="text-subtitle2 text-weight-medium">
+                    Rider
+                    <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
+                      <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                        Rider has accepted delivery
+                        <span v-if="delivery?.acceptedAt">({{  formatDateRelative(delivery?.acceptedAt) }})</span>
+                      </q-menu>
+                    </q-icon>
+                  </div>
+                  <template v-if="delivery?.rider?.id">
+                    <div>{{ delivery?.rider?.fullName }}</div>
+                    <div>{{ delivery?.rider?.phoneNumber }}</div>
+                  </template>
+                  <div v-else class="text-grey">No rider yet</div>
+                </div>
+              </div>
+              <q-separator :dark="darkMode" spaced/>
+            </div>
+            <div class="q-gutter-xs delivery-locations-panel">
+              <div class="row items-start no-wrap">
+                <img :src="merchantLocationPin" style="height:1.9rem;" class="q-mb-xs q-mr-xs"/>
+                <div class="ellipsis-3-lines">{{ deliveryPanel?.pickupAddress?.location?.formatted }}</div>
+              </div>
+              <div class="self-center text-center">
+                <q-icon name="arrow_forward" class="arrow"/>
+              </div>
+              <div class="row items-start no-wrap">
+                <img :src="customerLocationPin" style="height:1.9rem;" class="q-mb-xs q-mr-xs"/>
+                <div class="ellipsis-3-lines">{{ deliveryPanel?.deliveryAddress?.location?.formatted }}</div>
               </div>
             </div>
           </q-card>
@@ -694,6 +784,30 @@ async function updateRiderLocation() {
 }
 onUnmounted(() => stopTrackRider())
 
+const deliveryPanel = computed(() => {
+  const response = {
+    pickupAddress: {
+      display: false,
+      name: storefront.value?.name,
+      location: delivery.value?.orderId == order.value?.id
+        ? delivery.value?.pickupLocation
+        : storefront.value?.location,
+    },
+    deliveryAddress: {
+      display: false,
+      name: order.value?.deliveryAddress?.fullName,
+      location: delivery.value?.orderId == order.value?.id
+        ? delivery.value?.deliveryLocation
+        : order.value?.deliveryAddress?.location,
+    },
+  }
+  response.pickupAddress.display = Boolean(response.pickupAddress.name) ||
+                              Boolean(response.pickupAddress.location?.formatted)
+  response.deliveryAddress.display = Boolean(response.deliveryAddress.name) ||
+                              Boolean(response.deliveryAddress.location?.formatted)
+  return response
+})
+
 const mapDialog = ref()
 const showMap = ref(false)
 watch(showMap, () => showMap.value ? trackRider() : stopTrackRider())
@@ -703,11 +817,12 @@ watch(showMap, () => setTimeout(() => {
 }, 250))
 const mapLocations = computed(() => {
   const data = []
-  if (storefront.value?.location?.validCoordinates) {
+  const pickupLoc = deliveryPanel.value?.pickupAddress?.location
+  if (pickupLoc?.validCoordinates) {
     data.push({
-      popup: ['Pickup location', storefront.value?.location?.formatted].filter(Boolean).join(': '),
-      lat: storefront.value?.location?.latitude,
-      lon: storefront.value?.location?.longitude,
+      popup: ['Pickup location', pickupLoc?.formatted].filter(Boolean).join(': '),
+      lat: pickupLoc?.latitude,
+      lon: pickupLoc?.longitude,
       icon: {
         iconUrl: merchantLocationPin,
         iconSize: [30, 45],
@@ -717,10 +832,7 @@ const mapLocations = computed(() => {
     })
   }
 
-  const deliveryLoc = delivery.value?.deliveryLocation?.validCoordinates
-    ? delivery.value?.deliveryLocation
-    : order.value.deliveryAddress?.location
-
+  const deliveryLoc = deliveryPanel.value?.deliveryAddress?.location
   if (deliveryLoc?.validCoordinates) {
     data.push({
       lat: deliveryLoc?.latitude,
@@ -1247,6 +1359,7 @@ const onNotificationHandler = notification  => {
     if (data?.id != props.orderId) return console.log('Not matching id')
     fetchOrder.debounced()
     if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+    if (['on_delivery', 'delivered'].includes(data?.status)) fetchDelivery()
   }
   if (eventName === rpcEventNames.paymentUpdate) {
     if (data?.order_id != props.orderId) return
@@ -1337,11 +1450,24 @@ table.items-table td {
   background: white;
   padding: 12px;
 }
+.delivery-locations-panel {
+  display:grid;
+  grid-template-columns: 1fr min-content 1fr;
+}
 </style>
 <style scoped lang="scss">
 @media (min-width: $breakpoint-xs) {
   .items-delivery-address-panel {
     flex-direction: row-reverse;
+  }
+  .delivery-locations-panel {
+    display: block;
+    // grid-template-columns: 1fr min-content 1fr;
+  }
+
+  .delivery-locations-panel .arrow {
+    display: none;
+    transform: rotate(90deg);
   }
 }
 </style>

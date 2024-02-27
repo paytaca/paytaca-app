@@ -292,34 +292,14 @@
               {{ $t('Received') }}
             </button>
           </div>
-          <div class="transaction-list">
-            <template v-if="transactionsLoaded">
-              <TransactionListItem
-                v-for="(transaction, index) in transactions"
-                :key="'tx-' + index"
-                :transaction="transaction"
-                :selected-asset="selectedAsset"
-                :denominationTabSelected="denominationTabSelected"
-                @click="showTransactionDetails(transaction)"
-              />
-              <div ref="bottom-transactions-list"></div>
-              <TransactionListItemSkeleton v-if="transactionsAppending"/>
-              <div
-                v-else-if="transactionsPageHasNext"
-                class="pt-label show-more-label"
-                :class="getDarkModeClass(darkMode, '', isNotDefaultTheme(theme) ? '' : 'default')"
-              >
-                <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
-              </div>
-              <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
-                <q-img class="vertical-top q-my-md no-transaction-img" src="empty-wallet.svg" />
-                <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
-              </div>
-            </template>
-            <div v-else>
-              <TransactionListItemSkeleton v-for="i in 5"/>
-            </div>
-          </div>
+          <TransactionList
+            ref="transaction-list-component"
+            :selectedAssetProps="selectedAsset"
+            :denominationTabSelected="denominationTabSelected"
+            :wallet="wallet"
+            :selectedNetworkProps="selectedNetwork"
+            @on-show-transaction-details="showTransactionDetails"
+          />
         </div>
       </div>
       <footer-menu />
@@ -351,8 +331,6 @@ import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
-import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -364,6 +342,7 @@ import Watchtower from 'watchtower-cash-js'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import TransactionList from 'src/components/transactions/TransactionList'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -374,8 +353,7 @@ const sep20IdRegexp = /sep20\/(.*)/
 export default {
   name: 'Transaction-page',
   components: {
-    TransactionListItem,
-    TransactionListItemSkeleton,
+    TransactionList,
     TokenSuggestionsDialog,
     Transaction,
     AssetInfo,
@@ -409,11 +387,6 @@ export default {
       },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
-      transactions: [],
-      transactionsPage: 0,
-      transactionsPageHasNext: false,
-      transactionsLoaded: false,
-      transactionsAppending: false,
       balanceLoaded: false,
       wallet: null,
       manageAssets: false,
@@ -540,15 +513,6 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    earliestBlock () {
-      if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
-      return Math.min(
-        ...this.transactions
-          .map(tx => tx && tx.block)
-          .filter(Boolean)
-          .filter(Number.isSafeInteger)
-      )
     }
   },
   methods: {
@@ -591,22 +555,19 @@ export default {
         if (setAsset?.id && vm.assets.find(asset => asset?.id == setAsset?.id)) {
           vm.selectedAsset = setAsset
         }
-        vm.transactions = []
-        vm.transactionsLoaded = false
-        vm.transactionsPage = 0
+        vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
         vm.assets.map(function (asset) {
           return vm.getBalance(asset.id)
         })
-        vm.getTransactions()
+        vm.$refs['transaction-list-component'].getTransactions()
       }
     },
     selectBch () {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
-      vm.transactions = []
-      vm.transactionsPage = 0
-      vm.getTransactions()
+      vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
+      vm.$refs['transaction-list-component'].getTransactions()
       vm.assetClickCounter += 1
       if (vm.assetClickCounter >= 2) {
         vm.showAssetInfo(this.bchAsset)
@@ -675,11 +636,9 @@ export default {
       if (!assetExists) return
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
-      this.transactions = []
-      this.transactionsPage = 0
-      this.transactionsPageHasNext = false
       this.getBalance()
-      this.getTransactions()
+      this.$refs['transaction-list-component'].resetValues(null, null, asset)
+      this.$refs['transaction-list-component'].getTransactions()
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
     },
     getBalance (id) {
@@ -728,137 +687,19 @@ export default {
         vm.balanceLoaded = true
       })
     },
-    scrollToBottomTransactionList() {
-      this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
-    },
-    getTransactions (page = 1, opts={ scrollToBottom: false }) {
-      if (this.selectedNetwork === 'sBCH') {
-        const address = this.$store.getters['global/getAddress']('sbch')
-        return this.getSbchTransactions(address, opts)
-      }
-      return this.getBchTransactions(page, opts)
-    },
-    getSbchTransactions (address, opts={ scrollToBottom: false }) {
-      const vm = this
-      const asset = vm.selectedAsset
-      const id = String(vm.selectedAsset.id)
-
-      const filterOpts = { limit: 10, includeTimestamp: true }
-      if (vm.transactionsFilter === 'sent') {
-        filterOpts.type = 'outgoing'
-      } else if (vm.transactionsFilter === 'received') {
-        filterOpts.type = 'incoming'
-      }
-
-      let appendResults = false
-      if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
-        filterOpts.before = '0x' + (this.earliestBlock - 1).toString(16)
-        appendResults = true
-      }
-
-      let requestPromise = null
-      if (sep20IdRegexp.test(id)) {
-        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
-          contractAddress,
-          address,
-          filterOpts
-        )
-      } else {
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
-          address,
-          filterOpts
-        )
-      }
-
-      if (!requestPromise) return
-      if (!appendResults) vm.transactionsLoaded = false
-      vm.transactionsAppending = true
-      requestPromise
-        .then(response => {
-          vm.transactionsPageHasNext = false
-          if (Array.isArray(response.transactions)) {
-            vm.transactionsPageHasNext = response.hasNextPage
-            if (!appendResults) vm.transactions = []
-            vm.transactions.push(...response.transactions
-              .map(tx => {
-                tx.senders = [tx.from]
-                tx.recipients = [tx.to]
-                tx.asset = asset
-                return tx
-              })
-            )
-            if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
-          }
-        })
-        .finally(() => {
-          vm.transactionsAppending = false
-          vm.transactionsLoaded = true
-        })
-    },
-    getBchTransactions (page, opts={ scrollToBottom: false }) {
-      const vm = this
-      const asset = vm.selectedAsset
-      const id = vm.selectedAsset.id
-      if (page == 1) vm.transactionsLoaded = false
-      let recordType = 'all'
-      if (vm.transactionsFilter === 'sent') {
-        recordType = 'outgoing'
-      } else if (vm.transactionsFilter === 'received') {
-        recordType = 'incoming'
-      }
-      let requestPromise
-      if (id.indexOf('slp/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, page, recordType)
-      } else if (id.indexOf('ct/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType, tokenId)
-      } else {
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType)
-      }
-
-      if (!requestPromise) return
-      vm.transactionsAppending = true
-      requestPromise
-        .then(function (response) {
-          const transactions = response.history || response
-          const page = Number(response?.page)
-          const hasNext = response?.has_next
-          if (!Array.isArray(transactions)) return
-          if (page > vm.transactionsPage) vm.transactionsPage = page
-          transactions.map(function (item) {
-            item.asset = asset
-            return vm.transactions.push(item)
-          })
-          vm.transactionsLoaded = true
-          setTimeout(() => {
-            vm.transactionsPageHasNext = hasNext
-          }, 250)
-          if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
-        })
-        .catch(error => {
-          console.error('error:', error.response)
-        })
-        .finally(() => {
-          vm.transactionsAppending = false
-        })
-    },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
       this.getBalance(this.selectedAsset.id)
       this.transactions = []
-      this.getTransactions()
+      this.$refs['transaction-list-component'].getTransactions()
       done()
     },
     setTransactionsFilter(value) {
       if (['sent', 'received'].indexOf(value) >= 0) this.transactionsFilter = value
       else this.transactionsFilter = 'all'
 
-      this.transactions = []
-      this.transactionsPage = 0
-      this.transactionsLoaded = false
-      this.getTransactions()
+      this.$refs['transaction-list-component'].resetValues(value)
+      this.$refs['transaction-list-component'].getTransactions()
     },
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
@@ -1085,7 +926,7 @@ export default {
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
         vm.getBalance(vm.selectedAsset.id)
-        vm.getTransactions()
+        vm.$refs['transaction-list-component'].getTransactions()
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
         vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
@@ -1141,7 +982,7 @@ export default {
           this.transactions = []
           this.transactionsPage = 0
           this.transactionsLoaded = false
-          this.getTransactions()
+          this.$refs['transaction-list-component'].getTransactions()
         }
       } else {
         transaction.asset = {
@@ -1312,17 +1153,6 @@ export default {
     margin-top: 355px;
     z-index: 5;
   }
-  .transaction-list {
-    height: 440px;
-    overflow: auto;
-    padding-bottom: 80px;
-  }
-  /* iPhone 5/SE */
-  @media (min-width: 280px) and (max-width: 320px) {
-    .transaction-list {
-      height: 430px;
-    }
-  }
   .transaction-container {
     min-height: 80vh;
     border-top-left-radius: 36px;
@@ -1367,18 +1197,6 @@ export default {
     &.token-menu-list {
       min-width: 100px;
     }
-  }
-  .show-more-label {
-    margin-top: 20px;
-    width: 100%;
-    text-align: center;
-    &.light.default {
-      color: #3b7bf6 !important;
-    }
-  }
-  .no-transaction-img {
-    width: 75px;
-    fill: gray;
   }
   .yield-container {
     margin-top: 5px;

@@ -11,33 +11,33 @@
       :dark="darkMode"
       outlined
       dense
-      label="Allowance"
+      :label="$t('Allowance')"
       :suffix="denomination"
       :disable="loading"
       inputmode="decimal"
       v-model="addLiquidityForm.approvedAmount"
       :rules="[
-        val => val >= 0 || 'Invalid amount',
+        val => val >= 0 || $t('Invalid amount'),
       ]"
     />
     <DurationField
       :dark="darkMode"
       outlined
       dense
-      label="Min Duration"
+      :label="$t('MinDuration')"
       v-model="addLiquidityForm.minAutoAcceptDuration"
       :rules="[
-        val => val >= 0 || 'Invalid duration',
+        val => val >= 0 || $t('Invalid duration'),
       ]"
     />
     <DurationField
       :dark="darkMode"
       outlined
       dense
-      label="Max Duration"
+      :label="$t('MaxDuration')"
       v-model="addLiquidityForm.maxAutoAcceptDuration"
       :rules="[
-        val => val >= 0 || 'Invalid duration',
+        val => val >= 0 || $t('Invalid duration'),
       ]"
     />
     <div class="q-gutter-y-md">
@@ -48,7 +48,7 @@
         no-caps
         :loading="loading"
         :disable="loading"
-        :label="longAccount?.wallet_hash ? 'Update' : 'Add'"
+        :label="longAccount?.wallet_hash ? $t('Update') : $t('Add')"
         type="submit"
         color="brandblue"
         class="full-width"
@@ -58,7 +58,7 @@
         outline
         :loading="loading"
         :disable="loading"
-        label="Cancel"
+        :label="$t('Cancel')"
         color="grey"
         class="full-width"
         @click="$emit('cancel')"
@@ -70,10 +70,12 @@
 import { anyhedgeBackend } from '../../wallet/anyhedge/backend'
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import DurationField from './DurationField.vue';
+import DurationField from './DurationField.vue'
+import { useI18n } from 'vue-i18n'
 
 // misc
 const $store = useStore()
+const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
 
@@ -126,7 +128,7 @@ async function updateLongAccount() {
 
   try {
     loading.value = true
-    loading.loadingMsg = 'Updating long account preferences'
+    loading.loadingMsg = $t('UpdatingLongPref')
     anyhedgeBackend.patch(`anyhedge/long-accounts/${props.longAccount.wallet_hash}/`, data)
       .then(response => {
         if (!response?.data?.wallet_hash) {
@@ -140,7 +142,7 @@ async function updateLongAccount() {
 
   } catch(error) {
     console.error(error)
-    errors.value = ['Error encountered in updating long account']
+    errors.value = [$t('UpdatingLongError')]
     return
   } finally {
     loading.value = false
@@ -163,7 +165,7 @@ async function createNewLongAccount() {
   }
 
   loading.value = true
-  loadingMsg.value = 'Saving long account'
+  loadingMsg.value = $t('SavingLongAccount')
   try {
     const response = await anyhedgeBackend.post('anyhedge/long-accounts/', data)
     if (!response?.data?.address || !response?.data?.pubkey ) {
@@ -175,7 +177,7 @@ async function createNewLongAccount() {
     }
   } catch(error) {
     console.error(error)
-    errors.value = ['Error encountered in registering long accounts']
+    errors.value = [$t('RegisterLongError')]
     return
   } finally {
     loading.value = false
@@ -187,7 +189,7 @@ async function getAddressSetForNewLongAccount() {
   const addressIndex = 100
   try{
     loading.value = true
-    loadingMsg.value = 'Generating address set'
+    loadingMsg.value = $t('GeneratingAddressSet')
     const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
     const addressSet = result.addressres
     const pubkey = await props.wallet.BCH.getPublicKey(`0/${addressIndex}`)
@@ -197,7 +199,7 @@ async function getAddressSetForNewLongAccount() {
     errors.value = []
   }catch(error) {
     console.error(error)
-    errors.value = ['Error generating addresses']
+    errors.value = [$t('GeneratingAddressesError')]
     return
   } finally {
     loading.value = false

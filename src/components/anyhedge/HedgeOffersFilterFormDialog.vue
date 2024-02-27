@@ -3,11 +3,12 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
     <q-card :class="getDarkModeClass(darkMode)" class="br-15 pt-card-2 text-bow" style="min-width:300px;">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">Filter offers list</div>
+        <div class="text-h6 q-space q-mt-sm">{{ $t('FilterOffersList')}}</div>
         <q-btn
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -16,28 +17,28 @@
           <div>
             <q-checkbox
               :dark="darkMode"
-              label="Pending"
+              :label="$t('Pending')"
               v-model="formData.pending"
             />
           </div>
           <div>
             <q-checkbox
               :dark="darkMode"
-              label="Accepted"
+              :label="$t('Accepted')"
               v-model="formData.accepted"
             />
           </div>
           <div>
             <q-checkbox
               :dark="darkMode"
-              label="Agreed"
+              :label="$t('Agreed')"
               v-model="formData.settled"
             />
           </div>
           <div>
             <q-checkbox
               :dark="darkMode"
-              label="Expired"
+              :label="$t('Expired')"
               v-model="formData.expired"
             />
           </div>
@@ -45,7 +46,7 @@
             <q-btn
               no-caps
               color="brandblue"
-              label="Filter"
+              :label="$t('Filter')"
               class="full-width button"
               type="submit"
             />

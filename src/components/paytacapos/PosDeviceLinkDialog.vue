@@ -17,7 +17,7 @@
             <div class="row items-center q-mr-sm">
               <q-icon name="info" size="1.5em"/>
             </div>
-            <div>Device must be online to link POS device</div>
+            <div>{{ $t('DeviceMustBeOnline') }}</div>
           </div>
         </q-banner>
         <div class="qr-code-container">
@@ -57,14 +57,14 @@
         </div>
         <div class="row items-center justify-center q-gutter-xs">
           <span v-if="linkExpiresIn > 0" class="text-grey">
-            Link expires in
+            {{ $t('LinkExpiresIn') }}
             <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn }}</span>
-            {{ linkExpiresIn > 1 ? 'seconds': 'second' }}
+            {{ linkExpiresIn > 1 ? $t('Seconds'): $t('Second') }}
           </span>
           <span v-else-if="linkExpiresIn < 0" class="text-grey">
-            Link expired
+            {{ $t('LinkExpired') }}
             <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn * -1 }}</span>
-            {{ linkExpiresIn < -1 ? 'seconds': 'second' }} ago
+            {{ linkExpiresIn < -1 ? $t('Seconds'): $t('Second') }} {{ $t('Ago') }}
           </span>
           <q-btn
             :disable="generatingLinkCode"
@@ -74,7 +74,7 @@
             no-caps
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
-            label="Generate new code"
+            :label="$t('GenerateNewCode')"
             @click="generateLinkCode()"
             style="text-decoration:underline;"
           />

@@ -6,18 +6,18 @@
     />
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <div>
-        <header-nav :title="action + ' Gift'" backnavpath="/apps/gifts" />
+        <header-nav :title="$t(`${action}Gift`)" backnavpath="/apps/gifts" />
         <div :style="{ 'padding-top': $q.platform.is.ios ? '85px' : '60px'}">
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="processing" style="text-align: center; padding-top: 25px;">
-              <p><span class="text-capitalize">{{ action }}</span>ing gift...</p>
+              <p>{{ $t(`${action}ingGift`) }}</p>
               <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
             </div>
             <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
               <textarea
                 v-model="scannedShare"
                 rows="2"
-                placeholder="Paste gift code here"
+                :placeholder="$t('PasteGiftCodeHere')"
                 class="full-width text-black bg-white rounded-borders text-subtitle1 q-px-sm"
                 :disabled="error"
               >
@@ -25,19 +25,19 @@
               <br>
               <template v-if="!scannedShare">
                 <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;">
-                  OR
+                  {{ $t('or') }}
                 </div>
                 <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
               </template>
               <div style="margin-top: 20px;">
                 <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift(null)">
-                  <span class="text-capitalize">{{ action }}</span>
+                  {{ $t(action) }}
                 </q-btn>
               </div>
             </q-form>
             <div class="text-center q-pt-md">
-              <p v-if="bchAmount" style="font-size: 24px;">Amount:<br>{{ getAssetDenomination(denomination, bchAmount) }}</p>
-              <p v-if="completed" style="color: green; font-size: 20px;">{{ action }} gift completed!</p>
+              <p v-if="bchAmount" style="font-size: 24px;">{{ $t('Amount') }}:<br>{{ getAssetDenomination(denomination, bchAmount) }}</p>
+              <p v-if="completed" style="color: green; font-size: 20px;">{{ $t(`${action}GiftCompleted`) }}</p>
               <p v-if="error" style="color: red; font-size: 20px;">
                 {{ error }}
               </p>
@@ -150,7 +150,7 @@ export default {
 
             vm.completed = true
           } else {
-            vm.error = 'This gift has been claimed! Try another one.'
+            vm.error = vm.$t('GiftAlreadyClaimed')
           }
           vm.processing = false
         })

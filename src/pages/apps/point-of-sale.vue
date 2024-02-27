@@ -36,9 +36,9 @@
               >
                 <div class="row items-center">
                   <q-icon name="store" size="1rem" class="q-mr-sm"/>
-                  <span v-if="!merchantBranches.length" class="text-grey">No branches</span>
+                  <span v-if="!merchantBranches.length" class="text-grey">{{ $t('NoBranches') }}</span>
                   <span v-else>
-                    {{ merchantBranches.length }} branch{{merchantBranches.length > 1 ? 'es': ''}}
+                    {{ merchantBranches.length }} {{merchantBranches.length > 1 ? $t('Branches'): $t('BranchSmall')}}
                   </span>
                   <q-space/>
                   <q-icon name="more_horiz" size="1.5em" class="q-px-sm"/>
@@ -88,8 +88,8 @@
           </template>
           <template v-else>
             <q-item-section>
-              <q-item-label class="text-subtitle1">No merchant details</q-item-label>
-              <q-item-label class="text-subtitle2 text-grey">Setup merchant details</q-item-label>
+              <q-item-label class="text-subtitle1">{{ $t('NoMerchantDetails') }}</q-item-label>
+              <q-item-label class="text-subtitle2 text-grey">{{ $t('SetupMerchantDetails') }}</q-item-label>
             </q-item-section>
           </template>
           <q-btn
@@ -171,8 +171,8 @@
                   :breakpoint="0"
                 >
                   <div class="q-px-md q-py-smtext-caption pt-card-2 pt-label device-tooltip" :class="getDarkModeClass(darkMode)">
-                    <div v-if="posDevice?.linkedDevice?.isSuspended">Device is currently suspended</div>
-                    <div v-if="posDevice?.linkedDevice?.unlinkRequest?.id">Unlink request pending</div>
+                    <div v-if="posDevice?.linkedDevice?.isSuspended">{{ $t("DeviceSuspendedPOS") }}</div>
+                    <div v-if="posDevice?.linkedDevice?.unlinkRequest?.id">{{ $t('UnlinkPending') }}</div>
                   </div>
                 </q-popup-proxy>
               </q-item-label>
@@ -269,7 +269,7 @@
           <q-separator :color="darkMode ? 'white' : 'grey-7'" spaced inset/>
         </template>
         <div v-if="!posDevices?.length && !fetchingPosDevices" class="text-grey text-center">
-          No devices
+          {{ $t('NoDevices') }}
         </div>
       </q-card-section>
     </q-card>
@@ -788,7 +788,7 @@ function confirmRemovePosDevice(posDevice) {
       color: 'red-5',
     },
     seamless: true,
-    cancel: { noCaps: true, flat: true, padding: 'xs md' },
+    cancel: { noCaps: true, flat: true, padding: 'xs md', label: $t('Cancel') },
     class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(() => {

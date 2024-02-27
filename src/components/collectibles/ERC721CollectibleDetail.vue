@@ -12,7 +12,7 @@
       </q-card-section>
       <q-img :src="imageUrl" fit="fill" width="75"></q-img>
       <q-card-section v-if="collectibleAttributes.length">
-        <div class="text-subtitle1">Properties</div>
+        <div class="text-subtitle1">{{ $t('Properties') }}</div>
         <q-separator/>
         <div class="row justify-around items-start">
           <div v-for="(attribute, index) in collectibleAttributes" :key="index" class="text-center q-ma-xs">
@@ -22,7 +22,7 @@
         </div>
       </q-card-section>
       <q-card-section v-if="collectible.metadata && collectible.metadata.description">
-        <div class="text-subtitle1">Description</div>
+        <div class="text-subtitle1">{{ $t('Description') }}</div>
         <q-separator/>
         <div>{{ collectible.metadata.description }}</div>
       </q-card-section>
