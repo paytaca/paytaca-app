@@ -1,6 +1,7 @@
 import BCHJS from '@psf/bch-js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import axios from 'axios'
+import { binToHex } from '@bitauth/libauth';
 
 const bchjs = new BCHJS()
 
@@ -9,17 +10,17 @@ export const backend = axios.create({
 
   /**
    * @param {import('axios').AxiosRequestConfig} config 
-   * @param {{ data:any, isCustomSignData:Boolean, timestamp:Number }} opts 
+   * @param {{ data:any, customSignData:String, timestamp:Number }} opts 
    */
-  signFunction: async (config, opts={data, isCustomSignData, timestamp}) => {
+  signFunction: async (config, opts={data, customSignData, timestamp}) => {
     const data = opts?.data
-    const isCustomSignData = opts?.isCustomSignData
+    const customSignData = opts?.customSignData
     const timestamp = opts?.timestamp
 
     const signResponse = await signPaytacaCustomerData(data)
     if (!signResponse.signature) return config
 
-    if (isCustomSignData) config.headers['X-Paytaca-Signdata'] = data
+    if (customSignData) config.headers['X-Paytaca-Signdata'] = customSignData
     config.headers['X-Paytaca-Customer'] = [signResponse.walletHash, timestamp, signResponse.signature].join(':')
 
     return config
@@ -36,17 +37,19 @@ export async function sigAuthInterceptor(config) {
     data = JSON.stringify(data)
   } catch(error) {}
 
-  let isCustomSignData = false
+  let customSignData
   if (config.signData) {
     data = config.signData
-    isCustomSignData = true
+    customSignData = config.signData
   }
 
   if (data === null || data === undefined) data = ''
-  data = Buffer.from(`${data}${timestamp}`).toString('hex')
+  if (customSignData) console.log('Custom sign data before', data)
+  const dataBuffer = Buffer.from(`${data}${timestamp}`, 'utf-8')
+  data = dataBuffer.toString('hex')
 
   if (typeof config?.signFunction !== 'function') return config
-  return await config.signFunction?.(config, { data, isCustomSignData, timestamp })
+  return await config.signFunction?.(config, { data, customSignData, timestamp })
 }
 backend.interceptors.request.use(sigAuthInterceptor)
 

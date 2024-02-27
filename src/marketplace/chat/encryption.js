@@ -17,6 +17,7 @@ export function encryptMessage(opts={ data: '', privkey: '', pubkeys: '' }) {
   const ourPubkey = privToPub(privkey)
   const _pks = Array.isArray(pubkeys) ? [...pubkeys] : [pubkeys]
   const pks = _pks.filter((pk, index, list) => list.indexOf(pk) === index)
+  if (pks.length <= 0) pks.push(ourPubkey)
 
   if (pks.length === 1) {
     const ourPriv = secp.etc.hexToBytes(privkey)
@@ -198,6 +199,7 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
   const ourPubkey = privToPub(privkey)
   const _pks = Array.isArray(pubkeysOpt) ? [...pubkeysOpt] : [pubkeysOpt]
   const pks = _pks.filter((pk, index, list) => list.indexOf(pk) === index)
+  if (pks.length <= 0) pks.push(ourPubkey)
 
   const globalKey = Buffer.from(crypto.randomFillSync(new Uint8Array(32)))
   const iv = crypto.randomFillSync(new Uint8Array(16))  
