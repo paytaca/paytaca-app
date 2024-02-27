@@ -1,10 +1,20 @@
 <template>
   <div
     v-if="isloaded"
-    class="q-pt-sm q-mx-md q-mt-sm text-bow"
+    class="q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md q-px-sm">
-      <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
+      <div class="sm-font-size q-pb-xs q-ml-xs">Arbiter</div>
+      <q-input
+        class="q-pb-xs md-font-size"
+        readonly
+        dense
+        filled
+        :dark="darkMode"
+        :label="data?.arbiter?.address"
+        v-model="data.arbiter.name">
+      </q-input>
+      <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
       <q-input
         class="q-pb-xs"
         readonly

@@ -3,7 +3,7 @@
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
-    <div class="q-pt-md text-center text-weight-bold">
+    <div class="q-pt-sm text-center text-weight-bold">
       <div class="lg-font-size">
         <span>{{ headerTitle.toUpperCase() }}</span>
       </div>
@@ -209,6 +209,10 @@ export default {
       return {
         orderId: this.order.id,
         contractId: this.order.contract,
+        arbiter: {
+          name: this.order.arbiter.name,
+          address: this.contract.addresses.arbiter
+        },
         action: this.verifyAction,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
@@ -220,6 +224,10 @@ export default {
         ad: this.ad,
         feedback: this.feedback,
         contractAddress: this.contract.address,
+        arbiter: {
+          name: this.order.arbiter.name,
+          address: this.contract.addresses.arbiter
+        },
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
@@ -230,6 +238,10 @@ export default {
         ad: this.ad,
         type: this.confirmType,
         contract: this.contract,
+        arbiter: {
+          name: this.order.arbiter.name,
+          address: this.contract.addresses.arbiter
+        },
         errors: this.errorMessages,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
@@ -685,7 +697,6 @@ export default {
     addArbiterToChat () {
       const vm = this
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at) // `ramp-order-${vm.order.id}-chat`
-      console.log(chatRef)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)
@@ -775,17 +786,6 @@ export default {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         this.fetchOrder()
-        // this.updateStatus(data?.status?.status)
-        // if (data.error) {
-        //   this.errorMessages.push(data.error)
-        //   this.verifyTransactionKey++
-        // } else if (data.errors) {
-        //   this.errorMessages.push(...data.errors)
-        //   this.verifyTransactionKey++
-        // }
-        // if (data.txid) {
-        //   this.txid = data.txid
-        // }
         if (data?.contract_address) {
           this.fetchOrder().then(this.fetchContract().then(() => { this.escrowTransferKey++ }))
         }

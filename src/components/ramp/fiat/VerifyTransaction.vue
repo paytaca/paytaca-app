@@ -2,40 +2,39 @@
   <div
     class="q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
-      <q-btn
-        flat
-        icon="arrow_back"
-        class="button button-text-primary"
-        style="position: fixed; left: 20px; z-index: 3;"
-        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
-        :class="getDarkModeClass(darkMode)"
-        @click="$emit('back')"
-      />
-    <div class="q-mx-md q-px-md">
-      <div>
-        <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
-        <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
-          <template v-slot:append>
-            <div v-if="contract.address" @click="copyToClipboard(contract.address)">
-              <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-            </div>
-          </template>
-        </q-input>
-        <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
-        <q-input
-          class="q-pb-xs md-font-size"
-          readonly
-          dense
-          filled
-          :loading="!balanceLoaded || retryBalance(contract.balance)"
-          :dark="darkMode"
-          v-model="contract.balance">
-          <template v-slot:append>
-            <span>BCH</span>
-          </template>
-        </q-input>
-      </div>
-      <div class="sm-font-size q-pl-sm q-pb-xs">Transaction ID</div>
+    <div class="q-mx-lg">
+      <div class="sm-font-size q-pb-xs q-ml-xs">Arbiter</div>
+      <q-input
+        class="q-pb-xs md-font-size"
+        readonly
+        dense
+        filled
+        :dark="darkMode"
+        :label="data?.arbiter?.address"
+        v-model="data.arbiter.name">
+      </q-input>
+      <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
+      <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
+        <template v-slot:append>
+          <div v-if="contract.address" @click="copyToClipboard(contract.address)">
+            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+          </div>
+        </template>
+      </q-input>
+      <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+      <q-input
+        class="q-pb-xs md-font-size"
+        readonly
+        dense
+        filled
+        :loading="!balanceLoaded || retryBalance(contract.balance)"
+        :dark="darkMode"
+        v-model="contract.balance">
+        <template v-slot:append>
+          <span>BCH</span>
+        </template>
+      </q-input>
+      <div class="sm-font-size q-pl-sm q-py-xs">Transaction ID</div>
       <q-input
         filled
         dense

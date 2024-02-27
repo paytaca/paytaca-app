@@ -19,15 +19,25 @@
             </q-card-section>
           </q-card>
         </div>
-        <div v-if="displayContractInfo" class="q-mt-md q-mx-sm">
-          <div class="sm-font-size q-pb-xs q-ml-xs">Contract Address</div>
+        <div v-if="displayContractInfo" class="q-mt-sm q-mx-sm">
+          <div class="sm-font-size q-pb-xs q-ml-xs">Arbiter</div>
           <q-input
             class="q-pb-xs md-font-size"
             readonly
             dense
             filled
             :dark="darkMode"
-            :label="data?.contractAddress">
+            :label="data?.arbiter?.address"
+            v-model="data.arbiter.name">
+          </q-input>
+          <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
+          <q-input
+            class="q-pb-xs md-font-size"
+            readonly
+            dense
+            filled
+            :dark="darkMode"
+            :label="data.contractAddress">
             <template v-slot:append>
               <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
                 <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
@@ -425,9 +435,6 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
-    },
-    refreshContent () {
-      console.log('refresh content')
     }
   }
 }

@@ -2,8 +2,7 @@
   <div v-if="isloaded">
     <div
       class="q-mx-md text-bow"
-      :class="getDarkModeClass(darkMode)"
-      :style="`height: ${minHeight}px;`">
+      :class="getDarkModeClass(darkMode)">
       <div class="sm-font-size subtext q-pt-xs q-mx-md q-px-sm">
         <span class="text-nowrap q-ml-xs">
           Balance: {{ bchBalance }} BCH
