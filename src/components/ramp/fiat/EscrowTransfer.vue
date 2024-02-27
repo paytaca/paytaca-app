@@ -2,15 +2,6 @@
   <div
     class="q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
-      <q-btn
-        flat
-        icon="arrow_back"
-        class="button button-text-primary"
-        style="position: fixed; left: 20px; z-index: 3;"
-        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
-        :class="getDarkModeClass(darkMode)"
-        @click="$emit('back')"
-      />
     <div class="q-mx-sm q-px-md">
       <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
       <q-select
@@ -152,7 +143,7 @@ export default {
   },
   computed: {
     balance () {
-      return this.$parent.bchBalance
+      return this.$store.getters['assets/getAssets'][0].balance
     },
     balanceExceeded () {
       if (this.transferAmount > parseFloat(this.balance)) {

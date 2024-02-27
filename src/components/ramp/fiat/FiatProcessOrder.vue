@@ -3,72 +3,71 @@
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
-    <div class="q-pt-md text-center text-weight-bold">
+    <div class="q-pt-sm text-center text-weight-bold">
       <div class="lg-font-size">
         <span>{{ headerTitle.toUpperCase() }}</span>
       </div>
       <div class="text-center subtext sm-font-size q-mb-sm">ORDER ID: {{ order?.id }}</div>
     </div>
-    <div class="q-mx-lg q-px-sm q-mb-sm">
-      <TradeInfoCard
-        :order="order"
-        :ad="ad"
-        @view-ad="showAdSnapshot=true"
-        @view-peer="onViewPeer"
-        @view-reviews="showReviews=true"
-        @view-chat="openChat=true"/>
-    </div>
-    <div :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
-      <!-- Ad Owner Confirm / Decline -->
-      <ReceiveOrder
-        v-if="state === 'order-confirm-decline'"
-        :data="receiveOrderData"
-        @confirm="confirmingOrder"
-        @cancel="cancellingOrder"
-        @refresh="$emit('refresh')"
-        @back="onBack"
-      />
-      <EscrowTransfer
-        v-if="state === 'escrow-bch'"
-        :key="escrowTransferKey"
-        :data="escrowTransferData"
-        @success="onEscrowSuccess"
-        @back="onBack"
-      />
-      <VerifyTransaction
-        v-if="state === 'tx-confirmation'"
-        :key="verifyTransactionKey"
-        :data="verifyTransactionData"
-        @success="onVerifyTxSuccess"
-        @refresh="$emit('refresh')"
-        @back="onBack"
-      />
-      <!-- Waiting Page -->
-      <div v-if="state === 'standby-view'">
-        <StandByDisplay
-          :key="standByDisplayKey"
-          :data="standByDisplayData"
-          @send-feedback="sendFeedback"
-          @submit-appeal="submitAppeal"
-          @refresh="$emit('refresh')"
+    <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
+      <div class="q-mx-lg q-px-sm q-mb-sm">
+        <TradeInfoCard
+          :order="order"
+          :ad="ad"
+          @view-ad="showAdSnapshot=true"
+          @view-peer="onViewPeer"
+          @view-reviews="showReviews=true"
+          @view-chat="openChat=true"/>
+      </div>
+      <div :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
+        <!-- Ad Owner Confirm / Decline -->
+        <ReceiveOrder
+          v-if="state === 'order-confirm-decline'"
+          :data="receiveOrderData"
+          @confirm="confirmingOrder"
+          @cancel="cancellingOrder"
           @back="onBack"
         />
-      </div>
+        <EscrowTransfer
+          v-if="state === 'escrow-bch'"
+          :key="escrowTransferKey"
+          :data="escrowTransferData"
+          @success="onEscrowSuccess"
+          @back="onBack"
+        />
+        <VerifyTransaction
+          v-if="state === 'tx-confirmation'"
+          :key="verifyTransactionKey"
+          :data="verifyTransactionData"
+          @success="onVerifyTxSuccess"
+          @back="onBack"
+        />
+        <!-- Waiting Page -->
+        <div v-if="state === 'standby-view'">
+          <StandByDisplay
+            :key="standByDisplayKey"
+            :data="standByDisplayData"
+            @send-feedback="sendFeedback"
+            @submit-appeal="submitAppeal"
+            @back="onBack"
+            @refresh="refreshContent"
+          />
+        </div>
 
-      <!-- Payment Confirmation -->
-      <div v-if="state === 'payment-confirmation'">
-        <PaymentConfirmation
-          :key="paymentConfirmationKey"
-          :data="paymentConfirmationData"
-          @verify-release="handleVerifyRelease"
-          @refresh="$emit('refresh')"
-          @back="onBack"
-        />
+        <!-- Payment Confirmation -->
+        <div v-if="state === 'payment-confirmation'">
+          <PaymentConfirmation
+            :key="paymentConfirmationKey"
+            :data="paymentConfirmationData"
+            @verify-release="handleVerifyRelease"
+            @back="onBack"
+          />
+        </div>
+        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 240px' : 'top: 190px;'">
+          <q-spinner-ios size="1.5em"/>
+        </div>
       </div>
-      <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 240px' : 'top: 190px;'">
-        <q-spinner-ios size="1.5em"/>
-      </div>
-    </div>
+    </q-pull-to-refresh>
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog" >
@@ -211,17 +210,29 @@ export default {
       return {
         orderId: this.order.id,
         contractId: this.order.contract,
+        arbiter: {
+          name: this.order.arbiter.name,
+          address: this.contract.addresses.arbiter
+        },
         action: this.verifyAction,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
     },
     standByDisplayData () {
+      let arbiter = null
+      if (this.order?.arbiter) {
+        arbiter = {
+          name: this.order.arbiter.name,
+          address: this.contract.addresses.arbiter
+        }
+      }
       return {
         order: this.order,
         ad: this.ad,
         feedback: this.feedback,
         contractAddress: this.contract.address,
+        arbiter: arbiter,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
@@ -232,6 +243,10 @@ export default {
         ad: this.ad,
         type: this.confirmType,
         contract: this.contract,
+        arbiter: {
+          name: this.order.arbiter.name,
+          address: this.contract.addresses.arbiter
+        },
         errors: this.errorMessages,
         escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
@@ -687,7 +702,6 @@ export default {
     addArbiterToChat () {
       const vm = this
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at) // `ramp-order-${vm.order.id}-chat`
-      console.log(chatRef)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)
@@ -777,17 +791,6 @@ export default {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         this.fetchOrder()
-        // this.updateStatus(data?.status?.status)
-        // if (data.error) {
-        //   this.errorMessages.push(data.error)
-        //   this.verifyTransactionKey++
-        // } else if (data.errors) {
-        //   this.errorMessages.push(...data.errors)
-        //   this.verifyTransactionKey++
-        // }
-        // if (data.txid) {
-        //   this.txid = data.txid
-        // }
         if (data?.contract_address) {
           this.fetchOrder().then(this.fetchContract().then(() => { this.escrowTransferKey++ }))
         }
@@ -817,6 +820,10 @@ export default {
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
+    },
+    refreshContent (done) {
+      if (done) this.$emit('refresh', done)
+      else this.$refs.pullToRefresh.trigger()
     }
   }
 }
