@@ -101,8 +101,14 @@ export function updateAssetImageUrl (state, data) {
 export function addRemovedAssetIds (state, id) {
   state.removedAssetIds.push(id)
 }
+
 export function removeRemovedAssetIds (state, id) {
   const removedAssetIds = state.removedAssetIds
   const index = removedAssetIds.indexOf(id)
   removedAssetIds.splice(index, 1)
+}
+
+export function moveAssetToBeginning (state) {
+  const item = state.assets.pop()
+  state.assets.splice(1, 0, item)
 }

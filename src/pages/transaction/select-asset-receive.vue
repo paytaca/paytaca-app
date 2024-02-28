@@ -284,6 +284,7 @@ export default {
         // do not re-add removed assets
         if (combinedAssets.indexOf(asset.id) === -1 && removedAssets.indexOf(asset.id) === -1) {
           vm.$store.commit(`${asset.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, asset)
+          vm.$store.commit(`${asset.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
         }
       })
     }
