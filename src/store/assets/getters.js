@@ -68,3 +68,7 @@ export function getAllAssets (state) {
   }
   return info
 }
+
+export function getRemovedAssetIds (state) {
+  return state.removedAssetIds
+}

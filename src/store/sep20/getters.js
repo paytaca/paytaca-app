@@ -29,3 +29,7 @@ export function getAsset (state) {
     })
   }
 }
+
+export function getRemovedAssetIds (state) {
+  return state.removedAssetIds
+}
