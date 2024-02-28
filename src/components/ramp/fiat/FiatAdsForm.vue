@@ -1,10 +1,10 @@
 <template>
-  <q-card
+  <div
     v-if="step === 1"
-    class="br-15 q-pt-sm q-mx-md q-mx-none pt-card text-bow"
+    class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
-    <div v-if="step < 3">
+    <!--<div v-if="step < 3">
       <q-btn
         flat
         padding="md md 0 md"
@@ -13,7 +13,7 @@
         :class="getDarkModeClass(darkMode)"
         @click="step > 1 ? step-- : $emit('back')"
       />
-    </div>
+    </div>-->
     <div v-if="step === 1">
       <div
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
@@ -32,7 +32,8 @@
         <q-scroll-area :style="`height: ${minHeight - 135}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
-              Price Setting
+              <span>Price Setting</span>&nbsp;
+              <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('price-setting')"/>
             </div>
             <div class="text-center q-mx-md">
               <q-btn-toggle
@@ -113,7 +114,10 @@
           <!-- Trade Quantity -->
           <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
-              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Quantity</div>
+              <div class="q-pb-xs q-pl-sm text-weight-bold">
+                <span>Trade Quantity</span>&nbsp;
+                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('trade-quantity')"/>
+              </div>
                 <q-input
                   ref="tradeAmountRef"
                   dense
@@ -133,7 +137,10 @@
                 </q-input>
               </div>
             <div class="q-px-md q-mt-sm">
-              <div class="q-pb-xs q-pl-sm text-weight-bold">Trade Limit</div>
+              <div class="q-pb-xs q-pl-sm text-weight-bold">
+                <span>Trade Limit</span>&nbsp;
+                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('trade-limit')"/>
+              </div>
               <div class="row">
                 <div class="col">
                   <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
@@ -232,7 +239,7 @@
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
-  </q-card>
+  </div>
   <div v-if="step === 2">
     <AddPaymentMethods
       :type="'Ads'"
@@ -251,11 +258,20 @@
       @submit="onSubmit()"
     />
   </div>
+  <div v-if="openDialog" >
+    <MiscDialogs
+      :type="'instructionDialog'"
+      :title=title
+      :text=text
+      v-on:back="openDialog = false"
+    />
+  </div>
 </template>
 <script>
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
+import MiscDialogs from './dialogs/MiscDialogs.vue'
 import { debounce } from 'quasar'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -277,14 +293,16 @@ export default {
   components: {
     AddPaymentMethods,
     DisplayConfirmation,
-    ProgressLoader
+    ProgressLoader,
+    MiscDialogs
   },
-  emits: ['back', 'submit'],
+  emits: ['back', 'submit', 'updatePageName'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       loading: false,
+      openDialog: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
       marketPrice: null,
@@ -356,7 +374,23 @@ export default {
         (val) => val > 0 || 'Cannot be zero',
         (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
       ],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
+      instruction: { // temp
+        'price-setting': {
+          title: 'Price Setting',
+          text: null
+        },
+        'trade-quantity': {
+          title: 'Trade Quantity',
+          text: null
+        },
+        'trade-limit': {
+          title: 'Trade Limit',
+          text: null
+        }
+      },
+      title: '',
+      text: ''
     }
   },
   props: {
@@ -382,6 +416,9 @@ export default {
     this.closeWSConnection()
   },
   watch: {
+    step (value) {
+      this.$emit('updatePageName', `ad-form-${value}`)
+    },
     marketPrice (value) {
       const vm = this
       if (vm.adData.priceType === 'FLOATING') {
@@ -413,6 +450,15 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    openInstructionDialog (type) {
+      console.log('type: ', type)
+
+      const temp = this.instruction[type]
+      this.title = temp.title
+      this.text = temp.text
+
+      this.openDialog = true
+    },
     fetchAd () {
       const vm = this
       if (!vm.selectedAdId) return

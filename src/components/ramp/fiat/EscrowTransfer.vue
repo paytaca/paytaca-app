@@ -1,112 +1,90 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mt-sm text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
-      <q-btn
-        flat
-        icon="arrow_back"
-        class="button button-text-primary"
-        style="position: fixed; left: 20px; z-index: 3;"
-        :style="$q.platform.is.ios ? 'top: 135px; ' : 'top: 110px; '"
-        :class="getDarkModeClass(darkMode)"
-        @click="$emit('back')"
-      />
-    <div class="q-mt-lg q-pt-md text-center lg-font-size text-weight-bold">ESCROW BCH</div>
-    <div style="opacity: .5;" class="text-center q-pb-sm xs-font-size text-weight-bold">(ORDER #{{ order?.id }})</div>
-    <q-separator :dark="darkMode" class="q-mx-lg"/>
-    <q-scroll-area :style="`height: ${minHeight - 225}px`" style="overflow-y:auto;">
-      <div class="q-mx-lg q-px-lg q-pt-md">
-        <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
-        <q-select
-          class="q-pb-sm"
-          :dark="darkMode"
-          filled
-          dense
-          v-model="selectedArbiter"
-          :loading="!selectedArbiter"
-          :label="selectedArbiter ? selectedArbiter.address : ''"
-          :options="arbiterOptions"
-          :disable="!contractAddress || sendingBch"
-          @update:model-value="selectArbiter"
-          behavior="dialog">
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section>
-                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                    {{ scope.opt.name }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-            <template v-slot:selected v-if="selectedArbiter">
-              <span :style="darkMode ? 'color: white;' : 'color: black;'">
-                {{ selectedArbiter.name }}
-              </span>
-            </template>
-        </q-select>
-        <!-- </div> -->
-        <!-- <div class="row q-mt-md"> -->
-
-        <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
-        <q-input
-          class="q-pb-sm"
-          readonly
-          :dark="darkMode"
-          filled
-          dense
-          :label="contractAddress"
-          :loading="!contractAddress">
-          <template v-slot:append v-if="contractAddress">
-            <div @click="copyToClipboard(contractAddress)">
-              <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-            </div>
+  <div
+    class="q-pt-sm q-mx-md text-bow"
+    :class="getDarkModeClass(darkMode)">
+    <div class="q-mx-sm q-px-md">
+      <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
+      <q-select
+        class="q-pb-sm"
+        :dark="darkMode"
+        filled
+        dense
+        v-model="selectedArbiter"
+        :loading="!selectedArbiter"
+        :label="selectedArbiter ? selectedArbiter.address : ''"
+        :options="arbiterOptions"
+        :disable="!contractAddress || sendingBch"
+        @update:model-value="selectArbiter"
+        behavior="dialog">
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                  {{ scope.opt.name }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
           </template>
-        </q-input>
-
-        <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
-        <q-input
-          class="q-pb-xs md-font-size"
-          readonly
-          filled
-          dense
-          :dark="darkMode"
-          v-model="transferAmount"
-          :error="balanceExceeded"
-          :error-message="balanceExceeded? $t('Insufficient balance') : ''">
-          <template #append>
-            <div class="md-font-size">BCH</div>
+          <template v-slot:selected v-if="selectedArbiter">
+            <span :style="darkMode ? 'color: white;' : 'color: black;'">
+              {{ selectedArbiter.name }}
+            </span>
           </template>
-        </q-input>
-        <div class="col text-right sm-font-size q-pl-sm">
-          = {{ fiatAmount }} {{ order?.ad?.fiat_currency?.symbol }}
-        </div>
-        <!-- </div> -->
-        <div class="row q-mb-md" v-if="sendErrors.length > 0">
-          <div class="col">
-            <ul style="margin-left: -40px; list-style: none;">
-              <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
-                <q-icon name="error" left/>
-                {{ error }}
-              </li>
-            </ul>
+      </q-select>
+      <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
+      <q-input
+        class="q-pb-sm"
+        readonly
+        :dark="darkMode"
+        filled
+        dense
+        :label="contractAddress"
+        :loading="!contractAddress">
+        <template v-slot:append v-if="contractAddress">
+          <div @click="copyToClipboard(contractAddress)">
+            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
           </div>
+        </template>
+      </q-input>
+
+      <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
+      <q-input
+        class="q-pb-xs md-font-size"
+        readonly
+        filled
+        dense
+        :dark="darkMode"
+        v-model="transferAmount"
+        :error="balanceExceeded"
+        :error-message="balanceExceeded? $t('Insufficient balance') : ''">
+        <template #append>
+          <div class="md-font-size">BCH</div>
+        </template>
+      </q-input>
+      <div class="row q-mb-md" v-if="sendErrors.length > 0">
+        <div class="col">
+          <ul style="margin-left: -40px; list-style: none;">
+            <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
+              <q-icon name="error" left/>
+              {{ error }}
+            </li>
+          </ul>
         </div>
-        <div v-else>
-          <div v-if="sendingBch" class="sm-font-size">
-            <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+      </div>
+      <div v-else>
+        <div v-if="sendingBch" class="sm-font-size">
+          <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+        </div>
+        <div v-else class="sm-font-size q-mt-sm">
+          <div class="row q-ml-xs">
+            Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
           </div>
-          <div v-else class="sm-font-size q-mt-sm">
-            <div class="row q-ml-xs">
-              Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
-            </div>
-            <div class="row q-ml-xs">
-              Balance: {{ balance }} BCH
-            </div>
+          <div class="row q-ml-xs">
+            Balance: {{ balance }} BCH
           </div>
         </div>
       </div>
-    </q-scroll-area>
+    </div>
     <RampDragSlide
       :key="dragSlideKey"
       v-if="showDragSlide && data?.wsConnected && !sendingBch && contractAddress"
@@ -121,14 +99,14 @@
       @cancel="onSecurityCancel"
       text="Swipe To Escrow"
     />
-  </q-card>
+  </div>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import RampDragSlide from './dialogs/RampDragSlide.vue'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import RampDragSlide from './dialogs/RampDragSlide.vue'
 
 export default {
   data () {
@@ -165,7 +143,7 @@ export default {
   },
   computed: {
     balance () {
-      return this.$parent.bchBalance
+      return this.$store.getters['assets/getAssets'][0].balance
     },
     balanceExceeded () {
       if (this.transferAmount > parseFloat(this.balance)) {

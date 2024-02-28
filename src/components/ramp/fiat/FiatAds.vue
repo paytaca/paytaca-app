@@ -1,151 +1,166 @@
 <template>
-  <q-card
+  <!-- back button -->
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
+  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
+
+  <div
     v-if="state === 'selection'"
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-mb-lg text-bow"
+    class="q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
-    <div class="q-mb-lg q-pb-lg">
-      <div class="row items-center justify-between q-mt-md q-mr-lg q-pb-xs">
-        <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' />
-        <q-btn
-          rounded
-          no-caps
-          padding="sm"
-          class="q-ml-md"
-          icon="add"
-          :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
-          @click="state = 'create'"
-        />
-      </div>
-      <div
-        class="row br-15 text-center pt-card btn-transaction md-font-size"
-        :class="getDarkModeClass(darkMode)"
-        :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`"
-      >
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
-          @click="transactionType='BUY'"
+    :style="`height: ${minHeight}px;`">
+    <div class="q-mb-lg q-pb-lg q-pt-xs">
+      <!-- <q-pull-to-refresh @refresh="refreshData"> -->
+        <div class="row items-center justify-between q-mr-lg q-pb-xs">
+          <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' />
+          <q-btn
+            rounded
+            no-caps
+            padding="sm"
+            class="q-ml-md"
+            icon="add"
+            :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
+            @click="() => {
+              state = 'create'
+              pageName = 'ad-form-1'
+            }"
+          />
+        </div>
+        <div
+          class="row br-15 text-center pt-card btn-transaction md-font-size"
+          :class="getDarkModeClass(darkMode)"
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
         >
-          Buy Ads
-        </button>
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
-          @click="transactionType='SELL'"
-        >
-          Sell Ads
-        </button>
-      </div>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
+            @click="transactionType='BUY'"
+          >
+            Buy Ads
+          </button>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
+            @click="transactionType='SELL'"
+          >
+            Sell Ads
+          </button>
+        </div>
+      <!-- </q-pull-to-refresh> -->
       <div class="q-mt-md q-mx-md">
-        <q-pull-to-refresh
-          @refresh="refreshData">
+        <!-- <q-pull-to-refresh @refresh="refreshData"> -->
           <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
           </div>
           <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
-              <q-infinite-scroll
-                ref="infiniteScroll"
-                :items="listings"
-                @load="loadMoreData"
-                :offset="0"
-                :scroll-target="scrollTargetRef">
-                <template v-slot:loading>
-                  <div class="row justify-center q-my-md" v-if="hasMoreData">
-                    <q-spinner-dots color="primary" size="40px" />
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 120}px`" style="overflow:auto;">
+              <q-pull-to-refresh :scroll-target="scrollTargetRef" @refresh="refreshData">
+                <q-infinite-scroll
+                  ref="infiniteScroll"
+                  :items="listings"
+                  @load="loadMoreData"
+                  :offset="0"
+                  :scroll-target="scrollTargetRef">
+                  <template v-slot:loading>
+                    <div class="row justify-center q-my-md" v-if="hasMoreData">
+                      <q-spinner-dots color="primary" size="40px" />
+                    </div>
+                  </template>
+                  <div v-for="(listing, index) in listings" :key="index">
+                    <q-item>
+                      <q-item-section>
+                        <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                          <div class="row">
+                            <div class="col ib-text">
+                              <span
+                                class="q-mb-none text-uppercase pt-label"
+                                :class="getDarkModeClass(darkMode)"
+                                style="font-size: 13px;">
+                                {{ listing.price_type }}
+                              </span><br>
+                              <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
+                                {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
+                              </span>
+                              <span class="sm-font-size">/BCH</span>
+                              <div class="sm-font-size row q-gutter-md">
+                                <span>Quantity</span>
+                                <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
+                              </div>
+                              <div class="sm-font-size row q-gutter-md">
+                                <span>Limits</span>
+                                <span>{{ parseFloat(listing.trade_floor) }} - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                              </div>
+                              <div class="row sm-font-size q-gutter-md">
+                                <span>Appealable in </span>
+                                <span class="text-weight-bold">{{ appealCooldown(listing.appeal_cooldown).label }}</span>
+                              </div>
+                            </div>
+                            <div class="text-right">
+                              <div class="row q-gutter-xs justify-end">
+                                <q-btn
+                                  outline
+                                  rounded
+                                  padding="sm"
+                                  icon="edit"
+                                  size="sm"
+                                  color="button"
+                                  @click="onEditAd(listing.id)"
+                                />
+                                <q-btn
+                                  outline
+                                  rounded
+                                  padding="sm"
+                                  size="sm"
+                                  icon="delete"
+                                  color="button"
+                                  @click="onDeleteAd(listing.id)"
+                                />
+                              </div>
+                              <div class="row justify-end q-mt-sm">
+                                <q-btn
+                                  outline
+                                  rounded
+                                  disable
+                                  padding="xs sm"
+                                  size="sm"
+                                  class="q-ml-xs text-weight-bold"
+                                  :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
+                                  :icon="listing.is_public ? 'visibility' : 'visibility_off'">
+                                  <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
+                                </q-btn>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="q-gutter-sm q-pt-xs">
+                            <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method.payment_type" />
+                          </div>
+                        </div>
+                      </q-item-section>
+                    </q-item>
                   </div>
-                </template>
-                <div v-for="(listing, index) in listings" :key="index">
-                  <q-item>
-                    <q-item-section>
-                      <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                        <div class="row">
-                          <div class="col ib-text">
-                            <span
-                              class="q-mb-none text-uppercase pt-label"
-                              :class="getDarkModeClass(darkMode)"
-                              style="font-size: 13px;">
-                              {{ listing.price_type }}
-                            </span><br>
-                            <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
-                              {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
-                            </span>
-                            <span class="sm-font-size">/BCH</span>
-                            <div class="sm-font-size row q-gutter-md">
-                              <span>Quantity</span>
-                              <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
-                            </div>
-                            <div class="sm-font-size row q-gutter-md">
-                              <span>Limits</span>
-                              <span>{{ parseFloat(listing.trade_floor) }} - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
-                            </div>
-                            <div class="row sm-font-size q-gutter-md">
-                              <span>Appealable in </span>
-                              <span class="text-weight-bold">{{ appealCooldown(listing.appeal_cooldown).label }}</span>
-                            </div>
-                          </div>
-                          <div class="text-right">
-                            <div class="row q-gutter-xs justify-end">
-                              <q-btn
-                                outline
-                                rounded
-                                padding="sm"
-                                icon="edit"
-                                size="sm"
-                                color="button"
-                                @click="onEditAd(listing.id)"
-                              />
-                              <q-btn
-                                outline
-                                rounded
-                                padding="sm"
-                                size="sm"
-                                icon="delete"
-                                color="button"
-                                @click="onDeleteAd(listing.id)"
-                              />
-                            </div>
-                            <div class="row justify-end q-mt-sm">
-                              <q-btn
-                                outline
-                                rounded
-                                disable
-                                padding="xs sm"
-                                size="sm"
-                                class="q-ml-xs text-weight-bold"
-                                :color="listing.is_public ? 'green' : 'red'"
-                                :icon="listing.is_public ? 'visibility' : 'visibility_off'">
-                                <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
-                              </q-btn>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="q-gutter-sm q-pt-xs">
-                          <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method.payment_type" />
-                        </div>
-                      </div>
-                    </q-item-section>
-                  </q-item>
-                </div>
-              </q-infinite-scroll>
+                </q-infinite-scroll>
+              </q-pull-to-refresh>
             </q-list>
           </div>
-        </q-pull-to-refresh>
+        <!-- </q-pull-to-refresh> -->
       </div>
     </div>
     <q-inner-loading :showing="loading">
       <ProgressLoader/>
     </q-inner-loading>
-  </q-card>
+  </div>
   <FiatAdsForm
+    ref="fiatAdsForm"
     v-if="state !== 'selection'"
     @back="onFormBack()"
     @submit="onSubmit()"
     :adsState="state"
     :transactionType="transactionType"
     :selectedAdId="selectedAdId"
+    @update-page-name="(val) => {
+        pageName = val
+        console.log(pageName)
+      }"
   />
   <FiatAdsDialogs
     v-if="openDialog === true"
@@ -161,6 +176,7 @@
   />
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
@@ -184,7 +200,8 @@ export default {
     FiatAdsForm,
     FiatAdsDialogs,
     MiscDialogs,
-    ProgressLoader
+    ProgressLoader,
+    HeaderNav
   },
   data () {
     return {
@@ -201,7 +218,8 @@ export default {
       totalPages: null,
       pageNumber: null,
       selectedAdId: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
+      pageName: 'main',
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
     }
   },
   watch: {
@@ -244,6 +262,23 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'ad-form-1':
+          vm.onFormBack()
+          vm.pageName = 'main'
+          break
+        case 'ad-form-2':
+          vm.$refs.fiatAdsForm.step--
+          vm.pageName = 'ad-form-1'
+          break
+        case 'ad-form-3':
+          vm.$refs.fiatAdsForm.step--
+          vm.pageName = 'ad-form-2'
+          break
+      }
+    },
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
         return parseFloat(tradeAmount)
@@ -332,6 +367,7 @@ export default {
       vm.selectedAdId = null
       vm.resetAndRefetchListings()
       bus.emit('show-menu', 'ads')
+      vm.pageName = 'main'
     },
     onDialogBack () {
       const vm = this
@@ -352,6 +388,7 @@ export default {
       const vm = this
       vm.state = 'edit'
       vm.selectedAdId = id
+      vm.pageName = 'ad-form-1'
     },
     onDeleteAd (id) {
       const vm = this
@@ -454,5 +491,12 @@ color: #fff;
 .sell-add-btn {
   background-color: #ed5f59;
   color: white;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>

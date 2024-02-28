@@ -5,20 +5,20 @@
     :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('store')">
-          <q-icon class="mb-2" :class="isActive('store') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_storefront"/>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatStore')">
+          <q-icon class="mb-2" :class="isActive('FiatStore') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_storefront"/>
         <span>Home</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('ads')">
-          <q-icon class="mb-2" :class="isActive('ads') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_sell"/>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatAds')">
+          <q-icon class="mb-2" :class="isActive('FiatAds') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_sell"/>
         <span>Ads</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('orders')">
-          <q-icon class="mb-2" :class="isActive('orders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatOrders')">
+          <q-icon class="mb-2" :class="isActive('FiatOrders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
         <span>Orders</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('profile')">
-          <q-icon class="mb-2" :class="isActive('profile') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
+      <button class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatProfileCard')">
+          <q-icon class="mb-2" :class="isActive('FiatProfileCard') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
         <span>Profile</span>
       </button>
       <button v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
@@ -34,7 +34,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      activeButton: 'store'
+      activeButton: 'FiatStore'
     }
   },
   emits: ['clicked'],
@@ -53,12 +53,9 @@ export default {
     expandBex () {
       this.$q.bex.send('ui.expand')
     },
-    selectMenu (menu) {
-      this.activeButton = menu
-    },
     onSelectMenu (menu) {
-      this.selectMenu(menu)
-      this.$emit('clicked', menu)
+      this.activeButton = menu
+      this.$emit('clicked', { name: menu })
     },
     isActive (menu) {
       if (this.activeButton === menu) {
