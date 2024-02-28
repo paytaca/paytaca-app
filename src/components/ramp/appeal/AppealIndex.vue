@@ -1,10 +1,12 @@
 <template>
-  <div class="q-pt-sm q-mx-md q-mx-none q-my-lg text-bow"
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
+  <HeaderNav :title="`Appeal Ramp`" backnavpath="/apps"/>
+  <div class="q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`"
     v-if="state === 'appeal-list'"
   >
-    <div class="q-pt-md">
+    <div>
       <div class="q-mb-sm">
         <div
           class="row br-15 text-center pt-card btn-transaction md-font-size"
@@ -28,7 +30,7 @@
         </div>
       </div>
       <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-        <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 130}px`" style="overflow:auto;">
+        <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 80}px`" style="overflow:auto;">
           <!-- Loading icon -->
           <div class="row justify-center">
             <q-spinner-dots
@@ -92,12 +94,15 @@
   <!-- Appeal Process -->
   <div v-if="state === 'appeal-process'">
     <AppealProcess
+      ref="appealProcess"
       :selectedAppeal="selectedAppeal"
       @back="this.state = 'appeal-list'"
+      @update-page-name="updatePageName"
     />
   </div>
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import AppealProcess from './AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
@@ -121,11 +126,13 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
+      pageName: 'main'
     }
   },
   components: {
-    AppealProcess
+    AppealProcess,
+    HeaderNav
   },
   watch: {
     statusType () {
@@ -169,6 +176,23 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updatePageName (name) {
+      this.pageName = name
+    },
+    customBack () {
+      const vm = this
+      switch (vm.pageName) {
+        case 'appeal-transfer':
+        case 'appeal-process':
+          this.state = 'appeal-list'
+          this.pageName = 'main'
+          break
+        case 'snapshot':
+          this.$refs.appealProcess.onBackSnapshot()
+          this.pageName = 'appeal-process'
+          break
+      }
+    },
     async fetchAppeals (overwrite = false) {
       const vm = this
       vm.loading = true
@@ -238,6 +262,7 @@ export default {
       this.selectedAppeal = this.appeals[index]
 
       this.state = 'appeal-process'
+      this.pageName = 'appeal-process'
     }
   }
 }
@@ -274,5 +299,12 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.back-btn {
+  background-color: transparent;
+  height: 50px;
+  width: 70px;
+  z-index: 1;
+  left: 10px;
 }
 </style>

@@ -13,14 +13,6 @@
     </div>
     <div v-else>
       <div v-if="state === 'initial'">
-        <!-- <q-btn
-          flat
-          padding="none md xs md"
-          icon="arrow_back"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-          @click="$emit('back')"
-        /> -->
         <div v-if="user" class="q-mb-lg">
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>

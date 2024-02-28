@@ -1,5 +1,4 @@
 <template>
-  <!-- <div class="fixed" style="background-color: aqua; height: 50px; width: 50px;" @click="$emit('back')"></div> -->
   <div
     v-if="state === 'initial'"
     class="q-mx-md q-mx-none text-bow"
@@ -8,16 +7,6 @@
     <!-- Form Body -->
     <div>
       <div v-if="isloaded">
-        <!-- <div>
-          <q-btn
-            flat
-            padding="md md 0 md"
-            icon="arrow_back"
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            @click="$emit('back')"
-          />
-        </div> -->
         <div
           class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size"
           :class="ad.trade_type === 'SELL' ? 'buy-color' : 'sell-color'"
