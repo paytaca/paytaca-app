@@ -34,6 +34,8 @@ export default function () {
         name: 'CashCats NFT',
         symbol: ''
       }
-    ]
+    ],
+
+    removedAssetIds: []
   }
 }
