@@ -2,6 +2,7 @@
   <div v-if="isloaded">
     <div v-if="escrowContract && (state === 'release-form' || state === 'completed-appeal')">
       <AppealDetail
+        ref="appealDetail"
         :key="appealDetailKey"
         :data="appealDetailData"
         :escrowContract="escrowContract"
@@ -9,6 +10,7 @@
         @back="$emit('back')"
         @success="onSendSuccess"
         @refresh="refreshData"
+        @update-page-name="(val) => {$emit('updatePageName', val)}"
       />
     </div>
 
@@ -20,6 +22,7 @@
         :txid="txid"
         :action="selectedAction"
         @back="$emit('back')"
+        @update-page-name="(val) => {$emit('updatePageName', val)}"
       />
     </div>
 
@@ -66,7 +69,7 @@ export default {
     selectedAppeal: Object,
     initWallet: Object
   },
-  emits: ['back'],
+  emits: ['back', 'updatePageName'],
   components: {
     AppealDetail,
     VerifyTransfer
@@ -80,6 +83,9 @@ export default {
     this.closeWSConnection()
   },
   methods: {
+    onBackSnapshot () {
+      this.$refs.appealDetail.state = 'form'
+    },
     onSendSuccess (txid) {
       this.txid = txid
     },

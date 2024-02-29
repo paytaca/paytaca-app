@@ -1,21 +1,12 @@
 <template>
-  <div class="q-pt-sm q-mx-md q-mx-none text-bow"
+  <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${ minHeight }px;`" v-if="state === 'form'">
-    <q-btn
-      flat
-      padding="md"
-      icon="arrow_back"
-      :class="getDarkModeClass(darkMode)"
-      class="fixed button button-text-primary"
-      @click="$emit('back')"
-      style="z-index: 2; top: 110px; left: 25px"
-    />
     <!-- chat button -->
-    <div class="fixed" style="right: 30px; top: 118px; z-index: 2">
+    <div class="fixed" style="right: 30px; z-index: 2" :style="$q.platform.is.ios ? 'top: 100px;' : 'top: 75px;'">
       <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon"  icon="comment" @click="openChat = true"/>
     </div>
-    <q-pull-to-refresh class="q-mt-lg q-pt-md q-mb-md" @refresh="$emit('refresh')">
+    <q-pull-to-refresh class="q-mb-md" @refresh="$emit('refresh')">
       <div v-if="loading">
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
           <ProgressLoader/>
@@ -27,7 +18,7 @@
           <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
           <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
         </div>
-        <q-scroll-area ref="scrollArea" :style="`height: ${minHeight - 210}px`" style="overflow-y:auto;">
+        <q-scroll-area ref="scrollArea" :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
           <div class="q-mx-lg">
             <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
               <q-card-section>
@@ -93,7 +84,11 @@
                 </span>
               </div>
 
-              <div class="text-blue text-left q-pt-xs q-mx-xs" @click="state = 'snapshot'"><u>View Ad Snapshot</u></div>
+              <div class="text-blue text-left q-pt-xs q-mx-xs"
+                @click="() => {
+                  state = 'snapshot'
+                  $emit('updatePageName', 'snapshot')
+                }"><u>View Ad Snapshot</u></div>
             </div>
 
             <div class="q-pt-sm">
@@ -311,7 +306,7 @@ export default {
     escrowContract: Object,
     initstate: String
   },
-  emits: ['back', 'refresh', 'success'],
+  emits: ['back', 'refresh', 'success', 'updatePageName'],
   components: {
     RampDragSlide,
     AdSnapshot,

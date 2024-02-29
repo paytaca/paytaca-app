@@ -5,16 +5,7 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card text-bow"
     :class="getDarkModeClass(darkMode)"
   >
-    <div>
-      <q-btn
-        flat
-        padding="md"
-        icon="close"
-        class="close-button"
-        @click="$emit('back')"
-      />
-    </div>
-    <div class="text-center lg-font-size text-weight-bold text-uppercase q-py-sm">Verifying Transfer</div>
+    <div class="q-pt-lg text-center lg-font-size text-weight-bold text-uppercase q-py-sm">Verifying Transfer</div>
 
     <q-separator class="q-my-sm q-mx-lg" :dark="darkMode"/>
     <div class="q-py-md q-mx-lg q-px-sm">
@@ -117,7 +108,7 @@ export default {
       disableTxidInput: true
     }
   },
-  emits: ['back'],
+  emits: ['back', 'updatePageName'],
   props: {
     escrowContract: Object,
     orderId: Number,
@@ -134,6 +125,7 @@ export default {
   },
   async mounted () {
     const vm = this
+    vm.$emit('updatePageName', 'appeal-transfer')
     vm.loadTransactionId()
     vm.loadContract()
     vm.loading = false
