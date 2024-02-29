@@ -173,6 +173,7 @@
     :userInfo="selectedUser"
     v-on:back="viewProfile = false"
     @update-page-name="updatePageName"
+    @select-listing="selectListing"
   />
 </template>
 <script>
@@ -304,7 +305,6 @@ export default {
           vm.pageName = 'main'
           break
         case 'edit-pm':
-          // vm.$refs.fiatProfileCard.state = 'initial'
           vm.$refs.fiatProfileCard.onBackPM()
           vm.pageName = 'view-profile'
           break
@@ -492,8 +492,9 @@ export default {
     },
     selectListing (listing) {
       const vm = this
+      vm.viewProfile = false
       vm.selectedListing = listing
-      vm.state = vm.transactionType
+      vm.state = vm.selectedListing.trade_type
       vm.pageName = 'order-form'
     },
     formatCompletionRate (value) {

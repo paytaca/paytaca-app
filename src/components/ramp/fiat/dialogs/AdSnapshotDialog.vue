@@ -41,14 +41,16 @@
               {{ appealCooldown(snapshot?.appeal_cooldown_choice).label }}
             </span>
           </div>
-        </div>
-        <!-- <div class="q-mx-lg q-pb-sm">
-          <div class="md-font-size text-weight-bold q-px-md">Ad Payment Methods</div>
-          <div class="q-gutter-sm q-pt-sm q-px-md">
-            <q-badge v-for="(method, index) in snapshot?.payment_methods" :key="index" rounded outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-7'" :label="method.payment_type" />
+          <div class="q-px-sm q-py-sm">
+            <div class="md-font-size q-px-md">Ad Payment Methods</div>
+            <div class="q-px-md q-gutter-sm q-pt-xs">
+              <q-badge v-for="method in snapshot?.payment_methods" :key="method.id" rounded outline :color="snapshot?.trade_type === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
+                {{ method.payment_type }}
+              </q-badge>
+            </div>
           </div>
         </div>
-        <div class="q-py-md q-mx-lg q-pb-sm">
+        <!--<div class="q-py-md q-mx-lg q-pb-sm">
           <div class="md-font-size text-weight-bold q-px-md">Order Payment Methods</div>
           <div v-if="selectedPaymentMethods?.length === 0" class="q-px-md sm-font-size">~ No payment method selected ~</div>
           <div v-for="(method, index) in selectedPaymentMethods" :key="index">

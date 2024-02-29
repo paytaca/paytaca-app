@@ -78,8 +78,9 @@
               label='Cancel Order'
               class="q-space text-white"
               style="background-color: #ed5f59;"
-              @click="$parent.cancellingOrder()"
+              @click="$emit('cancelOrder')"
             />
+            <!-- @click="$parent.cancellingOrder()" -->
           </div>
         </div>
         <!-- Appeal Button -->
@@ -178,7 +179,7 @@ export default {
   props: {
     data: Object
   },
-  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
+  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh', 'cancelOrder'],
   components: {
     FeedbackDialog,
     AppealForm,
