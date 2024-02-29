@@ -3,7 +3,7 @@
     <q-card-section bordered class="pt-card" :class="getDarkModeClass(darkMode)">
       <div class="xs-font-size">Trading with</div>
       <div class="row justify-end">
-          <div class="col">
+          <div class="col q-py-none">
               <q-btn flat no-caps dense
                   padding="none"
                   color="primary"
@@ -23,27 +23,40 @@
                   <span class="q-mx-xs sm-font-size">({{ ad?.owner?.rating ? ad?.owner?.rating : 0 }})</span>
               </div>
           </div>
-          <div class="col-auto q-mx-sm">
-              <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat"/>
+          <div v-if="type === 'order'" class="col-auto q-mx-sm">
+              <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat"/>
           </div>
       </div>
-      <q-separator class="q-my-sm"/>
-      <div class="row justify-end">
-          <div class="col-auto">
-              <div class="xs-font-size">Trade Amount</div>
-              <span
-                  class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                  :class="getDarkModeClass(darkMode)">
-                  {{ tradeAmount }}
-              </span>
-              <span class="sm-font-size q-ml-xs">{{ byFiat ? order?.ad?.fiat_currency?.symbol : 'BCH' }}</span>
-          </div>
-          <q-space/>
-          <div class="col-auto q-py-sm q-mx-sm">
-              <q-btn dense flat padding="none" color="primary" label="view ad" class="sm-font-size" @click="onViewAd"/>
-          </div>
+      <div>
+        <q-separator class="q-my-sm"/>
+        <div class="row justify-end">
+            <div class="col-auto">
+              <div v-if="type === 'order'">
+                <div class="xs-font-size">Trade Amount</div>
+                <span
+                    class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                    :class="getDarkModeClass(darkMode)">
+                    {{ tradeAmount }}
+                </span>
+                <span class="sm-font-size q-ml-xs">{{ byFiat ? order?.ad?.fiat_currency?.symbol : 'BCH' }}</span>
+              </div>
+              <div v-if="type === 'ad'">
+                <div class="xs-font-size">Price</div>
+                <span
+                    class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                    :class="getDarkModeClass(darkMode)">
+                    {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol) }}
+                </span>
+                <span class="sm-font-size q-ml-xs">/BCH </span>
+              </div>
+            </div>
+            <q-space/>
+            <div class="col-auto q-py-sm q-mx-sm">
+              <q-btn v-if="type === 'order'" dense flat padding="none" color="primary" label="view ad" class="sm-font-size" @click="onViewAd"/>
+            </div>
+        </div>
+        <q-btn v-if="type === 'order'" style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
       </div>
-      <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
     </q-card-section>
   </q-card>
 </template>
@@ -61,9 +74,16 @@ export default {
   emits: ['view-ad', 'view-peer', 'view-reviews', 'view-chat'],
   props: {
     order: Object,
-    ad: Object
+    ad: Object,
+    type: {
+      type: String,
+      default: 'ad'
+    }
   },
   computed: {
+    completedOrder () {
+      return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
+    },
     lockedPrice () {
       return formatCurrency(this.order?.locked_price, this.order?.ad?.fiat_currency?.symbol)
     },
@@ -85,6 +105,7 @@ export default {
     }
   },
   methods: {
+    formatCurrency,
     getDarkModeClass,
     onViewAd () {
       this.$emit('view-ad')

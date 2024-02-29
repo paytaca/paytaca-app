@@ -14,6 +14,7 @@
         <TradeInfoCard
           :order="order"
           :ad="ad"
+          type="order"
           @view-ad="showAdSnapshot=true"
           @view-peer="onViewPeer"
           @view-reviews="showReviews=true"
