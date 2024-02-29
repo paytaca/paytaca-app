@@ -126,9 +126,12 @@ export default {
       font-size: 12px;
       color: black;
       line-height: 20px;
+      min-width: 50px;
     }
     .footer-btn-container {
       margin-top: 1px !important;
+      overflow-x: auto;
+      flex-wrap: nowrap;
     }
     .default-text-color {
       color: rgb(60, 100, 246) !important;
