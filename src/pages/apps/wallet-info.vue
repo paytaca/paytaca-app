@@ -580,7 +580,7 @@ export default {
     executeSecurityChecking () {
       const vm = this
       if (vm.showMnemonic === false) {
-        SecureStoragePlugin.get({ key: 'pin' })
+        SecureStoragePlugin.get({ key: `pin ${vm.mnemonic}` })
           .then(() => {
             setTimeout(() => {
               if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
@@ -612,7 +612,7 @@ export default {
           this.submitLabel = 'Processing'
           this.customKeyboardState = 'dismiss'
           setTimeout(() => {
-            this.toggleMnemonicDisplay('proceed')
+            this.toggleMnemonicDisplay()
           }, 1000)
         },
         (error) => {
