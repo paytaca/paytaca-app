@@ -272,6 +272,12 @@ export default {
     await this.loadData()
     this.createChart()
     this.refreshData()
+
+    console.log(this.$refs.dialog)
+
+    document.addEventListener('backbutton', () => {
+      this.$refs.dialog.hide()
+    })
   },
   beforeUnmount () {
     this.cancelAutoUpdate()

@@ -460,6 +460,11 @@ export default {
         ? Math.abs(currentYield)
         : currentYield
     }
+  },
+  mounted () {
+    document.addEventListener('backbutton', () => {
+      this.$refs.dialog.hide()
+    })
   }
 }
 </script>
