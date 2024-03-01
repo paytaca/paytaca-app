@@ -518,8 +518,8 @@ export default {
       this.lockInputs = true
     },
 
-    swiped () {
-      this.executeSecurityChecking()
+    async swiped () {
+      await this.executeSecurityChecking()
       setTimeout(() => {
         this.showDragSlide = false
       }, 1000)
@@ -530,8 +530,11 @@ export default {
       this.verification.type = 'VERIFY'
     },
 
-    executeSecurityChecking () {
-      SecureStoragePlugin.get({ key: 'pin' })
+    async executeSecurityChecking () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
+
+      SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
         .then(() => {
           setTimeout(() => {
             if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {

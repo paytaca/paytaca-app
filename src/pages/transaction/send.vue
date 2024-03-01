@@ -928,14 +928,17 @@ export default {
       }
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
-    slideToSubmit ({ reset }) {
+    async slideToSubmit ({ reset }) {
       setTimeout(() => { reset() }, 2000)
-      this.executeSecurityChecking()
+      await this.executeSecurityChecking()
     },
 
-    executeSecurityChecking () {
+    async executeSecurityChecking () {
       const vm = this
-      SecureStoragePlugin.get({ key: 'pin' })
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
+
+      SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
         .then(() => {
           setTimeout(() => {
             if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {

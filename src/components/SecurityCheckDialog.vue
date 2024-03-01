@@ -21,6 +21,7 @@ import biometricWarningAttmepts from './authOption/biometric-warning-attempt.vue
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getMnemonic } from 'src/wallet'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -59,9 +60,12 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    executeSecurityChecking () {
+    async executeSecurityChecking () {
       const vm = this
-      SecureStoragePlugin.get({ key: 'pin' })
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
+
+      SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
         .then(() => {
           setTimeout(() => {
             if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
