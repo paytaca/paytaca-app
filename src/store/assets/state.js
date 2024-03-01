@@ -24,6 +24,7 @@ export default function () {
     ],
     ignoredAssets: [],
     vault: [],
-    chipnet__ignoredAssets: []
-  }   
+    chipnet__ignoredAssets: [],
+    removedAssetIds: []
+  }
 }

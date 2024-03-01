@@ -86,23 +86,34 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     .filter(Boolean)
     .filter((e, i, s) => s.indexOf(e) === i)
 
-  const vsCurrencies = ['usd']
-  if (selectedCurrency && selectedCurrency != 'ARS') vsCurrencies.push(selectedCurrency)
-  if (customCurrency && selectedCurrency !== customCurrency) vsCurrencies.push(customCurrency)
+  const vsCurrencies = [selectedCurrency, customCurrency]
+    .filter(Boolean)
+    .filter((element, index, array) => array.indexOf(element) === index)
 
-  const { data: prices } = await axios.get(
-    // 'https://api.coingecko.com/api/v3/simple/price',
-    'https://pro-api.coingecko.com/api/v3/simple/price',
+  const { data: priceDataList } = await axios.get(
+    'https://watchtower.cash/api/market-prices/',
     {
-      headers: {
-        'x-cg-pro-api-key': process.env.COINGECKO_API_KEY
-      },
       params: {
-        ids: coinIds.join(','),
-        vs_currencies: vsCurrencies.join(','),
+        coin_ids: coinIds.join(','),
+        currencies: vsCurrencies.join(','),
       }
     }
   )
+  const prices = {
+    // <coin_id> : { <currency>: <price> },
+  }
+  priceDataList.map(data => {
+    const price = parseFloat(data?.price_value)
+    if (!data?.currency || !data?.relative_currency || !price) return
+    const currency = String(data?.currency).toLowerCase()
+    let coinId = String(data?.relative_currency).toLowerCase()
+    if (coinId === 'BCH') coinId = 'bitcoin-cash' // watchtower uses BCH while coingecko uses 'bitcoin-cash'
+
+    if (!prices[coinId]) prices[coinId] = {}
+    prices[coinId][currency] = price
+  })
+
+  console.log(prices)
 
   let fetchUsdRate = false
   if (selectedCurrency) {
