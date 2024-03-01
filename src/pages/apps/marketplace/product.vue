@@ -8,10 +8,77 @@
     <HeaderNav title="Marketplace" class="header-nav" />
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
       <div class="row items-center">
-        <div class="q-space text-h5 q-px-sm">{{ product?.name }}</div>
+        <div class="text-h5 q-px-sm">{{ product?.name }}</div>
         <q-chip v-if="available == false" color="grey" text-color="white" class="q-ma-none">
           Unavailable
         </q-chip>
+        <q-space/>
+        <div
+          v-if="productReviewSummary?.count"
+          class="text-right text-caption text-grey"
+          @click="() => openReviewsDialog = true"
+        >
+          <div class="row items-center no-wrap">
+            <q-rating
+              readonly
+              max="5"
+              :model-value="productReviewSummary?.average * (5 / 100)"
+              size="1.25em"
+              color="brandblue"
+              icon-half="star_half"
+            />
+            <div>
+              {{ (parseInt(productReviewSummary?.average) * (5 / 100)).toPrecision(2) }}/5
+            </div>
+          </div>
+          <div>
+            ({{ productReviewSummary?.count }}
+            {{ productReviewSummary?.count === 1 ? 'review' : 'reviews' }})
+          </div>
+        </div>
+        <q-btn
+          v-else-if="product?.id"
+          flat
+          no-caps label="Rate product"
+          color="grey"
+          padding="xs sm"
+          class="q-r-mr-sm"
+          @click="() => rateProduct()"
+        />
+        <ReviewsListDialog ref="reviewsListDialog" v-model="openReviewsDialog" :product-id="productId">
+          <template v-slot:bottom>
+            <q-btn
+              v-if="!productReview?.id"
+              no-caps label="Rate product"
+              color="brandblue"
+              padding="xs sm"
+              class="full-width"
+              @click="() => rateProduct()"
+            />
+            <div v-else class="q-pa-sm q-mt-sm shadow-1" :class="getDarkModeClass(darkMode, 'pt-card-3')">
+              <q-btn
+                flat icon="edit"
+                padding="xs"
+                class="float-right"
+                @click="() => rateProduct()"
+              />
+              <div>Your review</div>
+              <q-rating
+                readonly
+                max="5"
+                :model-value="productReview?.rating * (5 / 100)"
+                color="brandblue"
+                icon-half="star_half"
+              />
+              <div v-if="productReview?.imagesUrls?.length" class="text-caption text-grey top bottom">
+                {{ productReview?.imagesUrls?.length }} {{ productReview?.imagesUrls?.length === 1 ? 'image' : 'images' }}
+              </div>
+              <div class="text-grey text-caption ellipsis">
+                {{ productReview?.text }}
+              </div>
+            </div>
+          </template>
+        </ReviewsListDialog>
       </div>
       <q-btn
         v-if="collectionId && collection?.id == collectionId" class="text-subtitle1 q-mx-sm"
@@ -104,7 +171,7 @@
   </q-pull-to-refresh>
 </template>
 <script setup>
-import { Cart, Collection, Product } from 'src/marketplace/objects'
+import { Cart, Collection, Product, Review } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -113,6 +180,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import JSONFormPreview from 'src/components/marketplace/JSONFormPreview.vue'
+import ReviewFormDialog from 'src/components/marketplace/reviews/ReviewFormDialog.vue'
+import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
 
 const props = defineProps({
   collectionId: [Number, String],
@@ -129,6 +198,8 @@ function resetPage() {
   product.value.raw = null
   collection.value.raw = null
   initialized.value = false
+  productReviewSummary.value = { count: 0, average: 0, lastReview: null }
+  productReview.value = null
 }
 
 onMounted(() => refreshPage())
@@ -138,6 +209,7 @@ watch(() => [props.productId], () => {
 })
 watch(() => [props.variantId], () => selectVariantFromProps())
 
+const customer = computed(() => $store.getters['marketplace/customer'])
 
 const storefrontId = computed(() => product.value?.storefrontId)
 onActivated(() => {
@@ -280,11 +352,68 @@ function openImage(img, title) {
   })  
 }
 
+const reviewsListDialog = ref()
+const openReviewsDialog = ref(false)
+watch(() => [props?.productId, customer.value?.id], () => fetchProductReviewSummary())
+const productReviewSummary = ref({ count: 0, average: 0, lastReview: new Date() })
+function fetchProductReviewSummary() {
+  return backend.get(`reviews/summary/`, { params: {
+    product_id: props?.productId || 0,
+  }})
+    .then(response => {
+      productReviewSummary.value = {
+        count: response?.data?.count,
+        average: parseFloat(response?.data?.average),
+        lastReview: new Date(response?.data?.last_review),
+      }
+    })
+}
+
+watch(() => [props?.productId, customer.value?.id], () => fetchReview())
+const productReview = ref([].map(Review.parse)[0])
+function fetchReview() {
+  return backend.get(`reviews/`, { params : {
+    product_id: props?.productId || 0,
+    created_by_customer_id: customer.value?.id || 0,
+    limit: 1,
+  }}).then(response => {
+    const review = response?.data?.count
+      ? Review.parse(response?.data?.results?.[0])
+      : undefined
+    productReview.value = review
+    return response
+  })
+}
+
+async function rateProduct() {
+  $q.dialog({
+    component: ReviewFormDialog,
+    componentProps: {
+      productId: props.productId,
+      review: productReview.value?.id ? productReview.value : undefined,
+    }
+  }).onOk(newProductReview => {
+    $q.dialog({
+      title: 'Review Submitted',
+      message: 'Thank you for your response!',
+      color: 'brandblue',
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+    productReview.value = newProductReview
+    fetchProductReviewSummary()
+    const index = reviewsListDialog.value?.reviews?.findIndex(review => review?.id === newProductReview?.id)
+    if (index >= 0) reviewsListDialog.value.reviews[index] = newProductReview
+  })
+}
+
 async function refreshPage(done=() => {}) {
   try {
     await Promise.all([
       fetchProduct(),
       fetchCollection(),
+      fetchProductReviewSummary(),
+      fetchReview(),
+      reviewsListDialog.value?.fetchReviews?.(),
     ])
     selectedVariantIndex.value = 0
   } finally {

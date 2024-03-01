@@ -1815,3 +1815,49 @@ export class ChatIdentity {
     this.customer = Customer.parse(data?.customer)   
   }
 }
+
+
+export class Review {
+  static parse(data) {
+    return new Review(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.product_id
+   * @param {Number} data.order_id
+   * @param {Number | String} data.rating
+   * @param {String} data.text
+   * @param {String[]} data.images_urls
+   * @param {String} data.created_at
+   * @param {Object} [data.created_by_user]
+   * @param {Object} [data.created_by_customer]
+  */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.rating = parseFloat(data?.rating)
+    this.text = data?.text
+    this.imagesUrls = data?.images_urls
+    this.createdAt = new Date(data?.created_at)
+
+    if(data?.created_by_user) this.createdByUser = User.parse(data?.created_by_user)
+    else if(this.createdByUser) delete this.createdByUser
+
+    if (data?.created_by_customer) this.createdByCustomer = User.parse(data?.created_by_customer)
+    else if(this.createdByCustomer) delete this.createdByCustomer
+  }
+
+  get authorName() {
+    return this.createdByCustomer?.fullName || this.createdByUser?.fullName
+  }
+}

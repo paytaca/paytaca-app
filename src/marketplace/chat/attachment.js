@@ -3,6 +3,7 @@ import crypto from 'crypto'
  * @param {Object} opts
  * @param {File} opts.file
  * @param {Number} opts.maxWidthHeight
+ * @returns {Promise<File>}
  */
 export async function resizeImage(opts) {
   const file = opts?.file
