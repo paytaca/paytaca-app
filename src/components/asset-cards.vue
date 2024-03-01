@@ -150,10 +150,12 @@ export default {
         assetName
       }).onOk(() => {
         if (this.isSep20) {
+          vm.$store.commit('sep20/addRemovedAssetIds', asset.id)
           const commitName = 'sep20/removeAsset'
           return vm.$store.commit(commitName, asset.id)
         }
         vm.$store.commit('assets/removeAsset', asset.id)
+        vm.$store.commit('assets/addRemovedAssetIds', asset.id)
       }).onCancel(() => {
       })
     },
