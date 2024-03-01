@@ -15,7 +15,7 @@
         <div ref="bottom-transactions-list"></div>
         <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
       </template>
-      <div v-if="transactions.length > 0" class="q-mt-md">
+      <div v-if="transactions.length > 0 && transactionsMaxPage > 1" class="q-mt-md">
         <q-pagination
           class="justify-center"
           padding="xs"
@@ -27,7 +27,7 @@
           @update:modelValue="(val) => getTransactions(val)"
         />
       </div>
-      <div v-else class="relative text-center q-pt-md">
+      <div v-else-if="transactions.length === 0" class="relative text-center q-pt-md">
         <q-img class="vertical-top q-my-md no-transaction-img" src="empty-wallet.svg" />
         <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
       </div>
@@ -160,7 +160,6 @@ export default {
       vm.transactionsAppending = true
       requestPromise
         .then(response => {
-          console.log('sbch response', response)
           vm.transactionsPageHasNext = false
           if (Array.isArray(response.transactions)) {
             vm.transactionsPageHasNext = response.hasNextPage
