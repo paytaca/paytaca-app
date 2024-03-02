@@ -231,7 +231,7 @@
                 <p style="font-size: 25px; margin-top: -10px;">
                   {{
                     isCashToken
-                      ? ctTokenAmount
+                      ? totalAmountSent
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
                   }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
@@ -422,7 +422,7 @@ export default {
       wallet: null,
       walletType: '',
       isCashToken: false,
-      ctTokenAmount: null,
+      // ctTokenAmount: null,
       forceUseDefaultNftImage: false,
 
       fetchingTokenStats: false,
