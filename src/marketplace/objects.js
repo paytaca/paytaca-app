@@ -91,6 +91,7 @@ export class User {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} [data.profile_picture_url]
    * @param {String} [data.email]
    * @param {String} [data.username]
    * @param {String} data.first_name
@@ -101,6 +102,7 @@ export class User {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.profilePictureUrl = data?.profile_picture_url
     this.email = data?.email
     this.username = data?.username
     this.firstName = data?.first_name
@@ -1205,6 +1207,7 @@ export class Rider {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} [data.profile_picture_url]
    * @param {String} data.first_name
    * @param {String} data.last_name
    * @param {String} data.phone_number
@@ -1218,6 +1221,7 @@ export class Rider {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.profilePictureUrl = data?.profile_picture_url
     this.firstName = data?.first_name
     this.lastName = data?.last_name
     this.phoneNumber = data?.phone_number

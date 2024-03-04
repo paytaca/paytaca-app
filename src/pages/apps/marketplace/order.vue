@@ -288,9 +288,23 @@
                 :href="`tel:${order?.assignedStaff?.phoneNumber || storefront?.phoneNumber}`"
               >
               </q-btn>
-              <div>{{ order?.assignedStaff?.fullName }}</div>
-              <div>{{ order?.assignedStaff?.phoneNumber }}</div>
-              <div>{{ storefront?.phoneNumber }}</div>
+              <div class="row items-start no-wrap">
+                <img
+                  v-if="order?.assignedStaff?.profilePictureUrl"
+                  :src="order?.assignedStaff?.profilePictureUrl"
+                  class="rounded-borders q-mt-xs q-mr-xs"
+                  style="height:3rem;width:3rem;object-position:center;object-fit:cover;"
+                  @click="() => openImage(
+                    order?.assignedStaff?.profilePictureUrl,
+                    order?.assignedStaff?.fullName || 'Assigned Staff',
+                  )"
+                />
+                <div class="q-space">
+                  <div>{{ order?.assignedStaff?.fullName }}</div>
+                  <div>{{ order?.assignedStaff?.phoneNumber }}</div>
+                  <div>{{ storefront?.phoneNumber }}</div>
+                </div>
+              </div>
             </div>
           </q-card>
           <q-card
@@ -383,10 +397,22 @@
                       </q-menu>
                     </q-icon>
                   </div>
-                  <template v-if="delivery?.rider?.id">
-                    <div>{{ delivery?.rider?.fullName }}</div>
-                    <div>{{ delivery?.rider?.phoneNumber }}</div>
-                  </template>
+                  <div v-if="delivery?.rider?.id" class="row items-center">
+                    <img
+                      v-if="delivery?.rider?.id && delivery?.rider?.profilePictureUrl"
+                      :src="delivery?.rider?.profilePictureUrl"
+                      class="rounded-borders q-mr-xs"
+                      style="height:2rem;width:2rem;object-position:center;object-fit:cover;"
+                      @click="() => openImage(
+                        delivery?.rider?.profilePictureUrl,
+                        delivery?.rider?.fullName || 'Rider',
+                      )"
+                    />
+                    <div class="q-space">
+                      <div>{{ delivery?.rider?.fullName }}</div>
+                      <div>{{ delivery?.rider?.phoneNumber }}</div>
+                    </div>
+                  </div>
                   <div v-else class="text-grey">No rider yet</div>
                 </div>
               </div>
@@ -647,6 +673,7 @@ import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 import ReviewFormDialog from 'src/components/marketplace/reviews/ReviewFormDialog.vue'
 import ReviewsListPanel from 'src/components/marketplace/reviews/ReviewsListPanel.vue'
+import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 
 const props = defineProps({
   orderId: [String, Number],  
@@ -1529,6 +1556,17 @@ function copyToClipboard(value, message) {
     color: 'blue-9',
     icon: 'mdi-clipboard-check'
   })
+}
+
+function openImage(img, title) {
+  if (!img) return
+  $q.dialog({
+    component: ImageViewerDialog,
+    componentProps: {
+      image: img,
+      title: title,
+    }
+  })  
 }
 
 async function refreshPage(done=() => {}) {
