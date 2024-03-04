@@ -3,12 +3,12 @@
     <div v-if="fetchingNfts" class="row items-center justify-center">
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
-    <div class="row items-start justify-between q-pa-md">
+    <div class="row items-start justify-between q-pa-md" ref="nftDivRef">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
         class="q-ma-sm text-bow"
         :class="getDarkModeClass(darkMode)"
-        style="max-width:130px;width:100%;"
+        :style="nftDivStyle"
         @click.stop="() => $emit('openNft', nft)"
       >
         <q-img
@@ -53,7 +53,7 @@
 import { CashNonFungibleToken } from "src/wallet/cashtokens";
 import { Wallet } from "src/wallet"
 import { useStore } from "vuex";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, onUpdated, ref, watch } from "vue";
 import ProgressLoader from 'components/ProgressLoader'
 import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -70,6 +70,8 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const theme = computed(() => $store.getters['global/theme'])
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
+const nftDivRef = ref(null)
+const nftDivStyle = ref('max-width:130px;width:100%;')
 
 const props = defineProps({
   wallet: Wallet,
@@ -79,6 +81,18 @@ const props = defineProps({
 })
 watch(() => [props.category, props.ungrouped, props.wallet], () => fetchNfts())
 onMounted(() => fetchNfts())
+onUpdated(() => {
+  if (nftDivRef.value) {
+    const nftDivWidth = nftDivRef.value.clientWidth - 32 // minus paddings
+    const nftCardWrap = Math.floor(nftDivWidth / 146) // width of NFT card + margins
+    const spaceBetweenCards = Math.round((nftDivWidth - (146 * nftCardWrap)) / nftCardWrap)
+    if (spaceBetweenCards >= 15) {
+      // adjust width of cards
+      const widthAdjustment = Math.ceil(spaceBetweenCards / nftCardWrap) + 130
+      nftDivStyle.value = `max-width: ${widthAdjustment}px; width: 100%;`
+    }
+  }
+})
 
 const fetchingNfts = ref(false)
 const nftsPagination = ref({count: 0, limit: 0, offset: 0})
