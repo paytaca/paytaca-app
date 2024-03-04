@@ -379,6 +379,7 @@ export class Product {
    * @param {String} [data.created_at]
    * @param {Object[]} [data.variants]
    * @param {Object[]} [data.storefront_products]
+   * @param {{ average_rating: String | Number, count: Number }} [data.review_summary]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -404,6 +405,12 @@ export class Product {
     this.updateVariants(data?.variants)
 
     this.storefrontProducts = data?.storefront_products?.map?.(StorefrontProduct.parse)
+    if (data?.review_summary) {
+      this.reviewSummary = {
+        averageRating: parseFloat(data?.review_summary?.average_rating),
+        count: data?.review_summary?.count,
+      }
+    } else if (this.reviewSummary) delete this.reviewSummary
   }
 
   get hasVariants() {

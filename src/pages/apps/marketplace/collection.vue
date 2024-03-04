@@ -39,6 +39,34 @@
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1"/>
               <q-card-section>
+                <div
+                  v-if="Number.isFinite(product?.reviewSummary?.averageRating)"
+                  class="float-right row items-center no-wrap"
+                  @click.stop
+                >
+                  <q-rating :model-value="1" readonly max="1" size="1em" color="brandblue"/>
+                  {{ roundRating(product?.reviewSummary?.averageRating) }}
+                  <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                    <div class="row items-center no-wrap">
+                      <q-rating
+                        readonly
+                        max="5"
+                        :model-value="roundRating(product?.reviewSummary?.averageRating, { forceDecimals: false})"
+                        size="1em"
+                        color="brandblue"
+                        class="no-wrap"
+                        icon-half="star_half"
+                      />
+                      <div>
+                        {{ roundRating(product?.reviewSummary?.averageRating) }}
+                      </div>
+                    </div>
+                    <div>
+                      ({{ product?.reviewSummary?.count }}
+                      {{ product?.reviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                    </div>
+                  </q-menu>
+                </div>
                 <div class="row items-center">
                   <div class="q-space text-body1 ellipsis">{{ product?.name }}</div>
                   <q-chip
@@ -72,6 +100,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product } from 'src/marketplace/objects'
+import { roundRating } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'

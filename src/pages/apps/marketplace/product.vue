@@ -7,9 +7,9 @@
   >
     <HeaderNav title="Marketplace" class="header-nav" />
     <div class="q-pa-sm" :class="{'text-black': !darkMode }">
-      <div class="row items-center">
-        <div class="text-h5 q-px-sm">{{ product?.name }}</div>
-        <q-chip v-if="available == false" color="grey" text-color="white" class="q-ma-none">
+      <div class="row items-center no-wrap q-px-sm">
+        <div class="text-h5">{{ product?.name }}</div>
+        <q-chip v-if="available == false" color="grey" text-color="white" class="q-my-none">
           Unavailable
         </q-chip>
         <q-space/>
@@ -25,10 +25,11 @@
               :model-value="productReviewSummary?.average * (5 / 100)"
               size="1.25em"
               color="brandblue"
+              class="no-wrap"
               icon-half="star_half"
             />
             <div>
-              {{ (parseInt(productReviewSummary?.average) * (5 / 100)).toPrecision(2) }}/5
+              {{ roundRating(productReviewSummary?.average) }}
             </div>
           </div>
           <div>
@@ -173,6 +174,7 @@
 <script setup>
 import { Cart, Collection, Product, Review } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
+import { roundRating } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated } from 'vue'

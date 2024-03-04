@@ -160,6 +160,34 @@
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1"/>
               <q-card-section>
+                <div
+                  v-if="Number.isFinite(product?.reviewSummary?.averageRating)"
+                  class="float-right row items-center no-wrap"
+                  @click.stop
+                >
+                  <q-rating :model-value="1" readonly max="1" size="1em" color="brandblue"/>
+                  {{ roundRating(product?.reviewSummary?.averageRating) }}
+                  <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                    <div class="row items-center no-wrap">
+                      <q-rating
+                        readonly
+                        max="5"
+                        :model-value="roundRating(product?.reviewSummary?.averageRating, { forceDecimals: false})"
+                        size="1em"
+                        color="brandblue"
+                        class="no-wrap"
+                        icon-half="star_half"
+                      />
+                      <div>
+                        {{ roundRating(product?.reviewSummary?.averageRating) }}
+                      </div>
+                    </div>
+                    <div>
+                      ({{ product?.reviewSummary?.count }}
+                      {{ product?.reviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                    </div>
+                  </q-menu>
+                </div>
                 <div class="row items-center">
                   <div class="q-space text-body1 ellipsis">{{ product?.name }}</div>
                   <q-chip
@@ -193,7 +221,8 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
-import { formatDateRelative } from 'src/marketplace/utils'
+import { formatDateRelative, roundRating } from 'src/marketplace/utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { setupCache } from 'axios-cache-interceptor'
 import axios from 'axios'
 import { vElementVisibility } from '@vueuse/components'
@@ -201,7 +230,6 @@ import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffect } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const cachedBackend = setupCache(axios.create({...backend.defaults}), { ttl: 30 * 1000 })
 
