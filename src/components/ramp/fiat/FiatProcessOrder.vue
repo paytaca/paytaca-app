@@ -52,6 +52,7 @@
             @submit-appeal="submitAppeal"
             @back="onBack"
             @refresh="refreshContent"
+            @cancel-order="cancellingOrder"
           />
         </div>
 
@@ -64,7 +65,7 @@
             @back="onBack"
           />
         </div>
-        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 240px' : 'top: 190px;'">
+        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
           <q-spinner-ios size="1.5em"/>
         </div>
       </div>
