@@ -368,14 +368,14 @@ export default {
       instruction: { // temp
         'price-setting': {
           title: 'Price Setting',
-          text: null
+          text: 'Price settings instruction here'
         },
         'trade-quantity': {
           title: 'Trade Quantity',
-          text: null
+          text: 'Trade quantity instruction here'
         },
         'trade-limit': {
-          title: 'Trade Limit',
+          title: 'Trade limit instruction here',
           text: null
         }
       },
