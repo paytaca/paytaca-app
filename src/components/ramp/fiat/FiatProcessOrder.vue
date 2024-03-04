@@ -34,6 +34,7 @@
           :data="escrowTransferData"
           @success="onEscrowSuccess"
           @back="onBack"
+          @refresh="generateContract"
         />
         <VerifyTransaction
           v-if="state === 'tx-confirmation'"
@@ -203,6 +204,7 @@ export default {
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
         fees: this.fees,
+        escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
     },
@@ -579,6 +581,7 @@ export default {
       })
     },
     async generateContract () {
+      console.log('generating contract..')
       const vm = this
       const fees = await vm.fetchFees()
       vm.fetchContract().then(contract => {
