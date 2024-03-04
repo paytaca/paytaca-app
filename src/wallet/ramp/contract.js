@@ -1,6 +1,6 @@
 import escrowSrcCode from 'src/cashscripts/escrow.cash'
-import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript0.7.5'
-import { compileString } from 'cashc0.7.5'
+import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
+import { compileString } from 'cashc'
 import { backend } from './backend'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
@@ -42,17 +42,24 @@ export class RampContract {
     const sellerPkh = this.getPubKeyHash(this.publicKeys.seller)
     const servicerPkh = this.getPubKeyHash(this.publicKeys.servicer)
 
-    this.hash = this.sha256Hash(arbiterPkh, buyerPkh, sellerPkh, servicerPkh, this.timestamp)
+    this.hash = this.sha256Hash(
+      this.publicKeys.arbiter,
+      this.publicKeys.buyer,
+      this.publicKeys.seller,
+      this.publicKeys.servicer,
+      this.timestamp
+    )
+
     const contractParams = [
       arbiterPkh,
       buyerPkh,
       sellerPkh,
       servicerPkh,
-      this.fees.serviceFee,
-      this.fees.arbitrationFee,
+      BigInt(parseInt(this.fees.serviceFee)),
+      BigInt(parseInt(this.fees.arbitrationFee)),
       this.hash
     ]
-    this.contract = new Contract(artifact, contractParams, provider)
+    this.contract = new Contract(artifact, contractParams, { provider })
   }
 
   /**
@@ -94,8 +101,8 @@ export class RampContract {
    * @param {number} timestamp - The timestamp to be included in the hash.
    * @returns {Promise<string>} A promise that resolves with the generated hash as a string.
    */
-  sha256Hash (arbiterPkh, buyerPkh, sellerPkh, servicerPkh, timestamp) {
-    const message = arbiterPkh + buyerPkh + sellerPkh + servicerPkh + timestamp
+  sha256Hash (arbiterPk, buyerPk, sellerPk, servicerPk, timestamp) {
+    const message = arbiterPk + buyerPk + sellerPk + servicerPk + timestamp
     return CryptoJS.SHA256(message).toString()
   }
 
@@ -127,15 +134,15 @@ export class RampContract {
        * output[2]: {to: `arbiter address`, amount: `arbitration fee`}
        * */
       const outputs = [
-        { to: this.addresses.buyer, amount: satoshiAmount },
-        { to: this.addresses.servicer, amount: this.fees.serviceFee },
-        { to: this.addresses.arbiter, amount: this.fees.arbitrationFee }
+        { to: this.addresses.buyer, amount: BigInt(satoshiAmount) },
+        { to: this.addresses.servicer, amount: BigInt(parseInt(this.fees.serviceFee)) },
+        { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]
 
       txInfo = await this.contract.functions
         .release(callerPubkey, callerSig, this.hash)
         .to(outputs)
-        .withHardcodedFee(this.fees.contractFee)
+        .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
         .send()
 
       result = {
@@ -143,6 +150,7 @@ export class RampContract {
         txInfo
       }
     } catch (err) {
+      console.error(err)
       result = {
         success: false,
         reason: String(err),
@@ -180,14 +188,15 @@ export class RampContract {
        * output[2]: {to: `arbiter address`, amount: `arbitration fee`}
        * */
       const outputs = [
-        { to: this.addresses.seller, amount: satoshiAmount },
-        { to: this.addresses.servicer, amount: this.fees.serviceFee },
-        { to: this.addresses.arbiter, amount: this.fees.arbitrationFee }
+        { to: this.addresses.seller, amount: BigInt(satoshiAmount) },
+        { to: this.addresses.servicer, amount: BigInt(parseInt(this.fees.serviceFee)) },
+        { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]
 
       txInfo = await this.contract.functions
         .refund(this.publicKeys.arbiter, arbiterSig, this.hash)
         .to(outputs)
+        .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
         .send()
 
       result = {

@@ -40,7 +40,7 @@
         hide-bottom-space
         bottom-slots
         error-message="Contract address mismatch"
-        :error="contractAddressMatch(contractAddress) !== true"
+        :error="contractAddress && data.escrow?.getAddress() && !contractAddressMatch(contractAddress)"
         :dark="darkMode"
         :loading="!contractAddress"
         v-model="contractAddress">
@@ -60,6 +60,7 @@
         readonly
         filled
         dense
+        hide-bottom-space
         :dark="darkMode"
         v-model="transferAmount"
         :error="balanceExceeded"
@@ -201,6 +202,9 @@ export default {
       vm.contractAddress = vm.data.contractAddress
       vm.fees = vm.data.fees
       vm.updateTransferAmount(vm.data.transferAmount)
+      if (vm.contractAddress) {
+        vm.$emit('refresh')
+      }
     },
     updateTransferAmount (transferAmount) {
       this.transferAmount = transferAmount
@@ -330,6 +334,7 @@ export default {
                 vm.contractAddress = response.data.address
               }
             }
+            vm.loading = false
             resolve(response.data)
           })
           .catch(error => {
@@ -337,6 +342,7 @@ export default {
             if (error.response && error.response.status === 403) {
               bus.emit('session-expired')
             }
+            vm.loading = false
             reject(error)
           })
       })
