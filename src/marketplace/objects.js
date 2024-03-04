@@ -1818,11 +1818,7 @@ export class ChatIdentity {
         return { pubkey: pubkeyData?.pubkey, deviceId: pubkeyData?.device_id }
       })
  
-    this.user = {
-      id: data?.user?.id,
-      firstName: data?.user?.first_name,
-      lastName: data?.user?.last_name,
-    }
+    this.user = User.parse(data?.user)
     this.customer = Customer.parse(data?.customer)   
   }
 }
