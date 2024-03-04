@@ -25,6 +25,18 @@
           <!-- <div class="ellipsis">{{ nft?.parsedMetadata?.description }}</div> -->
         </q-card-section>
       </q-card>
+      <q-card
+        v-for="(div, index) in missingBlankDivs"
+        class="q-ma-sm text-bow"
+        style="visibility: hidden;"
+        :key="index"
+        :style="nftDivStyle"
+      >
+        <q-img :src="null" fit="fill" />
+        <q-card-section v-if="nft?.parsedMetadata?.name || nft?.parsedMetadata?.description" class="q-pa-sm">
+          <div class="text-subtitle1 ellipsis-3-lines">test</div>
+        </q-card-section>
+      </q-card>
     </div>
     <template v-if="!nfts.length && !fetchingNfts">
       <p class="text-center pt-label no-nfts-label" :class="getDarkModeClass(darkMode)">
@@ -72,6 +84,7 @@ const theme = computed(() => $store.getters['global/theme'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 const nftDivRef = ref(null)
 const nftDivStyle = ref('max-width:130px;width:100%;')
+const missingBlankDivs = ref(0)
 
 const props = defineProps({
   wallet: Wallet,
@@ -90,6 +103,12 @@ onUpdated(() => {
       // adjust width of cards
       const widthAdjustment = Math.ceil(spaceBetweenCards / nftCardWrap) + 130
       nftDivStyle.value = `max-width: ${widthAdjustment}px; width: 100%;`
+    }
+
+    // append blank nft data to perfectly align nft cards
+    const nftLength = nfts.value.length
+    if (nftLength > 1) {
+      missingBlankDivs.value = nftCardWrap - (nftLength % nftCardWrap)
     }
   }
 })
