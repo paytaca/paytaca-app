@@ -15,7 +15,7 @@
         <div ref="bottom-transactions-list"></div>
         <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
       </template>
-      <div v-if="transactions.length > 0" class="q-mt-md">
+      <div v-if="transactions.length > 0 && transactionsMaxPage > 1" class="q-mt-md">
         <q-pagination
           class="justify-center"
           padding="xs"
