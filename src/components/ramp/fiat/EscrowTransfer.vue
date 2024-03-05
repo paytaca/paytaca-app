@@ -5,7 +5,7 @@
     <div class="q-mx-sm q-px-md">
       <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
       <q-select
-        class="q-pb-sm"
+        class="q-mb-sm"
         :dark="darkMode"
         filled
         dense
@@ -35,14 +35,21 @@
       <q-input
         class="q-pb-sm"
         readonly
-        :dark="darkMode"
         filled
         dense
-        :label="contractAddress"
-        :loading="!contractAddress">
+        hide-bottom-space
+        bottom-slots
+        error-message="Contract address mismatch"
+        :error="contractAddress && data.escrow?.getAddress() && !contractAddressMatch(contractAddress)"
+        :dark="darkMode"
+        :loading="!contractAddress"
+        v-model="contractAddress">
         <template v-slot:append v-if="contractAddress">
           <div @click="copyToClipboard(contractAddress)">
             <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+          </div>
+          <div @click="onReloadContractAddress()">
+            <q-icon size="sm" name='loop' color="blue-grey-6"/>
           </div>
         </template>
       </q-input>
@@ -53,6 +60,7 @@
         readonly
         filled
         dense
+        hide-bottom-space
         :dark="darkMode"
         v-model="transferAmount"
         :error="balanceExceeded"
@@ -87,6 +95,7 @@
     </div>
     <RampDragSlide
       :key="dragSlideKey"
+      :locked="!contractAddressMatch(contractAddress)"
       v-if="showDragSlide && data?.wsConnected && !sendingBch && contractAddress"
       :style="{
         position: 'fixed',
@@ -129,7 +138,7 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
-  emits: ['back', 'success'],
+  emits: ['back', 'success', 'refresh'],
   components: {
     RampDragSlide
   },
@@ -166,7 +175,15 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    selectArbiter (value) {
+    onReloadContractAddress () {
+      this.generateContractAddress(true)
+      this.$emit('refresh')
+    },
+    contractAddressMatch (contractAddress) {
+      const localContractAddress = this.data.escrow?.getAddress()
+      return localContractAddress === contractAddress
+    },
+    selectArbiter () {
       this.contractAddress = null
       this.generateContractAddress()
     },
@@ -185,6 +202,9 @@ export default {
       vm.contractAddress = vm.data.contractAddress
       vm.fees = vm.data.fees
       vm.updateTransferAmount(vm.data.transferAmount)
+      if (vm.contractAddress) {
+        vm.$emit('refresh')
+      }
     },
     updateTransferAmount (transferAmount) {
       this.transferAmount = transferAmount
@@ -198,8 +218,15 @@ export default {
       vm.escrowBch()
     },
     escrowBch () {
+      const vm = this
+      if (!vm.contractAddressMatch(this.contractAddress)) {
+        vm.sendErrors = ['Contract address mismatch']
+        vm.showDragSlide = true
+        vm.dragSlideKey++
+        return
+      }
+      console.log('Contract address matched. Sending BCH...')
       return new Promise((resolve, reject) => {
-        const vm = this
         vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
         vm.sendingBch = true
         this.wallet.raw().then(wallet =>
@@ -292,12 +319,13 @@ export default {
           })
       })
     },
-    generateContractAddress () {
+    generateContractAddress (force = false) {
       return new Promise((resolve, reject) => {
         const vm = this
         const body = {
           order_id: vm.order?.id,
-          arbiter_id: vm.selectedArbiter.id
+          arbiter_id: vm.selectedArbiter.id,
+          force: force
         }
         backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
           .then(response => {
@@ -306,6 +334,7 @@ export default {
                 vm.contractAddress = response.data.address
               }
             }
+            vm.loading = false
             resolve(response.data)
           })
           .catch(error => {
@@ -313,6 +342,7 @@ export default {
             if (error.response && error.response.status === 403) {
               bus.emit('session-expired')
             }
+            vm.loading = false
             reject(error)
           })
       })

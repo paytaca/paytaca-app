@@ -582,9 +582,9 @@ import { loadWallet, Wallet } from 'src/wallet'
 import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
-import customerLocationPin from 'src/assets/customer_map_marker.png'
-import riderLocationPin from 'src/assets/rider_map_marker.png'
-import merchantLocationPin from 'src/assets/merchant_map_marker.png'
+import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
+import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
+import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 
 const props = defineProps({
   orderId: [String, Number],  

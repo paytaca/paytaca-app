@@ -454,7 +454,7 @@
             <q-spinner size="3em"/>
             <div>Creating payment</div>
           </div>
-          <template v-if="bchPaymentData.url">
+          <template v-if="checkout.balanceToPay > 0 && bchPaymentData.url">
             <div v-if="payment.escrowContractAddress" class="q-mt-sm">
               <q-card
                 class="q-pa-sm pt-card-2 text-bow"
@@ -481,8 +481,16 @@
               class="full-width q-my-sm button"
               @click="() => bchPaymentState.tab = 'qrcode'"
             />
-            <q-separator spaced :dark="darkMode"/>
           </template>
+          <div v-else-if="!(checkout.balanceToPay > 0)" class="q-mt-sm">
+            <q-btn
+              :disable="loading"
+              no-caps
+              label="Review"
+              class="full-width button"
+              @click="() => savePayment().then(() => nextTab())"
+            />
+          </div>
           <q-dialog
             :model-value="bchPaymentState.tab === 'wallet'"
             position="bottom"
@@ -561,16 +569,6 @@
               </q-card-section>
             </q-card>
           </q-dialog>
-
-          <div class="q-mt-sm">
-            <q-btn
-              :disable="loading"
-              no-caps
-              :label="(bchPaymentData.url && checkout.balanceToPay) ? 'Pay later' : 'Review'"
-              class="full-width button"
-              @click="() => savePayment().then(() => nextTab())"
-            />
-          </div>
         </q-tab-panel>
         <q-tab-panel name="review" :dark="darkMode" class="q-pa-sm">
           <div class="row items-start review-panel-content">
@@ -780,8 +778,8 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const initialized = ref(false)
-// onMounted(() => refreshPage())
-onActivated(() => refreshPage())
+// onMounted(() => refreshPageDebounced())
+onActivated(() => refreshPageDebounced())
 onDeactivated(() => resetPage())
 function resetPage() {
   checkout.value.raw = Checkout.parse()
@@ -798,7 +796,7 @@ watch(
   () => [props.cartId, props.checkoutId],
   () => {
     resetPage()
-    refreshPage()
+    refreshPageDebounced()
   }
 )
 
@@ -1409,17 +1407,7 @@ const payment = computed(() => {
   })
 })
 const showPaymentsListDialog = ref(false)
-watch(() => [tabs.value.active], async () => {
-  if (tabs.value.active != 'payment') return
-  if (!checkout.value.id) return
-
-  if (checkout.value.totalPayable < 0) return
-  await fetchPaymentPromise.value
-  await updateBchPricePromise.value?.catch?.(console.error)
-  await updateDeliveryFeePromise.value
-  await createPaymentPromise.value?.catch?.(console.error)
-  if (!payment.value) return createPayment()
-})
+watch(() => [tabs.value.active], async () => attemptCreatePayment())
 
 const fetchPaymentPromise = ref()
 function fetchPayments() {
@@ -1437,6 +1425,18 @@ function fetchPayments() {
 }
 
 const createPaymentPromise = ref()
+async function attemptCreatePayment(opts={ checkCurrentTab: true }) {
+  if (!checkout.value.id) return
+  if (checkout.value.totalPayable < 0) return
+
+  if (opts?.checkCurrentTab && tabs.value.active != 'payment')
+
+  await fetchPaymentPromise.value
+  await updateBchPricePromise.value?.catch?.(console.error)
+  await updateDeliveryFeePromise.value
+  await createPaymentPromise.value?.catch?.(console.error)
+  if (!payment.value) return createPayment()
+}
 const createPayment = debounce(async () => {
   if (checkout.value.balanceToPay <= 0) return Promise.resolve('Checkout paid')
   const data = {
@@ -1679,7 +1679,7 @@ function checkPaymentFundingTx() {
     .then(response => {
       if (response?.data?.address != escrowContract?.address) return Promise.reject({ response })
       escrowContract.raw = response?.data
-      refreshPage()
+      refreshPageDebounced()
         .then(() => {
           if (!checkout.value.balanceToPay && tabs.value.active == 'payment') nextTab()
         })
@@ -1907,6 +1907,7 @@ function copyToClipboard(value, message) {
   })
 }
 
+
 async function refreshPage(done=() => {}) {
   try {
     initialized.value = Boolean(checkout.value.id)
@@ -1914,13 +1915,15 @@ async function refreshPage(done=() => {}) {
       fetchCheckout()
         .finally(() => resetFormData())
         .then(() => { updateBchPrice() })
-        .then(() => fetchPayments()),
+        .then(() => fetchPayments())
+        .then(() => attemptCreatePayment()),
     ])
   } finally {
     initialized.value = true
     done()
   }
 }
+const refreshPageDebounced = debounce((...args) => refreshPage(...args), 500)
 </script>
 <style scoped>
 table.items-table {
