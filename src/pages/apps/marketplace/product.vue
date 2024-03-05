@@ -202,6 +202,7 @@ function resetPage() {
   initialized.value = false
   productReviewSummary.value = { count: 0, average: 0, lastReview: null }
   productReview.value = null
+  if (reviewsListDialog.value?.reviews) reviewsListDialog.value.reviews = []
 }
 
 onMounted(() => refreshPage())
@@ -395,16 +396,19 @@ async function rateProduct() {
       review: productReview.value?.id ? productReview.value : undefined,
     }
   }).onOk(newProductReview => {
-    $q.dialog({
-      title: 'Review Submitted',
-      message: 'Thank you for your response!',
-      color: 'brandblue',
-      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-    })
+    if (newProductReview?.id) {
+      $q.dialog({
+        title: 'Review Submitted',
+        message: 'Thank you for your response!',
+        color: 'brandblue',
+        class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+      })
+    }
     productReview.value = newProductReview
     fetchProductReviewSummary()
     const index = reviewsListDialog.value?.reviews?.findIndex(review => review?.id === newProductReview?.id)
     if (index >= 0) reviewsListDialog.value.reviews[index] = newProductReview
+    else reviewsListDialog.value?.fetchReviews?.()
   })
 }
 

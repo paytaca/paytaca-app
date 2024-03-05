@@ -6,7 +6,7 @@
     :persistent="loading"
     @hide="onDialogHide"
   >
-    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width:min(500px, 75vw);">
       <q-card-section>
         <div class="row no-wrap items-center justify-center">
           <div class="text-h6">{{ title }}</div>
@@ -16,6 +16,15 @@
             padding="sm"
             icon="close"
             v-close-popup
+          />
+        </div>
+        <div v-if="review?.id && review?.createdByCustomer?.id === customer?.id" class="row items-center justify-end">
+          <q-btn
+            flat
+            no-caps label="Delete my review"
+            color="red" padding="xs sm"
+            class="text-underline q-r-mr-md"
+            @click="() => deleteReview()"
           />
         </div>
         <q-form @submit="() => onSubmit()">
@@ -129,6 +138,7 @@ export default defineComponent({
     'update:modelValue',
     'created',
     'updated:review',
+    'deleted',
     // REQUIRED; need to specify some events that your
     // component will emit through useDialogPluginComponent()
     ...useDialogPluginComponent.emits,  
@@ -151,6 +161,8 @@ export default defineComponent({
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
+
+    const customer = computed(() => $store.getters['marketplace/customer'])
 
     onMounted(() => resetFormData())
     watch(() => [props.review?.id], () => resetFormData())
@@ -315,10 +327,52 @@ export default defineComponent({
         })
     }
 
+    function deleteReview() {
+      if (!props.review?.id) return
+      $q.dialog({
+        title: 'Delete review',
+        message: 'Are you sure?',
+        color: 'brandblue',
+        cancel: { noCaps: true, label: 'Cancel', flat: true, color: 'grey' },
+        ok: { noCaps: true, label: 'Delete', flat: true, color: 'red' },
+        class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+      })
+        .onOk(() => {
+          const dialog = $q.dialog({
+            title: 'Delete review',
+            message: 'Deleting review',
+            persistent: true, progress: true,
+            ok: false,
+            color:'brandblue',
+            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+          })
+          const reviewId = props.review?.id
+          backend.delete(`reviews/${reviewId}/`)
+            .then(response => {
+              $emit('deleted', reviewId)
+              dialog.hide()
+              onDialogOK()
+              return response
+            })
+            .catch(error => {
+              let msg
+              if (error?.response?.status == 404) msg = 'Not found'
+              if (error?.response?.status == 403) msg = 'No permissions'
+              dialog.update({ message: msg || 'Encountered error' })
+              return Promise.reject(error)
+            })
+            .finally(() => {
+              dialog.update({ persistent: false, ok: true, progress: false })
+            })
+        })
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       darkMode,
       innerVal,
+
+      customer,
 
       loading,
       formData,
@@ -327,6 +381,7 @@ export default defineComponent({
       addPhoto,
 
       onSubmit,
+      deleteReview,
 
       getDarkModeClass,
     }

@@ -1476,12 +1476,14 @@ async function rateOrder() {
       review: orderReview.value?.id ? orderReview.value : undefined,
     }
   }).onOk(newOrderReview => {
-    $q.dialog({
-      title: 'Review Submitted',
-      message: 'Thank you for your response!',
-      color: 'brandblue',
-      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-    })
+    if (newOrderReview?.id) {
+      $q.dialog({
+        title: 'Review Submitted',
+        message: 'Thank you for your response!',
+        color: 'brandblue',
+        class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+      })
+    }
     orderReview.value = newOrderReview
   })
 }
