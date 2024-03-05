@@ -53,7 +53,7 @@ export default {
     this.isLoading = false
   },
   async beforeUnmount () {
-    this.$store.commit('ramp/resetStoreFilters')
+    // this.$store.commit('ramp/resetStoreFilters')
     this.$store.commit('ramp/resetPaymentTypes')
   },
   watch: {

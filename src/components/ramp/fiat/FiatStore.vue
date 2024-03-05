@@ -225,7 +225,7 @@ export default {
           fixed: true,
           floating: true
         },
-        payment_types: [],
+        payment_types: [], //
         time_limits: [5, 15, 30, 60, 300, 720, 1440]
       },
       filters: {},
@@ -282,9 +282,11 @@ export default {
   async mounted () {
     const vm = this
     vm.fetchPaymentTypes()
-    vm.fetchFiatCurrencies()
-    vm.updateFilters()
-    vm.resetAndRefetchListings()
+      .then(() => {
+        vm.fetchFiatCurrencies()
+        vm.updateFilters()
+        vm.resetAndRefetchListings()
+      })
   },
   methods: {
     getDarkModeClass,
@@ -410,6 +412,7 @@ export default {
     isdefaultFiltersOn (filters) {
       filters = { ...filters }
       const defaultFilters = { ...this.defaultFilters }
+
       if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
           JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
         return false
