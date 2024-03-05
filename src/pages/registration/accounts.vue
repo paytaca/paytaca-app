@@ -71,7 +71,10 @@
       :class="getDarkModeClass(darkMode)"
       v-if="steps > -1 && steps < totalSteps"
     >
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      <p class="dim-text q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
+        {{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...
+      </p>
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
     </div>
     <div
       class="row pt-wallet q-mt-sm pt-card-2"
@@ -127,7 +130,11 @@
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
-      <div class="pt-get-started q-mt-sm pt-card-2" :class="getDarkModeClass(darkMode, 'registration')">
+      <div
+        class="pt-get-started q-mt-sm pt-card-2"
+        :class="getDarkModeClass(darkMode, 'registration')"
+        v-if="steps === totalSteps"
+      >
         <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
             <div class="row" v-if="openSettings">
@@ -207,7 +214,6 @@
                   {{ $t('MnemonicBackupPhraseDescription2') }}
                 </p>
               </template>
-              <p class="dim-text" style="text-align: center;" v-else>{{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...</p>
 
               <div class="row" id="mnemonic">
                 <template v-if="steps === totalSteps">

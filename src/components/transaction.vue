@@ -63,7 +63,12 @@
                 </q-icon>
               </q-item-label>
               <q-item-label class="row items-center text-caption" style="margin-top: 0;">
-                <template v-if="transaction.record_type !== 'outgoing'">
+                <template
+                  v-if="
+                    transaction.record_type !== 'outgoing'
+                    && ['bch', 'sbch'].includes(transaction.asset?.symbol.toLowerCase())
+                  "
+                >
                   <q-badge
                     rounded
                     class="flex justify-start items-center yield-container"
@@ -455,6 +460,11 @@ export default {
         ? Math.abs(currentYield)
         : currentYield
     }
+  },
+  mounted () {
+    document.addEventListener('backbutton', () => {
+      this.$refs.dialog.hide()
+    })
   }
 }
 </script>
