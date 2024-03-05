@@ -25,14 +25,6 @@
         @update-page-name="(val) => {$emit('updatePageName', val)}"
       />
     </div>
-
-    <!-- <div v-if="state === 'completed-appeal'">
-      <CompletedAppeal
-        :appeal="appeal"
-        :order="appeal.order"
-        @back="$emit('back')"
-      />
-    </div> -->
   </div>
 </template>
 <script>

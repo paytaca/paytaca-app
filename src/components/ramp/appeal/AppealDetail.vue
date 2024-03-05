@@ -1,98 +1,78 @@
 <template>
   <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${ minHeight }px;`" v-if="state === 'form'">
-    <!-- chat button -->
-    <div class="fixed" style="right: 30px; z-index: 2" :style="$q.platform.is.ios ? 'top: 100px;' : 'top: 75px;'">
-      <q-btn size="md" padding="sm" dense ripple round flat class="button button-icon"  icon="comment" @click="openChat = true"/>
-    </div>
+    v-if="state === 'form'">
     <q-pull-to-refresh class="q-mb-md" @refresh="$emit('refresh')">
       <div v-if="loading">
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
           <ProgressLoader/>
         </div>
       </div>
-      <div v-else class="q-pt-sm">
+      <div v-else>
         <div class="text-center q-pb-sm">
           <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
           <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
-          <div class="sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
+          <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
         </div>
-        <q-scroll-area ref="scrollArea" :style="`height: ${minHeight - 170}px`" style="overflow-y:auto;">
-          <div class="q-mx-lg">
+        <q-scroll-area ref="scrollArea" :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
+          <div class="q-mx-sm q-mb-sm">
+            <TradeInfoCard
+              :order="order"
+              :ad="ad_snapshot"
+              type="appeal"
+              @view-ad="showAdSnapshot=true"
+              @view-peer="onViewPeer"
+              @view-reviews="showReviews=true"/>
+          </div>
+          <div class="q-mx-sm">
             <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
               <q-card-section>
-                <div class="text-weight-bold md-font-size">Appeal reasons</div>
-                <q-badge v-for="(reason, index) in appeal.reasons" class="q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+                <div class="row justify-end no-wrap">
+                  <div class="col-9 q-mr-lg">
+                    <div class="text-weight-bold md-font-size">Appeal reasons</div>
+                    <q-badge v-for="(reason, index) in appeal.reasons" class="row q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+                  </div>
+                  <q-space/>
+                  <div class="col q-mt-sm">
+                    <q-btn size="1.3em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="openChat=true"/>
+                  </div>
+                </div>
               </q-card-section>
             </q-card>
-
-            <div class="q-pt-md q-px-sm">
-              <div class="sm-font-size q-pb-xs">Buyer Receives</div>
-              <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="buyerReceivesAmount">
-                <template v-slot:append>
-                  <span class="sm-font-size">BCH</span>
-                </template>
-              </q-input>
-
-              <div class="sm-font-size q-pb-xs">Seller Receives</div>
-              <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" :label="sellerReceivesAmount.toFixed(2)">
-                <template v-slot:append>
-                  <span class="sm-font-size">{{ ad_snapshot?.fiat_currency?.symbol?.toUpperCase() }}</span>
-                </template>
-              </q-input>
+            <div class="q-my-sm">
+              <q-card class="br-15 q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
+                <div class="text-center q-py-xs text-weight-bold text-uppercase">
+                  Contract Information
+                </div>
+                <q-separator class="q-my-sm" :dark="darkMode"/>
+                <div class="q-mx-lg">
+                  <div class="sm-font-size q-pb-xs text-italic">Address</div>
+                  <q-input
+                    class="q-pb-xs"
+                    readonly
+                    dense
+                    filled
+                    :dark="darkMode"
+                    v-model="contractAddress">
+                  </q-input>
+                  <div class="sm-font-size q-pb-xs text-italic">Balance</div>
+                  <q-input
+                    class="q-pb-xs"
+                    readonly
+                    dense
+                    filled
+                    :dark="darkMode"
+                    :loading="contractBalance === null"
+                    v-model="contractBalance">
+                    <template v-slot:append>
+                      <span class="sm-font-size">BCH</span>
+                    </template>
+                  </q-input>
+                </div>
+              </q-card>
             </div>
-
-            <div class="sm-font-size q-pt-md q-px-lg">
-              <!-- FLOATING -->
-              <div v-if="ad_snapshot?.price_type === 'FLOATING'">
-                <div class="row justify-between no-wrap q-mx-xs">
-                  <span>Market Price</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ formattedCurrency(ad_snapshot.market_price, ad_snapshot.fiat_currency.symbol) }}
-                  </span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-xs">
-                  <span>Floating Price</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ formattedCurrency(ad_snapshot.floating_price) }}%
-                  </span>
-                </div>
-              </div>
-              <!-- FIXED -->
-              <div v-else>
-                <div class="row justify-between no-wrap q-mx-xs">
-                  <span>Fixed Price</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ formattedCurrency(ad_snapshot.fixed_price, ad_snapshot.fiat_currency.symbol) }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="row justify-between no-wrap q-mx-xs">
-                <span>Crypto Amount</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(order.crypto_amount) }} BCH
-                </span>
-              </div>
-              <q-separator class="q-my-sm" :dark="darkMode"/>
-
-              <div class="row justify-between no-wrap q-mx-xs">
-                <span>Fiat Price</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(sellerReceivesAmount, ad_snapshot.fiat_currency.symbol) }}
-                </span>
-              </div>
-
-              <div class="text-blue text-left q-pt-xs q-mx-xs"
-                @click="() => {
-                  state = 'snapshot'
-                  $emit('updatePageName', 'snapshot')
-                }"><u>View Ad Snapshot</u></div>
-            </div>
-
-            <div class="q-pt-sm">
-              <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+            <div class="q-my-sm">
+              <q-card class="br-15" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
                 <q-tabs
                   v-model="tab"
                   dense
@@ -100,8 +80,7 @@
                   active-color="primary"
                   indicator-color="primary"
                   align="justify"
-                  narrow-indicator
-                >
+                  narrow-indicator>
                   <q-tab name="status" label="Status" />
                   <q-tab name="transaction" label="Transactions" />
                 </q-tabs>
@@ -142,39 +121,8 @@
                 </div>
               </q-card>
             </div>
-            <div>
-              <q-card class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
-                <div class="text-center q-py-xs text-weight-bold text-uppercase">
-                  Contract Information
-                </div>
-                <q-separator class="q-my-sm" :dark="darkMode"/>
-                <div class="q-mx-lg">
-                  <div class="sm-font-size q-pb-xs text-italic">Address</div>
-                  <q-input
-                    class="q-pb-xs"
-                    readonly
-                    dense
-                    filled
-                    :dark="darkMode"
-                    v-model="contractAddress">
-                  </q-input>
-                  <div class="sm-font-size q-pb-xs text-italic">Balance</div>
-                  <q-input
-                    class="q-pb-xs"
-                    readonly
-                    dense
-                    filled
-                    :dark="darkMode"
-                    v-model="contractBalance">
-                    <template v-slot:append>
-                      <span class="sm-font-size text-weight-bold">BCH</span>
-                    </template>
-                  </q-input>
-                </div>
-              </q-card>
-            </div>
-            <div v-if="state === 'form'">
-              <q-card v-if="appeal?.resolved_at === null" class="br-15 q-mt-md q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
+            <div v-if="state === 'form'" class="q-my-sm">
+              <q-card v-if="appeal?.resolved_at === null" class="br-15 q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
                 <div class="text-center q-py-xs text-weight-bold text-uppercase">
                   Select Action
                 </div>
@@ -228,21 +176,21 @@
   </div>
 
   <!-- Ad Snapshot -->
-  <AdSnapshot
+  <!-- <AdSnapshot
     v-if="state === 'snapshot'"
     :snapshot="ad_snapshot"
     :selected-payment-methods="order.payment_methods"
     @back="state = 'form'"
-  />
+  /> -->
 
   <!-- Chat Dialog -->
-  <div v-if="openChat">
+  <!-- <div v-if="openChat">
     <ChatDialog
       :openDialog="openChat"
       :data="order"
       v-on:close="openChat = false"
     />
-  </div>
+  </div> -->
 
   <!-- Add DragSlide -->
   <RampDragSlide
@@ -260,17 +208,23 @@
     @cancel="onSecurityCancel"
     text="Swipe To Confirm"
   />
+  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
+  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
-import AdSnapshot from './AdSnapshot.vue'
+// import AdSnapshot from './AdSnapshot.vue'
 import ChatDialog from '../fiat/dialogs/ChatDialog.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import TradeInfoCard from '../fiat/TradeInfoCard.vue'
+import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
+import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 
 export default {
   data () {
@@ -298,6 +252,9 @@ export default {
       sendingBch: false,
       sendError: null,
       openChat: false,
+      showAdSnapshot: false,
+      showPeerProfile: false,
+      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85
     }
   },
@@ -309,9 +266,11 @@ export default {
   emits: ['back', 'refresh', 'success', 'updatePageName'],
   components: {
     RampDragSlide,
-    AdSnapshot,
+    AdSnapshotDialog,
+    UserProfileDialog,
     ChatDialog,
-    ProgressLoader
+    ProgressLoader,
+    TradeInfoCard
   },
   watch: {
     sendError (value) {
@@ -327,14 +286,11 @@ export default {
     }
   },
   computed: {
-    buyerReceivesAmount () {
-      return Number(this.order.crypto_amount)
-    },
-    sellerReceivesAmount () {
-      return Number(this.order.crypto_amount) * Number(this.order.locked_price)
+    completedOrder () {
+      return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
     },
     contractAddress () {
-      return this.formattedAddress(this.contract.address)
+      return this.contract.address
     }
   },
   async mounted () {
@@ -537,6 +493,10 @@ export default {
     },
     viewTxid (txid) {
       console.log('txid:', txid)
+    },
+    onViewPeer (data) {
+      this.peerInfo = data
+      this.showPeerProfile = true
     }
   }
 }
