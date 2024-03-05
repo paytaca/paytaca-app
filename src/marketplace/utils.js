@@ -2,6 +2,21 @@ import ago from 's-ago'
 import { capitalize } from 'vue'
 import { backend } from './backend'
 
+/**
+ * @param {Number} value 
+ * @param {Object} opts 
+ * @param {Number} opts.base change rating value from 1-100 to 1-<base>
+ * @param {Number} opts.decimals number of decimals to put
+ * @param {Boolean} opts.forceDecimals force appendin zeroes to maintain decimal numbers, this will result in a string
+ */
+export function roundRating(value, opts={ base: 5, decimals: 1, forceDecimals: true }) {
+  const base = parseInt(opts?.base) || 5
+  const decimals = parseInt(opts?.decimals) || 2
+  const rounded = round(parseFloat(value) * (base / 100), decimals)
+  if (opts?.forceDecimals) return rounded.toFixed(decimals)
+  return rounded
+}
+
 export function round(value, decimals) {
   const multiplier = 10 ** decimals
   return Math.round(Number(value) * multiplier) / multiplier

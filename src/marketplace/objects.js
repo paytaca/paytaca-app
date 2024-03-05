@@ -91,6 +91,7 @@ export class User {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} [data.profile_picture_url]
    * @param {String} [data.email]
    * @param {String} [data.username]
    * @param {String} data.first_name
@@ -101,6 +102,7 @@ export class User {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.profilePictureUrl = data?.profile_picture_url
     this.email = data?.email
     this.username = data?.username
     this.firstName = data?.first_name
@@ -379,6 +381,7 @@ export class Product {
    * @param {String} [data.created_at]
    * @param {Object[]} [data.variants]
    * @param {Object[]} [data.storefront_products]
+   * @param {{ average_rating: String | Number, count: Number }} [data.review_summary]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -404,6 +407,12 @@ export class Product {
     this.updateVariants(data?.variants)
 
     this.storefrontProducts = data?.storefront_products?.map?.(StorefrontProduct.parse)
+    if (data?.review_summary) {
+      this.reviewSummary = {
+        averageRating: parseFloat(data?.review_summary?.average_rating),
+        count: data?.review_summary?.count,
+      }
+    } else if (this.reviewSummary) delete this.reviewSummary
   }
 
   get hasVariants() {
@@ -1198,6 +1207,7 @@ export class Rider {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} [data.profile_picture_url]
    * @param {String} data.first_name
    * @param {String} data.last_name
    * @param {String} data.phone_number
@@ -1211,6 +1221,7 @@ export class Rider {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.profilePictureUrl = data?.profile_picture_url
     this.firstName = data?.first_name
     this.lastName = data?.last_name
     this.phoneNumber = data?.phone_number
@@ -1807,11 +1818,53 @@ export class ChatIdentity {
         return { pubkey: pubkeyData?.pubkey, deviceId: pubkeyData?.device_id }
       })
  
-    this.user = {
-      id: data?.user?.id,
-      firstName: data?.user?.first_name,
-      lastName: data?.user?.last_name,
-    }
+    this.user = User.parse(data?.user)
     this.customer = Customer.parse(data?.customer)   
+  }
+}
+
+
+export class Review {
+  static parse(data) {
+    return new Review(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.product_id
+   * @param {Number} data.order_id
+   * @param {Number | String} data.rating
+   * @param {String} data.text
+   * @param {String[]} data.images_urls
+   * @param {String} data.created_at
+   * @param {Object} [data.created_by_user]
+   * @param {Object} [data.created_by_customer]
+  */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.rating = parseFloat(data?.rating)
+    this.text = data?.text
+    this.imagesUrls = data?.images_urls
+    this.createdAt = new Date(data?.created_at)
+
+    if(data?.created_by_user) this.createdByUser = User.parse(data?.created_by_user)
+    else if(this.createdByUser) delete this.createdByUser
+
+    if (data?.created_by_customer) this.createdByCustomer = User.parse(data?.created_by_customer)
+    else if(this.createdByCustomer) delete this.createdByCustomer
+  }
+
+  get authorName() {
+    return this.createdByCustomer?.fullName || this.createdByUser?.fullName
   }
 }

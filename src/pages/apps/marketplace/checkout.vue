@@ -118,9 +118,21 @@
               class="q-mb-sm"
             >
               <template v-slot:control>
-                <div v-if="formData?.delivery?.rider?.id" class="">
-                  <div>{{ formData?.delivery?.rider?.fullName }}</div>
-                  <div>{{ formData?.delivery?.rider?.phoneNumber }}</div>
+                <div v-if="formData?.delivery?.rider?.id" class="row items-center no-wrap">
+                  <img
+                      v-if="formData?.delivery?.rider?.id && formData?.delivery?.rider?.profilePictureUrl"
+                      :src="formData?.delivery?.rider?.profilePictureUrl"
+                      class="rounded-borders q-mr-xs"
+                      style="height:2rem;width:2rem;object-position:center;object-fit:cover;"
+                      @click="() => openImage(
+                        formData?.delivery?.rider?.profilePictureUrl,
+                        formData?.delivery?.rider?.fullName || 'Rider',
+                      )"
+                    />
+                  <div class="q-space">
+                    <div>{{ formData?.delivery?.rider?.fullName }}</div>
+                    <div>{{ formData?.delivery?.rider?.phoneNumber }}</div>
+                  </div>
                 </div>
                 <div v-else class="text-grey">
                   No rider in the area
@@ -766,6 +778,7 @@ import CustomerLocationsDialog from 'src/components/marketplace/CustomerLocation
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import RefundPaymentsDialog from 'src/components/marketplace/RefundPaymentsDialog.vue'
+import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -1907,6 +1920,16 @@ function copyToClipboard(value, message) {
   })
 }
 
+function openImage(img, title) {
+  if (!img) return
+  $q.dialog({
+    component: ImageViewerDialog,
+    componentProps: {
+      image: img,
+      title: title,
+    }
+  })  
+}
 
 async function refreshPage(done=() => {}) {
   try {

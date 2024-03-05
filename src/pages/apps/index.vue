@@ -214,6 +214,18 @@ export default {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
     const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
+
+    try {
+      if (this.$router.resolve({name: 'apps-sandbox'})) {
+        this.apps.unshift({
+          name: 'Sandbox',
+          iconName: '',
+          path: '/apps/sandbox',
+          active: true
+        })
+      }
+    } catch { }
+
     this.filteredApps.forEach(app => {
       if (isNotDefaultTheme(this.theme)) {
         const iconFileName = app.path.split('/')[2]
@@ -234,16 +246,6 @@ export default {
         }
       })
     }
-    try {
-      if (this.$router.resolve({name: 'apps-sandbox'})) {
-        this.apps.unshift({
-          name: 'Sandbox',
-          iconName: '',
-          path: '/apps/sandbox',
-          active: true
-        })
-      }
-    } catch { }
   },
   mounted () {
     const htmlTag1 = document.querySelector('.pt-app')

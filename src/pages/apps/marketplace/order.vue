@@ -192,6 +192,55 @@
       </q-btn>
       </div>
       </q-banner>
+
+      <q-banner
+        v-if="orderReview?.id"
+        class="q-mx-xs q-my-sm q-pa-sm pt-card text-bow rounded-borders"
+        style="position:relative;" v-ripple
+        :class="getDarkModeClass(darkMode)"
+        @click="() => openOrderReviewDialog = true"
+      >
+        <q-btn
+          v-if="customer?.id === orderReview?.createdByCustomer?.id"
+          flat icon="edit"
+          padding="xs"
+          class="float-right"
+          @click.stop="() => rateOrder()"
+        />
+        <div>Customer review</div>
+        <q-rating
+          readonly
+          max="5"
+          :model-value="orderReview?.rating * (5 / 100)"
+          color="brandblue"
+          icon-half="star_half"
+        />
+        <div v-if="orderReview?.imagesUrls?.length" class="text-caption text-grey top bottom">
+          {{ orderReview?.imagesUrls?.length }} {{ orderReview?.imagesUrls?.length === 1 ? 'image' : 'images' }}
+        </div>
+        <div class="text-grey text-caption ellipsis">
+          {{ orderReview?.text }}
+        </div>
+      </q-banner>
+      <div v-else-if="canReviewOrder" class="q-mx-xs q-my-sm">
+        <q-btn
+          no-caps label="Leave a review"
+          color="brandblue"
+          class="full-width"
+          @click="() => rateOrder()"
+        />
+      </div>
+      <q-dialog v-model="openOrderReviewDialog" position="bottom">
+        <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+          <q-card-section>
+            <div class="row items-center no-wrap">
+              <div class="text-h5 q-space">Order Review</div>
+              <q-btn flat icon="close" padding="sm" v-close-popup/>
+            </div>
+            <ReviewsListPanel :reviews="[orderReview]"/>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
       <div class="row items-start items-delivery-address-panel">
         <div v-if="order?.deliveryAddress?.id || delivery?.id" class="col-12 col-sm-4 q-pa-xs">
           <q-card
@@ -239,9 +288,23 @@
                 :href="`tel:${order?.assignedStaff?.phoneNumber || storefront?.phoneNumber}`"
               >
               </q-btn>
-              <div>{{ order?.assignedStaff?.fullName }}</div>
-              <div>{{ order?.assignedStaff?.phoneNumber }}</div>
-              <div>{{ storefront?.phoneNumber }}</div>
+              <div class="row items-start no-wrap">
+                <img
+                  v-if="order?.assignedStaff?.profilePictureUrl"
+                  :src="order?.assignedStaff?.profilePictureUrl"
+                  class="rounded-borders q-mt-xs q-mr-xs"
+                  style="height:3rem;width:3rem;object-position:center;object-fit:cover;"
+                  @click="() => openImage(
+                    order?.assignedStaff?.profilePictureUrl,
+                    order?.assignedStaff?.fullName || 'Assigned Staff',
+                  )"
+                />
+                <div class="q-space">
+                  <div>{{ order?.assignedStaff?.fullName }}</div>
+                  <div>{{ order?.assignedStaff?.phoneNumber }}</div>
+                  <div>{{ storefront?.phoneNumber }}</div>
+                </div>
+              </div>
             </div>
           </q-card>
           <q-card
@@ -334,10 +397,22 @@
                       </q-menu>
                     </q-icon>
                   </div>
-                  <template v-if="delivery?.rider?.id">
-                    <div>{{ delivery?.rider?.fullName }}</div>
-                    <div>{{ delivery?.rider?.phoneNumber }}</div>
-                  </template>
+                  <div v-if="delivery?.rider?.id" class="row items-center">
+                    <img
+                      v-if="delivery?.rider?.id && delivery?.rider?.profilePictureUrl"
+                      :src="delivery?.rider?.profilePictureUrl"
+                      class="rounded-borders q-mr-xs"
+                      style="height:2rem;width:2rem;object-position:center;object-fit:cover;"
+                      @click="() => openImage(
+                        delivery?.rider?.profilePictureUrl,
+                        delivery?.rider?.fullName || 'Rider',
+                      )"
+                    />
+                    <div class="q-space">
+                      <div>{{ delivery?.rider?.fullName }}</div>
+                      <div>{{ delivery?.rider?.phoneNumber }}</div>
+                    </div>
+                  </div>
                   <div v-else class="text-grey">No rider yet</div>
                 </div>
               </div>
@@ -549,7 +624,18 @@
           <div class="text-h5">Order Complete</div>
           <q-icon name="check_circle" color="green" size="5rem"/>
           <div>Order has been completed, thank you for using our service!</div>
+          <div v-if="canReviewOrder">
+            <q-btn
+              no-caps label="Leave a review"
+              color="brandblue"
+              padding="2px md"
+              class="q-mt-md"
+              v-close-popup
+              @click="() => rateOrder()"
+            />
+          </div>
           <q-btn
+            :flat="canReviewOrder"
             no-caps label="Go to marketplace"
             color="brandblue"
             padding="2px md"
@@ -565,7 +651,7 @@
 <script setup>
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
-import { Delivery, Order, OrderDispute, Payment, Storefront } from 'src/marketplace/objects'
+import { Delivery, Order, OrderDispute, Payment, Review, Storefront } from 'src/marketplace/objects'
 import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -585,6 +671,9 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
+import ReviewFormDialog from 'src/components/marketplace/reviews/ReviewFormDialog.vue'
+import ReviewsListPanel from 'src/components/marketplace/reviews/ReviewsListPanel.vue'
+import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 
 const props = defineProps({
   orderId: [String, Number],  
@@ -598,6 +687,8 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $q = useQuasar()
 
+const customer = computed(() => $store.getters['marketplace/customer'])
+
 onMounted(() => refreshPage())
 const initialized = ref(false)
 function resetPage() {
@@ -606,6 +697,7 @@ function resetPage() {
   delivery.value = Delivery.parse()
   payments.value = []
   chatButton.value?.reset?.()
+  orderReview.value = null
 }
 watch(
   () => [props.orderId],
@@ -1236,6 +1328,7 @@ function cancelOrder() {
 
 const completingOrder = ref(false)
 const showOrderCompletedPrompt = ref(false)
+window.s = showOrderCompletedPrompt
 function completeOrder() {
   if (order.value.status != 'delivered') return
   const data = { status: 'completed' }
@@ -1347,6 +1440,52 @@ function createOrUpdateDispute(opts={ reasons:[].map(String) }) {
       dialog.update({ persistent: false, progress: false, ok: true, })
     })
 }
+
+
+const canReviewOrder = computed(() => {
+  if (order.value?.customer?.id != customer.value?.id) return false
+  return ['completed', 'cancelled'].includes(order.value?.status)
+})
+watch(() => [order.value?.id, order.value?.customer?.id], () => fetchOrderReview())
+const openOrderReviewDialog = ref(false)
+const orderReview = ref([].map(Review.parse)[0])
+function fetchOrderReview() {
+  if (!order.value?.id || !order.value?.customer?.id) {
+    orderReview.value = null
+    return Promise.resolve()
+  }
+  const params = {
+    order_id: order.value?.id || 0,
+    created_by_customer_id: order.value?.customer?.id || 0,
+    limit: 1,
+  }
+
+  return backend.get(`reviews/`, { params })
+    .then(response => {
+      const orderReviewObj = Review.parse(response?.data?.results?.[0])
+      orderReview.value = orderReviewObj?.id ? orderReviewObj : null
+      return response
+    })
+}
+
+async function rateOrder() {
+  $q.dialog({
+    component: ReviewFormDialog,
+    componentProps: {
+      orderId: order.value?.id,
+      review: orderReview.value?.id ? orderReview.value : undefined,
+    }
+  }).onOk(newOrderReview => {
+    $q.dialog({
+      title: 'Review Submitted',
+      message: 'Thank you for your response!',
+      color: 'brandblue',
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+    orderReview.value = newOrderReview
+  })
+}
+
 const rpcEventNames = Object.freeze({
   orderUpdate: 'order_updates',
   paymentUpdate: 'payment_updates',
@@ -1417,6 +1556,17 @@ function copyToClipboard(value, message) {
     color: 'blue-9',
     icon: 'mdi-clipboard-check'
   })
+}
+
+function openImage(img, title) {
+  if (!img) return
+  $q.dialog({
+    component: ImageViewerDialog,
+    componentProps: {
+      image: img,
+      title: title,
+    }
+  })  
 }
 
 async function refreshPage(done=() => {}) {
