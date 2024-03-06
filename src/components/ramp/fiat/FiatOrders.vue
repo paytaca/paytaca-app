@@ -342,6 +342,7 @@ export default {
     isdefaultFiltersOn (filters) {
       filters = { ...filters }
       const defaultFilters = { ...this.defaultFilters }
+
       if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
           JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
         return false

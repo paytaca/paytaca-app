@@ -173,6 +173,7 @@
     :userInfo="selectedUser"
     v-on:back="viewProfile = false"
     @update-page-name="updatePageName"
+    @select-listing="selectListing"
   />
 </template>
 <script>
@@ -224,7 +225,7 @@ export default {
           fixed: true,
           floating: true
         },
-        payment_types: [],
+        payment_types: [], //
         time_limits: [5, 15, 30, 60, 300, 720, 1440]
       },
       filters: {},
@@ -281,9 +282,11 @@ export default {
   async mounted () {
     const vm = this
     vm.fetchPaymentTypes()
-    vm.fetchFiatCurrencies()
-    vm.updateFilters()
-    vm.resetAndRefetchListings()
+      .then(() => {
+        vm.fetchFiatCurrencies()
+        vm.updateFilters()
+        vm.resetAndRefetchListings()
+      })
   },
   methods: {
     getDarkModeClass,
@@ -304,7 +307,6 @@ export default {
           vm.pageName = 'main'
           break
         case 'edit-pm':
-          // vm.$refs.fiatProfileCard.state = 'initial'
           vm.$refs.fiatProfileCard.onBackPM()
           vm.pageName = 'view-profile'
           break
@@ -410,6 +412,7 @@ export default {
     isdefaultFiltersOn (filters) {
       filters = { ...filters }
       const defaultFilters = { ...this.defaultFilters }
+
       if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
           JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
         return false
@@ -492,8 +495,9 @@ export default {
     },
     selectListing (listing) {
       const vm = this
+      vm.viewProfile = false
       vm.selectedListing = listing
-      vm.state = vm.transactionType
+      vm.state = vm.selectedListing.trade_type
       vm.pageName = 'order-form'
     },
     formatCompletionRate (value) {

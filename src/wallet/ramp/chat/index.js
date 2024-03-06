@@ -4,10 +4,10 @@ import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
 
-export async function updatePeerChatIdentityId (id) {
+export async function updateChatIdentityId (userType, id) {
   return new Promise((resolve, reject) => {
     const payload = { chat_identity_id: id }
-    backend.put('/ramp-p2p/peer/detail', payload, { authorize: true })
+    backend.put(`/ramp-p2p/${userType}/detail`, payload, { authorize: true })
       .then(response => {
         console.log('Updated chat identity id:', response.data)
         resolve(response)

@@ -5,16 +5,7 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card-2 text-bow"
     :class="getDarkModeClass(darkMode)"
   >
-      <div>
-        <q-btn
-          flat
-          padding="md"
-          icon="close"
-          class="close-button"
-          @click="$emit('back')"
-        />
-      </div>
-      <div class="text-center text-weight-bold lg-font-size text-uppercase">Ad Snapshot</div>
+      <div class="q-pt-md text-center text-weight-bold lg-font-size text-uppercase">Ad Snapshot</div>
       <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Ad #{{ snapshot.ad }})</div>
 
       <q-separator class="q-my-sm" :dark="darkMode"/>

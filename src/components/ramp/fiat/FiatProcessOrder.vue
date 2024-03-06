@@ -14,6 +14,7 @@
         <TradeInfoCard
           :order="order"
           :ad="ad"
+          type="order"
           @view-ad="showAdSnapshot=true"
           @view-peer="onViewPeer"
           @view-reviews="showReviews=true"
@@ -52,6 +53,7 @@
             @submit-appeal="submitAppeal"
             @back="onBack"
             @refresh="refreshContent"
+            @cancel-order="cancellingOrder"
           />
         </div>
 
@@ -64,7 +66,7 @@
             @back="onBack"
           />
         </div>
-        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 240px' : 'top: 190px;'">
+        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
           <q-spinner-ios size="1.5em"/>
         </div>
       </div>
@@ -80,13 +82,13 @@
       v-on:submit="handleDialogResponse()"
     />
   </div>
-  <div v-if="openChat">
+  <!-- <div v-if="openChat">
     <ChatDialog
       :openDialog="openChat"
       :data="order"
       v-on:close="openChat = false"
     />
-  </div>
+  </div> -->
   <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
   <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
   <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>

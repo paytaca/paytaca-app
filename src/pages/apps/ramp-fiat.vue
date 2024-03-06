@@ -1,6 +1,5 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
-    <!-- <HeaderNav :title="`${appTitle.toLocaleUpperCase()} Ramp`" backnavpath="/apps"/> -->
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
     </div>
@@ -14,7 +13,6 @@
   </div>
 </template>
 <script>
-import HeaderNav from 'src/components/header-nav.vue'
 import AppealIndex from 'src/components/ramp/appeal/AppealIndex.vue'
 import FiatIndex from 'src/components/ramp/fiat/FiatIndex.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
@@ -25,7 +23,6 @@ import { deleteAuthToken } from 'src/wallet/ramp/auth'
 
 export default {
   components: {
-    HeaderNav,
     ProgressLoader,
     FiatIndex,
     AppealIndex,

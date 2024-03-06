@@ -31,26 +31,17 @@
     </div>
     <footer-menu />
   </div>
-  <appSelectionDialog
-    v-if="rampAppSelection"
-    @back="rampAppSelection=false"
-    @submit="rampSelectApp"
-  />
 </template>
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import appSelectionDialog from 'src/components/ramp/appSelectionDialog.vue'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
 
 export default {
   name: 'apps',
   directives: {
     'on-long-press': vOnLongPress,
-  },
-  components: {
-    appSelectionDialog
   },
   data () {
     return {
@@ -90,11 +81,19 @@ export default {
           smartBCHOnly: true
         },
         {
-          name: this.$t('Ramp'),
+          name: 'P2P Exchange',
           iconName: 'img:ramp_icon_white.png',
-          path: '/apps/ramp',
+          path: '/apps/ramp/fiat',
           iconStyle: 'width:50%',
           active: true, // !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: 'Crypto Swap',
+          iconName: 'currency_bitcoin',
+          path: '/apps/ramp/crypto',
+          iconStyle: 'width:50;',
+          active: true,
           smartBCHOnly: false
         },
         {
@@ -181,16 +180,6 @@ export default {
     }
   },
   methods: {
-    rampSelectApp (app) {
-      this.rampAppSelection = false
-      this.rampSelectedApp = app
-      if (app === 'fiat') {
-        this.$router.push('/apps/ramp/fiat')
-      }
-      if (app === 'crypto') {
-        this.$router.push('/apps/ramp/crypto')
-      }
-    },
     getDarkModeClass,
     isNotDefaultTheme,
     buttonClassByState (active) {
@@ -198,11 +187,7 @@ export default {
     },
     openApp (app) {
       if (app.active) {
-        if (app.name === 'Ramp') {
-          this.rampAppSelection = true
-        } else {
-          this.$router.push(app.path)
-        }
+        this.$router.push(app.path)
       }
     },
     onLongPressApp(event, app) {
