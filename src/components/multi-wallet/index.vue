@@ -58,21 +58,30 @@
                     <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
                         <q-item-section
-                        class="pt-label"
+                          class="pt-label"
                           :class="getDarkModeClass(darkMode)"
                           @click="switchWallet(selectedIndex)"
                         >
                           {{ $t('SwitchWallet') }}
-                      </q-item-section>
+                        </q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
                         <q-item-section
-                        class="pt-label"
+                          class="pt-label"
                           :class="getDarkModeClass(darkMode)"
                           @click="openRenameDialog()"
                         >
                           {{ $t('Rename') }}
-                      </q-item-section>
+                        </q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section
+                          class="pt-label"
+                          :class="getDarkModeClass(darkMode)"
+                          @click="openBasicInfoDialog()"
+                        >
+                          {{ $t('SeeBasicWalletInfo') }}
+                        </q-item-section>
                       </q-item>
                     </q-list>
                   </q-menu>
@@ -86,10 +95,12 @@
   </q-dialog>
 </template>
 <script>
-import renameDialog from './renameDialog.vue'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { deleteAuthToken } from 'src/wallet/ramp/auth'
+
+import renameDialog from './renameDialog.vue'
+import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
 
 export default {
   data () {
@@ -103,7 +114,8 @@ export default {
     }
   },
   components: {
-    renameDialog
+    renameDialog,
+    BasicInfoDialog
   },
   methods: {
     parseAssetDenomination,
@@ -201,6 +213,14 @@ export default {
       } else {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
+    },
+    openBasicInfoDialog () {
+      this.$q.dialog({
+        component: BasicInfoDialog,
+        componentProps: {
+          vaultIndex: this.selectedIndex
+        }
+      })
     }
   },
   computed: {
