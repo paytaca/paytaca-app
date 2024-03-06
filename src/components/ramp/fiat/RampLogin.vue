@@ -3,7 +3,7 @@
   <div
   class="q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"
-  :style="`height: ${minHeight}px;`">
+  :style="`height: ${minHeight}px;`" style="overflow-y: auto">
     <div v-if="isLoading">
       <div class="row justify-center q-py-lg" style="margin-top: 50%">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
@@ -170,25 +170,29 @@ export default {
       vm.hintMessage = 'Loading chat identity'
       const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
       let chatIdentity = vm.$store.getters['ramp/chatIdentity']
-      if (!chatIdentity) {
-        console.log('fetching chat identity')
-        await updateSignerData()
-        const data = {
-          rampWallet: vm.rampWallet,
-          ref: vm.rampWallet.walletHash,
-          name: vm.user.name
-        }
-        chatIdentity = await fetchChatIdentity(data.ref)
+      try {
         if (!chatIdentity) {
-          const payload = await vm.buildChatIdentityPayload(data)
-          chatIdentity = createChatIdentity(payload)
+          console.log('fetching chat identity')
+          await updateSignerData()
+          const data = {
+            rampWallet: vm.rampWallet,
+            ref: vm.rampWallet.walletHash,
+            name: vm.user.name
+          }
+          chatIdentity = await fetchChatIdentity(data.ref)
+          if (!chatIdentity) {
+            const payload = await vm.buildChatIdentityPayload(data)
+            chatIdentity = createChatIdentity(payload)
+          }
+          vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+          vm.hintMessage = 'Updating chat keypair'
+          await updateOrCreateKeypair()
         }
-        vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
-        vm.hintMessage = 'Updating chat keypair'
-        await updateOrCreateKeypair()
-      }
-      if (!vm.user.chat_identity_id) {
-        updateChatIdentityId(userType, chatIdentity.id)
+        if (!vm.user.chat_identity_id) {
+          updateChatIdentityId(userType, chatIdentity.id)
+        }
+      } catch (error) {
+        console.log('error:', error)
       }
     },
     exponentialBackoff (fn, retries, delayDuration, ...data) {
@@ -302,7 +306,7 @@ export default {
       } catch (error) {
         if (error.response) {
           console.error(error.response)
-          vm.errorMessage = error.response.data.error
+          vm.errorMessage = error.response.data.error || error
           if (vm.errorMessage.includes('disabled')) {
             vm.errorMessage = 'This account is disabled'
           }

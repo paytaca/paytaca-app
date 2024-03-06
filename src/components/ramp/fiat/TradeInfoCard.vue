@@ -109,6 +109,9 @@
                 </span>
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? order?.ad?.fiat_currency?.symbol : 'BCH' }}</span>
               </div>
+              <div v-if="type === 'order'" class="row q-mt-none">
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
+              </div>
             </div>
             <q-space/>
             <div class="col-auto q-py-sm q-mx-sm">

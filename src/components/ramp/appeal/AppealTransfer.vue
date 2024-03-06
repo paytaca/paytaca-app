@@ -1,15 +1,9 @@
 <template>
-  <q-card
-    bordered
-    flat
-    class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card text-bow"
-    :class="getDarkModeClass(darkMode)"
-  >
-    <div class="q-pt-lg text-center lg-font-size text-weight-bold text-uppercase q-py-sm">Verifying Transfer</div>
-
-    <q-separator class="q-my-sm q-mx-lg" :dark="darkMode"/>
-    <div class="q-py-md q-mx-lg q-px-sm">
-      <div class="sm-font-size q-pb-xs">Contract Address</div>
+  <div
+    class="q-mx-md q-pt-sm text-bow"
+    :class="getDarkModeClass(darkMode)">
+    <div class="q-py-md q-px-sm">
+      <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
       <q-input
         class="q-pb-sm"
         readonly
@@ -24,28 +18,22 @@
           </div>
         </template>
       </q-input>
-      <!-- <div class="sm-font-size q-pb-xs">Contract</div>
-      <q-input class="q-pb-xs q-pb-lg" disable dense filled :dark="darkMode" v-model="contract">
-      </q-input> -->
-      <div>
-        <div class="q-pb-xs">Contract Balance</div>
-        <div @click="copyToClipboard(contract.balance)">
-          <q-input
-            class="q-pb-xs md-font-size"
-            readonly
-            dense
-            filled
-            :dark="darkMode"
-            :loading="!balanceLoaded"
-            v-model="contract.balance">
-              <template v-slot:append>BCH</template>
-          </q-input>
-        </div>
+      <div class="q-pb-xs text-italic">Contract Balance</div>
+      <div @click="copyToClipboard(contract.balance)">
+        <q-input
+          class="q-pb-sm md-font-size"
+          readonly
+          dense
+          filled
+          :dark="darkMode"
+          :loading="!balanceLoaded"
+          v-model="contract.balance">
+            <template v-slot:append>BCH</template>
+        </q-input>
       </div>
-
-      <div class="sm-font-size q-pb-xs">Transaction ID</div>
+      <div class="sm-font-size q-pb-xs text-italic">Transaction ID</div>
       <q-input
-        class="q-pb-xs"
+        class="q-pb-sm"
         dense
         filled
         :readonly="disableTxidInput"
@@ -62,7 +50,7 @@
             {{ errorMessage }}
         </q-card>
       </div>
-      <div class="row q-mb-md">
+      <div class="row">
         <q-btn
           v-if="!loading && !hideBtn"
           rounded
@@ -71,14 +59,14 @@
           class="col q-mx-lg q-mb-md q-my-sm button"
           @click="submitAction">
         </q-btn>
-        <div v-if="hideBtn && !errorMessage" class="q-mt-md">
+        <div v-if="hideBtn && !errorMessage">
           <span v-if="state === 'verifying'">
             <q-spinner class="q-mr-sm"/>Verifying, please wait. <span v-if="waitSeconds">({{ waitSeconds }}s)</span>
           </span>
         </div>
       </div>
     </div>
-  </q-card>
+  </div>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
@@ -182,22 +170,27 @@ export default {
       let url = `/ramp-p2p/order/${vm.orderId}/`
       url = vm.action === 'RELEASE' ? `${url}verify-release` : `${url}verify-refund`
       vm.state = 'verifying'
-      backend.post(url, { txid: this.transactionId }, { authorize: true })
-        .then(response => {
-          console.log(response.data)
-        })
-        .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
+      const body = {
+        txid: this.transactionId
+      }
+      setTimeout(function () {
+        backend.post(url, body, { authorize: true })
+          .then(response => {
+            console.log(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+              vm.errorMessage = error.response?.data?.error
+            } else {
+              console.error(error)
             }
-            vm.errorMessage = error.response?.data?.error
-          } else {
-            console.error(error)
-          }
-          vm.hideBtn = false
-        })
+            vm.hideBtn = false
+          })
+      }, 5000)
     },
     submitAction () {
       const vm = this

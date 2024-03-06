@@ -1,7 +1,6 @@
 <template>
-  <div class="q-mx-md q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    v-if="state === 'form'">
+  <div class="text-bow"
+    :class="getDarkModeClass(darkMode)">
     <q-pull-to-refresh class="q-mb-md" @refresh="$emit('refresh')">
       <div v-if="loading">
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -9,70 +8,8 @@
         </div>
       </div>
       <div v-else>
-        <div class="text-center q-pb-sm">
-          <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
-          <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
-          <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
-        </div>
-        <q-scroll-area ref="scrollArea" :style="`height: ${minHeight - 150}px`" style="overflow-y:auto;">
-          <div class="q-mx-sm q-mb-sm">
-            <TradeInfoCard
-              :order="order"
-              :ad="ad_snapshot"
-              type="appeal"
-              @view-ad="showAdSnapshot=true"
-              @view-peer="onViewPeer"
-              @view-reviews="showReviews=true"/>
-          </div>
-          <div class="q-mx-sm">
-            <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
-              <q-card-section>
-                <div class="row justify-end no-wrap">
-                  <div class="col-9 q-mr-lg">
-                    <div class="text-weight-bold md-font-size">Appeal reasons</div>
-                    <q-badge v-for="(reason, index) in appeal.reasons" class="row q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
-                  </div>
-                  <q-space/>
-                  <div class="col q-mt-sm">
-                    <q-btn size="1.3em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="openChat=true"/>
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
+          <div class="q-mx-md">
             <div class="q-my-sm">
-              <q-card class="br-15 q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
-                <div class="text-center q-py-xs text-weight-bold text-uppercase">
-                  Contract Information
-                </div>
-                <q-separator class="q-my-sm" :dark="darkMode"/>
-                <div class="q-mx-lg">
-                  <div class="sm-font-size q-pb-xs text-italic">Address</div>
-                  <q-input
-                    class="q-pb-xs"
-                    readonly
-                    dense
-                    filled
-                    :dark="darkMode"
-                    v-model="contractAddress">
-                  </q-input>
-                  <div class="sm-font-size q-pb-xs text-italic">Balance</div>
-                  <q-input
-                    class="q-pb-xs"
-                    readonly
-                    dense
-                    filled
-                    :dark="darkMode"
-                    :loading="contractBalance === null"
-                    v-model="contractBalance">
-                    <template v-slot:append>
-                      <span class="sm-font-size">BCH</span>
-                    </template>
-                  </q-input>
-                </div>
-              </q-card>
-            </div>
-            <div class="q-my-sm">
-              <q-card class="br-15" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
                 <q-tabs
                   v-model="tab"
                   dense
@@ -84,9 +21,7 @@
                   <q-tab name="status" label="Status" />
                   <q-tab name="transaction" label="Transactions" />
                 </q-tabs>
-
                 <q-separator class="q-mb-sm" :dark="darkMode"/>
-
                 <div v-if="tab === 'status'">
                   <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
                     <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
@@ -119,10 +54,33 @@
                     </div>
                   </div>
                 </div>
-              </q-card>
+            </div>
+            <div class="q-my-sm q-mx-sm">
+              <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
+              <q-input
+                class="q-pb-xs"
+                readonly
+                dense
+                filled
+                :dark="darkMode"
+                v-model="contractAddress">
+              </q-input>
+              <div class="sm-font-size q-pb-xs text-italic">Contract Balance</div>
+              <q-input
+                class="q-pb-xs"
+                readonly
+                dense
+                filled
+                :dark="darkMode"
+                :loading="contractBalance === null"
+                v-model="contractBalance">
+                <template v-slot:append>
+                  <span class="sm-font-size">BCH</span>
+                </template>
+              </q-input>
             </div>
             <div v-if="state === 'form'" class="q-my-sm">
-              <q-card v-if="appeal?.resolved_at === null" class="br-15 q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
+              <div v-if="appeal?.resolved_at === null" class="q-mx-sm q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
                 <div class="text-center q-py-xs text-weight-bold text-uppercase">
                   Select Action
                 </div>
@@ -158,10 +116,10 @@
                       />
                     </span>
                   </div>
-              </q-card>
+              </div>
             </div>
           </div>
-          <div class="q-mx-lg q-px-md q-my-sm" v-if="sendingBch">
+          <div class="q-mx-lg q-mt-md" v-if="sendingBch">
             <q-spinner class="q-mr-xs"/>{{ selectedAction === 'release' ? 'Releasing' : 'Refunding'}} BCH, please wait.
           </div>
           <div v-if="sendError" class="q-mx-lg q-px-lg q-my-sm">
@@ -170,27 +128,9 @@
               {{ sendError }}
             </q-card>
           </div>
-        </q-scroll-area>
       </div>
     </q-pull-to-refresh>
   </div>
-
-  <!-- Ad Snapshot -->
-  <!-- <AdSnapshot
-    v-if="state === 'snapshot'"
-    :snapshot="ad_snapshot"
-    :selected-payment-methods="order.payment_methods"
-    @back="state = 'form'"
-  /> -->
-
-  <!-- Chat Dialog -->
-  <!-- <div v-if="openChat">
-    <ChatDialog
-      :openDialog="openChat"
-      :data="order"
-      v-on:close="openChat = false"
-    />
-  </div> -->
 
   <!-- Add DragSlide -->
   <RampDragSlide
@@ -208,23 +148,15 @@
     @cancel="onSecurityCancel"
     text="Swipe To Confirm"
   />
-  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
-  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
-// import AdSnapshot from './AdSnapshot.vue'
-import ChatDialog from '../fiat/dialogs/ChatDialog.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import TradeInfoCard from '../fiat/TradeInfoCard.vue'
-import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
-import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 
 export default {
   data () {
@@ -233,7 +165,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       wallet: null,
       tab: 'status',
-      state: 'form',
+      // state: 'form',
       order: null,
       ad_snapshot: null,
       contract: null,
@@ -251,26 +183,18 @@ export default {
       dragSlideKey: 0,
       sendingBch: false,
       sendError: null,
-      openChat: false,
-      showAdSnapshot: false,
-      showPeerProfile: false,
-      peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85
     }
   },
   props: {
     data: Object,
     escrowContract: Object,
-    initstate: String
+    state: String
   },
   emits: ['back', 'refresh', 'success', 'updatePageName'],
   components: {
     RampDragSlide,
-    AdSnapshotDialog,
-    UserProfileDialog,
-    ChatDialog,
-    ProgressLoader,
-    TradeInfoCard
+    ProgressLoader
   },
   watch: {
     sendError (value) {
@@ -295,11 +219,24 @@ export default {
   },
   async mounted () {
     this.loadData()
-    this.fetchContractBalance()
+    this.fetchContractBalance().then((balance) => {
+      if (balance === 0 && this.order.status.value === 'APL') {
+        const result = this.loadTransactionId(this.order.id)
+        if (result.txid) this.setOrderPending(result.txid, result.action)
+      }
+    })
     this.wallet = loadRampWallet()
   },
   methods: {
     getDarkModeClass,
+    loadTransactionId (orderId) {
+      const rlsTxid = this.$store.getters['ramp/getOrderTxid'](orderId, 'RELEASE')
+      const rfnTxid = this.$store.getters['ramp/getOrderTxid'](orderId, 'REFUND')
+      return {
+        action: rlsTxid ? 'release' : 'refund',
+        txid: rlsTxid || rfnTxid
+      }
+    },
     loadData () {
       const vm = this
       vm.appeal = vm.data?.appeal
@@ -309,8 +246,7 @@ export default {
       vm.transactionHistory = vm.data?.transactions
       vm.contract = vm.data?.contract
       vm.fees = vm.data?.fees
-      if (vm.initstate === 'release-form') {
-        vm.state = 'form'
+      if (vm.state === 'form') {
         vm.showDragSlide = true
       } else {
         vm.showDragSlide = false
@@ -332,44 +268,34 @@ export default {
       const vm = this
       vm.showDragSlide = false
       vm.sendingBch = true
+      let txid = null
       if (vm.selectedAction === 'release') {
-        vm.releaseBch().then(txid => {
-          const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-release`
-          backend.post(url, {}, { authorize: true })
-            .then(response => {
-              console.log(response.data)
-              vm.$emit('success', txid)
-            })
-            .catch(error => {
-              console.error(error.response)
-              if (error.response && error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            })
-            .finally(() => { vm.sendingBch = false })
-        })
+        txid = await vm.releaseBch()
       }
       if (vm.selectedAction === 'refund') {
-        vm.refundBch().then(txid => {
-          const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-refund`
-          backend.post(url, {}, { authorize: true })
-            .then(response => {
-              console.log(response.data)
-              vm.$emit('success', txid)
-            })
-            .catch(error => {
-              console.error(error.response)
-              if (error.response && error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            })
-            .finally(() => { vm.sendingBch = false })
-        })
+        txid = await vm.refundBch()
       }
+      vm.setOrderPending(txid, vm.selectedAction)
+    },
+    async setOrderPending (txid, action) {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-${action}`
+      await backend.post(url, {}, { authorize: true })
+        .then(response => {
+          console.log(response.data)
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response && error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        })
+      vm.sendingBch = true
     },
     releaseBch () {
       return new Promise((resolve, reject) => {
         const vm = this
+        vm.sendError = null
         if (!vm.escrowContract) reject('escrow contract is null')
         const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
         this.wallet.keypair(arbiterMember.address_path).then(keypair => {
@@ -386,11 +312,9 @@ export default {
                   }
                 }
                 vm.$store.commit('ramp/saveTxid', txidData)
-                vm.$emit('verify-release', txid)
                 resolve(txid)
               } else {
                 vm.sendError = result.reason
-                console.log('sendError:', vm.sendError)
                 vm.sendingBch = false
                 vm.showDragSlide = true
                 reject(vm.sendError)
@@ -406,6 +330,7 @@ export default {
     refundBch () {
       return new Promise((resolve, reject) => {
         const vm = this
+        vm.sendError = null
         if (!vm.escrowContract) reject('escrow contract is null')
         const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
         this.wallet.privkey(null, arbiterMember.address_path).then(privateKeyWif => {
@@ -422,11 +347,9 @@ export default {
                   }
                 }
                 vm.$store.commit('ramp/saveTxid', txidData)
-                vm.$emit('verify-release', txid)
                 resolve(txid)
               } else {
                 vm.sendError = result.reason
-                console.log('sendError:', vm.sendError)
                 vm.sendingBch = false
                 vm.showDragSlide = true
                 reject(vm.sendError)
@@ -485,18 +408,8 @@ export default {
     formattedOrderStatus (value) {
       return formatOrderStatus(value)
     },
-    formattedTxid (txid) {
-      if (txid && txid.length > 6) {
-        return `${txid.substring(0, 3)}...${txid.slice(-3)}`
-      }
-      return ''
-    },
     viewTxid (txid) {
       console.log('txid:', txid)
-    },
-    onViewPeer (data) {
-      this.peerInfo = data
-      this.showPeerProfile = true
     }
   }
 }

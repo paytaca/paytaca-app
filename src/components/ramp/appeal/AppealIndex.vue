@@ -107,6 +107,7 @@ import AppealProcess from './AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   setup () {
