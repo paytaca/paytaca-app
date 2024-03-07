@@ -1405,6 +1405,7 @@ export class EscrowContract {
   /**
    * @param {Object} data
    * @param {String} data.contract_version
+   * @param {String} data.address_type
    * @param {String} data.address
    * @param {String} data.buyer_address
    * @param {String} data.seller_address
@@ -1438,6 +1439,7 @@ export class EscrowContract {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
     this.contractVersion = data?.contract_version
+    this.addressType = data?.address_type
     this.address = data?.address
     this.buyerAddress = data?.buyer_address
     this.sellerAddress = data?.seller_address
@@ -1470,6 +1472,18 @@ export class EscrowContract {
     this.settlementTxid = data?.settlement_txid
     this.settlementType = data?.settlement_type
     if (Array.isArray(data?.payments)) this.payments = data.payments.map(Payment.parse)
+  }
+
+  get computedAddressType() {
+    if (typeof this.address !== 'string') return
+    if (this.address.startsWith('bitcoincash:')) {
+      if (this.address.length === 54) return 'p2sh20'
+      if (this.address.length > 54) return 'p2sh32'
+    }
+    if (this.address.startsWith('bchtest:')) {
+      if (this.address.length === 50) return 'p2sh20'
+      if (this.address.length > 50) return 'p2sh32'
+    }
   }
 
   get sats() {
