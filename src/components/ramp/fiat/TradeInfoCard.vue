@@ -21,7 +21,7 @@
                     color="yellow-9"
                     icon="star"
                     @click="onViewReviews"/>
-                    <span class="q-mx-xs sm-font-size">({{ counterparty.rating.toFixed(1) || 0 }})</span>
+                    <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">

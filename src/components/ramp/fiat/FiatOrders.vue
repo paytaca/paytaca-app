@@ -5,7 +5,7 @@
     class="q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`"
-    v-if="state == 'order-list' && !viewProfile">
+    v-if="state == 'order-list'">
     <div v-if="state === 'order-list'">
       <div class="row justify-start items-center q-mx-none q-px-sm">
         <div
@@ -127,19 +127,19 @@
   />
   <FiatProfileCard
     ref="fiatProfileCard"
-    v-if="viewProfile"
+    v-if="state === 'view-profile'"
     :userInfo="selectedUser"
-    v-on:back="viewProfile = false"
+    v-on:back="state = 'order-list'"
     @update-page-name="updatePageName"
   />
-  <div v-if="openDialog">
-    <FilterDialog
-      :type="dialogType"
-      :filters="filters"
-      @back="openDialog = false"
-      @submit="receiveDialog"
-    />
-  </div>
+  <FilterDialog
+    v-if="openDialog"
+    :type="dialogType"
+    :filters="filters"
+    @back="openDialog = false"
+    @submit="receiveDialog"
+  />
+  <FiatOrderForm v-if="state === 'order-form'" :ad-id="selectedUserAdId" @back="state = 'order-list'"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -147,6 +147,7 @@ import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import FilterDialog from './dialogs/FilterDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import FiatOrderForm from './FiatOrderForm.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
@@ -166,7 +167,8 @@ export default {
     FiatProfileCard,
     ProgressLoader,
     FilterDialog,
-    HeaderNav
+    HeaderNav,
+    FiatOrderForm
   },
   props: {
     initStatusType: {
@@ -187,7 +189,6 @@ export default {
       totalPages: null,
       pageNumber: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
-      viewProfile: false,
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,
       defaultFilters: {
@@ -222,6 +223,7 @@ export default {
       filters: {},
       openDialog: false,
       dialogType: '',
+      selectedUserAdId: null,
       pageName: 'main'
     }
   },
@@ -260,7 +262,10 @@ export default {
       return this.$store.getters['ramp/getUser']
     }
   },
-  async mounted () {
+  created () {
+    bus.on('view-ad', this.onViewAd)
+  },
+  mounted () {
     this.updateFilters()
     this.resetAndRefetchListings()
   },
@@ -278,7 +283,7 @@ export default {
           vm.pageName = 'main'
           break
         case 'view-profile':
-          vm.viewProfile = false
+          vm.returnOrderList()
           vm.pageName = 'main'
           break
         case 'edit-pm':
@@ -506,6 +511,7 @@ export default {
     },
     returnOrderList () {
       const vm = this
+      bus.emit('show-menu', 'orders')
       vm.state = 'order-list'
       vm.resetAndRefetchListings()
     },
@@ -514,8 +520,13 @@ export default {
         id: data.owner.id,
         self: !data.is_ad_owner
       }
-      this.viewProfile = true
+      this.state = 'view-profile'
       this.pageName = 'view-profile'
+    },
+    onViewAd (adId) {
+      bus.emit('hide-menu')
+      this.state = 'order-form'
+      this.selectedUserAdId = adId
     }
   }
 }

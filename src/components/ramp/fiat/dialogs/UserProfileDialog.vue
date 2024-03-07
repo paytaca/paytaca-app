@@ -127,21 +127,11 @@
         </div>
     </q-card>
     </q-dialog>
-    <!-- <FiatOrderForm
-      v-if="selectedListing"
-      :ad-id="selectedListing.id"
-      @back="selectedListing = null"
-      @order-canceled="onOrderCanceled"
-    /> -->
   </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import FeedbackDialog from './FeedbackDialog.vue'
-// import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
-import { updateChatIdentity } from 'src/wallet/ramp/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 
@@ -177,9 +167,7 @@ export default {
   },
   emits: ['back'],
   components: {
-    ProgressLoader,
-    FeedbackDialog,
-    // FiatOrderForm
+    ProgressLoader
   },
   watch: {
     activeTab (value) {
@@ -331,69 +319,8 @@ export default {
           })
       })
     },
-    async updateUserName (info) {
-      const vm = this
-      backend.put('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
-        .then(response => {
-          vm.$store.commit('ramp/updateUser', response.data)
-          const payload = {
-            ref: loadRampWallet().walletHash,
-            name: response.data.name
-          }
-          vm.retry = true
-          vm.exponentialBackoff(updateChatIdentity, 5, 1000, payload)
-          this.processUserData()
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          }
-        })
-
-      this.editNickname = false
-    },
-    exponentialBackoff (fn, retries, delayDuration, ...info) {
-      const vm = this
-      const payload = info[0]
-
-      return fn(payload)
-        .then((data) => {
-          if (data.data) {
-            const chatIdentity = data.data
-            vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
-            vm.retry = false
-          }
-
-          if (vm.retry) {
-            console.log('retrying')
-            if (retries > 0) {
-              return vm.delay(delayDuration)
-                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
-            } else {
-              vm.retry = false
-            }
-          }
-        })
-        .catch(error => {
-          console.error(error)
-          if (retries > 0) {
-            return vm.delay(delayDuration)
-              .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
-          } else {
-            vm.retry = false
-          }
-        })
-    },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
-    },
     selectAd (ad) {
-      console.log('selected ad:', ad)
-      // this.selectedListing = ad
+      bus.emit('view-ad', ad.id)
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
