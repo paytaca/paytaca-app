@@ -107,7 +107,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     if (!data?.currency || !data?.relative_currency || !price) return
     const currency = String(data?.currency).toLowerCase()
     let coinId = String(data?.relative_currency).toLowerCase()
-    if (coinId === 'BCH') coinId = 'bitcoin-cash' // watchtower uses BCH while coingecko uses 'bitcoin-cash'
+    if (coinId === 'bch') coinId = 'bitcoin-cash' // watchtower uses BCH while coingecko uses 'bitcoin-cash'
 
     if (!prices[coinId]) prices[coinId] = {}
     prices[coinId][currency] = price
