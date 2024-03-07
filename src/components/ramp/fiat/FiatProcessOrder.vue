@@ -82,13 +82,6 @@
       v-on:submit="handleDialogResponse()"
     />
   </div>
-  <!-- <div v-if="openChat">
-    <ChatDialog
-      :openDialog="openChat"
-      :data="order"
-      v-on:close="openChat = false"
-    />
-  </div> -->
   <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
   <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
   <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
@@ -299,7 +292,7 @@ export default {
       }
     }
   },
-  emits: ['back', 'refresh'],
+  emits: ['back', 'refresh', 'view-ad'],
   watch: {
     reconnectingWebSocket () {
       this.reloadChildComponents()

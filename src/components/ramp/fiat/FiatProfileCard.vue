@@ -214,11 +214,6 @@
       @back="openReviews = false"
     />
   </div>
-  <!--<FiatOrderForm
-    v-if="selectedListing"
-    :ad-id="selectedListing.id"
-    @back="selectedListing = null"
-  />-->
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -226,7 +221,6 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
-// import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
 import { updateChatIdentity } from 'src/wallet/ramp/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -270,7 +264,6 @@ export default {
     AddPaymentMethods,
     ProgressLoader,
     FeedbackDialog,
-    // FiatOrderForm,
     HeaderNav
   },
   watch: {
@@ -501,9 +494,7 @@ export default {
       return new Promise(resolve => setTimeout(resolve, duration))
     },
     selectAd (ad) {
-      this.$emit('selectListing', ad)
-      // this.selectedListing = ad
-      // this.$emit('updatePageName', 'profile-order-form')
+      bus.emit('view-ad', ad.id)
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
