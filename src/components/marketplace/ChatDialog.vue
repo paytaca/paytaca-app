@@ -42,7 +42,7 @@
               <q-chat-message
                 :bg-color="!isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
-                :avatar="message?.user?.profilePictureUrl"
+                :avatar="message?.user?.profilePictureUrl || undefined"
                 :sent="isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
