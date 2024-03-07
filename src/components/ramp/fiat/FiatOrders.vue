@@ -1,6 +1,6 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
+  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
   <div
     class="q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
@@ -9,7 +9,7 @@
     <div v-if="state === 'order-list'">
       <div class="row justify-start items-center q-mx-none q-px-sm">
         <div
-          class="col-9 row br-15 text-center pt-card btn-transaction md-font-size"
+          class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
           :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
@@ -25,17 +25,29 @@
             Completed
           </button>
         </div>
-        <q-btn
-          unelevated
-          ripple
-          dense
-          size="1.2em"
-          :icon="'filter_list'"
-          class="button button-text-primary col-auto q-mt-sm q-pa-none"
-          :class="getDarkModeClass(darkMode)"
-          @click="openFilter()">
-          <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
-        </q-btn>
+        <div>
+          <q-btn
+            unelevated
+            ripple
+            dense
+            size="md"
+            :icon="'search'"
+            class="button button-text-primary col-auto q-mt-sm q-pa-none"
+            :class="getDarkModeClass(darkMode)">
+            <!-- <q-badge v-if="!defaultFiltersOn" left floating color="red"/> -->
+          </q-btn>
+          <q-btn
+            unelevated
+            ripple
+            dense
+            size="1.2em"
+            :icon="'filter_list'"
+            class="button button-text-primary col-auto q-mt-sm q-pa-none"
+            :class="getDarkModeClass(darkMode)"
+            @click="openFilter()">
+            <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
+          </q-btn>
+        </div>
       </div>
       <div class="q-mt-sm">
         <!-- <q-pull-to-refresh @refresh="refreshData"> -->

@@ -1,7 +1,7 @@
 <template>
   <!-- back button -->
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
+  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
   <div
     :class="getDarkModeClass(darkMode)"
     class="q-mx-md q-mb-lg text-bow"
@@ -33,6 +33,16 @@
         <q-space />
         <!-- filters -->
         <div class="col-auto q-pr-md">
+          <q-btn
+            unelevated
+            ripple
+            dense
+            size="md"
+            icon="search"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)">
+            <!-- <q-badge v-if="!defaultFiltersOn" floating color="red"/> -->
+          </q-btn>
           <q-btn
             unelevated
             ripple
@@ -105,7 +115,9 @@
                               :v-model="listing.owner.rating"
                               size="1.1em"
                               color="yellow-9"
-                              icon="star"/>
+                              icon="star"
+                              icon-half="star_half"
+                              />
                             <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
                           </div>
                           <div class="sm-font-size">

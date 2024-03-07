@@ -1,6 +1,6 @@
 <template>
 <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
-    <HeaderNav title="Crypto Ramp" backnavpath="/apps"/>
+    <HeaderNav title="Crypto Swap" backnavpath="/apps"/>
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
     </div>
