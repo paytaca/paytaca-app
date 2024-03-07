@@ -27,6 +27,7 @@ export function compileEscrowSmartContract(escrowContract=EscrowContract.parse()
     options: {
       version: escrowContract?.contractVersion,
       network: escrowContract?.address?.startsWith?.("bchtest:") ? 'chipnet' : 'mainnet',
+      addressType: escrowContract?.computedAddressType || escrowContract?.addressType,
     },
   })
 }
