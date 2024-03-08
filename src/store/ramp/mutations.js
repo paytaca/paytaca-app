@@ -307,5 +307,5 @@ export function updateChatIdentity (state, chatIdentity) {
 }
 
 export function resetChatIdentity (state) {
-  state.chatIdentity = null
+  state.chatIdentity = {}
 }

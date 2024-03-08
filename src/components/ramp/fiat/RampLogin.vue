@@ -170,8 +170,10 @@ export default {
       vm.hintMessage = 'Loading chat identity'
       const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
       let chatIdentity = vm.$store.getters['ramp/chatIdentity']
+      console.log('current chatIdentity: ', this.chatIdentity)
       try {
-        if (!chatIdentity) {
+        console.log('start', Object.keys(chatIdentity).length)
+        if (!chatIdentity && Object.keys(chatIdentity).length === 0) {
           console.log('fetching chat identity')
           await updateSignerData()
           const data = {
@@ -189,6 +191,7 @@ export default {
           await updateOrCreateKeypair()
         }
         if (!vm.user.chat_identity_id) {
+          console.log('updating chatIdentityId')
           updateChatIdentityId(userType, chatIdentity.id)
         }
       } catch (error) {
@@ -298,9 +301,11 @@ export default {
         }
         const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
         if (vm.user) {
+          console.log('saving user')
           vm.$store.commit('ramp/updateUser', vm.user)
           saveAuthToken(loginResponse.data.token)
           await vm.loadChatIdentity()
+          console.log('saved chat identity')
           vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
         }
       } catch (error) {
