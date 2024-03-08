@@ -272,6 +272,7 @@
 </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { fetchChatMembers, fetchChatPubkeys, sendChatMessage, fetchChatMessages, updateOrCreateKeypair, generateChatRef } from 'src/wallet/ramp/chat'
@@ -436,7 +437,7 @@ export default {
   computed: {
     userName () {
       const vm = this
-      return vm.$store.getters['ramp/chatIdentity'].name
+      return vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -507,7 +508,7 @@ export default {
     loadData () {
       const vm = this
       console.log(vm.data)
-      const username = this.$store.getters['ramp/chatIdentity'].name
+      const username = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
       fetchChatMembers(vm.chatRef)
         .then(members => {
           vm.chatMembers = members.map(member => {
@@ -630,7 +631,7 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          const username = vm.$store.getters['ramp/chatIdentity'].name
+          const username = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
           const temp = decryptedMessages
           temp.map(item => {
             item.chatIdentity.is_user = item.chatIdentity.name === username

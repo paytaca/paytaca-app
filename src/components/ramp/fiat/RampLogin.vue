@@ -205,6 +205,7 @@ export default {
         vm.hintMessage = 'Updating chat keypair'
         await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
       }
+      console.log('chatIdentity: ', chatIdentity)
       // Save chat identity to store
       vm.$store.commit('ramp/updateChatIdentity', { ref: data.ref, chatIdentity: chatIdentity })
       vm.hintMessage = 'Almost there'
