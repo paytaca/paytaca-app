@@ -229,6 +229,7 @@ import ProgressLoader from 'components/ProgressLoader'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import { sha256 } from 'js-sha256'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -453,7 +454,7 @@ export default {
       const walletIndex = vm.$store.getters['global/getWalletIndex']
       const mnemonic = await getMnemonic(walletIndex)
 
-      SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+      SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
         .then(() => {
           setTimeout(() => {
             if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {

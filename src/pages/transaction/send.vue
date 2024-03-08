@@ -324,6 +324,7 @@ import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Plugins } from '@capacitor/core'
+import { sha256 } from 'js-sha256'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
 import {
@@ -938,7 +939,7 @@ export default {
       const walletIndex = vm.$store.getters['global/getWalletIndex']
       const mnemonic = await getMnemonic(walletIndex)
 
-      SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+      SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
         .then(() => {
           setTimeout(() => {
             if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
