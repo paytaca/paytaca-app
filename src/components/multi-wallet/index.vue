@@ -101,6 +101,7 @@ import { deleteAuthToken } from 'src/wallet/ramp/auth'
 
 import renameDialog from './renameDialog.vue'
 import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 
 export default {
   data () {
@@ -115,7 +116,8 @@ export default {
   },
   components: {
     renameDialog,
-    BasicInfoDialog
+    BasicInfoDialog,
+    LoadingWalletDialog
   },
   methods: {
     parseAssetDenomination,
@@ -140,6 +142,9 @@ export default {
     switchWallet (index) {
       const vm = this
       if (index !== this.currentIndex) {
+        const loadingDialog = this.$q.dialog({
+          component: LoadingWalletDialog
+        })
         const asset = this.$store.getters['assets/getAllAssets']
         // const ignoredAssets = this.$store.getters['assets/ignoredAssets']
 
@@ -156,6 +161,8 @@ export default {
           vm.$router.push('/')
           setTimeout(() => { location.reload() }, 500)
         })
+
+        loadingDialog.hide()
       }
       vm.hide()
     },

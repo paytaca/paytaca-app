@@ -339,6 +339,7 @@ export default {
   LiquidityMostError: "流動性最多需要{convertedMaximumAmount}",
   LiquidityPool: "流動性池",
   LoadingMetadata: "加載元數據",
+  LoadingWallet: "加載錢包...",
   Location: "地點",
   LogIn: "登入",
   Long: "長的",

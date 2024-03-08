@@ -339,6 +339,7 @@ export default {
   LiquidityMostError: "Die Liquidität erfordert höchstens {convertedMaximumAmount}",
   LiquidityPool: "Liquiditätspool",
   LoadingMetadata: "Lademetadaten",
+  LoadingWallet: "Brieftasche laden ...",
   Location: "Standort",
   LogIn: "Anmeldung",
   Long: "Lang",

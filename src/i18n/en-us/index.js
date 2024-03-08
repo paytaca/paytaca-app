@@ -339,6 +339,7 @@ export default {
   LiquidityMostError: "Liquidity requires at most {convertedMaximumAmount}",
   LiquidityPool: "Liquidity Pool",
   LoadingMetadata: "Loading metadata",
+  LoadingWallet: "Loading wallet...",
   Location: "Location",
   LogIn: "Log In",
   Long: "Long",

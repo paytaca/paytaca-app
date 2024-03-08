@@ -339,6 +339,7 @@ export default {
   LiquidityMostError: "La liquidez requiere como máximo {convertedMaximumAmount}",
   LiquidityPool: "Piscina de liquidez",
   LoadingMetadata: "Caradería de carga",
+  LoadingWallet: "Carga de billetera ...",
   Location: "Ubicación",
   LogIn: "Acceso",
   Long: "Largo",

@@ -862,7 +862,8 @@ const additional = [
     CreateNewCampaign: "Create New Campaign",
     SeeBasicWalletInfo: "See Basic Wallet Info",
     WalletName: "Wallet Name",
-    WalletBalanceCap: "Wallet Balance"
+    WalletBalanceCap: "Wallet Balance",
+    LoadingWallet: "Loading wallet..."
   }
 ]
 
