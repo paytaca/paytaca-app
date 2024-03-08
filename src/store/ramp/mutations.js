@@ -302,8 +302,8 @@ export function resetPaymentTypes (state) {
   state.paymentTypes = []
 }
 
-export function updateChatIdentity (state, chatIdentity) {
-  state.chatIdentity = chatIdentity
+export function updateChatIdentity (state, data) {
+  state.chatIdentity[data.ref] = data.chatIdentity
 }
 
 export function resetChatIdentity (state) {

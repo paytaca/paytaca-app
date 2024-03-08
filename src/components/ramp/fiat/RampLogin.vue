@@ -4,12 +4,13 @@
   class="q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"
   :style="`height: ${minHeight}px;`" style="overflow-y: auto">
-    <div v-if="isLoading">
-      <div class="row justify-center q-py-lg" style="margin-top: 50%">
+    <!-- <div v-if="isLoading">
+      <div class="row justify-center" style="margin-top: 30%">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
-    </div>
-    <div v-else>
+      <div class="row justify-center subtext">{{hintMessage}}</div>
+    </div> -->
+    <div>
       <div class="q-px-md q-mb-sm text-h6 login-label">
         <div class="row justify-center q-mb-sm">
           {{ register ? "Sign up" : "Login"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
@@ -25,7 +26,7 @@
           :dark="darkMode"
           :readonly="!register || user?.is_arbiter"
           :placeholder="register ? 'Enter nickname' : ''"
-          :loading="loggingIn || (!usernickname && !register)"
+          :loading="loggingIn || (!usernickname && !register) || isLoading"
           :error="errorMessage !== null"
           v-model="usernickname">
           <template v-slot:append>
@@ -51,15 +52,6 @@
           <span class="text-center q-my-sm q-mx-md">MPIN</span>
         </q-btn>
       </div>
-      <!-- <div v-if="errorMessage" class="row justify-center q-mx-lg q-px-md q-my-md">
-        <q-card flat class="col q-mx-md q-pa-md bg-red-1 pp-text">
-            <q-icon name="error" left/>
-            {{ errorMessage }}
-        </q-card>
-      </div> -->
-      <!-- <div class="col row justify-evenly text-h6 ramp-footer-text">
-          <span>{{ user?.is_arbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
-      </div> -->
     </div>
   </div>
 </template>
@@ -75,7 +67,6 @@ import { Dialog } from 'quasar'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 
 export default {
@@ -105,7 +96,6 @@ export default {
     }
   },
   components: {
-    ProgressLoader,
     HeaderNav
   },
   emits: ['loggedIn'],
@@ -139,9 +129,9 @@ export default {
         if (vm.user.is_authenticated) {
           const token = await getAuthToken()
           if (token) {
-            await vm.loadChatIdentity()
-            await vm.savePubkeyAndAddress()
-            vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+            const success = await vm.loadChatIdentity()
+            // await vm.savePubkeyAndAddress()
+            if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
             vm.loggingIn = false
           } else {
             vm.isLoading = false
@@ -165,68 +155,65 @@ export default {
       }
     },
     async loadChatIdentity () {
-      // check if chatIdentity exist
       const vm = this
       vm.hintMessage = 'Loading chat identity'
       const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
-      let chatIdentity = vm.$store.getters['ramp/chatIdentity']
-      console.log('current chatIdentity: ', this.chatIdentity)
-      try {
-        console.log('start', Object.keys(chatIdentity).length)
-        if (!chatIdentity && Object.keys(chatIdentity).length === 0) {
-          console.log('fetching chat identity')
-          await updateSignerData()
-          const data = {
-            rampWallet: vm.rampWallet,
-            ref: vm.rampWallet.walletHash,
-            name: vm.user.name
-          }
-          chatIdentity = await fetchChatIdentity(data.ref)
-          if (!chatIdentity) {
-            const payload = await vm.buildChatIdentityPayload(data)
-            chatIdentity = createChatIdentity(payload)
-          }
-          vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
-          vm.hintMessage = 'Updating chat keypair'
-          await updateOrCreateKeypair()
-        }
-        if (!vm.user.chat_identity_id) {
-          console.log('updating chatIdentityId')
-          updateChatIdentityId(userType, chatIdentity.id)
-        }
-      } catch (error) {
-        console.log('error:', error)
+      const data = {
+        rampWallet: vm.rampWallet,
+        ref: vm.rampWallet.walletHash,
+        name: vm.user.name
       }
-    },
-    exponentialBackoff (fn, retries, delayDuration, ...data) {
-      const vm = this
-      const funcName = fn.name.split('bound ').join('')
-      const identityId = data[0]
+      // let chatIdentity = vm.$store.getters['ramp/chatIdentity']
+      // console.log('current chatIdentity: ', this.chatIdentity)
+      // try {
+      //   console.log('start', Object.keys(chatIdentity).length)
+      //   if (!chatIdentity && Object.keys(chatIdentity).length === 0) {
+      //     console.log('fetching chat identity')
+      //     await updateSignerData()
+      //     const data = {
+      //       rampWallet: vm.rampWallet,
+      //       ref: vm.rampWallet.walletHash,
+      //       name: vm.user.name
+      //     }
+      //     chatIdentity = await fetchChatIdentity(data.ref)
+      //     if (!chatIdentity) {
+      //       const payload = await vm.buildChatIdentityPayload(data)
+      //       chatIdentity = createChatIdentity(payload)
+      //     }
+      //     vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+      //     vm.hintMessage = 'Updating chat keypair'
+      //     await updateOrCreateKeypair()
+      //   }
+      //   if (!vm.user.chat_identity_id) {
+      //     console.log('updating chatIdentityId')
+      //     updateChatIdentityId(userType, chatIdentity.id)
+      //   }
+      // } catch (error) {
+      //   console.log('error:', error)
+      // }
+      // check if chatIdentity exist
+      let chatIdentity = await fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
+      if (!chatIdentity) {
+        // Update signer data for signing chat authentication
+        vm.hintMessage = 'Updating signer data'
+        await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
+        // Build payload and create chat identity
+        vm.hintMessage = 'Creating chat identity'
+        const payload = await vm.buildChatIdentityPayload(data).catch(error => { return vm.handleError(error, 'Failed to build chat identity') })
+        chatIdentity = await createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
+        // Update or create encrypting/decrypting keypair
+        vm.hintMessage = 'Updating chat keypair'
+        await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+      }
+      // Save chat identity to store
+      vm.$store.commit('ramp/updateChatIdentity', { ref: data.ref, chatIdentity: chatIdentity })
+      vm.hintMessage = 'Almost there'
 
-      return fn(identityId)
-        .then((info) => {
-          if (vm.retry[funcName]) {
-            console.log('retrying')
-            if (retries > 0) {
-              return vm.delay(delayDuration)
-                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
-            } else {
-              vm.retry[funcName] = false
-            }
-          }
-        })
-        .catch(error => {
-          console.log(error)
-          if (retries > 0) {
-            return vm.delay(delayDuration)
-              .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
-          } else {
-            vm.retry[funcName] = false
-          }
-        })
-    },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
+      // Update chat identity id if null or mismatch
+      if (!vm.user.chat_identity_id || vm.user.chat_identity_id !== chatIdentity.id) {
+        updateChatIdentityId(userType, chatIdentity.id)
+      }
+      return true
     },
     async buildChatIdentityPayload (data) {
       const wallet = data.rampWallet
@@ -304,9 +291,8 @@ export default {
           console.log('saving user')
           vm.$store.commit('ramp/updateUser', vm.user)
           saveAuthToken(loginResponse.data.token)
-          await vm.loadChatIdentity()
-          console.log('saved chat identity')
-          vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+          const success = await vm.loadChatIdentity()
+          if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
         }
       } catch (error) {
         if (error.response) {
@@ -351,6 +337,26 @@ export default {
             console.error(error.response)
           }
         })
+    },
+    handleError (error, message) {
+      const vm = this
+      if (error.isAxiosError && !error.response) {
+        // This is a network error (server down, no response)
+        console.error('Network error:', error.message)
+        vm.errorMessage = `${error.message}${message ? `: ${message}` : ''}`
+      } else if (error.response) {
+        // Handle other types of errors (e.g., 400, 404, etc.)
+        console.error('Error status:', error.response.status)
+        console.error('Error data:', error.response.data)
+        vm.errorMessage = `Error ${error.response.status}`
+      } else {
+        // Handle other non-network errors
+        console.error('Unknown error:', error)
+        vm.errorMessage = `${error}${message ? `: ${message}` : ''}`
+      }
+      vm.isLoading = false
+      vm.loggingIn = false
+      return false
     },
     async revokeAuth () {
       const url = `${this.apiURL}/auth/revoke`

@@ -88,7 +88,7 @@ export async function updateSignerData (_context) {
   const address = bchjs.ECPair.toLegacyAddress(ecPair)
 
   const valid = await (await wallet.raw()).verifyMessage(address, signature, message)
-  if (!valid) return Promise.reject('invalid signature')
+  if (!valid) return Promise.reject('Invalid Signature')
 
   setSignerData(`${walletHash}:${privkey}`)
 }
