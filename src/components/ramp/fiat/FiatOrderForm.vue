@@ -339,6 +339,7 @@ export default {
         .then(orderId => {
           vm.fetchOrderMembers(orderId)
             .then(members => {
+              console.log('members: ', members)
               vm.createGroupChat(vm.order.id, members, vm.order.created_at)
             })
         })

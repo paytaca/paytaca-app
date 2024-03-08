@@ -20,12 +20,15 @@
                     size="1em"
                     color="yellow-9"
                     icon="star"
+                    icon-half="star_half"
                     @click="onViewReviews"/>
                     <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
-                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat"/>
+                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat">
+                  <q-badge floating color="red" rounded/>
+                </q-btn>
             </div>
         </div>
       </div>
@@ -169,6 +172,7 @@ export default {
   props: {
     order: Object,
     ad: Object,
+    hasUnread: Boolean,
     type: {
       type: String,
       default: 'ad'

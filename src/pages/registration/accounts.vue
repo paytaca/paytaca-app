@@ -408,6 +408,13 @@ export default {
 
       this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
       this.$store.commit('assets/updatedCurrentAssets', this.walletIndex)
+
+      // ramp reset
+      this.$store.commit('ramp/resetUser')
+      this.$store.commit('ramp/resetData')
+      this.$store.commit('ramp/resetChatIdentity')
+      this.$store.commit('ramp/resetPagination')
+      // this.$store.commit('ramp/resetStoreFilters')
     },
     continueToDashboard () {
       const vm = this

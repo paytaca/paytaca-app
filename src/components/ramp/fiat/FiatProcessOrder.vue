@@ -90,7 +90,7 @@
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { addChatMembers, generateChatRef } from 'src/wallet/ramp/chat'
+import { addChatMembers, generateChatRef, fetchChatSessions } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -307,6 +307,7 @@ export default {
   },
   async mounted () {
     const vm = this
+
     await vm.fetchOrder()
     await vm.fetchFees()
     if (vm.order.contract) {
@@ -465,6 +466,7 @@ export default {
           })
       })
     },
+
     fetchAd () {
       return new Promise((resolve, reject) => {
         const vm = this

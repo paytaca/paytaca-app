@@ -122,6 +122,20 @@ export async function checkChatSessionAdmin (chatRef) {
   })
 }
 
+export async function fetchChatSessions (chatRef) {
+  return new Promise((resolve, reject) => {
+    console.log('chatRef: ', chatRef)
+
+    chatBackend.get(`chat/sessions/${chatRef}`, { forceSign: true })
+      .then(response => {
+        resolve(response)
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
+
 export async function addChatMembers (chatRef, members) {
   return new Promise((resolve, reject) => {
     const body = {

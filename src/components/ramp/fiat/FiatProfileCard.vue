@@ -1,6 +1,6 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
-  <HeaderNav v-if="pageName" :title="`Fiat Ramp`" backnavpath="/apps"/>
+  <HeaderNav v-if="pageName" :title="`P2P Exchange`" backnavpath="/apps"/>
   <div
     v-if="!selectedListing && state === 'initial'"
     class="q-mx-md q-mb-lg q-pb-lg text-bow"
@@ -71,6 +71,7 @@
               size="1.5em"
               color="yellow-9"
               icon="star"
+              icon-half="star_half"
             />
             <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
           </div>
