@@ -193,19 +193,22 @@ export default {
       // }
       // check if chatIdentity exist
       let chatIdentity = await fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
+
+      // Update signer data for signing chat authentication
+      vm.hintMessage = 'Updating signer data'
+      await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
+
+      // Update or create encrypting/decrypting keypair
+      vm.hintMessage = 'Updating chat keypair'
+      await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+
       if (!chatIdentity) {
-        // Update signer data for signing chat authentication
-        vm.hintMessage = 'Updating signer data'
-        await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
         // Build payload and create chat identity
         vm.hintMessage = 'Creating chat identity'
         const payload = await vm.buildChatIdentityPayload(data).catch(error => { return vm.handleError(error, 'Failed to build chat identity') })
         chatIdentity = await createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
-        // Update or create encrypting/decrypting keypair
-        vm.hintMessage = 'Updating chat keypair'
-        await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
       }
-      console.log('chatIdentity: ', chatIdentity)
+
       // Save chat identity to store
       vm.$store.commit('ramp/updateChatIdentity', { ref: data.ref, chatIdentity: chatIdentity })
       vm.hintMessage = 'Almost there'

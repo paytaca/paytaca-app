@@ -439,7 +439,7 @@ export default {
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
-            ref: loadRampWallet().walletHash,
+            id: this.user.chat_identity_id,
             name: response.data.name
           }
           vm.retry = true

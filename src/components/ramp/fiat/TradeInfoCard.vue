@@ -33,7 +33,7 @@
         </div>
       </div>
       <div v-else>
-        <div class="row justify-between">
+        <div class="row justify-between no-wrap">
           <div class="col-auto">
             <div class="sm-font-size">SELLER</div>
             <div class="row justify-end">
@@ -54,7 +54,7 @@
                         color="yellow-9"
                         icon="star"
                         @click="onViewReviews"/>
-                        <span class="q-mx-xs sm-font-size">({{ order?.members?.seller?.rating ? order?.members?.seller?.rating : 0 }})</span>
+                        <span class="q-mx-xs sm-font-size">({{ order?.members?.seller?.rating?.toFixed(1) || 0 }})</span>
                     </div>
                 </div>
             </div>
@@ -85,7 +85,7 @@
                 color="yellow-9"
                 icon="star"
                 @click="onViewReviews"/>
-                <span class="q-ml-xs sm-font-size">({{ order?.members?.buyer?.rating ? order?.members?.buyer?.rating : 0 }})</span>
+                <span class="q-ml-xs sm-font-size">({{ order?.members?.buyer?.rating.toFixed(1) || 0 }})</span>
             </div>
           </div>
         </div>
