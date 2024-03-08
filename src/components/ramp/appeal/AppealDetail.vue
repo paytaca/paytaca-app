@@ -47,7 +47,7 @@
                       <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
                       <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
                         <div class="col text-center">{{ transaction.action }}</div>
-                        <div class="col text-blue text-center" @click="viewTxid(transaction.txid)"><u>{{ formattedTxid(transaction.txid) }}</u></div>
+                        <span class="col text-blue text-center" @click="viewTxid(transaction.txid)"><u>{{ formattedTxid(transaction.txid) }}</u></span>
                         <div class="col text-center">{{ transaction.valid ? 'Validated' : 'Not Validated'}}</div>
                         <div class="col xs-font-size">{{ formattedDate(transaction.created_at, true)}}</div>
                       </div>
@@ -410,6 +410,12 @@ export default {
     },
     viewTxid (txid) {
       console.log('txid:', txid)
+    },
+    formattedTxid (txid) {
+      if (txid && txid.length > 6) {
+        return `${txid.substring(0, 3)}...${txid.slice(-3)}`
+      }
+      return ''
     }
   }
 }
