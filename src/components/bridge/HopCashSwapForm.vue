@@ -298,6 +298,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { sha256 } from 'js-sha256'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -534,7 +535,7 @@ export default {
       const walletIndex = this.$store.getters['global/getWalletIndex']
       const mnemonic = await getMnemonic(walletIndex)
 
-      SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+      SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
         .then(() => {
           setTimeout(() => {
             if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {

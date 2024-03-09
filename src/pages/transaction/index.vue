@@ -335,6 +335,7 @@ import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
@@ -1079,7 +1080,7 @@ export default {
       try {
         let pin = null
         try {
-          pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+          pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
         } catch (error) {
           // fallback for old process of pin retrieval
           pin = await SecureStoragePlugin.get({ key: 'pin' })

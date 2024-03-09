@@ -15,22 +15,25 @@
                 <div class="row">
                     <q-rating
                     readonly
-                    :model-value="ad?.owner?.rating || 0"
-                    :v-model="ad?.owner?.rating || 0"
+                    :model-value="counterparty.rating || 0"
+                    :v-model="counterparty.rating || 0"
                     size="1em"
                     color="yellow-9"
                     icon="star"
+                    icon-half="star_half"
                     @click="onViewReviews"/>
-                    <span class="q-mx-xs sm-font-size">({{ ad?.owner?.rating ? ad?.owner?.rating : 0 }})</span>
+                    <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
-                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat"/>
+                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat">
+                  <!-- <q-badge floating color="red" rounded/> -->
+                </q-btn>
             </div>
         </div>
       </div>
       <div v-else>
-        <div class="row justify-between">
+        <div class="row justify-between no-wrap">
           <div class="col-auto">
             <div class="sm-font-size">SELLER</div>
             <div class="row justify-end">
@@ -51,7 +54,7 @@
                         color="yellow-9"
                         icon="star"
                         @click="onViewReviews"/>
-                        <span class="q-mx-xs sm-font-size">({{ order?.members?.seller?.rating ? order?.members?.seller?.rating : 0 }})</span>
+                        <span class="q-mx-xs sm-font-size">({{ order?.members?.seller?.rating?.toFixed(1) || 0 }})</span>
                     </div>
                 </div>
             </div>
@@ -82,7 +85,7 @@
                 color="yellow-9"
                 icon="star"
                 @click="onViewReviews"/>
-                <span class="q-ml-xs sm-font-size">({{ order?.members?.buyer?.rating ? order?.members?.buyer?.rating : 0 }})</span>
+                <span class="q-ml-xs sm-font-size">({{ order?.members?.buyer?.rating.toFixed(1) || 0 }})</span>
             </div>
           </div>
         </div>
@@ -169,6 +172,7 @@ export default {
   props: {
     order: Object,
     ad: Object,
+    hasUnread: Boolean,
     type: {
       type: String,
       default: 'ad'
