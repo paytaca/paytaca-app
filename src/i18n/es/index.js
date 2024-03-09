@@ -584,8 +584,6 @@ export default {
   SecurityAuthenticationSetup: "Configuración de autenticación de seguridad",
   SecurityCheck: "Control de seguridad",
   SecurityCheckFailed: "El control de seguridad falló",
-  SeedPhraseCaution1: "ADVERTENCIA: ¡No copie esto en el portapapeles!",
-  SeedPhraseCaution2: "Algunas aplicaciones maliciosas instaladas en su dispositivo pueden arrebatarla desde allí.La mejor manera de mantener una copia de seguridad de su frase de semillas es escribirla en papel.",
   Select: "Seleccionar",
   SelectActiveSession: "Seleccionar sesión activa",
   SelectAssetToBeReceived: "Seleccione el activo para recibir",

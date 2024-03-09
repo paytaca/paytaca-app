@@ -584,8 +584,6 @@ export default {
   SecurityAuthenticationSetup: "Security Authentication Setup",
   SecurityCheck: "Security Check",
   SecurityCheckFailed: "Security check failed",
-  SeedPhraseCaution1: "Warning: Do not copy this to clipboard!",
-  SeedPhraseCaution2: "Some malicious apps installed in your device may be able to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.",
   Select: "Select",
   SelectActiveSession: "Select active session",
   SelectAssetToBeReceived: "Select Asset to be Received",

@@ -46,6 +46,14 @@ export default {
   data () {
     return {
       apps: [
+      {
+          name: 'P2P Exchange',
+          iconName: 'img:ramp_icon_white.png',
+          path: '/apps/ramp/fiat',
+          iconStyle: 'width:50%',
+          active: true, // !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
         {
           name: 'Marketplace',
           iconName: 'storefront',
@@ -59,10 +67,38 @@ export default {
           }
         },
         {
+          name: this.$t('Gifts'),
+          iconName: 'mdi-gift',
+          path: '/apps/gifts/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Collectibles'),
+          iconName: 'burst_mode',
+          path: '/apps/collectibles',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:50%',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Map'),
+          iconName: 'mdi-map',
+          path: '/apps/map/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('POSAdmin'),
+          iconName: 'point_of_sale',
+          path: '/apps/point-of-sale',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -81,14 +117,6 @@ export default {
           smartBCHOnly: true
         },
         {
-          name: 'P2P Exchange',
-          iconName: 'img:ramp_icon_white.png',
-          path: '/apps/ramp/fiat',
-          iconStyle: 'width:50%',
-          active: true, // !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
           name: 'Crypto Swap',
           iconName: 'currency_bitcoin',
           path: '/apps/ramp/crypto',
@@ -104,23 +132,9 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('Collectibles'),
-          iconName: 'burst_mode',
-          path: '/apps/collectibles',
-          active: true,
-          smartBCHOnly: false
-        },
-        {
           name: this.$t('Sweep'),
           iconName: 'mdi-broom',
           path: '/apps/sweep',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Gifts'),
-          iconName: 'mdi-gift',
-          path: '/apps/gifts/',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -130,20 +144,6 @@ export default {
         //   path: '/apps/chat/',
         //   active: true
         // },
-        {
-          name: this.$t('Map'),
-          iconName: 'mdi-map',
-          path: '/apps/map/',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('POSAdmin'),
-          iconName: 'point_of_sale',
-          path: '/apps/point-of-sale',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
         {
           name: this.$t('WalletInfo'),
           iconName: 'info',

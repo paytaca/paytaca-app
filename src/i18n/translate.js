@@ -301,8 +301,6 @@ const phrases = {
       SecurityAuthenticationSetup: "Security Authentication Setup",
       SecurityCheck: "Security Check",
       SearchingForOtherAssets: "Searching for other assets",
-      SeedPhraseCaution1: "Warning: Do not copy this to clipboard!",
-      SeedPhraseCaution2: "Some malicious apps installed in your device may be able to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.",
       SelectAssetToSend: "Select Asset to Send",
       SelectAssetToBeReceived: "Select Asset to be Received",
       SendToAnotherAddress: "Send to another address",

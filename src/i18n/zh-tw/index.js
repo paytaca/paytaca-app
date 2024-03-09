@@ -584,8 +584,6 @@ export default {
   SecurityAuthenticationSetup: "安全身份驗證設置",
   SecurityCheck: "安全檢查",
   SecurityCheckFailed: "安全檢查失敗",
-  SeedPhraseCaution1: "警告：請勿將其複製到剪貼板！",
-  SeedPhraseCaution2: "設備中安裝的一些惡意應用程序可能可以從那裡搶走它。保留種子短語備份的最佳方法是將其寫在紙上。",
   Select: "選擇",
   SelectActiveSession: "選擇活動會話",
   SelectAssetToBeReceived: "選擇要收到的資產",

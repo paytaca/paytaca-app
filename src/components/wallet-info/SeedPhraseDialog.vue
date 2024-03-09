@@ -13,12 +13,6 @@
       </div>
       <span>{{ $t('YourMnemonic') }}:</span>
       <SeedPhraseContainer :mnemonic="mnemonic" class="q-mt-sm" />
-      <div :class="darkMode ? 'text-red-5' : 'text-red-6'">
-        <span class="text-weight-medium">
-          {{ $t('SeedPhraseCaution1') }}
-        </span>
-        <br>{{ $t('SeedPhraseCaution2') }}
-      </div>
     </q-card>
   </q-dialog>
 </template>

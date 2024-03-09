@@ -584,8 +584,6 @@ export default {
   SecurityAuthenticationSetup: "Sicherheitsauthentifizierung eingerichtet",
   SecurityCheck: "Sicherheitskontrolle",
   SecurityCheckFailed: "Sicherheitsüberprüfung ist fehlgeschlagen",
-  SeedPhraseCaution1: "Warnung: Kopieren Sie dies nicht in die Zwischenablage!",
-  SeedPhraseCaution2: "Einige in Ihrem Gerät installierte böswillige Apps können es möglicherweise von dort aus schnappen.Der beste Weg, um Ihre Samenphrase zu unterstützen, besteht darin, sie auf Papier zu schreiben.",
   Select: "Wählen",
   SelectActiveSession: "Wählen Sie aktive Sitzung",
   SelectAssetToBeReceived: "Wählen Sie Asset, das empfangen werden soll",
