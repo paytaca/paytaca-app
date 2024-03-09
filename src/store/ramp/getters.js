@@ -234,5 +234,7 @@ export function paymentTypes (state) {
 }
 
 export function chatIdentity (state) {
-  return state.chatIdentity
+  return function (ref) {
+    return state.chatIdentity[ref]
+  }
 }

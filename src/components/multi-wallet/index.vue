@@ -138,6 +138,7 @@ export default {
         vm.$store.commit('ramp/resetData')
         vm.$store.commit('ramp/resetChatIdentity')
         vm.$store.commit('ramp/resetPagination')
+        // this.$store.commit('ramp/resetStoreFilters')
         deleteAuthToken()
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {

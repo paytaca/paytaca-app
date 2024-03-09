@@ -1,7 +1,7 @@
 <template>
   <!-- back button -->
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="`Fiat Ramp`" backnavpath="/apps"/>
+  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
 
   <div
     v-if="state === 'selection'"
@@ -9,14 +9,29 @@
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <div class="q-mb-lg q-pb-lg q-pt-xs">
-      <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-        <div class="row items-center justify-between q-mr-lg q-pb-xs">
-          <q-icon class="q-pl-lg" size="sm" name='sym_o_filter_list' />
+      <div class="row justify-start items-center q-mx-none">
+        <div
+          class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
+          :class="getDarkModeClass(darkMode)"
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+          <button
+            class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
+            @click="transactionType='BUY'">
+            Buy Ads
+          </button>
+          <button
+            class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
+            @click="transactionType='SELL'">
+            Sell Ads
+          </button>
+        </div>
+        <div class="col">
           <q-btn
             rounded
             no-caps
             padding="sm"
-            class="q-ml-md"
             icon="add"
             :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
             @click="() => {
@@ -25,26 +40,7 @@
             }"
           />
         </div>
-        <div
-          class="row br-15 text-center pt-card btn-transaction md-font-size"
-          :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
-        >
-          <button
-            class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
-            @click="transactionType='BUY'"
-          >
-            Buy Ads
-          </button>
-          <button
-            class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
-            @click="transactionType='SELL'"
-          >
-            Sell Ads
-          </button>
-        </div>
+      </div>
       <!-- </q-pull-to-refresh> -->
       <div class="q-mt-md q-mx-md">
         <!-- <q-pull-to-refresh @refresh="refreshData"> -->
@@ -53,7 +49,7 @@
             <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
           </div>
           <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 120}px`" style="overflow:auto;">
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
               <q-pull-to-refresh :scroll-target="scrollTargetRef" @refresh="refreshData">
                 <q-infinite-scroll
                   ref="infiniteScroll"
