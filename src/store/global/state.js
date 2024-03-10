@@ -21,11 +21,6 @@ export default function () {
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {},
-        purelypeerVaultSigner: {
-          receiving: '',
-          change: '',
-          derivationPath: 'm/44\'/145\'/1\''
-        } 
       },
       slp: {
         walletHash: '',
@@ -59,11 +54,6 @@ export default function () {
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {},
-        purelypeerVaultSigner: {
-          receiving: '',
-          change: '',
-          derivationPath: 'm/44\'/145\'/1\''
-        }
       },
       slp: {
         walletHash: '',
