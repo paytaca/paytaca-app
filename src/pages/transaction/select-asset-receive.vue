@@ -37,7 +37,7 @@
         </div>
       </div>
       <div class="row flex-center" v-if="isRetrieving">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div style="overflow-y: scroll;" v-else>
         <div
@@ -101,7 +101,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { getMnemonic, Wallet } from 'src/wallet'
-import { getDarkModeClass, isNotDefaultTheme, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import ProgressLoader from 'src/components/ProgressLoader'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
@@ -348,11 +348,11 @@ export default {
     // update balance of assets
     await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       let wallet = new Wallet(mnemonic, vm.network)
-      wallet = markRaw(wallet)
-      if (vm.selectedNetwork === 'sBCH') wallet.sBCH.getOrInitWallet()
+      vm.wallet = markRaw(wallet)
+      if (vm.selectedNetwork === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
 
       bchAssets.forEach(async (asset) => {
-        await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
+        await updateAssetBalanceOnLoad(asset.id, vm.wallet, vm.$store)
       })
     })
 
