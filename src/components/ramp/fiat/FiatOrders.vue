@@ -107,6 +107,15 @@
                                 class="text-weight-bold subtext sm-font-size text-blue">
                                 Appealable
                               </div>
+                              <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
+                                <q-rating
+                                  readonly
+                                  :model-value = "listing?.feedback?.rating || 0"
+                                  size="1em"
+                                  color="yellow-9"
+                                  icon="star"
+                                />
+                              </div>
                               <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
                                 {{ listing.status?.label }}
                               </div>
