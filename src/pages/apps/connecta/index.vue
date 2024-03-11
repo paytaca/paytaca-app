@@ -228,10 +228,6 @@ import BiometricWarningAttempt from 'components/authOption/biometric-warning-att
 import ProgressLoader from 'components/ProgressLoader'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { Plugins } from '@capacitor/core'
-import { sha256 } from 'js-sha256'
-
-const { SecureStoragePlugin } = Plugins
 
 import { PaymentRequest } from './payment-request'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -451,19 +447,13 @@ export default {
     },
 
     async executeSecurityChecking () {
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
-
-      SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
-        .then(() => {
-          setTimeout(() => {
-            if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-              this.openPinVerification()
-            } else {
-              this.verifyBiometric()
-            }
-          }, 500)
-        })
+      setTimeout(() => {
+        if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+          this.openPinVerification()
+        } else {
+          this.verifyBiometric()
+        }
+      }, 500)
     },
 
     getPaymentRequestFromOrderNumber () {
