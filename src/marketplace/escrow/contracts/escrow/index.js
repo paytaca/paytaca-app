@@ -4,7 +4,7 @@ import { compileString } from 'cashc';
 import bitcoincash from 'bitcoincashjs-lib'
 import { binToHex, cashAddressToLockingBytecode } from '@bitauth/libauth';
 import { intToHexString, pkHashToCashAddr, toTokenAddress } from '../../utils.js';
-import { ESCROW_TX_FEE, defaultNetwork, P2PKH_DUST, CASHTOKEN_DUST } from '../../constants.js';
+import { ESCROW_TX_FEE, P2PKH_DUST, CASHTOKEN_DUST, defaultNetwork, defaultAddressType } from '../../constants.js';
 
 import escrowV1Artifact from './escrow.artifact.json'
 import escrowV2Artifact from './escrow-v2.artifact.json'
@@ -30,6 +30,7 @@ export class Escrow {
    * @param {Object} opts.options
    * @param {'v1' | 'v2'} opts.options.version
    * @param {'mainnet' | 'chipnet'} opts.options.network
+   * @param {'p2sh20' | 'p2sh32'} opts.options.addressType
    */
   constructor(opts) {
     const params = opts?.params
@@ -48,6 +49,7 @@ export class Escrow {
     }
     this.version = opts?.options?.version
     this.network = opts?.options?.network || defaultNetwork
+    this.addressType = opts?.options?.addressType || defaultAddressType
   }
 
   get isChipnet() {
@@ -146,7 +148,7 @@ export class Escrow {
     // const provider = new ElectrumNetworkProvider('testnet4');
     const provider = new ElectrumNetworkProvider(this.network);
     // const addressType = 'p2sh32';
-    const addressType = 'p2sh20';
+    const addressType = this.addressType;
     const opts = { provider, addressType }
 
     let artifact

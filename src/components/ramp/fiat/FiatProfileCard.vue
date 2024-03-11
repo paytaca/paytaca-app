@@ -1,6 +1,6 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
-  <HeaderNav v-if="pageName" :title="`Fiat Ramp`" backnavpath="/apps"/>
+  <HeaderNav v-if="pageName" :title="`P2P Exchange`" backnavpath="/apps"/>
   <div
     v-if="!selectedListing && state === 'initial'"
     class="q-mx-md q-mb-lg q-pb-lg text-bow"
@@ -13,14 +13,6 @@
     </div>
     <div v-else>
       <div v-if="state === 'initial'">
-        <!-- <q-btn
-          flat
-          padding="none md xs md"
-          icon="arrow_back"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-          @click="$emit('back')"
-        /> -->
         <div v-if="user" class="q-mb-lg">
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
@@ -79,6 +71,7 @@
               size="1.5em"
               color="yellow-9"
               icon="star"
+              icon-half="star_half"
             />
             <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
           </div>
@@ -106,7 +99,7 @@
             ADS
           </button>
         </div>
-        <q-scroll-area :style="`height: ${minHeight - 320}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
@@ -221,12 +214,6 @@
       @back="openReviews = false"
     />
   </div>
-  <FiatOrderForm
-    v-if="selectedListing"
-    :ad-id="selectedListing.id"
-    @back="selectedListing = null"
-    @order-canceled="onOrderCanceled"
-  />
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -234,7 +221,6 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
-import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
 import { updateChatIdentity } from 'src/wallet/ramp/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -272,13 +258,12 @@ export default {
   props: {
     userInfo: Object
   },
-  emits: ['back', 'updatePageName'],
+  emits: ['back', 'updatePageName', 'selectListing'],
   components: {
     MiscDialogs,
     AddPaymentMethods,
     ProgressLoader,
     FeedbackDialog,
-    FiatOrderForm,
     HeaderNav
   },
   watch: {
@@ -454,7 +439,7 @@ export default {
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
-            ref: loadRampWallet().walletHash,
+            id: this.user.chat_identity_id,
             name: response.data.name
           }
           vm.retry = true
@@ -509,7 +494,7 @@ export default {
       return new Promise(resolve => setTimeout(resolve, duration))
     },
     selectAd (ad) {
-      this.selectedListing = ad
+      bus.emit('view-ad', ad.id)
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()

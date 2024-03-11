@@ -178,9 +178,17 @@ export default {
      *    // code here
      *  }, 100))
      */
+    const initialized = ref(false)
     const loadingApp = ref(false)
     const loadAppPromise = ref(null)
-    onMounted(() => loadApp())
+    watch(() => [$route.meta.skipInit], () => attemptLoadApp())
+    onMounted(() => attemptLoadApp())
+    async function attemptLoadApp() {
+      await loadAppPromise.value?.catch?.()
+      if ($route.meta.skipInit) return
+      if (initialized.value) return
+      return loadApp()
+    }
     async function loadApp() {
       if (loadAppPromise.value) return loadAppPromise.value
       loadAppPromise.value = new Promise(async resolve => {
@@ -203,13 +211,17 @@ export default {
             })
           }
           $store.dispatch('marketplace/refetchCustomerLocations')
-          resolve()
         } catch(error) {
           reject(error)
+        } finally {
+          resolve()
         }
       })
 
       return loadAppPromise.value
+        .then(() => {
+          initialized.value = true
+        })
         .finally(() => {
           loadingApp.value = false
           loadAppPromise.value = null

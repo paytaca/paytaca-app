@@ -4,16 +4,6 @@
     class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
-    <!--<div v-if="step < 3">
-      <q-btn
-        flat
-        padding="md md 0 md"
-        icon="arrow_back"
-        class="button button-text-primary"
-        :class="getDarkModeClass(darkMode)"
-        @click="step > 1 ? step-- : $emit('back')"
-      />
-    </div>-->
     <div v-if="step === 1">
       <div
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
@@ -378,14 +368,14 @@ export default {
       instruction: { // temp
         'price-setting': {
           title: 'Price Setting',
-          text: null
+          text: 'Price settings instruction here'
         },
         'trade-quantity': {
           title: 'Trade Quantity',
-          text: null
+          text: 'Trade quantity instruction here'
         },
         'trade-limit': {
-          title: 'Trade Limit',
+          title: 'Trade limit instruction here',
           text: null
         }
       },

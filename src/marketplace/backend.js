@@ -1,7 +1,6 @@
 import BCHJS from '@psf/bch-js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import axios from 'axios'
-import { binToHex } from '@bitauth/libauth';
 
 const bchjs = new BCHJS()
 

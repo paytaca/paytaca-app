@@ -1,180 +1,146 @@
 <template>
-  <!-- <div class="fixed" style="background-color: aqua; height: 50px; width: 50px;" @click="$emit('back')"></div> -->
   <div
     v-if="state === 'initial'"
     class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <!-- Form Body -->
-    <div>
-      <div v-if="isloaded">
-        <!-- <div>
-          <q-btn
-            flat
-            padding="md md 0 md"
-            icon="arrow_back"
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            @click="$emit('back')"
-          />
-        </div> -->
-        <div
-          class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size"
-          :class="ad.trade_type === 'SELL' ? 'buy-color' : 'sell-color'"
-          :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'"
-        >
-          {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
-        </div>
-        <q-scroll-area :style="`height: ${minHeight - 130}px`" style="overflow-y:auto;">
-          <div class="q-mx-md">
-            <!-- Ad Info -->
-            <div class="q-pt-md sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
-              <div class="row justify-between no-wrap q-mx-lg">
-                <span>Price Type</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ ad.price_type }}
-                </span>
-              </div>
-              <div class="row justify-between no-wrap q-mx-lg">
-                <span>Fiat Price</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(ad.price, ad?.fiat_currency?.symbol) }}
-                </span>
-              </div>
-              <div class="row justify-between no-wrap q-mx-lg">
-                <span>Min Trade Limit</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ parseFloat(ad.trade_floor) }} {{ ad?.crypto_currency?.symbol }}
-                </span>
-              </div>
-              <div class="row justify-between no-wrap q-mx-lg">
-                <span>Max Trade Limit</span>
-                <span class="text-nowrap q-ml-xs">
-                  {{ parseFloat(ad.trade_amount) }} {{ ad?.crypto_currency?.symbol }}
-                </span>
-              </div>
-              <div class="row justify-between no-wrap q-mx-lg">
-                <span>Appealable after</span>
-                <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }}</span>
-              </div>
+    <div v-if="isloaded">
+      <div
+        class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
+        <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
+        {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
+      </div>
+      <div class="q-mx-lg q-px-xs q-mb-sm">
+        <TradeInfoCard
+          :order="order"
+          :ad="ad"
+          type="ad"
+          @view-peer="onViewPeer"
+          @view-reviews="showReviews=true"/>
+      </div>
+      <q-scroll-area :style="`height: ${minHeight - 195}px`" style="overflow-y:auto;">
+        <div class="q-mx-md">
+          <!-- Ad Info -->
+          <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Price Type</span>
+              <span class="text-nowrap q-ml-xs">
+                {{ ad.price_type }}
+              </span>
             </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Min Trade Limit</span>
+              <span class="text-nowrap q-ml-xs">
+                {{ parseFloat(ad.trade_floor) }} {{ ad?.crypto_currency?.symbol }}
+              </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Max Trade Limit</span>
+              <span class="text-nowrap q-ml-xs">
+                {{ parseFloat(ad.trade_amount) }} {{ ad?.crypto_currency?.symbol }}
+              </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg">
+              <span>Appealable after</span>
+              <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }}</span>
+            </div>
+          </div>
 
-            <!-- Input -->
-            <div class="q-mt-md q-mx-md" v-if="!isOwner">
-              <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
-              <q-input
-                class="q-pb-xs"
-                filled
-                dense
-                label="Amount"
-                :dark="darkMode"
-                :rules="[isValidInputAmount]"
-                v-model="amount"
-                @blur="resetInput">
-                <template v-slot:append>
-                  <span class="text-weight-bold sm-font-size">{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
-                </template>
-              </q-input>
-              <div class="row justify-between">
-                <div class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                  = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}
-                </div>
-                <div class="justify-end q-gutter-sm q-pr-sm">
-                  <q-btn
-                    class="sm-font-size button button-text-primary"
-                    padding="none"
-                    flat
-                    dense
-                    :class="getDarkModeClass(darkMode)"
-                    label="MIN"
-                    @click="updateInput(max=false, min=true)"/>
-                  <q-btn
-                    class="sm-font-size button button-text-primary"
-                    padding="none"
-                    flat
-                    :class="getDarkModeClass(darkMode)"
-                    label="MAX"
-                    @click="updateInput(max=true, min=false)"/>
-                </div>
+          <!-- Input -->
+          <div class="q-mt-md q-mx-md" v-if="!isOwner">
+            <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
+            <q-input
+              class="q-pb-xs"
+              filled
+              dense
+              label="Amount"
+              :dark="darkMode"
+              :rules="[isValidInputAmount]"
+              v-model="amount"
+              @blur="resetInput">
+              <template v-slot:append>
+                <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
+              </template>
+            </q-input>
+            <div class="row justify-between">
+              <div class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
+                = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}
               </div>
-              <div class="q-pl-sm">
+              <div class="justify-end q-gutter-sm q-pr-sm">
                 <q-btn
                   class="sm-font-size button button-text-primary"
                   padding="none"
                   flat
-                  no-caps
+                  dense
                   :class="getDarkModeClass(darkMode)"
-                  @click="byFiat = !byFiat">
-                  Set amount in {{ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }}
-                </q-btn>
-              </div>
-              <div v-if="ad.trade_type === 'BUY'">
-                <q-separator :dark="darkMode" class="q-mt-sm q-mx-md"/>
-                <div class="row justify-between no-wrap q-mx-lg text-weight-bold sm-font-size subtext q-pt-sm">
-                  <span>Balance:</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ bchBalance }} BCH
-                  </span>
-                </div>
+                  label="MIN"
+                  @click="updateInput(max=false, min=true)"/>
+                <q-btn
+                  class="sm-font-size button button-text-primary"
+                  padding="none"
+                  flat
+                  :class="getDarkModeClass(darkMode)"
+                  label="MAX"
+                  @click="updateInput(max=true, min=false)"/>
               </div>
             </div>
-
-            <!-- create order btn -->
-            <div class="row q-mx-lg q-py-md" v-if="!isOwner">
+            <div class="q-pl-sm">
               <q-btn
-                :disabled="!isValidInputAmount(amount)"
-                rounded
+                class="sm-font-size button button-text-primary"
+                padding="none"
+                flat
                 no-caps
-                :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
-                :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-                class="q-space"
-                @click="submit()">
-              </q-btn>
-            </div>
-
-            <!-- edit ad button: For ad owners only -->
-            <div class="row q-mx-lg q-py-md" v-if="isOwner">
-              <q-btn
-                rounded
-                no-caps
-                label="Edit Ad"
-                :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-                class="q-space"
-                @click="() => {
-                  state = 'edit-ad'
-                  $emit('updatePageName', 'ad-form-1')
-                  }">
-              </q-btn>
-            </div>
-
-            <div class="text-center q-pt-sm">
-              <!-- <div class="text-weight-bold" style="font-size: medium;">Average Rating</div>
-              <div class="row justify-center q-py-xs q-pb-sm">
-                <q-rating
-                  readonly
-                  :model-value="feedback.rating"
-                  :v-model="feedback.rating"
-                  size="1.5em"
-                  color="yellow-9"
-                  icon="star"
-                />
-                <span class="q-mx-sm" style="font-size: medium;">({{ ad.owner.rating }})</span>
-              </div> -->
-              <div
-                class="text-center button button-text-primary md-font-size"
                 :class="getDarkModeClass(darkMode)"
-                @click="openReviews = true">
-                <u>See all Reviews</u>
+                @click="byFiat = !byFiat">
+                Set amount in {{ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }}
+              </q-btn>
+            </div>
+            <div v-if="ad.trade_type === 'BUY'">
+              <q-separator :dark="darkMode" class="q-mt-sm"/>
+              <div class="row justify-between no-wrap q-mx-lg text-weight-bold sm-font-size subtext q-pt-sm">
+                <span>Balance</span>
+                <span class="text-nowrap q-ml-xs">
+                  {{ bchBalance }} BCH
+                </span>
               </div>
             </div>
           </div>
-        </q-scroll-area>
-      </div>
-      <!-- Progress Loader -->
-      <div v-else>
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+
+          <!-- create order btn -->
+          <div class="row q-mx-lg q-py-md" v-if="!isOwner">
+            <q-btn
+              :disabled="!isValidInputAmount(amount)"
+              rounded
+              no-caps
+              :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
+              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+              class="q-space"
+              @click="submit()">
+            </q-btn>
+          </div>
+
+          <!-- edit ad button: For ad owners only -->
+          <div class="row q-mx-lg q-py-md" v-if="isOwner">
+            <q-btn
+              rounded
+              no-caps
+              label="Edit Ad"
+              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+              class="q-space"
+              @click="() => {
+                state = 'edit-ad'
+                $emit('updatePageName', 'ad-form-1')
+                }">
+            </q-btn>
+          </div>
         </div>
+      </q-scroll-area>
+    </div>
+    <!-- Progress Loader -->
+    <div v-else>
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
     <!-- Dialogs -->
@@ -184,13 +150,6 @@
         :title="title"
         v-on:back="openDialog = false"
         v-on:submit="recieveDialogsInfo"
-      />
-    </div>
-    <div v-if="openReviews">
-      <FeedbackDialog
-        :openReviews="openReviews"
-        :adID="ad.id"
-        @back="openReviews = false"
       />
     </div>
   </div>
@@ -221,14 +180,16 @@
       }"
     />
   </div>
+  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
 import AddPaymentMethods from './AddPaymentMethods.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
-import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import TradeInfoCard from './TradeInfoCard.vue'
+import UserProfileDialog from './dialogs/UserProfileDialog.vue'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, addChatMembers } from 'src/wallet/ramp/chat'
@@ -253,7 +214,8 @@ export default {
       paymentMethods: null,
 
       title: '',
-
+      showPeerProfile: false,
+      peerInfo: {},
       feedback: {
         rating: 3,
         comment: '',
@@ -268,9 +230,10 @@ export default {
     ProgressLoader,
     AddPaymentMethods,
     FiatAdsForm,
-    FeedbackDialog,
     FiatProcessOrder,
-    MiscDialogs
+    MiscDialogs,
+    TradeInfoCard,
+    UserProfileDialog
   },
   emits: ['back', 'orderCanceled', 'updatePageName'],
   computed: {
@@ -295,9 +258,6 @@ export default {
     }
   },
   watch: {
-    state (value) {
-      console.log('state:', value)
-    },
     byFiat () {
       this.updateInput()
     }
@@ -324,7 +284,6 @@ export default {
       this.$refs.fiatAdsForm.step--
     },
     onBackEditAds () {
-      console.log('back to menu')
       this.state = 'initial'
       bus.emit('show-menu', 'store')
     },
@@ -409,45 +368,9 @@ export default {
     createGroupChat (orderId, members, createdAt) {
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       createChatSession(orderId, createdAt)
-        .then(chatRef => addChatMembers(chatRef, chatMembers))
+        .then(chatRef => { addChatMembers(chatRef, chatMembers) })
         .catch(console.error)
     },
-    // WIP
-    // exponentialBackoff (fn, retries, delayDuration, ...info) {
-    //   const vm = this
-    //   const payload = info[0]
-
-    //   return fn(payload)
-    //     .then((data) => {
-    //       if (data.data) {
-    //         const chatIdentity = data.data
-    //         vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
-    //         vm.retry = false
-    //       }
-
-    //       if (vm.retry) {
-    //         console.log('retrying')
-    //         if (retries > 0) {
-    //           return vm.delay(delayDuration)
-    //             .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
-    //         } else {
-    //           vm.retry = false
-    //         }
-    //       }
-    //     })
-    //     .catch(error => {
-    //       console.log(error)
-    //       if (retries > 0) {
-    //         return vm.delay(delayDuration)
-    //           .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))
-    //       } else {
-    //         vm.retry = false
-    //       }
-    //     })
-    // },
-    // delay (duration) {
-    //   return new Promise(resolve => setTimeout(resolve, duration))
-    // },
     formattedCurrency (value, currency = null) {
       if (currency) {
         return formatCurrency(value, currency)
@@ -510,7 +433,6 @@ export default {
     },
     submit () {
       const vm = this
-      console.log('trade_type:', vm.ad.trade_type)
       switch (vm.ad.trade_type) {
         case 'SELL':
           vm.orderConfirm()
@@ -519,11 +441,14 @@ export default {
           vm.state = 'add-payment-method'
           break
       }
-      console.log('state:', vm.state)
     },
     countDecimals (value) {
       if (Math.floor(value) === value) return 0
       return value.toString().split('.')[1].length || 0
+    },
+    onViewPeer (data) {
+      this.peerInfo = data
+      this.showPeerProfile = true
     }
   }
 }

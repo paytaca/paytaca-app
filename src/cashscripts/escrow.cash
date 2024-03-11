@@ -1,4 +1,4 @@
-pragma cashscript ^0.7.5;
+pragma cashscript ^0.8.0;
 
 contract Escrow(bytes20 arbiter, bytes20 buyer, bytes20 seller, bytes20 servicer, int tradingFee, int arbitrationFee, bytes32 paramHash) {
 

@@ -1,59 +1,56 @@
 <template>
-  <HeaderNav :title="`${user?.is_arbiter ? 'Appeal' : 'Fiat'} Ramp`" backnavpath="/apps"/>
+  <HeaderNav :title="`${user?.is_arbiter ? 'Appeal Ramp' : 'P2P Exchange'}`" backnavpath="/apps"/>
   <div
-  class="q-mt-md q-pt-md q-mx-md q-mb-lg text-bow"
+  class="q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"
-  :style="`height: ${minHeight}px;`">
-    <div v-if="isLoading">
-      <div class="row justify-center q-py-lg" style="margin-top: 50%">
+  :style="`height: ${minHeight}px;`" style="overflow-y: auto">
+    <!-- <div v-if="isLoading">
+      <div class="row justify-center" style="margin-top: 30%">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
-    </div>
-    <div v-else class="row justify-center q-gutter-sm" style="margin-top: 5%">
-      <div>
-        <div class="q-mt-md">
-          <div v-if="!loggingIn" class="row justify-center q-mx-lg q-mb-sm text-h6 login-label">
-              {{ register ? "Sign up" : "Sign in"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
-          </div>
-          <div v-else class="row justify-center q-mx-lg q-mb-sm text-h6 login-label">
-              {{ register ? "Signing up" : "Signing in"}}...
-          </div>
-          <q-input
-            class="row q-mx-md"
-            rounded
-            standout
-            dense
-            :dark="darkMode"
-            :readonly="!register || user?.is_arbiter"
-            :placeholder="register ? 'Enter nickname' : ''"
-            :loading="loggingIn || (!usernickname && !register)"
-            v-model="usernickname">
-            <template v-slot:append>
-              <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
-              <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
-              <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="createRampUser" />
-            </template>
-          </q-input>
+      <div class="row justify-center subtext">{{hintMessage}}</div>
+    </div> -->
+    <div>
+      <div class="q-px-md q-mb-sm text-h6 login-label">
+        <div class="row justify-center q-mb-sm">
+          {{ register ? "Sign up" : "Login"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
         </div>
-        <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
-          <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
-            <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
-            <span class="text-center q-my-sm q-mx-md">Biometrics</span>
-          </q-btn>
-          <q-btn dense stack class="q-px-lg" :class="hasBiometric ? 'q-mx-sm' : 'q-mx-lg'" :disable="loggingIn  || !usernickname" @click="onLoginClick('pin')">
-            <q-icon class="q-mt-sm" size="50px" name="apps" />
-            <span class="text-center q-my-sm q-mx-md">MPIN</span>
-          </q-btn>
-        </div>
+        <q-input
+          class="row justify-center q-mx-lg q-px-lg"
+          rounded
+          standout
+          dense
+          hide-bottom-space
+          bottom-slots
+          :hide-hint="!hintMessage"
+          :dark="darkMode"
+          :readonly="!register || user?.is_arbiter"
+          :placeholder="register ? 'Enter nickname' : ''"
+          :loading="loggingIn || (!usernickname && !register) || isLoading"
+          :error="errorMessage !== null"
+          v-model="usernickname">
+          <template v-slot:append>
+            <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
+            <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
+            <q-btn v-if="register" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="createRampUser" />
+          </template>
+          <template v-slot:hint>
+            <div class="row justify-center text-center">{{ hintMessage }}</div>
+          </template>
+          <template v-slot:error>
+            <div class="row justify-center text-center">{{ errorMessage }}</div>
+          </template>
+        </q-input>
       </div>
-      <div v-if="errorMessage" class="row justify-center q-mx-lg q-px-md q-my-md">
-        <q-card flat class="col q-mx-md q-pa-md bg-red-1 pp-text">
-            <q-icon name="error" left/>
-            {{ errorMessage }}
-        </q-card>
-      </div>
-      <div class="col row justify-evenly text-h6 ramp-footer-text">
-          <span>{{ user?.is_arbiter ? "APPEALS" : "PEER-TO-PEER"}}</span>
+      <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
+        <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
+          <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
+          <span class="text-center q-my-sm q-mx-md">Biometrics</span>
+        </q-btn>
+        <q-btn dense stack class="q-px-lg" :class="hasBiometric ? 'q-mx-sm' : 'q-mx-lg'" :disable="loggingIn  || !usernickname" @click="onLoginClick('pin')">
+          <q-icon class="q-mt-sm" size="50px" name="apps" />
+          <span class="text-center q-my-sm q-mx-md">MPIN</span>
+        </q-btn>
       </div>
     </div>
   </div>
@@ -61,7 +58,7 @@
 <script>
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
-import { updatePeerChatIdentityId, fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
+import { updateChatIdentityId, fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
 import { updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
 import { backend } from 'src/wallet/ramp/backend'
 
@@ -70,7 +67,6 @@ import { Dialog } from 'quasar'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 
 export default {
@@ -88,18 +84,18 @@ export default {
       register: false,
       loggingIn: false,
       errorMessage: null,
+      hintMessage: null,
       hasBiometric: false,
       securityDialogUp: false,
       chatIdentityId: null,
       retrying: false,
       retry: {
         loadChatIdentity: false,
-        updatePeerChatIdentityId: false
+        updateChatIdentityId: false
       }
     }
   },
   components: {
-    ProgressLoader,
     HeaderNav
   },
   emits: ['loggedIn'],
@@ -122,120 +118,106 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
-    fetchUser () {
+    async fetchUser () {
       const vm = this
-      backend.get('/auth/')
-        .then(response => {
-          vm.user = response.data
-          vm.usernickname = vm.user?.name
-          vm.$store.commit('ramp/updateUser', vm.user)
-          console.log('user:', vm.user)
-          if (vm.user.is_authenticated) {
-            getAuthToken().then(token => {
-              if (token) {
-                vm.exponentialBackoff(vm.loadChatIdentity, 5, 1000).then(() => { vm.loggingIn = false })
-                vm.savePubkeyAndAddress()
-                vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-              } else {
-                vm.isLoading = false
-                vm.login()
-              }
-            })
+      try {
+        const { data: user } = await backend.get('/auth/')
+        vm.user = user
+        vm.usernickname = user?.name
+        vm.$store.commit('ramp/updateUser', user)
+        console.log('user:', vm.user)
+        if (vm.user.is_authenticated) {
+          const token = await getAuthToken()
+          if (token) {
+            const success = await vm.loadChatIdentity()
+            // await vm.savePubkeyAndAddress()
+            if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+            vm.loggingIn = false
           } else {
             vm.isLoading = false
-            deleteAuthToken()
             vm.login()
           }
-        })
-        .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 404) {
-              vm.register = true
-            }
-          } else {
-            console.error(error)
-          }
+        } else {
           vm.isLoading = false
-        })
-    },
-    async loadChatIdentity () {
-      // check if chatIdentity exist
-      const chatIdentity = this.$store.getters['ramp/chatIdentity']
-      if (!chatIdentity) {
-        console.log('fetching chat identity')
-        await updateSignerData()
-        return new Promise((resolve, reject) => {
-          const vm = this
-          vm.retry.loadChatIdentity = true
-          const data = {
-            rampWallet: vm.rampWallet,
-            ref: vm.rampWallet.walletHash,
-            name: vm.user.name
+          deleteAuthToken()
+          vm.login()
+        }
+      } catch (error) {
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 404) {
+            vm.register = true
           }
-          fetchChatIdentity(data.ref)
-            .then(identity => {
-              if (!identity) {
-                vm.buildChatIdentityPayload(data)
-                  .then(payload => createChatIdentity(payload))
-                  .then(identity => {
-                    vm.retry.updatePeerChatIdentityId = true
-                    updatePeerChatIdentityId(identity.id)
-                    vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
-                  })
-              } else if (!vm.user.chat_identity_id) {
-                vm.retry.updatePeerChatIdentityId = true
-                updatePeerChatIdentityId(identity.id)
-                vm.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, identity.id)
-              }
-              vm.$store.commit('ramp/updateChatIdentity', identity)
-            })
-            .then(updateOrCreateKeypair())
-            .finally(() => {
-              vm.retry.loadChatIdentity = false
-              vm.retry.updatePeerChatIdentityId = false
-              resolve()
-            })
-            .catch(error => {
-              console.error(error)
-              vm.isLoading = false
-              reject(error)
-            })
-        })
-      } else {
-        console.log('updating chat identity id')
-        this.exponentialBackoff(updatePeerChatIdentityId, 5, 1000, chatIdentity.id)
+        } else {
+          console.error(error)
+        }
+        vm.isLoading = false
       }
     },
-    exponentialBackoff (fn, retries, delayDuration, ...data) {
+    async loadChatIdentity () {
       const vm = this
-      const funcName = fn.name.split('bound ').join('')
-      const identityId = data[0]
+      vm.hintMessage = 'Loading chat identity'
+      const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
+      const data = {
+        rampWallet: vm.rampWallet,
+        ref: vm.rampWallet.walletHash,
+        name: vm.user.name
+      }
+      // let chatIdentity = vm.$store.getters['ramp/chatIdentity']
+      // console.log('current chatIdentity: ', this.chatIdentity)
+      // try {
+      //   console.log('start', Object.keys(chatIdentity).length)
+      //   if (!chatIdentity && Object.keys(chatIdentity).length === 0) {
+      //     console.log('fetching chat identity')
+      //     await updateSignerData()
+      //     const data = {
+      //       rampWallet: vm.rampWallet,
+      //       ref: vm.rampWallet.walletHash,
+      //       name: vm.user.name
+      //     }
+      //     chatIdentity = await fetchChatIdentity(data.ref)
+      //     if (!chatIdentity) {
+      //       const payload = await vm.buildChatIdentityPayload(data)
+      //       chatIdentity = createChatIdentity(payload)
+      //     }
+      //     vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+      //     vm.hintMessage = 'Updating chat keypair'
+      //     await updateOrCreateKeypair()
+      //   }
+      //   if (!vm.user.chat_identity_id) {
+      //     console.log('updating chatIdentityId')
+      //     updateChatIdentityId(userType, chatIdentity.id)
+      //   }
+      // } catch (error) {
+      //   console.log('error:', error)
+      // }
+      // check if chatIdentity exist
+      let chatIdentity = await fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
 
-      return fn(identityId)
-        .then((info) => {
-          if (vm.retry[funcName]) {
-            console.log('retrying')
-            if (retries > 0) {
-              return vm.delay(delayDuration)
-                .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
-            } else {
-              vm.retry[funcName] = false
-            }
-          }
-        })
-        .catch(error => {
-          console.log(error)
-          if (retries > 0) {
-            return vm.delay(delayDuration)
-              .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, identityId))
-          } else {
-            vm.retry[funcName] = false
-          }
-        })
-    },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
+      // Update signer data for signing chat authentication
+      vm.hintMessage = 'Updating signer data'
+      await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
+
+      // Update or create encrypting/decrypting keypair
+      vm.hintMessage = 'Updating chat keypair'
+      await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+
+      if (!chatIdentity) {
+        // Build payload and create chat identity
+        vm.hintMessage = 'Creating chat identity'
+        const payload = await vm.buildChatIdentityPayload(data).catch(error => { return vm.handleError(error, 'Failed to build chat identity') })
+        chatIdentity = await createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
+      }
+
+      // Save chat identity to store
+      vm.$store.commit('ramp/updateChatIdentity', { ref: data.ref, chatIdentity: chatIdentity })
+      vm.hintMessage = 'Almost there'
+
+      // Update chat identity id if null or mismatch
+      if (!vm.user.chat_identity_id || vm.user.chat_identity_id !== chatIdentity.id) {
+        updateChatIdentityId(userType, chatIdentity.id)
+      }
+      return true
     },
     async buildChatIdentityPayload (data) {
       const wallet = data.rampWallet
@@ -255,6 +237,7 @@ export default {
     savePubkeyAndAddress () {
       return new Promise((resolve, reject) => {
         const vm = this
+        vm.hintMessage = 'Updating pubkey and address'
         const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
         vm.rampWallet.pubkey().then(async pubkey => {
           const payload = {
@@ -289,39 +272,43 @@ export default {
         })
       })
     },
-    login (securityType) {
+    async login (securityType) {
       const vm = this
-      vm.loggingIn = true
-      // security check before login
-      vm.checkSecurity(securityType)
-        .then(success => {
-          if (success) {
-            backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`).then(response => {
-              vm.rampWallet.keypair().then(async keypair => {
-                const signature = await vm.rampWallet.signMessage(keypair.privateKey, response.data.otp)
-                const body = {
-                  wallet_hash: vm.rampWallet.walletHash,
-                  signature: signature,
-                  public_key: keypair.publicKey
-                }
-                backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
-                  .then((response) => {
-                    if (vm.user) vm.$store.commit('ramp/updateUser', vm.user)
-                    saveAuthToken(response.data.token)
-                    vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-                  })
-                  .finally(() => {
-                    vm.loadChatIdentity().then(() => { vm.loggingIn = false })
-                  })
-              })
-            }).catch((error) => { console.error(error) })
-          } else {
-            vm.loggingIn = false
+      vm.hintMessage = null
+      vm.errorMessage = null
+      try {
+        // security check before login
+        const securityOk = await vm.checkSecurity(securityType)
+        if (!securityOk) { vm.loggingIn = false; return }
+        vm.loggingIn = true
+        vm.hintMessage = 'Logging you in'
+        const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
+        const keypair = await vm.rampWallet.keypair()
+        const signature = await vm.rampWallet.signMessage(keypair.privateKey, otp)
+        const body = {
+          wallet_hash: vm.rampWallet.walletHash,
+          signature: signature,
+          public_key: keypair.publicKey
+        }
+        const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
+        if (vm.user) {
+          console.log('saving user')
+          vm.$store.commit('ramp/updateUser', vm.user)
+          saveAuthToken(loginResponse.data.token)
+          const success = await vm.loadChatIdentity()
+          if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+        }
+      } catch (error) {
+        if (error.response) {
+          console.error(error.response)
+          vm.errorMessage = error.response.data.error || error
+          if (vm.errorMessage.includes('disabled')) {
+            vm.errorMessage = 'This account is disabled'
           }
-        })
-        .catch(error => {
-          console.error(error)
-        })
+          console.log('error:', vm.errorMessage)
+        }
+      }
+      vm.loggingIn = false
     },
     async createRampUser () {
       const vm = this
@@ -354,6 +341,26 @@ export default {
             console.error(error.response)
           }
         })
+    },
+    handleError (error, message) {
+      const vm = this
+      if (error.isAxiosError && !error.response) {
+        // This is a network error (server down, no response)
+        console.error('Network error:', error.message)
+        vm.errorMessage = `${error.message}${message ? `: ${message}` : ''}`
+      } else if (error.response) {
+        // Handle other types of errors (e.g., 400, 404, etc.)
+        console.error('Error status:', error.response.status)
+        console.error('Error data:', error.response.data)
+        vm.errorMessage = `Error ${error.response.status}`
+      } else {
+        // Handle other non-network errors
+        console.error('Unknown error:', error)
+        vm.errorMessage = `${error}${message ? `: ${message}` : ''}`
+      }
+      vm.isLoading = false
+      vm.loggingIn = false
+      return false
     },
     async revokeAuth () {
       const url = `${this.apiURL}/auth/revoke`

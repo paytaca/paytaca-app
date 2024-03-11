@@ -4,10 +4,10 @@ import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
 
-export async function updatePeerChatIdentityId (id) {
+export async function updateChatIdentityId (userType, id) {
   return new Promise((resolve, reject) => {
     const payload = { chat_identity_id: id }
-    backend.put('/ramp-p2p/peer/detail', payload, { authorize: true })
+    backend.put(`/ramp-p2p/${userType}/detail`, payload, { authorize: true })
       .then(response => {
         console.log('Updated chat identity id:', response.data)
         resolve(response)
@@ -85,7 +85,7 @@ export async function createChatSession (orderId, createdAt) {
   return new Promise((resolve, reject) => {
     const chatRef = generateChatRef(orderId, createdAt)
     const payload = {
-      ref: chatRef, //`ramp-order-${orderId}-chat`,
+      ref: chatRef,
       title: `Ramp Order #${orderId} chat`
     }
     chatBackend.post('chat/sessions/', payload, { forceSign: true })
@@ -117,6 +117,18 @@ export async function checkChatSessionAdmin (chatRef) {
         } else {
           console.error('Failed to check chat admin:', error)
         }
+        reject(error)
+      })
+  })
+}
+
+export async function fetchChatSession (chatRef) {
+  return new Promise((resolve, reject) => {
+    chatBackend.get(`chat/sessions/${chatRef}`, { forceSign: true })
+      .then(response => {
+        resolve(response)
+      })
+      .catch(error => {
         reject(error)
       })
   })

@@ -42,7 +42,7 @@
               <q-chat-message
                 :bg-color="!isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
-                :avatar="message?.user?.profilePictureUrl"
+                :avatar="message?.user?.profilePictureUrl || undefined"
                 :sent="isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
@@ -112,61 +112,54 @@
             </q-virtual-scroll>
             <div class="bottom-anchor"></div>
           </div>
-          <q-input
-            outlined
-            :disable="sendingMessage"
-            :loading="sendingMessage"
-            :dark="darkMode"
-            v-model="message"
-            autogrow
-            :bottom-slots="!attachmentUrl"
-          >
-            <template v-slot:after>
-              <q-btn
-                :disable="sendingMessage"
-                :loading="sendingMessage"
-                icon="send"
-                padding="sm"
-                class="button"
-                @click="() => sendMessage()"
-              />
-            </template>
-            <template v-slot:append>
-              <q-btn
-                flat
-                icon="attach_file"
-                padding="sm"
-                @click="selectAttachment"
-              />
-            </template>
-          </q-input>
-          <q-file
-            v-show="false"
-            ref="fileAttachmentField"
-            :dark="darkMode"
-            borderless
-            v-model="attachment"
-            :filter="files => files.filter(file => file.type?.match(/image\/.*/))"
-            @update:model-value="() => resizeAttachment()"
-          />
-          <div v-if="attachmentUrl" class="row items-start no-wrap q-my-sm">
-            <img
-              :src="attachmentUrl"
-              :style="{
-                'cursor': 'pointer',
-                'border-radius': '10px',
-                'max-height': 'min(10rem, 50vh)',
-                'max-width': 'calc(100% - 5rem)',
-              }"
-              @click="selectAttachment"
-              alt=""
+          <PhotoSelectorVue v-model="attachment" v-slot="{ selectPhoto }">
+            <q-input
+              outlined
+              :disable="sendingMessage"
+              :loading="sendingMessage"
+              :dark="darkMode"
+              v-model="message"
+              autogrow
+              :bottom-slots="!attachment"
             >
-            <q-btn
-              flat icon="cancel"
-              padding="sm"
-              @click.stop="() => attachment = null"
-            />
-          </div>
+              <template v-slot:after>
+                <q-btn
+                  :disable="sendingMessage"
+                  :loading="sendingMessage"
+                  icon="send"
+                  padding="sm"
+                  class="button"
+                  @click="() => sendMessage()"
+                />
+              </template>
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  icon="attach_file"
+                  padding="sm"
+                  @click="selectPhoto"
+                />
+              </template>
+            </q-input>
+            <div v-if="attachment" class="row items-start no-wrap q-my-sm">
+              <img
+                :src="attachment?.objectUrl || attachment"
+                :style="{
+                  'cursor': 'pointer',
+                  'border-radius': '10px',
+                  'max-height': 'min(10rem, 50vh)',
+                  'max-width': 'calc(100% - 5rem)',
+                }"
+                @click="selectPhoto"
+                alt=""
+              >
+              <q-btn
+                flat icon="cancel"
+                padding="sm"
+                @click.stop="() => attachment = null"
+              />
+            </div>
+          </PhotoSelectorVue>
         </div>
       </q-card-section>
     </q-card>
@@ -177,21 +170,21 @@ import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
-import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
-import { Camera } from '@capacitor/camera'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useDialogPluginComponent, debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { vElementVisibility } from '@vueuse/components'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import PhotoSelectorVue from 'src/components/marketplace/PhotoSelector.vue'
 
-
-window.C = Camera
 export default defineComponent({
   name: 'ChatDialog',
+  components: {
+    PhotoSelectorVue,
+  },
   directives: {
     'element-visibility': vElementVisibility,
   },
@@ -383,81 +376,6 @@ export default defineComponent({
     const sendingMessage = ref(false)
     const message = ref('')
     const attachment = ref(null)
-    watch(attachment, (newVal, oldVal) => {
-      if (newVal) attachmentUrl.value = URL.createObjectURL(newVal)
-      else attachmentUrl.value = ''
-      if (oldVal) URL.revokeObjectURL(oldVal)
-    })
-    const attachmentUrl = ref('')
-    const fileAttachmentField = ref()
-    function openFileAttachementField(evt) {
-      fileAttachmentField.value?.pickFiles?.(evt)
-    }
-
-    async function resizeAttachment() {
-      attachment.value = await resizeImage({
-        file: attachment.value,
-        maxWidthHeight: 640, // based on recommended dimensions for mobile
-      })
-    }
-
-    async function checkOrRequestCameraPermissions() {
-      let permission = await Camera.checkPermissions()
-      const promptStatuses = ['prompt','prompt-with-rationale', 'limited']
-      const request = promptStatuses.includes(permission.photos) || promptStatuses.includes(permission.camera)
-      if (request) permission = await Camera.requestPermissions()
-      return {
-        camera: permission.camera === 'granted',
-        photos: permission.photos === 'photos',
-      }
-    }
-
-    async function getPhotoFromCamera() {
-      const granted = await checkOrRequestCameraPermissions()
-      if (!granted.camera && !granted.photos) {
-        $q.dialog({
-          title: 'Select photo', message: 'Permission denied',
-          color: 'brandblue',
-          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-        })
-        return Promise.reject(new Error('Permission Denied'))
-      }
-      return Camera.getPhoto({
-        presentationStyle: 'popover',
-        resultType: 'dataUrl',
-      })
-        .then(async (photo) => {
-          let file
-          if (photo?.base64String) file = base64ImageToFile(photo?.base64String)
-          else if (photo?.dataUrl) file = dataUrlToFile(photo?.dataUrl)
-          if (!file) return photo
-
-          const resized = await resizeImage({ file, maxWidthHeight: 640 })
-          attachment.value = resized
-          return photo
-        })
-    }
-
-    function selectAttachment(evt) {
-      return getPhotoFromCamera()
-        .catch(error => {
-          console.error(error)
-          let errorMsg = error?.message
-          if (typeof errorMsg !== 'string') return Promise.reject(error)
-          if (errorMsg?.includes('cancel')) return Promise.resolve()
-          if (errorMsg.match(/user.*denied.*access/i)) {
-            openFileAttachementField(evt)
-            return Promise.resolve()
-          }
-
-          if (errorMsg?.length < 250) return Promise.reject(error)
-          $q.dialog({
-            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
-            color: 'brandblue',
-            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-          })
-        })
-    }
 
     const sendMessage = debounce(async function() {
       if (!message.value && !attachment.value) return
@@ -663,12 +581,6 @@ export default defineComponent({
       sendingMessage,
       message,
       attachment,
-      attachmentUrl,
-      fileAttachmentField,
-      openFileAttachementField,
-      resizeAttachment,
-      getPhotoFromCamera,
-      selectAttachment,
       sendMessage,
 
       chatMember,

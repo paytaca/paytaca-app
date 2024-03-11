@@ -14,6 +14,7 @@
         <TradeInfoCard
           :order="order"
           :ad="ad"
+          type="order"
           @view-ad="showAdSnapshot=true"
           @view-peer="onViewPeer"
           @view-reviews="showReviews=true"
@@ -34,6 +35,7 @@
           :data="escrowTransferData"
           @success="onEscrowSuccess"
           @back="onBack"
+          @refresh="generateContract"
         />
         <VerifyTransaction
           v-if="state === 'tx-confirmation'"
@@ -51,6 +53,7 @@
             @submit-appeal="submitAppeal"
             @back="onBack"
             @refresh="refreshContent"
+            @cancel-order="cancellingOrder"
           />
         </div>
 
@@ -63,7 +66,7 @@
             @back="onBack"
           />
         </div>
-        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 240px' : 'top: 190px;'">
+        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
           <q-spinner-ios size="1.5em"/>
         </div>
       </div>
@@ -79,13 +82,6 @@
       v-on:submit="handleDialogResponse()"
     />
   </div>
-  <div v-if="openChat">
-    <ChatDialog
-      :openDialog="openChat"
-      :data="order"
-      v-on:close="openChat = false"
-    />
-  </div>
   <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
   <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
   <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
@@ -94,7 +90,7 @@
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { addChatMembers, generateChatRef } from 'src/wallet/ramp/chat'
+import { addChatMembers, generateChatRef, fetchChatSessions } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -203,6 +199,7 @@ export default {
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
         fees: this.fees,
+        escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
     },
@@ -295,7 +292,7 @@ export default {
       }
     }
   },
-  emits: ['back', 'refresh'],
+  emits: ['back', 'refresh', 'view-ad'],
   watch: {
     reconnectingWebSocket () {
       this.reloadChildComponents()
@@ -310,6 +307,7 @@ export default {
   },
   async mounted () {
     const vm = this
+
     await vm.fetchOrder()
     await vm.fetchFees()
     if (vm.order.contract) {
@@ -468,6 +466,7 @@ export default {
           })
       })
     },
+
     fetchAd () {
       return new Promise((resolve, reject) => {
         const vm = this
@@ -579,6 +578,7 @@ export default {
       })
     },
     async generateContract () {
+      console.log('generating contract..')
       const vm = this
       const fees = await vm.fetchFees()
       vm.fetchContract().then(contract => {

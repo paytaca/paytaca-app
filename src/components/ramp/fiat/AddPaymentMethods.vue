@@ -3,15 +3,6 @@
     class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
-    <!-- <div>
-      <q-btn
-        flat
-        padding="md"
-        icon="arrow_back"
-        class="button button-text-primary"
-        :class="getDarkModeClass(darkMode)"
-        @click="onBack"/>
-    </div> -->
     <div class="q-mx-md" v-if="isloaded">
       <div class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size">
         {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
@@ -250,7 +241,7 @@ export default {
     getDarkModeClass,
     onBack () {
       if (this.type === 'Profile') {
-      bus.emit('show-menu')
+        bus.emit('show-menu')
       }
       this.$emit('back')
     },

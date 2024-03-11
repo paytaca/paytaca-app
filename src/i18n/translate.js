@@ -301,8 +301,6 @@ const phrases = {
       SecurityAuthenticationSetup: "Security Authentication Setup",
       SecurityCheck: "Security Check",
       SearchingForOtherAssets: "Searching for other assets",
-      SeedPhraseCaution1: "Warning: Do not copy this to clipboard!",
-      SeedPhraseCaution2: "Some malicious apps installed in your device may be able to snatch it from there. Best way to keep a backup of your seed phrase is to write it on paper.",
       SelectAssetToSend: "Select Asset to Send",
       SelectAssetToBeReceived: "Select Asset to be Received",
       SendToAnotherAddress: "Send to another address",
@@ -863,7 +861,12 @@ const additional = [
     SeeBasicWalletInfo: "See Basic Wallet Info",
     WalletName: "Wallet Name",
     WalletBalanceCap: "Wallet Balance",
-    LoadingWallet: "Loading wallet..."
+    LoadingWallet: "Loading wallet...",
+    ReceiverWarningText1: "First time receiving funds for this asset? Please",
+    ReceiverWarningText2: "backup your seed phrase",
+    ReceiverWarningText3: "before proceeding.",
+    GoBack: "Go back",
+    Proceed: "Proceed"
   }
 ]
 

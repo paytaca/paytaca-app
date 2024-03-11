@@ -261,6 +261,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
+import { sha256 } from 'js-sha256'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const { SecureStoragePlugin } = Plugins
@@ -580,7 +581,7 @@ export default {
     executeSecurityChecking () {
       const vm = this
       if (vm.showMnemonic === false) {
-        SecureStoragePlugin.get({ key: `pin ${vm.mnemonic}` })
+        SecureStoragePlugin.get({ key: `pin-${sha256(vm.mnemonic)}` })
           .then(() => {
             setTimeout(() => {
               if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {

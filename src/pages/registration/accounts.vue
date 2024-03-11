@@ -245,10 +245,15 @@
               <div class="row q=mt-md" v-if="steps === totalSteps">
                 <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
                 <template v-else>
-                  <q-btn v-if="showMnemonicTest" class="full-width q-mt-md button" @click="confirmSkipVerification" no-caps rounded>
-                    {{ $t('SkipVerification') }}
-                  </q-btn>
-                  <q-btn v-else rounded :label="$t('Continue')" class="full-width button" @click="showMnemonicTest = true"/>
+                  <template v-if="$q.platform.is.mobile">
+                    <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
+                      {{ $t('SkipVerification') }}
+                    </q-btn>
+                    <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                  </template>
+                  <template v-else>
+                    <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                  </template>
                 </template>
               </div>
             </div>
@@ -414,6 +419,13 @@ export default {
 
       this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
       this.$store.commit('assets/updatedCurrentAssets', this.walletIndex)
+
+      // ramp reset
+      this.$store.commit('ramp/resetUser')
+      this.$store.commit('ramp/resetData')
+      this.$store.commit('ramp/resetChatIdentity')
+      this.$store.commit('ramp/resetPagination')
+      // this.$store.commit('ramp/resetStoreFilters')
     },
     continueToDashboard () {
       const vm = this
@@ -453,7 +465,6 @@ export default {
         await bchWallet.getNewAddressSet(0).then(function (response) {
           const addresses = response?.addresses || null
           const pgpIdentity = response?.pgpIdentity || null
-          const purelypeerVaultSigner = response?.purelypeerVaultSigner || null
 
           vm.$store.commit('global/updateWallet', {
             isChipnet,
@@ -463,7 +474,6 @@ export default {
             lastAddress: addresses !== null ? addresses.receiving : '',
             lastChangeAddress: addresses !== null ? addresses.change : '',
             lastAddressIndex: 0,
-            purelypeerVaultSigner
           })
           vm.$store.dispatch('chat/addIdentity', pgpIdentity)
           vm.steps += 1

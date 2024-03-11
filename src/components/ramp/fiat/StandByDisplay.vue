@@ -57,7 +57,8 @@
               <span>BCH</span>
             </template>
           </q-input>
-          <div
+        </div>
+        <div
             class="row q-px-md q-pt-sm text-center sm-font-size"
             style="overflow-wrap: break-word;">
             <div v-if="hasLabel" class="row">
@@ -65,12 +66,11 @@
               <span class="col text-left q-ml-sm">{{ label }}</span>
             </div>
           </div>
-        </div>
-        <div v-else class="q-mt-sm q-px-md q-mb-sm">
-          <div v-if="instructionMessage" class="row sm-font-size q-mx-sm">
+        <div v-if="!displayContractInfo" class="q-mt-sm q-px-md q-mb-sm">
+          <!-- <div v-if="instructionMessage" class="row sm-font-size q-mx-sm">
             <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="blue-6"/>&nbsp;
             <div class="col">{{ instructionMessage }}</div>
-          </div>
+          </div> -->
           <div class="row q-pt-sm" v-if="type === 'ongoing' && hasCancel">
             <q-btn
               rounded
@@ -78,8 +78,9 @@
               label='Cancel Order'
               class="q-space text-white"
               style="background-color: #ed5f59;"
-              @click="$parent.cancellingOrder()"
+              @click="$emit('cancelOrder')"
             />
+            <!-- @click="$parent.cancellingOrder()" -->
           </div>
         </div>
         <!-- Appeal Button -->
@@ -178,7 +179,7 @@ export default {
   props: {
     data: Object
   },
-  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh'],
+  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh', 'cancelOrder'],
   components: {
     FeedbackDialog,
     AppealForm,
@@ -189,16 +190,16 @@ export default {
     arbiterName () {
       return this.data?.arbiter?.name
     },
-    instructionMessage () {
-      const status = this.data?.order?.status?.value
-      if (!status) return
-      switch (status) {
-        case 'SBM':
-          return 'Please wait for the order to be confirmed.'
-        default:
-          return null
-      }
-    },
+    // instructionMessage () {
+    //   const status = this.data?.order?.status?.value
+    //   if (!status) return
+    //   switch (status) {
+    //     case 'SBM':
+    //       return 'Please wait for the order to be confirmed.'
+    //     default:
+    //       return null
+    //   }
+    // },
     appealBtnLabel () {
       if (this.countDown) return `Appealable in ${this.countDown}`
       return 'Submit an appeal'
@@ -266,6 +267,7 @@ export default {
       return stat.includes(this.data?.order?.status.value)
     },
     label () {
+      // console.log('test:', this.data?.order?.status.value)
       const labels = {
         SBM: 'Please wait for the Ad Owner  to confirm your order.',
         CNF: 'Please wait for the Seller to Escrow the funds.',

@@ -31,17 +31,11 @@
     </div>
     <footer-menu />
   </div>
-  <appSelectionDialog
-    v-if="rampAppSelection"
-    @back="rampAppSelection=false"
-    @submit="rampSelectApp"
-  />
 </template>
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import appSelectionDialog from 'src/components/ramp/appSelectionDialog.vue'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
 
 export default {
@@ -49,12 +43,17 @@ export default {
   directives: {
     'on-long-press': vOnLongPress,
   },
-  components: {
-    appSelectionDialog
-  },
   data () {
     return {
       apps: [
+      {
+          name: 'P2P Exchange',
+          iconName: 'img:ramp_icon_white.png',
+          path: '/apps/ramp/fiat',
+          iconStyle: 'width:50%',
+          active: true, // !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
         {
           name: 'Marketplace',
           iconName: 'storefront',
@@ -68,10 +67,38 @@ export default {
           }
         },
         {
+          name: this.$t('Gifts'),
+          iconName: 'mdi-gift',
+          path: '/apps/gifts/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Collectibles'),
+          iconName: 'burst_mode',
+          path: '/apps/collectibles',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:50%',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Map'),
+          iconName: 'mdi-map',
+          path: '/apps/map/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('POSAdmin'),
+          iconName: 'point_of_sale',
+          path: '/apps/point-of-sale',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -90,11 +117,11 @@ export default {
           smartBCHOnly: true
         },
         {
-          name: this.$t('Ramp'),
-          iconName: 'img:ramp_icon_white.png',
-          path: '/apps/ramp',
-          iconStyle: 'width:50%',
-          active: true, // !this.$store.getters['global/isChipnet'],
+          name: 'Crypto Swap',
+          iconName: 'currency_bitcoin',
+          path: '/apps/ramp/crypto',
+          iconStyle: 'width:50;',
+          active: true,
           smartBCHOnly: false
         },
         {
@@ -105,23 +132,9 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('Collectibles'),
-          iconName: 'burst_mode',
-          path: '/apps/collectibles',
-          active: true,
-          smartBCHOnly: false
-        },
-        {
           name: this.$t('Sweep'),
           iconName: 'mdi-broom',
           path: '/apps/sweep',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Gifts'),
-          iconName: 'mdi-gift',
-          path: '/apps/gifts/',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -131,20 +144,6 @@ export default {
         //   path: '/apps/chat/',
         //   active: true
         // },
-        {
-          name: this.$t('Map'),
-          iconName: 'mdi-map',
-          path: '/apps/map/',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('POSAdmin'),
-          iconName: 'point_of_sale',
-          path: '/apps/point-of-sale',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
         {
           name: this.$t('WalletInfo'),
           iconName: 'info',
@@ -181,16 +180,6 @@ export default {
     }
   },
   methods: {
-    rampSelectApp (app) {
-      this.rampAppSelection = false
-      this.rampSelectedApp = app
-      if (app === 'fiat') {
-        this.$router.push('/apps/ramp/fiat')
-      }
-      if (app === 'crypto') {
-        this.$router.push('/apps/ramp/crypto')
-      }
-    },
     getDarkModeClass,
     isNotDefaultTheme,
     buttonClassByState (active) {
@@ -198,11 +187,7 @@ export default {
     },
     openApp (app) {
       if (app.active) {
-        if (app.name === 'Ramp') {
-          this.rampAppSelection = true
-        } else {
-          this.$router.push(app.path)
-        }
+        this.$router.push(app.path)
       }
     },
     onLongPressApp(event, app) {

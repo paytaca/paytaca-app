@@ -335,6 +335,7 @@ import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
@@ -841,10 +842,7 @@ export default {
         // Create change addresses if nothing is set yet
         // This is to make sure that v1 wallets auto-upgrades to v2 wallets
         const bchChangeAddress = vm.getChangeAddress('bch')
-        getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({
-          addresses,
-          purelypeerVaultSigner
-        }) {
+        getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({ addresses }) {
           if (bchChangeAddress.length === 0) {
             vm.$store.commit('global/updateWallet', {
               type: 'bch',
@@ -853,16 +851,6 @@ export default {
               lastAddress: addresses.receiving,
               lastChangeAddress: addresses.change,
               lastAddressIndex: 0,
-              purelypeerVaultSigner
-            })
-          }
-
-          const ppvs = vm.$store.getters['global/getPurelypeerVaultSigner']
-          const ppvsData = ppvs.receiving && ppvs.change
-          if (!ppvsData) {
-            vm.$store.commit('global/updatePurelypeerVaultSigner', {
-              type: 'bch',
-              purelypeerVaultSigner,
             })
           }
         })
@@ -1079,7 +1067,7 @@ export default {
       try {
         let pin = null
         try {
-          pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+          pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
         } catch (error) {
           // fallback for old process of pin retrieval
           pin = await SecureStoragePlugin.get({ key: 'pin' })

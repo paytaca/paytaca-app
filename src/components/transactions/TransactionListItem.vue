@@ -160,8 +160,12 @@ const badges = computed(() => {
     const key = attribute?.key
     const value = attribute?.value
     const icon = icons[key]
+    const voucherClaimKey = 'voucher_claim'
+
+    const __key = key.includes(voucherClaimKey) ? voucherClaimKey : key
+
     
-    switch(key) {
+    switch(__key) {
       case('anyhedge_funding_tx'):
         pushBadge(icon, 'AnyHedge funding transaction', value)
         break
@@ -172,7 +176,7 @@ const badges = computed(() => {
       case('anyhedge_settlement_tx'):
         pushBadge(icon, 'AnyHedge settlement transaction', value)
         break
-      case('voucher_claim'):
+      case(voucherClaimKey):
         pushBadge(icon, value, value)
         break
     }

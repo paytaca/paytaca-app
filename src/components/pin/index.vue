@@ -97,6 +97,7 @@ import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../../wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { sha256 } from 'js-sha256'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -251,7 +252,7 @@ export default {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         mnemonic = await getMnemonic(walletIndex)
       }
-      const pinKey = `pin ${mnemonic}`
+      const pinKey = `pin-${sha256(mnemonic)}`
 
       if (vm.pinDialogAction === 'VERIFY') {
         let secretKey = null
