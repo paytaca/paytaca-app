@@ -37,6 +37,34 @@
           >
             <q-img :src="storefront?.imageUrl || noImage" ratio="1.75"/>
             <q-card-section class="q-py-sm">
+              <div
+                v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
+                class="float-right row items-center no-wrap"
+                @click.stop
+              >
+                <q-rating :model-value="1" readonly max="1" size="1em" color="brandblue"/>
+                {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                  <div class="row items-center no-wrap">
+                    <q-rating
+                      readonly
+                      max="5"
+                      :model-value="roundRating(storefront?.ordersReviewSummary?.averageRating, { forceDecimals: false})"
+                      size="1em"
+                      color="brandblue"
+                      class="no-wrap"
+                      icon-half="star_half"
+                    />
+                    <div>
+                      {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                    </div>
+                  </div>
+                  <div>
+                    ({{ storefront?.ordersReviewSummary?.count }}
+                    {{ storefront?.ordersReviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                  </div>
+                </q-menu>
+              </div>
               <q-badge v-if="!storefront?.isOpen" color="grey">Closed</q-badge>
               <div class="ellipsis-3-lines">{{ storefront.name }}</div>
               <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="text-caption bottom">
@@ -136,14 +164,14 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
-import { getISOWithTimezone } from 'src/marketplace/utils'
+import { getISOWithTimezone, roundRating } from 'src/marketplace/utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, ref, onMounted, watch, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 
 const $q = useQuasar()
