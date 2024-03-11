@@ -109,9 +109,8 @@ export default {
   },
   mounted () {
     this.dialog = true
-    if (this.error) {
-      this.errorMessage = this.error
-    }
+    if (this.error) this.errorMessage = this.error
+    NativeBiometric.isAvailable().then(() => { this.hasBiometric = true })
     this.fetchUser()
     this.rampWallet = loadRampWallet()
   },
@@ -163,34 +162,6 @@ export default {
         ref: vm.rampWallet.walletHash,
         name: vm.user.name
       }
-      // let chatIdentity = vm.$store.getters['ramp/chatIdentity']
-      // console.log('current chatIdentity: ', this.chatIdentity)
-      // try {
-      //   console.log('start', Object.keys(chatIdentity).length)
-      //   if (!chatIdentity && Object.keys(chatIdentity).length === 0) {
-      //     console.log('fetching chat identity')
-      //     await updateSignerData()
-      //     const data = {
-      //       rampWallet: vm.rampWallet,
-      //       ref: vm.rampWallet.walletHash,
-      //       name: vm.user.name
-      //     }
-      //     chatIdentity = await fetchChatIdentity(data.ref)
-      //     if (!chatIdentity) {
-      //       const payload = await vm.buildChatIdentityPayload(data)
-      //       chatIdentity = createChatIdentity(payload)
-      //     }
-      //     vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
-      //     vm.hintMessage = 'Updating chat keypair'
-      //     await updateOrCreateKeypair()
-      //   }
-      //   if (!vm.user.chat_identity_id) {
-      //     console.log('updating chatIdentityId')
-      //     updateChatIdentityId(userType, chatIdentity.id)
-      //   }
-      // } catch (error) {
-      //   console.log('error:', error)
-      // }
       // check if chatIdentity exist
       let chatIdentity = await fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
 
@@ -371,36 +342,15 @@ export default {
         console.error(error.response)
       }
     },
-    checkSecurity (securityType) {
-      const vm = this
-      return new Promise((resolve, reject) => {
-        if (this.register) return resolve(true)
-        if (!securityType || securityType === 'pin') {
-          vm.showSecurityDialog()
-            .then(result => {
-              resolve(result)
-            })
-            .catch(error => {
-              reject(error)
-            })
-        } else if (securityType === 'biometric') {
-          NativeBiometric.isAvailable()
-            .then(() => {
-              this.hasBiometric = true
-              this.verifyBiometric()
-                .then(result => { resolve(result) })
-                .catch(error => { reject(error) })
-            })
-            .catch((error) => {
-              console.error('Implementation error: ', error)
-              this.showSecurityDialog()
-                .then(result => { resolve(result) })
-                .catch(error => { reject(error) })
-            })
-        } else {
-          reject()
-        }
-      })
+    async checkSecurity (securityType) {
+      if (this.register) return true
+      let success = false
+      if (!securityType || securityType === 'pin') {
+        success = await this.showSecurityDialog()
+      } else if (this.hasBiometric && securityType === 'biometric') {
+        success = await this.verifyBiometric()
+      }
+      return success
     },
     onLoginClick (type) {
       if (this.securityDialogUp) return
@@ -410,28 +360,20 @@ export default {
       this.login(type)
     },
     showSecurityDialog () {
-      return new Promise((resolve, reject) => {
-        try {
-          const securityDialog = Dialog.create({
-            component: SecurityCheckDialog
+      return new Promise((resolve) => {
+        Dialog.create({
+          component: SecurityCheckDialog
+        })
+          .onOk(() => {
+            resolve(true)
           })
-            .onOk(() => {
-              securityDialog.hide()
-              this.securityDialogUp = false
-              resolve(true)
-            })
-            .onCancel(() => {
-              this.securityDialogUp = false
-              resolve(false)
-            })
-            .onDismiss(() => {
-              this.securityDialogUp = false
-              resolve(false)
-            })
-        } catch (error) {
-          console.error(error)
-          reject(error)
-        }
+          .onCancel(() => {
+            resolve(false)
+          })
+          .onDismiss(() => {
+            this.securityDialogUp = false
+            resolve(false)
+          })
       })
     },
     verifyBiometric () {
@@ -443,7 +385,6 @@ export default {
           description: ''
         })
           .then(() => {
-            this.securityDialogUp = false
             resolve(true)
           })
           .catch((error) => {
@@ -451,9 +392,9 @@ export default {
             if (!String(error).toLocaleLowerCase().includes('cancel')) {
               this.errorMessage = 'Failed to authenticate'
             }
-            this.securityDialogUp = false
             resolve(false)
           })
+          .finally(() => { this.securityDialogUp = false })
       })
     }
   }
