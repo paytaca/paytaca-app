@@ -19,12 +19,7 @@
 import pinDialog from './pin'
 import biometricWarningAttmepts from './authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { Plugins } from '@capacitor/core'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getMnemonic } from 'src/wallet'
-import { sha256 } from 'js-sha256'
-
-const { SecureStoragePlugin } = Plugins
 
 export default {
   /**
@@ -63,24 +58,14 @@ export default {
     getDarkModeClass,
     async executeSecurityChecking () {
       const vm = this
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
 
-      SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
-        .then(() => {
-          setTimeout(() => {
-            if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-              vm.pinDialogAction = 'VERIFY'
-            } else {
-              vm.verifyBiometric()
-            }
-          }, 500)
-        })
-        .catch(() => {
-          setTimeout(() => {
-            vm.verifyBiometric()
-          }, 500)
-        })
+      setTimeout(() => {
+        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+          vm.pinDialogAction = 'VERIFY'
+        } else {
+          vm.verifyBiometric()
+        }
+      }, 500)
     },
     pinDialogNextAction (action) {
       if (action === 'proceed') this.onOKClick()

@@ -259,8 +259,13 @@ export default {
         try {
           secretKey = await SecureStoragePlugin.get({ key: pinKey })
         } catch (error) {
-          // fallback for old process of pin retrieval
-          secretKey = await SecureStoragePlugin.get({ key: 'pin' })
+          try {
+            // fallback for retrieving pin using unhashed mnemonic
+            secretKey = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+          } catch (error1) {
+            // fallback for old process of pin retrieval
+            secretKey = await SecureStoragePlugin.get({ key: 'pin' })
+          }
         }
         if (secretKey?.value === vm.pin) {
           resetAll()

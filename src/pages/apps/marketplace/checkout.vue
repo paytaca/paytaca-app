@@ -1550,9 +1550,10 @@ const txListenerCallback = (msg, parsedData) => {
 
   const fundingTx = getFundingTxFromReceivedTxs()
   if (fundingTx) bchPaymentState.value.tab = ''
-  savePaymentFundingTx(fundingTx)
+  savePaymentFundingTx(fundingTx, { awaitCheckout: true })
     .then(() => {
       if (tabs.value.active == 'payment') nextTab()
+      if (checkout.value.change <= 0) completeCheckout()
     })
     .finally(() => fetchPayments())
 }
@@ -1565,7 +1566,7 @@ function getFundingTxFromReceivedTxs() {
   })
 }
 
-function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived()) {
+function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived(), opts={ awaitCheckout: false }) {
   if (!txData?.txid) return Promise.reject()
 
   const data = {
@@ -1585,9 +1586,10 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   return backend.post(`connecta/escrow/${txData?.address}/set_funding_transaction/`, data)
-    .then(response => {
+    .then(async (response) => {
       if (payment.value?.escrowContractAddress == response?.data?.address) payment.value.fetchEscrowContract()
-      fetchCheckout()
+      const fetchCheckoutPromise = fetchCheckout()
+      if (opts?.awaitCheckout) await fetchCheckoutPromise?.catch()
       dialog.hide()
       return response
     })
@@ -1661,8 +1663,9 @@ async function sendBchPayment() {
       if (!result.success) return Promise.reject(result)
 
       await asyncSleep(1000)
-      savePaymentFundingTx({ txid: result.txid, address: address }).then(() => {
+      savePaymentFundingTx({ txid: result.txid, address: address }, { awaitCheckout: true }).then(() => {
         if (tabs.value.active == 'payment') nextTab()
+        if (checkout.value.change <= 0) completeCheckout()
       })
       dialog.hide()
     })

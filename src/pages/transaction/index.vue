@@ -1069,8 +1069,13 @@ export default {
         try {
           pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
         } catch (error) {
-          // fallback for old process of pin retrieval
-          pin = await SecureStoragePlugin.get({ key: 'pin' })
+          try {
+            // fallback for retrieving pin using unhashed mnemonic
+            pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+          } catch (error1) {
+            // fallback for old process of pin retrieval
+            pin = await SecureStoragePlugin.get({ key: 'pin' })
+          }
         }
         if (pin?.value.length < 6) {
           forceRecreate = true

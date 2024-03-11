@@ -323,8 +323,6 @@ import biometricWarningAttmepts from '../../components/authOption/biometric-warn
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { NativeAudio } from '@capacitor-community/native-audio'
-import { Plugins } from '@capacitor/core'
-import { sha256 } from 'js-sha256'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
 import {
@@ -343,8 +341,6 @@ import {
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
-
-const { SecureStoragePlugin } = Plugins
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -936,24 +932,14 @@ export default {
 
     async executeSecurityChecking () {
       const vm = this
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
 
-      SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
-        .then(() => {
-          setTimeout(() => {
-            if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-              vm.pinDialogAction = 'VERIFY'
-            } else {
-              vm.verifyBiometric()
-            }
-          }, 500)
-        })
-        .catch(() => {
-          setTimeout(() => {
-            vm.verifyBiometric()
-          }, 500)
-        })
+      setTimeout(() => {
+        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+          vm.pinDialogAction = 'VERIFY'
+        } else {
+          vm.verifyBiometric()
+        }
+      }, 500)
     },
 
     verifyBiometric () {
