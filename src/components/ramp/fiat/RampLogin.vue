@@ -4,12 +4,6 @@
   class="q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"
   :style="`height: ${minHeight}px;`" style="overflow-y: auto">
-    <!-- <div v-if="isLoading">
-      <div class="row justify-center" style="margin-top: 30%">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </div>
-      <div class="row justify-center subtext">{{hintMessage}}</div>
-    </div> -->
     <div>
       <div class="q-px-md q-mb-sm text-h6 login-label">
         <div class="row justify-center q-mb-sm">
@@ -42,7 +36,7 @@
           </template>
         </q-input>
       </div>
-      <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
+      <!-- <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
         <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
           <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
           <span class="text-center q-my-sm q-mx-md">Biometrics</span>
@@ -51,7 +45,7 @@
           <q-icon class="q-mt-sm" size="50px" name="apps" />
           <span class="text-center q-my-sm q-mx-md">MPIN</span>
         </q-btn>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -249,8 +243,8 @@ export default {
       vm.errorMessage = null
       try {
         // security check before login
-        const securityOk = await vm.checkSecurity(securityType)
-        if (!securityOk) { vm.loggingIn = false; return }
+        // const securityOk = await vm.checkSecurity(securityType)
+        // if (!securityOk) { vm.loggingIn = false; return }
         vm.loggingIn = true
         vm.hintMessage = 'Logging you in'
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)

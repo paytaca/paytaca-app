@@ -200,6 +200,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
+      query_name: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,
@@ -307,6 +308,7 @@ export default {
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
+      params.query_name = vm.query_name
       vm.loading = true
       vm.$store.dispatch('ramp/fetchOrders',
         {

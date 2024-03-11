@@ -227,6 +227,7 @@ export default {
       selectedListing: {},
       selectedUser: null,
       fiatCurrencies: [],
+      query_name: null,
       totalPages: null,
       pageNumber: null,
       openDialog: false,
@@ -380,6 +381,7 @@ export default {
         const params = vm.filters
         params.currency = vm.selectedCurrency.symbol
         params.trade_type = vm.transactionType
+        params.query_name = vm.query_name
         vm.$store.dispatch('ramp/fetchAds',
           {
             component: 'store',
