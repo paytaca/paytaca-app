@@ -1,5 +1,5 @@
 <template>
-    <q-dialog full-width no-shake v-model="showDialog" position="bottom" @before-hide="$emit('back')">
+    <q-dialog ref="dialog" full-width no-shake v-model="showDialog" position="bottom" @before-hide="$emit('back')">
         <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
             <div class="q-py-sm q-my-lg q-mx-lg q-px-sm">
                 <div v-if="loading" class="row justify-center"><ProgressLoader/></div>
@@ -50,7 +50,7 @@
                         /> -->
                     </div>
                 </div>
-                <!-- <div class="text-center text-blue md-font-size q-mt-md" @click="openReviews = true">See all reviews</div> -->
+                <div v-if="showPostMessage" class="text-center text-blue md-font-size q-mt-md">Review Posted! {{ timer ? `(${timer})` : '' }}</div>
                 </div>
         </q-card>
     </q-dialog>
@@ -72,7 +72,9 @@ export default {
       feedback: {
         rating: 0,
         comment: ''
-      }
+      },
+      showPostMessage: false,
+      timer: null
     }
   },
   components: {
@@ -132,6 +134,8 @@ export default {
           console.log(response.data)
           vm.feedback = response.data
           vm.$emit('submit', vm.feedback)
+          vm.showPostMessage = true
+          vm.autoClose()
         })
         .catch(error => {
           if (error.response) {
@@ -144,6 +148,19 @@ export default {
           }
         })
         .finally(() => { vm.btnLoading = false })
+    },
+    autoClose () {
+      let distance = 5
+      const x = setInterval(() => {
+        distance--
+        this.timer = distance + 1
+
+        if (distance < 0) {
+          console.log()
+          clearInterval(x)
+          this.$refs.dialog.hide()
+        }
+      }, 1000)
     }
   }
 }

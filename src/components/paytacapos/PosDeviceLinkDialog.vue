@@ -130,13 +130,9 @@ onMounted(() => generateLinkCode({ checkExpiry: true }))
 async function generateLinkCode(opts) {
   const wallet = props.wallet.BCH
   const xpubkey = await wallet.getXPubKey()
-  const ppvsDerivationPath = wallet.purelypeerVaultSigner.derivationPath
-  const ppvsPrivKey = await wallet.getPrivateKey('0/0', ppvsDerivationPath, true)
-
-  const toBeEncryptedData = xpubkey + '@' + ppvsPrivKey.receiving
 
   const key = aes.generateKey()
-  const encryptedData = aes.encrypt(toBeEncryptedData, key.password, key.iv)
+  const encryptedData = aes.encrypt(xpubkey, key.password, key.iv)
   const password = key.password + '.' + key.iv
 
   const nonce = Math.floor(Math.random() * 2 ** 31-1)

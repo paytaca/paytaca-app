@@ -113,8 +113,6 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     prices[coinId][currency] = price
   })
 
-  console.log(prices)
-
   let fetchUsdRate = false
   if (selectedCurrency) {
     const loweredSelectedCurrency = String(selectedCurrency).toLowerCase()
