@@ -56,7 +56,11 @@
           class="q-r-mr-lg"
           @click="() => showReviewsListDialog = true"
         />
-        <ReviewsListDialog v-model="showReviewsListDialog" :storefront-id="storefrontId"/>
+        <ReviewsListDialog
+          ref="reviewsListDialog"
+          v-model="showReviewsListDialog"
+          :storefront-id="storefrontId"
+        />
       </div>
       <div class="q-py-sm"></div>
       <div v-if="storefront?.id" class="q-px-sm q-mb-sm">
@@ -369,6 +373,7 @@ function updateLivenessStatus() {
 
 
 const showReviewsListDialog = ref(false)
+const reviewsListDialog = ref()
 
 
 const expandCollections = ref(true)
@@ -505,6 +510,7 @@ async function refreshPage(done=() => {}) {
       fetchProducts(),
       fetchProductCategories(),
       fetchCollections(),
+      reviewsListDialog.value?.fetchReviews?.(),
     ])
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', storefront.value?.id)

@@ -14,7 +14,7 @@
         </q-chip>
         <q-space/>
         <div
-          v-if="productReviewSummary?.count"
+          v-if="product?.reviewSummary?.count"
           class="text-right text-caption text-grey"
           @click="() => openReviewsDialog = true"
         >
@@ -22,19 +22,19 @@
             <q-rating
               readonly
               max="5"
-              :model-value="productReviewSummary?.average * (5 / 100)"
+              :model-value="product?.reviewSummary?.averageRating * (5 / 100)"
               size="1.25em"
               color="brandblue"
               class="no-wrap"
               icon-half="star_half"
             />
             <div>
-              {{ roundRating(productReviewSummary?.average) }}
+              {{ roundRating(product?.reviewSummary?.averageRating) }}
             </div>
           </div>
           <div>
-            ({{ productReviewSummary?.count }}
-            {{ productReviewSummary?.count === 1 ? 'review' : 'reviews' }})
+            ({{ product?.reviewSummary?.count }}
+            {{ product?.reviewSummary?.count === 1 ? 'review' : 'reviews' }})
           </div>
         </div>
         <q-btn
@@ -357,20 +357,6 @@ function openImage(img, title) {
 
 const reviewsListDialog = ref()
 const openReviewsDialog = ref(false)
-watch(() => [props?.productId, customer.value?.id], () => fetchProductReviewSummary())
-const productReviewSummary = ref({ count: 0, average: 0, lastReview: new Date() })
-function fetchProductReviewSummary() {
-  return backend.get(`reviews/summary/`, { params: {
-    product_id: props?.productId || 0,
-  }})
-    .then(response => {
-      productReviewSummary.value = {
-        count: response?.data?.count,
-        average: parseFloat(response?.data?.average),
-        lastReview: new Date(response?.data?.last_review),
-      }
-    })
-}
 
 watch(() => [props?.productId, customer.value?.id], () => fetchReview())
 const productReview = ref([].map(Review.parse)[0])
@@ -405,7 +391,7 @@ async function rateProduct() {
       })
     }
     productReview.value = newProductReview
-    fetchProductReviewSummary()
+    fetchProduct()
     const index = reviewsListDialog.value?.reviews?.findIndex(review => review?.id === newProductReview?.id)
     if (index >= 0) reviewsListDialog.value.reviews[index] = newProductReview
     else reviewsListDialog.value?.fetchReviews?.()
@@ -417,7 +403,6 @@ async function refreshPage(done=() => {}) {
     await Promise.all([
       fetchProduct(),
       fetchCollection(),
-      fetchProductReviewSummary(),
       fetchReview(),
       reviewsListDialog.value?.fetchReviews?.(),
     ])
