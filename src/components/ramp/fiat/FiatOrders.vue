@@ -7,7 +7,7 @@
     :style="`height: ${minHeight}px;`"
     v-if="state == 'order-list'">
     <div v-if="state === 'order-list'">
-      <div class="row justify-start items-center q-mx-none q-px-sm">
+      <div v-if="!showSearch" class="row justify-start items-center q-mx-none q-px-sm">
         <div
           class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
@@ -33,7 +33,9 @@
             size="md"
             :icon="'search'"
             class="button button-text-primary col-auto q-mt-sm q-pa-none"
-            :class="getDarkModeClass(darkMode)">
+            :class="getDarkModeClass(darkMode)"
+            @click="searchState('focus')"
+            >
             <!-- <q-badge v-if="!defaultFiltersOn" left floating color="red"/> -->
           </q-btn>
           <q-btn
@@ -48,6 +50,19 @@
             <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
           </q-btn>
         </div>
+      </div>
+      <div v-else class="q-px-lg q-mx-xs">
+        <q-input ref="inputRef" v-model="query_name" label="Search" dense @blur="searchState('blur')">
+          <template v-slot:append>
+            <q-icon name="close"
+              @click="() => {
+                query_name = null
+                $refs.inputRef.focus()
+              }"
+              class="cursor-pointer" />
+            <q-icon name="search" @click="searchUser()" />
+          </template>
+        </q-input>
       </div>
       <div class="q-mt-sm">
         <!-- <q-pull-to-refresh @refresh="refreshData"> -->
@@ -246,7 +261,8 @@ export default {
       openDialog: false,
       dialogType: '',
       selectedUserAdId: null,
-      pageName: 'main'
+      pageName: 'main',
+      showSearch: false
     }
   },
   watch: {
@@ -293,6 +309,24 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    searchState (state) {
+      const vm = this
+      if (state === 'focus') {
+        vm.showSearch = true
+
+        const x = setTimeout(() => {
+          vm.$refs.inputRef.focus()
+        }, 200)
+      } else {
+        vm.showSearch = false
+      }
+    },
+    searchUser () {
+      if (this.query_name) {
+        this.resetAndRefetchListings()
+        // this.fetchOrders(true)
+      }
+    },
     updatePageName (name) {
       this.pageName = name
     },
