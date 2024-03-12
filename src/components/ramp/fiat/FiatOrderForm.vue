@@ -101,10 +101,10 @@
             </div>
             <div v-if="ad.trade_type === 'BUY'">
               <q-separator :dark="darkMode" class="q-mt-sm"/>
-              <div class="row justify-between no-wrap q-mx-lg text-weight-bold sm-font-size subtext q-pt-sm">
+              <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
                 <span>Balance</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ bchBalance }} BCH
+                  {{ balance }} BCH
                 </span>
               </div>
             </div>
@@ -265,8 +265,11 @@ export default {
       }
       return amount
     },
-    bchBalance () {
+    balance () {
       return this.$store.getters['assets/getAssets'][0].balance
+    },
+    balanceExceeded () {
+      return this.balance < parseFloat(this.amount)
     },
     isOwner () {
       return this.ad.is_owned
@@ -450,10 +453,7 @@ export default {
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
       const tradeCeiling = parseFloat(this.ad.trade_amount)
-      if (isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling) {
-        return false
-      }
-      return true
+      return !(isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling || this.balanceExceeded)
     },
     resetInput () {
       if (this.amount !== '' && !isNaN(this.amount)) return
