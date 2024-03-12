@@ -151,6 +151,7 @@ export class Storefront {
    * @param {{ code:String, symbol:String }} data.currency
    * @param {String} data.open_status
    * @param {[String, String]} [data.next_open_hours]
+   * @param {{ average_rating: String | Number, count: Number }} [data.orders_review_summary]
    * @param {Object} data.location
    * @param {Number} [data.distance]
    */
@@ -175,6 +176,14 @@ export class Storefront {
     } else {
       this.nextOpenHours = undefined
     }
+
+    if (data?.orders_review_summary) {
+      this.ordersReviewSummary = {
+        averageRating: parseFloat(data?.orders_review_summary?.average_rating),
+        count: data?.orders_review_summary?.count,
+      }
+    } else if (this.ordersReviewSummary) delete this.ordersReviewSummary
+
     if (data?.location) this.location = Location.parse(data?.location)
     else if (this.location) this.location = undefined
 

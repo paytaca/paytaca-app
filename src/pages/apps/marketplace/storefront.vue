@@ -8,7 +8,7 @@
     <HeaderNav title="Marketplace" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row items-center q-px-sm q-mb-md">
+      <div class="row items-center q-px-sm">
         <div class="text-h5 q-mr-xs q-space">{{ storefront?.name }}</div>
         <template v-if="storefront?.id">
           <q-icon
@@ -37,6 +37,28 @@
           </div>
         </template>
       </div>
+      <div
+        v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
+        class="row items-center no-wrap q-mx-sm"
+      >
+        <q-rating :model-value="1" readonly max="1" size="1.5em" color="brandblue" class="q-mr-xs"/>
+        <div>
+          {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+          ({{ storefront?.ordersReviewSummary?.count }}
+          {{ storefront?.ordersReviewSummary?.count === 1 ? 'review' : 'reviews' }})
+        </div>
+        <q-space/>
+        <q-btn
+          flat
+          no-caps label="See reviews"
+          color="brandblue"
+          padding="xs md"
+          class="q-r-mr-lg"
+          @click="() => showReviewsListDialog = true"
+        />
+        <ReviewsListDialog v-model="showReviewsListDialog" :storefront-id="storefrontId"/>
+      </div>
+      <div class="q-py-sm"></div>
       <div v-if="storefront?.id" class="q-px-sm q-mb-sm">
         <q-input
           outlined
@@ -230,6 +252,7 @@ import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffect } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
 
 const cachedBackend = setupCache(axios.create({...backend.defaults}), { ttl: 30 * 1000 })
 
@@ -343,6 +366,9 @@ function updateLivenessStatus() {
       return response
     })
 }
+
+
+const showReviewsListDialog = ref(false)
 
 
 const expandCollections = ref(true)
