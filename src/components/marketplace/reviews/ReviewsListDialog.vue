@@ -62,6 +62,7 @@ export default defineComponent({
     modelValue: Boolean,
     productId: [Number, String],
     orderId: [Number, String],
+    storefrontId: [Number, String],
   },
   setup(props, { emit: $emit }) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -86,6 +87,7 @@ export default defineComponent({
         offset: opts?.offset || undefined,
         product_id: props?.productId || undefined,
         order_id: props?.orderId || undefined,
+        order__storefront_id: props?.storefrontId || undefined,
       }
 
       fetchingReviews.value = true

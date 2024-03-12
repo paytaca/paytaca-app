@@ -61,6 +61,9 @@ export default function () {
           street: '', city: '', state: '',
           country: '', zip_code: '',
           longitude: '', latitude: '',
+        },
+        orders_review_summary: {
+          count: 0, average_rating: 0,
         }
       }
     }),

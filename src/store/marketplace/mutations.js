@@ -124,6 +124,8 @@ export function setActiveCartId(state, cartId) {
  * @param {String} data.location.country
  * @param {String} data.location.longitude
  * @param {String} data.location.latitude
+ * @param {String} data.orders_review_summary.average_rating
+ * @param {String} data.orders_review_summary.count
  */
 export function cacheStorefront(state, data) {
   if (!data?.id) return
