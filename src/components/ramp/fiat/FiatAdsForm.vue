@@ -301,8 +301,8 @@ export default {
       priceAmount: 0,
       floatingPrice: 100, // default: 100%
       appealCooldown: {
-        label: '24 hrs',
-        value: 1440
+        label: '60 minutes',
+        value: 60
       },
       adData: {
         tradeType: this.transactionType,
@@ -326,27 +326,20 @@ export default {
       },
       cdSelection: [
         {
-          label: '5 minutes',
-          value: 5
-        },
-        {
           label: '15 minutes',
           value: 15
-        }, {
+        },
+        {
           label: '30 minutes',
           value: 30
-        }, {
-          label: '1 hour',
+        },
+        {
+          label: '45 minutes',
+          value: 45
+        },
+        {
+          label: '60 minutes',
           value: 60
-        }, {
-          label: '5 hours',
-          value: 300
-        }, {
-          label: '12 hours',
-          value: 720
-        }, {
-          label: '24 hours',
-          value: 1440
         }],
       fiatCurrencies: [],
       numberValidation: [
