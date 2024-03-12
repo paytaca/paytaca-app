@@ -1,9 +1,8 @@
 <template>
   <div
     v-if="step === 1"
-    class="q-mx-md q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+    class="text-bow"
+    :class="getDarkModeClass(darkMode)">
     <div v-if="step === 1">
       <div
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
@@ -19,11 +18,10 @@
         </div>
       </div>
       <div class="q-pt-sm" v-else>
-        <q-scroll-area :style="`height: ${minHeight - 135}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${minHeight}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
               <span>Price Setting</span>&nbsp;
-              <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('price-setting')"/>
             </div>
             <div class="text-center q-mx-md">
               <q-btn-toggle
@@ -39,12 +37,12 @@
                 :options="[
                   {label: 'Fixed', value: 'FIXED'},
                   {label: 'Floating', value: 'FLOATING'}
-                ]"
-              />
+                ]">
+              </q-btn-toggle>
             </div>
-            <div class="row q-pt-sm q-gutter-sm q-px-md sm-font-size">
+            <div class="row q-py-sm q-gutter-sm q-px-md sm-font-size">
               <div class="col-4">
-                <div class="q-pl-sm q-pb-xs">Fiat</div>
+                <div class="q-pl-sm q-pb-xs">Fiat Currency</div>
                 <q-select
                   dense
                   rounded
@@ -72,9 +70,9 @@
                   dense
                   rounded
                   outlined
+                  hide-bottom-space
                   :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   :dark="darkMode"
-                  bottom-slots
                   type="number"
                   :rules="numberValidation"
                   @blur="updatePriceValue(adData.priceType)"
@@ -85,6 +83,9 @@
                   <template v-slot:append>
                     <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
                     <q-icon name="add" @click="incPriceValue()" />
+                  </template>
+                  <template v-slot:hint>
+                    <div class="text-right">{{ hints.priceValue }}</div>
                   </template>
                 </q-input>
               </div>
@@ -104,32 +105,32 @@
           <!-- Trade Quantity -->
           <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
-              <div class="q-pb-xs q-pl-sm text-weight-bold">
-                <span>Trade Quantity</span>&nbsp;
-                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('trade-quantity')"/>
+              <div class="q-pb-xs q-pl-sm">
+                <span class="text-weight-bold">Trade Quantity</span>&nbsp;
               </div>
-                <q-input
-                  ref="tradeAmountRef"
-                  dense
-                  outlined
-                  rounded
-                  :dark="darkMode"
-                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                  type="number"
-                  :rules="tradeAmountValidation"
-                  v-model="adData.tradeAmount"
-                  @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
-                  <template v-slot:prepend>
-                    <span class="text-weight-bold sm-font-size">
-                      BCH
-                    </span>
-                  </template>
-                </q-input>
-              </div>
+              <q-input
+                ref="tradeAmountRef"
+                dense
+                outlined
+                rounded
+                hide-bottom-space
+                :hint="hints.tradeAmount"
+                :dark="darkMode"
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                type="number"
+                :rules="tradeAmountValidation"
+                v-model="adData.tradeAmount"
+                @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
+                <template v-slot:prepend>
+                  <span class="text-weight-bold sm-font-size">
+                    BCH
+                  </span>
+                </template>
+              </q-input>
+            </div>
             <div class="q-px-md q-mt-sm">
               <div class="q-pb-xs q-pl-sm text-weight-bold">
                 <span>Trade Limit</span>&nbsp;
-                <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="grey-6" @click="openInstructionDialog('trade-limit')"/>
               </div>
               <div class="row">
                 <div class="col">
@@ -140,6 +141,8 @@
                     outlined
                     rounded=""
                     type="number"
+                    hide-bottom-space
+                    :hint="hints.minAmount"
                     :dark="darkMode"
                     :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                     :rules="tradeLimitValidation"
@@ -160,13 +163,14 @@
                     dense
                     outlined
                     rounded
+                    hide-bottom-space
                     type="number"
                     :dark="darkMode"
+                    :hint="hints.maxAmount"
                     :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                     :rules="tradeLimitValidation"
                     v-model="adData.tradeCeiling"
-                    @blur="$refs.tradeFloorRef.validate(); $refs.tradeAmountRef.validate()"
-                  >
+                    @blur="$refs.tradeFloorRef.validate(); $refs.tradeAmountRef.validate()">
                     <template v-slot:append>
                       <span class="sm-font-size">{{ adData.cryptoCurrency.symbol }}</span>
                     </template>
@@ -186,6 +190,8 @@
                   dense
                   outlined
                   rounded
+                  hide-bottom-space
+                  :hint="hints.appealCooldown"
                   :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   :dark="darkMode"
                   v-model="appealCooldown"
@@ -357,7 +363,7 @@ export default {
         (val) => val > 0 || 'Cannot be zero',
         (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
       ],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       instruction: { // temp
         'price-setting': {
           title: 'Price Setting',
@@ -383,6 +389,17 @@ export default {
   },
   created () {
     bus.emit('hide-menu')
+  },
+  computed: {
+    hints () {
+      return {
+        priceValue: this.adData.priceType === 'FLOATING' ? `Price is ${this.priceValue}% of market price` : 'Fixed prices do not change',
+        tradeAmount: `The total amount of BCH you want to ${this.transactionType.toLocaleLowerCase()}`,
+        minAmount: 'The min amount per transaction',
+        maxAmount: 'The max amount per transaction',
+        appealCooldown: 'The waiting period before counterparties can submit dispute appeals'
+      }
+    }
   },
   async mounted () {
     const vm = this
