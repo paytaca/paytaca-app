@@ -25,6 +25,24 @@
           @click="() => openStorefrontListOptsForm()"
         />
       </div>
+      <div class="row items-center q-px-sm">
+        <q-space/>
+        <LimitOffsetPagination
+          :pagination-props="{
+            maxPages: 5,
+            rounded: true,
+            size: '0.8rem',
+            padding: 'sm md',
+            boundaryNumbers: true,
+            disable: fetchingStorefronts,
+            color: 'brandblue',
+          }"
+          class="q-mb-xs"
+          :hide-below-pages="2"
+          :modelValue="storefrontsPagination"
+          @update:modelValue="fetchStorefronts"
+        />
+      </div>
       <div v-if="!initialized && fetchingStorefronts" class="row items-center justify-center">
         <q-spinner size="4em" color="brandblue"/>
       </div>
@@ -33,7 +51,11 @@
           <q-card
             class="pt-card text-bow"
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-marketplace-storefront', params: { storefrontId: storefront?.id }})"
+            @click="
+              !storefront?.inPrelaunch
+                ? $router.push({ name: 'app-marketplace-storefront', params: { storefrontId: storefront?.id }})
+                : undefined
+            "
           >
             <q-img :src="storefront?.imageUrl || noImage" ratio="1.75"/>
             <q-card-section class="q-py-sm">
@@ -65,7 +87,7 @@
                   </div>
                 </q-menu>
               </div>
-              <q-badge v-if="!storefront?.isOpen" color="grey">Closed</q-badge>
+              <q-badge v-if="!storefront?.inPrelaunch && !storefront?.isOpen" color="grey">Closed</q-badge>
               <div class="ellipsis-3-lines">{{ storefront.name }}</div>
               <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="text-caption bottom">
                 {{ storefront?.openingTimeText }}
@@ -79,6 +101,15 @@
                   </span>
                 </div>
               </div>
+              <q-badge v-if="storefront?.inPrelaunch" color="brandblue">
+                <div>Will be live soon!</div>
+                <template v-if="storefront?.launchDate">
+                  <!-- <div>{{ formatDateRelative(storefront?.launchDate) }}</div> -->
+                  <q-menu class="q-pa-sm text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
+                    Live on: {{ formatTimestampToText(storefront?.launchDate) }}
+                  </q-menu>
+                </template>
+              </q-badge>
             </q-card-section>
           </q-card>
         </div>
@@ -164,7 +195,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
-import { getISOWithTimezone, roundRating } from 'src/marketplace/utils'
+import { formatDateRelative, formatTimestampToText, getISOWithTimezone, roundRating } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -263,12 +294,12 @@ function openStorefrontListOptsForm() {
 async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
   await updateLocationPromise.value
   const params = {
-    limit: opts?.limit || 10,
+    limit: opts?.limit || 6,
     offset: opts?.offset || undefined,
     distance: '',
     active: true,
     annotate_is_open_at: getISOWithTimezone(new Date()),
-    ordering: '-is_open',
+    ordering: 'in_prelaunch,-is_open',
   }
   if (!isNaN(customerCoordinates.value?.latitude) && !isNaN(customerCoordinates.value.longitude)) {
     params.distance = btoa(JSON.stringify({
@@ -276,6 +307,7 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
       lon: customerCoordinates.value?.longitude,
       radius: storefrontListOpts.value?.radius,
     }))
+    params.ordering = [params.ordering, 'distance'].join(',')
   }
 
   fetchingStorefronts.value = true
