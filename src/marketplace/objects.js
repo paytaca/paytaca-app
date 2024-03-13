@@ -152,6 +152,8 @@ export class Storefront {
    * @param {String} data.open_status
    * @param {[String, String]} [data.next_open_hours]
    * @param {{ average_rating: String | Number, count: Number }} [data.orders_review_summary]
+   * @param {Boolean} data.in_prelaunch
+   * @param {String} data.launch_date
    * @param {Object} data.location
    * @param {Number} [data.distance]
    */
@@ -183,6 +185,10 @@ export class Storefront {
         count: data?.orders_review_summary?.count,
       }
     } else if (this.ordersReviewSummary) delete this.ordersReviewSummary
+
+    this.inPrelaunch = data?.in_prelaunch
+    if (data?.launch_date) this.launchDate = new Date(data?.launch_date)
+    else if (this.launchDate) delete this.launchDate
 
     if (data?.location) this.location = Location.parse(data?.location)
     else if (this.location) this.location = undefined
