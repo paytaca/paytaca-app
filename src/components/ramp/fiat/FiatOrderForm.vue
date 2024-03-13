@@ -58,7 +58,10 @@
               :dark="darkMode"
               :rules="[isValidInputAmount]"
               v-model="amount"
-              @blur="resetInput">
+              @blur="resetInput"
+              @focus="openCustomKeyboard(true)"
+              :readonly="readonlyState"
+              >
               <template v-slot:append>
                 <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
               </template>
@@ -98,10 +101,10 @@
             </div>
             <div v-if="ad.trade_type === 'BUY'">
               <q-separator :dark="darkMode" class="q-mt-sm"/>
-              <div class="row justify-between no-wrap q-mx-lg text-weight-bold sm-font-size subtext q-pt-sm">
+              <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
                 <span>Balance</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ bchBalance }} BCH
+                  {{ balance }} BCH
                 </span>
               </div>
             </div>
@@ -181,6 +184,14 @@
     />
   </div>
   <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+
+  <div style="position: fixed; z-index: 10;">
+    <customKeyboard
+      :custom-keyboard-state="customKeyboardState"
+      v-on:addKey="setAmount"
+      v-on:makeKeyAction="makeKeyAction"
+    />
+  </div>
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue'
@@ -189,6 +200,7 @@ import FiatAdsForm from './FiatAdsForm.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import TradeInfoCard from './TradeInfoCard.vue'
+import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from './dialogs/UserProfileDialog.vue'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -203,6 +215,8 @@ export default {
       theme: this.$store.getters['global/theme'],
       isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (70 + 100),
+      customKeyboardState: 'dismiss',
+      readonlyState: false,
       ad: null,
       state: 'initial',
       byFiat: false,
@@ -227,6 +241,7 @@ export default {
     adId: Number
   },
   components: {
+    CustomKeyboard,
     ProgressLoader,
     AddPaymentMethods,
     FiatAdsForm,
@@ -250,8 +265,11 @@ export default {
       }
       return amount
     },
-    bchBalance () {
+    balance () {
       return this.$store.getters['assets/getAssets'][0].balance
+    },
+    balanceExceeded () {
+      return this.balance < parseFloat(this.amount)
     },
     isOwner () {
       return this.ad.is_owned
@@ -273,6 +291,55 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    setAmount (key) {
+      let receiveAmount, finalAmount, tempAmountFormatted = ''
+
+      receiveAmount = this.amount
+
+      receiveAmount = receiveAmount === null ? '' : receiveAmount
+      if (key === '.' && receiveAmount === '') {
+        finalAmount = '0.'
+      } else {
+        finalAmount = receiveAmount.toString()
+        const hasPeriod = finalAmount.indexOf('.')
+        if (hasPeriod < 1) {
+          if (Number(finalAmount) === 0 && Number(key) > 0) {
+            finalAmount = key
+          } else {
+            // Check amount if still zero
+            if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
+              finalAmount = 0
+            } else {
+              finalAmount += key.toString()
+            }
+          }
+        } else {
+          finalAmount += key !== '.' ? key.toString() : ''
+        }
+      }
+      this.amount = finalAmount
+    },
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        // Backspace
+        this.amount = String(this.amount).slice(0, -1)
+      } else if (action === 'delete') {
+        // Delete
+        this.amount = '0'
+      } else {
+        this.customKeyboardState = 'dismiss'
+        this.readonlyState = false
+      }
+    },
+    openCustomKeyboard (state) {
+      this.readonlyState = state
+
+      if (state) {
+        this.customKeyboardState = 'show'
+      } else {
+        this.customKeyboardState = 'dismiss'
+      }
+    },
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
         return parseFloat(tradeAmount)
@@ -386,10 +453,7 @@ export default {
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
       const tradeCeiling = parseFloat(this.ad.trade_amount)
-      if (isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling) {
-        return false
-      }
-      return true
+      return !(isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling || this.balanceExceeded)
     },
     resetInput () {
       if (this.amount !== '' && !isNaN(this.amount)) return

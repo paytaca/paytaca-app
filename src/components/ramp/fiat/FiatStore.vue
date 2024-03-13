@@ -9,7 +9,7 @@
     v-if="state === 'SELECT' && !viewProfile">
     <div class="q-mb-sm q-pb-sm">
       <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-      <div class="row items-center q-px-sm">
+      <div class="row items-center q-px-sm" v-if="!showSearch">
         <!-- currency dropdown -->
         <div class="col-auto">
           <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
@@ -40,7 +40,9 @@
             size="md"
             icon="search"
             class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)">
+            :class="getDarkModeClass(darkMode)"
+            @click="searchState('focus')"
+            >
             <!-- <q-badge v-if="!defaultFiltersOn" floating color="red"/> -->
           </q-btn>
           <q-btn
@@ -55,6 +57,19 @@
             <q-badge v-if="!defaultFiltersOn" floating color="red"/>
           </q-btn>
         </div>
+      </div>
+      <div v-else class="q-px-lg q-mx-xs">
+        <q-input ref="inputRef" v-model="query_name" placeholder="Search User..." dense @blur="searchState('blur')">
+          <template v-slot:append>
+            <q-icon name="close"
+              @click="() => {
+                query_name = null
+                $refs.inputRef.focus()
+              }"
+              class="cursor-pointer" />
+            <q-icon name="search" @click="searchUser()"/>
+          </template>
+        </q-input>
       </div>
       <!-- transaction type tabs -->
       <div
@@ -227,6 +242,7 @@ export default {
       selectedListing: {},
       selectedUser: null,
       fiatCurrencies: [],
+      query_name: null,
       totalPages: null,
       pageNumber: null,
       openDialog: false,
@@ -241,6 +257,7 @@ export default {
         time_limits: [5, 15, 30, 60, 300, 720, 1440]
       },
       filters: {},
+      showSearch: false,
       defaultFiltersOn: true,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       pageName: 'main'
@@ -302,6 +319,23 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    searchState (state) {
+      const vm = this
+      if (state === 'focus') {
+        vm.showSearch = true
+
+        const x = setTimeout(() => {
+          vm.$refs.inputRef.focus()
+        }, 200)
+      } else {
+        vm.showSearch = false
+      }
+    },
+    searchUser () {
+      if (this.query_name) {
+        this.resetAndRefetchListings()
+      }
+    },
     updatePageName (name) {
       this.pageName = name
     },
@@ -380,6 +414,9 @@ export default {
         const params = vm.filters
         params.currency = vm.selectedCurrency.symbol
         params.trade_type = vm.transactionType
+        params.query_name = vm.query_name
+
+        console.log('params: ', params)
         vm.$store.dispatch('ramp/fetchAds',
           {
             component: 'store',
@@ -387,6 +424,7 @@ export default {
             overwrite: overwrite
           })
           .then(response => {
+            console.lof('res', response)
             vm.updatePaginationValues()
             vm.loading = false
           })

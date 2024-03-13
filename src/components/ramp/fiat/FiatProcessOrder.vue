@@ -14,6 +14,7 @@
         <TradeInfoCard
           :order="order"
           :ad="ad"
+          :has-unread="hasUnread"
           type="order"
           @view-ad="showAdSnapshot=true"
           @view-peer="onViewPeer"
@@ -90,7 +91,7 @@
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { addChatMembers, generateChatRef, fetchChatSessions } from 'src/wallet/ramp/chat'
+import { addChatMembers, generateChatRef, fetchChatSession } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -147,7 +148,8 @@ export default {
       showAdSnapshot: false,
       showPeerProfile: false,
       openChat: false,
-      peerInfo: {}
+      peerInfo: {},
+      hasUnread: false
     }
   },
   components: {
@@ -451,6 +453,16 @@ export default {
           .then(response => {
             vm.order = response.data
             vm.updateStatus(vm.order.status)
+
+            const chatRef = generateChatRef(vm.order.id, vm.order.created_at)
+            fetchChatSession(chatRef)
+              .then(res => {
+                vm.hasUnread = res.data.unread_count > 0
+                console.log('unread count: ', vm.hasUnread)
+              })
+              .catch(error => {
+                console.log(error)
+              })
             resolve(response.data)
           })
           .catch(error => {

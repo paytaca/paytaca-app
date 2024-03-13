@@ -4,19 +4,20 @@
       class="q-mx-md text-bow"
       :class="getDarkModeClass(darkMode)">
       <div class="sm-font-size subtext q-pt-xs q-mx-md q-px-sm">
-        <span class="text-nowrap q-ml-xs">
+        <span class="text-nowrap q-ml-xs" :style="balanceExceeded ? 'color:red' : ''">
           Balance: {{ bchBalance }} BCH
         </span>
       </div>
-      <div class="row q-pt-md q-mx-md q-px-sm">
+      <div class="row q-pt-md q-px-sm">
         <q-btn
           rounded
           label='confirm'
           class="q-space text-white q-mx-md button"
+          :disable="balanceExceeded === true"
           @click="$emit('confirm')"
         />
       </div>
-      <div class="row q-pt-sm q-pb-md q-mx-md q-px-sm">
+      <div class="row q-pt-sm q-pb-md q-px-sm">
         <q-btn
           rounded
           label='decline'
@@ -51,6 +52,12 @@ export default {
   },
   emits: ['back', 'confirm', 'cancel'],
   computed: {
+    balance () {
+      return this.$store.getters['assets/getAssets'][0].balance
+    },
+    balanceExceeded () {
+      return (parseFloat(this.order.crypto_amount) > parseFloat(this.balance))
+    },
     fiatAmount () {
       return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
     },
