@@ -307,6 +307,7 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
       lon: customerCoordinates.value?.longitude,
       radius: storefrontListOpts.value?.radius,
     }))
+    params.ordering = [params.ordering, 'distance'].join(',')
   }
 
   fetchingStorefronts.value = true
