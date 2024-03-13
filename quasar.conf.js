@@ -107,6 +107,24 @@ module.exports = function (/* ctx */) {
           use: 'raw-loader'
         })
 
+        // to support optional chaining for older android webviews
+        cfg?.module?.rules?.push?.({
+          test: /\.(?:js|mjs|cjs|vue)$/,
+          enforce: 'post',
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                ['@babel/preset-env', { targets: "defaults" }]
+              ],
+              plugins: [
+                '@babel/plugin-transform-optional-chaining',
+                '@vue/babel-plugin-jsx',
+              ]
+            }
+          }
+        })
+
         cfg.experiments = {
           topLevelAwait: true
         }
