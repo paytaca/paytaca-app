@@ -5,9 +5,9 @@
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
-      :indicator-color="isDefaultTheme(theme) && 'transparent'"
+      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
-      class="col-12 q-px-lg pp-fcolor"
+      class="col-12 q-px-lg"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
     >
@@ -28,16 +28,16 @@
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
-          <p class="slp_tokens q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
+          <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
             {{ $t('SelectAssetToBeReceived') }}
           </p>
         </div>
-        <div class="col-3 q-mt-sm" style="position: relative; margin-top: 45px;" v-show="selectedNetwork === networks.BCH.name">
+        <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
       <div class="row flex-center" v-if="isRetrieving">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
       <div style="overflow-y: scroll;" v-else>
         <div
@@ -45,10 +45,10 @@
           :key="index"
           @click="checkIfFirstTimeReceiver(asset)"
           role="button"
-          class="row q-pl-lg q-pr-lg token-link"
+          class="row q-pl-lg q-pr-lg"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode, '', 'bg-white')" v-if="isCashToken">
-            <div class="row q-pt-sm q-pb-xs q-pl-md group-currency-main">
+          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)" v-if="isCashToken">
+            <div class="row q-pt-sm q-pb-xs q-pl-md">
               <div>
                 <img
                   :src="denomination === $t('DEEM') && asset.symbol === 'BCH'
@@ -62,7 +62,7 @@
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
-                  :class="darkMode ? isDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+                  :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
                 >
                   {{ asset.name }}
                 </p>
@@ -74,11 +74,16 @@
             </div>
           </div>
         </div>
-        <q-banner v-if="!isCashToken" inline-actions class="text-white bg-red text-center q-mt-lg" :class="darkMode ? 'text-white' : 'text-black'" style="width: 90%; margin-left: auto; margin-right: auto;">
+        <q-banner
+          v-if="!isCashToken"
+          inline-actions
+          class="bg-red text-center q-mt-lg text-bow slp-disabled-banner"
+          :class="getDarkModeClass(darkMode)"
+        >
           {{ `Receiving SLP ${isHongKong(currentCountry) ? 'points' : 'tokens'} is temporarily disabled until further notice.` }}
         </q-banner>
       </div>
-      <div style="height: 90px;" v-if="assets.length > 5"></div>
+      <div class="vertical-space" v-if="assets.length > 5"></div>
     </template>
     <div
       v-else
@@ -91,16 +96,17 @@
   </div>
 </template>
 <script>
+import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
+import { getMnemonic, Wallet } from 'src/wallet'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import ProgressLoader from 'src/components/ProgressLoader'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
-import { markRaw } from '@vue/reactivity'
-import { getMnemonic, Wallet } from '../../wallet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { convertTokenAmount, getWalletByNetwork } from 'src/wallet/chipnet'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Receive-page',
@@ -156,7 +162,7 @@ export default {
     },
     assets () {
       let _assets
-      const themedIconPath = isDefaultTheme(this.theme) ? `assets/img/theme/${this.$store.getters['global/theme']}/` : ''
+      const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${this.$store.getters['global/theme']}/` : ''
       const themedNewTokenIcon = `${themedIconPath}new-token.png`
 
       if (this.selectedNetwork === 'sBCH') {
@@ -212,7 +218,7 @@ export default {
     convertTokenAmount,
     parseAssetDenomination,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
@@ -220,6 +226,40 @@ export default {
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
+    },
+    getWallet (type) {
+      return this.$store.getters['global/getWallet'](type)
+    },
+    async getMainchainTokens () {
+      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
+      const mainchainTokens = []
+
+      for (const tokenWalletHash of tokenWalletHashes) {
+        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
+
+        const tokens = await this.$store.dispatch(
+          'assets/getMissingAssets',
+          {
+            isCashToken,
+            walletHash: tokenWalletHash,
+            includeIgnoredTokens: false
+          }
+        )
+
+        mainchainTokens.push(...tokens)
+      }
+
+      return mainchainTokens
+    },
+    async getSmartchainTokens () {
+      const tokens = await this.$store.dispatch(
+        'sep20/getMissingAssets',
+        {
+          address: this.getWallet('sbch').lastAddress,
+          icludeIgnoredTokens: false
+        }
+      )
+      return tokens
     },
     async checkIfFirstTimeReceiver (asset) {
       // check wallet/assets if balance is zero and no transactions were made
@@ -299,14 +339,41 @@ export default {
       return historyLength
     }
   },
-  mounted () {
-    const assets = this.$store.getters['assets/getAssets']
+  async mounted () {
     const vm = this
-    assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+    vm.$store.dispatch('market/updateAssetPrices', {})
+    const bchAssets = vm.$store.getters['assets/getAssets']
+    bchAssets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
-    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      vm.wallet = markRaw(new Wallet(mnemonic))
+    // update balance of assets
+    await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      let wallet = new Wallet(mnemonic, vm.network)
+      vm.wallet = markRaw(wallet)
+      if (vm.selectedNetwork === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
+
+      bchAssets.forEach(async (asset) => {
+        await updateAssetBalanceOnLoad(asset.id, vm.wallet, vm.$store)
+      })
     })
+
+    // check for newly-received token(s) then add it to asset list
+    const previousRoute = vm.$router.options.history.state.back
+    const isSBCH = vm.selectedNetwork === 'sBCH'
+    // only run condition if user went back to receive page from receive unlisted token page
+    if (previousRoute.includes('receive') && previousRoute.includes('unlisted')) {
+      const ignoredAssets = vm.$store.getters[`${isSBCH ? 'sep20' : 'assets'}/ignoredAssets`]
+      const missingAssets = isSBCH ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+      const removedAssets = vm.$store.getters[`${isSBCH ? 'sep20' : 'assets'}/getRemovedAssetIds`]
+      const combinedAssets = [...vm.assets.map(a => a.id), ...ignoredAssets.map(a => a.id)]
+
+      missingAssets.forEach(asset => {
+        // do not re-add removed assets
+        if (combinedAssets.indexOf(asset.id) === -1 && removedAssets.indexOf(asset.id) === -1) {
+          vm.$store.commit(`${asset.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, asset)
+          vm.$store.commit(`${asset.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+        }
+      })
+    }
   }
 }
 </script>
@@ -317,12 +384,6 @@ export default {
     border-radius: 7px;
     margin-top: 5px;
     margin-bottom: 5px;
-  }
-  .text-token {
-    font-size: 18px;
-  }
-  .pp-fcolor {
-    color: #000 !important;
   }
   .pt-label {
     font-size: 16px;

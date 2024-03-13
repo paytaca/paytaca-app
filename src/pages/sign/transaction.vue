@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="" :class="{'pt-dark': darkMode}">
+  <div id="app-container" class="" :class="{'pt-card-3': darkMode}">
     <header-nav
       backnavpath="/"
       :title="$t('Sign Transaction')"

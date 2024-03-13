@@ -1,8 +1,8 @@
 <template>
   <div>
     <div
-      class="pt-dark q-pa-sm rounded-borders q-ma-sm"
       style="min-height:9rem;"
+      class="q-pa-sm rounded-borders q-ma-sm pt-card dark"
     >
       <q-btn
         v-if="rearrangedSeedphrase.length"
@@ -10,8 +10,7 @@
         flat
         round
         size="sm"
-        :text-color="darkMode ? 'white' : 'black'"
-        class="float-right"
+        class="float-right close-button"
         @click="reset()"
       />
       <div class="row items-start q-gutter-sm">
@@ -44,7 +43,7 @@
         />
       </div>
     </div>
-  </div>  
+  </div>
 </template>
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'

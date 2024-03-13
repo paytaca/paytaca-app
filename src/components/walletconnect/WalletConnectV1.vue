@@ -40,7 +40,7 @@
       </div>
       <template v-if="handshakeOnProgress">
         <div class="row items-center justify-center">
-          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-if="pendingConnector" class="row items-center justify-center">
           <q-btn
@@ -75,15 +75,21 @@
               height="auto"
               style="border-radius: 50%"
               :src="parsedPeerMeta.icon"
+              alt=""
             />
-            <div class="text-h6" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">{{ parsedPeerMeta.name }}</div>
+            <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">{{ parsedPeerMeta.name }}</div>
           </div>
           <div v-if="parsedPeerMeta.url" class="q-mt-md text-body2">
-            <a :href="parsedPeerMeta.url" target="_blank" style="text-decoration: none" :class="darkMode ? 'text-blue-5' : 'text-blue-9'">
+            <a
+              :href="parsedPeerMeta.url"
+              target="_blank"
+              style="text-decoration: none"
+              :class="darkMode ? 'text-blue-5' : 'text-blue-9'"
+            >
               {{ parsedPeerMeta.url }}
             </a>
           </div>
-          <div v-if="parsedPeerMeta.description" class="q-mt-sm" :class="[darkMode ? 'text-white' : 'text-black' ]">
+          <div v-if="parsedPeerMeta.description" class="q-mt-sm text-bow" :class="getDarkModeClass(darkMode)">
             {{ parsedPeerMeta.description }}
           </div>
         </q-card-section>
@@ -125,7 +131,7 @@
               @click="confirmClearCallRequests()"
             />
           </div>
-          <q-list separator :class="darkMode ? 'pt-dark-card-2' : ''">
+          <q-list separator class="pt-card" :class="getDarkModeClass(darkMode)">
             <q-item
               v-for="(request, index) in callRequests"
               :key="index"
@@ -134,7 +140,7 @@
               @click="showCallRequestInDialog(request)"
             >
               <q-item-section>
-                <q-item-label class="row" :class="darkMode ? 'text-white' : 'text-black'">
+                <q-item-label class="row text-bow" :class="getDarkModeClass(darkMode)">
                   <span class="q-mt-xs">{{ request.payload.method }}</span>
                   <q-space/>
                   <span class="text-grey text-caption">
@@ -188,7 +194,7 @@ import { computed, inject, markRaw, onMounted, onUnmounted, reactive, ref, watch
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 // import QrScanner from "src/components/qr-scanner.vue"
 import WalletConnectCallRequestDialog from 'src/components/walletconnect/WalletConnectCallRequestDialog.vue'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const $emit = defineEmits([
   'request-scanner'
@@ -351,7 +357,7 @@ function confirmClearCallRequests () {
       flat: true
     },
     seamless: true,
-    class: darkMode ? 'br-15 text-white pt-dark' : 'text-black br-15'
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
     .onOk(() => {
       callRequests.value.forEach?.(rejectCallRequest)

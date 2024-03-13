@@ -1,25 +1,26 @@
 <template>
-  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode, 'pt-dark', '')">
+  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)">
     <div id="apps" ref="apps" class="text-center">
       <div>
-        <div :class="{'pt-header apps-header': isDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
+        <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
           <p
             class="section-title"
-            :class="{'text-blue-5': darkMode, 'text-grad': isDefaultTheme(theme)}"
+            :class="{'text-blue-5': darkMode, 'text-grad': isNotDefaultTheme(theme)}"
             :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
           >
             {{ $t('Applications') }}
           </p>
         </div>
-        <div class="row" :class="isDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+        <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div
               class="pt-app bg-grad"
               :class="[
                 buttonClassByState(app.active),
-                {'apps-border' : isDefaultTheme(theme)}
+                {'apps-border' : isNotDefaultTheme(theme)}
               ]"
               @click="openApp(app)"
+              v-on-long-press="[e => onLongPressApp(e, app), { delay: 1000, modifiers: { stop: true, prevent: true } }]"
             >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
             </div>
@@ -28,24 +29,76 @@
         </div>
       </div>
     </div>
-
     <footer-menu />
   </div>
 </template>
 
 <script>
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { vOnLongPress } from '@vueuse/components'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
 
 export default {
   name: 'apps',
+  directives: {
+    'on-long-press': vOnLongPress,
+  },
   data () {
     return {
       apps: [
+      {
+          name: 'P2P Exchange',
+          iconName: 'img:ramp_icon_white.png',
+          path: '/apps/ramp/fiat',
+          iconStyle: 'width:50%',
+          active: true, // !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: 'Marketplace',
+          iconName: 'storefront',
+          path: '/apps/marketplace',
+          active: true,
+          onLongPress: (event) => {
+            event?.preventDefault?.()
+            this.$q.dialog({
+              component: MarketplaceAppSelectionDialog,
+            })
+          }
+        },
+        {
+          name: this.$t('Gifts'),
+          iconName: 'mdi-gift',
+          path: '/apps/gifts/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Collectibles'),
+          iconName: 'burst_mode',
+          path: '/apps/collectibles',
+          active: true,
+          smartBCHOnly: false
+        },
         {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:50%',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Map'),
+          iconName: 'mdi-map',
+          path: '/apps/map/',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('POSAdmin'),
+          iconName: 'point_of_sale',
+          path: '/apps/point-of-sale',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -64,11 +117,11 @@ export default {
           smartBCHOnly: true
         },
         {
-          name: this.$t('Ramp'),
-          iconName: 'img:ramp_icon_white.png',
-          path: '/apps/ramp',
-          iconStyle: 'width:50%',
-          active: !this.$store.getters['global/isChipnet'],
+          name: 'Crypto Swap',
+          iconName: 'currency_bitcoin',
+          path: '/apps/ramp/crypto',
+          iconStyle: 'width:50;',
+          active: true,
           smartBCHOnly: false
         },
         {
@@ -79,23 +132,9 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('Collectibles'),
-          iconName: 'burst_mode',
-          path: '/apps/collectibles',
-          active: true,
-          smartBCHOnly: false
-        },
-        {
           name: this.$t('Sweep'),
           iconName: 'mdi-broom',
           path: '/apps/sweep',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Gifts'),
-          iconName: 'mdi-gift',
-          path: '/apps/gifts/',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -105,20 +144,6 @@ export default {
         //   path: '/apps/chat/',
         //   active: true
         // },
-        {
-          name: this.$t('Map'),
-          iconName: 'mdi-map',
-          path: '/apps/map/',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('POSAdmin'),
-          iconName: 'point_of_sale',
-          path: '/apps/point-of-sale',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
         {
           name: this.$t('WalletInfo'),
           iconName: 'info',
@@ -135,7 +160,9 @@ export default {
         }
       ],
       filteredApps: [],
-      appHeight: null
+      appHeight: null,
+      rampAppSelection: false,
+      disableRampSelection: false
     }
   },
   computed: {
@@ -154,7 +181,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     buttonClassByState (active) {
       return active ? '' : 'disabled'
     },
@@ -162,27 +189,17 @@ export default {
       if (app.active) {
         this.$router.push(app.path)
       }
+    },
+    onLongPressApp(event, app) {
+      event.preventDefault()
+      app?.onLongPress?.(event)
     }
   },
   created () {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
-    const themedIconPath = isDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
-    this.filteredApps.forEach(app => {
-      if (isDefaultTheme(this.theme)) {
-        const iconFileName = app.path.split('/')[2]
-        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
-        app.iconName = themedIconLoc
-      }
-    })
+    const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
 
-    if (!this.enableSmartBCH) {
-      this.filteredApps = this.apps.filter((app) => {
-        if (!app.smartBCHOnly) {
-          return true
-        }
-      })
-    }
     try {
       if (this.$router.resolve({name: 'apps-sandbox'})) {
         this.apps.unshift({
@@ -193,6 +210,27 @@ export default {
         })
       }
     } catch { }
+
+    this.filteredApps.forEach(app => {
+      if (isNotDefaultTheme(this.theme)) {
+        const iconFileName = app.path.split('/')[2]
+        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
+        app.iconName = themedIconLoc
+
+        // TODO temporary fix for marketplace icon; replace with themed one
+        if (app.name === 'Marketplace') {
+          app.iconName = 'storefront'
+        }
+      }
+    })
+
+    if (!this.enableSmartBCH) {
+      this.filteredApps = this.apps.filter((app) => {
+        if (!app.smartBCHOnly) {
+          return true
+        }
+      })
+    }
   },
   mounted () {
     const htmlTag1 = document.querySelector('.pt-app')
@@ -226,14 +264,6 @@ export default {
   .bex-app {
     width: 107px;
   }
-
-  /* New */
-  .pt-light-app {
-     background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-  }
-  .pt-dark-app {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #5f94f8, #df68bb, #ef4f84, #ed5f59);
-  }
   .pt-app-name {
     color: #000;
     font-size: 13px
@@ -244,7 +274,9 @@ export default {
     width: 50%;
     height: 50%;
   }
-  .pt-black {
-    color: #212F3C !important;
+  .pt-app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 </style>

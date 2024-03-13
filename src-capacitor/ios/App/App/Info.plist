@@ -54,8 +54,16 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>To be able to scan QR codes</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>To access features using camera/photos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>To access features using camera/photos</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>For easier and faster authentication</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Allow Location</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location being used</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

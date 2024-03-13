@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom" seamless full-height full-width>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" style="height:100%;width:100%;">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="height:100%;width:100%;">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ headerText || $t('PinLocation', {}, 'Pin location') }}</div>
         <q-btn
@@ -8,15 +8,17 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <div :id="mapUid" style="height:75vh;width:100%;">
       </div>
-      <div class="text-center row items-center  justify-center text-subtitle1 ellipsis">
+      <div class="text-center row items-center justify-center text-subtitle1 ellipsis">
         <q-icon name="location_on"/> {{ coordinates?.lat }}, {{ coordinates?.lng }}
       </div>
       <q-card-actions>
         <q-btn
+          v-if="!hideCancel"
           no-caps
           :label="$t('Cancel', {}, 'Cancel')"
           outline
@@ -27,7 +29,6 @@
         <q-btn
           no-caps
           label="OK"
-          color="brandblue"
           class="col button"
           @click="onDialogOK(coordinates)"
         />
@@ -36,10 +37,11 @@
   </q-dialog>
 </template>
 <script setup>
-import { computed, getCurrentInstance, inject, markRaw, onMounted, ref } from 'vue';
+import { computed, getCurrentInstance, inject, markRaw, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useDialogPluginComponent } from 'quasar'
 import { useI18n } from 'vue-i18n'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 defineEmits([
@@ -58,6 +60,8 @@ const uid = ref(getCurrentInstance().uid)
 const props = defineProps({
   headerText: String,
   initLocation: Object,
+  static: Boolean,
+  hideCancel: Boolean,
 })
 
 const mapUid = computed(() => `leaflet-map-${uid.value}`)
@@ -72,10 +76,12 @@ function initMap() {
     zoom: 13,
     preferCanvas: true,
   }
+  let autoLocate = true
   if (Number.isFinite(props.initLocation?.latitude) && Number.isFinite(props.initLocation?.longitude)) {
     mapOptions.center[0] = props.initLocation?.latitude
     mapOptions.center[1] = props.initLocation?.longitude
     mapOptions.zoom = 18
+    autoLocate = false
   }
 
   const _map = new leaflet.Map(mapUid.value, mapOptions)
@@ -93,11 +99,20 @@ function initMap() {
   map.value = markRaw(_map)
 
   _map.on('move', () => updateCoordinates())
-  _map.locate({setView: true, maxZoom: 16})
-  _map.on('locationfound', console.log)
+  if (autoLocate && !props.static) {
+    _map.locate({setView: true, maxZoom: 16})
+    _map.on('locationfound', () => updateCoordinates())
+  }
 
+  if (props.static) {
+   _map.off('move') 
+  }
   updateCoordinates()
 }
+watch(() => [props.static], () => {
+  if (props.static) map.value.off('move')
+  else map.on('move', () => updateCoordinates())
+})
 
 const coordinates = ref({
   lat: null,

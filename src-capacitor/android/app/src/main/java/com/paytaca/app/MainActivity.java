@@ -7,17 +7,22 @@ import android.os.Bundle;
 //import java.util.ArrayList;
 //import com.epicshaggy.biometric.NativeBiometric;
 //import com.capacitorjs.plugins.app.AppPlugin;
-//import com.paytaca.app.plugins.DeepLinkHelperPlugin;
 //import com.getcapacitor.community.barcodescanner.BarcodeScanner;
 //import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 
 import com.google.firebase.FirebaseApp;
 import com.getcapacitor.BridgeActivity;
+import com.paytaca.app.plugins.GpsServicePlugin;
+import com.paytaca.app.plugins.PushNotificationSettingsPlugin;
+import com.paytaca.app.plugins.DeepLinkHelperPlugin;
 
 public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    registerPlugin(GpsServicePlugin.class);
+    registerPlugin(PushNotificationSettingsPlugin.class);
+    registerPlugin(DeepLinkHelperPlugin.class);
 
     // Initializes the Bridge
     // Removed to enable auto registration of plugins

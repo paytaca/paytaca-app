@@ -63,10 +63,7 @@
           {{ badge?.text }}
         </span>
         <q-popup-proxy :breakpoint="0">
-          <div
-            :class="['q-px-sm q-py-xs', darkMode ? 'pt-dark-label pt-dark-card' : 'text-black']"
-            class="text-caption"
-          >
+          <div class="q-px-sm q-py-xs text-caption pt-card pt-label" :class="getDarkModeClass(darkMode)">
             {{ badge?.text }}
           </div>
         </q-popup-proxy>

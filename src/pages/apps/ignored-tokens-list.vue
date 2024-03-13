@@ -1,19 +1,12 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)" class="pt-settings">
     <header-nav :title="$t(isHongKong(currentCountry) ? 'IgnoredPoints' : 'IgnoredTokens')" :backnavpath="backNavPath" />
-    <div
-      style="padding-top:25px;height:100vh;"
-      :class="[
-        darkMode ? 'text-white' : 'text-black',
-        'q-px-md',
-      ]"
-    >
+    <div class="q-px-md text-bow tabs-container" :class="getDarkModeClass(darkMode)">
       <q-tabs
         v-if="enableSmartBCH"
-        class="col-12 q-px-sm q-pb-md pp-fcolor"
+        class="col-12 q-px-sm q-pb-md q-tabs-component"
         v-model="selectedNetwork"
-        style="margin-top: -20px; padding-bottom: 16px;"
-        :indicator-color="isDefaultTheme(theme) && 'transparent'"
+        :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
       >
         <q-tab
           name="BCH"
@@ -30,13 +23,9 @@
       </q-tabs>
       <q-list v-if="ignoredAssets.length">
         <template v-for="(token, index) in ignoredAssets" :key="index">
-          <q-item
-            :class="[
-              darkMode ? 'text-white' : 'text-black',
-            ]"
-          >
+          <q-item class="text-bow" :class="getDarkModeClass(darkMode)">
             <q-item-section v-if="token.logo" side>
-              <img :src="token.logo" height="30">
+              <img :src="token.logo" height="30" alt="">
             </q-item-section>
             <q-item-section>
               <q-item-label>
@@ -74,10 +63,8 @@
       </q-list>
       <div
         v-else
-        :class="[
-          'text-center q-mt-md',
-          darkMode ? 'text-white' : 'text-grey'
-        ]"
+        class="q-mt-md text-center text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="font-size: 18px"
       >
         {{ $t(isHongKong(currentCountry) ? 'NoIgnoredPoints' : 'NoIgnoredTokens') }}
@@ -87,7 +74,7 @@
 </template>
 <script>
 import HeaderNav from '../../components/header-nav'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'IgnoredTokensList',
@@ -101,7 +88,7 @@ export default {
   },
   computed: {
     backNavPath () {
-      return this.$route.query.backNavPath
+      return this.$route.query.backNavPath || '/apps/settings'
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -145,7 +132,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {
@@ -192,7 +179,7 @@ export default {
         cancel: true,
         persistent: true,
         seamless: true,
-        class: this.darkMode ? 'pt-dark info-banner text-white' : 'text-black'
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
@@ -215,7 +202,7 @@ export default {
         },
         persistent: true,
         seamless: true,
-        class: this.darkMode ? 'pt-dark text-white' : 'text-black'
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
         .onOk(() => this.removeAddedIgnoredAssets())
         .onDismiss(next)
@@ -230,3 +217,14 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .tabs-container {
+    padding-top: 25px;
+    height: 100vh;
+    .q-tabs-component {
+      margin-top: -20px;
+      padding-bottom: 16px;
+    }
+  }
+</style>

@@ -5,17 +5,23 @@
     :max="pageNumbers.pages"
     @update:modelValue="val => emitNewValue({limit: pageNumbers.pageSize, offset: pageNumbers.pageSize * (val - 1) })"
     v-bind="paginationProps"
+    :class="getDarkModeClass(darkMode)"
+    style="padding-bottom: 5px"
   />
 </template>
 <script setup>
 import { computed } from 'vue';
+import { useStore } from 'vuex'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
+const $store = useStore()
 const $emit = defineEmits(['update:modelValue'])
 const props = defineProps({
   paginationProps: Object,
   modelValue: Object,
   hideBelowPages: Number,
 })
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const pageNumbers = computed(() => {
   const data = { pages: 0, currentPage: 0, pageSize: 0 }

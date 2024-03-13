@@ -90,7 +90,62 @@ const routes = [
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
       // { path: 'deposit-coin', component: () => import('src/pages/apps/deposit/index.vue'), name: 'app-deposit-coin'},
       // { path: 'deposit-coin/deposit-info', props: route => route.query, component: () => import('src/pages/apps/deposit/deposit-info.vue'), name: 'deposit-info' },
-      { path: 'ramp', component: () => import('src/pages/apps/ramp/index.vue'), name: 'ramp' }
+      {
+        path: 'marketplace',
+        component: () => import('src/layouts/MarketplaceLayout.vue'),
+        children: [
+          { path: '', component: () => import('src/pages/apps/marketplace/index.vue'), name: 'app-marketplace' },
+          { path: 'storefront/:storefrontId', component: () => import('src/pages/apps/marketplace/storefront.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-storefront' },
+          { path: 'colleciton/:collectionId', component: () => import('src/pages/apps/marketplace/collection.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-collection' },
+          { path: 'product/:productId', component: () => import('src/pages/apps/marketplace/product.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-product' },
+          { path: 'colleciton/:collectionId/product/:productId', component: () => import('src/pages/apps/marketplace/product.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-collection-product' },
+          { path: 'checkout', component: () => import('src/pages/apps/marketplace/checkout.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-checkout' },
+          { path: 'orders/:orderId', component: () => import('src/pages/apps/marketplace/order.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-order' },
+          { path: 'orders/', component: () => import('src/pages/apps/marketplace/orders.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-orders' },
+          { path: 'customer', component: () => import('src/pages/apps/marketplace/customer.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-customer' },
+          { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } },
+        ],
+      },
+      { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
+      {
+        path: 'ramp/fiat',
+        name: 'ramp-fiat',
+        component: () => import('src/pages/apps/ramp-fiat.vue'),
+        children: [
+          {
+            path: 'store/',
+            name: 'ramp-fiat-store',
+            component: () => import('src/components/ramp/fiat/FiatStore.vue')
+          },
+          {
+            path: 'ads/',
+            name: 'ramp-fiat-ads',
+            component: () => import('src/components/ramp/fiat/FiatAds.vue'),
+            children: [
+              {
+                path: 'create/',
+                name: 'ads-create',
+                component: () => import('src/components/ramp/fiat/FiatAdsForm.vue')
+              }
+            ]
+          },
+          {
+            path: 'orders/',
+            name: 'ramp-fiat-orders',
+            component: () => import('src/components/ramp/fiat/FiatOrders.vue')
+          },
+          {
+            path: 'profile/',
+            name: 'ramp-fiat-profile',
+            component: () => import('src/components/ramp/fiat/FiatProfileCard.vue')
+          },
+          {
+            path: 'appeal/',
+            name: 'ramp-appeal',
+            component: () => import('src/components/ramp/appeal/AppealIndex.vue')
+          }
+        ]
+      }
     ]
   },
   // Always leave this as last one,

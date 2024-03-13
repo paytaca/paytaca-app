@@ -1,22 +1,29 @@
 <template>
   <q-dialog v-model="val" ref="dialogRef" seamless>
-    <q-card class="q-dialog-plugin pp-text br-15" :class="{'pt-dark info-banner': darkMode}">
-      <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin pp-text br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
+      <q-card-section class="pt-label flex justify-between" :class="getDarkModeClass(darkMode)">
         <strong class="text-h6" :class="darkMode ? 'text-grad' : ''">
           {{ `SEP721 ${isHongKong(currentCountry) ? 'Point' : 'Token'}` }}
         </strong>
+        <q-btn
+          flat
+          icon="close"
+          round dense
+          v-close-popup
+          class="close-button"
+        />
       </q-card-section>
       <q-card-section v-if="asset">
         <div class="q-mb-lg">
-          <div :class="darkMode ? 'text-grad' : ''">Name:</div>
+          <div :class="darkMode ? 'text-grad' : ''">{{ $t('Name') }}:</div>
           <div class="text-caption pt-label" :class="getDarkModeClass(darkMode)">{{ asset.name }}</div>
         </div>
         <div v-if="asset.symbol" class="q-mb-lg">
-          <div :class="darkMode ? 'text-grad' : ''">Symbol:</div>
+          <div :class="darkMode ? 'text-grad' : ''">{{ $t('Symbol') }}:</div>
           <div class="text-caption pt-label" :class="getDarkModeClass(darkMode)">{{ asset.symbol }}</div>
         </div>
         <div class="q-mb-sm">
-          <div :class="darkMode ? 'text-grad' : ''">Address:</div>
+          <div :class="darkMode ? 'text-grad' : ''">{{ $t('Address') }}:</div>
           <div class="text-caption pt-label q-mb-sm" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
             {{ asset.address }}
             <q-icon

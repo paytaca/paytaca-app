@@ -5,6 +5,7 @@ import anyhedge from './anyhedge'
 import global from './global'
 import darkmode from './darkmode'
 import market from './market'
+import marketplace from './marketplace'
 import assets from './assets'
 import lns from './lns'
 import paytacapos from './paytacapos'
@@ -13,6 +14,7 @@ import walletconnect from './walletconnect'
 import gifts from './gifts'
 import chat from './chat'
 import notification from './notification'
+import ramp from './ramp'
 
 /*
  * If not building with SSR mode, you can
@@ -31,13 +33,15 @@ export const Store = createStore({
     darkmode,
     assets,
     market,
+    marketplace,
     lns,
     paytacapos,
     sep20,
     walletconnect,
     gifts,
     chat,
-    notification
+    notification,
+    ramp
   },
 
   // enable strict mode (adds overhead!)

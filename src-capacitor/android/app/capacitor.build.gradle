@@ -13,7 +13,9 @@ dependencies {
     implementation project(':capacitor-community-native-audio')
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
+    implementation project(':capacitor-camera')
     implementation project(':capacitor-device')
+    implementation project(':capacitor-geolocation')
     implementation project(':capacitor-push-notifications')
     implementation project(':capacitor-native-biometric')
 

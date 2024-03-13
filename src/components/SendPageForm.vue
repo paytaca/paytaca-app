@@ -42,6 +42,7 @@
           inputmode="none"
           filled
           v-model="amountFormatted"
+          ref="amountInput"
           @focus="readonlyState(true), onInputFocus(index)"
           @blur="readonlyState(false)"
           :label="$t('Amount')"
@@ -50,7 +51,7 @@
           :disabled="setAmountInFiat || inputExtras.isBip21"
           :readonly="setAmountInFiat || inputExtras.isBip21"
           :error="balanceExceeded"
-          :error-message="balanceExceeded ? $t('Balance exceeded') : ''"
+          :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
           :key="inputExtras.amountFormatted"
         >
           <template v-slot:append>
@@ -80,6 +81,7 @@
           type="text"
           inputmode="none"
           filled
+          ref="fiatInput"
           v-model="sendAmountInFiat"
           @focus="readonlyState(true), onInputFocus(index)"
           @blur="readonlyState(false)"

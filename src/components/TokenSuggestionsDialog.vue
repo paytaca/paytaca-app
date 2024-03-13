@@ -11,7 +11,7 @@
           flat
           icon="close"
           round
-          :class="darkMode ? 'text-white' : 'text-black'"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -41,7 +41,7 @@
             class="col-12 q-px-sm q-pb-md"
             v-model="selectedNetwork"
             style="padding-bottom: 16px;"
-            :indicator-color="isDefaultTheme(theme) && 'transparent'"
+            :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
           >
             <q-tab
               name="BCH"
@@ -64,7 +64,7 @@
                 ]"
               >
                 <q-item-section v-if="token.logo" side>
-                  <img :src="token.logo" height="30">
+                  <img :src="token.logo" height="30" alt="">
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>
@@ -104,7 +104,7 @@
           </q-list>
         </template>
         <div v-else-if="loading" class="column items-center justify-center">
-          <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
           <div :class="darkMode ? 'text-white' : 'text-grey'">
             {{ $t('SearchingForOtherAssets') }}
           </div>
@@ -122,7 +122,7 @@
       </q-card-section>
       <q-card-section class="row q-gutter-sm justify-around">
         <q-btn
-          v-if="parsedTokens.length > 0 && !loading"
+          v-if="parsedTokens.length > 0 && !loading && !checkifAnyAlreadyExists"
           no-caps
           rounded
           :label="`${$t('AddAll')} ${parsedTokens.length}`"
@@ -136,8 +136,7 @@
 <script>
 import ProgressLoader from './ProgressLoader.vue'
 import TokenTypeBadge from './TokenTypeBadge.vue'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
-
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'TokenSuggestionsDialog',
@@ -225,11 +224,17 @@ export default {
           }
         })
         .filter(Boolean)
+    },
+    checkifAnyAlreadyExists () {
+      if (this.parsedTokens.length > 0) {
+        return this.parsedTokens.filter(token => this.assetIdExists(token.id)).length > 0
+      }
+      return false
     }
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {
@@ -253,14 +258,16 @@ export default {
     addToken (tokenInfo) {
       if (!tokenInfo) return
 
-      if (tokenInfo.isSep20) this.$store.commit('sep20/addNewAsset', tokenInfo)
-      else this.$store.commit('assets/addNewAsset', tokenInfo)
+      const storeLoc = tokenInfo.isSep20 ? 'sep20' : 'assets'
+      this.$store.commit(`${storeLoc}/addNewAsset`, tokenInfo)
+      this.$store.commit(`${storeLoc}/removeRemovedAssetIds`, tokenInfo.id)
     },
     removeToken (tokenInfo) {
-      if (!tokenInfo || !tokenInfo.id) return
+      if (!tokenInfo?.id) return
 
-      if (tokenInfo.isSep20) this.$store.commit('sep20/removeAsset', tokenInfo.id)
-      else this.$store.commit('assets/removeAsset', tokenInfo.id)
+      const storeLoc = tokenInfo.isSep20 ? 'sep20' : 'assets'
+      this.$store.commit(`${storeLoc}/removeAsset`, tokenInfo.id)
+      this.$store.commit(`${storeLoc}/addRemovedAssetIds`, tokenInfo.id)
     },
     addTokenToIgnoredList (tokenInfo) {
       if (!tokenInfo) return

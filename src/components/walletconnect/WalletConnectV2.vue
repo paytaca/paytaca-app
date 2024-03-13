@@ -5,12 +5,12 @@
       @decode="onScannerDecode"
     /> -->
     <div class="row items-center">
-      <div class="text-h6">Session</div>
+      <div class="text-h6">{{ $t('Session') }}</div>
       <q-space/>
       <q-btn flat padding="xs">
         <q-icon name="more_vert"/>
         <q-badge v-if="sessionProposals?.length" floating>{{ sessionProposals?.length }}</q-badge>
-        <q-menu :class="getDarkModeClass(darkMode, 'pt-dark', 'text-black')">
+        <q-menu class="text-bow" :class="getDarkModeClass(darkMode)">
           <q-item
             clickable v-ripple
             v-close-popup
@@ -20,7 +20,7 @@
               <q-icon name="mdi-qrcode"/>
             </q-item-section>
             <q-item-section>
-              <q-item-label>Scan new session</q-item-label>
+              <q-item-label>{{ $t('ScanNewSession') }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item
@@ -32,7 +32,7 @@
               <q-icon name="link"/>
             </q-item-section>
             <q-item-section>
-              <q-item-label>Paste URL</q-item-label>
+              <q-item-label>{{ $t('PasteURL') }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-separator/>
@@ -46,7 +46,7 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>
-                Pending session requests
+                {{ $t('PendingSessionRequests') }}
               </q-item-label>
             </q-item-section>
             <q-item-section v-if="sessionProposals?.length" side>
@@ -95,7 +95,7 @@
       class="rounded-borders q-my-sm session-item"
     >
       <q-item-section>
-        <q-item-label>Select active session</q-item-label>
+        <q-item-label>{{ $t('SelectActiveSession') }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-item
@@ -104,10 +104,10 @@
     >
       <q-item-section>
         <div>
-          <div class="q-mb-sm">No active sessions, connect new session</div>
+          <div class="q-mb-sm">{{ $t('NoActiveSessionsConnectNew') }}</div>
           <q-btn-group spread>
-            <q-btn class="button" icon="mdi-qrcode" no-caps label="Scan" @click="() => $emit('request-scanner')"/>
-            <q-btn class="button" icon="link" no-caps label="Paste URL" @click="() => connectNewSession()"/>
+            <q-btn class="button" icon="mdi-qrcode" no-caps :label="$t('Scan')" @click="() => $emit('request-scanner')"/>
+            <q-btn class="button" icon="link" no-caps :label="$t('PasteURL')" @click="() => connectNewSession()"/>
           </q-btn-group>
           <!-- <q-form @submit="() => pairUrlInInput()">
             <q-input
@@ -121,14 +121,14 @@
         </div>
       </q-item-section>
     </q-item>
-    
+
     <div style="margin-top: 20px;">
       <div class="row items-center">
-        <div class="text-h6">Requests</div>
+        <div class="text-h6">{{ $t('Requests') }}</div>
         <q-space/>
       </div>
       <div v-if="!sessionRequests?.length" class="text-grey text-center q-my-md">
-        No pending requests
+        {{ $t('NoPendingRequests') }}
       </div>
       <q-list separator>
         <q-item
@@ -142,13 +142,13 @@
               <q-spinner v-if="loadingSessionRequests?.[sessionRequest?.id]"/>
             </q-item-label>
             <q-item-label>
-              Method: {{ sessionRequest?.params?.request?.method }}
+              {{ $t('Method') }}: {{ sessionRequest?.params?.request?.method }}
             </q-item-label>
             <q-item-label>
-              Chain: {{ sessionRequest?.params?.chainId }}
+              {{ $t('Chain') }}: {{ sessionRequest?.params?.chainId }}
             </q-item-label>
             <q-item-label class="ellipsis">
-              Topic: {{ sessionRequest?.topic }}
+              {{ $t('Topic') }}: {{ sessionRequest?.topic }}
             </q-item-label>
             <div class="row items-center q-gutter-x-sm q-mt-sm">
               <q-btn
@@ -185,11 +185,11 @@
       <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
-            <div class="text-h5 q-space pt-label" :class="getDarkModeClass(darkMode)">Session Proposals</div>
+            <div class="text-h5 q-space pt-label" :class="getDarkModeClass(darkMode)">{{ $t('SessionProposals') }}</div>
             <q-btn flat icon="close" padding="sm" class="close-button" color="blue-9" v-close-popup/>
           </div>
           <div v-if="!sessionProposals.length" class="q-my-md text-grey text-center">
-            No pending session proposals
+            {{ $t('NoPendingSessionProposals') }}
           </div>
           <q-list separator>
             <q-item
@@ -199,7 +199,7 @@
               @click="() => openSessionProposal(sessionProposal)"
             >
               <q-item-section v-if="sessionProposal?.proposer?.metadata?.icons?.[0]" avatar>
-                <img :src="sessionProposal?.proposer?.metadata?.icons?.[0]" width="50"/>
+                <img :src="sessionProposal?.proposer?.metadata?.icons?.[0]" width="50" alt=""/>
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ sessionProposal?.proposer?.metadata?.name }}</q-item-label>
@@ -225,11 +225,11 @@
       <q-card class="pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center q-pb-sm">
-            <div class="text-h5 q-space">Active Sessions</div>
+            <div class="text-h5 q-space">{{ $t('ActiveSessions') }}</div>
             <q-btn flat icon="close" padding="sm" v-close-popup/>
           </div>
           <div v-if="!activeSessionsList.length" class="q-my-md text-grey text-center">
-            No active sessions
+            {{ $t('NoActiveSessions') }}
           </div>
           <q-list separator>
             <q-item
@@ -240,7 +240,7 @@
               @click="() => selectedActiveSessionTopic = session?.topic"
             >
               <q-item-section v-if="session?.peer?.metadata?.icons?.[0]" avatar>
-                <img :src="session?.peer?.metadata?.icons?.[0]" width="50"/>
+                <img :src="session?.peer?.metadata?.icons?.[0]" width="50" alt=""/>
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ session?.peer?.metadata?.name }}</q-item-label>
@@ -298,6 +298,7 @@ import { useStore } from 'vuex';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
 import WC2SessionRequestDialog from 'src/components/walletconnect/WC2SessionRequestDialog.vue';
+import { useI18n } from 'vue-i18n'
 // import QrScanner from "src/components/qr-scanner.vue"
 
 const $emit = defineEmits([
@@ -305,6 +306,7 @@ const $emit = defineEmits([
 ])
 
 const $q = useQuasar()
+const $t = useI18n().t
 const $store = useStore()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -314,12 +316,12 @@ async function onScannerDecode (content) {
   console.log('Scanned', content)
   // showScanner.value = false
   const dialog = $q.dialog({
-    title: 'Connecting',
+    title: $t('Connecting'),
     progress: { color: 'brandblue', },
     persistent: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
   })
   try {
     await new Promise(async (resolve, reject) => {
@@ -394,30 +396,30 @@ const sessionProposals = ref()
 
 async function connectNewSession(value='') {
   $q.dialog({
-    title: 'New Session',
+    title: $t('NewSession'),
     prompt: {
-      label: 'Session URL',
-      placeholder: 'Paste URL',
+      label: $t('SessionURL'),
+      placeholder: $t('PasteURL'),
       color: 'brandblue',
       model: value,
     },
     ok: {
       flat: true,
       noCaps: true,
-      label: 'Add',
+      label: $t('Add'),
       color: 'brandblue',
       class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
     },
     cancel: {
       flat: true,
       noCaps: true,
-      label: 'Close',
+      label: $t('Close'),
       color: 'brandblue',
       class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
     },
     position: 'bottom',
     seamless: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(val => pairUrl(val))
 }
@@ -438,7 +440,7 @@ async function pairUrl(uri, opts={ showDialog: true }) {
     persistent: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   try {
     await web3Wallet.value.pair({ uri: uri })
@@ -478,12 +480,12 @@ function openSessionProposal(sessionProposal) {
 }
 async function approveSessionProposal(sessionProposal) {
   const dialog = $q.dialog({
-    title: 'Approving session',
+    title: $t('ApprovingSession'),
     progress: { color: 'brandblue', },
     persistent: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   try {
     const namespaces = getNamespaces()

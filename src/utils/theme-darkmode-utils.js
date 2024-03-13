@@ -6,7 +6,7 @@ export function getDarkModeClass (darkMode, darkModeClass = '', lightModeClass =
   return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 
-export function isDefaultTheme (theme) {
+export function isNotDefaultTheme (theme) {
   return theme !== 'default'
 }
 

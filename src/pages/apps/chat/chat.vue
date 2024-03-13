@@ -1,7 +1,7 @@
 <template>
   <div
     style="background-color: #ECF3F3; min-height: 100vh;padding-top:70px; z-index: 1;"
-    :class="{'pt-dark': darkMode}"
+    :class="{'pt-card-3': darkMode}"
   >
     <QrScanner
       v-model="showQrScanner"
@@ -10,9 +10,9 @@
     <header-nav title="Chat" backnavpath="/apps/chat" style="position: fixed; top: 0; width: 100%; z-index: 150 !important;"></header-nav>
     <q-icon v-if="connected" id="context-menu" size="35px" name="more_vert" :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu anchor="bottom right" self="top end">
-        <q-list :class="{'pt-dark-card': $store.getters['darkmode/getStatus']}" style="min-width: 100px">
+        <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px">
           <q-item clickable v-close-popup>
-            <q-item-section :class="[darkMode ? 'text-white' : 'text-black']" @click="confirmDeletion = true">
+            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)" @click="confirmDeletion = true">
               Clear History
             </q-item-section>
           </q-item>
@@ -82,7 +82,7 @@
         </div>
       </template>
       <div v-if="connecting">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
     <div v-if="connected" id="messages-container" ref="messagesContainer" style="width: 100%;">
@@ -129,7 +129,7 @@ import * as mqtt from 'mqtt'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import BCHJS from '@psf/bch-js'
-import { isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 const ago = require('s-ago')
@@ -215,7 +215,8 @@ export default {
     }
   },
   methods: {
-    isDefaultTheme,
+    isNotDefaultTheme,
+    getDarkModeClass,
     onScannerDecode (content) {
       this.showQrScanner = false
       this.recipientAddress = content

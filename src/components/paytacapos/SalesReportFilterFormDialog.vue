@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15" style="width:max(300px, 90vw);">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:max(300px, 90vw);">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-subtitle1 q-space q-mt-sm"> {{ $t('FilterSalesReport', {}, 'Filter sales report') }}</div>
       </div>
@@ -10,7 +10,7 @@
             dense
             outlined
             :dark="darkMode"
-            label="Range"
+            :label="$t('Range')"
             :options="rangeOptions"
             emit-value
             map-options
@@ -22,7 +22,7 @@
             outlined
             clearable
             :dark="darkMode"
-            label="Date from"
+            :label="$t('DateFrom')"
             mask="date"
             v-model="formData.dateFrom"
           >
@@ -43,7 +43,7 @@
             outlined
             clearable
             :dark="darkMode"
-            label="Date to"
+            :label="$t('DateTo')"
             mask="date"
             v-model="formData.dateTo"
           >
@@ -63,7 +63,7 @@
             dense
             outlined
             :dark="darkMode"
-            label="Currency"
+            :label="$t('Currency')"
             :options="currencyOptions"
             emit-value
             map-options
@@ -71,8 +71,8 @@
             :popup-content-class="darkMode ? '': 'text-black'"
           />
           <div class="row items-center q-gutter-x-sm q-mt-md">
-            <q-btn no-caps label="Cancel" color="grey" outline class="q-space" v-close-popup/>
-            <q-btn no-caps label="Filter" class="q-space button" type="submit"/>
+            <q-btn no-caps :label="$t('Cancel')" color="grey" outline class="q-space" v-close-popup/>
+            <q-btn no-caps :label="$t('Filter')" class="q-space button" type="submit"/>
           </div>
         </q-form>
       </q-card-section>
@@ -83,6 +83,10 @@
 import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useDialogPluginComponent } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
+
+const $t = useI18n().t
 
 // dialog plugins requirement
 defineEmits([
@@ -116,8 +120,8 @@ onMounted(() => {
 })
 
 const rangeOptions = ref([
-  { label: 'Monthly', value: 'month' },
-  { label: 'Daily', value: 'day' }, 
+  { label: $t('Monthly'), value: 'month' },
+  { label: $t('Daily'), value: 'day' }, 
 ])
 
 const preferenceCurrency = computed(() => $store.getters['market/selectedCurrency']?.symbol)

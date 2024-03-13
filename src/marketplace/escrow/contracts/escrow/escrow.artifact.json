@@ -1,0 +1,96 @@
+{
+  "contractName": "Escrow",
+  "constructorInputs": [
+    {
+      "name": "buyer",
+      "type": "bytes20"
+    },
+    {
+      "name": "seller",
+      "type": "bytes20"
+    },
+    {
+      "name": "servicer",
+      "type": "bytes20"
+    },
+    {
+      "name": "arbiter",
+      "type": "bytes20"
+    },
+    {
+      "name": "deliveryFeePool",
+      "type": "bytes"
+    },
+    {
+      "name": "amount",
+      "type": "int"
+    },
+    {
+      "name": "serviceFee",
+      "type": "int"
+    },
+    {
+      "name": "arbitrationFee",
+      "type": "int"
+    },
+    {
+      "name": "deliveryFee",
+      "type": "int"
+    },
+    {
+      "name": "keyNftId",
+      "type": "int"
+    },
+    {
+      "name": "timestamp",
+      "type": "int"
+    }
+  ],
+  "abi": [
+    {
+      "name": "release",
+      "inputs": [
+        {
+          "name": "pk",
+          "type": "pubkey"
+        },
+        {
+          "name": "s",
+          "type": "sig"
+        },
+        {
+          "name": "timestampCheck",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "refund",
+      "inputs": [
+        {
+          "name": "pk",
+          "type": "pubkey"
+        },
+        {
+          "name": "s",
+          "type": "sig"
+        },
+        {
+          "name": "timestampCheck",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "doNothing",
+      "inputs": []
+    }
+  ],
+  "bytecode": "OP_11 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_14 OP_ROLL OP_11 OP_ROLL OP_NUMEQUALVERIFY OP_11 OP_PICK OP_HASH160 OP_DUP OP_5 OP_PICK OP_EQUAL OP_SWAP OP_ROT OP_EQUAL OP_BOOLOR OP_VERIFY OP_11 OP_ROLL OP_11 OP_ROLL OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_7 OP_PICK OP_0 OP_GREATERTHAN OP_IF OP_TXOUTPUTCOUNT OP_4 OP_NUMEQUALVERIFY OP_ELSE OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_ENDIF e803 OP_5 OP_PICK OP_7 OP_PICK OP_ADD OP_8 OP_PICK OP_ADD OP_9 OP_PICK OP_ADD OP_ADD OP_0 OP_UTXOVALUE OP_NUMEQUALVERIFY OP_0 OP_OUTPUTVALUE OP_5 OP_ROLL OP_NUMEQUAL OP_1 OP_OUTPUTVALUE OP_6 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_7 OP_ROLL OP_NUMEQUAL OP_1 OP_8 OP_PICK OP_0 OP_GREATERTHAN OP_IF OP_3 OP_OUTPUTVALUE OP_9 OP_PICK OP_NUMEQUAL OP_NIP OP_ENDIF OP_2SWAP OP_BOOLAND OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY 76a914 OP_SWAP OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_ROT OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_5 OP_PICK OP_0 OP_GREATERTHAN OP_IF OP_6 OP_PICK 14 OP_NUM2BIN OP_6 OP_PICK 14 OP_NUM2BIN OP_CAT OP_3 OP_OUTPUTTOKENCOMMITMENT OP_EQUALVERIFY OP_3 OP_OUTPUTBYTECODE OP_5 OP_PICK OP_EQUAL OP_NIP OP_ENDIF OP_2SWAP OP_BOOLAND OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY OP_2DROP OP_2DROP OP_1 OP_ELSE OP_11 OP_PICK OP_1 OP_NUMEQUAL OP_IF OP_14 OP_ROLL OP_11 OP_ROLL OP_NUMEQUALVERIFY OP_11 OP_PICK OP_HASH160 OP_4 OP_PICK OP_EQUALVERIFY OP_12 OP_ROLL OP_12 OP_ROLL OP_CHECKSIGVERIFY OP_1 OP_OUTPUTVALUE OP_7 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_8 OP_ROLL OP_NUMEQUAL OP_BOOLAND OP_VERIFY 76a914 OP_SWAP OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_4 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY OP_2DROP OP_2DROP OP_2DROP OP_1 OP_ELSE OP_11 OP_ROLL OP_2 OP_NUMEQUALVERIFY OP_10 OP_ROLL OP_0 OP_GREATERTHANOREQUAL OP_VERIFY OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_1 OP_ENDIF OP_ENDIF",
+  "source": "// pragma cashscript ^0.7.5;\npragma cashscript ^0.8.0;\n\n\ncontract Escrow(\n    bytes20    buyer,            // 20 B\n    bytes20    seller,           // 20 B\n    bytes20    servicer,         // 20 B\n    bytes20    arbiter,          // 20 B\n    bytes      deliveryFeePool,  // 23 B\n\n    int amount,          // 1-8 B, amount paid\n    int serviceFee,      // 1-8 B, fee for service provider in sats\n    int arbitrationFee,  // 1-8 B, fee for arbiter in sats\n    int deliveryFee,     // 1-8 B, fee for delivery service/rider in sats\n\n    int keyNftId,       // 4 B, lock nft ID in commitment in the minted nft containing the delivery fee\n    int timestamp, // 4 B, a parameter to ensure uniqueness of contract\n) {\n    // Releases the funds sent by the buyer\n    function release(pubkey pk, sig s, int timestampCheck) {\n        require(timestampCheck == timestamp);\n\n        // Requires that caller is only either the arbiter or the buyer\n        bytes20 pkHash = hash160(pk);\n        require(pkHash == arbiter || pkHash == buyer);\n        require(checkSig(s, pk));\n\n        // Limits the transaction input to 1 & output to 3/4\n        require(tx.inputs.length == 1);\n        if (deliveryFee > 0) {\n            require(tx.outputs.length == 4);\n        } else {\n            require(tx.outputs.length == 3);\n        }\n\n        int txFee = 1000; // hard coded transaction fee\n        int totalInputRequired = amount + serviceFee + arbitrationFee + deliveryFee + txFee;\n        require(tx.inputs[0].value == totalInputRequired);\n\n        bool correctAmount = tx.outputs[0].value == amount;\n        bool correctServiceFee = tx.outputs[1].value == serviceFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n        bool correctDeliveryFee = true;\n        if (deliveryFee > 0) {\n            correctDeliveryFee = tx.outputs[3].value == deliveryFee;\n        }\n        require(correctAmount && correctServiceFee && correctArbitrationFee && correctDeliveryFee);\n\n        // Requires that outputs send to buyer, servicer, and arbiter\n        bytes25 sellerLock = new LockingBytecodeP2PKH(seller);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n\n        bool sendsToSeller = tx.outputs[0].lockingBytecode == sellerLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n        bool sendsToDeliveryFeePool = true;\n        if (deliveryFee > 0) {\n            require(bytes40(bytes(keyNftId, 20) + bytes(deliveryFee, 20)) == tx.outputs[3].nftCommitment);\n            sendsToDeliveryFeePool = tx.outputs[3].lockingBytecode == deliveryFeePool;\n        }\n\n        require(sendsToSeller && sendsToServicer && sendsToArbiter && sendsToDeliveryFeePool);\n    }\n\n    // Releases the funds back to the buyer\n    // service fee & arbitration fee is still paid, only amount & delivery fee is refunded\n    // \n    // - Number of inputs are not checked to allow multiple funds back to\n    //   buyer in case multiple funds are sent\n    // - The amount sent back to buyer in case funds sent to contract does not\n    //   match the expected amount for 'release'\n    function refund(pubkey pk, sig s, int timestampCheck) {\n        require(timestampCheck == timestamp);\n\n        // Requires that caller is the arbiter \n        require(hash160(pk) == arbiter);\n        require(checkSig(s, pk));\n\n        // requires that service fees & arbitration fees are still paid\n        bool correctServiceFee = tx.outputs[1].value == serviceFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n        require(correctServiceFee && correctArbitrationFee);\n\n        // Requires that outputs send only to seller, servicer, and arbiter, respectively\n        bytes25 buyerLock = new LockingBytecodeP2PKH(buyer);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n\n        bool sendsToBuyer = tx.outputs[0].lockingBytecode == buyerLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n\n        require(tx.outputs.length == 3);\n        require(sendsToBuyer && sendsToServicer && sendsToArbiter);\n    }\n\n    function doNothing() {\n        require(timestamp >= 0);\n    }\n}\n",
+  "compiler": {
+    "name": "cashc",
+    "version": "0.8.0"
+  },
+  "updatedAt": "2024-02-01T07:58:35.902Z"
+}

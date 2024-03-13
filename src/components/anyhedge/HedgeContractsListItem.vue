@@ -6,10 +6,10 @@
       </div>
       <q-icon v-if="contract?.cancelled?.at" name="block" color="red" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
-            Contract was cancelled
+          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
+            {{ $t('ContractWasCancelled') }}
             <template v-if="contract?.cancelled?.by">
-              by {{ contract?.cancelled?.by }}
+              {{ $t('By') }} {{ contract?.cancelled?.by }}
             </template>
 
             <div v-if="contract?.cancelled?.at > 0" class="text-grey">
@@ -21,22 +21,22 @@
 
       <q-icon v-if="matured || settled" name="handshake" :color="settled ? 'green': 'amber'" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
+          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
             <template v-if="settled">
-              Contract has been settled.
+              {{ $t('ContractSettled') }}
               <div v-if="settlementMetadata.settlementTimestamp > 0" class="text-grey">
                 ({{ formatDate(settlementMetadata.settlementTimestamp * 1000) }})
               </div>
             </template>
-            <template v-else-if="matured">Contract has reached maturity</template>
+            <template v-else-if="matured">{{ $t('ContractMaturity') }}</template>
           </div>
         </q-popup-proxy>
       </q-icon>
 
       <q-icon :name="funding === 'complete' ? 'credit_score': 'credit_card'" :color="fundingIconColor" size="md" @click.stop>
         <q-popup-proxy :breakpoint="0">
-          <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']">
-            {{ fundingIconTooltip }}
+          <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
+            {{ $t(fundingIconTooltip) }}
           </div>
         </q-popup-proxy>
       </q-icon>
@@ -44,7 +44,7 @@
     <div class="row">
       <div class="col" style="white-space: nowrap;">
         <div class="row items-start no-wrap">
-          <div class="col-4 text-caption" style="margin-bottom:-0.25em;">Hedge</div>
+          <div class="col-4 text-caption" style="margin-bottom:-0.25em;">{{ $t('Hedge') }}</div>
           <div>
             <div>
               {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }}
@@ -56,7 +56,7 @@
           </div>
         </div>
         <div class="row items-start no-wrap">
-          <div class="col-4 text-caption" style="margin-bottom:-0.25em;">Long</div>
+          <div class="col-4 text-caption" style="margin-bottom:-0.25em;">{{ $t('Long') }}</div>
           <div>
             <div>
               {{ formatUnits(contract.metadata.longInputInOracleUnits, oracleInfo.assetDecimals) }}
@@ -86,25 +86,25 @@
     </div>
     <div v-if="settled">
       <div>
-        Settlement type: {{ settlementMetadata.settlementTypeText }}
+        {{ $t('SettlementType') }}: {{ $t(settlementMetadata.settlementTypeText) }}
         <template v-if="settlementMetadata.mutualRedemptionTypeText">
           ({{settlementMetadata.mutualRedemptionTypeText}})
         </template>
       </div>
       <div class="row">
         <div class="col">
-          <div>Hedge</div>
+          <div>{{ $t('Hedge') }}</div>
           <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
-            {{ oracleInfo?.assetCurrency || 'Asset' }}: {{ settlementMetadata.hedge.assetChangePctg }}%
+            {{ oracleInfo?.assetCurrency || $t('Asset') }}: {{ settlementMetadata.hedge.assetChangePctg }}%
           </div>
           <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
             {{ `${denomination}: ${settlementMetadata.hedge.bchChangePctg}%` }}
           </div>
         </div>
         <div class="col">
-          <div>Long</div>
+          <div>{{ $t('Long') }}</div>
           <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.long.assetChangePctg)}` + ' text-weight-medium'">
-            {{ oracleInfo?.assetCurrency || 'Asset' }}: {{ settlementMetadata.long.assetChangePctg }}%
+            {{ oracleInfo?.assetCurrency || $t('Asset') }}: {{ settlementMetadata.long.assetChangePctg }}%
           </div>
           <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
             {{ `${denomination}: ${settlementMetadata.long.bchChangePctg}%` }}
@@ -127,6 +127,7 @@ import { formatUnits, formatDate, ellipsisText, parseSettlementMetadata } from '
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({ contract: Object })
 const $store = useStore()
@@ -185,13 +186,13 @@ const fundingIconColor = computed(() => {
 const fundingIconTooltip = computed(() => {
   switch(funding.value) {
     case 'complete':
-      return 'Contract is already funded'
+      return 'FundingComplete'
     case 'ready':
-      return 'Funds are in place but is not yet completed'
+      return 'FundingReady'
     case 'partial':
-      return 'Not all parties have submitted funding proposals'
+      return 'FundingPartial'
     case 'pending':
-      return 'Both parties have not submitted funding proposals yet'
+      return 'FundingPending'
   }
   return ''
 })

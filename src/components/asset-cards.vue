@@ -1,6 +1,6 @@
 <template>
-  <div class="row no-wrap q-gutter-md q-pl-lg q-pb-md" id="asset-container" v-show="assets">
-    <button v-show="manageAssets" class="btn-add-payment-method q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
+  <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
+    <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
@@ -13,12 +13,8 @@
       v-touch-pan="handlePan"
     >
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
-        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs">
-        <p
-          class="col q-pl-sm"
-          :class="{'text-grad' : isDefaultTheme}"
-          style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; font-size: 19px; text-align: right;"
-        >
+        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs" alt="">
+        <p class="col q-pl-sm text-right asset-symbol" :class="{'text-grad' : isNotDefaultTheme}">
           {{ asset.symbol }}
         </p>
       </div>
@@ -28,7 +24,7 @@
           <q-skeleton type="rect"/>
         </div>
         <template v-else>
-          <p v-if="!manageAssets" class="float-right text-num-lg text-no-wrap" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -5px;">
+          <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
             {{ convertTokenAmount(asset.balance, asset.decimals) }}
           </p>
         </template>
@@ -37,16 +33,9 @@
           v-if="manageAssets && asset.symbol !== 'BCH'"
           @click="() => removeAsset(asset)"
           style="float: right; width: 20px; margin-top: -5px;">
-          <q-btn icon="close" style="background: red; color: white" size="8px" flat round dense v-close-popup />
+          <q-btn icon="close" class="remove-asset-button" size="8px" flat round dense v-close-popup />
         </div>
       </div>
-      <!-- <div v-if="balanceLoaded" style="margin-top: -16px;">
-        <div v-if="getAssetMarketBalance(asset)" class="text-caption text-right" style="overflow: hidden; text-overflow: ellipsis; color: #EAEEFF; margin-top: -18px;">
-          <template v-if="!(!balanceLoaded && asset.id === selectedAsset.id)">
-            {{ num2shortStr(getAssetMarketBalance(asset)) }} {{ String(selectedMarketCurrency).toUpperCase() }}
-          </template>
-        </div>
-      </div> -->
       <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
   </div>
@@ -95,7 +84,7 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    isDefaultTheme () {
+    isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
     }
   },
@@ -161,10 +150,12 @@ export default {
         assetName
       }).onOk(() => {
         if (this.isSep20) {
+          vm.$store.commit('sep20/addRemovedAssetIds', asset.id)
           const commitName = 'sep20/removeAsset'
           return vm.$store.commit(commitName, asset.id)
         }
         vm.$store.commit('assets/removeAsset', asset.id)
+        vm.$store.commit('assets/addRemovedAssetIds', asset.id)
       }).onCancel(() => {
       })
     },
@@ -185,17 +176,13 @@ export default {
 <style lang="scss" scoped>
 
   #asset-container {
-    overflow: scroll;
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    overflow-x: auto;
+    overflow-y: hidden;
     margin-left: 20px;
     margin-right: 20px;
     padding-left: 0px;
   }
-  #asset-container::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
-  }
-  .btn-add-payment-method {
+  .add-asset-button {
     border: 0px solid $grey-1;
     padding: 20px 20px 34px 20px;
     border-radius: 16px;
@@ -209,10 +196,26 @@ export default {
     height: 78px;
     min-width: 150px;
     border-radius: 16px;
+    margin-bottom: 5px !important;
+    .asset-symbol {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #EAEEFF;
+      font-size: 19px;
+    }
+    .asset-balance {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #EAEEFF;
+      margin-top: -5px;
+      font-size: 18px;
+    }
+    .remove-asset-button {
+      background: red;
+      color: white;
+    }
   }
-
-  .text-num-lg {
-    font-size: 18px;
-    color: #DBE7E7;
+  .pt-dark-box-shadow {
+    box-shadow: 2px 2px 2px 2px #212f3d !important;
   }
 </style>

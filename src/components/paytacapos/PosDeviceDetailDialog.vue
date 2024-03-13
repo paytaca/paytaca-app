@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
         <q-btn
@@ -32,6 +32,7 @@ import { createQrCodeData, padPosId } from 'src/wallet/pos'
 import { useDialogPluginComponent } from 'quasar'
 import { computed } from 'vue';
 import { useStore } from 'vuex';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 defineEmits([

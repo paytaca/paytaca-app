@@ -1,14 +1,15 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless>
-    <q-card :class="darkMode ? 'text-white br-15 pt-dark-card' : 'text-black'">
+    <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">Mutual Redemption Proposal</div>
+        <div class="text-h6 q-space q-mt-sm">{{ $t('MutualRedemptionProposal') }}</div>
         <q-btn
           flat
           padding="sm"
           icon="close"
           :disabled="loading"
           v-close-popup
+          class="close-button"
         />
       </div>
       <q-card-section>
@@ -21,17 +22,17 @@
             </ul>
           </q-banner>
           <div v-if="totalPayoutSats" class="text-subtitle1">
-            Total Payout: {{ getAssetDenomination(denomination, (totalPayoutSats || 0) / 10 ** 8) }}
+            {{ $t('TotalPayout') }}: {{ getAssetDenomination(denomination, (totalPayoutSats || 0) / 10 ** 8) }}
           </div>
           <q-select
             :dark="darkMode"
             outlined
             dense
             :popup-content-class="darkMode ? '': 'text-black'"
-            label="Type"
+            :label="$t('Type')"
             v-model="mutualRedemptionProposal.redemptionType"
             :options="['refund', 'early_maturation', 'arbitrary']"
-            :option-label="val => (val.charAt(0).toUpperCase() + val.substr(1)).replaceAll('_', ' ')"
+            :option-label="val => $t(`${(val.charAt(0).toUpperCase() + val.substr(1)).replaceAll('_', ' ')}`)"
             map-options
           />
           <q-input
@@ -39,12 +40,22 @@
             :dark="darkMode"
             outlined
             dense
-            label="Settlement Price"
+            :label="$t('SettlementPrice')"
             :suffix="oracleInfo?.assetCurrency ? `${oracleInfo?.assetCurrency}/${denomination}` : ''"
             v-model="mutualRedemptionProposal.settlementPrice"
             :rules="[
-              val => val >= settlemenPriceBounds.min || `Must be greater than ${settlemenPriceBounds.min}`,
-              val => val <= settlemenPriceBounds.max || `Must be less than ${settlemenPriceBounds.max}`,
+              val => val >= settlemenPriceBounds.min
+                || $t(
+                  'MustBeGreaterThan',
+                  { amount: settlemenPriceBounds.min },
+                  `Must be greater than ${settlemenPriceBounds.min}`
+                ),
+              val => val <= settlemenPriceBounds.max
+                || $t(
+                  'MustBeLessThan',
+                  { amount: settlemenPriceBounds.max },
+                  `Must be less than ${settlemenPriceBounds.max}`
+                ),
             ]"
           />
 
@@ -64,7 +75,7 @@
           >
             <div>
               <div class="row">
-                <div class="q-space">Hedge</div>
+                <div class="q-space">{{ $t('Hedge') }}</div>
                 <div>{{ `${mutualRedemptionProposal.hedgeBch} ${denomination}` }}</div>
               </div>
               <q-slider
@@ -81,7 +92,7 @@
             </div>
             <div>
               <div class="row">
-                <div class="q-space">Long</div>
+                <div class="q-space">{{ $t('Long') }}</div>
                 <div>{{ `${mutualRedemptionProposal.longBch} ${denomination}` }}</div>
               </div>
               <q-slider
@@ -103,7 +114,7 @@
               outlined
               dense
               :disable="mutualRedemptionProposal.redemptionType !== 'arbitrary'"
-              label="Hedge"
+              :label="$t('Hedge')"
               v-model="mutualRedemptionProposal.hedgeBch"
             />
             <q-input
@@ -111,7 +122,7 @@
               outlined
               dense
               :disable="mutualRedemptionProposal.redemptionType !== 'arbitrary'"
-              label="Long"
+              :label="$t('Long')"
               v-model="mutualRedemptionProposal.longBch"
             />
           </div>
@@ -123,7 +134,7 @@
               no-caps
               :loading="loading"
               :disable="loading"
-              label="Create"
+              :label="$t('Create')"
               type="submit"
               color="brandblue"
               class="full-width"
@@ -133,7 +144,7 @@
               outline
               :loading="loading"
               :disable="loading"
-              label="Cancel"
+              :label="$t('Cancel')"
               color="grey"
               class="full-width"
               v-close-popup
@@ -159,6 +170,8 @@ import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 const manager = new AnyHedgeManager()
 // dialog plugins requirement
@@ -176,6 +189,7 @@ const store = useStore()
 const darkMode = computed(() => store.getters['darkmode/getStatus'])
 const denomination = computed(() => store.getters['global/denomination'])
 const $q = useQuasar()
+const $t = useI18n().t
 
 const props = defineProps({
   contract: {
@@ -292,16 +306,16 @@ function updatePayoutFromSettlementPrice(settlementPrice=0) {
 }
 
 async function confirmMutualRedemption(data) {
-  const message = `Hedge payout: ${data.hedge_satoshis / 10 ** 8} BCH<br/>` +
-                    `Long payout: ${data.long_satoshis / 10 ** 8} BCH<br/>` +
-                    'Are you sure?'
+  const message = `${$t('HedgePayout')}: ${data.hedge_satoshis / 10 ** 8} BCH<br/>` +
+                    `${$t('LongPayout')}: ${data.long_satoshis / 10 ** 8} BCH<br/>` +
+                    `${$t('AreYouSure')}`
   await dialogPromise({
-    title: 'Confirm mutual redemption proposal',
+    title: $t('ConfirmMutualRedemptionProposal'),
     message: message,
     html: true,
-    ok: true,
-    cancel: true,
-    class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+    ok: { label: $t('OK') },
+    cancel: { label: $t('Cancel') },
+    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
 }
@@ -336,7 +350,7 @@ async function createMutualRedemption() {
   if (!props?.contract?.fundings?.[0]?.fundingSatoshis) {
     try {
       loading.value = true
-      loadingMsg.value = 'Verifying contract funding'
+      loadingMsg.value = $t('VerifyingContractFunding')
       const contractDataApi = await validateContractFunding()
       const contractData = await parseHedgePositionData(contractDataApi)
       Object.assign(props.contract, contractData)
@@ -344,7 +358,7 @@ async function createMutualRedemption() {
       console.error(error)
       loading.value = false
       loadingMsg.value = ''
-      errors.value = ['Encountered error in validating contract funding']
+      errors.value = [$t('ValidatingContractFundingError')]
       if (typeof error?.response?.data === 'string') errors.value = [error.response.data]
       else if (Array.isArray(error?.response?.data)) errors.value = error?.response?.data
       else if (typeof error?.message === 'string') errors.value = [error.message]
@@ -358,12 +372,12 @@ async function createMutualRedemption() {
   let privkey
   try {
     loading.value = true
-    loadingMsg.value = 'Retrieving private key'
+    loadingMsg.value = $t('RetrievePrivateKey')
     privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
     if (!privkey) throw new Error('Unable to find resolve private key for contract')
   } catch(error) {
     console.error(error)
-    errors.value = ['Failed to retrieve private key']
+    errors.value = [$t('RetrievePrivateKeyError')]
     loading.value = false
     loadingMsg.value =''
     return
@@ -377,7 +391,7 @@ async function createMutualRedemption() {
   try{
     let signMutualPayoutResponse
     loading.value = true
-    loadingMsg.value = 'Signing proposal'
+    loadingMsg.value = $t('SigningProposal')
     switch(data.redemption_type) {
       case 'refund':
         signMutualPayoutResponse = await signMutualRefund(props?.contract, privkey)
@@ -398,7 +412,7 @@ async function createMutualRedemption() {
     transactionProposal = signMutualPayoutResponse.proposal
   }catch(error) {
     console.error(error)
-    errors.value = ['Encountered error in creating data']
+    errors.value = [$t('SigningProposalError')]
     if (typeof error?.message === 'string') errors.value = [error.message]
     loading.value = false
     loadingMsg.value = ''
@@ -409,7 +423,7 @@ async function createMutualRedemption() {
   }
 
   if (!transactionProposal) {
-    errors.value = ['Unresolved transaction proposal']
+    errors.value = [$t('UnresolvedTransactionProposal')]
     return
   }
 
@@ -419,12 +433,20 @@ async function createMutualRedemption() {
   const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longPayoutAddress)?.amount
 
   if (signedHedgeSats !== data.hedge_satoshis) {
-    errors.value = [`Invalid hedge satoshis, expected ${signedHedgeSats}`]
+    errors.value = [$t(
+      'InvalidHedgeSatoshis',
+      { amount: signedHedgeSats },
+      `Invalid hedge satoshis, expected ${signedHedgeSats}`
+    )]
     return
   }
 
   if (signedLongSats !== data.long_satoshis) {
-    errors.value = [`Invalid hedge satoshis, expected ${signedLongSats}`]
+    errors.value = [$t(
+      'InvalidHedgeSatoshis',
+      { amount: signedLongSats },
+      `Invalid hedge satoshis, expected ${signedLongSats}`
+    )]
     return
   }
 
@@ -437,17 +459,17 @@ async function createMutualRedemption() {
   await confirmMutualRedemption(data)
 
   loading.value = true
-  loadingMsg.value = 'Submitting mutual redemption'
+  loadingMsg.value = $t('SubmittingMutualRedemption')
   const contractAddress = props?.contract?.address
   anyhedgeBackend.post(`/anyhedge/hedge-positions/${contractAddress}/mutual_redemption/`, data)
     .then(response => {
       if (response?.data?.address) {
         parseHedgePositionData(response?.data).then(contractData => Object.assign(props.contract, contractData))
         $q.dialog({
-          title: 'Mutual redemption submitted',
+          title: $t('MutualRedemptionSubmitted'),
           seamless: true,
-          ok: true,
-          class: darkMode.value ? 'text-white br-15 pt-dark-card' : 'text-black',
+          ok: { label: $t('OK') },
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         }).onDismiss(() => onDialogHide())
         return Promise.resolve(response)
       }
@@ -455,7 +477,7 @@ async function createMutualRedemption() {
     })
     .catch(error => {
       console.error(error)
-      errors.value = ['Encountered error in submitting mutual redemption']
+      errors.value = [$t('SubmittingMutualRedemptionError')]
       if (typeof error?.response?.data === 'string') errors.value = [error.response.data]
       else if (Array.isArray(error?.response?.data)) errors.value = error.response.data
     })

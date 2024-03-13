@@ -1,5 +1,5 @@
 <template>
-  <q-card :class="darkMode ? 'text-white pt-dark-card' : 'text-black'">
+  <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
     <q-card-section>
         <div class="text-h6 ellipsis">Payment</div>
         <div class="row items-center no-wrap q-gutter-xs">
@@ -35,9 +35,9 @@
         <div v-if="jpp?.parsed?.memo" class="q-my-sm">
           <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Memo:</div>
           <q-banner
-            class="text-body1 rounded-borders"
-            :class="darkMode ? 'text-white': ''"
-            style="border: 1px solid grey;background-color: inherit;">
+            class="text-body1 rounded-borders memo-banner"
+            :class="{'text-white': darkMode}"
+          >
             {{ jpp.parsed?.memo }}
           </q-banner>
         </div>
@@ -53,9 +53,8 @@
               {{ ellipsisText(output.address, {start: 16, end: 5 }) }}
               <q-popup-proxy :breakpoint="0">
                 <div
-                  :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']"
-                  class="text-body2"
-                  style="word-break:break-all;"
+                  class="text-body2 pt-card pt-label address-popup q-px-md q-py-sm"
+                  :class="getDarkModeClass(darkMode)"
                 >
                   {{ output.address }}
                 </div>
@@ -69,7 +68,7 @@
           </div>
         </div>
         <div v-if="jpp.txids.length">
-          <div class="text-subtitle1" style="margin-bottom:-8px">
+          <div class="text-subtitle1 transactions">
             Transaction{{ jpp.txids.length > 1 ? 's' : '' }}
           </div>
           <div v-for="(txid, index) in jpp.txids" :key="index" class="row items-center">
@@ -90,9 +89,8 @@
         <div v-if="!showDragSlide && !loading" class="q-mt-sm">
           <q-btn
             no-caps
-            :color="darkMode ? 'grad' : 'brandblue'"
             label="Confirm"
-            class="full-width"
+            class="full-width button"
             @click="showDragSlide = true"
           />
         </div>
@@ -100,14 +98,7 @@
       <DragSlide
         v-if="showDragSlide && !loading"
         @swiped="onSwipe()"
-        class="fixed-bottom"
-        :style="{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1500,
-        }"
+        class="fixed-bottom drag-slide"
       />
   </q-card>
 </template>
@@ -120,6 +111,7 @@ import { JSONPaymentProtocol } from "src/wallet/payment-uri"
 import { Wallet } from "src/wallet/index"
 import DragSlide from "./drag-slide.vue";
 import SecurityCheckDialog from "./SecurityCheckDialog.vue";
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $copyText = inject('$copyText')
 const $q = useQuasar()
@@ -231,3 +223,23 @@ function completePayment() {
     })
 }
 </script>
+
+<style lang="scss" scoped>
+  .memo-banner {
+    border: 1px solid grey;
+    background-color: inherit;
+  }
+  .drag-slide {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1500;
+  }
+  .address-popup {
+    word-break: break-all;
+  }
+  .transactions {
+    margin-bottom: -8px
+  }
+</style>

@@ -1,13 +1,13 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent v-show="showDialog" seamless>
-    <q-card class="br-15" :class="{'pt-dark text-white': darkMode, 'text-black': !darkMode}">
+    <q-card class="br-15 pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-center q-mb-sm">
           {{ $t('SecurityCheck') }}
         </div>
         <div class="row items-center justify-around q-gutter-md">
-          <q-btn rounded :label="$t('LogIn')" color="blue-9" @click="executeSecurityChecking()" />
-          <q-btn rounded :label="$t('Cancel')" color="blue-9" @click="onCancelClick()" />
+          <q-btn rounded :label="$t('LogIn')" class="button" @click="executeSecurityChecking()" />
+          <q-btn rounded :label="$t('Cancel')" class="button" @click="onCancelClick()" />
         </div>
       </q-card-section>
       <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
@@ -19,9 +19,7 @@
 import pinDialog from './pin'
 import biometricWarningAttmepts from './authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { Plugins } from '@capacitor/core'
-
-const { SecureStoragePlugin } = Plugins
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   /**
@@ -57,23 +55,17 @@ export default {
     }
   },
   methods: {
-    executeSecurityChecking () {
+    getDarkModeClass,
+    async executeSecurityChecking () {
       const vm = this
-      SecureStoragePlugin.get({ key: 'pin' })
-        .then(() => {
-          setTimeout(() => {
-            if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-              vm.pinDialogAction = 'VERIFY'
-            } else {
-              vm.verifyBiometric()
-            }
-          }, 500)
-        })
-        .catch(() => {
-          setTimeout(() => {
-            vm.verifyBiometric()
-          }, 500)
-        })
+
+      setTimeout(() => {
+        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+          vm.pinDialogAction = 'VERIFY'
+        } else {
+          vm.verifyBiometric()
+        }
+      }, 500)
     },
     pinDialogNextAction (action) {
       if (action === 'proceed') this.onOKClick()

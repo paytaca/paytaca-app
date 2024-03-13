@@ -6,9 +6,9 @@
       class="apps-header"
     />
     <q-card
-      class="br-15 q-mx-md q-mt-lg q-mb-md pt-card"
-      :style="{ 'margin-top': $q.platform.is.ios ? '35px' : '0'}"
-      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+      class="br-15 q-mx-md q-mt-lg q-mb-md pt-card text-bow"
+      :style="{'margin-top': $q.platform.is.ios ? '35px' : '0'}"
+      :class="getDarkModeClass(darkMode)"
     >
       <q-card-section>
         <q-item
@@ -36,9 +36,9 @@
               >
                 <div class="row items-center">
                   <q-icon name="store" size="1rem" class="q-mr-sm"/>
-                  <span v-if="!merchantBranches.length" class="text-grey">No branches</span>
+                  <span v-if="!merchantBranches.length" class="text-grey">{{ $t('NoBranches') }}</span>
                   <span v-else>
-                    {{ merchantBranches.length }} branch{{merchantBranches.length > 1 ? 'es': ''}}
+                    {{ merchantBranches.length }} {{merchantBranches.length > 1 ? $t('Branches'): $t('BranchSmall')}}
                   </span>
                   <q-space/>
                   <q-icon name="more_horiz" size="1.5em" class="q-px-sm"/>
@@ -46,8 +46,8 @@
                 <q-menu
                   anchor="bottom right"
                   self="top right"
-                  class="q-pa-sm pt-card"
-                  :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+                  class="q-pa-sm pt-card text-bow"
+                  :class="getDarkModeClass(darkMode)"
                 >
                   <q-list separator :dark="darkMode">
                     <q-item
@@ -88,8 +88,8 @@
           </template>
           <template v-else>
             <q-item-section>
-              <q-item-label class="text-subtitle1">No merchant details</q-item-label>
-              <q-item-label class="text-subtitle2 text-grey">Setup merchant details</q-item-label>
+              <q-item-label class="text-subtitle1">{{ $t('NoMerchantDetails') }}</q-item-label>
+              <q-item-label class="text-subtitle2 text-grey">{{ $t('SetupMerchantDetails') }}</q-item-label>
             </q-item-section>
           </template>
           <q-btn
@@ -97,8 +97,8 @@
             padding="sm"
             icon="edit"
             size="1em"
-            class="text-grey float-right"
-            style="position:absolute;top:0rem;right:0.25rem;"
+            class="float-right button button-text-primary edit-merchant-info-button"
+            :class="getDarkModeClass(darkMode)"
             @click.stop="openMerchantInfoDialog()"
           />
         </q-item>
@@ -106,9 +106,9 @@
     </q-card>
 
     <q-card
-      class="br-15 q-pt-sm q-mx-md pt-card"
+      class="br-15 q-pt-sm q-mx-md pt-card text-bow"
       :style="{ 'margin-top': $q.platform.is.ios ? '55px' : '0'}"
-      :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
+      :class="getDarkModeClass(darkMode)"
     >
       <q-card-section>
         <div class="row items-center">
@@ -166,10 +166,13 @@
                 <q-icon v-else name="phone_iphone" size="1.25em" class="q-mr-xs"/>
                 <span>{{ posDevice?.linkedDevice?.name || posDevice?.linkedDevice?.deviceModel }}</span>
                 <q-icon name="circle" :color="isDeviceOnline(posDevice) ? 'green': 'grey'" size=".75em" class="q-ml-xs"/>
-                <q-popup-proxy v-if="(posDevice?.linkedDevice?.isSuspended || posDevice?.linkedDevice?.unlinkRequest?.id)" :breakpoint="0">
-                  <div :class="['q-px-md q-py-sm', darkMode ? 'pt-dark-label pt-dark' : 'text-black']" class="text-caption device-tooltip">
-                    <div v-if="posDevice?.linkedDevice?.isSuspended">Device is currently suspended</div>
-                    <div v-if="posDevice?.linkedDevice?.unlinkRequest?.id">Unlink request pending</div>
+                <q-popup-proxy
+                  v-if="(posDevice?.linkedDevice?.isSuspended || posDevice?.linkedDevice?.unlinkRequest?.id)"
+                  :breakpoint="0"
+                >
+                  <div class="q-px-md q-py-smtext-caption pt-card-2 pt-label device-tooltip" :class="getDarkModeClass(darkMode)">
+                    <div v-if="posDevice?.linkedDevice?.isSuspended">{{ $t("DeviceSuspendedPOS") }}</div>
+                    <div v-if="posDevice?.linkedDevice?.unlinkRequest?.id">{{ $t('UnlinkPending') }}</div>
                   </div>
                 </q-popup-proxy>
               </q-item-label>
@@ -181,7 +184,6 @@
                     <q-item
                       clickable
                       v-close-popup
-                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                       @click="displayDeviceSalesReportDialog(posDevice)"
                     >
                       <q-item-section>
@@ -191,7 +193,6 @@
                     <q-item
                       clickable
                       v-close-popup
-                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                       @click="updatePosDevice(posDevice)"
                     >
                       <q-item-section>
@@ -204,7 +205,6 @@
                       v-if="posDevice?.isLinked?.() && posDevice?.linkedDevice?.unlinkRequest?.id"
                       clickable
                       v-close-popup
-                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                       @click="confirmCancelUnlinkPosDevice(posDevice)"
                     >
                       <q-item-section>
@@ -218,7 +218,6 @@
                       v-else-if="posDevice?.isLinked?.()"
                       clickable
                       v-close-popup
-                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                       :disabled="posDevice?.linkedDevice?.unlinkRequest?.id"
                       @click="confirmUnlinkPosDevice(posDevice)"
                     >
@@ -230,7 +229,6 @@
                       v-else
                       clickable
                       v-close-popup
-                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                       @click="openLinkDeviceDialog(posDevice)"
                     >
                       <q-item-section>
@@ -241,7 +239,6 @@
                       v-if="posDevice?.isLinked?.()"
                       clickable
                       v-close-popup
-                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                       @click="updateDeviceSuspension(posDevice, !posDevice?.linkedDevice?.isSuspended)"
                     >
                       <q-item-section>
@@ -258,7 +255,6 @@
                     <q-item
                       clickable
                       v-close-popup
-                      :class="[darkMode ? 'pt-dark-label' : 'pp-text']"
                       @click="confirmRemovePosDevice(posDevice)"
                     >
                       <q-item-section>
@@ -273,7 +269,7 @@
           <q-separator :color="darkMode ? 'white' : 'grey-7'" spaced inset/>
         </template>
         <div v-if="!posDevices?.length && !fetchingPosDevices" class="text-grey text-center">
-          No devices
+          {{ $t('NoDevices') }}
         </div>
       </q-card-section>
     </q-card>
@@ -482,7 +478,7 @@ async function deviceUnlinkRequest(posDevice) {
     progress: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   return Promise.resolve(posDevice)
@@ -533,7 +529,7 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     progress: true,
     seamless: true,
     ok: false,
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
   const watchtower = new Watchtower()
@@ -563,7 +559,7 @@ function updateDeviceSuspension(posDevice, isSuspended) {
     persistent: true,
     seamless: true,
     progress: true,
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   const watchtower = new Watchtower()
   watchtower.BCH._api.post(`paytacapos/devices/${handle}/suspend/`, data)
@@ -661,7 +657,7 @@ function confirmUnlinkPosDevice(posDevice) {
     },
     seamless: true,
     cancel: { noCaps: true, flat: true, padding: 'xs md' },
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(() => {
       return deviceUnlinkRequest(posDevice)
@@ -683,7 +679,7 @@ function addNewPosDevice() {
         persistent: true,
         progress: true,
         seamless: true,
-        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
       apiCall
         .then(response => {
@@ -736,7 +732,7 @@ function updatePosDevice(posDevice) {
         persistent: true,
         progress: true,
         seamless: true,
-        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
       apiCall
         .then(response => {
@@ -792,8 +788,8 @@ function confirmRemovePosDevice(posDevice) {
       color: 'red-5',
     },
     seamless: true,
-    cancel: { noCaps: true, flat: true, padding: 'xs md' },
-    class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+    cancel: { noCaps: true, flat: true, padding: 'xs md', label: $t('Cancel') },
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(() => {
       let updateDialogMsg = $t(
@@ -805,7 +801,7 @@ function confirmRemovePosDevice(posDevice) {
         persistent: true,
         seamless: true,
         progress: true,
-        class: darkMode.value ? 'text-white pt-dark-card' : 'text-black',
+        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
       deletePosDevice(posDevice)
         .then(() => {
@@ -939,12 +935,16 @@ function connectRpcClient(opts) {
     })
 }
 </script>
-<style scoped>
-.device-tooltip > div::before {
-  content: "- ";
-}
-.device-tooltip > div:only-child::before {
-  content: "";
-}
-
+<style lang="scss" scoped>
+  .device-tooltip > div::before {
+    content: "- ";
+  }
+  .device-tooltip > div:only-child::before {
+    content: "";
+  }
+  .edit-merchant-info-button {
+    position: absolute;
+    top: 0rem;
+    right: 0.25rem;
+  }
 </style>

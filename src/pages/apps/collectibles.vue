@@ -32,9 +32,9 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isDefaultTheme(theme) && 'transparent'"
-      class="col-12 q-px-lg pp-fcolor"
+      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+      class="col-12 q-px-lg"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
       @update:modelValue="changeNetwork"
@@ -54,33 +54,32 @@
     </q-tabs>
     <div v-if="showAddress" class="flex flex-center" style="padding-top: 30px;">
       <div class="q-pa-md br-15 col-qr-code text-center">
-        <img src="/ct-logo.png" height="50" class="receive-icon-asset">
+        <img src="/ct-logo.png" height="50" class="receive-icon-asset" alt="">
         <qr-code
           :text="receivingAddress"
-          style="width: 200px; margin-left: auto; margin-right: auto;"
+          style="width: 200px;"
           color="#253933"
           :size="200"
           error-level="H"
-          class="q-mb-sm"
+          class="q-mb-sm q-ml-auto q-mr-auto"
           @click="copyAddress(receivingAddress)"
         />
       </div>
     </div>
     <div v-if="showAddress" class="row">
-      <div class="col" style="padding: 20px 40px 20px 40px; overflow-wrap: break-word;">
+      <div class="col receiving-address-container">
         <span class="qr-code-text text-weight-light text-center">
           <div
-            class="text-nowrap"
-            style="letter-spacing: 1px; font-size: 18px;"
-            @click="copyAddress(receivingAddress)" :class="darkMode ? 'text-white' : 'pp-text'"
+            class="text-nowrap text-bow receiving-address"
+            @click="copyAddress(receivingAddress)" :class="getDarkModeClass(darkMode)"
           >
             {{ receivingAddress }}
           </div>
         </span>
       </div>
     </div>
-    <div style="text-align: center;" :class="darkMode ? 'text-white' : 'text-black'" v-if="showAddress" @click="showAddress = !showAddress">
-      <q-btn icon="close" flat round dense />
+    <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" v-if="showAddress" @click="showAddress = !showAddress">
+      <q-btn icon="close" flat round dense class="close-button" />
     </div>
     <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
       <q-tab-panel name="BCH">
@@ -111,7 +110,6 @@
             padding="sm"
             size="sm"
             icon="add"
-            style="color: #3B7BF6;"
             class="q-mx-sm button button-icon"
             :class="getDarkModeClass(darkMode)"
             @click="showAddERC721Form = true"
@@ -122,17 +120,12 @@
             padding="sm"
             size="sm"
             icon="app_registration"
-            style="color: #3B7BF6;"
             class="q-mx-sm button button-icon"
             :class="getDarkModeClass(darkMode)"
             @click="toggleManageAssets"
           />
         </div>
-        <p
-          v-if="erc721Assets && erc721Assets.length === 0"
-          style="font-size: 20px; color: gray; text-align: center;"
-          class="q-py-md"
-        >
+        <p v-if="erc721Assets && erc721Assets.length === 0" style="color: gray;" class="q-py-md text-center text-h6">
           Asset list empty
         </p>
         <template v-else>
@@ -149,10 +142,12 @@
                     :class="getDarkModeClass(darkMode)"
                     @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
                   />
-                  <div class="text-subtitle1" :class="darkMode ? 'pt-dark-label' : 'text-black'">{{ erc721Assets[selectedERC721AssetIndex].name }}</div>
+                  <div class="text-subtitle1 pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ erc721Assets[selectedERC721AssetIndex].name }}
+                  </div>
                 </template>
-                <div v-else class="text-grey" :class="[darkMode ? 'pt-dark-label' : 'pp-text']">
-                  Select Collection
+                <div v-else class="pt-label" :class="getDarkModeClass(darkMode)">
+                  {{ $t('SelectCollection') }}
                 </div>
               </div>
             </template>
@@ -174,14 +169,13 @@
                   rounded
                   padding="sm"
                   icon="delete"
-                  style="color: #3B7BF6;"
                   class="button button-icon"
                   :class="getDarkModeClass(darkMode)"
                   @click.stop="confirmRemoveERC721Asset(asset)"
                 />
               </q-item-section>
               <q-item-section>
-                <q-item-label :class="[darkMode ? 'pt-dark-label' : 'pp-text']">{{ asset.name }}</q-item-label>
+                <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">{{ asset.name }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-btn
@@ -189,7 +183,6 @@
                   rounded
                   padding="sm"
                   icon="info"
-                  style="color: #3B7BF6;"
                   class="button button-icon"
                   :class="getDarkModeClass(darkMode)"
                   @click.stop="showERC721Asset(asset)"
@@ -230,7 +223,7 @@ import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
 import { convertCashAddress } from 'src/wallet/chipnet'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'app-wallet-info',
@@ -302,7 +295,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     filterTokens (isCashToken) {
       this.bchNftType = isCashToken ? 'ct' : 'slp'
     },
@@ -319,8 +312,12 @@ export default {
     },
     confirmRemoveERC721Asset (asset) {
       const title = this.$t('RemoveAsset')
-      const message = 'Remove asset "' + asset.name + '". Are you sure?'
-      let dialogStyleClass = this.darkMode ? 'text-white pt-dark-card' : 'text-black'
+      const message = this.$t(
+        'RemoveAssetPrompt',
+        { assetName: asset.name },
+        `Remove asset ${asset.name}. Are you sure?`
+      )
+      let dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       dialogStyleClass += ' br-15'
 
       this.$q.dialog({
@@ -330,11 +327,13 @@ export default {
         seamless: true,
         class: dialogStyleClass,
         ok: {
-          rounded: true
+          rounded: true,
+          label: this.$t('OK')
         },
         cancel: {
           rounded: true,
-          flat: true
+          flat: true,
+          label: this.$t('Cancel')
         }
       }).onOk(() => {
         const commitName = 'sep20/removeNftAsset'
@@ -385,45 +384,38 @@ export default {
 }
 </script>
 
-<style scoped>
-#app {
-  padding: 10px;
-  overflow-y: auto;
-  z-index: -10 !important;
-}
-
-.collectible-card {
-  width: 100%;
-  max-width: 130px;
-}
-
-#context-menu {
-  position: fixed;
-  top: 16px;
-  right: 10px;
-  z-index: 150 !important;
-  color: #3b7bf6;
-}
-.pp-text {
-  color: #000 !important;
-}
-.img-bg-white {
-  background: white;
-  margin-top: -60px;
-  height: 100vh;
-}
-.col-qr-code {
-  background: white;
-  border: 4px solid #ed5f59;
-  padding: 30px;
-}
-
-.receive-icon-asset {
-  position: absolute;
-  margin-top: 73px;
-  margin-left: -25px;
-  background: white;
-  border-radius: 50%;
-  padding: 4px;
-}
+<style lang="scss" scoped>
+  #app {
+    padding: 10px;
+    overflow-y: auto;
+    z-index: -10 !important;
+  }
+  #context-menu {
+    position: fixed;
+    top: 16px;
+    right: 10px;
+    z-index: 150 !important;
+    color: #3b7bf6;
+  }
+  .col-qr-code {
+    background: white;
+    border: 4px solid #ed5f59;
+    padding: 30px;
+  }
+  .receive-icon-asset {
+    position: absolute;
+    margin-top: 73px;
+    margin-left: -25px;
+    background: white;
+    border-radius: 50%;
+    padding: 4px;
+  }
+  .receiving-address-container {
+    padding: 20px 40px;
+    overflow-wrap: break-word;
+    .receiving-address {
+      letter-spacing: 1px;
+      font-size: 18px;
+    }
+  }
 </style>

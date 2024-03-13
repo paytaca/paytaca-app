@@ -8,14 +8,14 @@
     transition-hide="slide-down"
     seamless
     >
-      <q-card v-if="loader" class="full-height flex flex-center" :class="{'pt-dark': darkMode}">
+      <q-card v-if="loader" class="full-height flex flex-center text-bow" :class="getDarkModeClass(darkMode)">
           <q-card-section>
               <div class="row">
                   <div class="col-12 text-center q-mt-lg">
                       <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
                   </div>
                   <div class="col-12 text-center">
-                      <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+                      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
                   </div>
               </div>
           </q-card-section>
@@ -32,7 +32,7 @@
         <q-card-section class="q-pt-none">
           <div class="row justify-center">
               <div class="col-10 text-center">
-                  <p class="q-py-none q-my-none text-blue-9" :class="{'pt-dark-label': darkMode}">{{ pinLabel }}</p>
+                  <p class="q-py-none q-my-none pt-label" :class="getDarkModeClass(darkMode)">{{ pinLabel }}</p>
               </div>
               <div class="col-10">
                   <div class="row justify-center">
@@ -95,7 +95,9 @@
 import ProgressLoader from '../../components/ProgressLoader'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getMnemonic } from '../../wallet'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { sha256 } from 'js-sha256'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -128,7 +130,7 @@ export default {
     }
   },
   components: { ProgressLoader },
-  props: ['pinDialogAction', 'nextAction'],
+  props: ['pinDialogAction', 'nextAction', 'newWalletMnemonic'],
   watch: {
     pinDialogAction () {
       const vm = this
@@ -162,11 +164,11 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    },
+    }
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     nonNumKeysClass (key) {
       let classes = ''
       if (this.$store.getters['darkmode/getStatus']) {
@@ -242,10 +244,30 @@ export default {
     },
     async setPin () {
       const vm = this
+      let mnemonic = ''
+
+      if (vm.newWalletMnemonic) {
+        mnemonic = vm.newWalletMnemonic
+      } else {
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        mnemonic = await getMnemonic(walletIndex)
+      }
+      const pinKey = `pin-${sha256(mnemonic)}`
 
       if (vm.pinDialogAction === 'VERIFY') {
-        const secretKey = await SecureStoragePlugin.get({ key: 'pin' })
-        if (secretKey.value === vm.pin) {
+        let secretKey = null
+        try {
+          secretKey = await SecureStoragePlugin.get({ key: pinKey })
+        } catch (error) {
+          try {
+            // fallback for retrieving pin using unhashed mnemonic
+            secretKey = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+          } catch (error1) {
+            // fallback for old process of pin retrieval
+            secretKey = await SecureStoragePlugin.get({ key: 'pin' })
+          }
+        }
+        if (secretKey?.value === vm.pin) {
           resetAll()
           vm.$emit('nextAction', 'proceed')
         } else {
@@ -259,7 +281,7 @@ export default {
         vm.resetStatus = false
       } else if (vm.pinStep === 2) {
         vm.loader = true
-        SecureStoragePlugin.set({ key: 'pin', value: vm.pin })
+        SecureStoragePlugin.set({ key: pinKey, value: vm.pin })
           .then(() => {
             setTimeout(() => {
               if (vm.pinDialogAction === 'SET UP') {
@@ -292,18 +314,6 @@ export default {
 </script>
 
 <style lang="scss">
-.pt-bg-card {
-  position: relative;
-  background: #fff;
-}
-.pt-btn-set-pin {
-  color: #fff;
-  height: 40px;
-  background-color: #2E73D2;
-}
-.pt-btn-reset-pin {
-  height: 40px;
-}
 .pt-pin-key {
   position: relative;
   height: 50px !important;
@@ -324,11 +334,6 @@ export default {
   vertical-align: middle;
   font-size: 20px;
 }
-.pt-pin-dialog-close {
-  position: absolute;
-  right: 14px;
-  top: 14px;
-}
 .dim-text {
   color: #8F8CB8;
 }
@@ -346,9 +351,6 @@ export default {
   height: 45px;
   font-weight: bolder;
   background-color: #3b7bf6;
-}
-.pt-remove-key {
-  background: #D7DBDE;
 }
 .pt-col-key {
   padding: 2px;
@@ -369,16 +371,6 @@ export default {
 }
 .pt-bg-dark {
   color: #fff !important;
-  background: #273746 !important;
-}
-.pt-bg-dark-2 {
-  color: #fff !important;
-  background: #5D6D7E !important;
-}
-.pt-radio-dark {
-  color: #fff !important;
-}
-.pt-dark {
   background: #273746 !important;
 }
 </style>

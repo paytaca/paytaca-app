@@ -1,24 +1,23 @@
 <template>
-  <div
-    id="app-container"
-    class="scroll-y"
-    style="background-color: #ECF3F3;"
-    :class="getDarkModeClass(darkMode)"
-  >
+  <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
     <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-          <div :class="{'pt-header home-header' : isDefaultTheme(theme)}">
+          <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange" />
-            <div class="row q-pb-xs" :class="{'q-pt-lg': enableSmartBCH, 'q-pt-sm': !enableSmartBCH}" :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}">
+            <div
+              class="row q-pb-xs"
+              :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'"
+              :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
+            >
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="(isDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
+                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
                 >
                   <q-tab
                     name="BCH"
@@ -42,7 +41,7 @@
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
                   style="margin-top: -15px;"
-                  :indicator-color="isDefaultTheme(theme) && 'transparent'"
+                  :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
                 >
                   <q-tab
                     :name="$t('DEEM')"
@@ -77,16 +76,16 @@
               </template>
             </div>
             <div class="row q-mt-sm">
-              <div class="col text-white" :class="{'text-white': darkMode}" @click="selectBch">
+              <div class="col text-white" @click="selectBch">
                 <q-card id="bch-card">
                   <q-card-section horizontal>
                     <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
-                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="height: 53px; width: 100%">
-                        <q-skeleton style="font-size: 24px;" type="rect"/>
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" class="bch-skeleton">
+                        <q-skeleton class="text-h5" type="rect"/>
                       </div>
-                      <div v-else style="z-index: 20; position: relative;">
+                      <div v-else>
                         <p>
-                          <span ellipsis style="font-size: 24px;" :class="{'text-grad' : isDefaultTheme(theme)}">
+                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{
                               selectedNetwork === 'sBCH'
                                 ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
@@ -94,13 +93,12 @@
                             }}
                           </span>
                         </p>
-                        <div style="padding: 0; margin-top: -15px;">
+                        <div style="margin-top: -15px;">
                           {{ getAssetMarketBalance(bchAsset) }}
                         </div>
                         <q-badge
                           rounded
-                          class="flex justify-start items-center"
-                          style="margin-top: 5px; background-color: #ecf3f3;"
+                          class="flex justify-start items-center yield-container"
                           v-if="walletYield"
                         >
                           <q-icon
@@ -135,16 +133,16 @@
           <div
             v-if="!showTokens"
             class="text-center button button-text-primary show-tokens-label"
-            :class="getDarkModeClass(darkMode, '', 'text-black')"
+            :class="getDarkModeClass(darkMode)"
             @click.native="toggleShowTokens"
-            style="margin-top: 0px; font-size: 13px; padding-bottom: 15px;"
           >
             {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
           </div>
           <div class="row q-mt-sm" v-if="showTokens">
             <div class="col">
               <p
-                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary payment-methods"
+                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary"
+                style="font-size: 20px;"
                 :class="getDarkModeClass(darkMode)"
               >
                 {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
@@ -168,8 +166,12 @@
                   :class="getDarkModeClass(darkMode)"
                   @click="updateTokenMenuPosition"
                 >
-                  <q-menu ref="tokenMenu" :class="{'text-black': !darkMode, 'text-white': darkMode}" style="position: fixed; left: 0;">
-                    <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px;">
+                  <q-menu
+                    ref="tokenMenu"
+                    class="text-bow token-menu"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <q-list class="pt-card token-menu-list" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
                         <q-item-section @click="toggleManageAssets">
                           {{ $t(isHongKong(currentCountry) ? 'ManagePoints' : 'ManageTokens') }}
@@ -191,7 +193,7 @@
               </p>
             </div>
 
-            <div class="col-3 q-mt-sm" style="position: relative; margin-top: -5px;" v-show="selectedNetwork === networks.BCH.name">
+            <div class="col-3 q-mt-sm" style="margin-top: -5px !important;" v-show="selectedNetwork === networks.BCH.name">
               <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
             </div>
           </div>
@@ -242,15 +244,12 @@
         />
         <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
           <div class="row no-wrap justify-between">
-            <p
-              class="q-ma-lg section-title transaction-wallet"
-              :class="getDarkModeClass(darkMode)"
-            >
+            <p class="q-ma-lg section-title transaction-wallet" :class="getDarkModeClass(darkMode)">
               {{ selectedAsset.symbol }} {{ $t('Transactions') }}
             </p>
             <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
               <q-btn
-                v-if="isDefaultTheme(theme) && darkMode"
+                v-if="isNotDefaultTheme(theme) && darkMode"
                 unelevated
                 @click="openPriceChart"
                 icon="img:assets/img/theme/payhero/price-chart.png"
@@ -267,7 +266,10 @@
               />
             </div>
           </div>
-          <div class="col q-gutter-xs q-mx-lg q-mb-sm text-center btn-transaction" :class="{'pt-dark-card': darkMode}">
+          <div
+            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"
+            :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')"
+          >
             <button
               class="btn-custom q-mt-none btn-all"
               :class="[getDarkModeClass(darkMode), {'active-transaction-btn border': transactionsFilter == 'all'}]"
@@ -290,30 +292,14 @@
               {{ $t('Received') }}
             </button>
           </div>
-          <div class="transaction-list">
-            <template v-if="transactionsLoaded">
-              <TransactionListItem
-                v-for="(transaction, index) in transactions"
-                :key="'tx-' + index"
-                :transaction="transaction"
-                :selected-asset="selectedAsset"
-                :denominationTabSelected="denominationTabSelected"
-                @click="showTransactionDetails(transaction)"
-              />
-              <div ref="bottom-transactions-list"></div>
-              <TransactionListItemSkeleton v-if="transactionsAppending"/>
-              <div v-else-if="transactionsPageHasNext" :class="{'pt-dark-label': darkMode}" style="margin-top: 20px; width: 100%; text-align: center; color: #3b7bf6;">
-                <p @click="() => { getTransactions(transactionsPage + 1, { scrollToBottom: true }) }">{{ $t('ShowMore') }}</p>
-              </div>
-              <div v-if="transactions.length === 0" class="relative text-center q-pt-md">
-                <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-                <p :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">{{ $t('NoTransactionsToDisplay') }}</p>
-              </div>
-            </template>
-            <div v-else>
-              <TransactionListItemSkeleton v-for="i in 5"/>
-            </div>
-          </div>
+          <TransactionList
+            ref="transaction-list-component"
+            :selectedAssetProps="selectedAsset"
+            :denominationTabSelected="denominationTabSelected"
+            :wallet="wallet"
+            :selectedNetworkProps="selectedNetwork"
+            @on-show-transaction-details="showTransactionDetails"
+          />
         </div>
       </div>
       <footer-menu />
@@ -345,18 +331,19 @@ import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
-import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Plugins } from '@capacitor/core'
+import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import TransactionList from 'src/components/transactions/TransactionList'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -367,8 +354,7 @@ const sep20IdRegexp = /sep20\/(.*)/
 export default {
   name: 'Transaction-page',
   components: {
-    TransactionListItem,
-    TransactionListItemSkeleton,
+    TransactionList,
     TokenSuggestionsDialog,
     Transaction,
     AssetInfo,
@@ -402,11 +388,6 @@ export default {
       },
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
-      transactions: [],
-      transactionsPage: 0,
-      transactionsPageHasNext: false,
-      transactionsLoaded: false,
-      transactionsAppending: false,
       balanceLoaded: false,
       wallet: null,
       manageAssets: false,
@@ -482,7 +463,7 @@ export default {
       return this.$store.getters['notification/openedNotification']
     },
     isDenominationTabEnabled () {
-      return (isDefaultTheme(this.theme) &&
+      return (isNotDefaultTheme(this.theme) &&
         (this.denomination === this.$t('DEEM') || this.denomination === 'DEEM') &&
         this.selectedNetwork !== 'sBCH')
     },
@@ -503,7 +484,7 @@ export default {
       this.formatBCHCardBalance(this.denomination, asset?.balance || 0)
       return asset
     },
-    mainchainAssets () {
+    mainchainAssets() {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') return item
       })
@@ -533,22 +514,13 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    earliestBlock () {
-      if (!Array.isArray(this.transactions) || !this.transactions.length) return 0
-      return Math.min(
-        ...this.transactions
-          .map(tx => tx && tx.block)
-          .filter(Boolean)
-          .filter(Number.isSafeInteger)
-      )
     }
   },
   methods: {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     isHongKong,
     openPriceChart () {
       this.$q.dialog({
@@ -584,22 +556,19 @@ export default {
         if (setAsset?.id && vm.assets.find(asset => asset?.id == setAsset?.id)) {
           vm.selectedAsset = setAsset
         }
-        vm.transactions = []
-        vm.transactionsLoaded = false
-        vm.transactionsPage = 0
+        vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
         vm.assets.map(function (asset) {
           return vm.getBalance(asset.id)
         })
-        vm.getTransactions()
+        vm.$refs['transaction-list-component'].getTransactions()
       }
     },
     selectBch () {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
-      vm.transactions = []
-      vm.transactionsPage = 0
-      vm.getTransactions()
+      vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
+      vm.$refs['transaction-list-component'].getTransactions()
       vm.assetClickCounter += 1
       if (vm.assetClickCounter >= 2) {
         vm.showAssetInfo(this.bchAsset)
@@ -668,11 +637,9 @@ export default {
       if (!assetExists) return
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
-      this.transactions = []
-      this.transactionsPage = 0
-      this.transactionsPageHasNext = false
       this.getBalance()
-      this.getTransactions()
+      this.$refs['transaction-list-component'].resetValues(null, null, asset)
+      this.$refs['transaction-list-component'].getTransactions()
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
     },
     getBalance (id) {
@@ -716,160 +683,24 @@ export default {
       if (!id) {
         id = vm.selectedAsset.id
       }
-
-      const tokenId = id.split('/')[1]
       vm.transactionsPageHasNext = false
-      const updateAssetBalance = 'assets/updateAssetBalance'
-
-      if (id.indexOf('slp/') > -1) {
-        getWalletByNetwork(vm.wallet, 'slp').getBalance(tokenId).then(function (response) {
-          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
-          vm.balanceLoaded = true
-        })
-      } else if (id.indexOf('ct/') > -1) {
-        getWalletByNetwork(vm.wallet, 'bch').getBalance(tokenId).then(response => {
-          vm.$store.commit(updateAssetBalance, { id, balance: response.balance })
-          vm.balanceLoaded = true
-        })
-      } else {
-        getWalletByNetwork(vm.wallet, 'bch').getBalance().then(function (response) {
-          vm.$store.commit(updateAssetBalance, {
-            id: id,
-            balance: response.balance,
-            spendable: response.spendable
-          })
-          vm.balanceLoaded = true
-        })
-      }
-    },
-    scrollToBottomTransactionList() {
-      this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
-    },
-    getTransactions (page = 1, opts={ scrollToBottom: false }) {
-      if (this.selectedNetwork === 'sBCH') {
-        const address = this.$store.getters['global/getAddress']('sbch')
-        return this.getSbchTransactions(address, opts)
-      }
-      return this.getBchTransactions(page, opts)
-    },
-    getSbchTransactions (address, opts={ scrollToBottom: false }) {
-      const vm = this
-      const asset = vm.selectedAsset
-      const id = String(vm.selectedAsset.id)
-
-      const filterOpts = { limit: 10, includeTimestamp: true }
-      if (vm.transactionsFilter === 'sent') {
-        filterOpts.type = 'outgoing'
-      } else if (vm.transactionsFilter === 'received') {
-        filterOpts.type = 'incoming'
-      }
-
-      let appendResults = false
-      if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
-        filterOpts.before = '0x' + (this.earliestBlock - 1).toString(16)
-        appendResults = true
-      }
-
-      let requestPromise = null
-      if (sep20IdRegexp.test(id)) {
-        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
-          contractAddress,
-          address,
-          filterOpts
-        )
-      } else {
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
-          address,
-          filterOpts
-        )
-      }
-
-      if (!requestPromise) return
-      if (!appendResults) vm.transactionsLoaded = false
-      vm.transactionsAppending = true
-      requestPromise
-        .then(response => {
-          vm.transactionsPageHasNext = false
-          if (Array.isArray(response.transactions)) {
-            vm.transactionsPageHasNext = response.hasNextPage
-            if (!appendResults) vm.transactions = []
-            vm.transactions.push(...response.transactions
-              .map(tx => {
-                tx.senders = [tx.from]
-                tx.recipients = [tx.to]
-                tx.asset = asset
-                return tx
-              })
-            )
-            if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
-          }
-        })
-        .finally(() => {
-          vm.transactionsAppending = false
-          vm.transactionsLoaded = true
-        })
-    },
-    getBchTransactions (page, opts={ scrollToBottom: false }) {
-      const vm = this
-      const asset = vm.selectedAsset
-      const id = vm.selectedAsset.id
-      if (page == 1) vm.transactionsLoaded = false
-      let recordType = 'all'
-      if (vm.transactionsFilter === 'sent') {
-        recordType = 'outgoing'
-      } else if (vm.transactionsFilter === 'received') {
-        recordType = 'incoming'
-      }
-      let requestPromise
-      if (id.indexOf('slp/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, page, recordType)
-      } else if (id.indexOf('ct/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType, tokenId)
-      } else {
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType)
-      }
-
-      if (!requestPromise) return
-      vm.transactionsAppending = true
-      requestPromise
-        .then(function (response) {
-          const transactions = response.history || response
-          const page = Number(response?.page)
-          const hasNext = response?.has_next
-          if (!Array.isArray(transactions)) return
-          if (page > vm.transactionsPage) vm.transactionsPage = page
-          transactions.map(function (item) {
-            item.asset = asset
-            return vm.transactions.push(item)
-          })
-          vm.transactionsLoaded = true
-          setTimeout(() => {
-            vm.transactionsPageHasNext = hasNext
-          }, 250)
-          if (opts?.scrollToBottom) setTimeout(() => vm.scrollToBottomTransactionList(), 100)
-        })
-        .finally(() => {
-          vm.transactionsAppending = false
-        })
+      await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store).then(() => {
+        vm.balanceLoaded = true
+      })
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
       this.getBalance(this.selectedAsset.id)
       this.transactions = []
-      this.getTransactions()
+      this.$refs['transaction-list-component'].getTransactions()
       done()
     },
     setTransactionsFilter(value) {
       if (['sent', 'received'].indexOf(value) >= 0) this.transactionsFilter = value
       else this.transactionsFilter = 'all'
 
-      this.transactions = []
-      this.transactionsPage = 0
-      this.transactionsLoaded = false
-      this.getTransactions()
+      this.$refs['transaction-list-component'].resetValues(value)
+      this.$refs['transaction-list-component'].getTransactions()
     },
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
@@ -1083,7 +914,7 @@ export default {
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
         vm.getBalance(vm.selectedAsset.id)
-        vm.getTransactions()
+        vm.$refs['transaction-list-component'].getTransactions()
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
         vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
@@ -1127,7 +958,7 @@ export default {
           message: 'Transaction not found',
           seamless: true,
           ok: true,
-          class: this.darkMode ? 'text-white br-15 pt-dark-card' : 'text-black',
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
         })
         return
       }
@@ -1139,7 +970,7 @@ export default {
           this.transactions = []
           this.transactionsPage = 0
           this.transactionsLoaded = false
-          this.getTransactions()
+          this.$refs['transaction-list-component'].getTransactions()
         }
       } else {
         transaction.asset = {
@@ -1216,7 +1047,7 @@ export default {
   async mounted () {
     const vm = this
 
-    if (isDefaultTheme(vm.theme) && vm.darkMode) {
+    if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
       vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
       vm.assetsCloseButtonColor = 'color: #ffbf00;'
     } else {
@@ -1231,9 +1062,22 @@ export default {
       forceRecreate = true
     } else if (preferredSecurity === 'pin') {
       // If using PIN, check if it's 6 digits
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
       try {
-        const pin =  await SecureStoragePlugin.get({ key: 'pin' })
-        if (pin.value.length < 6) {
+        let pin = null
+        try {
+          pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
+        } catch (error) {
+          try {
+            // fallback for retrieving pin using unhashed mnemonic
+            pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+          } catch (error1) {
+            // fallback for old process of pin retrieval
+            pin = await SecureStoragePlugin.get({ key: 'pin' })
+          }
+        }
+        if (pin?.value.length < 6) {
           forceRecreate = true
         }
       } catch {
@@ -1285,6 +1129,10 @@ export default {
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
+    .bch-skeleton {
+      height: 53px;
+      width: 100%
+    }
   }
   .fixed-container {
     position: fixed;
@@ -1297,20 +1145,6 @@ export default {
     position: relative;
     margin-top: 355px;
     z-index: 5;
-  }
-  .transaction-list {
-    height: 440px;
-    overflow: auto;
-    padding-bottom: 80px;
-  }
-  /* iPhone 5/SE */
-  @media (min-width: 280px) and (max-width: 320px) {
-    .transaction-list {
-      height: 430px;
-    }
-  }
-  .payment-methods {
-    font-size: 20px;
   }
   .transaction-container {
     min-height: 80vh;
@@ -1350,14 +1184,30 @@ export default {
   .q-tab__icon {
     font-size: 14px !important;
   }
-  .yield {
-    padding-right: 5px;
-    &.positive {
-      color: $green-5;
+  .token-menu {
+    position: fixed;
+    left: 0;
+    &.token-menu-list {
+      min-width: 100px;
     }
-    &.negative {
-      color: $red-5;
+  }
+  .yield-container {
+    margin-top: 5px;
+    background-color: #ecf3f3;
+    .yield {
+      padding-right: 5px;
+      &.positive {
+        color: $green-5;
+      }
+      &.negative {
+        color: $red-5;
+      }
     }
+  }
+  .show-tokens-label {
+    margin-top: 0px;
+    font-size: 13px;
+    padding-bottom: 15px;
   }
 </style>
 

@@ -1,40 +1,41 @@
 <template>
   <q-dialog ref="dialog" full-width seamless>
     <q-card
-      :class="getDarkModeClass(darkMode, 'text-white pt-dark modal', 'text-black')"
-      class="br-15"
-      style="padding-bottom: 10px; background-color: #ECF3F3"
+      class="br-15 price-chart-card text-bow"
+      :class="getDarkModeClass(darkMode)"
+      style="padding-bottom: 10px"
     >
       <q-card-section v-if="isloaded" class="row items-center q-pb-none" style="float: right;">
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
       <div class="row no-wrap items-center justify-center">
-        <div v-if="isloaded && !networkError" style="">
-          <img src="../../../assets/bch-logo.png" style="height: 40px; position: absolute; top: 12px; left: 25px; z-index: 1;"/>
-          <span class="text-h6" style="position: absolute; left: 85px; z-index: 1; margin-top: 15px; font-size: 18px;">
+        <div v-if="isloaded && !networkError">
+          <img src="../../../assets/bch-logo.png" id="bch-logo" alt=""/>
+          <span class="text-h6" id="bch-label">
             Bitcoin Cash
           </span>
         </div>
       </div>
       <div class="row justify-center q-pb-lg q-pt-lg" v-if="!isloaded">
-        <ProgressLoader :color="isDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
-      <div class="text-center col pt-internet-required" v-if="networkError && isloaded">
+      <div
+        class="text-h5 text-center col text-bow pt-internet-required"
+        :class="getDarkModeClass(darkMode)"
+        v-if="networkError && isloaded"
+      >
         {{ $t('NoInternetConnectionNotice') }} &#128533;
       </div>
       <div v-if="isloaded && !networkError">
-        <div class="full-width q-pb-sm q-pt-lg" style="font-size: 18px; padding-left: 40px; margin-top: 40px;">
+        <div class="full-width q-pb-sm q-pt-lg" id="chart-details-container">
           {{ parseFiatCurrency(bchPrice[bchPrice.length - 1], selectedCurrency) }}&nbsp;
           <span style="font-size: 13px;" :class="ishigher ? 'inc-text-color' : 'dec-text-color'">
             <q-icon size="sm" :name="ishigher ? 'mdi-menu-up':'mdi-menu-down'"/><b>{{ percentage }} %</b>
           </span>
         </div>
-        <q-card
-          class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 price-chart"
-          :class="getDarkModeClass(darkMode, 'pt-dark-card-2', '')"
-        >
-          <div style="width: 100%; height: 200px; margin-left: 3%; margin-right: 3%; margin-top: 15px; margin-bottom: 15px;" >
+        <q-card class="row justify-center q-mx-md q-pt-sm q-mb-md br-15 price-chart" :class="getDarkModeClass(darkMode)">
+          <div id="chart-container">
             <canvas ref="chart"></canvas>
           </div>
         </q-card>
@@ -47,7 +48,7 @@ import { load } from 'dotenv'
 import Chart from 'chart.js/auto'
 import ProgressLoader from '../../../components/ProgressLoader'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -69,7 +70,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     parseFiatCurrency,
     async loadData () {
       const vm = this
@@ -271,6 +272,12 @@ export default {
     await this.loadData()
     this.createChart()
     this.refreshData()
+
+    console.log(this.$refs.dialog)
+
+    document.addEventListener('backbutton', () => {
+      this.$refs.dialog.hide()
+    })
   },
   beforeUnmount () {
     this.cancelAutoUpdate()
@@ -278,24 +285,42 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+  #bch-logo {
+    height: 40px;
+    position: absolute;
+    top: 12px;
+    left: 25px;
+    z-index: 1;
+  }
+  #bch-label {
+    position: absolute;
+    left: 85px;
+    z-index: 1;
+    margin-top: 15px;
+    font-size: 18px;
+  }
+  #chart-details-container {
+    font-size: 18px;
+    padding-left: 40px;
+    margin-top: 40px;
+  }
+  #chart-container {
+    width: 100%;
+    height: 200px;
+    margin-left: 3%;
+    margin-right: 3%;
+    margin-top: 15px;
+    margin-bottom: 15px;
+  }
   .pt-internet-required {
-  text-align: center;
-  width: 100%;
-  font-size: 24px;
-  padding: 30px;
-  color: gray;
-}
-.light-bg {
-  background-color: #F9F8FF;
-}
-.dec-text-color {
-  color: #ed5e59;
-}
-.inc-text-color {
-  color: #8ec351
-}
-.chart {
-  width: 360px;
-  height: 180px;
-}
+    text-align: center;
+    width: 100%;
+    padding: 30px;
+  }
+  .dec-text-color {
+    color: #ed5e59;
+  }
+  .inc-text-color {
+    color: #8ec351
+  }
 </style>

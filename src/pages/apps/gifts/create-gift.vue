@@ -2,38 +2,38 @@
   <div class="static-container">
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
-        title="Gifts"
+        :title="$t('CreateGift')"
         backnavpath="/apps/gifts"
         class="q-px-sm apps-header gift-app-header"
       />
       <div class="q-pa-lg" style="width: 100%; color: black;">
         <div class="text-center" v-if="processing">
-          <p :class="{'text-white': darkMode}" >Creating gift...</p>
-          <progress-loader :color="isDefaultTheme(theme) ? theme : 'pink'" />
+          <p :class="{'text-white': darkMode}" >{{ $t('CreatingGift') }}</p>
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
         </div>
         <div class="q-mt-md" :class="{'text-white': darkMode}" v-if="!processing && !completed">
-          <div class="text-h5 q-mb-md">Create Gift</div>
+          <div class="text-h5 q-mb-md">{{ $t('CreateGift') }}</div>
           <div class="q-mb-lg">
-            Balance: {{ getAssetDenomination(denomination, spendableBch) }}
+            {{ $t('Balance') }}: {{ getAssetDenomination(denomination, spendableBch) }}
           </div>
           <label>
-            Enter Amount:
+            {{ $t('EnterAmount') }}:
           </label>
           <q-input
             ref="amountInput"
             required
-            placeholder="Amount"
+            :placeholder="$t('Amount')"
             filled
             clearable
             class="q-mt-sm"
-            :rules="[val => !!val || 'Field is required']"
+            :rules="[val => !!val || $t('FieldIsRequired')]"
             type="number"
             v-model="amountBCH"
             @input="this.amountBCH"
             :dark="darkMode"
             hide-bottom-space
             :error="amountBCH > spendableBch"
-            :error-message="amountBCH > spendableBch ? 'Amount is greater than your balance' : null"
+            :error-message="amountBCH > spendableBch ? $t('AmountGreaterThanBalance') : null"
           >
             <template v-slot:append>{{ denomination }}</template>
           </q-input>
@@ -55,49 +55,49 @@
                 }"
               >
                 <q-icon size="1.25em" name="arrow_back" class="q-mr-xs"/>
-                Select existing campaign
+                {{ $t('SelectExistingCampaign')}}
               </q-btn>
             </div>
             <label>
-              Campaign Name <sup>*</sup>
+              {{ $t('CampaignName') }} <sup>*</sup>
             </label>
             <q-input
               ref="campaignNameInput"
-              placeholder="Campaign Name"
+              :placeholder="$t('CampaignName')"
               filled
               type="string"
-              :rules="[val => !!val || 'Field is required']"
+              :rules="[val => !!val || $t('FieldIsRequired')]"
               v-model="campaignName"
               clearable
               :dark="darkMode"
             >
-            </q-input>Name: {{ campaignName }}
+            </q-input>{{ $t('Name') }}: {{ campaignName }}
 
             <div class="q-pa-sm q-pb-xs">
             </div>
 
             <label>
-              Max Amount Per Wallet <sup>*</sup>
+              {{ $t('MaxAmountPerWallet') }} <sup>*</sup>
             </label>
             <q-input
               ref="maxAmountInput"
-              placeholder="Amount"
+              :placeholder="$t('Amount')"
               filled
               type="text"
               clearable
               v-model="maxPerCampaign"
               :dark="darkMode"
               :error="maxPerCampaign > 0 && maxPerCampaign < amountBCH"
-              :error-message="maxPerCampaign > 0 && maxPerCampaign < amountBCH ? 'This cannot be lower than the gift amount' : null"
+              :error-message="maxPerCampaign > 0 && maxPerCampaign < amountBCH ? $t('CannotBeLowerThanGiftAmount') : null"
             >
               <template v-slot:append>{{ denomination }}</template>
             </q-input>
           </template>
           <template v-else>
             <label>
-              Campaign (optional): <q-icon name="info" @click=" showCampaignInfo = !showCampaignInfo " />
+              {{ $t('CampaignOptional') }}: <q-icon name="info" @click=" showCampaignInfo = !showCampaignInfo " />
             </label>
-            <p v-if="showCampaignInfo" class="q-mt-md">You can group together gifts under a campaign where you can set the maximum sum of gifts that a wallet user can claim within the same campaign.</p>
+            <p v-if="showCampaignInfo" class="q-mt-md">{{ $t('CampaignDescription') }}</p>
             <q-select
               filled
               ref="campaignInput"
@@ -106,7 +106,7 @@
               v-model="selectedCampaign"
               :dark="darkMode"
               :options="campaignOptions"
-              label="Select Campaign"
+              :label="$t('SelectCampaign')"
               popup-content-style="color: black;"
               :error="campaignSelectionError !== null"
               :error-message="campaignSelectionError"
@@ -119,7 +119,7 @@
               rounded
               color="blue-9"
               type="submit"
-              label="Generate"
+              :label="$t('Generate')"
               class="flex flex-center button"
               :disable="(createNewCampaign && !campaignName) || disableGenerateButton()"
               @click="processRequest()"
@@ -128,7 +128,7 @@
           </div>
         </div>
         <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
-          <p style="font-size: 22px;">Amount:<br>{{ getAssetDenomination(denomination, amountBCH) }}</p>
+          <p style="font-size: 22px;">{{ $t('Amount') }}:<br>{{ getAssetDenomination(denomination, amountBCH) }}</p>
           <div v-if="amountBCH" style="margin-top: -10px;">
             {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
           </div>
@@ -139,9 +139,9 @@
             <!-- <div class="flex flex-center myStyle">
             </div> -->
           </div>
-          <p style="font-size: 18px;">Scan to claim the gift</p>
+          <p style="font-size: 18px;">{{ $t('ScanClaimGift') }}</p>
           <div class="">
-            <div class="text-subtitle1 text-left">Share gift link:</div>
+            <div class="text-subtitle1 text-left">{{ $t('ShareGiftLink') }}:</div>
             <ShareGiftPanel :qr-share="qrCodeContents" :amount="amountBCH"/>
           </div>
         </div>
@@ -160,7 +160,7 @@ import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'Gifts',
@@ -198,7 +198,7 @@ export default {
         this.maxPerCampaign = this.amountBCH
       } else {
         if (this.amountBCH > val?.limit) {
-          this.campaignSelectionError = 'Campaign limit per wallet cannot be greater than the gift amount'
+          this.campaignSelectionError = this.$t('CampaignLimitError')
         } else {
           this.campaignSelectionError = null
         }
@@ -249,7 +249,7 @@ export default {
     getAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isDefaultTheme,
+    isNotDefaultTheme,
     disableGenerateButton () {
       if (this.amountBCH > 0) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
@@ -335,7 +335,7 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
-        message: 'Copied to clipboard',
+        message: this.$t('CopiedToClipboard'),
         timeout: 800,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
@@ -362,7 +362,7 @@ export default {
           }
         })
         this.campaignOptions.push({
-          label: '--- Create New Campaign ---',
+          label: `--- ${this.$t('CreateNewCampaign')} ---`,
           value: 'create-new'
         })
       })

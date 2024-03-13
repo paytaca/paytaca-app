@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
         <q-btn
@@ -8,6 +8,7 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <q-card-section class="q-gutter-y-sm">
@@ -16,7 +17,7 @@
             <div class="row items-center q-mr-sm">
               <q-icon name="info" size="1.5em"/>
             </div>
-            <div>Device must be online to link POS device</div>
+            <div>{{ $t('DeviceMustBeOnline') }}</div>
           </div>
         </q-banner>
         <div class="qr-code-container">
@@ -56,14 +57,14 @@
         </div>
         <div class="row items-center justify-center q-gutter-xs">
           <span v-if="linkExpiresIn > 0" class="text-grey">
-            Link expires in
+            {{ $t('LinkExpiresIn') }}
             <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn }}</span>
-            {{ linkExpiresIn > 1 ? 'seconds': 'second' }}
+            {{ linkExpiresIn > 1 ? $t('Seconds'): $t('Second') }}
           </span>
           <span v-else-if="linkExpiresIn < 0" class="text-grey">
-            Link expired
+            {{ $t('LinkExpired') }}
             <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn * -1 }}</span>
-            {{ linkExpiresIn < -1 ? 'seconds': 'second' }} ago
+            {{ linkExpiresIn < -1 ? $t('Seconds'): $t('Second') }} {{ $t('Ago') }}
           </span>
           <q-btn
             :disable="generatingLinkCode"
@@ -71,8 +72,9 @@
             padding="none"
             flat
             no-caps
-            :color="darkMode? 'white': 'brandblue'"
-            label="Generate new code"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('GenerateNewCode')"
             @click="generateLinkCode()"
             style="text-decoration:underline;"
           />
@@ -89,6 +91,7 @@ import { padPosId, aes } from 'src/wallet/pos'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
 import { useStore } from 'vuex';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
 

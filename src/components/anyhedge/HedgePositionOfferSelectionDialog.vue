@@ -1,12 +1,13 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" full-width seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'" class="br-15">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">{{ title }}</div>
+        <div class="text-h6 q-space q-mt-sm">{{ $t(title) }}</div>
         <q-btn
           flat
           padding="sm"
           icon="close"
+          class="close-button"
           v-close-popup
         />
       </div>
@@ -50,7 +51,7 @@
               </div>
               <div class="text-grey text-caption">
                 <div class="q-space">
-                  ({{ hedgePositionOffer.position === 'hedge' ? 'Hedge' : 'Long' }})
+                  ({{ hedgePositionOffer.position === 'hedge' ? $t('Hedge') : $t('Long') }})
                   {{ getAssetDenomination(denomination, hedgePositionOffer.satoshis / 10 ** 8) }}
                 </div>
                 <div>
@@ -70,14 +71,14 @@
             no-caps
             flat
             color="grey"
-            label="Cancel"
+            :label="$t('Cancel')"
           />
           <q-btn
             no-caps
             :disable="!selectedOffer"
             @click="onDialogOK(selectedOffer)"
-            color="brandblue"
-            label="Select"
+            :label="$t('Select')"
+            class="button"
           />
         </q-btn-group>
       </q-card-section>
@@ -91,6 +92,7 @@ import { computed, ref } from 'vue'
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // dialog plugins requirement
 defineEmits([
@@ -109,7 +111,7 @@ const $q = useQuasar()
 const props = defineProps({
   title: {
     type: String,
-    default: 'Select position offer',
+    default: 'Select position offer'
   },
   hedgePositionOffers: {
     type: Array,

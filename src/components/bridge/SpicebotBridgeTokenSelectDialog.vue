@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" full-width seamless>
-    <q-card :class="darkMode ? 'pt-dark info-banner' : 'text-black'">
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-subtitle1 q-space">{{ $t(isHongKong(currentCountry) ? 'SelectPoint' : 'SelectToken') }}</div>
         <q-btn
@@ -8,17 +8,18 @@
           padding="sm"
           icon="close"
           v-close-popup
+          class="close-button"
         />
       </div>
       <q-card-section>
-        <q-input dense outlined v-model="searchText" :input-class="darkMode ? 'text-white' : 'text-black'"/>
+        <q-input dense outlined v-model="searchText" />
       </q-card-section>
       <q-card-section style="max-height:50vh;overflow-y:auto;" class="q-pt-none">
         <q-virtual-scroll :items="filteredTokensList">
           <template v-slot="{ item: token, index }">
             <q-item clickable @click="onOKClick(token)">
               <q-item-section avatar>
-                <img v-if="token.image_url" :src="token.image_url" height="30" class="q-mr-xs">
+                <img v-if="token.image_url" :src="token.image_url" height="30" class="q-mr-xs" alt="">
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ token.name }}</q-item-label>
@@ -31,7 +32,7 @@
   </q-dialog>
 </template>
 <script>
-import { isHongKong } from 'src/utils/theme-darkmode-utils'
+import { isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'SpicebotBridgeTokenSelectDialog',
   emits: [
@@ -70,6 +71,7 @@ export default {
 
   methods: {
     isHongKong,
+    getDarkModeClass,
     // following method is REQUIRED
     // (don't change its name --> "show")
     show () {
