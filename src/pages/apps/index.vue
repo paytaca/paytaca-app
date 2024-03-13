@@ -56,7 +56,7 @@ export default {
         },
         {
           name: 'Marketplace',
-          iconName: 'storefront',
+          iconName: 'img:marketplace.png',
           path: '/apps/marketplace',
           active: true,
           onLongPress: (event) => {
