@@ -525,6 +525,11 @@ export default {
     },
     submit () {
       const vm = this
+
+      // reset custom keyboard
+      vm.customKeyboardState = 'dismiss'
+      vm.readonlyState = false
+
       switch (vm.ad.trade_type) {
         case 'SELL':
           vm.orderConfirm()
