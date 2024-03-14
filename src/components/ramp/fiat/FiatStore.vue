@@ -424,7 +424,7 @@ export default {
             overwrite: overwrite
           })
           .then(response => {
-            console.lof('res', response)
+            console.log('res', response)
             vm.updatePaginationValues()
             vm.loading = false
           })

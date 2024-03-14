@@ -54,6 +54,8 @@
               class="q-pb-xs"
               filled
               dense
+              type="text"
+              inputmode="none"
               label="Amount"
               :dark="darkMode"
               :rules="[isValidInputAmount]"
@@ -67,7 +69,10 @@
               </template>
             </q-input>
             <div class="row justify-between">
-              <div class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
+              <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
+                {{ amountError }}
+              </div>
+              <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
                 = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}
               </div>
               <div class="justify-end q-gutter-sm q-pr-sm">
@@ -221,6 +226,7 @@ export default {
       state: 'initial',
       byFiat: false,
       amount: 0,
+      amountError: null,
       order: null,
       openDialog: false,
       openReviews: false,
@@ -449,11 +455,33 @@ export default {
       if (this.byFiat) {
         value = this.equivalentAmount
       }
-      if (value === undefined) return false
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
       const tradeCeiling = parseFloat(this.ad.trade_amount)
-      return !(isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling || this.balanceExceeded)
+      let valid = true
+      if (value === undefined || isNaN(value)) {
+        valid = false
+        this.amountError = 'Amount cannot be none or undefined'
+      }
+      if (parsedValue < tradeFloor) {
+        valid = false
+        this.amountError = 'Amount must be greater than minimum trade limit'
+      }
+      if (parsedValue > tradeCeiling) {
+        valid = false
+        this.amountError = 'Amount must be lesser than the maximum trade limit'
+      }
+      if (this.ad.trade_type === 'BUY') {
+        if (this.balanceExceeded) {
+          valid = false
+          this.amountError = 'Amount should not exceed your balance'
+        }
+      }
+      if (valid) {
+        this.amountError = null
+      }
+      return valid
+      // return !(isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling || this.balanceExceeded)
     },
     resetInput () {
       if (this.amount !== '' && !isNaN(this.amount)) return
