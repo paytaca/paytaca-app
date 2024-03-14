@@ -247,7 +247,6 @@ export async function updateOrCreateKeypair () {
   console.log('Updating chat keypair')
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed })
-
   await savePrivkey(keypair.privkey)
     .catch(error => {
       console.error(error)

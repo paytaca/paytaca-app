@@ -83,7 +83,7 @@
       v-on:submit="handleDialogResponse()"
     />
   </div>
-  <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="order?.ad?.id" @back="showAdSnapshot=false"/>
+  <AdSnapshotDialog v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
   <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
   <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
 </template>

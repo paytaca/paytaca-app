@@ -55,7 +55,7 @@
         @update-page-name="(val) => {$emit('updatePageName', val)}"
       />
     </div>
-    <AdSnapshotDialog v-if="showAdSnapshot" :snapshot-id="appealDetailData?.order?.ad?.id" @back="showAdSnapshot=false"/>
+    <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
     <ChatDialog v-if="openChat" :data="appealDetailData?.order" @close="openChat=false"/>
   </div>
