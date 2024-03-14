@@ -224,7 +224,6 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import { updateChatIdentity } from 'src/wallet/ramp/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 
@@ -495,6 +494,7 @@ export default {
     },
     selectAd (ad) {
       bus.emit('view-ad', ad.id)
+      this.$emit('select-listing', ad)
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()

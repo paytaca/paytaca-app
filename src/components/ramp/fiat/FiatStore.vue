@@ -547,6 +547,7 @@ export default {
       vm.selectedListing = listing
       vm.state = vm.selectedListing.trade_type
       vm.pageName = 'order-form'
+      bus.emit('hide-menu')
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
