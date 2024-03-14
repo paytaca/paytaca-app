@@ -332,9 +332,8 @@ export default {
       }
     },
     searchUser () {
-      if (this.query_name) {
-        this.resetAndRefetchListings()
-      }
+      this.resetAndRefetchListings()
+      this.searchState('blur')
     },
     updatePageName (name) {
       this.pageName = name
