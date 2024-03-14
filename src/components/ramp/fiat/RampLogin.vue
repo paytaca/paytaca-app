@@ -284,7 +284,7 @@ export default {
       deleteAuthToken()
       const keypair = await vm.rampWallet.keypair()
       vm.rampWallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
-        .then(signature => {
+        .then(async (signature) => {
           const headers = {
             timestamp: timestamp,
             signature: signature,
@@ -292,7 +292,8 @@ export default {
           }
           const body = {
             name: this.usernickname,
-            address: this.rampWallet.address
+            address: this.rampWallet.address,
+            address_path: await vm.rampWallet.addressPath()
           }
           backend.post('/ramp-p2p/peer/create', body, { headers: headers })
             .then((response) => {
