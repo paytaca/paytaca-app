@@ -117,14 +117,14 @@ export default {
         const { data: user } = await backend.get('/auth/')
         vm.user = user
         vm.usernickname = user?.name
-        vm.$store.commit('ramp/updateUser', user)
         console.log('user:', vm.user)
         if (vm.user.is_authenticated) {
           const token = await getAuthToken()
           if (token) {
             const success = await vm.loadChatIdentity()
-            // await vm.savePubkeyAndAddress()
+            await vm.savePubkeyAndAddress()
             if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+            vm.$store.commit('ramp/updateUser', user)
             vm.loggingIn = false
           } else {
             vm.isLoading = false
@@ -164,8 +164,11 @@ export default {
       await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
 
       // Update or create encrypting/decrypting keypair
-      vm.hintMessage = 'Updating chat keypair'
-      await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+      const user = this.$store.getters['ramp/getUser']
+      if (!user) {
+        vm.hintMessage = 'Updating chat keypair'
+        await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+      }
 
       if (!chatIdentity) {
         // Build payload and create chat identity
@@ -213,7 +216,7 @@ export default {
           if (payload.public_key === vm.user.public_key &&
               payload.address === vm.user.address &&
               payload.address_path === vm.user.address_path) {
-            console.log('local wallet keys match server keys')
+            console.log('Local wallet keys match server keys')
             resolve(vm.user)
           } else {
             console.log('user:', vm.user)
@@ -257,11 +260,10 @@ export default {
         }
         const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
         if (vm.user) {
-          console.log('saving user')
-          vm.$store.commit('ramp/updateUser', vm.user)
           saveAuthToken(loginResponse.data.token)
           const success = await vm.loadChatIdentity()
           if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+          vm.$store.commit('ramp/updateUser', vm.user)
         }
       } catch (error) {
         if (error.response) {

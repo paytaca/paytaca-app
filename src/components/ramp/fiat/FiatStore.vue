@@ -416,15 +416,13 @@ export default {
         params.trade_type = vm.transactionType
         params.query_name = vm.query_name
 
-        console.log('params: ', params)
         vm.$store.dispatch('ramp/fetchAds',
           {
             component: 'store',
             params: params,
             overwrite: overwrite
           })
-          .then(response => {
-            console.log('res', response)
+          .then(() => {
             vm.updatePaginationValues()
             vm.loading = false
           })
