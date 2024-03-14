@@ -109,6 +109,30 @@ export function getISOWithTimezone(date) {
   return `${isoString.substring(0, isoString.length - 1)}${timezoneOffsetString}`;
 }
 
+
+export function formatDuration(durationInSeconds, opts={ roundDecimals: undefined }) {
+  const unitOptions = [
+    {label: 'second', multiplier: 1,               max: 60 },
+    {label: 'minute', multiplier: 60,              max: 3600 },
+    {label: 'hour',   multiplier: 3600,            max: 86400 },
+    {label: 'day',    multiplier: 86400,           max: 86400 * 10 },
+    {label: 'week',   multiplier: 86400 * 7,       max: 86400 * 30 },
+    {label: '~month', multiplier: 86400 * 30,      max: 86400 * 30 * 12 },
+    {label: '~year',  multiplier: 86400 * 30 * 12, max: Infinity },
+  ]
+  if (!isFinite(durationInSeconds) || durationInSeconds <= 0) return ''
+  const unit = unitOptions.find(unit => durationInSeconds <= unit.max)
+  if (!unit) return ''
+  
+  let durationValue = durationInSeconds/unit.multiplier
+  if (Number.isInteger(opts?.roundDecimals)) durationValue = round(durationValue, opts?.roundDecimals)
+  let label = unit.label
+  if (durationValue > 1) {
+    label += 's'
+  }
+  return `${durationValue} ${label}`
+}
+
 export function parsePaymentStatusColor(value) {
   switch(value) {
     case 'paid':
