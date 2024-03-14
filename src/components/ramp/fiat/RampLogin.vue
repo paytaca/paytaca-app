@@ -300,7 +300,16 @@ export default {
               this.user = response.data
               this.$store.commit('ramp/updateUser', this.user)
               console.log('Created user:', this.user)
+              this.errorMessage = null
               this.login()
+            })
+            .catch(error => {
+              console.log(error)
+              const resp = error.response
+
+              if (resp.status === 400) {
+                this.errorMessage = resp.data.error
+              }
             })
         })
         .catch((error) => {
