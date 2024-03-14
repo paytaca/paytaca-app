@@ -306,9 +306,8 @@ export default {
             .catch(error => {
               console.log(error)
               const resp = error.response
-
               if (resp.status === 400) {
-                this.errorMessage = resp.data.error
+                this.errorMessage = resp.data.error || resp?.data?.name[0]
               }
             })
         })
