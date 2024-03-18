@@ -52,7 +52,7 @@
 <script>
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
-import { updateChatIdentityId, fetchChatIdentity, createChatIdentity, updateOrCreateKeypair } from 'src/wallet/ramp/chat'
+import * as chatUtils from 'src/wallet/ramp/chat'
 import { updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
 import { backend } from 'src/wallet/ramp/backend'
 
@@ -122,8 +122,9 @@ export default {
           const token = await getAuthToken()
           if (token) {
             const success = await vm.loadChatIdentity()
+            if (!success) return
             await vm.savePubkeyAndAddress()
-            if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+            vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
             vm.$store.commit('ramp/updateUser', user)
             vm.loggingIn = false
           } else {
@@ -156,8 +157,20 @@ export default {
         ref: vm.rampWallet.walletHash,
         name: vm.user.name
       }
-      // check if chatIdentity exist
-      let chatIdentity = await fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
+
+      // check if chatIdentity exists
+      let chatIdentity = await chatUtils.fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
+      if (!chatIdentity) return
+
+      // handle mismatching chat identity names
+      if (chatIdentity.name !== vm.user.name) {
+        vm.hintMessage = 'Updating chat identity name'
+        const payload = {
+          id: this.user.chat_identity_id,
+          name: vm.user.name
+        }
+        chatUtils.updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
+      }
 
       // Update signer data for signing chat authentication
       vm.hintMessage = 'Updating signer data'
@@ -167,14 +180,14 @@ export default {
       const user = this.$store.getters['ramp/getUser']
       if (!user) {
         vm.hintMessage = 'Updating chat keypair'
-        await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+        await chatUtils.updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
       }
 
       if (!chatIdentity) {
         // Build payload and create chat identity
         vm.hintMessage = 'Creating chat identity'
         const payload = await vm.buildChatIdentityPayload(data).catch(error => { return vm.handleError(error, 'Failed to build chat identity') })
-        chatIdentity = await createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
+        chatIdentity = await chatUtils.createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
       }
 
       // Save chat identity to store
@@ -183,7 +196,7 @@ export default {
 
       // Update chat identity id if null or mismatch
       if (!vm.user.chat_identity_id || vm.user.chat_identity_id !== chatIdentity.id) {
-        updateChatIdentityId(userType, chatIdentity.id)
+        chatUtils.updateChatIdentityId(userType, chatIdentity.id)
       }
       return true
     },
@@ -219,7 +232,6 @@ export default {
             console.log('Local wallet keys match server keys')
             resolve(vm.user)
           } else {
-            console.log('user:', vm.user)
             backend.put(`/ramp-p2p/${usertype}/detail`, payload, { authorize: true })
               .then(response => {
                 console.log('Updated pubkey and address:', response.data)
@@ -240,14 +252,11 @@ export default {
         })
       })
     },
-    async login (securityType) {
+    async login () {
       const vm = this
       vm.hintMessage = null
       vm.errorMessage = null
       try {
-        // security check before login
-        // const securityOk = await vm.checkSecurity(securityType)
-        // if (!securityOk) { vm.loggingIn = false; return }
         vm.loggingIn = true
         vm.hintMessage = 'Logging you in'
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
@@ -262,7 +271,8 @@ export default {
         if (vm.user) {
           saveAuthToken(loginResponse.data.token)
           const success = await vm.loadChatIdentity()
-          if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+          if (!success) return
+          vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
           vm.$store.commit('ramp/updateUser', vm.user)
         }
       } catch (error) {
@@ -336,7 +346,6 @@ export default {
       }
       vm.isLoading = false
       vm.loggingIn = false
-      return false
     },
     async revokeAuth () {
       const url = `${this.apiURL}/auth/revoke`
