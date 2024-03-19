@@ -326,8 +326,8 @@ export default {
         paymentMethods: [],
         isPublic: true,
         appealCooldown: {
-          label: '24 hrs',
-          value: 1440
+          label: '60 minutes',
+          value: 60
         }
       },
       cdSelection: [
@@ -344,7 +344,7 @@ export default {
           value: 45
         },
         {
-          label: '60 minutes',
+          label: '1 hour',
           value: 60
         }],
       fiatCurrencies: [],
