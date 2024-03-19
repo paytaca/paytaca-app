@@ -126,8 +126,10 @@
       </q-card-section>
     </div>
   </div>
-  <div v-if="openDialog">
+  <!-- <div v-if="openDialog"> -->
+    <!-- Uses MiscDialogs to handle payment methods when NOT in profile page -->
     <MiscDialogs
+      v-if="showMiscDialogs"
       :key="miscDialogsKey"
       :type="dialogType"
       :data="info"
@@ -137,17 +139,22 @@
       v-on:back="onPaymentMethodBack"
       v-on:submit="receiveDialogInfo"
     />
-  </div>
-
+    <!-- Uses PaymentMethodForm when in profile page only -->
+    <!-- TODO: use PaymentMethodForm in other pages -->
+    <SelectPaymentMethods v-if="showSelectPaymentMethods" @back="onPaymentMethodBack"/>
+    <PaymentMethodForm v-if="showPaymentMethodForm" :action="dialogType" :payment-method-id="selectedMethodIndex" @success="fetchPaymentMethod" @back="onPaymentMethodBack"/>
+  <!-- </div> -->
   <div v-if="!isloaded">
-      <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader/>
-      </div>
+    <div class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader/>
     </div>
+  </div>
 </template>
 <script>
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import PaymentMethodForm from './dialogs/PaymentMethodForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
+import SelectPaymentMethods from './dialogs/SelectPaymentMethods.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
@@ -155,7 +162,9 @@ import { backend } from 'src/wallet/ramp/backend'
 export default {
   components: {
     MiscDialogs,
-    ProgressLoader
+    ProgressLoader,
+    PaymentMethodForm,
+    SelectPaymentMethods
   },
   props: {
     type: String,
@@ -192,13 +201,15 @@ export default {
       isloaded: false,
 
       savingPaymentMethod: false,
-      miscDialogsKey: 0
+      miscDialogsKey: 0,
+      showSelectPaymentMethods: false,
+      showPaymentMethodForm: false,
+      showMiscDialogs: false
     }
   },
   emits: ['submit', 'back'],
   async mounted () {
     const vm = this
-    console.log('AddPaymentMethods')
     switch (vm.type) {
       case 'General':
         await vm.fetchPaymentMethod()
@@ -250,7 +261,8 @@ export default {
         this.paymentMethods = data
       }
       this.dialogType = ''
-      this.openDialog = false
+      this.showPaymentMethodForm = false
+      this.showSelectPaymentMethods = false
     },
     receiveDialogInfo (data) {
       const vm = this
@@ -259,12 +271,9 @@ export default {
         case 'editPaymentMethod':
         case 'createPaymentMethod':
         case 'addPaymentMethod':
-          // vm.updatePayment(data)
-          // vm.loading = true
           vm.savePaymentMethod(data)
-          // vm.loading = false
           break
-        case 'confirmDeletePaymentMethod':
+        case 'deletePaymentMethod':
           vm.deletePaymentMethod(this.selectedMethodIndex)
           break
         case 'confirmRemovePaymentMethod':
@@ -289,6 +298,7 @@ export default {
     },
     createMethod () {
       this.info = this.paymentMethods.map(p => p.payment_type)
+      this.showPaymentMethodForm = true
       this.dialogType = 'createPaymentMethod'
       this.openDialog = true
     },
@@ -301,20 +311,22 @@ export default {
     },
     async addMethod () {
       await this.fetchPaymentMethod()
+      this.showSelectPaymentMethods = true
       this.dialogType = 'addPaymentMethod'
       this.openDialog = true
     },
     editMethod (data) {
       this.info = { ...data }
       this.selectedMethodIndex = data.id
-
+      this.showPaymentMethodForm = true
       this.dialogType = 'editPaymentMethod'
       this.openDialog = true
     },
     deleteMethod (data) {
       this.info = data
       this.selectedMethodIndex = data.id
-      this.dialogType = 'confirmDeletePaymentMethod'
+      this.showPaymentMethodForm = true
+      this.dialogType = 'deletePaymentMethod'
       this.openDialog = true
     },
     removeMethod (index, data) {
@@ -333,7 +345,6 @@ export default {
     },
     isPaymentSelected (payment) {
       const temp = this.selectedMethods.map(p => p.payment_type.name)
-      console.log('isPaymentSelected:', (temp.includes(payment?.payment_type?.name)))
       return (temp.includes(payment?.payment_type?.name))
     },
     selectButtonColor (type) {
@@ -419,7 +430,8 @@ export default {
       let url = '/ramp-p2p/payment-method/'
       const body = {
         account_name: info.account_name,
-        account_identifier: info.account_identifier
+        account_identifier: info.account_identifier,
+        identifier_format: info.identifier_format
       }
       if (vm.dialogType === 'editPaymentMethod') {
         url = url + vm.selectedMethodIndex
@@ -475,6 +487,7 @@ export default {
       // }
     },
     submitPaymentMethod () {
+      this.showMiscDialogs = true
       if (this.type === 'General') {
         this.dialogType = 'confirmOrderCreate'
         this.title = 'Create Order?'
