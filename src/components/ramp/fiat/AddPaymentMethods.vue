@@ -16,8 +16,8 @@
         </div>
         <q-item v-for="(method, index) in paymentMethods" :key="index">
           <q-item-section>
-            <div class="row">
-              <div class="col">
+            <div class="row no-wrap">
+              <div class="col-grow">
                 <div class="md-font-size">
                   {{ method.payment_type.name }}
                 </div>
@@ -142,7 +142,13 @@
     <!-- Uses PaymentMethodForm when in profile page only -->
     <!-- TODO: use PaymentMethodForm in other pages -->
     <SelectPaymentMethods v-if="showSelectPaymentMethods" @back="onPaymentMethodBack"/>
-    <PaymentMethodForm v-if="showPaymentMethodForm" :action="dialogType" :payment-method-id="selectedMethodIndex" @success="fetchPaymentMethod" @back="onPaymentMethodBack"/>
+    <PaymentMethodForm
+      v-if="showPaymentMethodForm"
+      :action="dialogType"
+      :payment-method-id="selectedMethodIndex"
+      :payment-type="info"
+      @success="fetchPaymentMethod"
+      @back="onPaymentMethodBack"/>
   <!-- </div> -->
   <div v-if="!isloaded">
     <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -305,9 +311,8 @@ export default {
     addMethodFromAd (data) {
       const selectedType = this.paymentTypes.filter(p => p.name === data)[0]
       this.info = selectedType
-
+      this.showPaymentMethodForm = true
       this.dialogType = 'addMethodFromAd'
-      this.openDialog = true
     },
     async addMethod () {
       await this.fetchPaymentMethod()

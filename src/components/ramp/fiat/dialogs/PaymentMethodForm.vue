@@ -146,13 +146,18 @@ export default {
   emits: ['back', 'success'],
   props: {
     action: String,
-    paymentMethodId: Number
+    paymentMethodId: Number,
+    paymentType: Object
   },
   async mounted () {
     switch (this.action) {
       case 'deletePaymentMethod':
       case 'editPaymentMethod':
         await this.fetchPaymentMethod(this.paymentMethodId)
+        break
+      case 'addMethodFromAd':
+        this.paymentMethod.payment_type = this.paymentType
+        this.paymentMethod.identifier_format = this.paymentType.formats[0]
         break
       case 'createPaymentMethod':
         await this.fetchPaymentTypes()
@@ -236,6 +241,7 @@ export default {
         case 'deletePaymentMethod':
           this.deletePaymentMethod()
           break
+        case 'addMethodFromAd':
         case 'editPaymentMethod':
         case 'createPaymentMethod':
           this.savePaymentMethod()
@@ -260,6 +266,7 @@ export default {
         case 'editPaymentMethod':
           this.editPaymentMethod(url, body)
           break
+        case 'addMethodFromAd':
         case 'createPaymentMethod':
           this.createPaymentMethod(url, body)
           break
