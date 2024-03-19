@@ -284,7 +284,8 @@ import {
   sendChatMessage,
   fetchChatMessages,
   updateOrCreateKeypair,
-  generateChatRef
+  generateChatRef,
+  updateChatIdentity
 } from 'src/wallet/ramp/chat'
 import { ChatMessage } from 'src/wallet/ramp/chat/objects'
 import { formatDate } from 'src/wallet/ramp'
@@ -488,7 +489,8 @@ export default {
             resolve(decMes)
           })
             .then(item => {
-              item.chatIdentity.is_user = item.chatIdentity.name === this.userName
+              const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+              item.chatIdentity.is_user = item.chatIdentity.ref === ref
               this.convo.messages.push(item)
               this.offset++
               this.totalMessages++
@@ -519,15 +521,26 @@ export default {
     },
     async loadData () {
       const vm = this
-      const username = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
+      const chatIdentity = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash)
       await vm.loadChatSession()
       fetchChatMembers(vm.chatRef)
         .then(members => {
+          // if mismatched name
           vm.chatMembers = members.map(member => {
+            const name = this.$store.getters['ramp/getUser'].name
+
+            if ((name !== member.chat_identity.name) && (member.chat_identity.ref === chatIdentity.ref)) {
+              const payload = {
+                id: chatIdentity.id,
+                name: name
+              }
+              updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
+            }
+
             return {
               id: member.chat_identity.id,
-              name: member.chat_identity.name,
-              is_user: member.chat_identity.name === username,
+              name: name, // member.chat_identity.name,
+              is_user: member.chat_identity.ref === chatIdentity.ref,
               pubkeys: member.chat_identity.pubkeys
             }
           })
@@ -678,10 +691,10 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          const username = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
+          const ref = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
           const temp = decryptedMessages
           temp.map(item => {
-            item.chatIdentity.is_user = item.chatIdentity.name === username
+            item.chatIdentity.is_user = item.chatIdentity.ref === ref
           })
           if (type === 'initial') {
             vm.convo.messages = decryptedMessages

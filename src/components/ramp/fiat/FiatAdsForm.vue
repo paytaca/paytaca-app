@@ -438,6 +438,7 @@ export default {
           break
         case 'FLOATING':
           vm.adData.floatingPrice = value
+          break
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
       const numDigits = '00000000'.length
@@ -469,6 +470,7 @@ export default {
           vm.adData.priceType = data.price_type
           vm.adData.fixedPrice = parseFloat(data.fixed_price)
           vm.adData.floatingPrice = parseFloat(data.floating_price)
+          console.log('floating: ', vm.adData.floatingPrice)
           vm.adData.fiatCurrency = data.fiat_currency
           vm.adData.tradeAmount = parseFloat(data.trade_amount)
           vm.adData.tradeFloor = parseFloat(data.trade_floor)
@@ -478,6 +480,16 @@ export default {
           vm.appealCooldown = getAppealCooldown(data.appeal_cooldown)
           vm.adData.appealCooldown = vm.appealCooldown
           vm.selectedCurrency = data.fiat_currency
+
+          // price
+          if (vm.adData.priceType === 'FLOATING') {
+            vm.priceValue = vm.adData.floatingPrice
+          }
+
+          // check tradeCeiling & tradeAmount
+          if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
+            vm.adData.tradeCeiling = vm.adData.tradeAmount
+          }
         })
         .catch(error => {
           vm.swipeStatus = false

@@ -327,7 +327,7 @@ export default {
         this.user = user
         this.user.self = self
       })
-      console.log('self: ', self)
+      // console.log('self: ', self)
     },
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
@@ -461,11 +461,13 @@ export default {
       const vm = this
       const payload = info[0]
 
+      console.log('exponential backoff')
       return fn(payload)
         .then((data) => {
+          console.log('data: ', data)
           if (data.data) {
             const chatIdentity = data.data
-            vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
+            vm.$store.commit('ramp/updateChatIdentity', { ref: chatIdentity.ref, chatIdentity: chatIdentity })
             vm.retry = false
           }
 
