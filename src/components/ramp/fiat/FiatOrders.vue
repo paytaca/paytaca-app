@@ -98,8 +98,8 @@
                               </div>
                               <span
                                 class=" pt-label md-font-size text-weight-bold"
-                                :class="getDarkModeClass(darkMode)"
-                                @click.stop.prevent="viewUserProfile(listing)">
+                                :class="getDarkModeClass(darkMode)">
+                                <!--@click.stop.prevent="viewUserProfile(listing)">-->
                                 {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
                               </span>
                               <div
@@ -338,6 +338,10 @@ export default {
           vm.returnOrderList()
           vm.pageName = 'main'
           break
+        case 'order-form':
+          vm.pageName = 'order-process'
+          vm.state = 'view-order'
+          break
         case 'view-profile':
           vm.returnOrderList()
           vm.pageName = 'main'
@@ -572,18 +576,19 @@ export default {
       vm.state = 'order-list'
       vm.resetAndRefetchListings()
     },
-    viewUserProfile (data) {
-      this.selectedUser = {
-        id: data.owner.id,
-        self: !data.is_ad_owner
-      }
-      this.state = 'view-profile'
-      this.pageName = 'view-profile'
-    },
+    // viewUserProfile (data) {
+    //   this.selectedUser = {
+    //     id: data.owner.id,
+    //     self: !data.is_ad_owner
+    //   }
+    //   this.state = 'view-profile'
+    //   this.pageName = 'view-profile'
+    // },
     onViewAd (adId) {
       bus.emit('hide-menu')
       this.state = 'order-form'
       this.selectedUserAdId = adId
+      this.pageName = 'order-form'
     }
   }
 }

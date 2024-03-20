@@ -461,10 +461,8 @@ export default {
       const vm = this
       const payload = info[0]
 
-      console.log('exponential backoff')
       return fn(payload)
         .then((data) => {
-          console.log('data: ', data)
           if (data.data) {
             const chatIdentity = data.data
             vm.$store.commit('ramp/updateChatIdentity', { ref: chatIdentity.ref, chatIdentity: chatIdentity })

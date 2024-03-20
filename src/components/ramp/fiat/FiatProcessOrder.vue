@@ -458,7 +458,7 @@ export default {
             fetchChatSession(chatRef)
               .then(res => {
                 vm.hasUnread = res.data.unread_count > 0
-                console.log('unread count: ', vm.hasUnread)
+                // console.log('unread count: ', vm.hasUnread)
               })
               .catch(error => {
                 console.log(error)
