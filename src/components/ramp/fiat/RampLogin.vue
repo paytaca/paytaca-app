@@ -196,7 +196,7 @@ export default {
 
       // Update chat identity id if null or mismatch
       if (!vm.user.chat_identity_id || vm.user.chat_identity_id !== chatIdentity.id) {
-        chatUtils.updateChatIdentityId(userType, chatIdentity.id)
+        chatUtils.updateChatIdentityId(userType, chatIdentity.id).catch(error => { return vm.handleError(error, 'Failed to update chat identity id') })
       }
       return true
     },

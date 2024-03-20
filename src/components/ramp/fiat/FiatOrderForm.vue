@@ -209,7 +209,7 @@ import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from './dialogs/UserProfileDialog.vue'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
-import { createChatSession, addChatMembers } from 'src/wallet/ramp/chat'
+import { createChatSession, updateChatMembers } from 'src/wallet/ramp/chat'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
@@ -441,7 +441,7 @@ export default {
     createGroupChat (orderId, members, createdAt) {
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       createChatSession(orderId, createdAt)
-        .then(chatRef => { addChatMembers(chatRef, chatMembers) })
+        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
         .catch(console.error)
     },
     formattedCurrency (value, currency = null) {

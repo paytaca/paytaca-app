@@ -124,20 +124,23 @@ export async function checkChatSessionAdmin (chatRef) {
 
 export async function fetchChatSession (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/sessions/${chatRef}/chat_member/`, { forceSign: true })
+    chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
       .then(response => {
+        console.log('Chat session:', response.data)
         resolve(response)
       })
       .catch(error => {
+        console.error('Failed to fetch chat session:', error)
         reject(error)
       })
   })
 }
 
-export async function addChatMembers (chatRef, members) {
+export async function updateChatMembers (chatRef, members, removeMemberIds = []) {
   return new Promise((resolve, reject) => {
     const body = {
       chat_session_ref: chatRef,
+      remove_chat_identities_id: removeMemberIds,
       members: members
     }
     chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
@@ -160,7 +163,7 @@ export async function fetchChatMembers (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/members/?chat_ref=${chatRef}`, { forceSign: true })
       .then(response => {
-        console.log('Fetched chat members:', response)
+        // console.log('Fetched chat members:', response)
         resolve(response.data.results)
       })
       .catch(error => {
@@ -204,7 +207,7 @@ export function fetchChatMessages (chatRef, offset = null, limit = 10) {
     }
     chatBackend.get(url, { forceSign: true })
       .then(response => {
-        console.log('Messages: ', response)
+        // console.log('Messages: ', response)
         resolve(response.data)
       })
       .catch(error => {
@@ -223,7 +226,7 @@ export function fetchChatPubkeys (chatRef) {
     chatBackend.get(`chat/sessions/${chatRef}/pubkeys/`)
       .then(response => {
         if (!Array.isArray(response?.data)) reject({ response })
-        console.log('Chat pubkeys:', response?.data)
+        // console.log('Chat pubkeys:', response?.data)
         resolve(response?.data)
       })
       .catch(error => {

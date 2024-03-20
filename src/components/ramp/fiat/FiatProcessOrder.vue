@@ -91,7 +91,7 @@
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { addChatMembers, generateChatRef, fetchChatSession } from 'src/wallet/ramp/chat'
+import { updateChatMembers, generateChatRef, fetchChatSession } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -718,7 +718,7 @@ export default {
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)
           const arbiterMembers = arbiter.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-          addChatMembers(chatRef, arbiterMembers)
+          updateChatMembers(chatRef, arbiterMembers)
         })
     },
     // Recieve Dialogs
