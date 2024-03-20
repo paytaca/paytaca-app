@@ -56,8 +56,13 @@
           <template v-slot:append>
             <q-icon name="close"
               @click="() => {
-                query_name = null
-                $refs.inputRef.focus()
+                if (query_name) {
+                  query_name = null
+                  receiveDialog(filters)
+                  $refs.inputRef.focus()
+                } else {
+                  searchState('blur')
+                }
               }"
               class="cursor-pointer" />
             <q-icon name="search" @click="searchUser()" />
