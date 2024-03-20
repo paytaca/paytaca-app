@@ -539,7 +539,7 @@ export default {
 
             return {
               id: member.chat_identity.id,
-              name: name, // member.chat_identity.name,
+              name: member.chat_identity.ref === chatIdentity.ref ? name : member.chat_identity.name,
               is_user: member.chat_identity.ref === chatIdentity.ref,
               pubkeys: member.chat_identity.pubkeys
             }
