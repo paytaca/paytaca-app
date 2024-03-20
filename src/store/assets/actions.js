@@ -233,6 +233,8 @@ export async function getAssetMetadata (context, assetId) {
     }
   }
 
-  if (data !== null)
+  if (data !== null) {
     context.commit('updateAssetMetadata', data)
+    return data
+  }
 }
