@@ -58,6 +58,9 @@ export default {
   components: {
     PaymentMethodForm
   },
+  props: {
+    selectedMethods: Array
+  },
   data () {
     return {
       showDialog: true,
@@ -71,11 +74,21 @@ export default {
     }
   },
   async mounted () {
+    this.selectedPaymentMethods = this.selectedMethods
     await this.fetchPaymentTypes()
     await this.fetchPaymentMethods()
+    this.filterPaymentTypes()
   },
   methods: {
     getDarkModeClass,
+    filterPaymentTypes () {
+      let currentMethods = null
+      currentMethods = this.paymentMethodOpts.map(p => p.payment_type.name)
+      const availablePaymentTypes = this.paymentTypeOpts.filter(function (method) {
+        return !currentMethods.includes(method.name)
+      })
+      this.paymentTypeOpts = availablePaymentTypes
+    },
     async fetchPaymentTypes () {
       const vm = this
       vm.loading = true

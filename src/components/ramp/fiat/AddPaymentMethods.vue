@@ -126,30 +126,25 @@
       </q-card-section>
     </div>
   </div>
-  <!-- <div v-if="openDialog"> -->
-    <!-- Uses MiscDialogs to handle payment methods when NOT in profile page -->
-    <MiscDialogs
-      v-if="showMiscDialogs"
-      :key="miscDialogsKey"
-      :type="dialogType"
-      :data="info"
-      :current-payment-methods="paymentMethods"
-      :title="title"
-      :text="text"
-      v-on:back="onPaymentMethodBack"
-      v-on:submit="receiveDialogInfo"
-    />
-    <!-- Uses PaymentMethodForm when in profile page only -->
-    <!-- TODO: use PaymentMethodForm in other pages -->
-    <SelectPaymentMethods v-if="showSelectPaymentMethods" @back="onPaymentMethodBack"/>
-    <PaymentMethodForm
-      v-if="showPaymentMethodForm"
-      :action="dialogType"
-      :payment-method-id="selectedMethodIndex"
-      :payment-type="info"
-      @success="fetchPaymentMethod"
-      @back="onPaymentMethodBack"/>
-  <!-- </div> -->
+  <MiscDialogs
+    v-if="showMiscDialogs"
+    :key="miscDialogsKey"
+    :type="dialogType"
+    :data="info"
+    :current-payment-methods="paymentMethods"
+    :title="title"
+    :text="text"
+    v-on:back="onPaymentMethodBack"
+    v-on:submit="receiveDialogInfo"
+  />
+  <SelectPaymentMethods v-if="showSelectPaymentMethods" :selected-methods="selectedMethods" @back="onPaymentMethodBack"/>
+  <PaymentMethodForm
+    v-if="showPaymentMethodForm"
+    :action="dialogType"
+    :payment-method-id="selectedMethodIndex"
+    :payment-type="info"
+    @success="fetchPaymentMethod"
+    @back="onPaymentMethodBack"/>
   <div v-if="!isloaded">
     <div class="row justify-center q-py-lg" style="margin-top: 50px">
       <ProgressLoader/>
@@ -223,6 +218,7 @@ export default {
         break
       case 'Ads':
         vm.paymentMethods = this.currentPaymentMethods
+        vm.selectedMethods = this.currentPaymentMethods
         break
       case 'Profile':
         await vm.fetchPaymentMethod()
@@ -230,7 +226,6 @@ export default {
         bus.emit('hide-menu')
         break
     }
-
     this.isloaded = true
   },
   computed: {
@@ -269,6 +264,7 @@ export default {
       this.dialogType = ''
       this.showPaymentMethodForm = false
       this.showSelectPaymentMethods = false
+      this.showMiscDialogs = false
     },
     receiveDialogInfo (data) {
       const vm = this
