@@ -525,7 +525,7 @@ export default {
       let createSession = false
       await fetchChatSession(vm.chatRef)
         .catch(error => {
-          if (error.response?.status === 404 || error.response?.status === 403) {
+          if (error.response?.status === 404) {
             createSession = true
           }
         })

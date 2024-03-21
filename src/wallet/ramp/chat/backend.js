@@ -76,7 +76,7 @@ export async function updateSignerData (_context) {
   console.log('Updating signer data')
   const wallet = loadRampWallet()
   const walletHash = wallet?.walletHash
-  const privkey = await wallet.privkey()
+  const privkey = await wallet.privkey(null, '0/0')
 
   const { value } = await getSignerData()
   if (value) {
@@ -87,11 +87,11 @@ export async function updateSignerData (_context) {
     }
   }
 
-  const verifyingPubkey = await wallet.pubkey()
+  const verifyingPubkey = await wallet.pubkey(null, '0/0')
   const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
 
   const message = `${Date.now()}`
-  const verifyingPubkeyIndex = wallet.addressIndex
+  const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
   const signature = await (await wallet.raw()).signMessage(message, verifyingPubkeyIndex)
 
   const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)

@@ -17,7 +17,7 @@
             {{ paymentMethod.account_identifier }}
           </span>
         </q-card-section>
-        <q-card-section class="text-center q-pt-none q-mx-md">
+        <q-card-section v-else class="text-center q-pt-none q-mx-md">
           {{ errorMessage }}
         </q-card-section>
         <q-card-actions class="text-center" align="center">

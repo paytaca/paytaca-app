@@ -55,7 +55,6 @@ import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
 import * as chatUtils from 'src/wallet/ramp/chat'
 import { updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
 import { backend } from 'src/wallet/ramp/backend'
-
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/auth'
@@ -157,10 +156,8 @@ export default {
         ref: vm.rampWallet.walletHash,
         name: vm.user.name
       }
-
       // check if chatIdentity exists
       let chatIdentity = await chatUtils.fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
-
       // handle mismatching chat identity names
       if (chatIdentity && chatIdentity.name !== vm.user.name) {
         vm.hintMessage = 'Updating chat identity name'
