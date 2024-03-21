@@ -76,7 +76,7 @@
               label="Identifier Type"
               :dark="darkMode"
               :options="paymentMethod.payment_type?.formats"
-              @update:model-value="onUpdatePaymentType"
+              @update:model-value="onUpdateIdentifierType"
               class="q-py-xs">
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
@@ -91,6 +91,7 @@
             <div v-if="paymentMethod.identifier_format">
               <!-- Account Identifier -->
               <q-input
+                ref="accIdentifierRef"
                 dense
                 filled
                 hide-bottom-space
@@ -190,7 +191,7 @@ export default {
     getDarkModeClass,
     isValidIdentifier (val) {
       if (!val) return 'This field is required'
-      const format = this.paymentMethod.identifier_format.format
+      const format = this.paymentMethod.identifier_format
       switch (format) {
         case 'Email Address':
           if (/^[\w\\.~!$%^&*=+}{'?-]+@([\w-]+\.)+[\w-]{2,4}$/.test(val)) {
@@ -212,6 +213,11 @@ export default {
           }
         default:
           return true
+      }
+    },
+    onUpdateIdentifierType () {
+      if (this.paymentMethod.account_identifier) {
+        this.$refs.accIdentifierRef.validate()
       }
     },
     onUpdatePaymentType (data) {
