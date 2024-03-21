@@ -199,7 +199,8 @@ export default {
       readonlyState: false,
       amountDialog: false,
       customKeyboardState: 'dismiss',
-      setAmountInFiat: false
+      setAmountInFiat: false,
+      tokens: []
     }
   },
   props: {
@@ -253,6 +254,40 @@ export default {
     }
   },
   methods: {
+    getWallet (type) {
+      return this.$store.getters['global/getWallet'](type)
+    },
+    async getMainchainTokens () {
+      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
+      const mainchainTokens = []
+
+      for (const tokenWalletHash of tokenWalletHashes) {
+        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
+
+        const tokens = await this.$store.dispatch(
+          'assets/getMissingAssets',
+          {
+            isCashToken,
+            walletHash: tokenWalletHash,
+            includeIgnoredTokens: false
+          }
+        )
+
+        mainchainTokens.push(...tokens)
+      }
+
+      return mainchainTokens
+    },
+    async getSmartchainTokens () {
+      const tokens = await this.$store.dispatch(
+        'sep20/getMissingAssets',
+        {
+          address: this.getWallet('sbch').lastAddress,
+          icludeIgnoredTokens: false
+        }
+      )
+      return tokens
+    },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)
       if (!parsedAmount) return ''
@@ -517,12 +552,13 @@ export default {
       }
 
       vm.$connect(url)
-      vm.$options.sockets.onmessage = function (message) {
+      vm.$options.sockets.onmessage = async function (message) {
         const data = JSON.parse(message.data)
         const tokenType = vm.assetId.split('/')[0]
         const tokenId = vm.assetId.split('/')[1]
+        const isListedToken = tokenType === 'ct' && !tokenId.includes('unlisted')
 
-        if (assetType === 'slp' || tokenType === 'ct') {
+        if (assetType === 'slp' || isListedToken) {
           if (data.token_id.split('/')[1] === tokenId) {
             vm.notifyOnReceive(
               BigInt(data.amount) / (BigInt(10) ** BigInt(data.token_decimals)),
@@ -533,11 +569,23 @@ export default {
             )
           }
         } else {
+          const value = isListedToken ? data.value : Number(data.amount)
+          const amount = value / (10 ** data.token_decimals)
           vm.notifyOnReceive(
-            data.value / (10 ** data.token_decimals),
+            amount,
             data.token_symbol.toUpperCase(),
             vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
           )
+
+          // if unlisted token is detected, add to front of list
+          // check if token already added in list
+          if (vm.tokens.map(a => a.id).includes(data.token_id)) {
+            const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
+            newTokenData.balance = amount
+
+            vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, newTokenData)
+            vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+          }
         }
       }
     },
@@ -604,11 +652,10 @@ export default {
     })
   },
 
-  mounted () {
+  async mounted () {
     const vm = this
-    if (!vm.assetId.endsWith('unlisted')) {
-      vm.setupListener()
-    }
+
+    vm.setupListener()
     this.updateLnsName()
 
     let path = 'send-success.mp3'
@@ -622,6 +669,8 @@ export default {
       volume: 1.0,
       isUrl: false
     })
+
+    vm.tokens = vm.$store.getters['global/network'] === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
   },
 
   created () {

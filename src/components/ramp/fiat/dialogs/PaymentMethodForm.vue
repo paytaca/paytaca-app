@@ -222,8 +222,13 @@ export default {
     },
     onUpdatePaymentType (data) {
       if (this.action === 'createPaymentMethod') {
-        this.paymentMethod.identifier_format = data.formats[0]
+        if (typeof data === 'string') {
+          this.paymentMethod.identifier_format = data
+        } else {
+          this.paymentMethod.identifier_format = data.formats[0]
+        }
       }
+      this.paymentMethod.account_identifier = ''
     },
     filterPaymentTypes () {
       let currentMethods = null
