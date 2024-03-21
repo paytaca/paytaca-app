@@ -470,7 +470,6 @@ export default {
           vm.adData.priceType = data.price_type
           vm.adData.fixedPrice = parseFloat(data.fixed_price)
           vm.adData.floatingPrice = parseFloat(data.floating_price)
-          console.log('floating: ', vm.adData.floatingPrice)
           vm.adData.fiatCurrency = data.fiat_currency
           vm.adData.tradeAmount = parseFloat(data.trade_amount)
           vm.adData.tradeFloor = parseFloat(data.trade_floor)

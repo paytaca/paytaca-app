@@ -126,7 +126,7 @@ export async function fetchChatSession (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
       .then(response => {
-        console.log('Chat session:', response.data)
+        // console.log('Chat session:', response.data)
         resolve(response)
       })
       .catch(error => {
