@@ -303,6 +303,7 @@ export function resetPaymentTypes (state) {
 }
 
 export function updateChatIdentity (state, data) {
+  if (!state.chatIdentity) state.chatIdentity = {}
   state.chatIdentity[data.ref] = data.chatIdentity
 }
 

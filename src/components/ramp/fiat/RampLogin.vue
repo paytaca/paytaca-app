@@ -160,10 +160,9 @@ export default {
 
       // check if chatIdentity exists
       let chatIdentity = await chatUtils.fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
-      if (!chatIdentity) return
 
       // handle mismatching chat identity names
-      if (chatIdentity.name !== vm.user.name) {
+      if (chatIdentity && chatIdentity.name !== vm.user.name) {
         vm.hintMessage = 'Updating chat identity name'
         const payload = {
           id: this.user.chat_identity_id,
