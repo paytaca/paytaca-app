@@ -109,6 +109,8 @@ export function removeRemovedAssetIds (state, id) {
 }
 
 export function moveAssetToBeginning (state) {
-  const item = state.assets.pop()
-  state.assets.splice(1, 0, item)
+  if (state.assets.length > 1) {
+    const item = state.assets.pop()
+    state.assets.splice(1, 0, item)
+  }
 }
