@@ -98,6 +98,7 @@ export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif
     const input = txTemplate.inputs[index]
     const sourceOutput = input?.sourceOutput
 
+    //if input is a contract
     if (sourceOutput?.contract?.artifact?.contractName) {
       let unlockingBytecodeHex = binToHex(sourceOutput?.unlockingBytecode);
       const sigPlaceholder = "41" + binToHex(Uint8Array.from(Array(65)));
@@ -126,17 +127,45 @@ export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif
       }
 
       input.unlockingBytecode = hexToBin(unlockingBytecodeHex);
-    } else {
-      if (!sourceOutput?.unlockingBytecode?.length && lockingBytecodeToCashAddress(sourceOutput.lockingBytecode) === signingAddress) {
-        input.unlockingBytecode = {
-          compiler,
-          data: {
-            keys: { privateKeys: { key: privateKey } },
-          },
-          valueSatoshis: sourceOutput.valueSatoshis,
-          script: "unlock",
-          token: sourceOutput.token,
-        }
+
+    //otherwise if input has a tokenCategory, empty unlockingBytecode, and utxo belongs to this wallet
+    } else if (sourceOutput.token?.category && !sourceOutput.unlockingBytecode?.length && lockingBytecodeToCashAddress(sourceOutput.lockingBytecode) === signingAddress) {
+      let unlockingBytecodeHex = binToHex(sourceOutput?.unlockingBytecode);
+      const sigPlaceholder = "61" + binToHex(Uint8Array.from(Array(65)));
+      const pubkeyPlaceholder = "21" + binToHex(Uint8Array.from(Array(33)));
+      if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
+        // compute the signature argument
+        const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId;
+        const context = { inputIndex: index, sourceOutputs: sourceOutputsUnpacked, transaction: transaction };
+        const signingSerializationType = new Uint8Array([hashType]);
+        
+        const coveredBytecode = new Uint8Array();
+
+        const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode, signingSerializationType });
+        const sighash = hash256(sighashPreimage);
+        const signature = secp256k1.signMessageHashSchnorr(privateKey, sighash);
+        if (typeof signature === 'string') throw signBchTxError(signature);
+        const sig = Uint8Array.from([...signature, hashType]);
+
+        unlockingBytecodeHex = unlockingBytecodeHex.replace(sigPlaceholder, "61" + binToHex(sig));
+      }
+
+      if (unlockingBytecodeHex.indexOf(pubkeyPlaceholder) !== -1) {
+        unlockingBytecodeHex = unlockingBytecodeHex.replace(pubkeyPlaceholder, "21" + binToHex(pubkeyCompressed));
+      }
+
+      input.unlockingBytecode = hexToBin(unlockingBytecodeHex);
+
+    //otherwise if unlockingBytecode empty and utxo belongs to this wallet
+    } else if (!sourceOutput.unlockingBytecode?.length && lockingBytecodeToCashAddress(sourceOutput.lockingBytecode) === signingAddress) {
+      input.unlockingBytecode = {
+        compiler,
+        data: {
+          keys: { privateKeys: { key: privateKey } },
+        },
+        valueSatoshis: sourceOutput.valueSatoshis,
+        script: "unlock",
+        token: sourceOutput.token,
       }
     }
   }
