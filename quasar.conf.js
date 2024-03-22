@@ -122,6 +122,7 @@ module.exports = function (/* ctx */) {
                 ],
                 plugins: [
                   '@babel/plugin-transform-optional-chaining',
+                  '@babel/plugin-transform-nullish-coalescing-operator',
                   '@vue/babel-plugin-jsx',
                 ]
               }
