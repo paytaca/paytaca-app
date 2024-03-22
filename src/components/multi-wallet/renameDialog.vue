@@ -38,8 +38,12 @@ export default {
     this.isLoaded = true
   },
   methods: {
-    renameWallet () {
+    async renameWallet () {
       this.$store.commit('global/updateWalletName', { name: this.name, index: this.selectedIndex })
+      await this.$store.dispatch('global/updateWalletNameInPreferences', {
+        walletName: this.name,
+        walletIndex: this.selectedIndex
+      })
       this.$emit('ok')
       this.hide()
     },

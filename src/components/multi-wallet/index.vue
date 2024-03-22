@@ -126,18 +126,17 @@ export default {
     isNotDefaultTheme,
     processVaultName () {
       const vm = this
-      let count = 1
-
       const tempVault = vm.$store.getters['global/getVault']
 
-      for (const item in tempVault) {
-        const wallet = tempVault[item]
+      tempVault.forEach(async (wallet, index) => {
+        const walletHash = wallet.wallet.bch.walletHash
+        const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash)
+
         if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
-          const name = 'Personal Wallet #' + count
-          vm.$store.commit('global/updateWalletName', { index: item, name: name })
+          const name = walletName || `Personal Wallet #${index + 1}`
+          vm.$store.commit('global/updateWalletName', { index, name })
         }
-        count++
-      }
+      })
     },
     switchWallet (index) {
       const vm = this
