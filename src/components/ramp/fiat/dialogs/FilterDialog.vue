@@ -360,7 +360,6 @@ export default {
     }
   },
   async mounted () {
-    console.log('type:', this.type)
     this.checkDialogType()
   },
   methods: {

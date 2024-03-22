@@ -56,6 +56,7 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     balanceExceeded () {
+      if (this.order?.ad?.trade_type === 'BUY' && this.order?.is_ad_owner) return false
       return (parseFloat(this.order.crypto_amount) > parseFloat(this.balance))
     },
     fiatAmount () {

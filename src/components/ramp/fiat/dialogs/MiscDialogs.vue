@@ -55,9 +55,6 @@
                   </q-item-section>
                 </q-item>
               </template>
-              <!-- <template v-slot:append>
-                <q-icon size="xs" name="close" @click.stop.prevent="paymentMethod.payment_type = null"/>&nbsp;
-              </template> -->
             </q-select>
           </div>
         </div>
@@ -79,21 +76,45 @@
             </div>
           </div>
           <div class="q-mx-lg q-pt-sm">
-            <span class="md-font-size">
-                  {{ paymentTypeFormat[paymentMethod.payment_type.format] }}
-            </span>
-
-            <div class="text-center q-pt-sm">
-              <q-input
+            <div v-if="paymentMethod.payment_type?.formats?.length > 1">
+              <div class="md-font-size q-pb-sm">
+                Identifier Type
+              </div>
+              <q-select
                 dense
+                borderless
                 filled
+                v-model="paymentMethod.format"
                 :dark="darkMode"
-                :rules="[paymentTypeRules]"
-                v-model="paymentMethod.account_identifier">
-                <template v-slot:append>
-                  <q-icon size="xs" name="close" @click="paymentMethod.account_identifier = ''"/>&nbsp;
+                :options="paymentMethod.payment_type?.formats">
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section>
+                      <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+                        {{ scope.opt }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
                 </template>
-              </q-input>
+              </q-select>
+            </div>
+            <div v-for="(type, index) in paymentMethod.payment_type?.formats" :key="index">
+              <span class="md-font-size">
+                {{ paymentTypeFormat(type) }}
+              </span>
+              <!-- <div class="text-center q-pt-sm"> -->
+                <q-input
+                  dense
+                  filled
+                  :dark="darkMode"
+                  :rules="[paymentTypeRules]"
+                  v-model="paymentMethod.account_identifier"
+                  class="q-py-sm">
+                  <template v-slot:append>
+                    <q-icon size="xs" name="close" @click="paymentMethod.account_identifier = ''"/>&nbsp;
+                  </template>
+                </q-input>
+              <!-- </div> -->
             </div>
           </div>
         </div>
@@ -369,264 +390,6 @@
     </q-card>
   </q-dialog>
 
-  <!-- Filter orders -->
-  <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
-    <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
-      <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter Orders</div>
-      <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
-      <div class="q-px-lg q-mx-sm">
-        <div class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Ownership</div>
-          <div class="q-pt-xs q-gutter-sm">
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!isFilterAllSelected('ownership')" @click="filterSelectAll('ownership')">All</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Owned</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not Owned</q-badge>
-          </div>
-        </div>
-        <div class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Trade Type</div>
-          <div class="q-pt-xs q-gutter-sm">
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.buy" @click="setOrderFilter('tradeBuy', !orderFilters.tradeType?.buy)">Buy</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.tradeType?.sell" @click="setOrderFilter('tradeSell', !orderFilters.tradeType?.sell)">Sell</q-badge>
-          </div>
-        </div>
-        <div v-if="orderFilters.status" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Status</div>
-          <div class="q-gutter-sm q-pt-sm">
-            <q-badge
-              rounded
-              color="blue-grey-6"
-              class="q-pa-sm"
-              :outline="!isFilterAllSelected('status')"
-              @click="filterSelectAll('status')">
-              All
-            </q-badge>
-            <q-badge
-              rounded
-              color="blue-grey-6"
-              class="q-pa-sm"
-              :outline="!isFilterAllSelected('status')"
-              @click="filterSelectAll('status')">
-              Expired
-            </q-badge>
-            <q-badge
-              rounded
-              color="blue-grey-6"
-              class="q-pa-sm"
-              :outline="!isFilterAllSelected('status')"
-              @click="filterSelectAll('status')">
-              Appealed
-            </q-badge>
-            <q-badge
-              v-for="(status, index) in ongoingStatuses"
-              :key="index"
-              rounded
-              color="blue-grey-6"
-              class="q-pa-sm"
-              :outline="!orderFilters.status.includes(status.value)"
-              @click="setOrderFilter('status', status?.value)">
-              {{ status.label }}
-            </q-badge>
-          </div>
-        </div>
-        <div v-if="orderFilters.payment_types" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Payment Type</div>
-          <div class="q-gutter-sm q-pt-sm">
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              :outline="!isFilterAllSelected('payment-type')"
-              @click="filterSelectAll('payment-type')">
-              All
-            </q-badge>
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              v-for="payment in paymentTypes"
-              :outline="!orderFilters.payment_types.includes(payment.id)"
-              @click="setOrderFilter('payment-type', payment.id)"
-              :key="payment.id">
-              {{ payment.name }}
-            </q-badge>
-          </div>
-        </div>
-        <div v-if="orderFilters.time_limits" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Time Limit</div>
-          <div class="q-gutter-sm q-pt-sm">
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              :outline="!isFilterAllSelected('time-limit')"
-              @click="filterSelectAll('time-limit')">
-              All
-            </q-badge>
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              v-for="(value, index) in ptl"
-              :outline="!orderFilters.time_limits?.includes(value)"
-              @click="setOrderFilter('time-limit', value)"
-              :key="index">
-              {{ paymentTimeLimit(value) }}
-            </q-badge>
-          </div>
-        </div>
-        <div v-if="orderFilters.sort_type" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Sort Type</div>
-          <div class="q-pt-xs q-gutter-sm">
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">Ascending</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">Descending</q-badge>
-          </div>
-        </div>
-        <div v-if="orderFilters.sort_by" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Sort By</div>
-          <div class="q-pt-xs q-gutter-sm">
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">Created</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">Last Modified</q-badge>
-          </div>
-        </div>
-
-        <div class="text-center q-pt-sm q-px-sm q-pb-lg">
-          <div class="row q-gutter-sm q-pt-md">
-            <q-btn
-              rounded
-              no-caps
-              label='Reset'
-              class="q-space button button-icon"
-              :class="getDarkModeClass(darkMode)"
-              outline
-              @click="resetFilters('orders')"
-            />
-            <q-btn
-              rounded
-              no-caps
-              label='Filter'
-              class="q-space button"
-              @click="submitData()"
-              v-close-popup
-            />
-          </div>
-        </div>
-      </div>
-    </q-card>
-  </q-dialog>
-
-  <!-- Filter Ads -->
-  <q-dialog v-model="filterAd" @before-hide="$emit('back')">
-    <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
-      <div class="q-mt-md q-pl-md">
-        <q-icon size="sm" name="close" v-close-popup class="close-button" @click="$emit('back')"/>&nbsp;
-      </div>
-      <div class="text-center text-weight-bold lg-font-size">Filter Ads</div>
-      <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
-
-      <div class="q-px-lg q-mx-sm">
-        <div v-if="storeFilters.priceTypes" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Price Type</div>
-          <div class="q-gutter-sm q-pt-sm">
-            <q-badge
-              rounded
-              color="blue-grey-6"
-              class="q-pa-sm"
-              :outline="isOutlined('FIXED','price-types')"
-              @click="addFilterInfo('FIXED', 'price-types')">
-              Fixed
-            </q-badge>
-            <q-badge
-              rounded
-              color="blue-grey-6"
-              class="q-pa-sm"
-              :outline="isOutlined('FLOATING','price-types')"
-              @click="addFilterInfo('FLOATING', 'price-types')">
-              Floating
-            </q-badge>
-          </div>
-        </div>
-        <div v-if="storeFilters.selectedPaymentTypes" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Payment Type</div>
-          <div class="q-gutter-sm q-pt-sm">
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              :outline="storeFilters.selectedPaymentTypes.length < paymentTypes.length"
-              @click="addFilterInfo('all', 'all-payment-type')">
-              All
-            </q-badge>
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              :outline="isOutlined(method,'payment-types')"
-              @click="addFilterInfo(method, 'payment-types')"
-              v-for="method in paymentTypes"
-              :key="method.id">
-              {{ method.name }}
-            </q-badge>
-          </div>
-        </div>
-
-        <div v-if="storeFilters.selectedPTL" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Time Limit</div>
-          <div class="q-gutter-sm q-pt-sm">
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              :outline="storeFilters.selectedPTL.length < ptl.length"
-              @click="addFilterInfo('all', 'all-time-limits')">
-              All
-            </q-badge>
-            <q-badge
-              class="q-pa-sm"
-              color="blue-grey-6"
-              rounded
-              :outline="isOutlined(method, 'time-limits')"
-              @click="addFilterInfo(method, 'time-limits')"
-              v-for="(method, index) in ptl"
-              :key="index">
-              {{ paymentTimeLimit(method) }}
-            </q-badge>
-          </div>
-        </div>
-
-        <div v-if="storeFilters.priceOrder" class="q-pt-md">
-          <div class="sm-font-size text-weight-bold">Price Order</div>
-          <div class="q-pt-xs q-gutter-sm">
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'ascending'" @click="storeFilters.priceOrder = 'ascending'">Ascending</q-badge>
-            <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.priceOrder !== 'descending'" @click="storeFilters.priceOrder = 'descending'">Descending</q-badge>
-          </div>
-        </div>
-
-        <div class="text-center q-pt-sm q-px-sm q-pb-lg">
-          <div class="row q-gutter-sm q-pt-md">
-            <q-btn
-              rounded
-              no-caps
-              label='Reset'
-              class="q-space button button-icon"
-              :class="getDarkModeClass(darkMode)"
-              outline
-              @click="resetFilters('store')"
-            />
-            <q-btn
-              rounded
-              no-caps
-              label='Filter'
-              class="q-space button"
-              @click="submitData()"
-              v-close-popup
-            />
-          </div>
-        </div>
-      </div>
-    </q-card>
-  </q-dialog>
-
   <!-- Sending Appeal Confirmation Todo-->
   <q-dialog full-width v-model="appeal" @before-hide="$emit('back')">
     <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
@@ -788,8 +551,8 @@ export default {
       paymentMethod: {
         payment_type: '',
         account_name: '',
-        account_identifier: ''
-
+        account_identifier: '',
+        format: ''
       },
       ptl: [5, 15, 30, 60, 300, 720, 1440],
       paymentTypes: this.$store.getters['ramp/paymentTypes'],
@@ -847,12 +610,12 @@ export default {
         { value: 'RFN_PN', label: 'Refund Pending' }
       ],
       completedStatuses: ['CNCL', 'RLS', 'RFN'],
-      paymentTypeFormat: {
-        email: 'Email Address',
-        number: 'Account Number',
-        bank: 'Bank Account Number',
-        phone: 'Mobile Number'
-      }
+      // paymentTypeFormat: {
+      //   email: 'Email Address',
+      //   number: 'Account Number',
+      //   bank: 'Bank Account Number',
+      //   phone: 'Mobile Number'
+      // }
     }
   },
   watch: {
@@ -895,6 +658,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    paymentTypeFormat (format) {
+      return 'Test'
+    },
     paymentTypeRules (val) {
       const format = this.paymentMethod.payment_type.format
 
