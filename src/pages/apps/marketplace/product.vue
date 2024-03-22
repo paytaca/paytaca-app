@@ -200,7 +200,6 @@ function resetPage() {
   product.value.raw = null
   collection.value.raw = null
   initialized.value = false
-  productReviewSummary.value = { count: 0, average: 0, lastReview: null }
   productReview.value = null
   if (reviewsListDialog.value?.reviews) reviewsListDialog.value.reviews = []
 }
