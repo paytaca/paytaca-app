@@ -169,13 +169,13 @@ export default {
       }
 
       // Update signer data for signing chat authentication
-      const user = this.$store.getters['ramp/getUser']
       vm.hintMessage = 'Updating signer data'
       const verifyingPubkey = chatIdentity?.verifying_pubkey || null
-      const currentIndex = user?.address_path?.split('/')[1] || 0
+      const currentIndex = vm.user?.address_path?.split('/')[1] || 0
       await updateSignerData(verifyingPubkey, currentIndex).catch(error => { return vm.handleError(error, 'Failed to update signer data') })
 
       // Update or create encrypting/decrypting keypair
+      const user = this.$store.getters['ramp/getUser']
       if (!user) {
         vm.hintMessage = 'Updating chat keypair'
         await chatUtils.updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
