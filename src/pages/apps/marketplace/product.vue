@@ -6,7 +6,7 @@
     @refresh="refreshPage"
   >
     <HeaderNav title="Marketplace" class="header-nav" />
-    <div class="q-pa-sm" :class="{'text-black': !darkMode }">
+    <div class="q-pa-sm q-pt-md" :class="{'text-black': !darkMode }">
       <div class="row items-center no-wrap q-px-sm">
         <div class="text-h5">{{ product?.name }}</div>
         <q-chip v-if="available == false" color="grey" text-color="white" class="q-my-none">
