@@ -2,7 +2,6 @@ import BCHJS from '@psf/bch-js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import axios from 'axios'
-import { updateCustomerVerifyingPubkey } from 'src/store/marketplace/actions'
 
 const bchjs = new BCHJS()
 
@@ -77,9 +76,9 @@ export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0
   console.log('Updating signer data')
   const wallet = loadRampWallet()
   const walletHash = wallet?.walletHash
-  const privkey = await wallet.privkey(null, '0/0')
 
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
+  const privkey = await wallet.privkey(null, `0/${verifyingPubkeyIndex}`)
   const verifyingPubkey = await wallet.pubkey(null, `0/${verifyingPubkeyIndex}`)
   if (currentVerifyingPubkey && currentVerifyingPubkey !== verifyingPubkey) {
     // Resolve the correct keypair
@@ -98,7 +97,7 @@ export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0
   const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
   const address = bchjs.ECPair.toLegacyAddress(ecPair)
   const valid = await (await wallet.raw()).verifyMessage(address, signature, message)
-  if (!valid) return Promise.reject('Invalid Signature')
+  if (!valid) return Promise.reject('Invalid signature on updateSignerData')
 
   setSignerData(`${walletHash}:${privkey}`)
 }
