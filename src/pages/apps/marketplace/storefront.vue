@@ -37,6 +37,50 @@
           </div>
         </template>
       </div>
+      <div v-if="deliveryCalculation?.fee" class="row items-center no-wrap q-px-sm">
+        <div class="q-space">
+          Delivery:
+          {{ deliveryCalculation?.fee }} {{ deliveryCalculation?.currencySymbol }}
+          <span v-if="deliveryCalculation?.distance">
+            &nbsp;| {{ round(deliveryCalculation?.distance, 1) / 1000 }} km
+          </span>
+          <span v-if="deliveryCalculation?.deliveryDuration && deliveryCalculation.preparationDuration">
+            | ~{{ formatDuration(deliveryCalculation?.deliveryDuration + deliveryCalculation?.preparationDuration, { roundDecimals: 0 }) }}
+          </span>
+          <span v-else-if="deliveryCalculation?.deliveryDuration">
+            &nbsp;| >{{ formatDuration(deliveryCalculation?.deliveryDuration, { roundDecimals: 0 }) }}
+          </span>
+        </div>
+        <q-btn
+          v-if="deliveryCalculation?.deliveryDuration"
+          flat
+          padding="none xs"
+          no-caps label="Info"
+          color="brandblue"
+        >
+          <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+            <div style="min-width: min(250px, 75vw);">
+              <div v-if="deliveryCalculation?.fee" class="row items-center">
+                <div class="q-space">Delivery fee:</div>
+                <div>{{ deliveryCalculation?.fee }} {{ deliveryCalculation?.currencySymbol }}</div>
+              </div>
+              <div class="row items-center">
+                <div class="q-space">Delivery time:</div>
+                <div>
+                  {{ formatDuration(deliveryCalculation?.deliveryDuration, { roundDecimals: 0 }) }}
+                </div>
+              </div>
+              <div class="row items-center">
+                <div class="q-space">Preparation time:</div>
+                <div v-if="deliveryCalculation?.preparationDuration">
+                  {{ formatDuration(deliveryCalculation?.preparationDuration, { roundDecimals: 0 }) }}
+                </div>
+                <div v-else class="text-grey"><i>No data</i></div>
+              </div>
+            </div>
+          </q-menu>
+        </q-btn>
+      </div>
       <div
         v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
         class="row items-center no-wrap q-mx-sm"
@@ -56,7 +100,11 @@
           class="q-r-mr-lg"
           @click="() => showReviewsListDialog = true"
         />
-        <ReviewsListDialog v-model="showReviewsListDialog" :storefront-id="storefrontId"/>
+        <ReviewsListDialog
+          ref="reviewsListDialog"
+          v-model="showReviewsListDialog"
+          :storefront-id="storefrontId"
+        />
       </div>
       <div class="q-py-sm"></div>
       <div v-if="storefront?.id" class="q-px-sm q-mb-sm">
@@ -243,7 +291,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
-import { formatDateRelative, roundRating } from 'src/marketplace/utils'
+import { formatDateRelative, formatDuration, roundRating, round } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { setupCache } from 'axios-cache-interceptor'
 import axios from 'axios'
@@ -284,6 +332,14 @@ function resetPage() {
 
   searchBar.value.text = ''
   initialized.value = false
+
+  deliveryCalculation.value = {
+    fee: 0,
+    currencySymbol: '',
+    distance: 0,
+    deliveryDuration: 0,
+    preparationDuration: 0,
+  }
 }
 
 
@@ -367,8 +423,39 @@ function updateLivenessStatus() {
     })
 }
 
+const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
+const deliveryCalculation = ref({
+  fee: 0,
+  currencySymbol: '',
+  distance: 0,
+  deliveryDuration: 0,
+  preparationDuration: 0,
+})
+watch(() => props.storefrontId, () => updateDeliveryCalculation())
+function updateDeliveryCalculation() {
+  const params = {
+    storefront_id: props.storefrontId,
+    delivery_location: [
+      customerCoordinates.value?.latitude,
+      customerCoordinates.value?.longitude,
+    ].join(','),
+  }
+  return cachedBackend.get(`connecta-express/calculate_delivery/`, { params, cache: { ttle: 300 * 1000 } })
+    .then(response => {
+      deliveryCalculation.value = {
+        fee: parseFloat(response?.data?.fee),
+        currencySymbol: response?.data?.currency_symbol,
+        distance: parseInt(response?.data?.distance),
+        deliveryDuration: parseInt(response?.data?.delivery_duration),
+        preparationDuration: parseInt(response?.data?.preparation_duration),
+      }
+      return response
+    })
+}
+
 
 const showReviewsListDialog = ref(false)
+const reviewsListDialog = ref()
 
 
 const expandCollections = ref(true)
@@ -505,6 +592,8 @@ async function refreshPage(done=() => {}) {
       fetchProducts(),
       fetchProductCategories(),
       fetchCollections(),
+      updateDeliveryCalculation(),
+      reviewsListDialog.value?.fetchReviews?.(),
     ])
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', storefront.value?.id)

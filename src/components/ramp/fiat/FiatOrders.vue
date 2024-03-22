@@ -7,7 +7,7 @@
     :style="`height: ${minHeight}px;`"
     v-if="state == 'order-list'">
     <div v-if="state === 'order-list'">
-      <div class="row justify-start items-center q-mx-none q-px-sm">
+      <div v-if="!showSearch" class="row justify-start items-center q-mx-none q-px-sm">
         <div
           class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
@@ -33,7 +33,9 @@
             size="md"
             :icon="'search'"
             class="button button-text-primary col-auto q-mt-sm q-pa-none"
-            :class="getDarkModeClass(darkMode)">
+            :class="getDarkModeClass(darkMode)"
+            @click="searchState('focus')"
+            >
             <!-- <q-badge v-if="!defaultFiltersOn" left floating color="red"/> -->
           </q-btn>
           <q-btn
@@ -48,6 +50,19 @@
             <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
           </q-btn>
         </div>
+      </div>
+      <div v-else class="q-px-lg q-mx-xs">
+        <q-input ref="inputRef" v-model="query_name" label="Search" dense @blur="searchState('blur')">
+          <template v-slot:append>
+            <q-icon name="close"
+              @click="() => {
+                query_name = null
+                $refs.inputRef.focus()
+              }"
+              class="cursor-pointer" />
+            <q-icon name="search" @click="searchUser()" />
+          </template>
+        </q-input>
       </div>
       <div class="q-mt-sm">
         <!-- <q-pull-to-refresh @refresh="refreshData"> -->
@@ -106,6 +121,15 @@
                                 v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
                                 class="text-weight-bold subtext sm-font-size text-blue">
                                 Appealable
+                              </div>
+                              <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
+                                <q-rating
+                                  readonly
+                                  :model-value = "listing?.feedback?.rating || 0"
+                                  size="1em"
+                                  color="yellow-9"
+                                  icon="star"
+                                />
                               </div>
                               <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
                                 {{ listing.status?.label }}
@@ -200,6 +224,7 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
+      query_name: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       fiatProcessOrderKey: 0,
       defaultFiltersOn: true,
@@ -236,7 +261,8 @@ export default {
       openDialog: false,
       dialogType: '',
       selectedUserAdId: null,
-      pageName: 'main'
+      pageName: 'main',
+      showSearch: false
     }
   },
   watch: {
@@ -283,6 +309,24 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    searchState (state) {
+      const vm = this
+      if (state === 'focus') {
+        vm.showSearch = true
+
+        const x = setTimeout(() => {
+          vm.$refs.inputRef.focus()
+        }, 200)
+      } else {
+        vm.showSearch = false
+      }
+    },
+    searchUser () {
+      if (this.query_name) {
+        this.resetAndRefetchListings()
+        // this.fetchOrders(true)
+      }
+    },
     updatePageName (name) {
       this.pageName = name
     },
@@ -307,6 +351,7 @@ export default {
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
+      params.query_name = vm.query_name
       vm.loading = true
       vm.$store.dispatch('ramp/fetchOrders',
         {

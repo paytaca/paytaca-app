@@ -107,9 +107,32 @@ module.exports = function (/* ctx */) {
           use: 'raw-loader'
         })
 
+        // to support optional chaining for older android webviews
+        // NOTE: this is only applies for build in capacitor,
+        //       dev server in capacitor will not apply this plugin
+        if (cfg?.output?.path?.endsWith('src-capacitor/www')) {
+          cfg?.module?.rules?.push?.({
+            test: /\.(?:js|mjs|cjs|vue)$/,
+            enforce: 'post',
+            use: {
+              loader: 'babel-loader',
+              options: {
+                presets: [
+                  ['@babel/preset-env', { targets: "defaults" }]
+                ],
+                plugins: [
+                  '@babel/plugin-transform-optional-chaining',
+                  '@vue/babel-plugin-jsx',
+                ]
+              }
+            }
+          })
+        }
+
         cfg.experiments = {
           topLevelAwait: true
         }
+        // throw new Error(`MODE: ${cfg.mode}`)
       },
 
       chainWebpack (chain) {

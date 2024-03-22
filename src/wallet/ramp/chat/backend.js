@@ -77,6 +77,16 @@ export async function updateSignerData (_context) {
   const wallet = loadRampWallet()
   const walletHash = wallet?.walletHash
   const privkey = await wallet.privkey()
+
+  const { value } = await getSignerData()
+  if (value) {
+    const [_walletHash, _privkey] = value.split(':')
+    if (walletHash === _walletHash && privkey === _privkey) {
+      console.log('Signer data matches. No need to update')
+      return
+    }
+  }
+
   const verifyingPubkey = await wallet.pubkey()
   const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
 

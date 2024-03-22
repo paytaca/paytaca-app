@@ -68,7 +68,8 @@ export function fetchAds (context, { component = null, params = null, overwrite 
         price_order: params.sort_type,
         currency: params.currency,
         owned: params.owned,
-        trade_type: params.trade_type
+        trade_type: params.trade_type,
+        query_name: params.query_name
       }
       let apiURL = '/ramp-p2p/ad/'
       let appendParam = false
@@ -166,7 +167,8 @@ export async function fetchOrders (context, { statusType = null, params = null, 
         sort_by: params.sort_by,
         owned: owned,
         appealable: params.appealable,
-        not_appealable: params.not_appealable
+        not_appealable: params.not_appealable,
+        query_name: params.query_name
       }
       if (params.trade_type.buy !== params.trade_type.sell) {
         if (params.trade_type.buy) {

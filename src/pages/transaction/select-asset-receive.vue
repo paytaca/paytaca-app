@@ -355,25 +355,6 @@ export default {
         await updateAssetBalanceOnLoad(asset.id, vm.wallet, vm.$store)
       })
     })
-
-    // check for newly-received token(s) then add it to asset list
-    const previousRoute = vm.$router.options.history.state.back
-    const isSBCH = vm.selectedNetwork === 'sBCH'
-    // only run condition if user went back to receive page from receive unlisted token page
-    if (previousRoute.includes('receive') && previousRoute.includes('unlisted')) {
-      const ignoredAssets = vm.$store.getters[`${isSBCH ? 'sep20' : 'assets'}/ignoredAssets`]
-      const missingAssets = isSBCH ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
-      const removedAssets = vm.$store.getters[`${isSBCH ? 'sep20' : 'assets'}/getRemovedAssetIds`]
-      const combinedAssets = [...vm.assets.map(a => a.id), ...ignoredAssets.map(a => a.id)]
-
-      missingAssets.forEach(asset => {
-        // do not re-add removed assets
-        if (combinedAssets.indexOf(asset.id) === -1 && removedAssets.indexOf(asset.id) === -1) {
-          vm.$store.commit(`${asset.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, asset)
-          vm.$store.commit(`${asset.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
-        }
-      })
-    }
   }
 }
 </script>

@@ -8,7 +8,7 @@
       </div>
       <div v-else>
         <div class="text-center text-weight-bold text-uppercase lg-font-size q-mt-md">Ad Snapshot</div>
-        <div class="text-center sm-font-size subtext">Snapshot ID: {{ snapshot?.id }}</div>
+        <div class="text-center sm-font-size subtext">Ad Reference ID: {{ snapshot?.ad }}</div>
         <q-separator class="q-my-sm" :dark="darkMode"/>
         <div class="sm-font-size q-px-md q-py-sm q-mb-lg">
           <div class="row justify-between no-wrap q-mx-lg">
@@ -26,7 +26,7 @@
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Market Price</span>
             <span class="text-nowrap q-ml-xs">
-              {{ formattedCurrency(snapshot?.market_price, snapshot?.fiat_currency?.symbol) }}
+              {{ formattedCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol) }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
@@ -41,14 +41,14 @@
               {{ appealCooldown(snapshot?.appeal_cooldown_choice).label }}
             </span>
           </div>
-          <div class="q-px-sm q-py-sm">
+          <!-- <div class="q-px-sm q-py-sm">
             <div class="md-font-size q-px-md">Ad Payment Methods</div>
             <div class="q-px-md q-gutter-sm q-pt-xs">
               <q-badge v-for="method in snapshot?.payment_methods" :key="method.id" rounded outline :color="snapshot?.trade_type === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
                 {{ method.payment_type }}
               </q-badge>
             </div>
-          </div>
+          </div> -->
         </div>
         <!--<div class="q-py-md q-mx-lg q-pb-sm">
           <div class="md-font-size text-weight-bold q-px-md">Order Payment Methods</div>
@@ -100,7 +100,8 @@ export default {
     ProgressLoader
   },
   props: {
-    snapshotId: Number
+    snapshotId: Number,
+    orderId: Number
   },
   emits: ['back'],
   async mounted () {
@@ -122,7 +123,7 @@ export default {
     },
     async fetchAdSnapshot () {
       await backend.get('/ramp-p2p/ad-snapshot',
-        { authorize: true, params: { ad_snapshot_id: this.snapshotId } }
+        { authorize: true, params: { order_id: this.orderId } }
       )
         .then(response => {
           this.snapshot = response.data

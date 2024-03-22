@@ -124,7 +124,7 @@ export async function checkChatSessionAdmin (chatRef) {
 
 export async function fetchChatSession (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/sessions/${chatRef}`, { forceSign: true })
+    chatBackend.get(`chat/sessions/${chatRef}/chat_member/`, { forceSign: true })
       .then(response => {
         resolve(response)
       })
@@ -247,7 +247,6 @@ export async function updateOrCreateKeypair () {
   console.log('Updating chat keypair')
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed })
-
   await savePrivkey(keypair.privkey)
     .catch(error => {
       console.error(error)

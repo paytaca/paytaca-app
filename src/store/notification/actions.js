@@ -35,6 +35,16 @@ export function getOpenedNotificationRoute(context) {
         params: { orderId: openedNotification?.data?.order_id },
       }
       break
+    case(NotificationTypes.PAYMENT_REQUEST):
+      route = {
+        name: 'transaction-send',
+        query: {
+          assetId: 'bch',
+          network: 'BCH',
+          paymentUrl: String(openedNotification?.data?.payment_url),
+        },
+      }
+      break
   }
 
   try {

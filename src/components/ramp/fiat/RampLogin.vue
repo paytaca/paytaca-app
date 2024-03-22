@@ -4,12 +4,6 @@
   class="q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"
   :style="`height: ${minHeight}px;`" style="overflow-y: auto">
-    <!-- <div v-if="isLoading">
-      <div class="row justify-center" style="margin-top: 30%">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </div>
-      <div class="row justify-center subtext">{{hintMessage}}</div>
-    </div> -->
     <div>
       <div class="q-px-md q-mb-sm text-h6 login-label">
         <div class="row justify-center q-mb-sm">
@@ -42,7 +36,7 @@
           </template>
         </q-input>
       </div>
-      <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
+      <!-- <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
         <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
           <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
           <span class="text-center q-my-sm q-mx-md">Biometrics</span>
@@ -51,7 +45,7 @@
           <q-icon class="q-mt-sm" size="50px" name="apps" />
           <span class="text-center q-my-sm q-mx-md">MPIN</span>
         </q-btn>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -109,9 +103,8 @@ export default {
   },
   mounted () {
     this.dialog = true
-    if (this.error) {
-      this.errorMessage = this.error
-    }
+    if (this.error) this.errorMessage = this.error
+    NativeBiometric.isAvailable().then(() => { this.hasBiometric = true })
     this.fetchUser()
     this.rampWallet = loadRampWallet()
   },
@@ -124,14 +117,14 @@ export default {
         const { data: user } = await backend.get('/auth/')
         vm.user = user
         vm.usernickname = user?.name
-        vm.$store.commit('ramp/updateUser', user)
         console.log('user:', vm.user)
         if (vm.user.is_authenticated) {
           const token = await getAuthToken()
           if (token) {
             const success = await vm.loadChatIdentity()
-            // await vm.savePubkeyAndAddress()
+            await vm.savePubkeyAndAddress()
             if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+            vm.$store.commit('ramp/updateUser', user)
             vm.loggingIn = false
           } else {
             vm.isLoading = false
@@ -163,34 +156,6 @@ export default {
         ref: vm.rampWallet.walletHash,
         name: vm.user.name
       }
-      // let chatIdentity = vm.$store.getters['ramp/chatIdentity']
-      // console.log('current chatIdentity: ', this.chatIdentity)
-      // try {
-      //   console.log('start', Object.keys(chatIdentity).length)
-      //   if (!chatIdentity && Object.keys(chatIdentity).length === 0) {
-      //     console.log('fetching chat identity')
-      //     await updateSignerData()
-      //     const data = {
-      //       rampWallet: vm.rampWallet,
-      //       ref: vm.rampWallet.walletHash,
-      //       name: vm.user.name
-      //     }
-      //     chatIdentity = await fetchChatIdentity(data.ref)
-      //     if (!chatIdentity) {
-      //       const payload = await vm.buildChatIdentityPayload(data)
-      //       chatIdentity = createChatIdentity(payload)
-      //     }
-      //     vm.$store.commit('ramp/updateChatIdentity', chatIdentity)
-      //     vm.hintMessage = 'Updating chat keypair'
-      //     await updateOrCreateKeypair()
-      //   }
-      //   if (!vm.user.chat_identity_id) {
-      //     console.log('updating chatIdentityId')
-      //     updateChatIdentityId(userType, chatIdentity.id)
-      //   }
-      // } catch (error) {
-      //   console.log('error:', error)
-      // }
       // check if chatIdentity exist
       let chatIdentity = await fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
 
@@ -199,8 +164,11 @@ export default {
       await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
 
       // Update or create encrypting/decrypting keypair
-      vm.hintMessage = 'Updating chat keypair'
-      await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+      const user = this.$store.getters['ramp/getUser']
+      if (!user) {
+        vm.hintMessage = 'Updating chat keypair'
+        await updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+      }
 
       if (!chatIdentity) {
         // Build payload and create chat identity
@@ -248,7 +216,7 @@ export default {
           if (payload.public_key === vm.user.public_key &&
               payload.address === vm.user.address &&
               payload.address_path === vm.user.address_path) {
-            console.log('local wallet keys match server keys')
+            console.log('Local wallet keys match server keys')
             resolve(vm.user)
           } else {
             console.log('user:', vm.user)
@@ -278,8 +246,8 @@ export default {
       vm.errorMessage = null
       try {
         // security check before login
-        const securityOk = await vm.checkSecurity(securityType)
-        if (!securityOk) { vm.loggingIn = false; return }
+        // const securityOk = await vm.checkSecurity(securityType)
+        // if (!securityOk) { vm.loggingIn = false; return }
         vm.loggingIn = true
         vm.hintMessage = 'Logging you in'
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
@@ -292,11 +260,10 @@ export default {
         }
         const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
         if (vm.user) {
-          console.log('saving user')
-          vm.$store.commit('ramp/updateUser', vm.user)
           saveAuthToken(loginResponse.data.token)
           const success = await vm.loadChatIdentity()
           if (success) vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+          vm.$store.commit('ramp/updateUser', vm.user)
         }
       } catch (error) {
         if (error.response) {
@@ -317,7 +284,7 @@ export default {
       deleteAuthToken()
       const keypair = await vm.rampWallet.keypair()
       vm.rampWallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
-        .then(signature => {
+        .then(async (signature) => {
           const headers = {
             timestamp: timestamp,
             signature: signature,
@@ -325,14 +292,23 @@ export default {
           }
           const body = {
             name: this.usernickname,
-            address: this.rampWallet.address
+            address: this.rampWallet.address,
+            address_path: await vm.rampWallet.addressPath()
           }
           backend.post('/ramp-p2p/peer/create', body, { headers: headers })
             .then((response) => {
               this.user = response.data
               this.$store.commit('ramp/updateUser', this.user)
               console.log('Created user:', this.user)
+              this.errorMessage = null
               this.login()
+            })
+            .catch(error => {
+              console.log(error)
+              const resp = error.response
+              if (resp.status === 400) {
+                this.errorMessage = resp.data.error || resp?.data?.name[0]
+              }
             })
         })
         .catch((error) => {
@@ -371,36 +347,15 @@ export default {
         console.error(error.response)
       }
     },
-    checkSecurity (securityType) {
-      const vm = this
-      return new Promise((resolve, reject) => {
-        if (this.register) return resolve(true)
-        if (!securityType || securityType === 'pin') {
-          vm.showSecurityDialog()
-            .then(result => {
-              resolve(result)
-            })
-            .catch(error => {
-              reject(error)
-            })
-        } else if (securityType === 'biometric') {
-          NativeBiometric.isAvailable()
-            .then(() => {
-              this.hasBiometric = true
-              this.verifyBiometric()
-                .then(result => { resolve(result) })
-                .catch(error => { reject(error) })
-            })
-            .catch((error) => {
-              console.error('Implementation error: ', error)
-              this.showSecurityDialog()
-                .then(result => { resolve(result) })
-                .catch(error => { reject(error) })
-            })
-        } else {
-          reject()
-        }
-      })
+    async checkSecurity (securityType) {
+      if (this.register) return true
+      let success = false
+      if (!securityType || securityType === 'pin') {
+        success = await this.showSecurityDialog()
+      } else if (this.hasBiometric && securityType === 'biometric') {
+        success = await this.verifyBiometric()
+      }
+      return success
     },
     onLoginClick (type) {
       if (this.securityDialogUp) return
@@ -410,28 +365,20 @@ export default {
       this.login(type)
     },
     showSecurityDialog () {
-      return new Promise((resolve, reject) => {
-        try {
-          const securityDialog = Dialog.create({
-            component: SecurityCheckDialog
+      return new Promise((resolve) => {
+        Dialog.create({
+          component: SecurityCheckDialog
+        })
+          .onOk(() => {
+            resolve(true)
           })
-            .onOk(() => {
-              securityDialog.hide()
-              this.securityDialogUp = false
-              resolve(true)
-            })
-            .onCancel(() => {
-              this.securityDialogUp = false
-              resolve(false)
-            })
-            .onDismiss(() => {
-              this.securityDialogUp = false
-              resolve(false)
-            })
-        } catch (error) {
-          console.error(error)
-          reject(error)
-        }
+          .onCancel(() => {
+            resolve(false)
+          })
+          .onDismiss(() => {
+            this.securityDialogUp = false
+            resolve(false)
+          })
       })
     },
     verifyBiometric () {
@@ -443,7 +390,6 @@ export default {
           description: ''
         })
           .then(() => {
-            this.securityDialogUp = false
             resolve(true)
           })
           .catch((error) => {
@@ -451,9 +397,9 @@ export default {
             if (!String(error).toLocaleLowerCase().includes('cancel')) {
               this.errorMessage = 'Failed to authenticate'
             }
-            this.securityDialogUp = false
             resolve(false)
           })
+          .finally(() => { this.securityDialogUp = false })
       })
     }
   }
