@@ -425,6 +425,9 @@ export default {
         vm.priceAmount = vm.transformPrice(value)
       }
     },
+    'adData.fiatCurrency' (value) {
+      this.getInitialMarketPrice()
+    },
     'adData.priceType' (value) {
       const vm = this
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
@@ -597,8 +600,15 @@ export default {
     },
     async updateFiatCurrency () {
       const vm = this
-      vm.priceValue = ''
+      // vm.priceValue = ''
       await vm.getInitialMarketPrice()
+
+      if (vm.adData.priceType === 'FLOATING') {
+        vm.priceValue = 100
+      } else {
+        vm.priceValue = vm.marketPrice
+      }
+
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
       vm.adData.fiatCurrency = vm.selectedCurrency
 
@@ -643,7 +653,7 @@ export default {
       switch (priceType) {
         case 'FIXED':
           if (vm.adsState === 'create') value = vm.priceAmount
-          if (vm.adsState === 'edit') value = vm.adData.fixedPrice
+          if (vm.adsState === 'edit') value = vm.transformPrice(vm.priceAmount) //value = vm.adData.fixedPrice
           if (value === 0 || override) value = vm.marketPrice
           vm.priceValue = value
           break
