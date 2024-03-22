@@ -21,7 +21,7 @@
           {{ errorMessage }}
         </q-card-section>
         <q-card-actions class="text-center" align="center">
-          <q-btn flat :label="!errorMessage ? 'Cancel' : 'OK'" color="red-6" @click="$emit('back')" v-close-popup />
+          <q-btn flat :label="!erreditPaymentMethodorMessage ? 'Cancel' : 'OK'" color="red-6" @click="$emit('back')" v-close-popup />
           <q-btn
             v-if="!errorMessage"
             flat
@@ -48,6 +48,7 @@
             dense
             borderless
             filled
+            :disable="actionType === 'editPaymentMethod'"
             v-model="paymentMethod.payment_type"
             label="Payment Type"
             option-label="name"
@@ -160,7 +161,8 @@ export default {
         account_identifier: null,
         identifier_format: null
       },
-      errorMessage: null
+      errorMessage: null,
+      actionType: this.action
     }
   },
   emits: ['back', 'success'],
