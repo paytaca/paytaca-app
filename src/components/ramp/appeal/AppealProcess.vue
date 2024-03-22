@@ -34,7 +34,7 @@
         </q-card>
       </div>
       <AppealDetail
-        v-if="state === 'form' || state === 'completed'"
+        v-if="state === 'form' || state === 'form-sending' || state === 'completed'"
         ref="appealDetail"
         :key="appealDetailKey"
         :data="appealDetailData"
@@ -43,6 +43,7 @@
         @back="$emit('back')"
         @refresh="refreshData"
         @update-page-name="(val) => {$emit('updatePageName', val)}"
+        @form-sending="state = 'form-sending'"
       />
       <AppealTransfer
         v-if="state === 'tx-confirmation'"
@@ -116,7 +117,7 @@ export default {
   },
   computed: {
     scrollHeight () {
-      let height = this.$q.platform.is.ios ? this.$q.screen.height - 380 : this.$q.screen.height - 350
+      let height = this.$q.platform.is.ios ? this.$q.screen.height - 360 : this.$q.screen.height - 330
       if (this.state === 'form') {
         height = height - 90
       }
@@ -149,7 +150,7 @@ export default {
       this.appeal = this.selectedAppeal
       this.fetchAppeal()
         .then(() => { this.generateContract() })
-        .then(this.reloadChildComponents())
+        .then(() => { this.reloadChildComponents() })
     },
     reloadChildComponents () {
       this.appealDetailKey++
@@ -193,7 +194,7 @@ export default {
       this.escrowContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
     },
     updateStatus (status) {
-      if (this.status && status && this.status.value === status.value) return
+      // if (this.status && status && this.status.value === status.value) return
       this.status = status
 
       switch (this.status.value) {

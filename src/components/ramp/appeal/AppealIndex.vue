@@ -29,7 +29,7 @@
           </button>
         </div>
       </div>
-      <!-- <q-pull-to-refresh @refresh="refreshData"> -->
+      <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
         <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 80}px`" style="overflow:auto;">
           <!-- Loading icon -->
           <div class="row justify-center">
@@ -47,7 +47,6 @@
           </div>
           <!-- List -->
           <div v-else>
-            <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="appeals"
@@ -66,7 +65,7 @@
                         <div class="col ib-text">
                           <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
                           <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
-                          <div class="md-font-size">ORDER #{{ appeal.order.id }}</div>
+                          <div class="xs-font-size">ORDER #{{ appeal.order.id }}</div>
                           <div class="row text-weight-bold" style="font-size: medium;">
                             {{ appeal.owner.name}}
                           </div>
@@ -84,10 +83,9 @@
                   <q-separator class="q-mx-lg" :dark="darkMode"/>
                 </div>
               </q-infinite-scroll>
-            </q-pull-to-refresh>
           </div>
         </q-list>
-      <!-- </q-pull-to-refresh> -->
+      </q-pull-to-refresh>
     </div>
   </div>
 
@@ -139,13 +137,7 @@ export default {
     statusType () {
       const vm = this
       vm.resetAndScrollToTop()
-      vm.updatePaginationValues()
-      if (vm.pageNumber === null || vm.totalPages === null) {
-        if (!vm.appeals || vm.appeals.length === 0) {
-          vm.loading = true
-          vm.fetchAppeals()
-        }
-      }
+      vm.refreshData()
     }
   },
   computed: {
@@ -179,6 +171,7 @@ export default {
     getDarkModeClass,
     updatePageName (name) {
       this.pageName = name
+      this.refreshData()
     },
     customBack () {
       const vm = this
@@ -232,7 +225,6 @@ export default {
       if (done) done()
     },
     async resetAndRefetchListings () {
-      console.log('resetAndRefetchListings')
       const vm = this
       vm.$store.commit('ramp/resetAppealsPagination')
       await vm.fetchAppeals(true)
@@ -307,5 +299,14 @@ export default {
   width: 70px;
   z-index: 1;
   left: 10px;
+}
+.md-font-size {
+  font-size: medium;
+}
+.sm-font-size {
+  font-size: small;
+}
+.xs-font-size {
+  font-size: smaller;
 }
 </style>
