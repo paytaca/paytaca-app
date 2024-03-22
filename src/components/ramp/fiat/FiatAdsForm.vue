@@ -425,7 +425,8 @@ export default {
         vm.priceAmount = vm.transformPrice(value)
       }
     },
-    'adData.fiatCurrency' (value) {
+    'adData.fiatCurrency' () {
+      this.adData.fixedPrice = 0
       this.getInitialMarketPrice()
     },
     'adData.priceType' (value) {
