@@ -85,6 +85,9 @@ export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0
     // Resolve the correct keypair
     console.log('Pubkeys do not match. Resolving correct keypair')
     const [keypair, index] = await resolveMatchingKeypair(wallet, currentVerifyingPubkey, currentIndex)
+    if (!keypair || !index) {
+      return Promise.reject('Failed to updateVerifyingPubkey: Could not find matching keypair/index')
+    }
     // Update the verifying pubkey in the server
     await updateVerifyingPubkey(wallet, keypair, verifyingPubkey, index)
   }
@@ -101,7 +104,9 @@ export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0
 }
 
 async function resolveMatchingKeypair (wallet, currentVerifyingPubkey, endIndex) {
-  let keypair = { publicKey: '', privateKey: '' }
+  let keypair = null
+  let matchingIndex = null
+  console.log(`Starting at index ${endIndex}`)
   for (let index = endIndex; index >= 0; index--) {
     const verifyingPubkey = await wallet.pubkey(null, `0/${index}`)
     if (verifyingPubkey === currentVerifyingPubkey) {
@@ -111,10 +116,11 @@ async function resolveMatchingKeypair (wallet, currentVerifyingPubkey, endIndex)
         publicKey: verifyingPubkey,
         privateKey: privateKey
       }
-      return [keypair, index]
+      matchingIndex = index
+      break
     }
   }
-  console.log('Could not find matching keypair.')
+  return [keypair, matchingIndex]
 }
 
 async function updateVerifyingPubkey (wallet, keypair, verifyingPubkey, index) {
