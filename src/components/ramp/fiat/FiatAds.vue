@@ -155,7 +155,6 @@
     :selectedAdId="selectedAdId"
     @update-page-name="(val) => {
         pageName = val
-        console.log(pageName)
       }"
   />
   <FiatAdsDialogs
