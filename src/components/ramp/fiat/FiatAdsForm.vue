@@ -452,8 +452,6 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     openInstructionDialog (type) {
-      console.log('type: ', type)
-
       const temp = this.instruction[type]
       this.title = temp.title
       this.text = temp.text
@@ -499,7 +497,7 @@ export default {
       const vm = this
       return new Promise((resolve, reject) => {
         const body = vm.transformPostData()
-        console.log('createAd:', body)
+        // console.log('createAd:', body)
         backend.post('/ramp-p2p/ad/', body, { authorize: true })
           .then(response => {
             console.log(response)
@@ -603,6 +601,7 @@ export default {
       await vm.getInitialMarketPrice()
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
       vm.adData.fiatCurrency = vm.selectedCurrency
+
       vm.closeWSConnection()
       vm.setupWebsocket()
     },

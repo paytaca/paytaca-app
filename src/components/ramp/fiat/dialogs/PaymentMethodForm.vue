@@ -21,7 +21,7 @@
           {{ errorMessage }}
         </q-card-section>
         <q-card-actions class="text-center" align="center">
-          <q-btn flat :label="!erreditPaymentMethodorMessage ? 'Cancel' : 'OK'" color="red-6" @click="$emit('back')" v-close-popup />
+          <q-btn flat :label="!errorMessage ? 'Cancel' : 'OK'" color="red-6" @click="$emit('back')" v-close-popup />
           <q-btn
             v-if="!errorMessage"
             flat
@@ -221,14 +221,13 @@ export default {
       if (this.paymentMethod.account_identifier) {
         this.$refs.accIdentifierRef.validate()
       }
+      this.paymentMethod.account_identifier = ''
     },
     onUpdatePaymentType (data) {
-      if (this.action === 'createPaymentMethod') {
-        if (typeof data === 'string') {
-          this.paymentMethod.identifier_format = data
-        } else {
-          this.paymentMethod.identifier_format = data.formats[0]
-        }
+      if (typeof data === 'string') {
+        this.paymentMethod.identifier_format = data
+      } else {
+        this.paymentMethod.identifier_format = data.formats[0]
       }
       this.paymentMethod.account_identifier = ''
     },
