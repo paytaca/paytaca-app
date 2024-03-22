@@ -48,6 +48,7 @@
             dense
             borderless
             filled
+            :disable="actionType === 'editPaymentMethod'"
             v-model="paymentMethod.payment_type"
             label="Payment Type"
             option-label="name"
@@ -160,7 +161,8 @@ export default {
         account_identifier: null,
         identifier_format: null
       },
-      errorMessage: null
+      errorMessage: null,
+      actionType: this.action
     }
   },
   emits: ['back', 'success'],
@@ -219,14 +221,13 @@ export default {
       if (this.paymentMethod.account_identifier) {
         this.$refs.accIdentifierRef.validate()
       }
+      this.paymentMethod.account_identifier = ''
     },
     onUpdatePaymentType (data) {
-      if (this.action === 'createPaymentMethod') {
-        if (typeof data === 'string') {
-          this.paymentMethod.identifier_format = data
-        } else {
-          this.paymentMethod.identifier_format = data.formats[0]
-        }
+      if (typeof data === 'string') {
+        this.paymentMethod.identifier_format = data
+      } else {
+        this.paymentMethod.identifier_format = data.formats[0]
       }
       this.paymentMethod.account_identifier = ''
     },

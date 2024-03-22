@@ -600,6 +600,7 @@ export default {
       await vm.getInitialMarketPrice()
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
       vm.adData.fiatCurrency = vm.selectedCurrency
+
       vm.closeWSConnection()
       vm.setupWebsocket()
     },
