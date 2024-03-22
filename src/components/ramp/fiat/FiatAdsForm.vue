@@ -452,8 +452,6 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     openInstructionDialog (type) {
-      console.log('type: ', type)
-
       const temp = this.instruction[type]
       this.title = temp.title
       this.text = temp.text
@@ -499,7 +497,6 @@ export default {
       const vm = this
       return new Promise((resolve, reject) => {
         const body = vm.transformPostData()
-        console.log('createAd:', body)
         backend.post('/ramp-p2p/ad/', body, { authorize: true })
           .then(response => {
             console.log(response)
@@ -622,7 +619,7 @@ export default {
       return {
         trade_type: data.tradeType,
         price_type: data.priceType,
-        fiat_currency: data.fiatCurrency.symbol,
+        fiat_currency: data.fiatCurrency.id,
         crypto_currency: defaultCrypto,
         fixed_price: parseFloat(data.fixedPrice),
         floating_price: parseFloat(data.floatingPrice),
