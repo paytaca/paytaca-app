@@ -1,9 +1,10 @@
 <template>
   <!-- Delete Ad -->
-  <q-dialog persistent v-model="deleteAd">
-    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+  <q-dialog v-model="deleteAd" @before-hide="$emit('back')">
+    <q-card class="br-15 pt-card-2 text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">Delete this Ad?</div>
+        <div class="text-center">This action cannot be undone and will not delete related orders.</div>
       </q-card-section>
       <q-card-actions class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" @click="$emit('back')"  v-close-popup />
