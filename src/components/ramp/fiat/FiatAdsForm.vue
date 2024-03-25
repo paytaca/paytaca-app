@@ -240,6 +240,7 @@
     <AddPaymentMethods
       :type="'Ads'"
       :confirm-label="'Next'"
+      :currency="adData.fiatCurrency.symbol"
       :currentPaymentMethods="adData.paymentMethods"
       v-on:submit="appendPaymentMethods"
       @back="step--"

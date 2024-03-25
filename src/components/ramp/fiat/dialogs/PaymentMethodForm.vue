@@ -169,7 +169,8 @@ export default {
   props: {
     action: String,
     paymentMethodId: Number,
-    paymentType: Object
+    paymentType: Object,
+    currency: String
   },
   async mounted () {
     switch (this.action) {
@@ -273,9 +274,10 @@ export default {
     },
     async fetchPaymentMethods () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-method/', { authorize: true })
+      await backend.get('/ramp-p2p/payment-method/', { params: { currency: this.currency }, authorize: true })
         .then(response => {
           vm.currentPaymentMethods = response.data
+          console.log('currentPaymentMethods:', vm.currentPaymentMethods)
         })
         .catch(error => {
           console.error(error)

@@ -165,7 +165,8 @@
   <div v-if="state === 'add-payment-method'">
     <AddPaymentMethods
       :type="'General'"
-      :ad-payment-method="ad.payment_methods"
+      :ad-payment-methods="ad.payment_methods"
+      :currency="ad.fiat_currency?.symbol"
       v-on:back="state = 'initial'"
       v-on:submit="recievePaymentMethods"
     />
