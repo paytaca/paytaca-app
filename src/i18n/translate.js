@@ -857,7 +857,11 @@ const additional = [
     ScanClaimGift: "Scan to claim the gift",
     ShareGiftLink: "Share gift link",
     CampaignLimitError: "Campaign limit per wallet cannot be greater than the gift amount",
-    CreateNewCampaign: "Create New Campaign"
+    CreateNewCampaign: "Create New Campaign",
+    SeeBasicWalletInfo: "See Basic Wallet Info",
+    WalletName: "Wallet Name",
+    WalletBalanceCap: "Wallet Balance",
+    LoadingWallet: "Loading wallet...",
     ReceiverWarningText1: "First time receiving funds for this asset? Please",
     ReceiverWarningText2: "backup your seed phrase",
     ReceiverWarningText3: "before proceeding.",

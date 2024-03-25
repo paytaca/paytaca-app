@@ -58,21 +58,30 @@
                     <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
                       <q-item clickable v-close-popup>
                         <q-item-section
-                        class="pt-label"
+                          class="pt-label"
                           :class="getDarkModeClass(darkMode)"
                           @click="switchWallet(selectedIndex)"
                         >
                           {{ $t('SwitchWallet') }}
-                      </q-item-section>
+                        </q-item-section>
                       </q-item>
                       <q-item clickable v-close-popup>
                         <q-item-section
-                        class="pt-label"
+                          class="pt-label"
                           :class="getDarkModeClass(darkMode)"
                           @click="openRenameDialog()"
                         >
                           {{ $t('Rename') }}
-                      </q-item-section>
+                        </q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section
+                          class="pt-label"
+                          :class="getDarkModeClass(darkMode)"
+                          @click="openBasicInfoDialog()"
+                        >
+                          {{ $t('SeeBasicWalletInfo') }}
+                        </q-item-section>
                       </q-item>
                     </q-list>
                   </q-menu>
@@ -86,10 +95,14 @@
   </q-dialog>
 </template>
 <script>
-import renameDialog from './renameDialog.vue'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { deleteAuthToken } from 'src/wallet/ramp/auth'
+import { decryptWalletName } from 'src/marketplace/chat/encryption'
+
+import renameDialog from './renameDialog.vue'
+import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 
 export default {
   data () {
@@ -103,7 +116,9 @@ export default {
     }
   },
   components: {
-    renameDialog
+    renameDialog,
+    BasicInfoDialog,
+    LoadingWalletDialog
   },
   methods: {
     parseAssetDenomination,
@@ -112,22 +127,27 @@ export default {
     isNotDefaultTheme,
     processVaultName () {
       const vm = this
-      let count = 1
-
       const tempVault = vm.$store.getters['global/getVault']
 
-      for (const item in tempVault) {
-        const wallet = tempVault[item]
+      tempVault.forEach(async (wallet, index) => {
         if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
-          const name = 'Personal Wallet #' + count
-          vm.$store.commit('global/updateWalletName', { index: item, name: name })
+          const walletHash = wallet.wallet.bch.walletHash
+          const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
+
+          let name = `Personal Wallet #${index + 1}`
+          if (walletName !== '') {
+            name = decryptWalletName(walletName, walletHash)
+          }
+          vm.$store.commit('global/updateWalletName', { index, name })
         }
-        count++
-      }
+      })
     },
     switchWallet (index) {
       const vm = this
       if (index !== this.currentIndex) {
+        const loadingDialog = this.$q.dialog({
+          component: LoadingWalletDialog
+        })
         const asset = this.$store.getters['assets/getAllAssets']
         // const ignoredAssets = this.$store.getters['assets/ignoredAssets']
 
@@ -145,6 +165,8 @@ export default {
           vm.$router.push('/')
           setTimeout(() => { location.reload() }, 500)
         })
+
+        loadingDialog.hide()
       }
       vm.hide()
     },
@@ -202,6 +224,14 @@ export default {
       } else {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
+    },
+    openBasicInfoDialog () {
+      this.$q.dialog({
+        component: BasicInfoDialog,
+        componentProps: {
+          vaultIndex: this.selectedIndex
+        }
+      })
     }
   },
   computed: {
