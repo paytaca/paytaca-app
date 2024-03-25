@@ -1,6 +1,6 @@
 {
   "name": "paytaca",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "productName": "Paytaca",
   "author": "joemar@paytaca.com",
@@ -99,6 +99,7 @@
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.0.0",
+    "@babel/plugin-transform-nullish-coalescing-operator": "^7.24.1",
     "@babel/plugin-transform-optional-chaining": "^7.23.4",
     "@quasar/app-webpack": "^3.5.9",
     "@vue/babel-plugin-jsx": "^1.2.1",

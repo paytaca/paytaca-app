@@ -7,13 +7,13 @@
   >
     <HeaderNav title="Marketplace" class="header-nav" />
 
-    <div v-if="!initialized" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+    <div v-if="!initialized" class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="q-px-sm text-h5 q-space">Order</div>
       <div v-if="fetchingOrder" class="text-center">
         <q-spinner size="3em"/>
       </div>
     </div>
-    <div v-else class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+    <div v-else class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-start no-wrap q-px-sm">
         <div class="q-space row items-start">
           <div class="text-h5 q-space">

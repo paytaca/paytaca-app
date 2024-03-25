@@ -579,7 +579,7 @@ export default {
 
           // if unlisted token is detected, add to front of list
           // check if token already added in list
-          if (vm.tokens.map(a => a.id).includes(data.token_id)) {
+          if (!vm.tokens.map(a => a.id).includes(data.token_id)) {
             const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
             newTokenData.balance = amount
 
