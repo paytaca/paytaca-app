@@ -1,20 +1,19 @@
 <template>
   <div
     class="q-mx-md q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+    :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
       <div class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size">
         {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
       </div>
       <q-separator :dark="darkMode" class="q-mx-md q-mt-sm"/>
       <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm">{{ instructionMessage }}</div>
-      <q-card-section :style="`max-height: ${minHeight - 190}px`" style="overflow-y:auto;">
+      <q-card-section class="q-mt-sm" :style="`height: ${minHeight}px;`" style="overflow-y:auto;">
         <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
           <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
           <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
         </div>
-        <q-item v-for="(method, index) in paymentMethods" :key="index">
+        <q-item class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
           <q-item-section>
             <div class="row no-wrap">
               <div class="col-grow">
@@ -90,7 +89,9 @@
             </q-item-section>
           </q-item>
         </div>
-        <div class="row q-pt-lg q-mx-md" v-if="type === 'Ads'">
+      </q-card-section>
+      <div class="q-mt-md">
+        <div class="row q-mx-md" v-if="type === 'Ads'">
           <q-btn
             outline
             rounded
@@ -124,7 +125,7 @@
             @click="createMethod"
           />
         </div>
-      </q-card-section>
+      </div>
     </div>
   </div>
   <MiscDialogs
@@ -192,7 +193,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
       paymentMethods: [],
       paymentTypeOpts: [],
       paymentMethodOpts: [],
@@ -231,14 +231,29 @@ export default {
         vm.validatePaymentMethods()
         break
       case 'Profile':
-        // await this.fetchPaymentTypes()
-        // await vm.fetchPaymentMethods()
         bus.emit('hide-menu')
         break
     }
     this.isloaded = true
   },
   computed: {
+    minHeight () {
+      let height = this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
+      if (this.type === 'Profile') {
+        if (!(this.paymentMethods.length - this.paymentTypeOpts.length !== 0)) {
+          height = height - 120
+        } else {
+          height = height - 130
+        }
+      }
+      if (this.type === 'Ads') {
+        height = height - 190
+      }
+      if (this.type === 'General') {
+        height = height - 170
+      }
+      return height
+    },
     hasAlienPaymentsSelected () {
       const alienPaymentMethods = this.paymentMethods.filter(element => {
         return element.alien && element.selected
