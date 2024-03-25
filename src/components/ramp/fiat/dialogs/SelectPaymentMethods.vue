@@ -3,49 +3,51 @@
     <q-dialog v-model="showDialog" @before-hide="$emit('back')">
         <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
         <q-card-section class="q-mx-sm">
-            <div class="text-weight-bold text-center lg-font-size">Select Payment Methods</div>
-            <div v-if="hasAlienPaymentsSelected" style="color:red" class="text-center q-mx-md sm-font-size">Please unselect unsupported payment methods</div>
-            <div v-else class="subtext text-center" style="font-size: 13px;">Select only up to 5 methods</div>
+          <div class="text-weight-bold text-center lg-font-size">Select Payment Methods</div>
+          <div v-if="hasAlienPaymentsSelected" style="color:red" class="text-center q-mx-md sm-font-size">Please unselect unsupported payment methods</div>
+          <div v-else-if="paymentMethodOpts.length === 0" class="q-mt-md text-center q-mx-md sm-font-size">This currency does not support any payment methods yet.</div>
+          <div v-else class="subtext text-center" style="font-size: 13px;">Select only up to 5 methods</div>
         </q-card-section>
-        <q-card-section class="text-left q-pt-sm q-mx-xs">
-            <q-list style="max-height:60vh; overflow:auto;">
-            <div v-if="loading" class="row justify-center q-my-md">
-                <q-spinner-dots color="primary" size="40px" />
-            </div>
-            <div v-else v-for="(option, index) in paymentMethodOpts" :key="index">
-                <q-item rounded :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <q-item-section>
-                    <div class="q-py-none row">
-                        <div class="col ib-text">
-                            <div class="md-font-size q-mb-none pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
-                                {{ option.payment_type.name }}
-                            </div>
-                            <div v-if="option.account_name" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
-                                {{ option.account_name }}
-                            </div>
-                            <div class="q-mb-none text-caption pt-label" :class="getDarkModeClass(darkMode)">
-                                {{ option.account_identifier }}
-                            </div>
-                        </div>
-                        <q-checkbox v-model:model-value="option.selected" @update:model-value="updateSelectedPaymentMethods(option)" :color="option.alien ? 'red': 'cyan'" keep-color/>
-                    </div>
-                    <div v-if="option.alien" class="subtext xs-font-size text-weight-bold" style="color:red">
-                      {{ currency }} does not support this payment type
-                    </div>
-                </q-item-section>
-                </q-item>
-            </div>
-            </q-list>
+        <q-card-section v-if="paymentMethodOpts.length > 0" class="text-left q-pt-sm q-mx-xs">
+          <q-list style="max-height:60vh; overflow:auto;">
+          <div v-if="loading" class="row justify-center q-my-md">
+              <q-spinner-dots color="primary" size="40px" />
+          </div>
+          <div v-else v-for="(option, index) in paymentMethodOpts" :key="index">
+              <q-item rounded :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+              <q-item-section>
+                  <div class="q-py-none row">
+                      <div class="col ib-text">
+                          <div class="md-font-size q-mb-none pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
+                              {{ option.payment_type.name }}
+                          </div>
+                          <div v-if="option.account_name" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
+                              {{ option.account_name }}
+                          </div>
+                          <div class="q-mb-none text-caption pt-label" :class="getDarkModeClass(darkMode)">
+                              {{ option.account_identifier }}
+                          </div>
+                      </div>
+                      <q-checkbox v-model:model-value="option.selected" @update:model-value="updateSelectedPaymentMethods(option)" :color="option.alien ? 'red': 'cyan'" keep-color/>
+                  </div>
+                  <div v-if="option.alien" class="subtext xs-font-size text-weight-bold" style="color:red">
+                    {{ currency }} does not support this payment type
+                  </div>
+              </q-item-section>
+              </q-item>
+          </div>
+          </q-list>
         </q-card-section>
-        <q-card-section>
-            <div v-if="!loading" class="row q-gutter-sm justify-center">
-                <q-btn v-if="paymentTypeOpts.length !== 0" outline rounded label='Add new' class="button button-icon" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
-                <q-btn rounded class="button" @click="submitUpdatedPaymentMethods()" :disable="hasAlienPaymentsSelected" v-close-popup>
-                    <template v-slot:default>
-                        Select ({{ selectedPaymentMethods.length }})
-                    </template>
-                </q-btn>
-            </div>
+        <q-card-section v-if="!loading" class="row q-gutter-sm justify-center">
+          <q-btn v-if="paymentMethodOpts.length === 0" outline rounded label='Ok' class="button button-icon q-mt-none" :class="getDarkModeClass(darkMode)" @click="$emit('back')"/>
+          <div v-else>
+            <q-btn v-if="paymentTypeOpts.length !== 0" outline rounded label='Add new' class="button button-icon" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
+            <q-btn rounded class="button" @click="submitUpdatedPaymentMethods()" :disable="hasAlienPaymentsSelected" v-close-popup>
+              <template v-slot:default>
+                  Select {{ selectedPaymentMethods.length }}
+              </template>
+            </q-btn>
+          </div>
         </q-card-section>
         </q-card>
     </q-dialog>
