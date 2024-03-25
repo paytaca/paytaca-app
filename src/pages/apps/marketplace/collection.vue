@@ -7,7 +7,7 @@
   >
     <HeaderNav title="Marketplace" class="header-nav" />
 
-    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-h5 q-px-sm">{{ collection?.name }}</div>
       <div class="row items-center justify-center">
         <q-spinner v-if="!initialized && (fetchingCollection || fetchingProducts)" size="4em" color="brandblue"/>

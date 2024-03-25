@@ -8,126 +8,125 @@
         </div>
       </div>
       <div v-else>
-          <div class="q-mx-md">
-            <div class="q-my-sm">
-                <q-tabs
-                  v-model="tab"
-                  dense
-                  class=""
-                  active-color="primary"
-                  indicator-color="primary"
-                  align="justify"
-                  narrow-indicator>
-                  <q-tab name="status" label="Status" />
-                  <q-tab name="transaction" label="Transactions" />
-                </q-tabs>
-                <q-separator class="q-mb-sm" :dark="darkMode"/>
-                <div v-if="tab === 'status'">
-                  <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
-                    <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
-                    <div class="row justify-between no-wrap q-mx-lg">
-                      <span class="col">{{ formattedOrderStatus(status.status) }}</span>
-                      <span class="col text-nowrap q-ml-xs">
-                        {{ formattedDate(status.created_at) }}
-                      </span>
-                    </div>
-                  </div>
+        <q-card class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+          <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
+          <q-input
+            class="q-pb-xs"
+            readonly
+            dense
+            filled
+            :dark="darkMode"
+            v-model="contractAddress">
+          </q-input>
+          <div class="sm-font-size q-pb-xs text-italic">Contract Balance</div>
+          <q-input
+            class="q-pb-xs"
+            readonly
+            dense
+            filled
+            :dark="darkMode"
+            :loading="contractBalance === null"
+            v-model="contractBalance">
+            <template v-slot:append>
+              <span class="sm-font-size">BCH</span>
+            </template>
+          </q-input>
+        </q-card>
+        <!-- <div class="q-mx-md q-my-sm"> -->
+          <q-card class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+            <q-tabs
+              v-model="tab"
+              dense
+              class=""
+              active-color="primary"
+              indicator-color="primary"
+              align="justify"
+              narrow-indicator>
+              <q-tab name="status" label="Status" />
+              <q-tab name="transaction" label="Transactions" />
+            </q-tabs>
+            <q-separator class="q-mb-sm" :dark="darkMode"/>
+            <div v-if="tab === 'status'">
+              <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
+                <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
+                <div class="row justify-between no-wrap q-mx-lg">
+                  <span class="col">{{ formattedOrderStatus(status.status) }}</span>
+                  <span class="col text-nowrap q-ml-xs">
+                    {{ formattedDate(status.created_at) }}
+                  </span>
                 </div>
-
-                <div v-if="tab === 'transaction'">
-                  <div class="row text-weight-bold sm-font-size">
-                    <div class="col text-center">Action</div>
-                    <div class="col text-center">Txid</div>
-                    <div class="col text-center">Status</div>
-                    <div class="col text-center">Date</div>
-                  </div>
-                  <q-separator class="q-my-sm" :dark="darkMode"/>
-                  <div>
-                    <div v-for="(transaction, index) in transactionHistory" :key=index>
-                      <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
-                      <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
-                        <div class="col text-center">{{ transaction.action }}</div>
-                        <span class="col text-blue text-center" @click="viewTxid(transaction.txid)"><u>{{ formattedTxid(transaction.txid) }}</u></span>
-                        <div class="col text-center">{{ transaction.valid ? 'Validated' : 'Not Validated'}}</div>
-                        <div class="col xs-font-size">{{ formattedDate(transaction.created_at, true)}}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-            </div>
-            <div class="q-my-sm q-mx-sm">
-              <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
-              <q-input
-                class="q-pb-xs"
-                readonly
-                dense
-                filled
-                :dark="darkMode"
-                v-model="contractAddress">
-              </q-input>
-              <div class="sm-font-size q-pb-xs text-italic">Contract Balance</div>
-              <q-input
-                class="q-pb-xs"
-                readonly
-                dense
-                filled
-                :dark="darkMode"
-                :loading="contractBalance === null"
-                v-model="contractBalance">
-                <template v-slot:append>
-                  <span class="sm-font-size">BCH</span>
-                </template>
-              </q-input>
-            </div>
-            <div v-if="state === 'form'" class="q-my-sm">
-              <div v-if="appeal?.resolved_at === null" class="q-mx-sm q-py-sm" bordered flat :class="[ darkMode ? 'pt-card-2 dark' : '',]">
-                <div class="text-center q-py-xs text-weight-bold text-uppercase">
-                  Select Action
-                </div>
-                <q-separator class="q-my-sm" :dark="darkMode"/>
-                  <div class="row justify-between no-wrap q-mx-lg">
-                    <span class="sm-font-size">Release</span>
-                    <span class="text-nowrap q-ml-xs">
-                      <q-btn
-                        rounded
-                        size="sm"
-                        icon="done"
-                        :disable="sendingBch"
-                        :outline="selectedAction !== 'release'"
-                        :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
-                        class="q-ml-xs"
-                        @click="selectReleaseType('release')"
-                      />
-                    </span>
-                  </div>
-                  <q-separator class="q-my-sm" :dark="darkMode"/>
-                  <div class="row justify-between no-wrap q-mx-lg">
-                    <span class="sm-font-size">Refund</span>
-                    <span class="text-nowrap q-ml-xs">
-                      <q-btn
-                        rounded
-                        size="sm"
-                        icon="done"
-                        :disable="sendingBch"
-                        :outline="selectedAction !== 'refund'"
-                        :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
-                        class="q-ml-xs"
-                        @click="selectReleaseType('refund')"
-                      />
-                    </span>
-                  </div>
               </div>
             </div>
-          </div>
-          <div class="q-mx-lg q-mt-md" v-if="sendingBch">
-            <q-spinner class="q-mr-xs"/>{{ selectedAction === 'release' ? 'Releasing' : 'Refunding'}} BCH, please wait.
-          </div>
-          <div v-if="sendError" class="q-mx-lg q-px-lg q-my-sm">
-            <q-card flat class="col q-pa-md pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">
-              <q-icon name="error" left/>
-              {{ sendError }}
-            </q-card>
-          </div>
+            <div v-if="tab === 'transaction'">
+              <div class="row text-weight-bold sm-font-size">
+                <div class="col text-center">Action</div>
+                <div class="col text-center">Txid</div>
+                <div class="col text-center">Status</div>
+                <div class="col text-center">Date</div>
+              </div>
+              <q-separator class="q-my-sm" :dark="darkMode"/>
+              <div>
+                <div v-for="(transaction, index) in transactionHistory" :key=index>
+                  <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
+                  <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
+                    <div class="col text-center">{{ transaction.action }}</div>
+                    <span class="col text-blue text-center" @click="viewTxid(transaction.txid)"><u>{{ formattedTxid(transaction.txid) }}</u></span>
+                    <div class="col text-center">{{ transaction.valid ? 'Validated' : 'Not Validated'}}</div>
+                    <div class="col xs-font-size">{{ formattedDate(transaction.created_at, true)}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </q-card>
+        <!-- </div> -->
+        <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
+          <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+            <div class="text-center q-py-xs text-weight-bold text-uppercase">
+              Select Action
+            </div>
+            <q-separator class="q-my-sm" :dark="darkMode"/>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span class="sm-font-size">Release</span>
+                <span class="text-nowrap q-ml-xs">
+                  <q-btn
+                    rounded
+                    size="sm"
+                    icon="done"
+                    :disable="sendingBch"
+                    :outline="selectedAction !== 'release'"
+                    :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
+                    class="q-ml-xs"
+                    @click="selectReleaseType('release')"
+                  />
+                </span>
+              </div>
+              <q-separator class="q-my-sm" :dark="darkMode"/>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span class="sm-font-size">Refund</span>
+                <span class="text-nowrap q-ml-xs">
+                  <q-btn
+                    rounded
+                    size="sm"
+                    icon="done"
+                    :disable="sendingBch"
+                    :outline="selectedAction !== 'refund'"
+                    :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
+                    class="q-ml-xs"
+                    @click="selectReleaseType('refund')"
+                  />
+                </span>
+              </div>
+          </q-card>
+        </div>
+        <div class="q-mx-lg q-mt-md" v-if="sendingBch">
+          <q-spinner class="q-mr-xs"/>{{ selectedAction === 'release' ? 'Releasing' : 'Refunding'}} BCH, please wait.
+        </div>
+        <div v-if="sendError" class="q-mx-lg q-px-lg q-my-sm">
+          <q-card flat class="col q-pa-md pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">
+            <q-icon name="error" left/>
+            {{ sendError }}
+          </q-card>
+        </div>
       </div>
     </q-pull-to-refresh>
   </div>
@@ -165,7 +164,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       wallet: null,
       tab: 'status',
-      // state: 'form',
       order: null,
       ad_snapshot: null,
       contract: null,
@@ -191,7 +189,7 @@ export default {
     escrowContract: Object,
     state: String
   },
-  emits: ['back', 'refresh', 'success', 'updatePageName'],
+  emits: ['back', 'refresh', 'success', 'updatePageName', 'form-sending'],
   components: {
     RampDragSlide,
     ProgressLoader
@@ -202,10 +200,7 @@ export default {
     },
     sendingBch (value) {
       if (value) {
-        this.$nextTick(() => {
-          const scrollHeight = this.$refs.scrollArea.$el.scrollHeight
-          this.$refs.scrollArea.setScrollPosition('vertical', scrollHeight * 3, 0)
-        })
+        this.$emit('form-sending')
       }
     }
   },

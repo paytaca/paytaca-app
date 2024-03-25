@@ -7,7 +7,7 @@
   >
     <HeaderNav title="Marketplace" class="header-nav" />
 
-    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-px-sm">
         <div class="text-h5 q-space">Customer</div>
         <q-btn

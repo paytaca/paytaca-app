@@ -21,7 +21,7 @@
           :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
         >
           <span v-for="(member, index) in chatMembers" :key="index">
-            {{ member.is_user ? `You (${member.name})` : member.name}}{{ index < chatMembers.length-1 ? ', ' : ''}}
+            <span>{{ member.name }}</span><span v-if="member.is_user"> (You)</span><span v-if="member.is_arbiter"> (Arbiter)</span>{{ index < chatMembers.length-1 ? ', ' : ''}}
           </span>
         </div>
       </div>
@@ -278,13 +278,13 @@ import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encry
 import {
   createChatSession,
   fetchChatSession,
-  addChatMembers,
+  updateChatMembers,
   fetchChatMembers,
   fetchChatPubkeys,
   sendChatMessage,
   fetchChatMessages,
-  updateOrCreateKeypair,
-  generateChatRef
+  generateChatRef,
+  updateChatIdentity
 } from 'src/wallet/ramp/chat'
 import { ChatMessage } from 'src/wallet/ramp/chat/objects'
 import { formatDate } from 'src/wallet/ramp'
@@ -403,7 +403,8 @@ export default {
         messages: []
       },
       chatMembers: [],
-      chatPubkeys: []
+      chatPubkeys: [],
+      arbiterIdentity: null
     }
   },
   props: {
@@ -441,7 +442,7 @@ export default {
     this.chatRef = generateChatRef(this.data.id, this.data.created_at)
     this.loadKeyPair()
     this.setupWebsocket()
-    this.loadData()
+    this.loadChatSession()
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -488,7 +489,8 @@ export default {
             resolve(decMes)
           })
             .then(item => {
-              item.chatIdentity.is_user = item.chatIdentity.name === this.userName
+              const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+              item.chatIdentity.is_user = item.chatIdentity.ref === ref
               this.convo.messages.push(item)
               this.offset++
               this.totalMessages++
@@ -517,25 +519,9 @@ export default {
         maxWidthHeight: 640
       })
     },
-    async loadData () {
-      const vm = this
-      const username = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
-      await vm.loadChatSession()
-      fetchChatMembers(vm.chatRef)
-        .then(members => {
-          vm.chatMembers = members.map(member => {
-            return {
-              id: member.chat_identity.id,
-              name: member.chat_identity.name,
-              is_user: member.chat_identity.name === username,
-              pubkeys: member.chat_identity.pubkeys
-            }
-          })
-        })
-      this.fetchMessages()
-    },
     async loadChatSession () {
       const vm = this
+      const chatIdentity = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash)
       let createSession = false
       await fetchChatSession(vm.chatRef)
         .catch(error => {
@@ -543,19 +529,69 @@ export default {
             createSession = true
           }
         })
-      vm.fetchOrderMembers(vm.data?.id).then(async (members) => {
-        if (this.data.status.value !== 'APL') {
+      await vm.fetchOrderMembers(vm.data?.id).then(async (members) => {
+        if (!['APL', 'RFN_PN', 'RLS_PN'].includes(this.data.status.value)) {
           members = members.filter(member => !member.is_arbiter)
+        } else {
+          vm.arbiterIdentity = members.filter(member => member.is_arbiter)[0]
         }
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+
+        // Create session if necessary
         if (createSession) {
           await createChatSession(vm.data?.id, vm.data?.created_at).catch(error => { console.error(error) })
-          await addChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
+          await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
         }
         await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
-        if (vm.chatPubkeys.length < members.length) {
-          await addChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
-        }
+
+        // Add or update current chat members if any
+        await fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
+          const chatMemberIds = chatMembers.map(el => el.chat_identity_id)
+          const membersToRemove = (currentChatMembers.filter(function (member) {
+            return !chatMemberIds.includes(member.chat_identity.id)
+          })).map(el => el.chat_identity.id)
+          await updateChatMembers(vm.chatRef, chatMembers, membersToRemove).catch(error => { console.error(error) })
+        })
+
+        // Refetch updated chat members and format
+        await fetchChatMembers(vm.chatRef)
+          .then(members => {
+            // if mismatched name
+            vm.chatMembers = members.map(member => {
+              const name = this.$store.getters['ramp/getUser'].name
+              if ((name !== member.chat_identity.name) && (member.chat_identity.ref === chatIdentity.ref)) {
+                const payload = {
+                  id: chatIdentity.id,
+                  name: name
+                }
+                updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
+              }
+              return {
+                id: member.chat_identity.id,
+                name: member.chat_identity.ref === chatIdentity.ref ? name : member.chat_identity.name,
+                is_user: member.chat_identity.ref === chatIdentity.ref,
+                is_arbiter: member.chat_identity.id === vm.arbiterIdentity?.chat_identity_id || false,
+                pubkeys: member.chat_identity.pubkeys
+              }
+            })
+          })
+
+        // Fetch and decrypt messages
+        await fetchChatMessages(vm.chatRef)
+          .then(async (data) => {
+            // set offset
+            vm.totalMessages = data.count
+            vm.offset += data.results.length
+            const messages = data.results
+            vm.convo.messages = messages.reverse()
+            await vm.decryptMessages(messages)
+          })
+          .finally(() => {
+            setTimeout(() => {
+              vm.resetScroll()
+            }, 1000)
+          })
+        vm.isloaded = true
       })
     },
     fetchOrderMembers (orderId) {
@@ -573,26 +609,6 @@ export default {
             reject(error)
           })
       })
-    },
-    fetchMessages () {
-      const vm = this
-      fetchChatMessages(vm.chatRef)
-        .then(async (data) => {
-          // set offset
-          this.totalMessages = data.count
-          this.offset += data.results.length
-
-          const messages = data.results
-
-          vm.convo.messages = messages.reverse()
-          await vm.decryptMessages(messages)
-          this.isloaded = true
-        })
-        .finally(() => {
-          setTimeout(() => {
-            this.resetScroll()
-          }, 1000)
-        })
     },
     typingMessage: debounce(async function () {
       if (this.message !== '') {
@@ -678,10 +694,10 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          const username = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
+          const ref = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
           const temp = decryptedMessages
           temp.map(item => {
-            item.chatIdentity.is_user = item.chatIdentity.name === username
+            item.chatIdentity.is_user = item.chatIdentity.ref === ref
           })
           if (type === 'initial') {
             vm.convo.messages = decryptedMessages

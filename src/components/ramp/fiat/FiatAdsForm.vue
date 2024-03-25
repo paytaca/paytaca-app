@@ -326,8 +326,8 @@ export default {
         paymentMethods: [],
         isPublic: true,
         appealCooldown: {
-          label: '24 hrs',
-          value: 1440
+          label: '60 minutes',
+          value: 60
         }
       },
       cdSelection: [
@@ -344,7 +344,7 @@ export default {
           value: 45
         },
         {
-          label: '60 minutes',
+          label: '1 hour',
           value: 60
         }],
       fiatCurrencies: [],
@@ -425,6 +425,10 @@ export default {
         vm.priceAmount = vm.transformPrice(value)
       }
     },
+    'adData.fiatCurrency' () {
+      this.adData.fixedPrice = 0
+      this.getInitialMarketPrice()
+    },
     'adData.priceType' (value) {
       const vm = this
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
@@ -438,6 +442,7 @@ export default {
           break
         case 'FLOATING':
           vm.adData.floatingPrice = value
+          break
       }
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
       const numDigits = '00000000'.length
@@ -451,8 +456,6 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     openInstructionDialog (type) {
-      console.log('type: ', type)
-
       const temp = this.instruction[type]
       this.title = temp.title
       this.text = temp.text
@@ -478,6 +481,16 @@ export default {
           vm.appealCooldown = getAppealCooldown(data.appeal_cooldown)
           vm.adData.appealCooldown = vm.appealCooldown
           vm.selectedCurrency = data.fiat_currency
+
+          // price
+          if (vm.adData.priceType === 'FLOATING') {
+            vm.priceValue = vm.adData.floatingPrice
+          }
+
+          // check tradeCeiling & tradeAmount
+          if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
+            vm.adData.tradeCeiling = vm.adData.tradeAmount
+          }
         })
         .catch(error => {
           vm.swipeStatus = false
@@ -488,7 +501,6 @@ export default {
       const vm = this
       return new Promise((resolve, reject) => {
         const body = vm.transformPostData()
-        console.log('createAd:', body)
         backend.post('/ramp-p2p/ad/', body, { authorize: true })
           .then(response => {
             console.log(response)
@@ -588,10 +600,18 @@ export default {
     },
     async updateFiatCurrency () {
       const vm = this
-      vm.priceValue = ''
+      // vm.priceValue = ''
       await vm.getInitialMarketPrice()
+
+      if (vm.adData.priceType === 'FLOATING') {
+        vm.priceValue = 100
+      } else {
+        vm.priceValue = vm.marketPrice
+      }
+
       vm.priceAmount = vm.transformPrice(vm.marketPrice)
       vm.adData.fiatCurrency = vm.selectedCurrency
+
       vm.closeWSConnection()
       vm.setupWebsocket()
     },
@@ -611,7 +631,7 @@ export default {
       return {
         trade_type: data.tradeType,
         price_type: data.priceType,
-        fiat_currency: data.fiatCurrency.symbol,
+        fiat_currency: data.fiatCurrency.id,
         crypto_currency: defaultCrypto,
         fixed_price: parseFloat(data.fixedPrice),
         floating_price: parseFloat(data.floatingPrice),
@@ -633,7 +653,7 @@ export default {
       switch (priceType) {
         case 'FIXED':
           if (vm.adsState === 'create') value = vm.priceAmount
-          if (vm.adsState === 'edit') value = vm.adData.fixedPrice
+          if (vm.adsState === 'edit') value = vm.transformPrice(vm.priceAmount) //value = vm.adData.fixedPrice
           if (value === 0 || override) value = vm.marketPrice
           vm.priceValue = value
           break

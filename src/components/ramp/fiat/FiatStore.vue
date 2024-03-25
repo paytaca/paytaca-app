@@ -63,8 +63,13 @@
           <template v-slot:append>
             <q-icon name="close"
               @click="() => {
-                query_name = null
-                $refs.inputRef.focus()
+                if (query_name) {
+                  query_name = null
+                  receiveDialog(filters)
+                  $refs.inputRef.focus()
+                } else {
+                  searchState('blur')
+                }
               }"
               class="cursor-pointer" />
             <q-icon name="search" @click="searchUser()"/>
@@ -117,8 +122,8 @@
                           <div>
                             <span
                               :class="{'pt-label dark': darkMode}"
-                              class="md-font-size"
-                              @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)">
+                              class="md-font-size">
+                              <!-- @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)"> -->
                               {{ listing.owner.name }}
                             </span>
                             <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
@@ -180,7 +185,8 @@
   <div v-if="state !== 'SELECT' && !viewProfile">
     <FiatOrderForm
       ref="orderForm"
-      :ad-id="selectedListing.id"
+      :key="componentKey"
+      :ad-id="selectedListing"
       v-on:back="state = 'SELECT'"
       @order-canceled="onOrderCanceled"
       @update-page-name="updatePageName"
@@ -239,7 +245,7 @@ export default {
       peerProfile: null,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       state: 'SELECT',
-      selectedListing: {},
+      selectedListing: null,
       selectedUser: null,
       fiatCurrencies: [],
       query_name: null,
@@ -260,7 +266,8 @@ export default {
       showSearch: false,
       defaultFiltersOn: true,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
-      pageName: 'main'
+      pageName: 'main',
+      componentKey: 0
     }
   },
   watch: {
@@ -308,6 +315,9 @@ export default {
       return this.selectedUser.name === this.$store.getters['ramp/getUser'].name
     }
   },
+  created () {
+    bus.on('view-ad', this.onViewAd)
+  },
   async mounted () {
     const vm = this
     vm.fetchPaymentTypes()
@@ -333,7 +343,7 @@ export default {
     },
     searchUser () {
       this.resetAndRefetchListings()
-      this.searchState('blur')
+      // this.searchState('blur')
     },
     updatePageName (name) {
       this.pageName = name
@@ -543,28 +553,36 @@ export default {
     selectListing (listing) {
       const vm = this
       vm.viewProfile = false
-      vm.selectedListing = listing
-      vm.state = vm.selectedListing.trade_type
+      vm.selectedListing = listing.id
+      vm.state = listing.trade_type
       vm.pageName = 'order-form'
       bus.emit('hide-menu')
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     },
-    viewUserProfile (userId, isOwner) {
-      this.selectedUser = {
-        id: userId,
-        self: isOwner
-      }
-      this.viewProfile = true
-      this.pageName = 'view-profile'
-    },
+    // viewUserProfile (userId, isOwner) {
+    //   this.selectedUser = {
+    //     id: userId,
+    //     self: isOwner
+    //   }
+    //   this.viewProfile = true
+    //   this.pageName = 'view-profile'
+    // },
     maxAmount (tradeAmount, tradeCeiling) {
       if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
         return parseFloat(tradeAmount)
       } else {
         return parseFloat(tradeCeiling)
       }
+    },
+    onViewAd (adId) {
+      bus.emit('hide-menu')
+      // this.state = 'order-form'
+      this.selectedListing = adId
+      // this.pageName = 'order-form'
+
+      this.componentKey++
     }
   }
 }

@@ -15,8 +15,8 @@
                 <div class="row">
                     <q-rating
                     readonly
-                    :model-value="counterparty.rating || 0"
-                    :v-model="counterparty.rating || 0"
+                    :model-value="counterparty?.rating || 0"
+                    :v-model="counterparty?.rating || 0"
                     size="1em"
                     color="yellow-9"
                     icon="star"
