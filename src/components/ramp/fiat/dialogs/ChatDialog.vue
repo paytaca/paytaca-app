@@ -176,7 +176,7 @@
             </q-item>
           </div>
         </div>
-        <div v-if="isTyping" class="q-px-sm q-mx-lg">
+        <!-- <div v-if="isTyping" class="q-px-sm q-mx-lg">
           <div style="width: 100%;">
             <q-chat-message
               name="me"
@@ -190,7 +190,7 @@
               </div>
             </q-chat-message>
           </div>
-        </div>
+        </div> -->
       </q-infinite-scroll>
     </q-list>
 
@@ -350,7 +350,6 @@ export default {
         if (isloaded.value && !loadMessage.value) {
           if (totalMessages.value > offset.value) {
             setTimeout(() => {
-              // console.log('Loading More Messages ')
               fetchChatMessages(chatRef.value, offset.value, 10)
                 .then(data => {
                   scrollSnapshot.value = infiniteScroll.value.$el.clientHeight
