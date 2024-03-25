@@ -98,6 +98,7 @@
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { deleteAuthToken } from 'src/wallet/ramp/auth'
+import { decryptWalletName } from 'src/marketplace/chat/encryption'
 
 import renameDialog from './renameDialog.vue'
 import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
@@ -129,11 +130,14 @@ export default {
       const tempVault = vm.$store.getters['global/getVault']
 
       tempVault.forEach(async (wallet, index) => {
-        const walletHash = wallet.wallet.bch.walletHash
-        const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash)
-
         if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
-          const name = walletName || `Personal Wallet #${index + 1}`
+          const walletHash = wallet.wallet.bch.walletHash
+          const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
+
+          let name = `Personal Wallet #${index + 1}`
+          if (walletName !== '') {
+            name = decryptWalletName(walletName, walletHash)
+          }
           vm.$store.commit('global/updateWalletName', { index, name })
         }
       })

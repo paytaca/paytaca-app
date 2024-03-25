@@ -78,7 +78,7 @@ export async function updateWalletNameInPreferences (context, data) {
   const walletHash = context.rootGetters['global/getVault'][data.walletIndex].wallet.bch.walletHash
   const payload = {
     wallet_hash: walletHash,
-    selected_currency: selectedCurrency,
+    selected_currency: selectedCurrency?.symbol,
     wallet_name: data.walletName
   }
 
