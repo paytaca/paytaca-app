@@ -504,7 +504,6 @@ export default {
         const body = vm.transformPostData()
         backend.post('/ramp-p2p/ad/', body, { authorize: true })
           .then(response => {
-            console.log(response)
             vm.swipeStatus = true
             vm.$emit('submit')
             resolve(response.data)
@@ -519,10 +518,9 @@ export default {
     updateAd () {
       const vm = this
       return new Promise((resolve, reject) => {
-        const body = vm.transformPostData()
+        const body = vm.transformPostData(false)
         backend.put(`/ramp-p2p/ad/${vm.selectedAdId}`, body, { authorize: true })
           .then(response => {
-            console.log(response)
             vm.swipeStatus = true
             vm.$emit('submit')
             resolve(response.data)
@@ -554,7 +552,6 @@ export default {
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)
         }
-        console.log(response)
       } catch (error) {
         console.error(error.response)
         if (error.response && error.response.status === 403) {
@@ -623,7 +620,7 @@ export default {
       }
       return formatCurrency(value)
     },
-    transformPostData () {
+    transformPostData (create = true) {
       // finalize ad data
       const vm = this
       const defaultCrypto = 'BCH'
@@ -632,7 +629,7 @@ export default {
       return {
         trade_type: data.tradeType,
         price_type: data.priceType,
-        fiat_currency: data.fiatCurrency.id,
+        fiat_currency: create ? data.fiatCurrency.symbol : data.fiatCurrency.id,
         crypto_currency: defaultCrypto,
         fixed_price: parseFloat(data.fixedPrice),
         floating_price: parseFloat(data.floatingPrice),
