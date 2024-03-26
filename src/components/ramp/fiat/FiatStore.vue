@@ -13,7 +13,7 @@
         <!-- currency dropdown -->
         <div class="col-auto">
           <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
-            {{ selectedCurrency.symbol }} <q-icon size="sm" name='mdi-menu-down'/>
+            <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
           </div>
           <q-menu anchor="bottom left" self="top left" >
             <q-list class="pt-card-2 text-bow md-font-size" :class="getDarkModeClass(darkMode)" style="min-width: 150px">
@@ -23,7 +23,10 @@
                 clickable
                 v-close-popup
                 @click="selectCurrency(index)">
-                <q-item-section>
+                <q-item-section v-if="index === 0">
+                  All Currencies
+                </q-item-section>
+                <q-item-section v-else>
                   {{ currency.name }} ({{ currency.symbol }})
                 </q-item-section>
               </q-item>
@@ -147,7 +150,7 @@
                           <span
                             class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                             :class="getDarkModeClass(darkMode)">
-                            {{ formattedCurrency(listing.price, selectedCurrency.symbol) }}
+                            {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
                           </span>
                           <span class="sm-font-size">/BCH</span><br>
                           <div class="sm-font-size">
@@ -244,6 +247,7 @@ export default {
       loading: false,
       peerProfile: null,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      isAllCurrencies: false,
       state: 'SELECT',
       selectedListing: null,
       selectedUser: null,
@@ -267,7 +271,7 @@ export default {
       defaultFiltersOn: true,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       pageName: 'main',
-      componentKey: 0
+      componentKey: 0,
     }
   },
   watch: {
@@ -281,6 +285,11 @@ export default {
     },
     async selectedCurrency () {
       this.resetAndRefetchListings()
+    },
+    isAllCurrencies (val) {
+      if (val) {
+        this.resetAndRefetchListings()
+      }
     }
   },
   computed: {
@@ -401,6 +410,7 @@ export default {
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
+          vm.fiatCurrencies.unshift('All')
         })
         .catch(error => {
           console.error(error)
@@ -421,7 +431,7 @@ export default {
       if (this.selectedCurrency) {
         vm.loading = true
         const params = vm.filters
-        params.currency = vm.selectedCurrency.symbol
+        if (!vm.isAllCurrencies) { params.currency = vm.selectedCurrency.symbol } else { params.currency = null }
         params.trade_type = vm.transactionType
         params.query_name = vm.query_name
 
@@ -548,7 +558,13 @@ export default {
       this.$emit('orderCanceled')
     },
     selectCurrency (index) {
-      this.selectedCurrency = this.fiatCurrencies[index]
+      if (index === 0) {
+        this.isAllCurrencies = true
+        this.selectedCurrency = this.$store.getters['market/selectedCurrency']
+      } else {
+        this.selectedCurrency = this.fiatCurrencies[index]
+        this.isAllCurrencies = false
+      }
     },
     selectListing (listing) {
       const vm = this
