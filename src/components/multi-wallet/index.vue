@@ -133,9 +133,11 @@ export default {
         const walletHash = wallet.wallet.bch.walletHash
         const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
 
-        let name = `Personal Wallet #${index + 1}`
-        if (walletName !== '') {
+        let name = wallet.name
+        if (walletName !== '') { // from db
           name = decryptWalletName(walletName, walletHash)
+        } else if (wallet.name === '') { // from vuex store
+          name = `Personal Wallet #${index + 1}`
         }
         vm.$store.commit('global/updateWalletName', { index, name })
       })
