@@ -9,11 +9,15 @@ export function completedOrderFilters (state) {
 }
 
 export function storeBuyFilters (state) {
-  return state.storeBuyFilters
+  return function (currency) {
+    return state.storeBuyFilters[currency]
+  }
 }
 
 export function storeSellFilters (state) {
-  return state.storeSellFilters
+  return function (currency) {
+    return state.storeSellFilters[currency]
+  }
 }
 
 export function getArbiter (state) {
@@ -230,7 +234,9 @@ export function authHeaders (state) {
 }
 
 export function paymentTypes (state) {
-  return state.paymentTypes
+  return function (currency) {
+    return state.paymentTypes[currency] || []
+  }
 }
 
 export function chatIdentity (state) {

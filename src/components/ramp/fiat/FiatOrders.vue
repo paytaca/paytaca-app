@@ -38,7 +38,7 @@
             >
             <!-- <q-badge v-if="!defaultFiltersOn" left floating color="red"/> -->
           </q-btn>
-          <q-btn
+          <!-- <q-btn
             unelevated
             ripple
             dense
@@ -48,7 +48,8 @@
             :class="getDarkModeClass(darkMode)"
             @click="openFilter()">
             <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
-          </q-btn>
+          </q-btn> -->
+          <FilterComponent :key="filterComponentKey" type="order" @filter="onFilterListings"/>
         </div>
       </div>
       <div v-else class="q-px-lg q-mx-xs">
@@ -183,6 +184,7 @@
   <FiatOrderForm v-if="state === 'order-form'" :ad-id="selectedUserAdId" @back="state = 'order-list'"/>
 </template>
 <script>
+import FilterComponent from './FilterComponent.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
@@ -209,7 +211,8 @@ export default {
     ProgressLoader,
     FilterDialog,
     HeaderNav,
-    FiatOrderForm
+    FiatOrderForm,
+    FilterComponent
   },
   props: {
     initStatusType: {
@@ -240,7 +243,7 @@ export default {
         appealable: true,
         not_appealable: true,
         payment_types: [],
-        time_limits: [5, 15, 30, 60, 300, 720, 1440],
+        time_limits: [15, 30, 45, 60],
         ownership: {
           owned: true,
           notOwned: true
@@ -271,10 +274,10 @@ export default {
     }
   },
   watch: {
-    statusType (value) {
+    async statusType (value) {
       const vm = this
       vm.switchFilterDefaults(value)
-      vm.updateFilters()
+      await vm.updateFilters()
       vm.resetAndScrollToTop()
       vm.resetAndRefetchListings()
     }
@@ -308,8 +311,8 @@ export default {
   created () {
     bus.on('view-ad', this.onViewAd)
   },
-  mounted () {
-    this.updateFilters()
+  async mounted () {
+    // await this.updateFilters()
     this.resetAndRefetchListings()
   },
   methods: {
@@ -360,6 +363,7 @@ export default {
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
+      console.log('params:', params)
       params.query_name = vm.query_name
       vm.loading = true
       vm.$store.dispatch('ramp/fetchOrders',
@@ -439,9 +443,10 @@ export default {
       if (!match) return false
       return true
     },
-    updateFilters () {
+    async updateFilters () {
       const vm = this
-      const defaultPaymentTypes = vm.$store.getters['ramp/paymentTypes']
+      const defaultPaymentTypes = await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: null })
+      console.log('defaultPaymentTypes:', defaultPaymentTypes)
       vm.defaultFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
 
       const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'

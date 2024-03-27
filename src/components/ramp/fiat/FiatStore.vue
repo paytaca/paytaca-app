@@ -26,21 +26,9 @@
             icon="search"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
-            @click="searchState('focus')"
-            >
-            <!-- <q-badge v-if="!defaultFiltersOn" floating color="red"/> -->
+            @click="searchState('focus')">
           </q-btn>
-          <q-btn
-            unelevated
-            ripple
-            dense
-            size="md"
-            icon="filter_list"
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            @click="openFilter()">
-            <q-badge v-if="!defaultFiltersOn" floating color="red"/>
-          </q-btn>
+          <FilterComponent :key="filterComponentKey" type="store" :currency="selectedCurrency?.symbol" :transactionType="transactionType" @filter="onFilterListings"/>
         </div>
       </div>
       <div v-else class="q-px-lg q-mx-xs">
@@ -176,14 +164,15 @@
       @update-page-name="updatePageName"
     />
   </div>
-  <div v-if="openDialog">
+  <!-- <div v-if="openDialog">
     <FilterDialog
       :type="dialogType"
       :filters="filters"
+      :currency="isAllCurrencies ? null : selectedCurrency?.symbol"
       @back="openDialog = false"
       @submit="receiveDialog"
     />
-  </div>
+  </div> -->
   <FiatProfileCard
     ref="fiatProfileCard"
     v-if="viewProfile"
@@ -198,8 +187,9 @@ import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-import FilterDialog from './dialogs/FilterDialog.vue'
+// import FilterDialog from './dialogs/FilterDialog.vue'
 import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
+import FilterComponent from './FilterComponent.vue'
 import { formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -217,10 +207,11 @@ export default {
   components: {
     FiatOrderForm,
     FiatProfileCard,
-    FilterDialog,
+    // FilterDialog,
     ProgressLoader,
     HeaderNav,
-    CurrencyFilterDialog
+    CurrencyFilterDialog,
+    FilterComponent
   },
   data () {
     return {
@@ -241,13 +232,14 @@ export default {
       openDialog: false,
       dialogType: '',
       defaultFilters: {
+        currency: this.$store.getters['market/selectedCurrency']?.symbol,
         sort_type: 'ascending',
         price_type: {
           fixed: true,
           floating: true
         },
         payment_types: [], //
-        time_limits: [5, 15, 30, 60, 300, 720, 1440]
+        time_limits: [15, 30, 45, 60]
       },
       filters: {},
       showSearch: false,
@@ -255,22 +247,26 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       pageName: 'main',
       componentKey: 0,
+      filterComponentKey: 0
     }
   },
   watch: {
-    transactionType (value) {
+    async transactionType (value) {
       const vm = this
-      vm.switchFilterDefaults(value)
-      vm.updateFilters()
+      vm.filterComponentKey++
       vm.resetAndScrollToTop()
       vm.updatePaginationValues()
+      vm.updateFilters()
       vm.resetAndRefetchListings()
     },
     async selectedCurrency () {
+      this.updateFilters()
       this.resetAndRefetchListings()
+      this.filterComponentKey++
     },
-    isAllCurrencies (val) {
+    async isAllCurrencies (val) {
       if (val) {
+        this.updateFilters()
         this.resetAndRefetchListings()
       }
     }
@@ -313,7 +309,7 @@ export default {
   async mounted () {
     const vm = this
     vm.fetchPaymentTypes()
-      .then(() => {
+      .then(async () => {
         vm.fetchFiatCurrencies()
         vm.updateFilters()
         vm.resetAndRefetchListings()
@@ -321,6 +317,10 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onFilterListings (filters) {
+      this.filters = filters
+      this.resetAndRefetchListings()
+    },
     showCurrencySelect () {
       this.$q.dialog({
         component: CurrencyFilterDialog,
@@ -386,9 +386,10 @@ export default {
     fetchPaymentTypes () {
       const vm = this
       return new Promise((resolve, reject) => {
-        vm.$store.dispatch('ramp/fetchPaymentTypes')
+        vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
           .then(() => {
-            const paymentTypes = vm.$store.getters['ramp/paymentTypes']
+            const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
+            console.log('paymentTypes:', paymentTypes)
             vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
             resolve(paymentTypes)
           })
@@ -425,11 +426,10 @@ export default {
       const vm = this
       if (this.selectedCurrency) {
         vm.loading = true
-        const params = vm.filters
-        if (!vm.isAllCurrencies) { params.currency = vm.selectedCurrency.symbol } else { params.currency = null }
+        const params = { ...vm.filters }
+        params.currency = vm.selectedCurrency.symbol !== 'All' ? vm.selectedCurrency.symbol : null
         params.trade_type = vm.transactionType
         params.query_name = vm.query_name
-
         vm.$store.dispatch('ramp/fetchAds',
           {
             component: 'store',
@@ -438,10 +438,8 @@ export default {
           })
           .then(() => {
             vm.updatePaginationValues()
-            vm.loading = false
           })
           .catch(error => {
-            vm.loading = false
             console.error(error)
             if (error.response) {
               console.error(error.response)
@@ -450,59 +448,19 @@ export default {
               }
             }
           })
+          .finally(() => { vm.loading = false })
       }
     },
     async receiveDialog (data) {
       const vm = this
-      const mutationName = (
-        vm.transactionType === 'SELL'
-          ? 'ramp/updateStoreSellFilters'
-          : 'ramp/updateStoreBuyFilters')
       vm.openDialog = false
-      vm.$store.commit(mutationName, data)
-      vm.updateFilters()
       vm.resetAndRefetchListings()
     },
-    openFilter () {
-      this.dialogType = this.transactionType === 'SELL' ? 'filterSellAd' : 'filterBuyAd'
-      this.openDialog = true
-    },
-    switchFilterDefaults (adType) {
+    async updateFilters () {
       const vm = this
-      vm.defaultFilters.sort_type = adType === 'SELL' ? 'ascending' : 'descending'
-    },
-    isdefaultFiltersOn (filters) {
-      filters = { ...filters }
-      const defaultFilters = { ...this.defaultFilters }
-
-      if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
-          JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
-        return false
-      }
-
-      if (filters.currency) delete filters.currency
-      if (filters.trade_type) delete filters.trade_type
-      delete filters.payment_types
-      delete filters.time_limits
-      delete defaultFilters.payment_types
-      delete defaultFilters.time_limits
-
-      const match = JSON.stringify(defaultFilters) === JSON.stringify(filters)
-      if (!match) return false
-      return true
-    },
-    updateFilters () {
-      const vm = this
-      const defaultPaymentTypes = vm.$store.getters['ramp/paymentTypes']
-      vm.defaultFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
-
       const getterName = vm.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
-      const filters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
-      if (filters.paymentTypes?.length === 0) {
-        filters.paymentTypes = Array.from(vm.defaultFilters.payment_types)
-      }
-      vm.filters = filters
-      vm.defaultFiltersOn = vm.isdefaultFiltersOn(filters)
+      const currency = this.selectedCurrency?.symbol
+      vm.filters = JSON.parse(JSON.stringify(vm.$store.getters[getterName](currency)))
     },
     loadMoreData (_, done) {
       const vm = this
@@ -555,7 +513,7 @@ export default {
     selectCurrency (index) {
       if (index === 0) {
         this.isAllCurrencies = true
-        this.selectedCurrency = this.$store.getters['market/selectedCurrency']
+        this.selectedCurrency = { symbol: 'All' }
       } else {
         this.selectedCurrency = this.fiatCurrencies[index]
         this.isAllCurrencies = false

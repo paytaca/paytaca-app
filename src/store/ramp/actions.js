@@ -71,6 +71,7 @@ export function fetchAds (context, { component = null, params = null, overwrite 
         trade_type: params.trade_type,
         query_name: params.query_name
       }
+      console.log('params:', params)
       let apiURL = '/ramp-p2p/ad/'
       let appendParam = false
       if (params.payment_types && params.payment_types.length > 0) {
@@ -274,12 +275,15 @@ export function fetchAppeals (context, { appealState = null, params = null, over
   })
 }
 
-export function fetchPaymentTypes (context) {
+export function fetchPaymentTypes (context, { currency = null }) {
+  console.log('Updating payment types:', currency)
+  currency = currency !== 'All' ? currency : null
+  console.log('Updating payment types:', currency)
   return new Promise((resolve, reject) => {
-    backend.get('/ramp-p2p/payment-type', { authorize: true })
+    backend.get('/ramp-p2p/payment-type', { params: { currency: currency }, authorize: true })
       .then(response => {
         const paymentTypes = response.data
-        context.commit('updatePaymentTypes', paymentTypes)
+        context.commit('updatePaymentTypes', { paymentTypes: paymentTypes, currency: currency })
         resolve(paymentTypes)
       })
       .catch(error => {
@@ -291,4 +295,11 @@ export function fetchPaymentTypes (context) {
         reject(error)
       })
   })
+}
+
+export async function resetStoreFilters (context, { currency = null }) {
+  currency = currency !== 'All' ? currency : null
+  await fetchPaymentTypes(context, { currency: currency })
+  context.commit('resetStoreBuyFilters', currency)
+  context.commit('resetStoreSellFilters', currency)
 }
