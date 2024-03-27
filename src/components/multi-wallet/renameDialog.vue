@@ -19,6 +19,7 @@
     </q-dialog>
 </template>
 <script>
+import { encryptWalletName } from 'src/marketplace/chat/encryption'
 
 export default {
   data () {
@@ -38,10 +39,16 @@ export default {
     this.isLoaded = true
   },
   methods: {
-    renameWallet () {
-      this.$store.commit('global/updateWalletName', { name: this.name, index: this.selectedIndex })
-      this.$emit('ok')
-      this.hide()
+    async renameWallet () {
+      const vm = this
+      const encrypedName = encryptWalletName(vm.name, vm.selectedIndex)
+      vm.$store.commit('global/updateWalletName', { name: vm.name, index: vm.selectedIndex })
+      await vm.$store.dispatch('global/updateWalletNameInPreferences', {
+        walletName: encrypedName,
+        walletIndex: vm.selectedIndex
+      })
+      vm.$emit('ok')
+      vm.hide()
     },
     hide () {
       this.$refs.rename.hide()

@@ -66,6 +66,25 @@ export async function refetchWalletPreferences(context) {
   } catch {}
 }
 
+export async function fetchWalletName (context, walletHash) {
+  try {
+    const response = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
+    return response?.data?.wallet_name
+  } catch {}
+}
+
+export async function updateWalletNameInPreferences (context, data) {
+  const selectedCurrency = context.rootGetters['market/selectedCurrency']
+  const walletHash = context.rootGetters['global/getVault'][data.walletIndex].wallet.bch.walletHash
+  const payload = {
+    wallet_hash: walletHash,
+    selected_currency: selectedCurrency?.symbol,
+    wallet_name: data.walletName
+  }
+
+  await watchtower.BCH._api.patch(`wallet/preferences/${walletHash}/`, payload)
+}
+
 /**
  *
  * @param {Object} context

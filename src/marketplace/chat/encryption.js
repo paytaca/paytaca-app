@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import * as secp from '@noble/secp256k1'
+import { Store } from 'src/store'
 
 const CHUNK_SIZE = 15
 
@@ -329,4 +330,23 @@ export async function decompressEncryptedImage(file) {
   response.pubkeys = parsedPayload?.pks
 
   return response
+}
+
+/**
+ * Encrypt wallet name using wallet hash
+ */
+export function encryptWalletName (walletName, walletIndex) {
+  const walletHash = Store.getters['global/getVault'][walletIndex].wallet.bch.walletHash
+  const walletHashCode = Uint8Array.from(walletHash).slice(0, 32)
+  const iv = Uint8Array.from(walletHash).slice(32, 48)
+  return encryptData(walletName, Buffer.from(walletHashCode), iv)
+}
+
+/**
+ * Decrypt retrieved wallet name using wallet hash
+ */
+export function decryptWalletName (encryptedWalletName, walletHash) {
+  const walletHashCode = Uint8Array.from(walletHash).slice(0, 32)
+  const iv = Uint8Array.from(walletHash).slice(32, 48)
+  return decryptData(encryptedWalletName, Buffer.from(walletHashCode), iv)
 }
