@@ -8,30 +8,12 @@
     :style="`height: ${minHeight}px;`"
     v-if="state === 'SELECT' && !viewProfile">
     <div class="q-mb-sm q-pb-sm">
-      <!-- <q-pull-to-refresh @refresh="refreshData"> -->
       <div class="row items-center q-px-sm" v-if="!showSearch">
-        <!-- currency dropdown -->
+        <!-- currency dialog -->
         <div class="col-auto">
-          <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;">
+          <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
             <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
           </div>
-          <q-menu anchor="bottom left" self="top left" >
-            <q-list class="pt-card-2 text-bow md-font-size" :class="getDarkModeClass(darkMode)" style="min-width: 150px">
-              <q-item
-                v-for="(currency, index) in fiatCurrencies"
-                :key="index"
-                clickable
-                v-close-popup
-                @click="selectCurrency(index)">
-                <q-item-section v-if="index === 0">
-                  All Currencies
-                </q-item-section>
-                <q-item-section v-else>
-                  {{ currency.name }} ({{ currency.symbol }})
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
         </div>
         <q-space />
         <!-- filters -->
@@ -97,7 +79,6 @@
           Sell BCH
         </button>
       </div>
-      <!-- </q-pull-to-refresh> -->
       <div class="q-mt-sm">
         <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
@@ -218,6 +199,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import FilterDialog from './dialogs/FilterDialog.vue'
+import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { formatCurrency } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -237,7 +219,8 @@ export default {
     FiatProfileCard,
     FilterDialog,
     ProgressLoader,
-    HeaderNav
+    HeaderNav,
+    CurrencyFilterDialog
   },
   data () {
     return {
@@ -338,6 +321,18 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    showCurrencySelect () {
+      this.$q.dialog({
+        component: CurrencyFilterDialog,
+        componentProps: {
+          fiatList: this.fiatCurrencies
+        }
+      })
+        .onOk(currency => {
+          const index = this.fiatCurrencies.indexOf(currency)
+          this.selectCurrency(index)
+        })
+    },
     searchState (state) {
       const vm = this
       if (state === 'focus') {
