@@ -33,6 +33,13 @@
       />
     </div>
   </div>
+  <div
+    v-if="isLegacyAddress"
+    style="border: 2px solid orange;"
+    class="q-mx-md q-mb-md q-pa-sm text-center text-body2 text-bow"
+    :class="getDarkModeClass(darkMode)"
+    v-html="$t('LegacyAddressWarning')"
+  />
 
   <template v-if="$store.state.global.online !== false">
     <div class="row" v-if="!isNFT">
@@ -184,22 +191,22 @@ export default {
 
   data () {
     return {
-      // recipientAddress: '',
       amount: 0,
       amountFormatted: 0,
       sendAmountInFiat: 0,
       balanceExceeded: false,
       emptyRecipient: false,
-      selectedDenomination: 'BCH'
+      selectedDenomination: 'BCH',
+      isLegacyAddress: false
     }
   },
 
   mounted () {
-    // this.recipientAddress = this.recipient.recipientAddress
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
     this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
     this.selectedDenomination = this.denomination
+    this.isLegacyAddress = this.inputExtras.isLegacyAddress
   },
 
   computed: {

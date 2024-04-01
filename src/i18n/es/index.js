@@ -327,6 +327,7 @@ export default {
   Language: "Idioma",
   LeavingPage: "Página de salida",
   LegacyAddress: "Dirección heredada",
+  LegacyAddressWarning: "Pegó una dirección heredada.Asegúrese de que sea una dirección de depósito <span class = \"highlighted-word\"> BCH de depósito </span>, no una dirección de depósito BTC.",
   Leverage: "Aprovechar",
   LightMode: "Modo de luz",
   Link: "Enlace",

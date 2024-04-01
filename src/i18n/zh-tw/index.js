@@ -327,6 +327,7 @@ export default {
   Language: "語言",
   LeavingPage: "離開頁面",
   LegacyAddress: "遺產地址",
+  LegacyAddressWarning: "您粘貼了一個遺產地址。請確保它是<span class = \"highlighted-word\"> BCH存款地址</span>而不是BTC存款地址。",
   Leverage: "槓桿作用",
   LightMode: "光模式",
   Link: "關聯",
