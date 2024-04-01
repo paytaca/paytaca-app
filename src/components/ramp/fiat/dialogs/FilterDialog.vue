@@ -166,6 +166,7 @@
         <div class="q-px-lg q-mx-sm">
           <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Price Type</div>
+            <div v-if="showPriceTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 rounded
@@ -180,7 +181,7 @@
                 color="blue-grey-6"
                 class="q-pa-sm"
                 :outline="!storeFilters?.price_type?.fixed"
-                @click="storeFilters.price_type.fixed = !storeFilters?.price_type?.fixed">
+                @click="setStoreFilter('price-fixed')">
                 Fixed
               </q-badge>
               <q-badge
@@ -188,7 +189,7 @@
                 color="blue-grey-6"
                 class="q-pa-sm"
                 :outline="!storeFilters?.price_type?.floating"
-                @click="storeFilters.price_type.floating = !storeFilters?.price_type?.floating">
+                @click="setStoreFilter('price-floating')">
                 Floating
               </q-badge>
             </div>
@@ -197,6 +198,7 @@
           <!-- Ad Payment Type -->
           <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Payment Type</div>
+            <div v-if="showPaymentTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -222,6 +224,7 @@
           <!-- Ad Appealable Time -->
           <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Appealable Time</div>
+            <div v-if="showTimeLimitHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -337,7 +340,12 @@ export default {
         { value: 'CNCL', label: 'Canceled' },
         { value: 'RLS', label: 'Released' },
         { value: 'RFN', label: 'Refunded' }
-      ]
+      ],
+
+      showPriceTypeHint: false,
+      showPaymentTypeHint: false,
+      showTimeLimitHint: false,
+      hintMessage: 'At least one selected option is required'
     }
   },
   emits: ['back', 'submit', 'reset'],
@@ -510,9 +518,27 @@ export default {
     setStoreFilter (type, value) {
       const vm = this
       switch (type) {
+        case 'price-floating':
+          if (vm.storeFilters.price_type.floating && !vm.storeFilters.price_type.fixed) {
+            vm.showPriceTypeHint = true
+            return
+          }
+          vm.storeFilters.price_type.floating = !vm.storeFilters?.price_type?.floating
+          break
+        case 'price-fixed':
+          if (vm.storeFilters.price_type.fixed && !vm.storeFilters.price_type.floating) {
+            vm.showPriceTypeHint = true
+            return
+          }
+          vm.storeFilters.price_type.fixed = !vm.storeFilters?.price_type?.fixed
+          break
         case 'payment-type': {
           const paymentTypes = vm.storeFilters.payment_types
           if (paymentTypes?.includes(value)) {
+            if (paymentTypes.length === 1) {
+              vm.showPaymentTypeHint = true
+              return
+            }
             vm.storeFilters.payment_types = paymentTypes.filter(e => e !== value)
           } else {
             vm.storeFilters.payment_types.push(value)
@@ -522,6 +548,10 @@ export default {
         case 'time-limit': {
           const timeLimits = vm.storeFilters.time_limits
           if (timeLimits?.includes(value)) {
+            if (timeLimits.length === 1) {
+              vm.showTimeLimitHint = true
+              return
+            }
             vm.storeFilters.time_limits = timeLimits.filter(e => e !== value)
           } else {
             vm.storeFilters.time_limits.push(value)
