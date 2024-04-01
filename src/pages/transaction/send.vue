@@ -172,7 +172,7 @@
               <div
                 class="row"
                 style="margin-top: -10px;"
-                v-if="!sendDataMultiple[0].fixedAmount && !isNFT && !setAmountInFiat && asset.id === 'bch'"
+                v-if="!sendDataMultiple[0].fixedAmount && !isNFT && asset.id === 'bch'"
               >
                 <div class="col q-mt-md">
                   <a
@@ -181,7 +181,10 @@
                     :class="getDarkModeClass(darkMode)"
                     @click.prevent="onSetAmountToFiatClick"
                   >
-                    {{ `${$t('SetAmountIn')} ${String(currentSendPageCurrency()).toUpperCase()}` }}
+                    {{ `
+                      ${$t('SetAmountIn')}
+                      ${setAmountInFiat ? selectedDenomination : String(currentSendPageCurrency()).toUpperCase()}
+                    ` }}
                   </a>
                 </div>
               </div>
@@ -1434,7 +1437,7 @@ export default {
       this.showQrScanner = value
     },
     onSetAmountToFiatClick () {
-      this.setAmountInFiat = true
+      this.setAmountInFiat = !this.setAmountInFiat
       this.sliderStatus = false
       this.sendDataMultiple.forEach((data) => {
         data.amount = 0
