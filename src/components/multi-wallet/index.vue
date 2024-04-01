@@ -130,16 +130,16 @@ export default {
       const tempVault = vm.$store.getters['global/getVault']
 
       tempVault.forEach(async (wallet, index) => {
-        if (wallet.name === '' || wallet.name.includes('Personal Wallet #')) {
-          const walletHash = wallet.wallet.bch.walletHash
-          const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
+        const walletHash = wallet.wallet.bch.walletHash
+        const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
 
-          let name = `Personal Wallet #${index + 1}`
-          if (walletName !== '') {
-            name = decryptWalletName(walletName, walletHash)
-          }
-          vm.$store.commit('global/updateWalletName', { index, name })
+        let name = wallet.name
+        if (walletName !== '') { // from db
+          name = decryptWalletName(walletName, walletHash)
+        } else if (wallet.name === '') { // from vuex store
+          name = `Personal Wallet #${index + 1}`
         }
+        vm.$store.commit('global/updateWalletName', { index, name })
       })
     },
     switchWallet (index) {
