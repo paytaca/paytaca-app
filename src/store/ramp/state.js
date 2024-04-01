@@ -84,6 +84,7 @@ export default function () {
         buy: true,
         sell: true
       }
-    }
+    },
+    migrateStoreOrderFilters: true
   }
 }

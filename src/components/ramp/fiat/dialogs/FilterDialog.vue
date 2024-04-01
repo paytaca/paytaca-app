@@ -1,48 +1,39 @@
 <template>
     <!-- Filter orders -->
-    <q-dialog v-model="filterOrder" persistent @before-hide="$emit('back')">
+    <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
       <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
         <div class="q-mt-lg text-center text-weight-bold lg-font-size">Filter and Sort Orders</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
         <div class="q-px-lg q-mx-sm">
           <!-- Sort by -->
           <div v-if="orderFilters.sort_by" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Sort By</div>
-            <div class="q-ml-xs q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Created at</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Updated at</q-badge>
+            <div class="sm-font-size text-weight-bold">Sort By Date</div>
+            <div class="q-pt-xs q-gutter-sm">
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Created</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Last updated</q-badge>
             </div>
           </div>
           <!-- Sort type -->
           <div v-if="orderFilters.sort_type" class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Sort Type</div>
-            <div class="q-ml-xs q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Oldest</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Newest</q-badge>
-            </div>
-          </div>
-          <!-- Ownership -->
-          <div class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Ownership</div>
-            <div class="q-ml-xs q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('ownership')" @click="orderSetAllSelected('ownership')">Default: All</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Owned by me</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Not owned by me</q-badge>
+            <div class="q-pt-xs q-gutter-sm">
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Oldest First</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Newest First</q-badge>
             </div>
           </div>
           <!-- Trade type -->
           <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Trade Type</div>
-            <div class="q-ml-xs q-pt-xs q-gutter-sm">
+            <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('trade-type')" @click="orderSetAllSelected('trade-type')">Default: All</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="orderFilters.trade_type.buy = !orderFilters.trade_type?.buy">Buy Orders</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="orderFilters.trade_type.sell = !orderFilters.trade_type?.sell">Sell Orders</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="orderFilters.trade_type.buy = !orderFilters.trade_type?.buy">Buy</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="orderFilters.trade_type.sell = !orderFilters.trade_type?.sell">Sell</q-badge>
             </div>
           </div>
           <!-- Order status -->
           <div v-if="orderFilters.status" class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Status</div>
-            <div class="q-ml-xs q-gutter-sm q-pt-sm">
+            <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 rounded
                 color="blue-grey-6"
@@ -62,7 +53,7 @@
                 {{ status.label }}
               </q-badge>
             </div>
-            <div class="q-ml-xs q-mt-xs q-gutter-sm" v-if="type !== 'filterCompletedOrder'">
+            <div class="q-mt-xs q-gutter-sm" v-if="type !== 'filterCompletedOrder'">
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
@@ -84,7 +75,7 @@
           <!-- Order payment types -->
           <div v-if="orderFilters.payment_types" class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Payment Type</div>
-            <div class="q-ml-xs q-gutter-sm q-pt-sm">
+            <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
@@ -107,8 +98,8 @@
           </div>
           <!-- Appealable cooldowns-->
           <div v-if="orderFilters.time_limits" class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Appealable after</div>
-            <div class="q-ml-xs q-gutter-sm q-pt-sm">
+            <div class="sm-font-size text-weight-bold">Appealable Time</div>
+            <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
@@ -127,6 +118,15 @@
                 :key="index">
                 {{ paymentTimeLimit(value) }}
               </q-badge>
+            </div>
+          </div>
+          <!-- Ownership -->
+          <div class="q-pt-md">
+            <div class="sm-font-size text-weight-bold">Ownership</div>
+            <div class="q-pt-xs q-gutter-sm">
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('ownership')" @click="orderSetAllSelected('ownership')">Default: All</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Created by me</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Created by counterparty</q-badge>
             </div>
           </div>
         </div>
@@ -367,7 +367,7 @@ export default {
     }
   },
   async mounted () {
-    this.paymentTypes = this.$store.getters['ramp/paymentTypes'](this.currency)
+    this.paymentTypes = this.$store.getters['ramp/paymentTypes'](this.currency || 'All')
     this.checkDialogType()
   },
   methods: {
@@ -567,8 +567,6 @@ export default {
     updateOrderFilters (filters) {
       if (!filters) return
       this.orderFilters = filters
-      this.orderFilters.ownership = { ...filters.ownership }
-      this.orderFilters.trade_type = { ...filters.trade_type }
     },
     paymentTimeLimit (timeValue) {
       return getAppealCooldown(timeValue).label

@@ -164,15 +164,6 @@
       @update-page-name="updatePageName"
     />
   </div>
-  <!-- <div v-if="openDialog">
-    <FilterDialog
-      :type="dialogType"
-      :filters="filters"
-      :currency="isAllCurrencies ? null : selectedCurrency?.symbol"
-      @back="openDialog = false"
-      @submit="receiveDialog"
-    />
-  </div> -->
   <FiatProfileCard
     ref="fiatProfileCard"
     v-if="viewProfile"
@@ -187,7 +178,6 @@ import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
-// import FilterDialog from './dialogs/FilterDialog.vue'
 import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import FilterComponent from './FilterComponent.vue'
 import { formatCurrency } from 'src/wallet/ramp'
@@ -207,10 +197,8 @@ export default {
   components: {
     FiatOrderForm,
     FiatProfileCard,
-    // FilterDialog,
     ProgressLoader,
     HeaderNav,
-    CurrencyFilterDialog,
     FilterComponent
   },
   data () {
@@ -460,7 +448,8 @@ export default {
       const vm = this
       const getterName = vm.transactionType === 'SELL' ? 'ramp/storeSellFilters' : 'ramp/storeBuyFilters'
       const currency = this.selectedCurrency?.symbol
-      vm.filters = JSON.parse(JSON.stringify(vm.$store.getters[getterName](currency)))
+      const filters = vm.$store.getters[getterName](currency)
+      if (filters) vm.filters = JSON.parse(JSON.stringify(filters))
     },
     loadMoreData (_, done) {
       const vm = this

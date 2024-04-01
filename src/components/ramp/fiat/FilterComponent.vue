@@ -39,10 +39,9 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       defaultFiltersOn: true,
-      // currency: null,
       openDialog: false,
       dialogType: '',
-      defaultFilters: {
+      defaultStoreFilters: {
         sort_type: this.transactionType === 'SELL' ? 'ascending' : 'descending',
         price_type: {
           fixed: true,
@@ -51,33 +50,109 @@ export default {
         payment_types: [],
         time_limits: [15, 30, 45, 60]
       },
+      defaultOngoingOrderFilters: {
+        sort_type: 'ascending',
+        sort_by: 'created_at',
+        status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
+        appealable: true,
+        not_appealable: true,
+        payment_types: [],
+        time_limits: [15, 30, 45, 60],
+        ownership: {
+          owned: true,
+          notOwned: true
+        },
+        trade_type: {
+          buy: true,
+          sell: true
+        }
+      },
+      defaultCompletedOrderFilters: {
+        sort_type: 'descending',
+        sort_by: 'last_modified_at',
+        status: ['CNCL', 'RLS', 'RFN'],
+        payment_types: [],
+        time_limits: [15, 30, 45, 60],
+        ownership: {
+          owned: true,
+          notOwned: true
+        },
+        trade_type: {
+          buy: true,
+          sell: true
+        }
+      },
       filters: {},
       filterDialogKey: 0
     }
   },
   mounted () {
-    // this.currency = this.selectedCurrency !== 'All' ? this.selectedCurrency : null
     this.updateFilters()
   },
   methods: {
     getDarkModeClass,
     openFilter () {
-      console.log('openFilter')
-      this.dialogType = this.transactionType === 'SELL' ? 'filterSellAd' : 'filterBuyAd'
+      switch (this.type) {
+        case 'store':
+          switch (this.transactionType) {
+            case 'SELL':
+              this.dialogType = 'filterSellAd'
+              break
+            case 'BUY':
+              this.dialogType = 'filterBuyAd'
+              break
+          }
+          break
+        case 'order':
+          switch (this.transactionType) {
+            case 'ONGOING':
+              this.dialogType = 'filterOngoingOrder'
+              break
+            case 'COMPLETED':
+              this.dialogType = 'filterCompletedOrder'
+              break
+          }
+      }
       this.openDialog = true
     },
     async updateFilters () {
       const vm = this
       const defaultPaymentTypes = await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.currency })
-      vm.defaultFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
-      const getterName = vm.transactionType === 'SELL' ? 'storeSellFilters' : 'storeBuyFilters'
-      let savedFilters = vm.$store.getters[`ramp/${getterName}`](this.currency)
-      if (!savedFilters || !savedFilters.payment_types || savedFilters.payment_types.length === 0 || !savedFilters.sort_type) {
-        const mutationName = `ramp/${vm.transactionType === 'SELL' ? 'updateSellFilterPaymentTypes' : 'updateBuyFilterPaymentTypes'}`
-        this.$store.commit(mutationName, { paymentTypes: vm.defaultFilters.payment_types, currency: this.currency })
 
-        await vm.$store.dispatch('ramp/resetStoreFilters', { currency: this.currency })
-        savedFilters = vm.$store.getters[`ramp/${getterName}`](this.currency)
+      let getterName = ''
+      let mutationName = ''
+      let resetActionName = ''
+      let defaultFilters = {}
+      switch (vm.type) {
+        case 'store':
+          getterName = `ramp/${vm.transactionType === 'SELL' ? 'storeSellFilters' : 'storeBuyFilters'}`
+          mutationName = `ramp/${vm.transactionType === 'SELL' ? 'updateStoreSellFilterPaymentTypes' : 'updateStoreBuyFilterPaymentTypes'}`
+          resetActionName = 'ramp/resetStoreFilters'
+          vm.defaultStoreFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
+          defaultFilters = vm.defaultStoreFilters
+          break
+        case 'order':
+          getterName = `ramp/${vm.transactionType === 'ONGOING' ? 'ongoingOrderFilters' : 'completedOrderFilters'}`
+          mutationName = `ramp/${vm.transactionType === 'ONGOING' ? 'updateOngoingOrderFilterPaymentTypes' : 'updateCompletedOrderFilterPaymentTypes'}`
+          resetActionName = 'ramp/resetOrderFilters'
+          switch (vm.transactionType) {
+            case 'ONGOING':
+              vm.defaultOngoingOrderFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
+              defaultFilters = vm.defaultOngoingOrderFilters
+              break
+            case 'COMPLETED':
+              vm.defaultCompletedOrderFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
+              defaultFilters = vm.defaultCompletedOrderFilters
+              break
+          }
+          break
+      }
+
+      let savedFilters = vm.$store.getters[getterName](this.currency || 'All')
+      if (!savedFilters || !savedFilters.payment_types) {
+        await vm.$store.dispatch(resetActionName, { currency: this.currency })
+        this.$store.commit(mutationName, { paymentTypes: defaultFilters.payment_types, currency: this.currency || 'All' })
+        savedFilters = vm.$store.getters[getterName](this.currency || 'All')
       }
 
       vm.filters = JSON.parse(JSON.stringify(savedFilters))
@@ -85,15 +160,29 @@ export default {
     },
     updateDefaultFiltersFlag () {
       const filters = { ...this.filters }
-      const defaultFilters = { ...this.defaultFilters }
+      let defaultFilters = {}
+
+      switch (this.type) {
+        case 'store':
+          defaultFilters = { ...this.defaultStoreFilters }
+          break
+        case 'order':
+          switch (this.transactionType) {
+            case 'ONGOING':
+              defaultFilters = { ...this.defaultOngoingOrderFilters }
+              break
+            case 'COMPLETED':
+              defaultFilters = { ...this.defaultCompletedOrderFilters }
+              break
+          }
+          break
+      }
 
       if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
           JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
         return false
       }
 
-      delete filters.trade_type
-      delete filters.currency // kept for backwards compatibility
       delete filters.payment_types
       delete filters.time_limits
       delete defaultFilters.payment_types
@@ -105,17 +194,28 @@ export default {
     },
     commitFilters (data) {
       console.log('Commit filters:', data)
-      const mutationName = `ramp/${this.transactionType === 'SELL' ? 'updateStoreSellFilters' : 'updateStoreBuyFilters'}`
-      const getterName = `ramp/${this.transactionType === 'SELL' ? 'storeSellFilters' : 'storeBuyFilters'}`
-      this.$store.commit(mutationName, { filters: data, currency: this.currency })
-      const filters = this.$store.getters[getterName](this.currency)
-      this.filters = JSON.parse(JSON.stringify(filters))
-      this.openDialog = false
-      this.defaultFiltersOn = this.updateDefaultFiltersFlag()
-      this.$emit('filter', this.filters)
+      const vm = this
+      let getterName = ''
+      let mutationName = ''
+      switch (vm.type) {
+        case 'store':
+          getterName = `ramp/${vm.transactionType === 'SELL' ? 'storeSellFilters' : 'storeBuyFilters'}`
+          mutationName = `ramp/${vm.transactionType === 'SELL' ? 'updateStoreSellFilters' : 'updateStoreBuyFilters'}`
+          break
+        case 'order':
+          getterName = `ramp/${vm.transactionType === 'ONGOING' ? 'ongoingOrderFilters' : 'completedOrderFilters'}`
+          mutationName = `ramp/${vm.transactionType === 'ONGOING' ? 'updateOngoingOrderFilters' : 'updateCompletedOrderFilters'}`
+          break
+      }
+
+      vm.$store.commit(mutationName, { filters: data, currency: vm.currency || 'All' })
+      const filters = vm.$store.getters[getterName](vm.currency || 'All')
+      vm.filters = JSON.parse(JSON.stringify(filters))
+      vm.openDialog = false
+      vm.defaultFiltersOn = vm.updateDefaultFiltersFlag()
+      vm.$emit('filter', vm.filters)
     },
     resetFilters (type) {
-      console.log('resetFilters:', type)
       let filters = null
       if (type === 'store') {
         if (this.transactionType === 'SELL') {

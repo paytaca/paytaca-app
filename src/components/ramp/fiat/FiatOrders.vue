@@ -2,30 +2,19 @@
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
   <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
   <div
-    class="q-mx-md q-mx-none q-mb-lg text-bow"
+    class="q-mx-md q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`"
-    v-if="state == 'order-list'">
+    :style="`height: ${minHeight}px;`">
     <div v-if="state === 'order-list'">
-      <div v-if="!showSearch" class="row justify-start items-center q-mx-none q-px-sm">
-        <div
-          class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
-          :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-          <button
-            class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
-            @click="statusType='ONGOING'">
-            Ongoing
-          </button>
-          <button
-            class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
-            @click="statusType='COMPLETED'">
-            Completed
-          </button>
+      <div v-if="!showSearch" class="row items-center q-px-sm">
+        <!-- currency dialog -->
+        <div class="col-auto">
+          <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
+            <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+          </div>
         </div>
-        <div>
+        <q-space />
+        <div class="col-auto q-pr-md">
           <q-btn
             unelevated
             ripple
@@ -34,22 +23,9 @@
             :icon="'search'"
             class="button button-text-primary col-auto q-mt-sm q-pa-none"
             :class="getDarkModeClass(darkMode)"
-            @click="searchState('focus')"
-            >
-            <!-- <q-badge v-if="!defaultFiltersOn" left floating color="red"/> -->
+            @click="searchState('focus')">
           </q-btn>
-          <!-- <q-btn
-            unelevated
-            ripple
-            dense
-            size="1.2em"
-            :icon="'filter_list'"
-            class="button button-text-primary col-auto q-mt-sm q-pa-none"
-            :class="getDarkModeClass(darkMode)"
-            @click="openFilter()">
-            <q-badge v-if="!defaultFiltersOn" left floating color="red"/>
-          </q-btn> -->
-          <FilterComponent :key="filterComponentKey" type="order" @filter="onFilterListings"/>
+          <FilterComponent :key="filterComponentKey" type="order" :currency="selectedCurrency?.symbol" :transactionType="statusType" @filter="onFilterListings"/>
         </div>
       </div>
       <div v-else class="q-px-lg q-mx-xs">
@@ -69,6 +45,23 @@
             <q-icon name="search" @click="searchUser()" />
           </template>
         </q-input>
+      </div>
+      <div
+        class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
+        :class="getDarkModeClass(darkMode)"
+        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+        <button
+          class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
+          @click="statusType='ONGOING'">
+          Ongoing
+        </button>
+        <button
+          class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
+          @click="statusType='COMPLETED'">
+          Completed
+        </button>
       </div>
       <div class="q-mt-sm">
         <!-- <q-pull-to-refresh @refresh="refreshData"> -->
@@ -191,10 +184,12 @@ import FiatProfileCard from './FiatProfileCard.vue'
 import FilterDialog from './dialogs/FilterDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
+import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -223,7 +218,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedCurrency: { symbol: 'All' },
       selectedOrder: null,
       selectedUser: null,
       statusType: 'ONGOING',
@@ -270,16 +265,25 @@ export default {
       dialogType: '',
       selectedUserAdId: null,
       pageName: 'main',
-      showSearch: false
+      showSearch: false,
+      filterComponentKey: 0,
+      isAllCurrencies: true,
+      fiatCurrencies: []
     }
   },
   watch: {
-    async statusType (value) {
+    statusType () {
       const vm = this
-      vm.switchFilterDefaults(value)
-      await vm.updateFilters()
+      vm.filterComponentKey++
+      vm.updateFilters()
       vm.resetAndScrollToTop()
       vm.resetAndRefetchListings()
+    },
+    selectedCurrency () {
+      this.filterComponentKey++
+      this.updateFilters()
+      this.resetAndScrollToTop()
+      this.resetAndRefetchListings()
     }
   },
   computed: {
@@ -312,11 +316,23 @@ export default {
     bus.on('view-ad', this.onViewAd)
   },
   async mounted () {
-    // await this.updateFilters()
+    this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
   },
   methods: {
     getDarkModeClass,
+    showCurrencySelect () {
+      this.$q.dialog({
+        component: CurrencyFilterDialog,
+        componentProps: {
+          fiatList: this.fiatCurrencies
+        }
+      })
+        .onOk(currency => {
+          const index = this.fiatCurrencies.indexOf(currency)
+          this.selectCurrency(index)
+        })
+    },
     searchState (state) {
       const vm = this
       if (state === 'focus') {
@@ -360,11 +376,41 @@ export default {
           break
       }
     },
+    onFilterListings (filters) {
+      this.filters = filters
+      this.resetAndRefetchListings()
+    },
+    selectCurrency (index) {
+      if (index === 0) {
+        this.isAllCurrencies = true
+        this.selectedCurrency = { symbol: 'All' }
+      } else {
+        this.selectedCurrency = this.fiatCurrencies[index]
+        this.isAllCurrencies = false
+      }
+    },
+    fetchFiatCurrencies () {
+      const vm = this
+      backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+        .then(response => {
+          vm.fiatCurrencies = response.data
+          vm.fiatCurrencies.unshift('All')
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
+        })
+    },
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
-      console.log('params:', params)
       params.query_name = vm.query_name
+      params.currency = vm.selectedCurrency?.symbol !== 'All' ? vm.selectedCurrency?.symbol : null
       vm.loading = true
       vm.$store.dispatch('ramp/fetchOrders',
         {
@@ -397,65 +443,12 @@ export default {
       vm.updateFilters()
       vm.resetAndRefetchListings()
     },
-    openFilter () {
-      this.openDialog = true
-      this.dialogType = this.statusType === 'ONGOING' ? 'filterOngoingOrder' : 'filterCompletedOrder'
-    },
-    switchFilterDefaults (statusType) {
-      const vm = this
-      if (statusType === 'ONGOING') {
-        vm.defaultFilters.status = vm.defaultStatuses.ongoing
-        vm.defaultFilters.sort_type = vm.defaultSortType.ongoing
-        vm.defaultFilters.sort_by = vm.defaultSortBy.ongoing
-      }
-      if (statusType === 'COMPLETED') {
-        vm.defaultFilters.status = vm.defaultStatuses.completed
-        vm.defaultFilters.sort_type = vm.defaultSortType.completed
-        vm.defaultFilters.sort_by = vm.defaultSortBy.completed
-      }
-    },
-    isdefaultFiltersOn (filters) {
-      filters = { ...filters }
-      const defaultFilters = { ...this.defaultFilters }
-
-      if (JSON.stringify([...defaultFilters?.payment_types].sort()) !== JSON.stringify(filters?.payment_types?.sort()) ||
-          JSON.stringify([...defaultFilters?.time_limits].sort()) !== JSON.stringify(filters?.time_limits?.sort())) {
-        return false
-      }
-
-      const defStatusLen = defaultFilters.status.length
-      const statusLen = filters.status.length
-      if (defStatusLen !== statusLen) {
-        return false
-      } else {
-        const statusMatch = JSON.stringify([...defaultFilters?.status].sort()) === JSON.stringify(filters?.status?.sort())
-        if (!statusMatch) return false
-      }
-
-      delete filters.payment_types
-      delete filters.time_limits
-      delete filters.status
-      delete defaultFilters.payment_types
-      delete defaultFilters.time_limits
-      delete defaultFilters.status
-
-      const match = JSON.stringify(defaultFilters) === JSON.stringify(filters)
-      if (!match) return false
-      return true
-    },
     async updateFilters () {
       const vm = this
-      const defaultPaymentTypes = await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: null })
-      console.log('defaultPaymentTypes:', defaultPaymentTypes)
-      vm.defaultFilters.payment_types = defaultPaymentTypes.map(paymentType => paymentType.id)
-
       const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'
-      const filters = JSON.parse(JSON.stringify(vm.$store.getters[getterName]))
-      if (filters.paymentTypes?.length === 0) {
-        filters.paymentTypes = Array.from(vm.defaultFilters.payment_types)
-      }
-      vm.filters = filters
-      vm.defaultFiltersOn = vm.isdefaultFiltersOn(filters)
+      const currency = this.selectedCurrency?.symbol
+      const filters = vm.$store.getters[getterName](currency || 'All')
+      if (filters) vm.filters = JSON.parse(JSON.stringify(filters))
     },
     loadMoreData (_, done) {
       const vm = this

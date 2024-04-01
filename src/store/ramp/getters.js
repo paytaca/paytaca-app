@@ -1,11 +1,15 @@
 import { getCookie } from 'src/wallet/ramp'
 
 export function ongoingOrderFilters (state) {
-  return state.ongoingOrderFilters
+  return function (currency) {
+    return state.ongoingOrderFilters[currency]
+  }
 }
 
 export function completedOrderFilters (state) {
-  return state.completedOrderFilters
+  return function (currency) {
+    return state.completedOrderFilters[currency]
+  }
 }
 
 export function storeBuyFilters (state) {

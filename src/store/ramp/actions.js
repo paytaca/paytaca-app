@@ -71,7 +71,7 @@ export function fetchAds (context, { component = null, params = null, overwrite 
         trade_type: params.trade_type,
         query_name: params.query_name
       }
-      console.log('params:', params)
+
       let apiURL = '/ramp-p2p/ad/'
       let appendParam = false
       if (params.payment_types && params.payment_types.length > 0) {
@@ -156,12 +156,13 @@ export async function fetchOrders (context, { statusType = null, params = null, 
       if (pageNumber !== null) pageNumber++
 
       // Build request parameters
-      let owned = params.ownership.owned
-      if (params.ownership.owned === params.ownership.notOwned) {
+      let owned = params.ownership?.owned
+      if (params.ownership?.owned === params.ownership?.notOwned) {
         owned = null
       }
       const parameters = {
         page: pageNumber,
+        currency: params.currency,
         limit: state.itemsPerPage,
         status_type: statusType,
         sort_type: params.sort_type,
@@ -171,11 +172,11 @@ export async function fetchOrders (context, { statusType = null, params = null, 
         not_appealable: params.not_appealable,
         query_name: params.query_name
       }
-      if (params.trade_type.buy !== params.trade_type.sell) {
-        if (params.trade_type.buy) {
+      if (params.trade_type?.buy !== params.trade_type?.sell) {
+        if (params.trade_type?.buy) {
           parameters.trade_type = 'BUY'
         }
-        if (params.trade_type.sell) {
+        if (params.trade_type?.sell) {
           parameters.trade_type = 'SELL'
         }
       }
@@ -276,9 +277,7 @@ export function fetchAppeals (context, { appealState = null, params = null, over
 }
 
 export function fetchPaymentTypes (context, { currency = null }) {
-  console.log('Updating payment types:', currency)
   currency = currency !== 'All' ? currency : null
-  console.log('Updating payment types:', currency)
   return new Promise((resolve, reject) => {
     backend.get('/ramp-p2p/payment-type', { params: { currency: currency }, authorize: true })
       .then(response => {
@@ -297,9 +296,21 @@ export function fetchPaymentTypes (context, { currency = null }) {
   })
 }
 
-export async function resetStoreFilters (context, { currency = null }) {
-  currency = currency !== 'All' ? currency : null
+export async function resetStoreFilters (context, { currency = null, migrate = false }) {
   await fetchPaymentTypes(context, { currency: currency })
-  context.commit('resetStoreBuyFilters', currency)
-  context.commit('resetStoreSellFilters', currency)
+  context.commit('resetStoreFilters', !migrate ? currency || 'All' : null)
+}
+
+export async function resetOrderFilters (context, { currency = null, migrate = false }) {
+  await fetchPaymentTypes(context, { currency: currency })
+  context.commit('resetOrderFilters', !migrate ? currency || 'All' : null)
+}
+
+export async function migrateStoreOrderFilters (context) {
+  if (context.state.migrateStoreOrderFilters) {
+    console.log('Migrating store and order filters')
+    await resetStoreFilters(context, { currency: null, migrate: true })
+    await resetOrderFilters(context, { currency: null, migrate: true })
+    context.commit('setStoreOrderFiltersMigrate', false)
+  }
 }

@@ -102,6 +102,8 @@ export default {
     }
   },
   mounted () {
+    // this.$store.commit('ramp/setStoreOrderFiltersMigrate', true)
+    this.$store.dispatch('ramp/migrateStoreOrderFilters')
     this.dialog = true
     if (this.error) this.errorMessage = this.error
     NativeBiometric.isAvailable().then(() => { this.hasBiometric = true })
