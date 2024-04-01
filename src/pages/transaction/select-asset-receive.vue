@@ -230,37 +230,6 @@ export default {
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
-    async getMainchainTokens () {
-      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
-      const mainchainTokens = []
-
-      for (const tokenWalletHash of tokenWalletHashes) {
-        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
-
-        const tokens = await this.$store.dispatch(
-          'assets/getMissingAssets',
-          {
-            isCashToken,
-            walletHash: tokenWalletHash,
-            includeIgnoredTokens: false
-          }
-        )
-
-        mainchainTokens.push(...tokens)
-      }
-
-      return mainchainTokens
-    },
-    async getSmartchainTokens () {
-      const tokens = await this.$store.dispatch(
-        'sep20/getMissingAssets',
-        {
-          address: this.getWallet('sbch').lastAddress,
-          icludeIgnoredTokens: false
-        }
-      )
-      return tokens
-    },
     async checkIfFirstTimeReceiver (asset) {
       // check wallet/assets if balance is zero and no transactions were made
       this.isRetrieving = true

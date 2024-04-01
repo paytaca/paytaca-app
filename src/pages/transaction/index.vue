@@ -1035,7 +1035,38 @@ export default {
         }
       }
       this.walletYield = null
-    }
+    },
+    async getMainchainTokens () {
+      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
+      const mainchainTokens = []
+
+      for (const tokenWalletHash of tokenWalletHashes) {
+        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
+
+        const tokens = await this.$store.dispatch(
+          'assets/getMissingAssets',
+          {
+            isCashToken,
+            walletHash: tokenWalletHash,
+            includeIgnoredTokens: false
+          }
+        )
+
+        mainchainTokens.push(...tokens)
+      }
+
+      return mainchainTokens
+    },
+    async getSmartchainTokens () {
+      const tokens = await this.$store.dispatch(
+        'sep20/getMissingAssets',
+        {
+          address: this.getWallet('sbch').lastAddress,
+          icludeIgnoredTokens: false
+        }
+      )
+      return tokens
+    },
   },
 
   beforeRouteEnter (to, from, next) {
@@ -1107,6 +1138,23 @@ export default {
 
     const assets = this.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+
+    // check if newly-received token is already stored in vuex store,
+    // if not, then add it to the very first of the list
+    const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+    console.log('vm.selectedNetwork', vm.selectedNetwork)
+    console.log('assets', assets)
+    console.log('tokens', tokens)
+    if (tokens.length > 0) {
+      const assetsId = assets.map(a => a.id)
+      const newTokens = tokens.filter(b => !assetsId.includes(b.id))
+      console.log('newTokens', newTokens)
+
+      newTokens.forEach(token => {
+        vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, token)
+        vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+      })
+    }
 
     // Check for slow internet and/or accessibility of the backend
     axios.get('https://watchtower.cash', { timeout: 1000 * 60 }).then((resp) => {
