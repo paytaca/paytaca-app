@@ -68,6 +68,13 @@
                   </template>
                 </q-input>
               </div>
+              <div
+                v-if="isLegacyAddress"
+                style="border: 2px solid orange;"
+                class="q-mx-md q-mb-md q-pa-sm text-center text-subtitle1 text-bow"
+                :class="getDarkModeClass(darkMode)"
+                v-html="$t('LegacyAddressWarning')"
+              />
               <div class="col-12 text-uppercase text-center or-label">
                 {{ $t('or') }}
               </div>
@@ -457,7 +464,8 @@ export default {
         setMax: false,
         emptyRecipient: false,
         selectedDenomination: 'BCH',
-        isBip21: false
+        isBip21: false,
+        isLegacyAddress: false
       }],
 
       sent: false,
@@ -487,7 +495,8 @@ export default {
       currentActiveRecipientIndex: 0,
       totalAmountSent: 0,
       totalFiatAmountSent: 0,
-      currentWalletBalance: 0
+      currentWalletBalance: 0,
+      isLegacyAddress: false
     }
   },
 
@@ -612,6 +621,10 @@ export default {
         this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
         this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
       }
+    },
+    manualAddress (address) {
+      this.isLegacyAddress = new Address(address).isLegacyAddress()
+      this.inputExtras[this.currentActiveRecipientIndex].isLegacyAddress = this.isLegacyAddress
     }
   },
 
@@ -1391,7 +1404,8 @@ export default {
           setMax: false,
           emptyRecipient: true,
           selectedDenomination: 'BCH',
-          isBip21: false
+          isBip21: false,
+          isLegacyAddress: false
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
@@ -1489,6 +1503,7 @@ export default {
     onRecipientInput (value) {
       this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value === ''
+      this.inputExtras[this.currentActiveRecipientIndex].isLegacyAddress = new Address(value).isLegacyAddress()
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
@@ -1648,7 +1663,6 @@ export default {
       font-size: 16px;
       margin-top: 20px;
     }
-    
     .view-explorer-button {
       text-decoration: none;
     }
@@ -1657,5 +1671,9 @@ export default {
       border: 1px solid grey;
       background-color: inherit;
     }
+  }
+  .highlighted-word {
+    font-weight: bold;
+    color: orange;
   }
 </style>
