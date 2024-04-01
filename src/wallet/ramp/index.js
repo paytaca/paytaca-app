@@ -156,6 +156,8 @@ export function getAppealCooldown (timeValue) {
       return { label: '15 minutes', value: 15 }
     case 30:
       return { label: '30 minutes', value: 30 }
+    case 45:
+      return { label: '45 minutes', value: 45 }
     case 60:
       return { label: '1 hour', value: 60 }
     case 300:
