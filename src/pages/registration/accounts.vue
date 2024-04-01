@@ -431,6 +431,8 @@ export default {
       const vm = this
       vm.$store.dispatch('global/saveWalletPreferences')
       vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
+        return vm.promptEnablePushNotification()?.catch?.(console.error)
+      }).then(function () {
         vm.saveToVault()
         vm.$router.push('/')
       })
@@ -606,6 +608,14 @@ export default {
     onInputEnter (inputArray) {
       if (inputArray.indexOf('') === -1) {
         this.seedPhraseBackup = inputArray.join(' ')
+      }
+    },
+    async promptEnablePushNotification() {
+      await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+      if (!this.$pushNotifications.isEnabled) {
+        await this.$pushNotifications.openPushNotificationsSettingsPrompt({
+          message: 'Enable push notifications to receive updates from the app',
+        }).catch(console.log)
       }
     }
   },

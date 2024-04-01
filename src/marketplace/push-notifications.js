@@ -66,7 +66,7 @@ class MarketplacePushNotificationsManager {
       })
   }
 
-  async subscribe(customerId=0) {
+  async subscribe(customerId=0, multiWalletIndex=[].map(Number)[0]) {
     if (!customerId) return
     if (!this.appInfo?.id) await this.fetchAppInfo()
     if (!this.deviceId) await this.fetchDeviceId()
@@ -82,6 +82,7 @@ class MarketplacePushNotificationsManager {
       customer_id: customerId,
       gcm_device: undefined, apns_device: undefined,
       application_id: this.appInfo?.id,
+      multi_wallet_index: multiWalletIndex,
     }
     const deviceInfo = {
       registration_id: this.registrationToken,
