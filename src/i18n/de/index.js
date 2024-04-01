@@ -327,6 +327,7 @@ export default {
   Language: "Sprache",
   LeavingPage: "Seite verlassen",
   LegacyAddress: "Legacy -Adresse",
+  LegacyAddressWarning: "Sie haben eine Legacy -Adresse eingefügt.Bitte stellen Sie sicher, dass es sich um eine <span class = \"highlighted-word\"> BCH-Einzahlungsadresse </span> handelt, keine BTC-Einzahlungsadresse.",
   Leverage: "Hebelwirkung",
   LightMode: "Lichtmodus",
   Link: "Verknüpfung",
