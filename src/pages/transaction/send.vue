@@ -84,7 +84,7 @@
                   size="lg"
                   class="btn-scan button text-white bg-grad"
                   icon="mdi-qrcode"
-                  @click.once="showQrScanner = true"
+                  @click="showQrScanner = true"
                 />
               </div>
             </div>
