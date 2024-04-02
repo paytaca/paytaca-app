@@ -24,15 +24,17 @@
           <!-- Trade type -->
           <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Trade Type</div>
+            <div v-if="showTradeTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('trade-type')" @click="orderSetAllSelected('trade-type')">Default: All</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="orderFilters.trade_type.buy = !orderFilters.trade_type?.buy">Buy</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="orderFilters.trade_type.sell = !orderFilters.trade_type?.sell">Sell</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="setOrderFilter('trade-type-buy', !orderFilters.trade_type?.buy)">Buy</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="setOrderFilter('trade-type-sell', !orderFilters.trade_type?.sell)">Sell</q-badge>
             </div>
           </div>
           <!-- Order status -->
           <div v-if="orderFilters.status" class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Status</div>
+            <div v-if="showStatusHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 rounded
@@ -53,13 +55,25 @@
                 {{ status.label }}
               </q-badge>
             </div>
-            <div class="q-mt-xs q-gutter-sm" v-if="type !== 'filterCompletedOrder'">
+          </div>
+          <div v-if="type !== 'filterCompletedOrder'" class="q-pt-md">
+            <div class="sm-font-size text-weight-bold">Appealable Status</div>
+            <div v-if="showAppealableStatusHint" class="xs-font-size subtext">{{ hintMessage }}</div>
+            <div class="q-gutter-sm q-mt-xs">
+              <q-badge
+                rounded
+                color="blue-grey-6"
+                class="q-pa-sm"
+                :outline="!orderAllSelected('apl-status')"
+                @click="orderSetAllSelected('apl-status')">
+                Default: All
+              </q-badge>
               <q-badge
                 class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
                 :outline="!orderFilters.appealable"
-                @click="orderFilters.appealable = !orderFilters.appealable">
+                @click="setOrderFilter('appealable', !orderFilters.appealable)">
                 Appealable
               </q-badge>
               <q-badge
@@ -67,7 +81,7 @@
                 color="blue-grey-6"
                 rounded
                 :outline="!orderFilters.not_appealable"
-                @click="orderFilters.not_appealable = !orderFilters.not_appealable">
+                @click="setOrderFilter('not-appealable', !orderFilters.not_appealable)">
                 Not Appealable
               </q-badge>
             </div>
@@ -75,6 +89,7 @@
           <!-- Order payment types -->
           <div v-if="orderFilters.payment_types" class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Payment Type</div>
+            <div v-if="showPaymentTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -99,6 +114,7 @@
           <!-- Appealable cooldowns-->
           <div v-if="orderFilters.time_limits" class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Appealable Time</div>
+            <div v-if="showTimeLimitHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
                 class="q-pa-sm"
@@ -123,6 +139,7 @@
           <!-- Ownership -->
           <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">Ownership</div>
+            <div v-if="showOwnershipHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('ownership')" @click="orderSetAllSelected('ownership')">Default: All</q-badge>
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Created by me</q-badge>
@@ -345,6 +362,10 @@ export default {
       showPriceTypeHint: false,
       showPaymentTypeHint: false,
       showTimeLimitHint: false,
+      showStatusHint: false,
+      showTradeTypeHint: false,
+      showOwnershipHint: false,
+      showAppealableStatusHint: false,
       hintMessage: 'At least one selected option is required'
     }
   },
@@ -408,6 +429,10 @@ export default {
     orderSetAllSelected (type) {
       const vm = this
       switch (type) {
+        case 'apl-status':
+          vm.orderFilters.appealable = true
+          vm.orderFilters.not_appealable = true
+          break
         case 'ownership':
           vm.orderFilters.ownership.owned = true
           vm.orderFilters.ownership.notOwned = true
@@ -419,8 +444,6 @@ export default {
         case 'status':
           if (vm.type === 'filterOngoingOrder') {
             vm.orderFilters.status = vm.ongoingStatuses.map(e => e.value)
-            vm.orderFilters.appealable = true
-            vm.orderFilters.not_appealable = true
           }
           if (vm.type === 'filterCompletedOrder') {
             vm.orderFilters.status = vm.completedStatuses.map(e => e.value)
@@ -437,14 +460,14 @@ export default {
     orderAllSelected (type) {
       const vm = this
       switch (type) {
+        case 'apl-status':
+          return vm.orderFilters.appealable && vm.orderFilters.not_appealable
         case 'ownership':
           return vm.orderFilters.ownership.owned && vm.orderFilters.ownership.notOwned
         case 'trade-type':
           return vm.orderFilters.trade_type.buy && vm.orderFilters.trade_type.sell
         case 'status': {
           const allStatus = vm.orderFilters.status.length === vm.statuses.length
-          const allAppeal = vm.orderFilters.appealable && vm.orderFilters.not_appealable
-          if (vm.type === 'filterOngoingOrder') return allStatus && allAppeal
           return allStatus
         }
         case 'payment-type':
@@ -456,22 +479,66 @@ export default {
     setOrderFilter (type, value) {
       const vm = this
       switch (type) {
+        case 'not-appealable':
+          if (!value && !vm.orderFilters.appealable) {
+            vm.showAppealableStatusHint = true
+            return
+          }
+          vm.orderFilters.not_appealable = value
+          break
+        case 'appealable':
+          if (!value && !vm.orderFilters.not_appealable) {
+            vm.showAppealableStatusHint = true
+            return
+          }
+          vm.orderFilters.appealable = value
+          break
+        case 'trade-type-sell':
+          if (!value && !vm.orderFilters.trade_type.buy) {
+            vm.showTradeTypeHint = true
+            return
+          }
+          vm.orderFilters.trade_type.sell = value
+          break
+        case 'trade-type-buy':
+          if (!value && !vm.orderFilters.trade_type.sell) {
+            vm.showTradeTypeHint = true
+            return
+          }
+          vm.orderFilters.trade_type.buy = value
+          break
         case 'owned':
+          if (!value && !vm.orderFilters.ownership.notOwned) {
+            vm.showOwnershipHint = true
+            return
+          }
           vm.orderFilters.ownership.owned = value
           break
         case 'notOwned':
+          if (!value && !vm.orderFilters.ownership.owned) {
+            vm.showOwnershipHint = true
+            return
+          }
           vm.orderFilters.ownership.notOwned = value
           break
         case 'status':
           if (vm.orderFilters.status?.includes(value)) {
-            this.orderFilters.status = this.orderFilters.status.filter(e => e !== value)
+            if (vm.orderFilters.status.length === 1) {
+              vm.showStatusHint = true
+              return
+            }
+            vm.orderFilters.status = vm.orderFilters.status.filter(e => e !== value)
           } else {
-            this.orderFilters.status.push(value)
+            vm.orderFilters.status.push(value)
           }
           break
         case 'payment-type': {
           const paymentTypes = vm.orderFilters.payment_types
           if (paymentTypes?.includes(value)) {
+            if (vm.orderFilters.payment_types.length === 1) {
+              vm.showPaymentTypeHint = true
+              return
+            }
             vm.orderFilters.payment_types = paymentTypes.filter(e => e !== value)
           } else {
             vm.orderFilters.payment_types.push(value)
@@ -481,6 +548,10 @@ export default {
         case 'time-limit': {
           const timeLimits = vm.orderFilters.time_limits
           if (timeLimits?.includes(value)) {
+            if (vm.orderFilters.time_limits.length === 1) {
+              vm.showTimeLimitHint = true
+              return
+            }
             vm.orderFilters.time_limits = timeLimits.filter(e => e !== value)
           } else {
             vm.orderFilters.time_limits.push(value)
