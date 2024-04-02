@@ -56,6 +56,12 @@ const routes = [
         name: 'sign-transaction',
         props: route => route.query,
         component: () => import('pages/sign/transaction.vue')
+      },
+      {
+        path: 'push-notification-router',
+        name: 'push-notification-router',
+        props: route => route.query,
+        component: () => import('src/pages/push-notification-router.vue')
       }
     ]
   },

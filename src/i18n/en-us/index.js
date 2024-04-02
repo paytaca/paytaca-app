@@ -327,6 +327,7 @@ export default {
   Language: "Language",
   LeavingPage: "Leaving page",
   LegacyAddress: "Legacy Address",
+  LegacyAddressWarning: "You pasted a legacy address. Please make sure that it is a <span class=\"highlighted-word\">BCH deposit address</span>, not a BTC deposit address.",
   Leverage: "Leverage",
   LightMode: "Light Mode",
   Link: "Link",

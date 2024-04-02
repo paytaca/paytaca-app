@@ -4,7 +4,21 @@ const NotificationTypes = types()
 
 export async function handleOpenedNotification(context) {
   const $router = this.$router
+  const openedNotification = context.getters['openedNotification']
   const route = await context.dispatch('getOpenedNotificationRoute')
+
+  const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
+  const currentWalletIndex = context.rootGetters['global/getWalletIndex']
+  if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
+    console.log(
+      'current wallet index:', currentWalletIndex,
+      'push notification wallet index:', multiWalletIndex,
+      'redirecting to push notification page',
+    )
+    $router.push('push-notification-router')
+    return
+  }
+
   if (route) $router.push(route)
 }
 
