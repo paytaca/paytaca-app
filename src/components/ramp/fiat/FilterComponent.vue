@@ -18,7 +18,6 @@
       :currency="currency"
       @back="openDialog = false"
       @submit="commitFilters"
-      @reset="resetFilters"
     />
 </template>
 <script>
@@ -214,31 +213,6 @@ export default {
       vm.openDialog = false
       vm.defaultFiltersOn = vm.updateDefaultFiltersFlag()
       vm.$emit('filter', vm.filters)
-    },
-    resetFilters (type) {
-      let filters = null
-      if (type === 'store') {
-        if (this.transactionType === 'SELL') {
-          this.$store.commit('ramp/resetStoreSellFilters', this.currency)
-        }
-        if (this.transactionType === 'BUY') {
-          this.$store.commit('ramp/resetStoreBuyFilters', this.currency)
-        }
-        this.updateFilters()
-      }
-
-      if (type === 'orders') {
-        if (this.$parent.statusType === 'ONGOING') {
-          this.$store.commit('ramp/resetOngoingOrderFilters')
-          filters = { ...this.$store.getters['ramp/ongoingOrderFilters'] }
-        }
-        if (this.$parent.statusType === 'COMPLETED') {
-          this.$store.commit('ramp/resetCompletedOrderFilters')
-          filters = { ...this.$store.getters['ramp/completedOrderFilters'] }
-        }
-        this.updateOrderFilters(filters)
-      }
-      this.filterDialogKey++
     }
   }
 

@@ -369,7 +369,7 @@ export default {
       hintMessage: 'At least one selected option is required'
     }
   },
-  emits: ['back', 'submit', 'reset'],
+  emits: ['back', 'submit'],
   props: {
     type: String,
     filters: {},
@@ -644,8 +644,9 @@ export default {
     },
     resetFilters (type) {
       let filters = null
+      const defaultPaymentTypes = this.$store.getters['ramp/paymentTypes'](this.currency || 'All')
+
       if (type === 'store') {
-        const defaultPaymentTypes = this.$store.getters['ramp/paymentTypes'](this.currency)
         filters = {
           sort_type: this.$parent.transactionType === 'SELL' ? 'ascending' : 'descending',
           price_type: {
@@ -659,13 +660,41 @@ export default {
       }
 
       if (type === 'orders') {
-        if (this.$parent.statusType === 'ONGOING') {
-          this.$store.commit('ramp/resetOngoingOrderFilters')
-          filters = { ...this.$store.getters['ramp/ongoingOrderFilters'] }
+        if (this.type === 'filterOngoingOrder') {
+          filters = {
+            sort_type: 'ascending',
+            sort_by: 'created_at',
+            status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
+            appealable: true,
+            not_appealable: true,
+            payment_types: defaultPaymentTypes.map(e => e.id),
+            time_limits: [15, 30, 45, 60],
+            ownership: {
+              owned: true,
+              notOwned: true
+            },
+            trade_type: {
+              buy: true,
+              sell: true
+            }
+          }
         }
-        if (this.$parent.statusType === 'COMPLETED') {
-          this.$store.commit('ramp/resetCompletedOrderFilters')
-          filters = { ...this.$store.getters['ramp/completedOrderFilters'] }
+        if (this.type === 'filterCompletedOrder') {
+          filters = {
+            sort_type: 'descending',
+            sort_by: 'last_modified_at',
+            status: ['CNCL', 'RLS', 'RFN'],
+            payment_types: defaultPaymentTypes.map(e => e.id),
+            time_limits: [15, 30, 45, 60],
+            ownership: {
+              owned: true,
+              notOwned: true
+            },
+            trade_type: {
+              buy: true,
+              sell: true
+            }
+          }
         }
         this.updateOrderFilters(filters)
       }
