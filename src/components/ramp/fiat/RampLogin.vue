@@ -208,7 +208,6 @@ export default {
       const signatureData = await signRequestData(hexRef)
       console.log('hexRef:', hexRef)
       console.log('signatureData:', signatureData)
-      signatureData.signature = null
       // backup if signRequestData fails to return a signature
       if (!signatureData.signature) {
         console.error(`Error: signRequestData failed, returning signature: "${signatureData.signature}". Attempting to sign manually..`)

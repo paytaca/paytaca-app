@@ -55,6 +55,9 @@ export async function signRequestData (data) {
 }
 
 export async function getSignerData () {
+  const keys = await SecureStoragePlugin.keys()
+  console.log('target key:', SIGNER_STORAGE_KEY)
+  console.log('keys:', keys)
   try {
     const data = await SecureStoragePlugin.get({ key: SIGNER_STORAGE_KEY })
     return { success: true, value: data.value }
