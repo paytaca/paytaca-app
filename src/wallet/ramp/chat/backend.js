@@ -36,17 +36,16 @@ chatBackend.interceptors.request.use(async (config) => {
 const SIGNER_STORAGE_KEY = 'ramp-api-customer-signer-data'
 
 export async function signRequestData (data) {
-  console.log('Signing request data:', data)
   const response = { walletHash: '', signature: '' }
   const { value } = await getSignerData()
   if (!value) {
-    console.log('signRequestData value undefined')
+    console.error('signRequestData value undefined')
     return response
   }
 
   const [walletHash, privkey] = value.split(':')
   if (!walletHash || !privkey) {
-    console.log('signRequestData undefined walletHash || privkey')
+    console.error('signRequestData undefined walletHash || privkey')
     return response
   }
   response.walletHash = walletHash
