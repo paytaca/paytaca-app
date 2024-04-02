@@ -2,152 +2,151 @@
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
   <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
   <div
+    v-if="state === 'order-list'"
     class="q-mx-md q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
-    <div v-if="state === 'order-list'">
-      <div v-if="!showSearch" class="row items-center q-px-sm">
-        <!-- currency dialog -->
-        <div class="col-auto">
-          <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
-            <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
-          </div>
-        </div>
-        <q-space />
-        <div class="col-auto q-pr-md">
-          <q-btn
-            unelevated
-            ripple
-            dense
-            size="md"
-            :icon="'search'"
-            class="button button-text-primary col-auto q-mt-sm q-pa-none"
-            :class="getDarkModeClass(darkMode)"
-            @click="searchState('focus')">
-          </q-btn>
-          <FilterComponent :key="filterComponentKey" type="order" :currency="selectedCurrency?.symbol" :transactionType="statusType" @filter="onFilterListings"/>
+    <div v-if="!showSearch" class="row items-center q-px-sm">
+      <!-- currency dialog -->
+      <div class="col-auto">
+        <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
+          <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
         </div>
       </div>
-      <div v-else class="q-px-lg q-mx-xs">
-        <q-input ref="inputRef" v-model="query_name" label="Search" dense @blur="searchState('blur')">
-          <template v-slot:append>
-            <q-icon name="close"
-              @click="() => {
-                if (query_name) {
-                  query_name = null
-                  receiveDialog(filters)
-                  $refs.inputRef.focus()
-                } else {
-                  searchState('blur')
-                }
-              }"
-              class="cursor-pointer" />
-            <q-icon name="search" @click="searchUser()" />
-          </template>
-        </q-input>
+      <q-space />
+      <div class="col-auto q-pr-md">
+        <q-btn
+          unelevated
+          ripple
+          dense
+          size="md"
+          :icon="'search'"
+          class="button button-text-primary col-auto q-mt-sm q-pa-none"
+          :class="getDarkModeClass(darkMode)"
+          @click="searchState('focus')">
+        </q-btn>
+        <FilterComponent :key="filterComponentKey" type="order" :currency="selectedCurrency?.symbol" :transactionType="statusType" @filter="onFilterListings"/>
       </div>
-      <div
-        class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
-        :class="getDarkModeClass(darkMode)"
-        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-        <button
-          class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
-          @click="statusType='ONGOING'">
-          Ongoing
-        </button>
-        <button
-          class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
-          @click="statusType='COMPLETED'">
-          Completed
-        </button>
-      </div>
-      <div class="q-mt-sm">
-        <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-          <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
-          </div>
-          <div v-else class="q-mb-none">
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 75}px`" style="overflow:auto;">
-              <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
-                <q-infinite-scroll
-                  ref="infiniteScroll"
-                  :items="listings"
-                  @load="loadMoreData"
-                  :offset="0"
-                  :scroll-target="scrollTargetRef">
-                  <template v-slot:loading>
-                    <div class="row justify-center q-my-md" v-if="hasMoreData">
-                      <q-spinner-dots color="primary" size="40px" />
-                    </div>
-                  </template>
-                  <div v-for="(listing, index) in listings" :key="index">
-                    <q-item clickable @click="selectOrder(listing)">
-                      <q-item-section>
-                        <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                          <div class="row q-mx-md">
-                            <div class="col ib-text">
-                              <div
-                                class="q-mb-none pt-label sm-font-size"
-                                :class="getDarkModeClass(darkMode)"
-                              >
-                                ORDER #{{ listing.id }}
-                              </div>
-                              <span
-                                class=" pt-label md-font-size text-weight-bold"
-                                :class="getDarkModeClass(darkMode)">
-                                <!--@click.stop.prevent="viewUserProfile(listing)">-->
-                                {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
-                              </span>
-                              <div
-                                class="col-transaction text-uppercase pt-label lg-font-size"
-                                :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
-                              >
-                              <!-- :style="amountColor(listing.trade_type)" -->
-                                {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
-                              </div>
-                              <div class="sm-font-size">
-                                {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                              <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
+    </div>
+    <div v-else class="q-px-lg q-mx-xs">
+      <q-input ref="inputRef" v-model="query_name" label="Search" dense @blur="searchState('blur')">
+        <template v-slot:append>
+          <q-icon name="close"
+            @click="() => {
+              if (query_name) {
+                query_name = null
+                receiveDialog(filters)
+                $refs.inputRef.focus()
+              } else {
+                searchState('blur')
+              }
+            }"
+            class="cursor-pointer" />
+          <q-icon name="search" @click="searchUser()" />
+        </template>
+      </q-input>
+    </div>
+    <div
+      class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
+      :class="getDarkModeClass(darkMode)"
+      :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+      <button
+        class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+        :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
+        @click="statusType='ONGOING'">
+        Ongoing
+      </button>
+      <button
+        class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+        :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
+        @click="statusType='COMPLETED'">
+        Completed
+      </button>
+    </div>
+    <div class="q-mt-sm">
+      <!-- <q-pull-to-refresh @refresh="refreshData"> -->
+        <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
+        </div>
+        <div v-else class="q-mb-none">
+          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 75}px`" style="overflow:auto;">
+            <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
+              <q-infinite-scroll
+                ref="infiniteScroll"
+                :items="listings"
+                @load="loadMoreData"
+                :offset="0"
+                :scroll-target="scrollTargetRef">
+                <template v-slot:loading>
+                  <div class="row justify-center q-my-md" v-if="hasMoreData">
+                    <q-spinner-dots color="primary" size="40px" />
+                  </div>
+                </template>
+                <div v-for="(listing, index) in listings" :key="index">
+                  <q-item clickable @click="selectOrder(listing)">
+                    <q-item-section>
+                      <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                        <div class="row q-mx-md">
+                          <div class="col ib-text">
+                            <div
+                              class="q-mb-none pt-label sm-font-size"
+                              :class="getDarkModeClass(darkMode)"
+                            >
+                              ORDER #{{ listing.id }}
                             </div>
-                            <div class="text-right">
-                              <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
-                                <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
-                              </span> -->
-                              <div
-                                v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
-                                class="text-weight-bold subtext sm-font-size text-blue">
-                                Appealable
-                              </div>
-                              <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
-                                <q-rating
-                                  readonly
-                                  :model-value = "listing?.feedback?.rating || 0"
-                                  size="1em"
-                                  color="yellow-9"
-                                  icon="star"
-                                />
-                              </div>
-                              <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
-                                {{ listing.status?.label }}
-                              </div>
-                              <div class="text-weight-bold subtext sm-font-size" v-else>
-                                {{ listing.status?.label }}
-                              </div>
+                            <span
+                              class=" pt-label md-font-size text-weight-bold"
+                              :class="getDarkModeClass(darkMode)">
+                              <!--@click.stop.prevent="viewUserProfile(listing)">-->
+                              {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
+                            </span>
+                            <div
+                              class="col-transaction text-uppercase pt-label lg-font-size"
+                              :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
+                            >
+                            <!-- :style="amountColor(listing.trade_type)" -->
+                              {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
+                            </div>
+                            <div class="sm-font-size">
+                              {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
+                            <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
+                          </div>
+                          <div class="text-right">
+                            <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                              <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
+                            </span> -->
+                            <div
+                              v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
+                              class="text-weight-bold subtext sm-font-size text-blue">
+                              Appealable
+                            </div>
+                            <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
+                              <q-rating
+                                readonly
+                                :model-value = "listing?.feedback?.rating || 0"
+                                size="1em"
+                                color="yellow-9"
+                                icon="star"
+                              />
+                            </div>
+                            <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
+                              {{ listing.status?.label }}
+                            </div>
+                            <div class="text-weight-bold subtext sm-font-size" v-else>
+                              {{ listing.status?.label }}
                             </div>
                           </div>
                         </div>
-                      </q-item-section>
-                    </q-item>
-                  </div>
-                </q-infinite-scroll>
-              </q-pull-to-refresh>
-            </q-list>
-          </div>
-        <!-- </q-pull-to-refresh> -->
-      </div>
+                      </div>
+                    </q-item-section>
+                  </q-item>
+                </div>
+              </q-infinite-scroll>
+            </q-pull-to-refresh>
+          </q-list>
+        </div>
+      <!-- </q-pull-to-refresh> -->
     </div>
     <q-inner-loading :showing="loading">
       <ProgressLoader/>
