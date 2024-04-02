@@ -70,5 +70,5 @@ export function getAllAssets (state) {
 }
 
 export function getRemovedAssetIds (state) {
-  return state.removedAssetIds
+  return state.vault
 }
