@@ -32,6 +32,7 @@ export async function updatePubkey (pubkey) {
 }
 
 export async function getKeypair () {
+  console.log('Getting chat keypair at:', AES_STORAGE_KEY)
   const storageData = await SecureStoragePlugin.get({ key: AES_STORAGE_KEY })
   const parsedData = JSON.parse(storageData?.value)
 

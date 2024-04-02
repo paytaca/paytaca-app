@@ -189,6 +189,7 @@ export default {
         // Build payload and create chat identity
         vm.hintMessage = 'Creating chat identity'
         const payload = await vm.buildChatIdentityPayload(data).catch(error => { return vm.handleError(error, 'Failed to build chat identity') })
+        console.log('payload:', payload)
         chatIdentity = await chatUtils.createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
       }
 
@@ -333,7 +334,7 @@ export default {
     },
     handleError (error, message) {
       const vm = this
-      console.error(error)
+      console.error(`${message}: ${error}`)
       if (error.isAxiosError && !error.response) {
         // This is a network error (server down, no response)
         console.error('Network error:', error.message)
