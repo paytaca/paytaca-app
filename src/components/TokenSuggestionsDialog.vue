@@ -259,15 +259,23 @@ export default {
       if (!tokenInfo) return
 
       const storeLoc = tokenInfo.isSep20 ? 'sep20' : 'assets'
+      const walletIndex = this.$store.getters['global/getWalletIndex']
       this.$store.commit(`${storeLoc}/addNewAsset`, tokenInfo)
-      this.$store.commit(`${storeLoc}/removeRemovedAssetIds`, tokenInfo.id)
+      this.$store.commit(`${storeLoc}/removeRemovedAssetIds`, {
+        vaultIndex: walletIndex,
+        id: tokenInfo.id
+      })
     },
     removeToken (tokenInfo) {
       if (!tokenInfo?.id) return
 
       const storeLoc = tokenInfo.isSep20 ? 'sep20' : 'assets'
+      const walletIndex = this.$store.getters['global/getWalletIndex']
       this.$store.commit(`${storeLoc}/removeAsset`, tokenInfo.id)
-      this.$store.commit(`${storeLoc}/addRemovedAssetIds`, tokenInfo.id)
+      this.$store.commit(`${storeLoc}/addRemovedAssetIds`, {
+        vaultIndex: walletIndex,
+        id: tokenInfo.id
+      })
     },
     addTokenToIgnoredList (tokenInfo) {
       if (!tokenInfo) return
