@@ -201,61 +201,86 @@
               <ThemeSelectorPreview
                 :choosePreferedSecurity="choosePreferedSecurity"
               />
-                <!-- <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/> -->
             </div>
 
             <div v-else>
               <template v-if="steps === totalSteps">
-                <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
-                <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription1') }}
-                </p>
-                <p v-else class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription2') }}
-                </p>
+                <template v-if="authenticationPhase === 'options'">
+                  <p>Before proceeding keme keme</p>
+                  <p>Opt shard keme</p>
+                  <p>Or if too much, backup phrase</p>
+                  <q-btn
+                    rounded
+                    label="Proceed with Using Shards"
+                    class="full-width button"
+                    @click="changeAuthenticationPhase(true)"
+                  />
+                  <q-btn
+                    rounded
+                    label="Proceed with Using Backup Phrase"
+                    class="full-width button"
+                    @click="changeAuthenticationPhase(false)"
+                  />
+                </template>
+
+                <template v-else-if="authenticationPhase === 'shards'">
+                  <ShardsProcess :mnemonic="mnemonic" />
+                </template>
+
+                <template v-else-if="authenticationPhase === 'backup-phrase'">
+                  <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
+                  <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+                    {{ $t('MnemonicBackupPhraseDescription1') }}
+                  </p>
+                  <p v-else class="dim-text" style="margin-top: 10px;">
+                    {{ $t('MnemonicBackupPhraseDescription2') }}
+                  </p>
+                </template>
               </template>
 
-              <div class="row" id="mnemonic">
-                <template v-if="steps === totalSteps">
-                  <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                    <SeedPhraseContainer :mnemonic="mnemonic" />
-                  </div>
-                  <div v-else>
-                    <div>
-                      <q-btn
-                        flat
-                        no-caps
-                        padding="xs sm"
-                        icon="arrow_back"
-                        color="black"
-                        class="button button-text-primary"
-                        :class="getDarkModeClass(darkMode)"
-                        :label="$t('MnemonicBackupPhrase')"
-                        @click="showMnemonicTest = false"
+              <template v-if="authenticationPhase === 'backup-phrase'">
+                <div class="row" id="mnemonic">
+                  <template v-if="steps === totalSteps">
+                    <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+                      <SeedPhraseContainer :mnemonic="mnemonic" />
+                    </div>
+                    <div v-else>
+                      <div>
+                        <q-btn
+                          flat
+                          no-caps
+                          padding="xs sm"
+                          icon="arrow_back"
+                          color="black"
+                          class="button button-text-primary"
+                          :class="getDarkModeClass(darkMode)"
+                          :label="$t('MnemonicBackupPhrase')"
+                          @click="showMnemonicTest = false"
+                        />
+                      </div>
+                      <MnemonicTest
+                        :mnemonic="mnemonic"
+                        @matched="mnemonicVerified = true"
+                        class="q-mb-md"
                       />
                     </div>
-                    <MnemonicTest
-                      :mnemonic="mnemonic"
-                      @matched="mnemonicVerified = true"
-                      class="q-mb-md"
-                    />
-                  </div>
-                </template>
-              </div>
-              <div class="row q=mt-md" v-if="steps === totalSteps">
-                <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
-                <template v-else>
-                  <template v-if="$q.platform.is.mobile">
-                    <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
-                      {{ $t('SkipVerification') }}
-                    </q-btn>
-                    <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
                   </template>
+                </div>
+                <div class="row q=mt-md" v-if="steps === totalSteps">
+                  <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
                   <template v-else>
-                    <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                    <template v-if="$q.platform.is.mobile">
+                      <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
+                        {{ $t('SkipVerification') }}
+                      </q-btn>
+                      <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                    </template>
+                    <template v-else>
+                      <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                    </template>
                   </template>
-                </template>
-              </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -293,6 +318,7 @@ import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+import ShardsProcess from 'src/components/registration/ShardsProcess.vue'
 
 function countWords(str) {
   if (str) {
@@ -319,7 +345,8 @@ export default {
     CountrySelector,
     CurrencySelector,
     ThemeSelectorPreview,
-    SeedPhraseContainer
+    SeedPhraseContainer,
+    ShardsProcess
   },
   data () {
     return {
@@ -338,7 +365,9 @@ export default {
       walletIndex: 0,
       currencySelectorRerender: false,
       openThemeSelector: false,
-      useTextArea: false
+      useTextArea: false,
+      authenticationPhase: 'options',
+      skipToBackupPhrase: false
     }
   },
   watch: {
@@ -617,6 +646,9 @@ export default {
           message: 'Enable push notifications to receive updates from the app',
         }).catch(console.log)
       }
+    },
+    changeAuthenticationPhase (isShard) {
+      this.authenticationPhase = isShard ? 'shards' : 'backup-phrase'
     }
   },
   async mounted () {
