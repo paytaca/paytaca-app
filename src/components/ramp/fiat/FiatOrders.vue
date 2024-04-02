@@ -315,6 +315,7 @@ export default {
     bus.on('view-ad', this.onViewAd)
   },
   async mounted () {
+    this.updateFilters()
     this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
   },
