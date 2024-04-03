@@ -5,7 +5,7 @@
         <q-card-section class="q-mx-sm">
           <div class="text-weight-bold text-center lg-font-size">Select Payment Methods</div>
           <div v-if="hasAlienPaymentsSelected" style="color:red" class="text-center q-mx-md sm-font-size">Please unselect unsupported payment methods</div>
-          <div v-else-if="paymentMethodOpts.length === 0" class="q-mt-md text-center q-mx-md sm-font-size">This currency does not support any payment methods yet.</div>
+          <div v-else-if="paymentTypeOpts.length === 0" class="q-mt-md text-center q-mx-md sm-font-size">This currency does not support any payment methods yet.</div>
           <div v-else class="subtext text-center" style="font-size: 13px;">Select only up to 5 methods</div>
         </q-card-section>
         <q-card-section v-if="paymentMethodOpts.length > 0" class="text-left q-pt-sm q-mx-xs">
@@ -39,19 +39,19 @@
           </q-list>
         </q-card-section>
         <q-card-section v-if="!loading" class="row q-gutter-sm justify-center">
-          <q-btn v-if="paymentMethodOpts.length === 0" outline rounded label='Ok' class="button button-icon q-mt-none" :class="getDarkModeClass(darkMode)" @click="$emit('back')"/>
-          <div v-else>
-            <q-btn v-if="paymentTypeOpts.length !== 0" outline rounded label='Add new' class="button button-icon q-mr-sm" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
-            <q-btn rounded class="button q-ml-sm" @click="submitUpdatedPaymentMethods()" :disable="hasAlienPaymentsSelected" v-close-popup>
-              <template v-slot:default>
-                  Select {{ selectedPaymentMethods.length }}
-              </template>
-            </q-btn>
-          </div>
+          <!-- <q-btn v-if="paymentMethodOpts.length === 0" outline rounded label='Ok' class="button button-icon q-mt-none" :class="getDarkModeClass(darkMode)" @click="$emit('back')"/> -->
+          <!-- <div v-else> -->
+          <q-btn v-if="paymentTypeOpts.length > 0" outline rounded label='Add new' class="button button-icon q-mr-sm" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
+          <q-btn rounded class="button q-ml-sm" @click="submitUpdatedPaymentMethods()" :disable="hasAlienPaymentsSelected" v-close-popup>
+            <template v-slot:default>
+                Select {{ selectedPaymentMethods.length }}
+            </template>
+          </q-btn>
+          <!-- </div> -->
         </q-card-section>
         </q-card>
     </q-dialog>
-    <PaymentMethodForm v-if="showPaymentMethodForm" action="createPaymentMethod" @back="showPaymentMethodForm=false" @success="fetchPaymentMethods"/>
+    <PaymentMethodForm v-if="showPaymentMethodForm" action="createPaymentMethod" :currency="currency" @back="showPaymentMethodForm=false" @success="fetchPaymentMethods"/>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -92,7 +92,9 @@ export default {
     this.selectedPaymentMethods = this.selectedMethods
     await this.fetchPaymentTypes()
     await this.fetchPaymentMethods()
-    this.filterPaymentTypes()
+    if (this.paymentMethodOpts.length > 0) {
+      this.filterPaymentTypes()
+    }
   },
   methods: {
     getDarkModeClass,

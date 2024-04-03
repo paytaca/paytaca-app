@@ -36,7 +36,6 @@ chatBackend.interceptors.request.use(async (config) => {
 const SIGNER_STORAGE_KEY = 'ramp-api-customer-signer-data'
 
 export async function signRequestData (data) {
-  console.log('Signing request data:', data)
   const response = { walletHash: '', signature: '' }
   const { value } = await getSignerData()
   if (!value) {
