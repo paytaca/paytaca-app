@@ -29,7 +29,7 @@
       </div>
     </div>
     <div v-else class="q-px-lg q-mx-xs">
-      <q-input ref="inputRef" v-model="query_name" label="Search" dense @blur="searchState('blur')">
+      <q-input ref="inputRef" v-model="query_name" placeholder="Search User..." dense @blur="searchState('blur')">
         <template v-slot:append>
           <q-icon name="close"
             @click="() => {
@@ -70,7 +70,7 @@
           <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
         </div>
         <div v-else class="q-mb-none">
-          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 75}px`" style="overflow:auto;">
+          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
             <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
               <q-infinite-scroll
                 ref="infiniteScroll"

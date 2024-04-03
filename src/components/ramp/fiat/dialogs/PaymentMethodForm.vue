@@ -48,7 +48,7 @@
             dense
             borderless
             filled
-            :disable="actionType === 'editPaymentMethod'"
+            :disable="action !== 'createPaymentMethod'"
             v-model="paymentMethod.payment_type"
             label="Payment Type"
             option-label="name"
@@ -277,7 +277,7 @@ export default {
       await backend.get('/ramp-p2p/payment-method/', { params: { currency: this.currency }, authorize: true })
         .then(response => {
           vm.currentPaymentMethods = response.data
-          console.log('currentPaymentMethods:', vm.currentPaymentMethods)
+          // console.log('currentPaymentMethods:', vm.currentPaymentMethods)
         })
         .catch(error => {
           console.error(error)

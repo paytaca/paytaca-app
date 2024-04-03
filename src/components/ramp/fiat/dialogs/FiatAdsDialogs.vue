@@ -8,7 +8,7 @@
       </q-card-section>
       <q-card-actions class="text-center" align="center">
         <q-btn flat label="Cancel" color="red-6" @click="$emit('back')"  v-close-popup />
-        <q-btn flat label="Confirm" class="button" @click="selected('confirm')" v-close-popup />
+        <q-btn flat label="Confirm" class="button button-text-primary" @click="selected('confirm')" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -52,7 +52,7 @@ export default {
           vm.deleteAd = true
           break
         case 'notifyDeleteAd':
-          console.log('notifyDeleteAd')
+          // console.log('notifyDeleteAd')
           vm.notifyDeleteAd = true
           break
       }
