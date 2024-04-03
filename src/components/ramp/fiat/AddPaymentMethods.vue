@@ -1,25 +1,24 @@
 <template>
   <div
     class="q-mx-md q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+    :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
       <div class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size">
         {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
       </div>
       <q-separator :dark="darkMode" class="q-mx-md q-mt-sm"/>
-      <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm"><i>{{ instructionMessage }}</i></div>
-      <q-card-section :style="`max-height: ${minHeight - 190}px`" style="overflow-y:auto;">
+      <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm">{{ instructionMessage }}</div>
+      <q-card-section class="q-mt-sm" :style="`height: ${minHeight}px;`" style="overflow-y:auto;">
         <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
           <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
           <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
         </div>
-        <q-item v-for="(method, index) in paymentMethods" :key="index">
+        <q-item class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
           <q-item-section>
             <div class="row no-wrap">
               <div class="col-grow">
                 <div class="md-font-size">
-                  {{ method.payment_type.name }}
+                  {{ method.payment_type?.name }}
                 </div>
                 <div class="subtext">
                   {{ method.account_name }}
@@ -27,6 +26,7 @@
                 <div class="subtext">
                   {{ method.account_identifier }}
                 </div>
+                <div v-if="method.alien" class="xs-font-size" style="color: red">{{ currency }} does not support this payment type</div>
               </div>
               <div class="text-right" v-if="type === 'Profile'">
                 <q-btn
@@ -89,7 +89,9 @@
             </q-item-section>
           </q-item>
         </div>
-        <div class="row q-pt-lg q-mx-md" v-if="type === 'Ads'">
+      </q-card-section>
+      <div class="q-mt-md">
+        <div class="row q-mx-md" v-if="type === 'Ads'">
           <q-btn
             outline
             rounded
@@ -113,7 +115,7 @@
         </div>
         <div class="row q-mx-md q-py-md" v-if="type === 'Profile'">
           <q-btn
-            v-if="paymentMethods.length - paymentTypes.length !== 0"
+            v-if="paymentMethods.length - paymentTypeOpts.length !== 0"
             outline
             rounded
             no-caps
@@ -123,7 +125,7 @@
             @click="createMethod"
           />
         </div>
-      </q-card-section>
+      </div>
     </div>
   </div>
   <MiscDialogs
@@ -137,13 +139,18 @@
     v-on:back="onPaymentMethodBack"
     v-on:submit="receiveDialogInfo"
   />
-  <SelectPaymentMethods v-if="showSelectPaymentMethods" :selected-methods="selectedMethods" @back="onPaymentMethodBack"/>
+  <SelectPaymentMethods
+    v-if="showSelectPaymentMethods"
+    :selected-methods="paymentMethods"
+    :currency="currency"
+    @back="onPaymentMethodBack"/>
   <PaymentMethodForm
     v-if="showPaymentMethodForm"
     :action="dialogType"
     :payment-method-id="selectedMethodIndex"
     :payment-type="info"
-    @success="fetchPaymentMethod"
+    :currency="currency"
+    @success="fetchPaymentMethods"
     @back="onPaymentMethodBack"/>
   <div v-if="!isloaded">
     <div class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -177,17 +184,18 @@ export default {
       type: Array,
       default: null
     },
-    adPaymentMethod: {
+    adPaymentMethods: {
       type: Array,
       default: null
-    }
+    },
+    currency: String
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110,
       paymentMethods: [],
-      paymentTypes: [],
+      paymentTypeOpts: [],
+      paymentMethodOpts: [],
       selectedMethods: [],
       emptyPaymentMethods: [],
 
@@ -211,30 +219,56 @@ export default {
   emits: ['submit', 'back'],
   async mounted () {
     const vm = this
+    await vm.fetchPaymentTypes()
+    await vm.fetchPaymentMethods()
     switch (vm.type) {
       case 'General':
-        await vm.fetchPaymentMethod()
-        await vm.fetchPaymentTypes()
+        vm.validatePaymentMethods()
         break
       case 'Ads':
-        vm.paymentMethods = this.currentPaymentMethods
-        vm.selectedMethods = this.currentPaymentMethods
+        vm.paymentMethods = vm.currentPaymentMethods
+        vm.selectedMethods = vm.currentPaymentMethods
+        vm.validatePaymentMethods()
         break
       case 'Profile':
-        await vm.fetchPaymentMethod()
-        await this.fetchPaymentTypes()
         bus.emit('hide-menu')
         break
     }
     this.isloaded = true
   },
   computed: {
+    minHeight () {
+      let height = this.$q.platform.is.ios ? this.$q.screen.height - 135 : this.$q.screen.height - 110
+      if (this.type === 'Profile') {
+        if (!(this.paymentMethods.length - this.paymentTypeOpts.length !== 0)) {
+          height = height - 120
+        } else {
+          height = height - 130
+        }
+      }
+      if (this.type === 'Ads') {
+        height = height - 190
+      }
+      if (this.type === 'General') {
+        height = height - 170
+      }
+      return height
+    },
+    hasAlienPaymentsSelected () {
+      const alienPaymentMethods = this.paymentMethods.filter(element => {
+        return element.alien && element.selected
+      })
+      return alienPaymentMethods.length > 0
+    },
     disableSubmit () {
       let isDisabled = false
       if (this.paymentMethods.length === 0) {
         isDisabled = true
       }
       if (this.selectedMethods.length === 0 && this.type === 'General') {
+        isDisabled = true
+      }
+      if (this.hasAlienPaymentsSelected) {
         isDisabled = true
       }
       return isDisabled
@@ -305,13 +339,13 @@ export default {
       this.openDialog = true
     },
     addMethodFromAd (data) {
-      const selectedType = this.paymentTypes.filter(p => p.name === data)[0]
+      const selectedType = this.paymentTypeOpts.filter(p => p?.name === data)[0]
       this.info = selectedType
       this.showPaymentMethodForm = true
       this.dialogType = 'addMethodFromAd'
     },
     async addMethod () {
-      await this.fetchPaymentMethod()
+      await this.fetchPaymentMethods()
       this.showSelectPaymentMethods = true
       this.dialogType = 'addPaymentMethod'
       this.openDialog = true
@@ -337,19 +371,19 @@ export default {
       this.openDialog = true
     },
     selectMethod (data, index) {
-      const temp = this.selectedMethods.map(p => p.payment_type.name)
-      if (temp.includes(data.payment_type.name)) {
-        this.selectedMethods = this.selectedMethods.filter(p => p.payment_type.name !== data.payment_type.name)
+      const temp = this.selectedMethods.map(p => p.payment_type?.name)
+      if (temp.includes(data.payment_type?.name)) {
+        this.selectedMethods = this.selectedMethods.filter(p => p.payment_type?.name !== data.payment_type?.name)
       } else {
         this.selectedMethods.push(data)
       }
     },
     isPaymentSelected (payment) {
-      const temp = this.selectedMethods.map(p => p.payment_type.name)
+      const temp = this.selectedMethods.map(p => p.payment_type?.name)
       return (temp.includes(payment?.payment_type?.name))
     },
     selectButtonColor (type) {
-      const temp = this.selectedMethods.map(p => p.payment_type.name)
+      const temp = this.selectedMethods.map(p => p.payment_type?.name)
       return temp.includes(type) ? 'blue-6' : 'grey-6'
     },
     removePaymentMethod (method) {
@@ -358,29 +392,23 @@ export default {
       this.openDialog = false
     },
     filterPaymentMethod () {
-      const adMethod = this.adPaymentMethod
-      let adPaymentTypes = []
-
-      try {
-        adPaymentTypes = adMethod.map(p => p.payment_type)
-      } catch {
-        console.log('empty')
-      }
-
+      // filter ad payment methods to currency supported only
+      const paymentTypeOptNames = this.paymentTypeOpts.map(element => element.name)
+      let adCurrencyPaymentTypes = this.adPaymentMethods.filter(element => { return paymentTypeOptNames.includes(element.payment_type) })
+      adCurrencyPaymentTypes = adCurrencyPaymentTypes.map(p => p.payment_type)
+      // find matching and creatable ad payment methods
       const match = this.paymentMethods.filter(function (method) {
-        return adPaymentTypes.includes(method.payment_type.name)
+        return adCurrencyPaymentTypes.includes(method.payment_type.name)
       })
-
-      const temp = match.map(p => p.payment_type.name)
-      this.emptyPaymentMethods = adPaymentTypes.filter(method => !temp.includes(method))
-
+      const temp = match.map(p => p.payment_type?.name)
+      this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method))
       return match
     },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type', { authorize: true })
+      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency }, authorize: true })
         .then(response => {
-          vm.paymentTypes = response.data
+          vm.paymentTypeOpts = response.data
         })
         .catch(error => {
           console.error(error)
@@ -391,15 +419,16 @@ export default {
         })
     },
     // processes
-    async fetchPaymentMethod () {
+    async fetchPaymentMethods () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-method', { authorize: true })
+      await backend.get('/ramp-p2p/payment-method', { params: { currency: this.currency }, authorize: true })
         .then(response => {
           if (this.type === 'Ads') {
             this.info = response.data
+            this.paymentMethodOpts = response.data
           } else {
             this.paymentMethods = response.data
-            if (vm.adPaymentMethod) {
+            if (vm.adPaymentMethods) {
               this.paymentMethods = vm.filterPaymentMethod()
             }
           }
@@ -410,6 +439,21 @@ export default {
             bus.emit('session-expired')
           }
         })
+    },
+    validatePaymentMethods () {
+      const vm = this
+      vm.paymentMethods = vm.paymentMethods.map((element) => {
+        element.selected = true
+        element.alien = false
+        return element
+      })
+      const paymentTypeOptIds = vm.paymentTypeOpts.map((element) => { return element.id })
+      vm.paymentMethods = vm.paymentMethods.map(element => {
+        if (!paymentTypeOptIds.includes(element.payment_type.id)) {
+          element.alien = true
+        }
+        return element
+      })
     },
     async deletePaymentMethod (index) {
       const vm = this
@@ -422,7 +466,7 @@ export default {
             bus.emit('session-expired')
           }
         })
-      await vm.fetchPaymentMethod()
+      await vm.fetchPaymentMethods()
       this.openDialog = false
       vm.isloaded = true
     },
@@ -481,10 +525,10 @@ export default {
         }
       }
 
-      this.fetchPaymentMethod()
+      this.fetchPaymentMethods()
 
       // if (this.dialogType === 'addMethodFromAd') {
-      //   this.fetchPaymentMethod()
+      //   this.fetchPaymentMethods()
       // }
     },
     submitPaymentMethod () {

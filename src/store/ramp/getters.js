@@ -1,19 +1,27 @@
 import { getCookie } from 'src/wallet/ramp'
 
 export function ongoingOrderFilters (state) {
-  return state.ongoingOrderFilters
+  return function (currency) {
+    return state.ongoingOrderFilters[currency]
+  }
 }
 
 export function completedOrderFilters (state) {
-  return state.completedOrderFilters
+  return function (currency) {
+    return state.completedOrderFilters[currency]
+  }
 }
 
 export function storeBuyFilters (state) {
-  return state.storeBuyFilters
+  return function (currency) {
+    return state.storeBuyFilters[currency]
+  }
 }
 
 export function storeSellFilters (state) {
-  return state.storeSellFilters
+  return function (currency) {
+    return state.storeSellFilters[currency]
+  }
 }
 
 export function getArbiter (state) {
@@ -230,7 +238,9 @@ export function authHeaders (state) {
 }
 
 export function paymentTypes (state) {
-  return state.paymentTypes
+  return function (currency) {
+    return state.paymentTypes[currency] || []
+  }
 }
 
 export function chatIdentity (state) {

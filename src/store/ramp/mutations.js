@@ -1,33 +1,39 @@
-export function updateStoreBuyFilters (state, filters) {
-  state.storeBuyFilters = filters
+export function updateStoreBuyFilters (state, { filters = {}, currency = null }) {
+  if (!currency) return (() => { state.storeBuyFilters = {} })()
+  state.storeBuyFilters[currency] = filters
 }
 
-export function updateStoreSellFilters (state, filters) {
-  state.storeSellFilters = filters
+export function updateStoreSellFilters (state, { filters = {}, currency = null }) {
+  if (!currency) return (() => { state.storeSellFilters = {} })()
+  state.storeSellFilters[currency] = filters
 }
 
-export function updateOngoingOrderFilters (state, filters) {
-  state.ongoingOrderFilters = filters
+export function updateOngoingOrderFilters (state, { filters = {}, currency = null }) {
+  if (!currency) return (() => { state.ongoingOrderFilters = {} })()
+  state.ongoingOrderFilters[currency] = filters
 }
 
-export function updateCompletedOrderFilters (state, filters) {
-  state.completedOrderFilters = filters
+export function updateCompletedOrderFilters (state, { filters = {}, currency = null }) {
+  if (!currency) return (() => { state.completedOrderFilters = {} })()
+  state.completedOrderFilters[currency] = filters
 }
 
-export function resetOrderFilters (state) {
-  resetOngoingOrderFilters(state)
-  resetCompletedOrderFilters(state)
+export function resetOrderFilters (state, currency) {
+  resetOngoingOrderFilters(state, currency)
+  resetCompletedOrderFilters(state, currency)
 }
 
-export function resetOngoingOrderFilters (state) {
-  state.ongoingOrderFilters = {
+export function resetOngoingOrderFilters (state, currency) {
+  if (!currency) return (() => { state.ongoingOrderFilters = {} })()
+  const paymentTypes = state.paymentTypes[currency] || []
+  state.ongoingOrderFilters[currency] = {
     sort_type: 'ascending',
     sort_by: 'created_at',
     status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
     appealable: true,
     not_appealable: true,
-    payment_types: state.paymentTypes.map(p => p.id),
-    time_limits: [5, 15, 30, 60, 300, 720, 1440],
+    payment_types: paymentTypes.map(p => p.id),
+    time_limits: [15, 30, 45, 60],
     ownership: {
       owned: true,
       notOwned: true
@@ -39,13 +45,15 @@ export function resetOngoingOrderFilters (state) {
   }
 }
 
-export function resetCompletedOrderFilters (state) {
-  state.completedOrderFilters = {
+export function resetCompletedOrderFilters (state, currency) {
+  if (!currency) return (() => { state.completedOrderFilters = {} })()
+  const paymentTypes = state.paymentTypes[currency] || []
+  state.completedOrderFilters[currency] = {
     sort_type: 'descending',
     sort_by: 'last_modified_at',
     status: ['CNCL', 'RLS', 'RFN'],
-    payment_types: state.paymentTypes.map(p => p.id),
-    time_limits: [5, 15, 30, 60, 300, 720, 1440],
+    payment_types: paymentTypes.map(p => p.id),
+    time_limits: [15, 30, 45, 60],
     ownership: {
       owned: true,
       notOwned: true
@@ -57,45 +65,133 @@ export function resetCompletedOrderFilters (state) {
   }
 }
 
-export function updateFilterPaymentTypes (state, paymentTypes) {
-  updateSellFilterPaymentTypes(state, paymentTypes)
-  updateBuyFilterPaymentTypes(state, paymentTypes)
+export function updateStoreFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  if (!currency) currency = 'All'
+  paymentTypes = paymentTypes.map(paymenttype => paymenttype.id)
+  updateStoreSellFilterPaymentTypes(state, { paymentTypes: paymentTypes, currency: currency })
+  updateStoreBuyFilterPaymentTypes(state, { paymentTypes: paymentTypes, currency: currency })
 }
 
-export function updateSellFilterPaymentTypes (state, paymentTypes) {
-  state.storeSellFilters.payment_types = paymentTypes
+export function updateStoreSellFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  if (!currency) currency = 'All'
+  if (!state.storeSellFilters) {
+    state.storeSellFilters = {}
+    state.storeSellFilters[currency] = {
+      sort_type: 'ascending',
+      price_type: {
+        fixed: true,
+        floating: true
+      },
+      payment_types: paymentTypes,
+      time_limits: [15, 30, 45, 60]
+    }
+  } else {
+    if (!state.storeSellFilters[currency]) state.storeSellFilters[currency] = {}
+    state.storeSellFilters[currency].payment_types = paymentTypes
+  }
 }
 
-export function updateBuyFilterPaymentTypes (state, paymentTypes) {
-  state.storeBuyFilters.payment_types = paymentTypes
+export function updateStoreBuyFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  if (!currency) currency = 'All'
+  if (!state.storeBuyFilters) {
+    state.storeBuyFilters = {}
+    state.storeBuyFilters[currency] = {
+      sort_type: 'descending',
+      price_type: {
+        fixed: true,
+        floating: true
+      },
+      payment_types: paymentTypes,
+      time_limits: [15, 30, 45, 60]
+    }
+  } else {
+    if (!state.storeBuyFilters[currency]) state.storeBuyFilters[currency] = {}
+    state.storeBuyFilters[currency].payment_types = paymentTypes
+  }
 }
 
-export function resetStoreFilters (state) {
-  resetStoreBuyFilters(state)
-  resetStoreSellFilters(state)
+export function updateOngoingOrderFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  if (!currency) currency = 'All'
+  if (!state.ongoingOrderFilters) {
+    state.ongoingOrderFilters = {}
+    state.ongoingOrderFilters[currency] = {
+      sort_type: 'ascending',
+      sort_by: 'created_at',
+      status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
+      appealable: true,
+      not_appealable: true,
+      payment_types: paymentTypes.map(p => p.id),
+      time_limits: [15, 30, 45, 60],
+      ownership: {
+        owned: true,
+        notOwned: true
+      },
+      trade_type: {
+        buy: true,
+        sell: true
+      }
+    }
+  } else {
+    if (!state.ongoingOrderFilters[currency]) state.ongoingOrderFilters[currency] = {}
+    state.ongoingOrderFilters[currency].payment_types = paymentTypes
+  }
 }
 
-export function resetStoreBuyFilters (state) {
-  state.storeBuyFilters = {
+export function updateCompletedOrderFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  if (!currency) currency = 'All'
+  if (!state.completedOrderFilters) {
+    state.completedOrderFilters = {}
+    state.completedOrderFilters[currency] = {
+      sort_type: 'descending',
+      sort_by: 'last_modified_at',
+      status: ['CNCL', 'RLS', 'RFN'],
+      payment_types: paymentTypes.map(p => p.id),
+      time_limits: [15, 30, 45, 60],
+      ownership: {
+        owned: true,
+        notOwned: true
+      },
+      trade_type: {
+        buy: true,
+        sell: true
+      }
+    }
+  } else {
+    if (!state.completedOrderFilters[currency]) state.completedOrderFilters[currency] = {}
+    state.completedOrderFilters[currency].payment_types = paymentTypes
+  }
+}
+
+export function resetStoreFilters (state, currency) {
+  resetStoreBuyFilters(state, currency)
+  resetStoreSellFilters(state, currency)
+}
+
+export function resetStoreBuyFilters (state, currency) {
+  if (!currency) return (() => { state.storeBuyFilters = {} })()
+  const paymentTypes = state.paymentTypes[currency] || []
+  state.storeBuyFilters[currency] = {
     sort_type: 'descending',
     price_type: {
       fixed: true,
       floating: true
     },
-    payment_types: state.paymentTypes.map(p => p.id),
-    time_limits: [5, 15, 30, 60, 300, 720, 1440]
+    payment_types: paymentTypes.map(p => p.id),
+    time_limits: [15, 30, 45, 60]
   }
 }
 
-export function resetStoreSellFilters (state) {
-  state.storeSellFilters = {
+export function resetStoreSellFilters (state, currency) {
+  if (!currency) return (() => { state.storeSellFilters = {} })()
+  const paymentTypes = state.paymentTypes[currency] || []
+  state.storeSellFilters[currency] = {
     sort_type: 'ascending',
     price_type: {
       fixed: true,
       floating: true
     },
-    payment_types: state.paymentTypes.map(p => p.id),
-    time_limits: [5, 15, 30, 60, 300, 720, 1440]
+    payment_types: paymentTypes.map(p => p.id),
+    time_limits: [15, 30, 45, 60]
   }
 }
 
@@ -294,12 +390,14 @@ export function updateAuthHeaders (state, headers) {
   state.authHeaders = headers
 }
 
-export function updatePaymentTypes (state, paymentTypes) {
-  state.paymentTypes = paymentTypes
+export function updatePaymentTypes (state, { paymentTypes = [], currency = null }) {
+  if (!currency) currency = 'All'
+  if (!state.paymentTypes) state.paymentTypes = {}
+  state.paymentTypes[currency] = paymentTypes
 }
 
 export function resetPaymentTypes (state) {
-  state.paymentTypes = []
+  state.paymentTypes = {}
 }
 
 export function updateChatIdentity (state, data) {
@@ -309,4 +407,8 @@ export function updateChatIdentity (state, data) {
 
 export function resetChatIdentity (state) {
   state.chatIdentity = {}
+}
+
+export function setStoreOrderFiltersMigrate (state, value) {
+  state.migrateStoreOrderFilters = value
 }
