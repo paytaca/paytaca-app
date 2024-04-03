@@ -246,24 +246,26 @@ async function getKeypairSeed () {
   return privkey
 }
 
-export async function updateOrCreateKeypair () {
-  console.log('Updating chat keypair')
+export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
+  console.log('Updating chat keypair [opts]:', opts)
   const seed = await getKeypairSeed()
-  const keypair = generateKeypair({ seed })
+  const keypair = generateKeypair({ seed: seed })
+
+  if (opts?.updatePubkey) {
+    await updatePubkey(keypair.pubkey)
+      .catch(error => {
+        console.error(error)
+        if (error.response) {
+          console.error(error.response)
+        }
+        return Promise.reject('Failed to save pubkey to server')
+      })
+  }
 
   await savePrivkey(keypair.privkey)
     .catch(error => {
       console.error(error)
       return Promise.reject('Failed to save privkey')
-    })
-
-  await updatePubkey(keypair.pubkey)
-    .catch(error => {
-      console.error(error)
-      if (error.response) {
-        console.error(error.response)
-      }
-      return Promise.reject('Failed to save pubkey to server')
     })
 
   return keypair

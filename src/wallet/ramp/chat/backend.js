@@ -36,7 +36,6 @@ chatBackend.interceptors.request.use(async (config) => {
 const SIGNER_STORAGE_KEY = 'ramp-api-customer-signer-data'
 
 export async function signRequestData (data) {
-  console.log('Signing request data:', data)
   const response = { walletHash: '', signature: '' }
   const { value } = await getSignerData()
   if (!value) {
@@ -52,14 +51,10 @@ export async function signRequestData (data) {
   response.walletHash = walletHash
 
   response.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
-  console.log('Request data signed:', response)
   return response
 }
 
 export async function getSignerData () {
-  const keys = await SecureStoragePlugin.keys()
-  console.log('target key:', SIGNER_STORAGE_KEY)
-  console.log('keys:', keys)
   try {
     const data = await SecureStoragePlugin.get({ key: SIGNER_STORAGE_KEY })
     return { success: true, value: data.value }

@@ -207,20 +207,18 @@ export default {
       const wallet = data.rampWallet
       const hexRef = Buffer.from(String(data.ref)).toString('hex')
       const signatureData = await signRequestData(hexRef)
-      console.log('hexRef:', hexRef)
-      console.log('signatureData:', signatureData)
-      // backup if signRequestData fails to return a signature
-      if (!signatureData.signature) {
-        console.error(`Error: signRequestData failed, returning signature: "${signatureData.signature}". Attempting to sign manually..`)
-        const privkey = await wallet.privkey(null, '0/0')
-        signatureData.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, hexRef)
-        console.log('signatureData:', signatureData)
+      let encPubkey = await getKeypair().then(keypair => { return keypair.pubkey }).catch(error => { console.error(error) })
+      if (!encPubkey) {
+        // Handle null encrypting pubkey
+        console.error(`Error: getKeypair() returned pubkey: "${encPubkey}". Recreating keypair without updating server pubkey..`)
+        this.hintMessage = 'Updating chat keypair'
+        encPubkey = (await chatUtils.updateOrCreateKeypair({ updatePubkey: false }).catch(error => { return this.handleError(error) })).pubkey
       }
       const payload = {
         ref: data.ref,
         name: data.name, // display name for your chat identity
         pubkey: {
-          pubkey: (await getKeypair()).pubkey, // the pubkey used by other users when encrypting messages sent to you
+          pubkey: encPubkey, // the pubkey used by other users when encrypting messages sent to you
           device_id: await getDeviceId().catch(console.error) // device id of your app
         },
         verifying_pubkey: await wallet.pubkey(null, '0/0'), // pubkey used for authentication
