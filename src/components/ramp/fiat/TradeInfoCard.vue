@@ -26,7 +26,7 @@
                 </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
-                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat">
+                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
                   <q-badge v-if="unread" floating color="red" rounded>{{ unread }}</q-badge>
                 </q-btn>
             </div>

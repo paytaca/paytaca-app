@@ -195,7 +195,7 @@
     </q-list>
 
     <!-- Message Input -->
-    <div class="row q-py-sm q-px-sm">
+    <div v-if="!completedOrder" class="row q-py-sm q-px-sm" :class="getDarkModeClass(darkMode)">
       <q-input
         :loading="sendingMessage"
         :disable="!isloaded"
@@ -222,6 +222,7 @@
       </q-input>
       <q-icon :color="darkMode ? 'grey-3' : 'primary'" size="lg" name='sym_o_send' @click="sendMessage(true)"/>&nbsp;
     </div>
+    <div v-else class="row q-pt-lg q-px-sm text-bow justify-center" :class="getDarkModeClass(darkMode)">The chat session has ended</div>
     <q-file
       v-show="false"
       ref="fileAttachmentField"
@@ -452,6 +453,9 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    completedOrder () {
+      return ['CNCL', 'RLS', 'RFN'].includes(this.data?.status?.value)
     }
   },
   methods: {
@@ -572,6 +576,12 @@ export default {
         bus.emit('last-read-update')
         vm.isloaded = true
       })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        })
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
