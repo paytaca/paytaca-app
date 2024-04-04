@@ -27,7 +27,7 @@ export async function createChatIdentity (payload) {
   return new Promise((resolve, reject) => {
     chatBackend.post('chat/identities/', payload)
       .then(response => {
-        console.log('New chat identity:', response.data)
+        // console.log('New chat identity:', response.data)
         resolve(response.data)
       })
       .catch(error => {
@@ -48,7 +48,7 @@ export async function fetchChatIdentity (ref) {
         let identity = null
         if (response.data?.results?.length > 0) {
           identity = response.data?.results[0]
-          console.log('Chat identity:', identity)
+          // console.log('Chat identity:', identity)
         }
         resolve(identity)
       })
@@ -261,19 +261,21 @@ async function getKeypairSeed () {
   return privkey
 }
 
-export async function updateOrCreateKeypair () {
-  console.log('Updating chat keypair')
+export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
+  console.log('Updating chat keypair [opts]:', opts)
   const seed = await getKeypairSeed()
-  const keypair = generateKeypair({ seed })
+  const keypair = generateKeypair({ seed: seed })
 
-  await updatePubkey(keypair.pubkey)
-    .catch(error => {
-      console.error(error)
-      if (error.response) {
-        console.error(error.response)
-      }
-      return Promise.reject('Failed to save pubkey to server')
-    })
+  if (opts?.updatePubkey) {
+    await updatePubkey(keypair.pubkey)
+      .catch(error => {
+        console.error(error)
+        if (error.response) {
+          console.error(error.response)
+        }
+        return Promise.reject('Failed to save pubkey to server')
+      })
+  }
 
   await savePrivkey(keypair.privkey)
     .catch(error => {

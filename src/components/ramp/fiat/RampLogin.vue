@@ -62,6 +62,8 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/au
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
+import BCHJS from '@psf/bch-js'
+const bchjs = new BCHJS()
 
 export default {
   data () {
@@ -205,11 +207,18 @@ export default {
       const wallet = data.rampWallet
       const hexRef = Buffer.from(String(data.ref)).toString('hex')
       const signatureData = await signRequestData(hexRef)
+      let encPubkey = await getKeypair().then(keypair => { return keypair.pubkey }).catch(error => { console.error(error) })
+      if (!encPubkey) {
+        // Handle null encrypting pubkey
+        console.error(`Error: getKeypair() returned pubkey: "${encPubkey}". Recreating keypair without updating server pubkey..`)
+        this.hintMessage = 'Updating chat keypair'
+        encPubkey = (await chatUtils.updateOrCreateKeypair({ updatePubkey: false }).catch(error => { return this.handleError(error) })).pubkey
+      }
       const payload = {
         ref: data.ref,
         name: data.name, // display name for your chat identity
         pubkey: {
-          pubkey: (await getKeypair()).pubkey, // the pubkey used by other users when encrypting messages sent to you
+          pubkey: encPubkey, // the pubkey used by other users when encrypting messages sent to you
           device_id: await getDeviceId().catch(console.error) // device id of your app
         },
         verifying_pubkey: await wallet.pubkey(null, '0/0'), // pubkey used for authentication
@@ -322,7 +331,7 @@ export default {
     },
     handleError (error, message) {
       const vm = this
-      console.error(error)
+      console.error(`${message}: ${error}`)
       if (error.isAxiosError && !error.response) {
         // This is a network error (server down, no response)
         console.error('Network error:', error.message)

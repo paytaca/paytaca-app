@@ -48,7 +48,8 @@ export default {
   methods: {
     async subscribePushNotifications() {
       if (this.subscribedPushNotifications) return
-      const wallet = await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
+      const multiWalletIndex = this.$store.getters['global/getWalletIndex']
+      const wallet = await loadWallet('BCH', multiWalletIndex)
       const walletHashes = [
         getWalletByNetwork(wallet, 'bch').getWalletHash(),
         getWalletByNetwork(wallet, 'slp').getWalletHash(),
@@ -64,7 +65,7 @@ export default {
       }
 
       this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
-      await this.$pushNotifications.subscribe(walletHashes)
+      await this.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
       this.subscribedPushNotifications = true
     },
     async resubscribeBCHAddresses(mnemonic) {

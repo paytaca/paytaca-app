@@ -191,13 +191,15 @@ export function updateAssetMetadata (state, data) {
   })
 }
 
-export function addRemovedAssetIds (state, id) {
-  state.removedAssetIds.push(id)
+export function addRemovedAssetIds (state, data) {
+  const assetArray = state.vault[data.vaultIndex].removedAssetIds ?? []
+  assetArray.push(data.id)
+  state.vault[data.vaultIndex].removedAssetIds = assetArray
 }
 
-export function removeRemovedAssetIds (state, id) {
-  const removedAssetIds = state.removedAssetIds
-  const index = removedAssetIds.indexOf(id)
+export function removeRemovedAssetIds (state, data) {
+  const removedAssetIds = state.vault[data.vaultIndex].removedAssetIds
+  const index = removedAssetIds.indexOf(data.id)
   removedAssetIds.splice(index, 1)
 }
 

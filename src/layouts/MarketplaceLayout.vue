@@ -235,7 +235,7 @@ export default {
         ).catch(console.error)
         window.promptedPushNotificationsSettings = promptResponse.prompted
       }
-      return marketplacePushNotificationsManager.subscribe(id)
+      return marketplacePushNotificationsManager.subscribe(id, $store.getters['global/getWalletIndex'])
     }
 
     async function promptEnablePushNotificationSetting(message='') {

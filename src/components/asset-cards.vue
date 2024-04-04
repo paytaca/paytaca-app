@@ -145,6 +145,7 @@ export default {
     removeAsset (asset) {
       const vm = this
       const assetName = asset.name
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
       vm.$q.dialog({
         component: RemoveAsset,
         assetName
@@ -155,7 +156,10 @@ export default {
           return vm.$store.commit(commitName, asset.id)
         }
         vm.$store.commit('assets/removeAsset', asset.id)
-        vm.$store.commit('assets/addRemovedAssetIds', asset.id)
+        vm.$store.commit('assets/addRemovedAssetIds', {
+          vaultIndex: walletIndex,
+          id: asset.id
+        })
       }).onCancel(() => {
       })
     },

@@ -866,7 +866,8 @@ const additional = [
     ReceiverWarningText2: "backup your seed phrase",
     ReceiverWarningText3: "before proceeding.",
     GoBack: "Go back",
-    Proceed: "Proceed"
+    Proceed: "Proceed",
+    LegacyAddressWarning: 'You pasted a legacy address. Please make sure that it is a <span class="highlighted-word">BCH deposit address</span>, not a BTC deposit address.'
   }
 ]
 
