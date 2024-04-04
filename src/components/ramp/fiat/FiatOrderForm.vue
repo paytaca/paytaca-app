@@ -11,15 +11,15 @@
         <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
         {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
       </div>
-      <div class="q-mx-lg q-px-xs q-mb-sm">
-        <TradeInfoCard
-          :order="order"
-          :ad="ad"
-          type="ad"
-          @view-peer="onViewPeer"
-          @view-reviews="showReviews=true"/>
-      </div>
-      <q-scroll-area :style="`height: ${minHeight - 195}px`" style="overflow-y:auto;">
+      <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
+        <div class="q-mx-lg q-px-xs q-mb-sm">
+          <TradeInfoCard
+            :order="order"
+            :ad="ad"
+            type="ad"
+            @view-peer="onViewPeer"
+            @view-reviews="showReviews=true"/>
+        </div>
         <div class="q-mx-md">
           <!-- Ad Info -->
           <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
@@ -209,6 +209,7 @@ import TradeInfoCard from './TradeInfoCard.vue'
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from './dialogs/UserProfileDialog.vue'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers } from 'src/wallet/ramp/chat'
 import { backend } from 'src/wallet/ramp/backend'
@@ -241,6 +242,21 @@ export default {
         rating: 3,
         comment: '',
         is_posted: false
+      }
+    }
+  },
+  setup () {
+    const scrollTargetRef = ref(null)
+
+    return {
+      scrollTargetRef,
+
+      scrollDown () {
+        const x = setTimeout(() => {
+          const scrollElement = scrollTargetRef.value.$el
+
+          scrollTargetRef.value.setScrollPosition('vertical', scrollElement.scrollHeight)
+        }, 50)
       }
     }
   },
@@ -285,6 +301,14 @@ export default {
   watch: {
     byFiat () {
       this.updateInput()
+    },
+    customKeyboardState (val) {
+      if (val === 'show') {
+        this.minHeight -= 250
+        this.scrollDown()
+      } else {
+        this.minHeight += 250
+      }
     }
   },
   async mounted () {
