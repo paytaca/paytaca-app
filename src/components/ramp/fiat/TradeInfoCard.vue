@@ -27,7 +27,7 @@
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
                 <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat">
-                  <q-badge v-if="unread" floating color="red" rounded/>
+                  <q-badge v-if="unread" floating color="red" rounded>{{ unread }}</q-badge>
                 </q-btn>
             </div>
         </div>
@@ -160,24 +160,34 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/wallet/ramp'
+import { generateChatRef, fetchChatMembers } from 'src/wallet/ramp/chat'
+import { bus } from 'src/wallet/event-bus'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      wsURL: process.env.MARKETPLACE_WS_URL,
+      websocket: null,
       byFiat: false,
-      unread: this.hasUnread
+      chatRef: '',
+      unread: 0
     }
   },
   emits: ['view-ad', 'view-peer', 'view-reviews', 'view-chat'],
   props: {
     order: Object,
     ad: Object,
-    hasUnread: Boolean,
     type: {
       type: String,
       default: 'ad'
     }
+  },
+  created () {
+    bus.on('last-read-update', this.onLastReadUpdate)
+  },
+  async mounted () {
+    await this.loadChatInfo()
   },
   computed: {
     completedOrder () {
@@ -206,6 +216,24 @@ export default {
   methods: {
     formatCurrency,
     getDarkModeClass,
+    onLastReadUpdate () {
+      this.fetchChatUnread(this.chatRef)
+    },
+    async loadChatInfo () {
+      if (this.order) {
+        this.chatRef = generateChatRef(this.order.id, this.order.created_at)
+        await this.fetchChatUnread(this.chatRef)
+      }
+    },
+    async fetchChatUnread (chatRef) {
+      const user = this.$store.getters['ramp/getUser']
+      await fetchChatMembers(chatRef).then(response => {
+        const userMember = response?.filter(member => {
+          return user.chat_identity_id === member.chat_identity.id
+        })[0]
+        this.unread = userMember.unread_count
+      }).catch(console.error)
+    },
     onViewAd () {
       this.$emit('view-ad')
     },
@@ -215,7 +243,7 @@ export default {
     onViewReviews () {
       this.$emit('view-reviews')
     },
-    onViewChat () {
+    async onViewChat () {
       this.$emit('view-chat')
     }
   }

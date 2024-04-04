@@ -126,7 +126,7 @@ export async function fetchChatSession (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
       .then(response => {
-        // console.log('Chat session:', response.data)
+        console.log('Chat session:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -161,7 +161,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
 
 export async function fetchChatMembers (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/members/?chat_ref=${chatRef}`, { forceSign: true })
+    chatBackend.get(`chat/members/full_info/?chat_ref=${chatRef}`, { forceSign: true })
       .then(response => {
         // console.log('Fetched chat members:', response)
         resolve(response.data.results)
@@ -175,6 +175,21 @@ export async function fetchChatMembers (chatRef) {
         reject(error)
       })
   })
+}
+
+export async function updateLastRead (chatRef, messages) {
+  const msgTimestamps = messages
+    .map(message => message.createdAt * 1)
+    .filter(Boolean)
+  const latest = Math.max(...msgTimestamps)
+  const data = {
+    last_read_timestamp: new Date(latest + 1000)
+  }
+  return chatBackend.post(`chat/sessions/${chatRef}/chat_member/`, data, { forceSign: true })
+    .then(response => {
+      console.log('Updated last read timestamp')
+      return response
+    })
 }
 
 export function sendChatMessage (data, signData) {
