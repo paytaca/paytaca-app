@@ -324,31 +324,50 @@ export default {
     isNotDefaultTheme,
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
-
+      let proceed = false
       receiveAmount = this.amount
 
-      receiveAmount = receiveAmount === null ? '' : receiveAmount
-      if (key === '.' && receiveAmount === '') {
-        finalAmount = '0.'
-      } else {
-        finalAmount = receiveAmount.toString()
-        const hasPeriod = finalAmount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(finalAmount) === 0 && Number(key) > 0) {
-            finalAmount = key
-          } else {
-            // Check amount if still zero
-            if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
-              finalAmount = 0
-            } else {
-              finalAmount += key.toString()
-            }
+      // see if # of decimal valid
+      let temp = receiveAmount.toString()
+      temp = temp.split('.')
+      if (temp.length === 2) {
+        if (this.byFiat) {
+          if (temp[1].length < 2) {
+            proceed = true
           }
         } else {
-          finalAmount += key !== '.' ? key.toString() : ''
+          if (temp[1].length < 8) {
+            proceed = true
+          }
         }
+      } else {
+        proceed = true
       }
-      this.amount = finalAmount
+
+      if (proceed) {
+        receiveAmount = receiveAmount === null ? '' : receiveAmount
+        if (key === '.' && receiveAmount === '') {
+          finalAmount = '0.'
+        } else {
+          finalAmount = receiveAmount.toString()
+          const hasPeriod = finalAmount.indexOf('.')
+          if (hasPeriod < 1) {
+            if (Number(finalAmount) === 0 && Number(key) > 0) {
+              finalAmount = key
+            } else {
+              // Check amount if still zero
+              if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
+                finalAmount = 0
+              } else {
+                finalAmount += key.toString()
+              }
+            }
+          } else {
+            finalAmount += key !== '.' ? key.toString() : ''
+          }
+        }
+        this.amount = finalAmount
+      }
     },
     makeKeyAction (action) {
       if (action === 'backspace') {
@@ -525,7 +544,7 @@ export default {
       } else {
         amount = Number(amount * parseFloat(this.ad.price))
       }
-      this.amount = amount
+      this.amount = parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
     },
     getCryptoAmount () {
       if (!this.byFiat) {
