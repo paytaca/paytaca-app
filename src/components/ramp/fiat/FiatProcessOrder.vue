@@ -9,68 +9,70 @@
       </div>
       <div class="text-center subtext sm-font-size q-mb-sm">ORDER ID: {{ order?.id }}</div>
     </div>
-    <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
-      <div class="q-mx-lg q-px-sm q-mb-sm">
-        <TradeInfoCard
-          :order="order"
-          :ad="ad"
-          type="order"
-          @view-ad="showAdSnapshot=true"
-          @view-peer="onViewPeer"
-          @view-reviews="showReviews=true"
-          @view-chat="openChat=true"/>
-      </div>
-      <div :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
-        <!-- Ad Owner Confirm / Decline -->
-        <ReceiveOrder
-          v-if="state === 'order-confirm-decline'"
-          :data="receiveOrderData"
-          @confirm="confirmingOrder"
-          @cancel="cancellingOrder"
-          @back="onBack"
-        />
-        <EscrowTransfer
-          v-if="state === 'escrow-bch'"
-          :key="escrowTransferKey"
-          :data="escrowTransferData"
-          @success="onEscrowSuccess"
-          @back="onBack"
-          @refresh="generateContract"
-        />
-        <VerifyTransaction
-          v-if="state === 'tx-confirmation'"
-          :key="verifyTransactionKey"
-          :data="verifyTransactionData"
-          @success="onVerifyTxSuccess"
-          @back="onBack"
-        />
-        <!-- Waiting Page -->
-        <div v-if="state === 'standby-view'">
-          <StandByDisplay
-            :key="standByDisplayKey"
-            :data="standByDisplayData"
-            @send-feedback="sendFeedback"
-            @submit-appeal="submitAppeal"
+    <!-- <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef"> -->
+      <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
+        <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef">
+          <div class="q-mx-lg q-px-sm q-mb-sm">
+            <TradeInfoCard
+              :order="order"
+              :ad="ad"
+              type="order"
+              @view-ad="showAdSnapshot=true"
+              @view-peer="onViewPeer"
+              @view-reviews="showReviews=true"
+              @view-chat="openChat=true"/>
+          </div>
+          <!-- Ad Owner Confirm / Decline -->
+          <ReceiveOrder
+            v-if="state === 'order-confirm-decline'"
+            :data="receiveOrderData"
+            @confirm="confirmingOrder"
+            @cancel="cancellingOrder"
             @back="onBack"
-            @refresh="refreshContent"
-            @cancel-order="cancellingOrder"
           />
-        </div>
+          <EscrowTransfer
+            v-if="state === 'escrow-bch'"
+            :key="escrowTransferKey"
+            :data="escrowTransferData"
+            @success="onEscrowSuccess"
+            @back="onBack"
+            @refresh="generateContract"
+          />
+          <VerifyTransaction
+            v-if="state === 'tx-confirmation'"
+            :key="verifyTransactionKey"
+            :data="verifyTransactionData"
+            @success="onVerifyTxSuccess"
+            @back="onBack"
+          />
+          <!-- Waiting Page -->
+          <div v-if="state === 'standby-view'">
+            <StandByDisplay
+              :key="standByDisplayKey"
+              :data="standByDisplayData"
+              @send-feedback="sendFeedback"
+              @submit-appeal="submitAppeal"
+              @back="onBack"
+              @refresh="refreshContent"
+              @cancel-order="cancellingOrder"
+            />
+          </div>
 
-        <!-- Payment Confirmation -->
-        <div v-if="state === 'payment-confirmation'">
-          <PaymentConfirmation
-            :key="paymentConfirmationKey"
-            :data="paymentConfirmationData"
-            @verify-release="handleVerifyRelease"
-            @back="onBack"
-          />
-        </div>
-        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
-          <q-spinner-ios size="1.5em"/>
-        </div>
+          <!-- Payment Confirmation -->
+          <div v-if="state === 'payment-confirmation'">
+            <PaymentConfirmation
+              :key="paymentConfirmationKey"
+              :data="paymentConfirmationData"
+              @verify-release="handleVerifyRelease"
+              @back="onBack"
+            />
+          </div>
+          <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
+            <q-spinner-ios size="1.5em"/>
+          </div>
+        </q-pull-to-refresh>
       </div>
-    </q-pull-to-refresh>
+    <!-- </q-pull-to-refresh> -->
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog" >
@@ -89,6 +91,7 @@
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
+import { ref } from 'vue'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession } from 'src/wallet/ramp/chat'
@@ -153,7 +156,8 @@ export default {
       openChat: false,
       peerInfo: {},
       hasUnread: false,
-      chatRef: ''
+      chatRef: '',
+      hideTradeInfo: false
     }
   },
   components: {
@@ -175,13 +179,20 @@ export default {
       default: null
     }
   },
+  setup () {
+    const scrollTargetRef = ref(null)
+
+    return {
+      scrollTargetRef
+    }
+  },
   computed: {
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 380 : this.$q.screen.height - 350
       if (this.state === 'escrow-bch' || this.state === 'payment-confirmation') {
         height = height - 90
       }
-      return height
+      return height + 200
     },
     headerTitle () {
       switch (this.state) {
@@ -463,7 +474,6 @@ export default {
             fetchChatSession(chatRef)
               .then(res => {
                 vm.hasUnread = res.data.unread_count > 0
-                // console.log('unread count: ', vm.hasUnread)
               })
               .catch(error => {
                 console.log(error)
