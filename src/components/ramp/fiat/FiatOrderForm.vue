@@ -73,7 +73,7 @@
                 {{ amountError }}
               </div>
               <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}
+                = {{ formattedCurrency(equivalentAmount, ad?.fiat_currency?.symbol) }} {{ !byFiat ? '' : 'BCH' }}
               </div>
               <div class="justify-end q-gutter-sm q-pr-sm">
                 <q-btn
@@ -292,7 +292,13 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     balanceExceeded () {
-      return this.balance < parseFloat(this.amount)
+      let value = 0
+      if (this.byFiat) {
+        value = this.equivalentAmount
+      } else {
+        value = this.amount
+      }
+      return this.balance < parseFloat(value)
     },
     isOwner () {
       return this.ad.is_owned
@@ -489,29 +495,42 @@ export default {
         .catch(console.error)
     },
     formattedCurrency (value, currency = null) {
-      if (currency) {
+      if (!this.byFiat) {
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)
       }
     },
-    isValidInputAmount (value) {
+    isValidInputAmount (value = this.amount) {
+      let valid = true
+      const decCount = [0, 0]
+      let temp = ''
+
       if (this.byFiat) {
         value = this.equivalentAmount
       }
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
       const tradeCeiling = parseFloat(this.ad.trade_amount)
-      let valid = true
+
+      for (const index in decCount) {
+        if (index < 1) {
+          temp = tradeFloor.toString().split('.')
+        } else {
+          temp = tradeCeiling.toString().split('.')
+        }
+        decCount[index] = temp.length > 1 ? temp[1].length : 0
+      }
       if (value === undefined || isNaN(value)) {
         valid = false
         this.amountError = 'Amount cannot be none or undefined'
       }
-      if (parsedValue < tradeFloor) {
+      if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
         valid = false
         this.amountError = 'Amount must be greater than minimum trade limit'
       }
-      if (parsedValue > tradeCeiling) {
+      if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
+        parsedValue.toFixed(decCount[1])
         valid = false
         this.amountError = 'Amount must be lesser than the maximum trade limit'
       }
@@ -524,6 +543,7 @@ export default {
       if (valid) {
         this.amountError = null
       }
+
       return valid
       // return !(isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling || this.balanceExceeded)
     },
