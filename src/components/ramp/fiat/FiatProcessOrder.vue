@@ -9,69 +9,70 @@
       </div>
       <div class="text-center subtext sm-font-size q-mb-sm">ORDER ID: {{ order?.id }}</div>
     </div>
-    <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
-      <div class="q-mx-lg q-px-sm q-mb-sm">
-        <TradeInfoCard
-          :order="order"
-          :ad="ad"
-          :has-unread="hasUnread"
-          type="order"
-          @view-ad="showAdSnapshot=true"
-          @view-peer="onViewPeer"
-          @view-reviews="showReviews=true"
-          @view-chat="openChat=true"/>
-      </div>
-      <div :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
-        <!-- Ad Owner Confirm / Decline -->
-        <ReceiveOrder
-          v-if="state === 'order-confirm-decline'"
-          :data="receiveOrderData"
-          @confirm="confirmingOrder"
-          @cancel="cancellingOrder"
-          @back="onBack"
-        />
-        <EscrowTransfer
-          v-if="state === 'escrow-bch'"
-          :key="escrowTransferKey"
-          :data="escrowTransferData"
-          @success="onEscrowSuccess"
-          @back="onBack"
-          @refresh="generateContract"
-        />
-        <VerifyTransaction
-          v-if="state === 'tx-confirmation'"
-          :key="verifyTransactionKey"
-          :data="verifyTransactionData"
-          @success="onVerifyTxSuccess"
-          @back="onBack"
-        />
-        <!-- Waiting Page -->
-        <div v-if="state === 'standby-view'">
-          <StandByDisplay
-            :key="standByDisplayKey"
-            :data="standByDisplayData"
-            @send-feedback="sendFeedback"
-            @submit-appeal="submitAppeal"
+    <!-- <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef"> -->
+      <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
+        <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef">
+          <div class="q-mx-lg q-px-sm q-mb-sm">
+            <TradeInfoCard
+              :order="order"
+              :ad="ad"
+              type="order"
+              @view-ad="showAdSnapshot=true"
+              @view-peer="onViewPeer"
+              @view-reviews="showReviews=true"
+              @view-chat="openChat=true"/>
+          </div>
+          <!-- Ad Owner Confirm / Decline -->
+          <ReceiveOrder
+            v-if="state === 'order-confirm-decline'"
+            :data="receiveOrderData"
+            @confirm="confirmingOrder"
+            @cancel="cancellingOrder"
             @back="onBack"
-            @refresh="refreshContent"
-            @cancel-order="cancellingOrder"
           />
-        </div>
+          <EscrowTransfer
+            v-if="state === 'escrow-bch'"
+            :key="escrowTransferKey"
+            :data="escrowTransferData"
+            @success="onEscrowSuccess"
+            @back="onBack"
+            @refresh="generateContract"
+          />
+          <VerifyTransaction
+            v-if="state === 'tx-confirmation'"
+            :key="verifyTransactionKey"
+            :data="verifyTransactionData"
+            @success="onVerifyTxSuccess"
+            @back="onBack"
+          />
+          <!-- Waiting Page -->
+          <div v-if="state === 'standby-view'">
+            <StandByDisplay
+              :key="standByDisplayKey"
+              :data="standByDisplayData"
+              @send-feedback="sendFeedback"
+              @submit-appeal="submitAppeal"
+              @back="onBack"
+              @refresh="refreshContent"
+              @cancel-order="cancellingOrder"
+            />
+          </div>
 
-        <!-- Payment Confirmation -->
-        <div v-if="state === 'payment-confirmation'">
-          <PaymentConfirmation
-            :key="paymentConfirmationKey"
-            :data="paymentConfirmationData"
-            @verify-release="handleVerifyRelease"
-            @back="onBack"
-          />
-        </div>
-        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
-          <q-spinner-ios size="1.5em"/>
-        </div>
+          <!-- Payment Confirmation -->
+          <div v-if="state === 'payment-confirmation'">
+            <PaymentConfirmation
+              :key="paymentConfirmationKey"
+              :data="paymentConfirmationData"
+              @verify-release="handleVerifyRelease"
+              @back="onBack"
+            />
+          </div>
+          <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
+            <q-spinner-ios size="1.5em"/>
+          </div>
+        </q-pull-to-refresh>
       </div>
-    </q-pull-to-refresh>
+    <!-- </q-pull-to-refresh> -->
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog" >
@@ -90,7 +91,9 @@
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
+import { ref } from 'vue'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
@@ -112,7 +115,10 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      websocket: null,
+      websocket: {
+        watchtower: null,
+        chat: null
+      },
       state: '',
       isloaded: false,
       confirmType: '',
@@ -149,7 +155,9 @@ export default {
       showPeerProfile: false,
       openChat: false,
       peerInfo: {},
-      hasUnread: false
+      hasUnread: false,
+      chatRef: '',
+      hideTradeInfo: false
     }
   },
   components: {
@@ -171,13 +179,20 @@ export default {
       default: null
     }
   },
+  setup () {
+    const scrollTargetRef = ref(null)
+
+    return {
+      scrollTargetRef
+    }
+  },
   computed: {
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 380 : this.$q.screen.height - 350
       if (this.state === 'escrow-bch' || this.state === 'payment-confirmation') {
         height = height - 90
       }
-      return height
+      return height + 200
     },
     headerTitle () {
       switch (this.state) {
@@ -455,10 +470,10 @@ export default {
             vm.updateStatus(vm.order.status)
 
             const chatRef = generateChatRef(vm.order.id, vm.order.created_at)
+            vm.chatRef = chatRef
             fetchChatSession(chatRef)
               .then(res => {
                 vm.hasUnread = res.data.unread_count > 0
-                // console.log('unread count: ', vm.hasUnread)
               })
               .catch(error => {
                 console.log(error)
@@ -794,12 +809,21 @@ export default {
     },
 
     setupWebsocket (retries, delayDuration) {
-      const wsUrl = `${getBackendWsUrl()}order/${this.order.id}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
+      const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.order.id}/`
+      const wsChatUrl = `${getChatBackendWsUrl()}${this.chatRef}/`
+      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
+      this.websocket.chat = new WebSocket(wsChatUrl)
+
+      // on open
+      this.websocket.watchtower.onopen = () => {
+        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
       }
-      this.websocket.onmessage = (event) => {
+      this.websocket.chat.onopen = () => {
+        console.log('Chat WebSocket connection established to ' + wsChatUrl)
+      }
+
+      // on message
+      this.websocket.watchtower.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         this.fetchOrder()
@@ -807,7 +831,21 @@ export default {
           this.fetchOrder().then(this.fetchContract().then(() => { this.escrowTransferKey++ }))
         }
       }
-      this.websocket.onclose = () => {
+      this.websocket.chat.onmessage = (event) => {
+        const parsedData = JSON.parse(event.data)
+        console.log('Chat WebSocket data:', parsedData)
+
+        if (parsedData?.type === 'new_message') {
+          const messageData = parsedData.data
+          // RECEIVE MESSAGE
+          console.log('Received a new message:', messageData)
+          bus.emit('last-read-update')
+          if (this.openChat) bus.emit('new-message', messageData)
+        }
+      }
+
+      // on close
+      this.websocket.watchtower.onclose = () => {
         console.log('WebSocket connection closed.')
         if (this.autoReconWebSocket && retries > 0) {
           this.reconnectingWebSocket = true
@@ -816,11 +854,13 @@ export default {
             .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
         }
       }
+      this.websocket.chat.onclose = () => {
+        console.log('Chat WebSocket connection closed.')
+      }
     },
     closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
+      if (this.websocket.watchtower) this.websocket.watchtower.close()
+      if (this.websocket.chat) this.websocket.chat.close()
     },
     delay (duration) {
       return new Promise(resolve => setTimeout(resolve, duration))

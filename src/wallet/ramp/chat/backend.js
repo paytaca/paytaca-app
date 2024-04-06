@@ -153,3 +153,7 @@ async function updateVerifyingPubkey (wallet, keypair, verifyingPubkey, index) {
       console.error(error.response)
     })
 }
+
+export function getChatBackendWsUrl () {
+  return process.env.MARKETPLACE_WS_URL || ''
+}

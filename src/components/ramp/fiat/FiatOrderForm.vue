@@ -11,15 +11,15 @@
         <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
         {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
       </div>
-      <div class="q-mx-lg q-px-xs q-mb-sm">
-        <TradeInfoCard
-          :order="order"
-          :ad="ad"
-          type="ad"
-          @view-peer="onViewPeer"
-          @view-reviews="showReviews=true"/>
-      </div>
-      <q-scroll-area :style="`height: ${minHeight - 195}px`" style="overflow-y:auto;">
+      <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
+        <div class="q-mx-lg q-px-xs q-mb-sm">
+          <TradeInfoCard
+            :order="order"
+            :ad="ad"
+            type="ad"
+            @view-peer="onViewPeer"
+            @view-reviews="showReviews=true"/>
+        </div>
         <div class="q-mx-md">
           <!-- Ad Info -->
           <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
@@ -73,7 +73,7 @@
                 {{ amountError }}
               </div>
               <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                = {{ formattedCurrency(equivalentAmount) }} {{ !byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}
+                = {{ formattedCurrency(equivalentAmount, ad?.fiat_currency?.symbol) }} {{ !byFiat ? '' : 'BCH' }}
               </div>
               <div class="justify-end q-gutter-sm q-pr-sm">
                 <q-btn
@@ -209,6 +209,7 @@ import TradeInfoCard from './TradeInfoCard.vue'
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from './dialogs/UserProfileDialog.vue'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers } from 'src/wallet/ramp/chat'
 import { backend } from 'src/wallet/ramp/backend'
@@ -244,6 +245,21 @@ export default {
       }
     }
   },
+  setup () {
+    const scrollTargetRef = ref(null)
+
+    return {
+      scrollTargetRef,
+
+      scrollDown () {
+        const x = setTimeout(() => {
+          const scrollElement = scrollTargetRef.value.$el
+
+          scrollTargetRef.value.setScrollPosition('vertical', scrollElement.scrollHeight)
+        }, 50)
+      }
+    }
+  },
   props: {
     adId: Number
   },
@@ -276,7 +292,13 @@ export default {
       return this.$store.getters['assets/getAssets'][0].balance
     },
     balanceExceeded () {
-      return this.balance < parseFloat(this.amount)
+      let value = 0
+      if (this.byFiat) {
+        value = this.equivalentAmount
+      } else {
+        value = this.amount
+      }
+      return this.balance < parseFloat(value)
     },
     isOwner () {
       return this.ad.is_owned
@@ -285,6 +307,14 @@ export default {
   watch: {
     byFiat () {
       this.updateInput()
+    },
+    customKeyboardState (val) {
+      if (val === 'show') {
+        this.minHeight -= 250
+        this.scrollDown()
+      } else {
+        this.minHeight += 250
+      }
     }
   },
   async mounted () {
@@ -300,31 +330,50 @@ export default {
     isNotDefaultTheme,
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
-
+      let proceed = false
       receiveAmount = this.amount
 
-      receiveAmount = receiveAmount === null ? '' : receiveAmount
-      if (key === '.' && receiveAmount === '') {
-        finalAmount = '0.'
-      } else {
-        finalAmount = receiveAmount.toString()
-        const hasPeriod = finalAmount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(finalAmount) === 0 && Number(key) > 0) {
-            finalAmount = key
-          } else {
-            // Check amount if still zero
-            if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
-              finalAmount = 0
-            } else {
-              finalAmount += key.toString()
-            }
+      // see if # of decimal valid
+      let temp = receiveAmount.toString()
+      temp = temp.split('.')
+      if (temp.length === 2) {
+        if (this.byFiat) {
+          if (temp[1].length < 2) {
+            proceed = true
           }
         } else {
-          finalAmount += key !== '.' ? key.toString() : ''
+          if (temp[1].length < 8) {
+            proceed = true
+          }
         }
+      } else {
+        proceed = true
       }
-      this.amount = finalAmount
+
+      if (proceed) {
+        receiveAmount = receiveAmount === null ? '' : receiveAmount
+        if (key === '.' && receiveAmount === '') {
+          finalAmount = '0.'
+        } else {
+          finalAmount = receiveAmount.toString()
+          const hasPeriod = finalAmount.indexOf('.')
+          if (hasPeriod < 1) {
+            if (Number(finalAmount) === 0 && Number(key) > 0) {
+              finalAmount = key
+            } else {
+              // Check amount if still zero
+              if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
+                finalAmount = 0
+              } else {
+                finalAmount += key.toString()
+              }
+            }
+          } else {
+            finalAmount += key !== '.' ? key.toString() : ''
+          }
+        }
+        this.amount = finalAmount
+      }
     },
     makeKeyAction (action) {
       if (action === 'backspace') {
@@ -446,29 +495,42 @@ export default {
         .catch(console.error)
     },
     formattedCurrency (value, currency = null) {
-      if (currency) {
+      if (!this.byFiat) {
         return formatCurrency(value, currency)
       } else {
         return formatCurrency(value)
       }
     },
-    isValidInputAmount (value) {
+    isValidInputAmount (value = this.amount) {
+      let valid = true
+      const decCount = [0, 0]
+      let temp = ''
+
       if (this.byFiat) {
         value = this.equivalentAmount
       }
       const parsedValue = parseFloat(value)
       const tradeFloor = parseFloat(this.ad.trade_floor)
       const tradeCeiling = parseFloat(this.ad.trade_amount)
-      let valid = true
+
+      for (const index in decCount) {
+        if (index < 1) {
+          temp = tradeFloor.toString().split('.')
+        } else {
+          temp = tradeCeiling.toString().split('.')
+        }
+        decCount[index] = temp.length > 1 ? temp[1].length : 0
+      }
       if (value === undefined || isNaN(value)) {
         valid = false
         this.amountError = 'Amount cannot be none or undefined'
       }
-      if (parsedValue < tradeFloor) {
+      if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
         valid = false
         this.amountError = 'Amount must be greater than minimum trade limit'
       }
-      if (parsedValue > tradeCeiling) {
+      if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
+        parsedValue.toFixed(decCount[1])
         valid = false
         this.amountError = 'Amount must be lesser than the maximum trade limit'
       }
@@ -481,6 +543,7 @@ export default {
       if (valid) {
         this.amountError = null
       }
+
       return valid
       // return !(isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling || this.balanceExceeded)
     },
@@ -501,7 +564,7 @@ export default {
       } else {
         amount = Number(amount * parseFloat(this.ad.price))
       }
-      this.amount = amount
+      this.amount = parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
     },
     getCryptoAmount () {
       if (!this.byFiat) {
