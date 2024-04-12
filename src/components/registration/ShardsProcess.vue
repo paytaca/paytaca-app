@@ -131,6 +131,9 @@ export default {
         }
       })
     },
+    displayNotif (message, color, icon) {
+      this.$q.notify({ message, timeout: 800, color, icon })
+    },
     takeScreenshot () {
       const vm = this
 
@@ -161,21 +164,9 @@ export default {
             // images to persist even if the app is uninstalled
             directory: Directory.Cache
           })
-
-          this.$q.notify({
-            message: 'QR code image saved successfully.',
-            timeout: 800,
-            color: 'blue-9',
-            icon: 'mdi-qrcode-plus'
-          })
+          this.displayNotif('QR code image saved successfully.', 'blue-9', 'mdi-qrcode-plus')
         } catch (error) {
-          console.log('error here yey', error)
-          this.$q.notify({
-            message: 'An error occurred while saving the QR code image.',
-            timeout: 800,
-            color: 'red-9',
-            icon: 'mdi-qrcode-remove'
-          })
+          this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
         }
       } else if (this.$q.platform.is.ios) {
         try {
@@ -184,28 +175,22 @@ export default {
             data: image,
             directory: 'photos'
           })
-
-          this.$q.notify({
-            message: 'QR code image saved successfully.',
-            timeout: 800,
-            color: 'blue-9',
-            icon: 'mdi-qrcode-plus'
-          })
+          this.displayNotif('QR code image saved successfully.', 'blue-9', 'mdi-qrcode-plus')
         } catch (error) {
-          this.$q.notify({
-            message: 'An error occurred while saving the QR code image.',
-            timeout: 800,
-            color: 'red-9',
-            icon: 'mdi-qrcode-remove'
-          })
+          this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
         }
       }
     },
     saveToDesktop (image, fileName) {
-      const link = document.createElement('a')
-      link.href = image
-      link.download = fileName
-      link.click()
+      try {
+        const link = document.createElement('a')
+        link.href = image
+        link.download = fileName
+        link.click()
+        this.displayNotif('QR code image saved successfully.', 'blue-9', 'mdi-qrcode-plus')
+      } catch (error) {
+        this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
+      }
     }
   }
 }
