@@ -7,20 +7,36 @@
     <div id="personal-qr" class="flex flex-center q-py-md br-15 col-qr-code">
       <qr-code :text="shards[1]" :size="200" />
     </div>
-    <q-btn
-      rounded
-      label="Take screenshot of QR"
-      class="q-mt-lg button"
-      @click="takeScreenshot()"
-    />
+    <div class="flex flex-center q-mt-md">
+      <q-btn
+        rounded
+        label="Take screenshot of QR"
+        class="button"
+        @click="takeScreenshot()"
+      />
+    </div>
   </template>
 
-  <!-- 3rd process pictured using another device (disable screenshot) -->
+  <!-- 2rd process pictured using another device (disable screenshot) -->
   <template v-else-if="processStep === 1">
     <p>Have a friend or another device take a picture of the QR code below and store it somewhere safe.</p>
-    <p>Taking a screenshot and storing it in this device is not advisable for this step.</p>
+    <p>Storing it in this device is not advisable for this step.</p>
     <div class="flex flex-center q-py-md br-15 col-qr-code">
       <qr-code :text="shards[2]" :size="200" />
+    </div>
+    <p class="text-center q-my-md">Share QR code to a friend</p>
+    <div class="flex flex-center q-pb-sm row no-wrap q-gutter-x-md" style="overflow-x:auto;">
+      <template v-for="shareLink, index in shareLinks" :key="index">
+        <q-btn
+          rounded
+          padding="md"
+          size="md"
+          class="button"
+          :icon="shareLink.icon"
+          :href="shareLink.url"
+          target="_blank"
+        />
+      </template>
     </div>
   </template>
 
@@ -47,7 +63,7 @@ import sss from 'shamirs-secret-sharing'
 import html2canvas from 'html2canvas'
 
 import { Camera } from '@capacitor/camera'
-import { Filesystem, Directory } from '@capacitor/filesystem'
+// import { Filesystem, Directory } from '@capacitor/filesystem'
 import { toHex } from 'hex-my-bytes'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
@@ -87,6 +103,28 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    shareLinks () {
+      const data = {
+        messenger: {
+          icon: 'fab fa-facebook-messenger',
+          url: '#'
+        },
+        telegram: {
+          icon: 'telegram',
+          url: '#'
+        },
+        whatsapp: {
+          icon: 'fab fa-whatsapp',
+          url: '#'
+        },
+        email: {
+          icon: 'email',
+          url: '#'
+        }
+      }
+
+      return data
     }
   },
 
@@ -102,40 +140,20 @@ export default {
       })
     },
     advanceToNextStep () {
-      if (this.processStep < 1) {
-        this.processStep += 1
-      } else {
+      const vm = this
+      vm.processStep += 1
+
+      if (vm.processStep === 2) {
+        vm.processStep = 0
         // move to user preferences step
       }
-
-      if (this.processStep === 1) {
-        this.disableScreenshot()
-      }
-    },
-    disableScreenshot () {
-      document.addEventListener('keyup', function (e) {
-        if (e.key === 'PrintScreen') {
-          e.preventDefault()
-        }
-      })
-
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'PrintScreen') {
-          e.preventDefault()
-        }
-      })
-
-      document.addEventListener('keypress', function (e) {
-        if (e.key === 'PrintScreen') {
-          e.preventDefault()
-        }
-      })
     },
     displayNotif (message, color, icon) {
       this.$q.notify({ message, timeout: 800, color, icon })
     },
     takeScreenshot () {
       const vm = this
+      document.addEventListener('deviceready', () => {}, false)
 
       const qrElement = document.getElementById('personal-qr')
       html2canvas(qrElement).then((canvas) => {
@@ -150,7 +168,24 @@ export default {
       })
     },
     async saveToMobile (image, fileName) {
+      const { Plugins } = window.Capacitor
+      Plugins.Screenshot.capture()
       if (this.$q.platform.is.android) {
+        const filePath = `${cordova.file.externalRootDirectory}/Pictures/Paytaca/${fileName}`
+        // eslint-disable-next-line no-undef
+        const fileTransfer = new FileTransfer()
+        try {
+          fileTransfer.download(image, filePath, () => {
+            this.displayNotif('QR code image saved successfully.', 'blue-9', 'mdi-qrcode-plus')
+          }, (error) => {
+            console.log(error)
+            this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
+          })
+        } catch (error) {
+          console.log(error)
+          this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
+        }
+        /*
         const base64Data = image.replace(/^data:image\/png;base64,/, '')
 
         try {
@@ -168,6 +203,7 @@ export default {
         } catch (error) {
           this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
         }
+        */
       } else if (this.$q.platform.is.ios) {
         try {
           await Camera.savePhoto({
@@ -203,13 +239,5 @@ export default {
     width: 250px;
     border: 4px solid #ed5f59;
     background: white;
-  }
-  .disable-screenshot {
-    -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-    -khtml-user-select: none; /* Konqueror HTML */
-    -moz-user-select: none; /* Old versions of Firefox */
-    -ms-user-select: none; /* Internet Explorer/Edge */
-    user-select: none; /* Non-prefixed version, currently supported by Chrome and Opera */
   }
 </style>
