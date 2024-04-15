@@ -60,8 +60,8 @@
           <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-if="convo.messages.length !== 0 && isloaded">
-          <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
-            <q-item>
+          <div v-for="(message, index) in convo.messages" :key="index" class="">
+            <!-- <q-item> -->
               <q-item-section>
                 <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
                   <div v-if="message.message" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
@@ -173,7 +173,7 @@
                   </div>
                 </div>
               </q-item-section>
-            </q-item>
+            <!-- </q-item> -->
           </div>
         </div>
         <!-- <div v-if="isTyping" class="q-px-sm q-mx-lg">
@@ -346,6 +346,16 @@ export default {
       tempMessage,
 
       resetScroll,
+      stopInfiniteScroll () {
+        setTimeout(() => {
+          infiniteScroll.value.stop()
+        }, 1000)
+      },
+      resumeInfiniteScroll () {
+        setTimeout(() => {
+          infiniteScroll.value.resume()
+        }, 1000)
+      },
       openFileAttachementField (evt) {
         fileAttachmentField.value?.pickFiles?.(evt)
       },
@@ -443,6 +453,7 @@ export default {
   async mounted () {
     // Set Data Here
     this.chatRef = generateChatRef(this.data.id, this.data.created_at)
+    this.stopInfiniteScroll()
     this.loadKeyPair()
     this.loadChatSession()
   },
@@ -567,6 +578,7 @@ export default {
           .finally(() => {
             setTimeout(() => {
               vm.resetScroll()
+              this.resumeInfiniteScroll()
             }, 1000)
           })
 
