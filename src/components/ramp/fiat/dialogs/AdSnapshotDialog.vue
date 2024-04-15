@@ -24,7 +24,7 @@
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Market Price</span>
+            <span>Price</span>
             <span class="text-nowrap q-ml-xs">
               {{ formattedCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol) }}
             </span>
