@@ -512,7 +512,6 @@ export default {
       const vm = this
       const chatIdentity = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash)
       let createSession = false
-      // fetchChatSessionMembers(vm.chatRef)
       await fetchChatSession(vm.chatRef)
         .catch(error => {
           if (error.response?.status === 404) {

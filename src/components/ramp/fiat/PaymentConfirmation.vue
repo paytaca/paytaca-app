@@ -23,7 +23,7 @@
         :dark="darkMode"
         :label="data?.contract.address">
         <template v-slot:append>
-          <div v-if="data?.contract.address" @click="$parent.copyToClipboard(data?.contract.address)">
+          <div v-if="data?.contract.address" @click="copyToClipboard(data?.contract.address)">
             <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
           </div>
         </template>
@@ -42,7 +42,7 @@
         </template>
       </q-input>
       <div class="sm-font-size q-py-xs q-ml-xs">{{ data?.type === 'buyer' ? 'Pay the seller' : 'Expect fiat payment of' }}</div>
-      <div @click="$parent.copyToClipboard(fiatAmount)">
+      <div @click="copyToClipboard(fiatAmount)">
         <q-input
           class="q-pb-xs md-font-size"
           readonly
@@ -67,7 +67,7 @@
         </div>
         <div class="full-width">
           <div v-for="(method, index) in paymentMethods" :key="index">
-            <div class="q-px-sm">
+            <div class="q-px-sm q-py-xs">
               <q-card flat bordered :dark="darkMode">
                 <q-expansion-item
                   class="pt-card text-bow"
@@ -76,17 +76,18 @@
                   :label="method.payment_type"
                   expand-separator >
                   <q-card>
-                    <q-card-section class="pt-card" :class="getDarkModeClass(darkMode)">
-                      <div class="row">
-                        <div class="col">
+                    <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                        <div class="col q-pr-sm q-py-xs">
                           <div>{{ method.account_name }}</div>
-                          <div>{{ method.account_identifier }}</div>
+                          <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
+                            {{ method.account_identifier }}
+                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
+                          </div>
                         </div>
                         <div>
                           <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
                         </div>
-                      </div>
-                    </q-card-section>
+                    </q-card>
                   </q-card>
                 </q-expansion-item>
               </q-card>
@@ -404,7 +405,16 @@ export default {
           }
         }, 1000)
       }
-    }
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
   }
 }
 </script>
