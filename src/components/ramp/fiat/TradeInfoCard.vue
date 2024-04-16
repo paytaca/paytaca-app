@@ -59,9 +59,6 @@
                 </div>
             </div>
           </div>
-          <!-- <div class="col-auto q-mt-sm">
-            <q-btn size="1.3em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="onViewChat"/>
-          </div> -->
           <div class="col-auto text-right">
             <div class="sm-font-size">BUYER</div>
             <div class="row justify-end q-py-none">

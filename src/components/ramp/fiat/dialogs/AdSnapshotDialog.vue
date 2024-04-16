@@ -24,7 +24,7 @@
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Market Price</span>
+            <span>Price</span>
             <span class="text-nowrap q-ml-xs">
               {{ formattedCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol) }}
             </span>
@@ -41,14 +41,14 @@
               {{ appealCooldown(snapshot?.appeal_cooldown_choice).label }}
             </span>
           </div>
-          <!-- <div class="q-px-sm q-py-sm">
-            <div class="md-font-size q-px-md">Ad Payment Methods</div>
+          <div class="q-px-sm q-pb-sm" v-if="snapshot?.payment_types?.length > 0">
+            <div class="sm-font-size q-px-md">Payment Types</div>
             <div class="q-px-md q-gutter-sm q-pt-xs">
-              <q-badge v-for="method in snapshot?.payment_methods" :key="method.id" rounded outline :color="snapshot?.trade_type === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
-                {{ method.payment_type }}
+              <q-badge v-for="method, index in snapshot?.payment_types" :key="index" rounded outline :color="snapshot?.trade_type === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
+                {{ method }}
               </q-badge>
             </div>
-          </div> -->
+          </div>
         </div>
         <!--<div class="q-py-md q-mx-lg q-pb-sm">
           <div class="md-font-size text-weight-bold q-px-md">Order Payment Methods</div>

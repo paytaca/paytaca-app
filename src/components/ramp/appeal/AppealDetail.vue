@@ -17,6 +17,11 @@
             filled
             :dark="darkMode"
             v-model="contractAddress">
+            <template v-slot:append>
+              <div v-if="contractAddress" @click="copyToClipboard(contractAddress)">
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              </div>
+            </template>
           </q-input>
           <div class="sm-font-size q-pb-xs text-italic">Contract Balance</div>
           <q-input
@@ -411,6 +416,15 @@ export default {
         return `${txid.substring(0, 3)}...${txid.slice(-3)}`
       }
       return ''
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        color: 'blue-9',
+        message: this.$t('CopiedToClipboard'),
+        icon: 'mdi-clipboard-check',
+        timeout: 200
+      })
     }
   }
 }
