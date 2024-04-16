@@ -1,11 +1,11 @@
 import axios from 'axios'
 import BCHJS from '@psf/bch-js'
 import { binToHex, decodeTransactionBCH, hexToBin } from '@bitauth/libauth'
-import { AnyHedgeManager, ContractData } from '@generalprotocols/anyhedge'
+import { AnyHedgeManager, ContractData, encodeExtendedJson } from '@generalprotocols/anyhedge'
 import Watchtower from 'watchtower-cash-js'
 import { Wallet } from '../index'
 import { generalProtocolLPBackend, generalProtocolLPAuthToken, anyhedgeBackend } from './backend'
-import { getContractAccessKeys, getContractStatus, txHexToHash } from './utils'
+import { castBigIntSafe, getContractAccessKeys, getContractStatus, txHexToHash } from './utils'
 import { encodePrivateKeyWif } from '@bitauth/libauth'
 
 const bchjs = new BCHJS()
@@ -18,17 +18,17 @@ export const LIQUIDITY_FEE_NAME = 'Liquidity premium'
  * @param {Number} assetPrice 
  */
 export function calculateHedgePositionOfferInputs(satoshis, lowLiquidationMultiplier, assetPrice) {
-  const _hedgeNominalUnitSats = satoshis * assetPrice
-  const  hedgeNominalUnits = _hedgeNominalUnitSats / 10 ** 8
+  const _shortNominalUnitSats = satoshis * assetPrice
+  const  shortNominalUnits = _shortNominalUnitSats / 10 ** 8
   const lowLiquidationPrice = Math.round(assetPrice * lowLiquidationMultiplier)
-  const totalSats = Math.round(_hedgeNominalUnitSats / lowLiquidationPrice)
+  const totalSats = Math.round(_shortNominalUnitSats / lowLiquidationPrice)
   const longSats = totalSats - satoshis
   const longNominalUnits = (longSats * assetPrice) / 10 ** 8
 
   return {
-    hedgeNominalUnits,
+    shortNominalUnits,
     longNominalUnits,
-    hedgeSats: satoshis,
+    shortSats: satoshis,
     longSats,
     totalSats,
   }
@@ -43,8 +43,8 @@ export function calculateHedgePositionOfferInputs(satoshis, lowLiquidationMultip
  * @param {Number} intent.highPriceMult - The USD/BCH price increase percentage to trigger liquidation
  * @param {Number} intent.duration - The number of seconds from the starting time of the hedge position
  * @param {Object} pubkeys - Necessary credentials for hedge and short
- * @param {String} [pubkeys.hedgeAddress] - Destination address of hedger's funds on maturity/liquidation
- * @param {String} [pubkeys.hedgePubkey] - Public key of hedger
+ * @param {String} [pubkeys.shortAddress] - Destination address of short's funds on maturity/liquidation
+ * @param {String} [pubkeys.shortPubkey] - Public key of short
  * @param {String} [pubkeys.longAddress] - Destination address of long's funds on maturity/liquidation
  * @param {String} [pubkeys.longPubkey] - Public key of long
  * @param {Object} priceData
@@ -56,9 +56,11 @@ export function calculateHedgePositionOfferInputs(satoshis, lowLiquidationMultip
  * @param {String} priceData.signature
  * @param {Object} liquidityServiceInfo
  * @param {String} privateKey
- * @param {'hedge' | 'long'} position - Position that the user will take
+ * @param {'short' | 'long'} position - Position that the user will take
  */
-export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData, liquidityServiceInfo, privateKey, position='hedge') {
+export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData, liquidityServiceInfo, privateKey, position='short') {
+  if (position == 'hedge') position = 'short'
+
   const response = {
     success: false,
     contractData: {},
@@ -83,9 +85,9 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
 
     const prepareContractPositionData = {
       oraclePublicKey: priceData.oraclePubkey,
-      poolSide: position === 'hedge' ? 'long': 'hedge',
+      poolSide: position === 'short' ? 'long': 'short',
     }
-    const contractPosition = await generalProtocolLPBackend.post('/api/v1/prepareContractPosition', prepareContractPositionData)
+    const contractPosition = await generalProtocolLPBackend.post('/api/v2/prepareContractPosition', prepareContractPositionData)
       .catch(error => {
         if (error) error.name = 'PrepareContractPositionError'
         return Promise.reject(error)
@@ -102,24 +104,25 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     const nominalUnits = intent.amount * priceData.priceValue
     const contractCreationParameters = {
       takerSide: position,
-      makerSide: position === 'hedge' ? 'long' : 'hedge',
+      makerSide: position === 'short' ? 'long' : 'short',
       nominalUnits: nominalUnits,
       oraclePublicKey: priceData.oraclePubkey,
       startingOracleMessage: priceData.message,
       startingOracleSignature: priceData.signature,
-      maturityTimestamp: priceData.messageTimestamp + intent.duration,
+      maturityTimestamp: castBigIntSafe(priceData.messageTimestamp + intent.duration),
       highLiquidationPriceMultiplier: intent.highPriceMult,
       lowLiquidationPriceMultiplier: intent.lowPriceMult,
-      hedgeMutualRedeemPublicKey: pubkeys.hedgePubkey,
+      shortMutualRedeemPublicKey: pubkeys.shortPubkey,
       longMutualRedeemPublicKey: contractPosition?.data?.liquidityProvidersMutualRedemptionPublicKey,
-      hedgePayoutAddress: pubkeys.hedgeAddress,
+      shortPayoutAddress: pubkeys.shortAddress,
       longPayoutAddress: contractPosition?.data?.liquidityProvidersPayoutAddress,
-      enableMutualRedemption: 1,
+      enableMutualRedemption: 1n,
+      isSimpleHedge: 1n, // NOTE: from v2 migration, not sure yet if to keep static
     }
 
     if (position === 'long') {
-      contractCreationParameters.hedgeMutualRedeemPublicKey = contractPosition?.data?.liquidityProvidersMutualRedemptionPublicKey
-      contractCreationParameters.hedgePayoutAddress = contractPosition?.data?.liquidityProvidersPayoutAddress
+      contractCreationParameters.shortMutualRedeemPublicKey = contractPosition?.data?.liquidityProvidersMutualRedemptionPublicKey
+      contractCreationParameters.shortPayoutAddress = contractPosition?.data?.liquidityProvidersPayoutAddress
       contractCreationParameters.longMutualRedeemPublicKey = pubkeys.longPubkey
       contractCreationParameters.longPayoutAddress = pubkeys.longAddress
     }
@@ -128,15 +131,6 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
         if (error) error.name = 'ContractCompileError'
         return Promise.reject(error)
       })
-
-    // NOTE: Populating properties expected from old implementation. Remove after stable
-    // contractCreationParameters.duration = intent.duration
-    // contractCreationParameters.startPrice = priceData.priceValue
-    // contractCreationParameters.startTimestamp = priceData.messageTimestamp
-    // contractCreationParameters.hedgeAddress = contractCreationParameters.hedgePayoutAddress
-    // contractCreationParameters.hedgePublicKey = contractCreationParameters.hedgeMutualRedeemPublicKey
-    // contractCreationParameters.longAddress = contractCreationParameters.longPayoutAddress
-    // contractCreationParameters.longPublicKey = contractCreationParameters.longMutualRedeemPublicKey
 
     const customFee = await anyhedgeBackend.get('anyhedge/hedge-positions/gp_lp_contract_fee/')
       .then(response => {
@@ -147,11 +141,14 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
 
     const proposeContractData = {
       contractCreationParameters,
-      fees: [],
+      fees: [].map(() => {
+        return { name: '', description: '', address: '', satoshis: 0n }
+      }),
       contractStartingOracleMessageSequence: priceData.messageSequence
     }
     if (customFee) proposeContractData.fees.push(customFee)
-    const proposeContractResponse = await generalProtocolLPBackend.post('/api/v1/proposeContract', proposeContractData)
+    proposeContractData.fees.forEach(fee => fee.satoshis = castBigIntSafe(fee.satoshis))
+    const proposeContractResponse = await generalProtocolLPBackend.post('/api/v2/proposeContract', encodeExtendedJson(proposeContractData))
       .catch(error => {
         if (error) error.name = 'ContractProposalError'
         return Promise.reject(error)
@@ -300,12 +297,12 @@ export async function searchUtxo(amount, walletHash) {
 /**
  * 
  * @param {ContractData} contractData 
- * @param {'hedge' | 'long'} position 
+ * @param {'short' | 'long'} position 
  */
 export function splitContractFees(contractData, position) {
   const localContractMetadata = contractData.metadata
   const takerPayoutAddress = position === 'long'?
-    localContractMetadata.longPayoutAddress : localContractMetadata.hedgePayoutAddress
+    localContractMetadata.longPayoutAddress : localContractMetadata.shortPayoutAddress
 
   const makerFees = contractData?.fees.filter(fee => {
     return fee?.name === LIQUIDITY_FEE_NAME && fee?.address === takerPayoutAddress
@@ -313,8 +310,8 @@ export function splitContractFees(contractData, position) {
   const takerFees = contractData?.fees.filter(fee => makerFees.indexOf(fee) < 0)
 
   return {
-    totalTakerFees: takerFees.reduce((subtotal, fee) => subtotal + fee?.satoshis, 0),
-    totalMakerFees: makerFees.reduce((subtotal, fee) => subtotal + fee?.satoshis, 0),
+    totalTakerFees: takerFees.reduce((subtotal, fee) => subtotal + fee?.satoshis, 0n),
+    totalMakerFees: makerFees.reduce((subtotal, fee) => subtotal + fee?.satoshis, 0n),
     takerFees,
     makerFees,
   }
@@ -323,17 +320,16 @@ export function splitContractFees(contractData, position) {
 /**
  * 
  * @param {ContractData} contractData 
- * @param {'hedge' || 'long'} position
+ * @param {'short' || 'long'} position
  * @param {*} liquidityProviderFeeInSatoshis 
  * @returns 
  */
 export function calculateFundingAmounts(contractData, position, liquidityProviderFeeInSatoshis=0) {
-  // NOTE: handles both old & new implementation
   const localContractMetadata = contractData.metadata
-  const takerPayoutAddress = position === 'hedge'?
-    localContractMetadata.hedgePayoutAddress : localContractMetadata.longPayoutAddress
+  const takerPayoutAddress = position === 'short' ?
+    localContractMetadata.shortPayoutAddress : localContractMetadata.longPayoutAddress
 
-  const makerInputSats = position === 'long' ? localContractMetadata.hedgeInputInSatoshis : localContractMetadata.longInputInSatoshis;
+  const makerInputSats = position === 'long' ? localContractMetadata.shortInputInSatoshis : localContractMetadata.longInputInSatoshis;
 
   const manager = new AnyHedgeManager()
   const totalRequiredFundingSatoshis = manager.calculateTotalRequiredFundingSatoshis(contractData)
@@ -349,21 +345,21 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
 
       // Return the previous total.
       return total;
-    }, 0);
+    }, 0n);
 
-  const takerRequiredFundingSatoshis = totalRequiredFundingSatoshis - makerInputSats + liquidityProviderFeeInSatoshis - takerTotalFeesAndPremiumsToDeduct;
+  const takerRequiredFundingSatoshis = totalRequiredFundingSatoshis - makerInputSats + castBigIntSafe(liquidityProviderFeeInSatoshis) - takerTotalFeesAndPremiumsToDeduct;
 
   // Calculate the amounts necessary to fund the contract.
   const contractAmount = {
-    hedge: 0,
-    long: 0,
+    short: 0n,
+    long: 0n,
   }
 
-  if (position == 'hedge') {
-    contractAmount.hedge = takerRequiredFundingSatoshis
+  if (position == 'short') {
+    contractAmount.short = takerRequiredFundingSatoshis
     contractAmount.long = totalRequiredFundingSatoshis - takerRequiredFundingSatoshis
   } else if (position == 'long') {
-    contractAmount.hedge = totalRequiredFundingSatoshis - takerRequiredFundingSatoshis
+    contractAmount.short = totalRequiredFundingSatoshis - takerRequiredFundingSatoshis
     contractAmount.long = takerRequiredFundingSatoshis
   }
 
@@ -377,18 +373,18 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
  * @param {String} data.startingOracleSignature
  * @param {Number} data.lowLiquidationMultiplier
  * @param {Number} data.startingPriceValue
- * @param {String} data.hedgeAddress
+ * @param {String} data.shortAddress
  * @param {String} data.longAddress
  * @param {{ satoshis: Number }[]} data.fees
  * @param {Number} data.liquidityFee
- * @param {'hedge' | 'long'} data.position
+ * @param {'short' | 'long'} data.position
  */
  export async function calculateFundingAmountsWithFees(data) {
   // these data are necessary for generating contracts but doesnt affect the funding amounts
   const dummyData = {
     oraclePublicKey: '03994dc2c759375e98afbf5049383cd987001c346d0f11aa262c105874fb1390c1',
     maturityTimestamp: Math.floor(Date.now() / 1000) + 86400,
-    hedgePublicKey: '0242ce009d64bd58c3a11b7c37f33c35177cf093b287ec4db96775381d4903be1d',
+    shortPublicKey: '0242ce009d64bd58c3a11b7c37f33c35177cf093b287ec4db96775381d4903be1d',
     longPublicKey: '02df07732b3b3fbfb71be46a2393bc07f5d65a0a6d25eb1809fd7a1675cd2d646d',
     highLiquidationPriceMultiplier: 5,
   }
@@ -396,7 +392,7 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
   const units = (data.amountSats * data.startingPriceValue) / 10**8
   const contractCreationParameters = {
     takerSide: data.position,
-    makerSide: data.position == 'hedge' ? 'long' : 'hedge',
+    makerSide: data.position == 'short' ? 'long' : 'short',
     nominalUnits: units,
     oraclePublicKey: dummyData.oraclePublicKey,
     startingOracleMessage: data.startingOracleMessage,
@@ -404,9 +400,9 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
     maturityTimestamp: dummyData.maturityTimestamp,
     highLiquidationPriceMultiplier: dummyData.highLiquidationPriceMultiplier,
     lowLiquidationPriceMultiplier: data.lowLiquidationMultiplier,
-    hedgeMutualRedeemPublicKey: dummyData.hedgePublicKey,
+    shortMutualRedeemPublicKey: dummyData.shortPublicKey,
     longMutualRedeemPublicKey: dummyData.longPublicKey,
-    hedgePayoutAddress: data.hedgeAddress,
+    shortPayoutAddress: data.shortAddress,
     longPayoutAddress: data.longAddress,
     enableMutualRedemption: 1,
   }
@@ -422,86 +418,92 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
 /**
  * @param {Object} data
  * @param {ContractData} data.contractData
- * @param {'hedge' | 'long'} data.position 
+ * @param {'short' | 'long'} data.position 
  * @param {Number} [data.liquidityFee]
  * @returns 
  */
 export function calculateContractFundingWithFees(data) {
   const contractData = data?.contractData
   const fundingAmounts = calculateFundingAmounts(contractData, data.position, data.liquidityFee || 0)
+  const parseFeeData = data => {
+    return {
+      name: data?.name || '',
+      description: data?.description || '',
+      address: data?.address || '',
+      satoshis: parseInt(data?.satoshis),
+    }
+  }
   const response = {
-    hedge: {
+    short: {
       nominalUnits: contractData.metadata.nominalUnits,
-      sats: contractData.metadata.hedgeInputInSatoshis,
-      fees: { premium: 0, network: 0, service: 0, serviceFees: [] },
-      total: fundingAmounts.hedge,
+      sats: parseInt(contractData.metadata.shortInputInSatoshis),
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [].map(parseFeeData) },
+      total: parseInt(fundingAmounts.short),
       calculatedTotal: 0,
     },
     long: {
       nominalUnits: contractData.metadata.longInputInOracleUnits,
-      sats: contractData.metadata.longInputInSatoshis,
-      fees: { premium: 0, network: 0, service: 0, serviceFees: [] },
-      total: fundingAmounts.long,
+      sats: parseInt(contractData.metadata.longInputInSatoshis),
+      fees: { premium: 0, network: 0, service: 0, serviceFees: [].map(parseFeeData) },
+      total: parseInt(fundingAmounts.long),
       calculatedTotal: 0,
     },
     totalSats: 0,
   }
 
   const contractFees = splitContractFees(contractData, data.position)
-  if (data.position === 'hedge') {
-    response.hedge.fees.premium = data.liquidityFee || 0
-    response.long.fees.premium = response.hedge.fees.premium * -1
-    if (Array.isArray(contractData?.fees)) {
-      response.hedge.fees.serviceFees = contractFees.takerFees
-      response.hedge.fees.service = contractFees.totalTakerFees
-      response.long.fees.serviceFees = contractFees.makerFees
-      response.long.fees.service = contractFees.totalMakerFees
-    }
-    response.hedge.fees.network = response.hedge.total - (response.hedge.sats + response.hedge.fees.premium + response.hedge.fees.service)
+  let takerFunding, makerFunding
+  if (data.position === 'short') {
+    takerFunding = response.short
+    makerFunding = response.long
   } else if (data.position === 'long') {
-    response.long.fees.premium = data.liquidityFee || 0
-    response.hedge.fees.premium = response.long.fees.premium * -1
+    takerFunding = response.long
+    makerFunding = response.short
+  }
+  if (takerFunding && makerFunding) {
+    takerFunding.fees.premium = data.liquidityFee || 0
+    makerFunding.fees.premium = takerFunding.fees.premium * -1
     if (Array.isArray(contractData?.fees)) {
-      response.long.fees.serviceFees = contractFees.takerFees
-      response.long.fees.service = contractFees.totalTakerFees
-      response.hedge.fees.serviceFees = contractFees.makerFees
-      response.hedge.fees.service = contractFees.totalMakerFees
+      takerFunding.fees.serviceFees = contractFees.takerFees.map(parseFeeData)
+      takerFunding.fees.service = parseInt(contractFees.totalTakerFees)
+      makerFunding.fees.serviceFees = contractFees.makerFees.map(parseFeeData)
+      makerFunding.fees.service = parseInt(contractFees.totalMakerFees)
     }
-    response.long.fees.network = response.long.total - (response.long.sats + response.long.fees.premium + response.long.fees.service)
+    takerFunding.fees.network = takerFunding.total - (takerFunding.sats + takerFunding.fees.premium + takerFunding.fees.service)
   }
 
   const calculateTotal = (_data) => {
     return _data.sats + _data.fees.premium + _data.fees.network + _data.fees.service
   }
-  response.hedge.calculatedTotal = calculateTotal(response.hedge)
+  response.short.calculatedTotal = calculateTotal(response.short)
   response.long.calculatedTotal = calculateTotal(response.long)
 
-  response.totalSats = response.hedge.total + response.long.total
+  response.totalSats = response.short.total + response.long.total
 
   return response
 }
 /**
  * 
  * @param {Object} contractData 
- * @param {'hedge' | 'long'} position 
+ * @param {'short' | 'long'} position 
  * @param {Wallet} wallet 
  * @param {Object} addressSet
  * @param {String} addressSet.receiving
  * @param {String} addressSet.change
  * @param {Number} addressSet.index
  * @param {Number} liquidityProviderFeeInSatoshis
- * @param {'hedge' | 'long'} taker
+ * @param {'short' | 'long'} taker
  */
-export async function createFundingProposal(contractData, position, wallet, addressSet, liquidityProviderFeeInSatoshis=0, taker='hedge') {
-  const { hedge, long } = calculateFundingAmounts(contractData, taker, liquidityProviderFeeInSatoshis)
+export async function createFundingProposal(contractData, position, wallet, addressSet, liquidityProviderFeeInSatoshis=0, taker='short') {
+  const { short, long } = calculateFundingAmounts(contractData, taker, liquidityProviderFeeInSatoshis)
   let amount
-  if (position === 'hedge') amount = hedge
-  else if (position === 'long') amount = long
+  if (position === 'short') amount = parseInt(short)
+  else if (position === 'long') amount = parseInt(long)
 
   const fundingUtxo = await getOrFindUtxo(amount, wallet, addressSet)
 
   const manager = new AnyHedgeManager()
-  const fundingProposal = manager.createFundingProposal(contractData, fundingUtxo.txid, fundingUtxo.vout, fundingUtxo.amount)
+  const fundingProposal = manager.createFundingProposal(contractData, fundingUtxo.txid, fundingUtxo.vout, castBigIntSafe(fundingUtxo.amount))
   let wif = await wallet.BCH.watchtower.BCH.retrievePrivateKey(wallet.BCH.mnemonic, wallet.BCH.derivationPath, fundingUtxo.address_path)
   wif = encodePrivateKeyWif(wif, 'mainnet')
   const signedFundingProposal = await manager.signFundingProposal(wif, fundingProposal)

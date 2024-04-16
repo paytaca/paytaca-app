@@ -3,7 +3,7 @@
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">
-          <template v-if="viewAsHedge && viewPositionInTitle">{{ $t('Stabilize') }}</template>
+          <template v-if="viewAsShort && viewPositionInTitle">{{ $t('Stabilize') }}</template>
           <template v-else-if="viewAsLong && viewPositionInTitle">{{ $t('Leverage') }}</template>
           <template v-else>{{ $t('AnyHedgeContract') }}</template>
         </div>
@@ -41,14 +41,14 @@
                 {{ formatUnits(contract.metadata.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ getAssetDenomination(denomination, contract.metadata.hedgeInputInSatoshis / (10**8)) }}
+                {{ getAssetDenomination(denomination, formatUnits(contract.metadata.shortInputInSatoshis, 8)) }}
               </div>
               <div
-                v-if="isFinite(hedgeMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
+                v-if="isFinite(shortMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
                 class="text-caption text-grey"
                 style="margin-top:-0.25em"
               >
-                {{ parseFiatCurrency(hedgeMarketValue, selectedMarketCurrency) }}
+                {{ parseFiatCurrency(shortMarketValue, selectedMarketCurrency) }}
               </div>
             </div>
             <div class="col-6">
@@ -57,7 +57,7 @@
                 {{ formatUnits(contract.metadata.longInputInOracleUnits, oracleInfo.assetDecimals) }} {{ oracleInfo.assetCurrency }}
               </div>
               <div>
-                {{ getAssetDenomination(denomination, contract.metadata.longInputInSatoshis / (10**8)) }}
+                {{ getAssetDenomination(denomination, formatUnits(contract.metadata.longInputInSatoshis, 8)) }}
               </div>
               <div
                 v-if="isFinite(longMarketValue) && selectedMarketCurrency !== oracleInfo.assetCurrency"
@@ -87,9 +87,9 @@
               />
             </div>
             <FundingAmountsPanel
-              v-if="fundingMetadata.hedge.fees.network || fundingMetadata.hedge.fees.premium || fundingMetadata.hedge.fees.service"
+              v-if="fundingMetadata.short.fees.network || fundingMetadata.short.fees.premium || fundingMetadata.short.fees.service"
               :dark-mode="darkMode"
-              :label="$t('Hedge')" :data="fundingMetadata.hedge"
+              :label="$t('Hedge')" :data="fundingMetadata.short"
               class="q-pr-md"
             />
             <FundingAmountsPanel
@@ -118,29 +118,29 @@
             <div class="row no-wrap items-center q-gutter-x-xs q-py-xs">
               <div class="col-3 text-body1">{{ $t('Hedge') }}</div>
               <template v-if="!isCancelled">
-                <q-badge v-if="contract.hedgeFundingProposal" color="brandblue">{{ $t('Submitted') }}</q-badge>
+                <q-badge v-if="contract.shortFundingProposal" color="brandblue">{{ $t('Submitted') }}</q-badge>
                 <template v-else>
                   <q-btn
-                    v-if="viewAsHedge"
+                    v-if="viewAsShort"
                     :disable="matured"
                     no-caps
                     :label="$t('SubmitFundingProposal')"
                     color="brandblue"
                     padding="none sm"
-                    @click="fundHedgeProposal('hedge')"
+                    @click="fundHedgeProposal('short')"
                   />
                   <q-badge v-else color="grey-7">{{ $t('NotYetSubmitted') }}</q-badge>
                 </template>
               </template>
               <q-space/>
-              <q-btn v-if="contract.hedgeFundingProposal && viewAsHedge && !matured && !isCancelled" icon="more_vert" flat size="sm">
+              <q-btn v-if="contract.shortFundingProposal && viewAsShort && !matured && !isCancelled" icon="more_vert" flat size="sm">
                 <q-menu anchor="bottom right" self="top right" class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                  <q-item clickable v-ripple v-close-popup @click="verifyFundingProposalUtxo('hedge')">
+                  <q-item clickable v-ripple v-close-popup @click="verifyFundingProposalUtxo('short')">
                     <q-item-section>
                       <q-item-label>{{ $t('VerifyValidity') }}</q-item-label>
                     </q-item-section>
                   </q-item>
-                  <q-item clickable v-ripple v-close-popup @click="fundHedgeProposal('hedge')">
+                  <q-item clickable v-ripple v-close-popup @click="fundHedgeProposal('short')">
                     <q-item-section>
                       <q-item-label>{{ $t('Resubmit') }}</q-item-label>
                     </q-item-section>
@@ -152,7 +152,7 @@
               :dark-mode="darkMode"
               hide-total
               total-bottom
-              :data="calculatedFundingAmounts.hedge"
+              :data="calculatedFundingAmounts.short"
               class="q-pl-sm q-pr-md"
             />
 
@@ -210,7 +210,7 @@
           </div>
 
           <div
-            v-if="contract.hedgeFundingProposal && contract.longFundingProposal && (viewAsHedge || viewAsLong) && !contract?.fundingTxHash"
+            v-if="contract.shortFundingProposal && contract.longFundingProposal && (viewAsShort || viewAsLong) && !contract?.fundingTxHash"
             class="q-mt-sm"
           >
             <q-btn
@@ -244,15 +244,15 @@
         <div>
           <div class="text-grey text-subtitle1">{{ $t('PayoutAddressesBig')}}</div>
           <div class="row q-gutter-x-xs no-wrap q-pr-sm">
-            <div @click="copyText(contract.metadata.hedgePayoutAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
-              {{ $t('Hedge') }}: {{ ellipsisText(contract.metadata.hedgePayoutAddress) }}
+            <div @click="copyText(contract.metadata.shortPayoutAddress)" v-ripple style="position:relative;" class="text-body2 q-space">
+              {{ $t('Hedge') }}: {{ ellipsisText(contract.metadata.shortPayoutAddress) }}
             </div>
             <q-btn
               flat
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.hedgePayoutAddress"
+              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.shortPayoutAddress"
               target="_blank"
             />
           </div>
@@ -274,8 +274,8 @@
         <div v-if="!settled">
           <div class="text-grey text-subtitle1">{{ $t('Duration') }}</div>
           <div class="row q-gutter-x-sm">
-            <div class="q-space">{{ $t('From') }}: {{ formatTimestampToText(contract.parameters.startTimestamp * 1000) }}</div>
-            <div>{{ $t('To') }}: {{ formatTimestampToText(contract.parameters.maturityTimestamp * 1000) }}</div>
+            <div class="q-space">{{ $t('From') }}: {{ formatTimestampToText(formatUnits(contract.parameters.startTimestamp, -3)) }}</div>
+            <div>{{ $t('To') }}: {{ formatTimestampToText(formatUnits(contract.parameters.maturityTimestamp, -3)) }}</div>
           </div>
           <div v-if="durationText" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="margin-top:-0.25em;">
             {{ durationText }}
@@ -321,13 +321,13 @@
           <div class="row">
             <div class="col">
               <div class="text-grey-7">{{ $t('Hedge') }}</div>
-              <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
+              <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.short.assetChangePctg)}` + ' text-weight-medium'">
                 {{ formatUnits(contract?.metadata?.nominalUnits, oracleInfo.assetDecimals) }} -
-                {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
+                {{ formatUnits(settlementMetadata.short.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
-              <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
-                {{ parseFloat(getAssetDenomination(denomination, contract?.metadata?.hedgeInputInSatoshis / 10 ** 8)) }} -
-                {{ getAssetDenomination(denomination, settlementMetadata.hedge.satoshis / 10 ** 8) }}
+              <div :class="`text-${resolveColor(settlementMetadata.short.bchChangePctg)}` + ' text-weight-medium'">
+                {{ parseFloat(getAssetDenomination(denomination, formatUnits(contract?.metadata?.shortInputInSatoshis, 8))) }} -
+                {{ getAssetDenomination(denomination, formatUnits(settlementMetadata.short.satoshis, 8)) }}
               </div>
             </div>
             <div class="col">
@@ -337,51 +337,51 @@
                 {{ formatUnits(settlementMetadata.long.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </div>
               <div :class="`text-${resolveColor(settlementMetadata.long.bchChangePctg)}` + ' text-weight-medium'">
-                {{ parseFloat(getAssetDenomination(denomination, contract?.metadata?.longInputInSatoshis / 10 ** 8)) }} -
-                {{ getAssetDenomination(denomination, settlementMetadata.long.satoshis / 10 ** 8) }}
+                {{ parseFloat(getAssetDenomination(denomination, formatUnits(contract?.metadata?.longInputInSatoshis, 8))) }} -
+                {{ getAssetDenomination(denomination, formatUnits(settlementMetadata.long.satoshis, 8)) }}
               </div>
             </div>
           </div>
           <div v-if="settled && summaryDataAvailable">
             <div class="text-grey text-subtitle1">{{ $t('Summary') }}</div>
             <div v-if="settlementMetadata.settlementType === 'mutual'">
-              <template v-if="viewAs === 'hedge'">
-                {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? $t('YouLost') : $t('YouGained') }}
-                <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.actualSatsChange)}` + ' text-weight-medium'">
-                  {{ getAssetDenomination(denomination, settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8) }}
+              <template v-if="viewAs === 'short'">
+                {{ settlementMetadata.summary.short.actualSatsChange < 0 ? $t('YouLost') : $t('YouGained') }}
+                <span :class="`text-${resolveColor(settlementMetadata.summary.short.actualSatsChange)}` + ' text-weight-medium'">
+                  {{ getAssetDenomination(denomination, formatUnits(settlementMetadata.summary.short.actualSatsChange, 8)) }}
                 </span>.
               </template>
               <template v-else-if="viewAs === 'long'">
                 {{ settlementMetadata.summary.long.actualSatsChange < 0 ? $t('YouLost') : $t('YouGained') }}
                 <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
-                  {{ getAssetDenomination(denomination, settlementMetadata.summary.long.actualSatsChange / 10 ** 8) }}
+                  {{ getAssetDenomination(denomination, formatUnits(settlementMetadata.summary.long.actualSatsChange, 8)) }}
                 </span>.
               </template>
             </div>
-            <div v-else-if="viewAs === 'hedge'">
-              <template v-if="settlementMetadata.summary.hedge.assetChangePctg === 0">
+            <div v-else-if="viewAs === 'short'">
+              <template v-if="settlementMetadata.summary.short.assetChangePctg === 0">
                 {{ $t('ContractValueMaintained') }}
               </template>
-              <template v-else-if="settlementMetadata.summary.hedge.assetChangePctg < 0">
+              <template v-else-if="settlementMetadata.summary.short.assetChangePctg < 0">
                 {{ $t('ContractValueDroppedTo') }}
               </template>
               <template v-else-if="settlementMetadata.summary.assetChangePctg > 0">
                 {{ $t('ContractValueRoseTo') }}
               </template>
               {{  }} <!-- space lol -->
-              <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.assetChangePctg)}` + ' text-weight-medium'">
-                {{ formatUnits(settlementMetadata.hedge.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
+              <span :class="`text-${resolveColor(settlementMetadata.summary.short.assetChangePctg)}` + ' text-weight-medium'">
+                {{ formatUnits(settlementMetadata.short.nominalUnits, oracleInfo.assetDecimals) }} {{ oracleInfo?.assetCurrency }}
               </span>
               {{ $t('ByA') }}
-              <span :class="`text-${resolveColor(settlementMetadata.summary.hedge.actualSatsChange)}` + ' text-weight-medium'">
-                {{ getAssetDenomination(denomination, settlementMetadata.summary.hedge.actualSatsChange / 10 ** 8) }}
+              <span :class="`text-${resolveColor(settlementMetadata.summary.short.actualSatsChange)}` + ' text-weight-medium'">
+                {{ getAssetDenomination(denomination, formatUnits(settlementMetadata.summary.short.actualSatsChange, 8)) }}
               </span>
-              {{ settlementMetadata.summary.hedge.actualSatsChange < 0 ? $t('Loss') : $t('Gain') }}.
+              {{ settlementMetadata.summary.short.actualSatsChange < 0 ? $t('Loss') : $t('Gain') }}.
             </div>
             <div v-else-if="viewAs === 'long'">
               {{ settlementMetadata.summary.long.actualSatsChange < 0 ? $t('YouLost') : $t('YouGained') }}
               <span :class="`text-${resolveColor(settlementMetadata.summary.long.actualSatsChange)}` + ' text-weight-medium'">
-                {{ getAssetDenomination(denomination, settlementMetadata.summary.long.actualSatsChange / 10 ** 8) }}
+                {{ getAssetDenomination(denomination, formatUnits(settlementMetadata.summary.long.actualSatsChange, 8)) }}
               </span>.
             </div>
           </div>
@@ -410,23 +410,23 @@
             <div class="row q-gutter-x-xs items-center">
             <div>{{ $t('Hedge') }}:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
-                <div>{{ getAssetDenomination(denomination, mutualRedemptionData.hedgeSatoshis / 10 ** 8) }}</div>
+                <div>{{ getAssetDenomination(denomination, formatUnits(mutualRedemptionData.shortSatoshis, 8)) }}</div>
                 <div class="q-space">
-                  <q-badge v-if="mutualRedemptionData.hedgeSchnorrSig" color="brandblue">{{ $t('Signed') }}</q-badge>
+                  <q-badge v-if="mutualRedemptionData.shortSchnorrSig" color="brandblue">{{ $t('Signed') }}</q-badge>
                   <q-badge v-else color="grey-7">{{ $t('Pending') }}</q-badge>
                 </div>
-                <q-btn v-if="viewAsHedge && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
+                <q-btn v-if="viewAsShort && !mutualRedemptionData.txHash" icon="more_vert" flat size="sm">
                   <q-menu anchor="bottom right" self="top right" class="text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
-                    <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('hedge')">
+                    <q-item clickable v-ripple v-close-popup @click="signMutualRedemptionConfirm('short')">
                       <q-item-section>
                         <q-item-label>
-                          {{ mutualRedemptionData.hedgeSchnorrSig ? $t('Resubmit') : $t('Accept')  }}
+                          {{ mutualRedemptionData.shortSchnorrSig ? $t('Resubmit') : $t('Accept')  }}
                         </q-item-label>
                       </q-item-section>
                     </q-item>
-                    <q-item clickable v-ripple v-close-popup @click="cancelMutualRedemptionConfirm('hedge')">
+                    <q-item clickable v-ripple v-close-popup @click="cancelMutualRedemptionConfirm('short')">
                       <q-item-section>
-                        <q-item-label>{{ mutualRedemptionData.hedgeSchnorrSig ? $t('Cancel') : $t('Decline') }}</q-item-label>
+                        <q-item-label>{{ mutualRedemptionData.shortSchnorrSig ? $t('Cancel') : $t('Decline') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-menu>
@@ -436,7 +436,7 @@
             <div class="row q-gutter-x-xs items-center">
               <div>{{ $t('Long') }}:</div>
               <div class="row q-gutter-x-xs items-center q-space no-wrap">
-                <div>{{ getAssetDenomination(denomination, mutualRedemptionData.longSatoshis / 10 ** 8) }}</div>
+                <div>{{ getAssetDenomination(denomination, formatUnits(mutualRedemptionData.longSatoshis, 8)) }}</div>
                 <div class="q-space">
                   <q-badge v-if="mutualRedemptionData.longSchnorrSig" color="brandblue">{{ $t('Signed') }}</q-badge>
                   <q-badge v-else color="grey-7">{{ $t('Pending') }}</q-badge>
@@ -461,7 +461,7 @@
             </div>
             <div>
               <q-btn
-                v-if="!mutualRedemptionData.txHash && (viewAsHedge || viewAsLong)"
+                v-if="!mutualRedemptionData.txHash && (viewAsShort || viewAsLong)"
                 no-caps
                 color="brandblue"
                 :label="$t('ProposeAnotherRedemption')"
@@ -545,7 +545,7 @@ async function dialogPromise(qDialogOptions) {
   })
 }
 
-const viewAsHedge = computed(() => props.viewAs === 'hedge')
+const viewAsShort = computed(() => props.viewAs === 'short')
 const viewAsLong = computed(() => props.viewAs === 'long')
 
 const defaultOracleInfo = { assetName: '', assetCurrency: '', assetDecimals: 0 }
@@ -561,7 +561,7 @@ const oracleToSelectedAssetRate = computed(() => {
     selectedMarketCurrency.value,
   )
 })
-const hedgeMarketValue = computed(() => {
+const shortMarketValue = computed(() => {
   const nominalUnits = props.contract?.metadata?.nominalUnits
   if (!isFinite(oracleToSelectedAssetRate.value)) return undefined
   if (!isFinite(nominalUnits)) return undefined
@@ -608,7 +608,7 @@ const durationText = computed(() => {
     {label: 'TildeMonth', multiplier: 86400 * 30,      max: 86400 * 30 * 12 },
     {label: 'Tildeyear',  multiplier: 86400 * 30 * 12, max: Infinity },
   ]
-  const durationInSeconds = props.contract?.metadata?.durationInSeconds
+  const durationInSeconds = parseInt(props.contract?.metadata?.durationInSeconds)
   if (!isFinite(durationInSeconds) || durationInSeconds <= 0) return ''
   const unit = unitOptions.find(unit => durationInSeconds <= unit.max)
   if (!unit) return ''
@@ -624,65 +624,53 @@ const durationText = computed(() => {
 
 const funding = computed(() => {
   if (props.contract?.fundings?.[0]?.fundingTransactionHash) return 'complete'
-  else if (props.contract?.hedgeFundingProposal && props.contract?.longFundingProposal) return 'ready'
-  else if (props.contract?.hedgeFundingProposal || props.contract?.longFundingProposal) return 'partial'
+  else if (props.contract?.shortFundingProposal && props.contract?.longFundingProposal) return 'ready'
+  else if (props.contract?.shortFundingProposal || props.contract?.longFundingProposal) return 'partial'
 
   return 'pending'
 })
 const fundingMetadata = computed(() => {
   const data = {
-    hedge: {
-      total: props.contract?.apiMetadata?.totalHedgeFundingSats || 0,
+    short: {
+      total: parseInt(props.contract?.apiMetadata?.totalShortFundingSats) || 0,
       fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
     long: {
-      total: props.contract?.apiMetadata?.totalLongFundingSats || 0,
+      total: parseInt(props.contract?.apiMetadata?.totalLongFundingSats) || 0,
       fees: { premium: 0, network: 0, service: 0, serviceFees: [] }
     },
-    fees: { network: 0, service: 0, premium: 0, premiumTaker: '', serviceFees: [] }
+    fees: { premium: 0, premiumTaker: '', network: 0, service: 0, serviceFees: [] }
   }
 
   const apiMetadata = props.contract?.apiMetadata
-  if (apiMetadata?.positionTaker === 'hedge') {
-    data.hedge.fees.network = apiMetadata?.networkFee || 0
-    if (Array.isArray(props.contract?.fees)) {
-      data.hedge.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
-      data.hedge.fees.service = props.contract.fees
-        .map(fee => fee?.satoshis)
-        .filter(satoshis => !isNaN(satoshis))
-        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
-    }
-    if (apiMetadata?.liquidityFee) {
-      data.hedge.fees.premium = apiMetadata.liquidityFee
-      data.long.fees.premium = apiMetadata.liquidityFee * -1
-    }
-  } else if (apiMetadata?.positionTaker === 'long') {
-    data.long.fees.network = apiMetadata?.networkFee || 0
-    if (Array.isArray(props.contract?.fees)) {
-      data.long.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
-      data.long.fees.service = props.contract.fees
-        .map(fee => fee?.satoshis)
-        .filter(satoshis => !isNaN(satoshis))
-        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
-    }
-    if (apiMetadata?.liquidityFee) {
-      data.long.fees.premium = apiMetadata.liquidityFee
-      data.hedge.fees.premium = apiMetadata.liquidityFee * -1
-      
-    }
+  let takerFees, makerFees
+  if (apiMetadata?.positionTaker === 'short') {
+    takerFees = data.short
+    makerFees = data.long
+  } else if(apiMetadata?.positionTaker === 'long') {
+    takerFees = data.long
+    makerFees = data.short
   } else {
-    data.fees.network = apiMetadata?.networkFee || 0
-    if (Array.isArray(props.contract?.fees)) {
-      data.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
-      data.fees.service = props.contract?.fees
-        .map(fee => fee?.satoshis)
-        .filter(satoshis => !isNaN(satoshis))
-        .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
-    }
-    data.fees.premium = apiMetadata?.liquidityFee || 0
-    data.fees.premiumTaker = apiMetadata?.positionTaker || 'unknown'
+    takerFees = data.fees
   }
 
+  takerFees.fees.network = parseInt(apiMetadata?.networkFee) || 0
+  if (Array.isArray(props.contract?.fees)) {
+    takerFees.fees.serviceFees = props.contract?.fees.filter(fee=> fee?.address && fee?.satoshis)
+    takerFees.fees.serviceFees.forEach(fee => fee.satoshis = parseInt(fee.satoshis))
+    takerFees.fees.service = props.contract.fees
+      .map(fee => parseInt(fee?.satoshis))
+      .filter(satoshis => !isNaN(satoshis))
+      .reduce((subtotal, satoshis) => subtotal+satoshis, 0)
+  }
+  if (apiMetadata?.liquidityFee) {
+    takerFees.fees.premium = parseInt(apiMetadata.liquidityFee)
+    if (makerFees) {
+      makerFees.fees.premium = takerFees.fees.premium * -1
+    } else {
+      takerFees.premiumTaker = apiMetadata?.positionTaker
+    }
+  }
   return data
 })
 
@@ -690,13 +678,13 @@ const calculatedFundingAmounts = computed(() => {
   return calculateContractFundingWithFees({
     contractData: props.contract,
     position: props.contract?.apiMetadata?.positionTaker,
-    liquidityFee: props.contract?.apiMetadata?.liquidityFee,
+    liquidityFee: parseInt(props.contract?.apiMetadata?.liquidityFee),
   })
 })
 const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
-const settled = computed(() => props.contract?.settlements?.[0]?.settlementTransactionHash)
+const settled = computed(() => props.contract?.fundings?.map(funding => funding?.settlement?.settlementTransactionHash).find(Boolean))
 const summaryDataAvailable = computed(() => {
-  if (props.viewAs === 'hedge' && settlementMetadata.value.summary.hedge) return true
+  if (props.viewAs === 'short' && settlementMetadata.value.summary.short) return true
   if (props.viewAs === 'long' && settlementMetadata.value.summary.long) return true
   return false
 })
@@ -765,6 +753,7 @@ async function fundHedgeProposal(position) {
     persistent: true, // we want the user to not be able to close it
     seamless: true,
     ok: false, // we want the user to not be able to close it
+    color: 'brandblue',
     class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
 
@@ -783,15 +772,16 @@ async function fundHedgeProposal(position) {
 
   try {
     dialog.update({ message: $t('CalculatingFundingAmount') })
-    const { hedge, long } = calculateFundingAmounts(props.contract, positionTaker, 0)
+    const { short, long } = calculateFundingAmounts(props.contract, positionTaker, 0)
     let amount
-    if (position === 'hedge') amount = Math.round(hedge)/10**8
-    else if (position === 'long') amount = Math.round(long) / 10 ** 8
+    if (position === 'short') amount = Math.round(parseInt(short))/10**8
+    else if (position === 'long') amount = Math.round(parseInt(long)) / 10 ** 8
     const dialogTitle = `Fund ${position} position`
     await dialogPromise({
       title: $t(dialogTitle),
       message: `${$t('PreparingUTXOAmount')} ${amount} BCH`,
       cancel: { label: $t('Cancel') },
+      color: 'brandblue',
       class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
     })
     await dialogPromise({component: SecurityCheckDialog})
@@ -918,8 +908,8 @@ async function completeFunding() {
 }
 
 async function verifyFundingProposalUtxo(position) {
-  if (position !== 'hedge' && position !== 'long') return
-  const fundingProposal = position === 'hedge' ? props?.contract?.hedgeFundingProposal : props?.contract?.longFundingProposal
+  if (position !== 'short' && position !== 'long') return
+  const fundingProposal = position === 'short' ? props?.contract?.shortFundingProposal : props?.contract?.longFundingProposal
   $q.dialog({
     component: VerifyFundingProposalDialog,
     componentProps: { position, fundingProposal }
@@ -939,9 +929,9 @@ async function verifyFundingProposalUtxo(position) {
 
 const mutualRedemptionAllowed = computed(() => {
   return props.contract?.parameters?.enableMutualRedemption &&
-    props.contract?.hedgeWalletHash &&
+    props.contract?.shortWalletHash &&
     props.contract?.longWalletHash && 
-    (viewAsHedge.value || viewAsLong.value)
+    (viewAsShort.value || viewAsLong.value)
 })
 function openCreateMutualRedemptionFormDialog() {
   $q.dialog({
@@ -954,9 +944,9 @@ const mutualRedemptionData = computed(() => {
     exists: false,
     redemptionType: 'arbitrary',
     redemptionTypeLabel: 'Arbitrary',
-    hedgeSatoshis: 0,
-    longSatoshis: 0,
-    hedgeSchnorrSig: '',
+    shortSatoshis: 0n,
+    longSatoshis: 0n,
+    shortSchnorrSig: '',
     longSchnorrSig: '',
     txHash: '',
     settlementPrice: undefined,
@@ -966,21 +956,21 @@ const mutualRedemptionData = computed(() => {
   if (props?.contract?.mutualRedemption) data.exists = true
 
   data.initiator = props?.contract?.mutualRedemption?.initiator
-  data.hedgeSatoshis = props?.contract?.mutualRedemption?.hedge_satoshis || 0
-  data.longSatoshis = props?.contract?.mutualRedemption?.long_satoshis || 0
-  data.txHash = props?.contract?.mutualRedemption?.tx_hash || ''
-  data.settlementPrice = props?.contract?.mutualRedemption?.settlement_price || 0
+  data.shortSatoshis = props?.contract?.mutualRedemption?.shortSatoshis || 0n
+  data.longSatoshis = props?.contract?.mutualRedemption?.longSatoshis || 0n
+  data.txHash = props?.contract?.mutualRedemption?.txHash || ''
+  data.settlementPrice = props?.contract?.mutualRedemption?.settlementPrice || 0n
 
-  if (typeof props?.contract?.mutualRedemption?.redemption_type === 'string') {
-    data.redemptionType = props.contract.mutualRedemption.redemption_type
+  if (typeof props?.contract?.mutualRedemption?.redemptionType === 'string') {
+    data.redemptionType = props.contract.mutualRedemption.redemptionType
     data.redemptionTypeLabel = (data.redemptionType.charAt(0).toUpperCase() + data.redemptionType.substring(1)).replace('_', ' ')
   }
-  if (typeof props?.contract?.mutualRedemption?.hedge_schnorr_sig === 'string') {
-    data.hedgeSchnorrSig = props.contract.mutualRedemption.hedge_schnorr_sig
+  if (typeof props?.contract?.mutualRedemption?.shortSchnorrSig === 'string') {
+    data.shortSchnorrSig = props.contract.mutualRedemption.shortSchnorrSig
   }
 
-  if (typeof props?.contract?.mutualRedemption?.long_schnorr_sig === 'string') {
-    data.longSchnorrSig = props.contract.mutualRedemption.long_schnorr_sig
+  if (typeof props?.contract?.mutualRedemption?.longSchnorrSig === 'string') {
+    data.longSchnorrSig = props.contract.mutualRedemption.longSchnorrSig
   }
   return data
 })
@@ -1065,7 +1055,7 @@ async function signMutualRedemption(position) {
         break;
       case 'arbitrary':
         signMutualPayoutResponse = await signArbitraryPayout(
-          props?.contract, privkey, mutualRedemptionData.value.hedgeSatoshis, mutualRedemptionData.value.longSatoshis)
+          props?.contract, privkey, mutualRedemptionData.value.shortSatoshis, mutualRedemptionData.value.longSatoshis)
         break;
       default:
         throw new Error('Invalid redemption type')
@@ -1098,18 +1088,18 @@ async function signMutualRedemption(position) {
     return
   }
 
-  const hedgePayoutAddress = props?.contract?.metadata?.hedgePayoutAddress
+  const shortPayoutAddress = props?.contract?.metadata?.shortPayoutAddress
   const longPayoutAddress = props?.contract?.metadata?.longPayoutAddress
-  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgePayoutAddress)?.amount
+  const signedShortSats = transactionProposal?.outputs?.find(output => output?.to === shortPayoutAddress)?.amount
   const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longPayoutAddress)?.amount
 
-  if (signedHedgeSats !== mutualRedemptionData.value.hedgeSatoshis) {
+  if (signedShortSats !== mutualRedemptionData.value.shortSatoshis) {
     dialog.update({
       title: $t('MutualRedemptionSigningError'),
       message: $t(
         'InvalidHedgeSatoshis',
-        { amount: signedHedgeSats },
-        `Invalid hedge satoshis, expected ${signedHedgeSats}`
+        { amount: signedShortSats },
+        `Invalid hedge satoshis, expected ${signedShortSats}`
       ),
       progress: false,
       persistent: false,
@@ -1123,7 +1113,7 @@ async function signMutualRedemption(position) {
       title: $t('MutualRedemptionSigningError'),
       message: $t(
         'InvalidHedgeSatoshis',
-        { amount: signedHedgeSats },
+        { amount: signedShortSats },
         `Invalid hedge satoshis, expected ${signedLongSats}`
       ),
       progress: false,
@@ -1133,13 +1123,13 @@ async function signMutualRedemption(position) {
     return
   }
 
-  const hedgeSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['hedge_key.schnorr_signature.all_outputs'])?.['hedge_key.schnorr_signature.all_outputs']
+  const shortSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['hedge_key.schnorr_signature.all_outputs'])?.['hedge_key.schnorr_signature.all_outputs']
   const longSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['long_key.schnorr_signature.all_outputs'])?.['long_key.schnorr_signature.all_outputs']
   const data = {
     redemption_type: mutualRedemptionData.value.redemptionType,
-    hedge_satoshis: mutualRedemptionData.value.hedgeSatoshis,
+    hedge_satoshis: mutualRedemptionData.value.shortSatoshis,
     long_satoshis: mutualRedemptionData.value.longSatoshis,
-    hedge_schnorr_sig: hedgeSchnorrSig || undefined,
+    hedge_schnorr_sig: shortSchnorrSig || undefined,
     long_schnorr_sig: longSchnorrSig || undefined,
     settlement_price: undefined,
   }
@@ -1182,8 +1172,8 @@ async function signMutualRedemption(position) {
 }
 
 async function signMutualRedemptionConfirm(position) {
-  const message = `Hedge payout: ${mutualRedemptionData.value.hedgeSatoshis / 10 ** 8} BCH<br/>` +
-                  `Long payout: ${mutualRedemptionData.value.longSatoshis / 10 ** 8} BCH<br/>` +
+  const message = `Short payout: ${formatUnits(mutualRedemptionData.value.shortSatoshis, 8)} BCH<br/>` +
+                  `Long payout: ${formatUnits(mutualRedemptionData.value.longSatoshis, 8)} BCH<br/>` +
                   'Are you sure?'
   await dialogPromise({
     title: $t('SignMutualRedemption'),
@@ -1213,8 +1203,8 @@ async function cancelMutualRedemption(position) {
   let signature
   try {
     const privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
-    const message = initiator === 'hedge'
-      ? mutualRedemptionData.value.hedgeSchnorrSig
+    const message = initiator === 'short'
+      ? mutualRedemptionData.value.shortSchnorrSig
       : mutualRedemptionData.value.longSchnorrSig
     signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
   } catch(error) {
@@ -1275,7 +1265,7 @@ const isCancelled = computed(() => props.contract?.cancelled?.at > 0)
 const canCancelContract = computed(() => {
   return !props.contract?.fundingTxHash &&
     !props.contract?.cancelled?.at &&
-    (viewAsHedge.value || viewAsLong.value)
+    (viewAsShort.value || viewAsLong.value)
 })
 async function cancelContract(position) {
   const dialog = $q.dialog({
@@ -1286,7 +1276,8 @@ async function cancelContract(position) {
     progress: true,
     html: true,
     ok: false,
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   const data = {
@@ -1346,6 +1337,7 @@ async function cancelContractConfirm(position) {
     html: true,
     ok: { label: $t('OK') },
     cancel: { label: $t('Cancel') },
+    color: 'brandblue',
     class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
