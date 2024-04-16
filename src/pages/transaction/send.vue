@@ -254,6 +254,9 @@
                 <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
                   ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
                 </p>
+                <p v-else class="amount-fiat-label">
+                  ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
+                </p>
               </template>
 
               <p class="to-label">{{ $t('To') }}</p>
@@ -1650,7 +1653,7 @@ export default {
       margin-top: -10px;
     }
     .amount-fiat-label {
-      font-size: 28px;
+      font-size: 25px;
       margin-top: -15px;
     }
     .to-label {
