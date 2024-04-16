@@ -63,7 +63,6 @@ import sss from 'shamirs-secret-sharing'
 import html2canvas from 'html2canvas'
 
 import { Camera } from '@capacitor/camera'
-// import { Filesystem, Directory } from '@capacitor/filesystem'
 import { toHex } from 'hex-my-bytes'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
@@ -168,10 +167,8 @@ export default {
       })
     },
     async saveToMobile (image, fileName) {
-      const { Plugins } = window.Capacitor
-      Plugins.Screenshot.capture()
       if (this.$q.platform.is.android) {
-        const filePath = `${cordova.file.externalRootDirectory}/Pictures/Paytaca/${fileName}`
+        const filePath = `${cordova.file.externalRootDirectory}Pictures/${fileName}`
         // eslint-disable-next-line no-undef
         const fileTransfer = new FileTransfer()
         try {
@@ -185,25 +182,6 @@ export default {
           console.log(error)
           this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
         }
-        /*
-        const base64Data = image.replace(/^data:image\/png;base64,/, '')
-
-        try {
-          await Filesystem.writeFile({
-            path: fileName,
-            data: base64Data,
-            // trying to save to Directory.Documents or Directory.ExternalStorage
-            // causes saving to fail because of user permissions
-            // https://github.com/ionic-team/capacitor-plugins/issues/1512
-            // currently save to Directory.Cache to allow saved
-            // images to persist even if the app is uninstalled
-            directory: Directory.Cache
-          })
-          this.displayNotif('QR code image saved successfully.', 'blue-9', 'mdi-qrcode-plus')
-        } catch (error) {
-          this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
-        }
-        */
       } else if (this.$q.platform.is.ios) {
         try {
           await Camera.savePhoto({
