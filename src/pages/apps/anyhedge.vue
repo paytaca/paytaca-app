@@ -986,31 +986,32 @@ function refetchHedgePositionOffer(hedgeOfferId) {
 
 
 const updatedOracles = ref(false)
-watch(showCreateHedgeForm, () => {
-  if (!updatedOracles.value) {
-    anyhedgeBackend.get('anyhedge/oracles/')
-      .then(response => {
-        if (Array.isArray(response?.data?.results)) {
-          response.data.results.forEach(oracle => {
-            if (!oracle) return
+function updateOracles() {
+  if (updatedOracles.value) return
+  return anyhedgeBackend.get('anyhedge/oracles/')
+    .then(response => {
+      if (Array.isArray(response?.data?.results)) {
+        response.data.results.forEach(oracle => {
+          if (!oracle) return
 
-            const mutationPayload = {
-              active: oracle.active,
-              pubkey: oracle.pubkey,
-              assetName: oracle.asset_name,
-              assetCurrency: oracle.asset_currency,
-              assetDecimals: oracle.asset_decimals
-            }
-            $store.commit('anyhedge/setOracle', mutationPayload)
+          const mutationPayload = {
+            active: oracle.active,
+            pubkey: oracle.pubkey,
+            assetName: oracle.asset_name,
+            assetCurrency: oracle.asset_currency,
+            assetDecimals: oracle.asset_decimals
+          }
+          $store.commit('anyhedge/setOracle', mutationPayload)
 
-            const dispatchPayload = { oraclePubkey: mutationPayload.pubkey, checkTimestampAge: true }
-            $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
-          })
-          updatedOracles.value = true
-        }
-      })
-  }
-})
+          const dispatchPayload = { oraclePubkey: mutationPayload.pubkey, checkTimestampAge: true }
+          $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
+        })
+        updatedOracles.value = true
+      }
+    })
+}
+watch(showCreateHedgeForm, () => updateOracles())
+onMounted(() => updateOracles())
 
 
 function refetchContract(contractAddress) {
