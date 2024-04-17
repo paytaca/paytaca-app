@@ -1,4 +1,5 @@
 import { AnyHedgeManager, ContractData } from '@generalprotocols/anyhedge'
+import { castBigIntSafe } from './utils'
 
 /**
  * 
@@ -14,7 +15,7 @@ export async function signMutualRefund(contractData, privateKey) {
     contractFunding: contractData?.fundings?.[0],
     contractParameters: contractData?.parameters,
     contractMetadata: contractData?.metadata,
-    hedgeRefundAddress: contractData?.metadata?.hedgePayoutAddress,
+    shortRefundAddress: contractData?.metadata?.shortPayoutAddress,
     longRefundAddress: contractData?.metadata?.longPayoutAddress,
   }
 
@@ -42,8 +43,9 @@ export async function signMutualEarlyMaturation(contractData,  privateKey, settl
   const signMutualEarlyMaturationData = {
     privateKeyWIF: privateKey,
     contractFunding: contractData?.fundings?.[0],
-    settlementPrice: settlementPrice,
+    settlementPrice: castBigIntSafe(settlementPrice),
     contractParameters: contractData?.parameters,
+    contractMetadata: contractData?.metadata,
   }
 
   try {
@@ -62,22 +64,22 @@ export async function signMutualEarlyMaturation(contractData,  privateKey, settl
  * 
  * @param {ContractData} contractData 
  * @param {String} privateKey 
- * @param {Number} hedgeSatoshis 
+ * @param {Number} shortSatoshis 
  * @param {Number} longSatoshis 
  */
- export async function signArbitraryPayout(contractData, privateKey, hedgeSatoshis, longSatoshis) {
+ export async function signArbitraryPayout(contractData, privateKey, shortSatoshis, longSatoshis) {
   const response = { success: false, error: undefined, proposal: undefined }
   const manager = new AnyHedgeManager()
 
   const transactionProposal = {
     inputs: [{
       txid: contractData?.fundings?.[0]?.fundingTransactionHash,
-      vout: contractData?.fundings?.[0]?.fundingOutputIndex,
+      vout: parseInt(contractData?.fundings?.[0]?.fundingOutputIndex),
       satoshis: contractData?.fundings?.[0]?.fundingSatoshis,
     }],
     outputs: [
-      { to: contractData?.metadata?.hedgePayoutAddress, amount: hedgeSatoshis },
-      { to: contractData?.metadata?.longPayoutAddress, amount: longSatoshis },
+      { to: contractData?.metadata?.shortPayoutAddress, amount: castBigIntSafe(shortSatoshis) },
+      { to: contractData?.metadata?.longPayoutAddress, amount: castBigIntSafe(longSatoshis) },
     ],
   }
 

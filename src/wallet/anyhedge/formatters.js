@@ -324,7 +324,7 @@ export async function parseHedgePositionData(data) {
         ? 'short' : mutualRedemption?.initiator,
       redemptionType: mutualRedemption?.redemption_type,
       shortSatoshis: castBigIntSafe(mutualRedemption?.short_satoshis),
-      longSatoshis: castBigIntSafe(mutualRedemption?.long_schnorr_sig),
+      longSatoshis: castBigIntSafe(mutualRedemption?.long_satoshis),
       shortSchnorrSig: mutualRedemption?.short_schnorr_sig,
       longSchnorrSig: mutualRedemption.long_schnorr_sig,
       settlementPrice: castBigIntSafe(mutualRedemption.settlement_price),
@@ -406,11 +406,11 @@ export function parseSettlementMetadata(contract) {
     data.settlementType = settlement?.settlementType || ''
     data.settlementTypeText = capitalize(data.settlementType).replace('_', ' ').trim()
 
-    if (data.settlementType === 'mutual' && settlement?.settlementTransactionHash === contract?.mutualRedemption?.tx_hash) {
-      data.mutualRedemptionTypeText = contract?.mutualRedemption?.redemption_type || ''
+    if (data.settlementType === 'mutual' && settlement?.settlementTransactionHash === contract?.mutualRedemption?.txHash) {
+      data.mutualRedemptionTypeText = contract?.mutualRedemption?.redemptionType || ''
       data.mutualRedemptionTypeText = capitalize(data.mutualRedemptionTypeText).replace('_', ' ').trim()
-      if (!data.settlementPriceValue && contract?.mutualRedemption?.settlement_price) {
-        data.settlementPriceValue = contract?.mutualRedemption?.settlement_price
+      if (!data.settlementPriceValue && contract?.mutualRedemption?.settlementPrice) {
+        data.settlementPriceValue = contract?.mutualRedemption?.settlementPrice
       }
     }
 

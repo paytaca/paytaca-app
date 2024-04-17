@@ -754,7 +754,7 @@ async function fundHedgeProposal(position) {
     seamless: true,
     ok: false, // we want the user to not be able to close it
     color: 'brandblue',
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   const getAddressesResponse = await getAddresses()
@@ -782,7 +782,7 @@ async function fundHedgeProposal(position) {
       message: `${$t('PreparingUTXOAmount')} ${amount} BCH`,
       cancel: { label: $t('Cancel') },
       color: 'brandblue',
-      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
     })
     await dialogPromise({component: SecurityCheckDialog})
   } catch(error) {
@@ -866,7 +866,8 @@ async function completeFunding() {
     seamless: true,
     persistent: true, // we want the user to not be able to close it
     ok: false, // we want the user to not be able to close it
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   anyhedgeBackend.post(`anyhedge/hedge-positions/${props.contract.address}/complete_funding/`)
     .then(response => {
@@ -920,7 +921,8 @@ async function verifyFundingProposalUtxo(position) {
         message: $t('ResubmitProposal'),
         seamless: true,
         cancel: $t('Cancel'),
-        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        color: 'brandblue',
+        class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
         .onOk(() => fundHedgeProposal(position))
     }
@@ -992,7 +994,8 @@ async function signMutualRedemption(position) {
     progress: true,
     html: true,
     ok: false,
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   if (!props?.contract?.funding?.[0]?.fundingSatoshis) {
@@ -1103,6 +1106,7 @@ async function signMutualRedemption(position) {
       ),
       progress: false,
       persistent: false,
+      color: 'brandblue',
       ok: { label: $t('OK') }
     })
     return
@@ -1118,18 +1122,19 @@ async function signMutualRedemption(position) {
       ),
       progress: false,
       persistent: false,
+      color: 'brandblue',
       ok: { label: $t('OK') }
     })
     return
   }
 
-  const shortSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['hedge_key.schnorr_signature.all_outputs'])?.['hedge_key.schnorr_signature.all_outputs']
+  const shortSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['short_key.schnorr_signature.all_outputs'])?.['short_key.schnorr_signature.all_outputs']
   const longSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['long_key.schnorr_signature.all_outputs'])?.['long_key.schnorr_signature.all_outputs']
   const data = {
     redemption_type: mutualRedemptionData.value.redemptionType,
-    hedge_satoshis: mutualRedemptionData.value.shortSatoshis,
+    short_satoshis: mutualRedemptionData.value.shortSatoshis,
     long_satoshis: mutualRedemptionData.value.longSatoshis,
-    hedge_schnorr_sig: shortSchnorrSig || undefined,
+    short_schnorr_sig: shortSchnorrSig || undefined,
     long_schnorr_sig: longSchnorrSig || undefined,
     settlement_price: undefined,
   }
@@ -1181,7 +1186,8 @@ async function signMutualRedemptionConfirm(position) {
     html: true,
     ok: { label: $t('OK') },
     cancel: { label: $t('Cancel') },
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
   signMutualRedemption(position)
@@ -1197,7 +1203,8 @@ async function cancelMutualRedemption(position) {
     progress: true,
     html: true,
     ok: false,
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   let signature
@@ -1255,7 +1262,8 @@ async function cancelMutualRedemptionConfirm(position) {
     html: true,
     ok: { label: $t('OK') },
     cancel: { label: $t('Cancel') },
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
   cancelMutualRedemption(position)
@@ -1338,7 +1346,7 @@ async function cancelContractConfirm(position) {
     ok: { label: $t('OK') },
     cancel: { label: $t('Cancel') },
     color: 'brandblue',
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
   cancelContract(position)
