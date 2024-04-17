@@ -60,8 +60,8 @@
           <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-if="convo.messages.length !== 0 && isloaded">
-          <div v-for="(message, index) in convo.messages" :key="index" class="q-pt-xs">
-            <q-item>
+          <div v-for="(message, index) in convo.messages" :key="index" class="">
+            <!-- <q-item> -->
               <q-item-section>
                 <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
                   <div v-if="message.message" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
@@ -173,10 +173,10 @@
                   </div>
                 </div>
               </q-item-section>
-            </q-item>
+            <!-- </q-item> -->
           </div>
         </div>
-        <div v-if="isTyping" class="q-px-sm q-mx-lg">
+        <!-- <div v-if="isTyping" class="q-px-sm q-mx-lg">
           <div style="width: 100%;">
             <q-chat-message
               name="me"
@@ -190,12 +190,12 @@
               </div>
             </q-chat-message>
           </div>
-        </div>
+        </div> -->
       </q-infinite-scroll>
     </q-list>
 
     <!-- Message Input -->
-    <div class="row q-py-sm q-px-sm">
+    <div v-if="!completedOrder" class="row q-py-sm q-px-sm" :class="getDarkModeClass(darkMode)">
       <q-input
         :loading="sendingMessage"
         :disable="!isloaded"
@@ -222,6 +222,7 @@
       </q-input>
       <q-icon :color="darkMode ? 'grey-3' : 'primary'" size="lg" name='sym_o_send' @click="sendMessage(true)"/>&nbsp;
     </div>
+    <div v-else class="row q-pt-lg q-px-sm text-bow justify-center" :class="getDarkModeClass(darkMode)">The chat session has ended</div>
     <q-file
       v-show="false"
       ref="fileAttachmentField"
@@ -284,7 +285,8 @@ import {
   sendChatMessage,
   fetchChatMessages,
   generateChatRef,
-  updateChatIdentity
+  updateChatIdentity,
+  updateLastRead
 } from 'src/wallet/ramp/chat'
 import { ChatMessage } from 'src/wallet/ramp/chat/objects'
 import { formatDate } from 'src/wallet/ramp'
@@ -294,6 +296,7 @@ import { vElementVisibility } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
 import { getKeypair } from 'src/wallet/ramp/chat/keys'
+import { bus } from 'src/wallet/event-bus'
 
 export default {
   directives: {
@@ -343,6 +346,16 @@ export default {
       tempMessage,
 
       resetScroll,
+      stopInfiniteScroll () {
+        setTimeout(() => {
+          infiniteScroll.value.stop()
+        }, 1000)
+      },
+      resumeInfiniteScroll () {
+        setTimeout(() => {
+          infiniteScroll.value.resume()
+        }, 1000)
+      },
       openFileAttachementField (evt) {
         fileAttachmentField.value?.pickFiles?.(evt)
       },
@@ -350,7 +363,6 @@ export default {
         if (isloaded.value && !loadMessage.value) {
           if (totalMessages.value > offset.value) {
             setTimeout(() => {
-              // console.log('Loading More Messages ')
               fetchChatMessages(chatRef.value, offset.value, 10)
                 .then(data => {
                   scrollSnapshot.value = infiniteScroll.value.$el.clientHeight
@@ -379,8 +391,6 @@ export default {
       openChat: true,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: process.env.MARKETPLACE_WS_URL,
-      websocket: null,
       openImage: false,
       selectedImage: null,
       sendingMessage: false,
@@ -437,15 +447,15 @@ export default {
     }
   },
   emits: ['close'],
+  created () {
+    bus.on('new-message', this.onNewMessage)
+  },
   async mounted () {
     // Set Data Here
     this.chatRef = generateChatRef(this.data.id, this.data.created_at)
+    this.stopInfiniteScroll()
     this.loadKeyPair()
-    this.setupWebsocket()
     this.loadChatSession()
-  },
-  beforeUnmount () {
-    this.closeWSConnection()
   },
   computed: {
     userName () {
@@ -454,6 +464,9 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    completedOrder () {
+      return ['CNCL', 'RLS', 'RFN'].includes(this.data?.status?.value)
     }
   },
   methods: {
@@ -467,48 +480,24 @@ export default {
       this.selectedImage = image
       this.openImage = true
     },
-    async setupWebsocket () {
+    async onNewMessage (messageData) {
       const vm = this
-      console.log('setting up websocket')
-      const wsUrl = `${vm.wsURL}${vm.chatRef}/`
-      this.websocket = new WebSocket(wsUrl)
-
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-
-      this.websocket.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data)
-        console.log('WebSocket data:', parsedData)
-
-        if (parsedData?.type === 'new_message') {
-          const messageData = parsedData.data
-          // RECEIVE MESSAGE
-          new Promise((resolve, reject) => {
-            const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
-            resolve(decMes)
-          })
-            .then(item => {
-              const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
-              item.chatIdentity.is_user = item.chatIdentity.ref === ref
-              this.convo.messages.push(item)
-              this.offset++
-              this.totalMessages++
-            })
-            .finally(() => {
-              this.resetScroll()
-            })
-        }
-      }
-
-      this.websocket.onclose = () => {
-        console.log('Chat WebSocket connection closed.')
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
+      return new Promise((resolve, reject) => {
+        const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
+        resolve(decMes)
+      })
+        .then(item => {
+          const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+          item.chatIdentity.is_user = item.chatIdentity.ref === ref
+          this.convo.messages.push(item)
+          this.offset++
+          this.totalMessages++
+        })
+        .finally(async () => {
+          await updateLastRead(vm.chatRef, vm.convo.messages)
+          bus.emit('last-read-update')
+          vm.resetScroll()
+        })
     },
     async loadKeyPair () {
       this.keypair = await getKeypair().catch(console.error)
@@ -589,10 +578,21 @@ export default {
           .finally(() => {
             setTimeout(() => {
               vm.resetScroll()
+              this.resumeInfiniteScroll()
             }, 1000)
           })
+
+        // Update last read
+        await updateLastRead(vm.chatRef, vm.convo.messages)
+        bus.emit('last-read-update')
         vm.isloaded = true
       })
+        .catch(error => {
+          console.error(error.response)
+          // if (error.response.status === 403) {
+          //   bus.emit('session-expired')
+          // }
+        })
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {

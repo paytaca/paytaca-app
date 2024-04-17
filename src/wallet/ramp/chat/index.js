@@ -27,7 +27,7 @@ export async function createChatIdentity (payload) {
   return new Promise((resolve, reject) => {
     chatBackend.post('chat/identities/', payload)
       .then(response => {
-        console.log('New chat identity:', response.data)
+        // console.log('New chat identity:', response.data)
         resolve(response.data)
       })
       .catch(error => {
@@ -48,7 +48,7 @@ export async function fetchChatIdentity (ref) {
         let identity = null
         if (response.data?.results?.length > 0) {
           identity = response.data?.results[0]
-          console.log('Chat identity:', identity)
+          // console.log('Chat identity:', identity)
         }
         resolve(identity)
       })
@@ -126,7 +126,7 @@ export async function fetchChatSession (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
       .then(response => {
-        // console.log('Chat session:', response.data)
+        console.log('Chat session:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -161,7 +161,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
 
 export async function fetchChatMembers (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/members/?chat_ref=${chatRef}`, { forceSign: true })
+    chatBackend.get(`chat/members/full_info/?chat_ref=${chatRef}`, { forceSign: true })
       .then(response => {
         // console.log('Fetched chat members:', response)
         resolve(response.data.results)
@@ -175,6 +175,21 @@ export async function fetchChatMembers (chatRef) {
         reject(error)
       })
   })
+}
+
+export async function updateLastRead (chatRef, messages) {
+  const msgTimestamps = messages
+    .map(message => message.createdAt * 1)
+    .filter(Boolean)
+  const latest = Math.max(...msgTimestamps)
+  const data = {
+    last_read_timestamp: new Date(latest + 1000)
+  }
+  return chatBackend.post(`chat/sessions/${chatRef}/chat_member/`, data, { forceSign: true })
+    .then(response => {
+      // console.log('Updated last read timestamp')
+      return response
+    })
 }
 
 export function sendChatMessage (data, signData) {
@@ -246,19 +261,21 @@ async function getKeypairSeed () {
   return privkey
 }
 
-export async function updateOrCreateKeypair () {
-  console.log('Updating chat keypair')
+export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
+  console.log('Updating chat keypair [opts]:', opts)
   const seed = await getKeypairSeed()
-  const keypair = generateKeypair({ seed })
+  const keypair = generateKeypair({ seed: seed })
 
-  await updatePubkey(keypair.pubkey)
-    .catch(error => {
-      console.error(error)
-      if (error.response) {
-        console.error(error.response)
-      }
-      return Promise.reject('Failed to save pubkey to server')
-    })
+  if (opts?.updatePubkey) {
+    await updatePubkey(keypair.pubkey)
+      .catch(error => {
+        console.error(error)
+        if (error.response) {
+          console.error(error.response)
+        }
+        return Promise.reject('Failed to save pubkey to server')
+      })
+  }
 
   await savePrivkey(keypair.privkey)
     .catch(error => {

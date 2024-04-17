@@ -38,10 +38,16 @@ const SIGNER_STORAGE_KEY = 'ramp-api-customer-signer-data'
 export async function signRequestData (data) {
   const response = { walletHash: '', signature: '' }
   const { value } = await getSignerData()
-  if (!value) return response
+  if (!value) {
+    console.error('signRequestData value undefined')
+    return response
+  }
 
   const [walletHash, privkey] = value.split(':')
-  if (!walletHash || !privkey) return response
+  if (!walletHash || !privkey) {
+    console.error('signRequestData undefined walletHash || privkey')
+    return response
+  }
   response.walletHash = walletHash
 
   response.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
@@ -59,7 +65,7 @@ export async function getSignerData () {
 
 export async function setSignerData (value = '') {
   try {
-    if (value === undefined) {
+    if (!value) {
       const removeResp = await SecureStoragePlugin.remove({ key: SIGNER_STORAGE_KEY })
       return { success: removeResp.value }
     }
@@ -74,6 +80,7 @@ export async function setSignerData (value = '') {
 
 export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0) {
   console.log('Updating signer data')
+
   const wallet = loadRampWallet()
   const walletHash = wallet?.walletHash
 
@@ -99,7 +106,8 @@ export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0
   const valid = await (await wallet.raw()).verifyMessage(address, signature, message)
   if (!valid) return Promise.reject('Invalid signature on updateSignerData')
 
-  setSignerData(`${walletHash}:${privkey}`)
+  const result = await setSignerData(`${walletHash}:${privkey}`)
+  console.log('setSignerData result:', result)
 }
 
 async function resolveMatchingKeypair (wallet, currentVerifyingPubkey, endIndex) {
@@ -144,4 +152,8 @@ async function updateVerifyingPubkey (wallet, keypair, verifyingPubkey, index) {
     .catch(error => {
       console.error(error.response)
     })
+}
+
+export function getChatBackendWsUrl () {
+  return process.env.MARKETPLACE_WS_URL || ''
 }

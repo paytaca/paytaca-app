@@ -554,7 +554,7 @@ export default {
         account_identifier: '',
         format: ''
       },
-      ptl: [5, 15, 30, 60, 300, 720, 1440],
+      ptl: [15, 30, 45, 60],
       paymentTypes: this.$store.getters['ramp/paymentTypes'],
       paymentMethodOpts: [],
       selectedPaymentMethods: [],
@@ -562,7 +562,7 @@ export default {
       priceTypeOpts: ['FIXED', 'FLOATING'],
       storeFilters: {
         selectedPaymentTypes: [],
-        selectedPTL: [5, 15, 30, 60, 300, 720, 1440],
+        selectedPTL: [15, 30, 45, 60],
         priceOrder: null,
         priceTypes: ['FIXED', 'FLOATING']
       },
@@ -571,7 +571,7 @@ export default {
         sort_by: 'created_at',
         status: [],
         payment_types: [],
-        time_limits: [5, 15, 30, 60, 300, 720, 1440],
+        time_limits: [15, 30, 45, 60],
         ownership: {
           owned: true,
           notOwned: true

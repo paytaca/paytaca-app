@@ -43,26 +43,19 @@
             <div class="row q-py-sm q-gutter-sm q-px-md sm-font-size">
               <div class="col-4">
                 <div class="q-pl-sm q-pb-xs">Fiat Currency</div>
-                <q-select
+                <q-input
                   dense
                   rounded
+                  :disable="readOnlyState"
                   outlined
                   :dark="darkMode"
-                  v-model="selectedCurrency"
-                  :options="fiatCurrencies"
-                  option-label="symbol"
-                  @update:model-value="updateFiatCurrency()"
+                  v-model="selectedCurrency.symbol"
+                  @click="showCurrencySelect"
                 >
-                  <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
-                      <q-item-section>
-                        <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                          {{ scope.opt.name }} ({{ scope.opt.symbol }})
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
+                  <template v-slot:append>
+                    <q-icon size="sm" name='mdi-menu-down' @click="showCurrencySelect"/>
                   </template>
-                </q-select>
+                </q-input>
               </div>
               <div class="col">
                 <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price' }}</div>
@@ -240,6 +233,7 @@
     <AddPaymentMethods
       :type="'Ads'"
       :confirm-label="'Next'"
+      :currency="adData.fiatCurrency.symbol"
       :currentPaymentMethods="adData.paymentMethods"
       v-on:submit="appendPaymentMethods"
       @back="step--"
@@ -268,6 +262,7 @@ import AddPaymentMethods from './AddPaymentMethods.vue'
 import DisplayConfirmation from './DisplayConfirmation.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
+import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { debounce } from 'quasar'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { bus } from 'src/wallet/event-bus.js'
@@ -379,7 +374,8 @@ export default {
         }
       },
       title: '',
-      text: ''
+      text: '',
+      readOnlyState: false
     }
   },
   props: {
@@ -455,6 +451,24 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    showCurrencySelect () {
+      this.readOnlyState = true
+      this.$q.dialog({
+        component: CurrencyFilterDialog,
+        componentProps: {
+          fiatList: this.fiatCurrencies
+        }
+      })
+        .onOk(currency => {
+          // const index = this.fiatCurrencies.indexOf(currency)
+          this.selectedCurrency = currency
+          this.updateFiatCurrency()
+          this.readOnlyState = false
+        })
+        .onDismiss(() => {
+          this.readOnlyState = false
+        })
+    },
     openInstructionDialog (type) {
       const temp = this.instruction[type]
       this.title = temp.title
@@ -485,6 +499,8 @@ export default {
           // price
           if (vm.adData.priceType === 'FLOATING') {
             vm.priceValue = vm.adData.floatingPrice
+          } else if (vm.adData.priceType === 'FIXED') {
+            vm.priceValue = vm.adData.fixedPrice
           }
 
           // check tradeCeiling & tradeAmount
@@ -650,7 +666,7 @@ export default {
       switch (priceType) {
         case 'FIXED':
           if (vm.adsState === 'create') value = vm.priceAmount
-          if (vm.adsState === 'edit') value = vm.transformPrice(vm.priceAmount) //value = vm.adData.fixedPrice
+          if (vm.adsState === 'edit') value = vm.adData.fixedPrice // value = vm.transformPrice(vm.priceAmount)
           if (value === 0 || override) value = vm.marketPrice
           vm.priceValue = value
           break

@@ -48,7 +48,7 @@
             dense
             borderless
             filled
-            :disable="actionType === 'editPaymentMethod'"
+            :disable="action !== 'createPaymentMethod'"
             v-model="paymentMethod.payment_type"
             label="Payment Type"
             option-label="name"
@@ -169,7 +169,8 @@ export default {
   props: {
     action: String,
     paymentMethodId: Number,
-    paymentType: Object
+    paymentType: Object,
+    currency: String
   },
   async mounted () {
     switch (this.action) {
@@ -241,7 +242,7 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type', { authorize: true })
+      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency }, authorize: true })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })
@@ -273,9 +274,10 @@ export default {
     },
     async fetchPaymentMethods () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-method/', { authorize: true })
+      await backend.get('/ramp-p2p/payment-method/', { params: { currency: this.currency }, authorize: true })
         .then(response => {
           vm.currentPaymentMethods = response.data
+          // console.log('currentPaymentMethods:', vm.currentPaymentMethods)
         })
         .catch(error => {
           console.error(error)

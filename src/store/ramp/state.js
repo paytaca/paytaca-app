@@ -48,25 +48,9 @@ export default function () {
     txids: {},
 
     // store filters
-    storeBuyFilters: {
-      sort_type: 'ascending',
-      price_type: {
-        fixed: true,
-        floating: true
-      },
-      payment_types: [],
-      time_limits: [5, 15, 30, 60, 300, 720, 1440]
-    },
-    storeSellFilters: {
-      sort_type: 'ascending',
-      price_type: {
-        fixed: true,
-        floating: true
-      },
-      payment_types: [],
-      time_limits: [5, 15, 30, 60, 300, 720, 1440]
-    },
-    paymentTypes: [],
+    storeBuyFilters: {},
+    storeSellFilters: {},
+    paymentTypes: {},
     ongoingOrderFilters: {
       sort_type: 'ascending',
       sort_by: 'created_at',
@@ -74,7 +58,7 @@ export default function () {
       appealable: true,
       not_appealable: true,
       payment_types: [],
-      time_limits: [5, 15, 30, 60, 300, 720, 1440],
+      time_limits: [15, 30, 45, 60],
       ownership: {
         owned: true,
         notOwned: true
@@ -91,7 +75,7 @@ export default function () {
       appealable: true,
       not_appealable: true,
       payment_types: [],
-      time_limits: [5, 15, 30, 60, 300, 720, 1440],
+      time_limits: [15, 30, 45, 60],
       ownership: {
         owned: true,
         notOwned: true
@@ -100,6 +84,7 @@ export default function () {
         buy: true,
         sell: true
       }
-    }
+    },
+    migrateStoreOrderFilters: true
   }
 }

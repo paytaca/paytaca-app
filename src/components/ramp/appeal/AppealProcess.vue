@@ -27,7 +27,9 @@
               </div>
               <q-space/>
               <div class="col q-mt-sm">
-                <q-btn size="1.3em" padding="none" dense ripple round flat class="button button-icon" icon="forum" :disabled="completedOrder" @click="openChat=true"/>
+                <q-btn size="1.3em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="openChat=true">
+                  <q-badge v-if="unread" floating color="red" rounded>{{ unread }}</q-badge>
+                </q-btn>
               </div>
             </div>
           </q-card-section>
@@ -72,13 +74,19 @@ import ChatDialog from '../fiat/dialogs/ChatDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { fetchChatMembers } from 'src/wallet/ramp/chat'
+import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
 
 export default {
   data () {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
-      websocket: null,
+      websocket: {
+        watchtower: null,
+        chat: null
+      },
+      unread: 0,
       state: 'form',
       actionState: 'verifying',
       appeal: null,
@@ -90,7 +98,6 @@ export default {
       errorMessages: [],
       appealTransferKey: 0,
       appealDetailKey: 0,
-
       appealDetailData: null,
       escrowContract: null,
       txid: null,
@@ -127,8 +134,11 @@ export default {
       return ['CNCL', 'RLS', 'RFN'].includes(this.appealDetailData?.order?.status?.value)
     }
   },
+  created () {
+    bus.on('last-read-update', this.onLastReadUpdate)
+  },
   async mounted () {
-    this.loadData()
+    await this.loadData()
     this.setupWebsocket()
     this.isloaded = true
   },
@@ -146,11 +156,12 @@ export default {
     refreshData () {
       this.loadData()
     },
-    loadData () {
+    async loadData () {
       this.appeal = this.selectedAppeal
-      this.fetchAppeal()
-        .then(() => { this.generateContract() })
-        .then(() => { this.reloadChildComponents() })
+      await this.fetchAppeal()
+      this.generateContract()
+      this.reloadChildComponents()
+      this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
     },
     reloadChildComponents () {
       this.appealDetailKey++
@@ -241,7 +252,7 @@ export default {
         vm.loading = true
         backend.get(`/ramp-p2p/order/${orderId}`, { authorize: true })
           .then(response => {
-            console.log(response.data)
+            // console.log(response.data)
             vm.amount = response.data?.order?.crypto_amount
             resolve(response.data)
           })
@@ -302,16 +313,36 @@ export default {
           })
       })
     },
-    async onVerifyAction (data) {
+    async fetchChatUnread (chatRef) {
+      const user = this.$store.getters['ramp/getUser']
+      await fetchChatMembers(chatRef).then(response => {
+        const userMember = response?.filter(member => {
+          return user.chat_identity_id === member.chat_identity.id
+        })[0]
+        this.unread = userMember.unread_count
+      }).catch(console.error)
+    },
+    onVerifyAction (data) {
       this.setOrderPending(data.txid, data)
     },
+    onLastReadUpdate () {
+      this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
+    },
     setupWebsocket () {
-      const wsUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
+      const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
+      const wsChatUrl = `${getChatBackendWsUrl()}${this.appealDetailData?.order?.chat_session_ref}/`
+      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
+      this.websocket.chat = new WebSocket(wsChatUrl)
+
+      // on open
+      this.websocket.watchtower.onopen = () => {
+        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
       }
-      this.websocket.onmessage = (event) => {
+      this.websocket.chat.onopen = () => {
+        console.log('Chat WebSocket connection established to ' + wsChatUrl)
+      }
+
+      this.websocket.watchtower.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
         if (data) {
@@ -326,14 +357,29 @@ export default {
           }
         }
       }
-      this.websocket.onclose = () => {
+      this.websocket.chat.onmessage = (event) => {
+        const parsedData = JSON.parse(event.data)
+        console.log('Chat WebSocket data:', parsedData)
+
+        if (parsedData?.type === 'new_message') {
+          const messageData = parsedData.data
+          // RECEIVE MESSAGE
+          console.log('Received a new message:', messageData)
+          this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
+          if (this.openChat) bus.emit('new-message', messageData)
+        }
+      }
+
+      this.websocket.watchtower.onclose = () => {
         console.log('WebSocket connection closed.')
+      }
+      this.websocket.chat.onclose = () => {
+        console.log('Chat WebSocket connection closed.')
       }
     },
     closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
+      if (this.websocket.watchtower) this.websocket.watchtower.close()
+      if (this.websocket.chat) this.websocket.chat.close()
     },
     onViewPeer (data) {
       this.peerInfo = data
