@@ -143,6 +143,7 @@ function openUpdateExpirationForm() {
     ok: $t('OK'),
     cancel: $t('Cancel'),
     seamless: true,
+    color: 'brandblue',
     class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode)}`
   })
     .onOk(updateExpiration)
@@ -175,7 +176,10 @@ function updateExpiration(expirationTime) {
 }
 
 function confirmRemoveHedgeOffer() {
-  const position = props.hedgePositionOffer.position
+  // NOTE: update translation
+  const position = props.hedgePositionOffer.position === 'short'
+    ? 'hedge'
+    : props.hedgePositionOffer.position
   const title = $t(`Remove${capitalize(position)}PositionOffer`)
   const message = $t(`Remove${capitalize(position)}PositionOfferDescription`)
   $q.dialog({

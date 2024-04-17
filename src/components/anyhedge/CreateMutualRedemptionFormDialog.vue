@@ -76,7 +76,7 @@
             <div>
               <div class="row">
                 <div class="q-space">{{ $t('Hedge') }}</div>
-                <div>{{ `${mutualRedemptionProposal.hedgeBch} ${denomination}` }}</div>
+                <div>{{ `${mutualRedemptionProposal.shortBch} ${denomination}` }}</div>
               </div>
               <q-slider
                 :dark="darkMode"
@@ -86,7 +86,7 @@
                 :max="totalPayoutSats/10 ** 8"
                 :inner-max="totalPayoutSats/10 ** 8-DUST"
                 :step="10 ** -6"
-                v-model="mutualRedemptionProposal.hedgeBch"
+                v-model="mutualRedemptionProposal.shortBch"
               >
               </q-slider>
             </div>
@@ -115,7 +115,7 @@
               dense
               :disable="mutualRedemptionProposal.redemptionType !== 'arbitrary'"
               :label="$t('Hedge')"
-              v-model="mutualRedemptionProposal.hedgeBch"
+              v-model="mutualRedemptionProposal.shortBch"
             />
             <q-input
               :dark="darkMode"
@@ -161,13 +161,13 @@
 </template>
 <script setup>
 import { signMutualEarlyMaturation, signMutualRefund, signArbitraryPayout } from 'src/wallet/anyhedge/mutual-redemption'
-import { getPrivateKey } from 'src/wallet/anyhedge/utils'
+import { castBigIntSafe, getPrivateKey } from 'src/wallet/anyhedge/utils'
 import { AnyHedgeManager } from '@generalprotocols/anyhedge'
 import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
-import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
+import { formatUnits, parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -214,9 +214,7 @@ const oracleInfo = computed(() => {
 const assetDecimals = computed(() => oracleInfo.value?.assetDecimals || 0)
 
 const totalPayoutSats = computed(() => {
-  return Math.round(
-    props?.contract?.metadata?.hedgeInputInSatoshis + props?.contract?.metadata?.longInputInSatoshis
-  )
+  return formatUnits(props?.contract?.metadata?.shortInputInSatoshis + props?.contract?.metadata?.longInputInSatoshis, 0)
 })
 const fundingSatoshis = computed(() => {
   if (props?.contract?.fundings?.[0]?.fundingSatoshis) return props?.contract?.fundings?.[0]?.fundingSatoshis
@@ -225,15 +223,15 @@ const fundingSatoshis = computed(() => {
 
 const refundBchPayout = computed(() => {
   return {
-    hedge: (props?.contract?.metadata?.hedgeInputInSatoshis) / 10 ** 8,
-    long: (props?.contract?.metadata?.longInputInSatoshis) / 10 ** 8,
+    short: formatUnits(props?.contract?.metadata?.shortInputInSatoshis, 8),
+    long: formatUnits(props?.contract?.metadata?.longInputInSatoshis, 8),
   }
 })
 
 const mutualRedemptionProposal = ref({
   redemptionType: '',
   settlementPrice: 0,
-  hedgeBch: 0,
+  shortBch: 0,
   longBch: 0,
 
   arbitraryUseSliders: false,
@@ -243,7 +241,7 @@ watch(
   () => [mutualRedemptionProposal.value.redemptionType],
   () => {
     if (mutualRedemptionProposal.value.redemptionType == 'refund') {
-      mutualRedemptionProposal.value.hedgeBch = refundBchPayout.value.hedge
+      mutualRedemptionProposal.value.shortBch = refundBchPayout.value.short
       mutualRedemptionProposal.value.longBch = refundBchPayout.value.long
     } else if (mutualRedemptionProposal.value.redemptionType == 'early_maturation') {
       let settlementPrice = oracleInfo.value?.latestPrice?.priceValue
@@ -253,17 +251,17 @@ watch(
   }
 )
 
-watch(() => mutualRedemptionProposal.value.hedgeBch, () => {
+watch(() => mutualRedemptionProposal.value.shortBch, () => {
   if (mutualRedemptionProposal.value.redemptionType == 'arbitrary' && fundingSatoshis.value) {
-    const longSats = Math.round(totalPayoutSats.value - mutualRedemptionProposal.value.hedgeBch * 10 ** 8)
+    const longSats = Math.round(totalPayoutSats.value - mutualRedemptionProposal.value.shortBch * 10 ** 8)
     mutualRedemptionProposal.value.longBch = longSats / 10 ** 8
   }
 })
 
 watch(() => mutualRedemptionProposal.value.longBch, () => {
   if (mutualRedemptionProposal.value.redemptionType == 'arbitrary' && fundingSatoshis.value) {
-    const hedgeSats = Math.round(totalPayoutSats.value - mutualRedemptionProposal.value.longBch * 10 ** 8)
-    mutualRedemptionProposal.value.hedgeBch = hedgeSats / 10 ** 8
+    const shortSats = Math.round(totalPayoutSats.value - mutualRedemptionProposal.value.longBch * 10 ** 8)
+    mutualRedemptionProposal.value.shortBch = shortSats / 10 ** 8
   }
 })
 
@@ -277,8 +275,8 @@ watch(() => mutualRedemptionProposal.value.settlementPrice, () => {
 
 const settlemenPriceBounds = computed(() => {
   const data = {
-    min: props.contract?.parameters?.lowLiquidationPrice,
-    max: props.contract?.parameters?.highLiquidationPrice,
+    min: formatUnits(props.contract?.parameters?.lowLiquidationPrice),
+    max: formatUnits(props.contract?.parameters?.highLiquidationPrice),
   }
 
   if (assetDecimals.value) {
@@ -291,22 +289,22 @@ const settlemenPriceBounds = computed(() => {
 
 function updatePayoutFromSettlementPrice(settlementPrice=0) {
   if (!settlementPrice) {
-    mutualRedemptionProposal.value.hedgeBch = 0
+    mutualRedemptionProposal.value.shortBch = 0
     mutualRedemptionProposal.value.longBch = 0
     return
   }
 
   manager.calculateSettlementOutcome(
-    props?.contract?.parameters, fundingSatoshis.value, settlementPrice)
+    props?.contract?.parameters, fundingSatoshis.value,  castBigIntSafe(settlementPrice))
     .then(outcome => {
-      const { hedgePayoutSatsSafe, longPayoutSatsSafe } = outcome;
-      mutualRedemptionProposal.value.hedgeBch = hedgePayoutSatsSafe / 10 ** 8
-      mutualRedemptionProposal.value.longBch = longPayoutSatsSafe / 10 ** 8
+      const { shortPayoutSatsSafe, longPayoutSatsSafe } = outcome;
+      mutualRedemptionProposal.value.shortBch = formatUnits(shortPayoutSatsSafe, 8)
+      mutualRedemptionProposal.value.longBch = formatUnits(longPayoutSatsSafe, 8)
     })
 }
 
 async function confirmMutualRedemption(data) {
-  const message = `${$t('HedgePayout')}: ${data.hedge_satoshis / 10 ** 8} BCH<br/>` +
+  const message = `${$t('HedgePayout')}: ${data.short_satoshis / 10 ** 8} BCH<br/>` +
                     `${$t('LongPayout')}: ${data.long_satoshis / 10 ** 8} BCH<br/>` +
                     `${$t('AreYouSure')}`
   await dialogPromise({
@@ -315,7 +313,8 @@ async function confirmMutualRedemption(data) {
     html: true,
     ok: { label: $t('OK') },
     cancel: { label: $t('Cancel') },
-    class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   await dialogPromise({component: SecurityCheckDialog})
 }
@@ -335,9 +334,9 @@ async function validateContractFunding() {
 async function createMutualRedemption() {
   const data = {
     redemption_type: mutualRedemptionProposal.value.redemptionType,
-    hedge_satoshis: Math.round(mutualRedemptionProposal.value.hedgeBch * 10 ** 8),
+    short_satoshis: Math.round(mutualRedemptionProposal.value.shortBch * 10 ** 8),
     long_satoshis: Math.round(mutualRedemptionProposal.value.longBch * 10 ** 8),
-    hedge_schnorr_sig: undefined,
+    short_schnorr_sig: undefined,
     long_schnorr_sig: undefined,
     settlement_price: undefined,
   }
@@ -402,7 +401,7 @@ async function createMutualRedemption() {
         break;
       case 'arbitrary':
         signMutualPayoutResponse = await signArbitraryPayout(
-          props?.contract, privkey, data.hedge_satoshis, data.long_satoshis)
+          props?.contract, privkey, data.short_satoshis, data.long_satoshis)
         break;
       default:
         throw new Error('Invalid redemption type')
@@ -410,7 +409,7 @@ async function createMutualRedemption() {
 
     if (!signMutualPayoutResponse.success) throw signMutualPayoutResponse.error
     transactionProposal = signMutualPayoutResponse.proposal
-  }catch(error) {
+  } catch(error) {
     console.error(error)
     errors.value = [$t('SigningProposalError')]
     if (typeof error?.message === 'string') errors.value = [error.message]
@@ -427,33 +426,33 @@ async function createMutualRedemption() {
     return
   }
 
-  const hedgePayoutAddress = props?.contract?.metadata?.hedgePayoutAddress
+  const shortPayoutAddress = props?.contract?.metadata?.shortPayoutAddress
   const longPayoutAddress = props?.contract?.metadata?.longPayoutAddress
-  const signedHedgeSats = transactionProposal?.outputs?.find(output => output?.to === hedgePayoutAddress)?.amount
+  const signedShortSats = transactionProposal?.outputs?.find(output => output?.to === shortPayoutAddress)?.amount
   const signedLongSats = transactionProposal?.outputs?.find(output => output?.to === longPayoutAddress)?.amount
 
-  if (signedHedgeSats !== data.hedge_satoshis) {
+  if (signedShortSats !== castBigIntSafe(data.short_satoshis)) {
     errors.value = [$t(
       'InvalidHedgeSatoshis',
-      { amount: signedHedgeSats },
-      `Invalid hedge satoshis, expected ${signedHedgeSats}`
+      { amount: signedShortSats },
+      `Invalid short satoshis, expected ${signedShortSats}`
     )]
     return
   }
 
-  if (signedLongSats !== data.long_satoshis) {
+  if (signedLongSats !== castBigIntSafe(data.long_satoshis)) {
     errors.value = [$t(
       'InvalidHedgeSatoshis',
       { amount: signedLongSats },
-      `Invalid hedge satoshis, expected ${signedLongSats}`
+      `Invalid short satoshis, expected ${signedLongSats}`
     )]
     return
   }
 
-  const hedgeSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['hedge_key.schnorr_signature.all_outputs'])?.['hedge_key.schnorr_signature.all_outputs']
+  const shortSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['short_key.schnorr_signature.all_outputs'])?.['short_key.schnorr_signature.all_outputs']
   const longSchnorrSig = transactionProposal?.redemptionDataList?.find(e => e['long_key.schnorr_signature.all_outputs'])?.['long_key.schnorr_signature.all_outputs']
 
-  data.hedge_schnorr_sig = hedgeSchnorrSig || undefined
+  data.short_schnorr_sig = shortSchnorrSig || undefined
   data.long_schnorr_sig = longSchnorrSig || undefined
 
   await confirmMutualRedemption(data)
@@ -469,7 +468,8 @@ async function createMutualRedemption() {
           title: $t('MutualRedemptionSubmitted'),
           seamless: true,
           ok: { label: $t('OK') },
-          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+          color: 'brandblue',
+          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onDismiss(() => onDialogHide())
         return Promise.resolve(response)
       }

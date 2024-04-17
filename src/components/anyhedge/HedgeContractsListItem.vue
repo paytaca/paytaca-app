@@ -51,7 +51,7 @@
               {{ oracleInfo.assetCurrency }}
             </div>
             <div style="margin-top:-0.45em" class="text-grey">
-              {{ getAssetDenomination(denomination, contract.metadata.hedgeInputInSatoshis / (10**8)) }}
+              {{ getAssetDenomination(denomination, formatUnits(contract.metadata.shortInputInSatoshis, 8)) }}
             </div>
           </div>
         </div>
@@ -63,7 +63,7 @@
               {{ oracleInfo.assetCurrency }}
             </div>
             <div style="margin-top:-0.45em" class="text-grey">
-              {{ getAssetDenomination(denomination, contract.metadata.longInputInSatoshis / (10**8)) }}
+              {{ getAssetDenomination(denomination, formatUnits(contract.metadata.longInputInSatoshis, 8)) }}
             </div>
           </div>
         </div>
@@ -94,11 +94,11 @@
       <div class="row">
         <div class="col">
           <div>{{ $t('Hedge') }}</div>
-          <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.hedge.assetChangePctg)}` + ' text-weight-medium'">
-            {{ oracleInfo?.assetCurrency || $t('Asset') }}: {{ settlementMetadata.hedge.assetChangePctg }}%
+          <div v-if="settlementMetadata.settlementPriceValue" :class="`text-${resolveColor(settlementMetadata.short.assetChangePctg)}` + ' text-weight-medium'">
+            {{ oracleInfo?.assetCurrency || $t('Asset') }}: {{ settlementMetadata.short.assetChangePctg }}%
           </div>
-          <div :class="`text-${resolveColor(settlementMetadata.hedge.bchChangePctg)}` + ' text-weight-medium'">
-            {{ `${denomination}: ${settlementMetadata.hedge.bchChangePctg}%` }}
+          <div :class="`text-${resolveColor(settlementMetadata.short.bchChangePctg)}` + ' text-weight-medium'">
+            {{ `${denomination}: ${settlementMetadata.short.bchChangePctg}%` }}
           </div>
         </div>
         <div class="col">
@@ -115,8 +115,8 @@
     <div v-else>
       <span v-show="false">{{ updateTickCtr }}</span>
       <q-icon name="mdi-timer-sand"/>
-      {{ formatDate(contract.parameters.startTimestamp * 1000) }} ->
-      {{ formatDate(contract.parameters.maturityTimestamp * 1000) }}
+      {{ formatDate(formatUnits(contract.parameters.startTimestamp, -3)) }} ->
+      {{ formatDate(formatUnits(contract.parameters.maturityTimestamp, -3)) }}
     </div>
     <hr/>
   </q-card-section>
@@ -137,8 +137,8 @@ const denomination = computed(() => $store.getters['global/denomination'])
 const durationUpdateTimeout = ref(null)
 const updateTickCtr = ref(0)
 function updateTick() {
-  const maturityTimestamp = props?.contract?.parameters?.maturityTimestamp
-  const startTimestamp = props?.contract?.parameters?.startTimestamp
+  const maturityTimestamp = parseInt(props?.contract?.parameters?.maturityTimestamp)
+  const startTimestamp = parseInt(props?.contract?.parameters?.startTimestamp)
   const maturityDelta = Math.abs((Date.now() / 1000) - maturityTimestamp)
   const startDelta = Math.abs((Date.now() / 1000) - startTimestamp)
   const tickDelta = Math.min(maturityDelta, startDelta)
@@ -170,11 +170,11 @@ const oracleInfo = computed(() => {
 })
 
 const matured = computed(() => Date.now()/1000 >= props.contract?.parameters?.maturityTimestamp)
-const settled = computed(() => props.contract?.settlements?.[0]?.settlementTransactionHash)
+const settled = computed(() => props.contract?.fundings?.map(funding => funding?.settlement?.settlementTransactionHash).find(Boolean))
 const funding = computed(() => {
   if (props.contract?.fundings?.[0]?.fundingTransactionHash) return 'complete'
-  else if (props.contract?.hedgeFundingProposal && props.contract?.longFundingProposal) return 'ready'
-  else if (props.contract?.hedgeFundingProposal || props.contract?.longFundingProposal) return 'partial'
+  else if (props.contract?.shortFundingProposal && props.contract?.longFundingProposal) return 'ready'
+  else if (props.contract?.shortFundingProposal || props.contract?.longFundingProposal) return 'partial'
 
   return 'pending'
 })
