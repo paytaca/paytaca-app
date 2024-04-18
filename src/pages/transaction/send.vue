@@ -228,29 +228,11 @@
             v-on:makeKeyAction="makeKeyAction"
           />
 
-          <q-list v-if="showSlider" class="absolute-bottom slider-list-container">
-            <div style="margin: 0 10% 20px 10%;">
-              <q-slide-item left-color="blue" @left="slideToSubmit" class="security-check-slide-item">
-                <template v-slot:left>
-                  <div class="text-body1" style="font-size: 15px;">
-                  <q-icon class="material-icons q-mr-md" size="lg">
-                    task_alt
-                  </q-icon>
-                  {{ $t('SecurityCheck') }}
-                  </div>
-                </template>
-
-              <q-item class="bg-grad swipe text-white q-py-md" :class="getDarkModeClass(darkMode)">
-                <q-item-section avatar>
-                  <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%;" />
-                </q-item-section>
-                <q-item-section class="text-right">
-                  <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ $t('SwipeToSend') }}</h5>
-                </q-item-section>
-              </q-item>
-            </q-slide-item>
-            </div>
-          </q-list>
+          <DragSlide
+            v-if="showSlider"
+            @swiped="slideToSubmit"
+            class="absolute-bottom"
+          />
           <template v-if="showFooter">
             <footer-menu />
           </template>
@@ -339,10 +321,6 @@
           </div>
         </div>
       </template>
-
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="sendTransaction" />
-      <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
-
     </div>
   </div>
 </template>
@@ -354,10 +332,7 @@ import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
 import ProgressLoader from '../../components/ProgressLoader'
 import HeaderNav from '../../components/header-nav'
-import pinDialog from '../../components/pin'
-import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
-import { NativeBiometric } from 'capacitor-native-biometric'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
@@ -378,6 +353,8 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
 import SingleWallet from 'src/wallet/single-wallet'
+import DragSlide from 'src/components/drag-slide.vue'
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -386,11 +363,10 @@ const sBCHWalletType = 'SmartBCH'
 export default {
   name: 'Send-page',
   components: {
+    DragSlide,
     JppPaymentPanel,
     ProgressLoader,
     HeaderNav,
-    pinDialog,
-    biometricWarningAttmepts,
     customKeyboard,
     QrScanner,
     VOffline,
@@ -508,16 +484,6 @@ export default {
       sent: false,
       sending: false,
       txid: '',
-      pinDialogAction: '',
-      leftX: 0,
-      slider: 0,
-      counter: 0,
-      rightOffset: null,
-      swiped: true,
-      opacity: 0.1,
-      submitStatus: false,
-      submitLabel: 'Processing',
-      warningAttemptsStatus: 'dismiss',
       amountInputState: false,
       customKeyboardState: 'dismiss',
       sliderStatus: false,
@@ -993,73 +959,17 @@ export default {
       }
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
-    async slideToSubmit ({ reset }) {
-      setTimeout(() => { reset() }, 2000)
-      await this.executeSecurityChecking()
-    },
-
-    async executeSecurityChecking () {
-      const vm = this
-
-      setTimeout(() => {
-        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-          vm.pinDialogAction = 'VERIFY'
-        } else {
-          vm.verifyBiometric()
-        }
-      }, 500)
-    },
-
-    verifyBiometric () {
-      // Authenticate using biometrics before logging the user in
-      NativeBiometric.verifyIdentity({
-        reason: 'For ownership verification',
-        title: 'Security Authentication',
-        subtitle: 'Verify your account using fingerprint.',
-        description: ''
+    async slideToSubmit (reset=() => {}) {
+      this.$q.dialog({
+        component: SecurityCheckDialog,
       })
-        .then(() => {
-          // Authentication successful
-          this.submitLabel = 'Processing'
-          this.customKeyboardState = 'dismiss'
-          setTimeout(() => {
-            this.sendTransaction('proceed')
-          }, 1000)
-        },
-        (error) => {
-          // Failed to authenticate
-          this.warningAttemptsStatus = 'dismiss'
-          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
-            this.resetSubmit()
-          } else if (error.message.includes('Too many attempts. Try again later.')) {
-            this.warningAttemptsStatus = 'show'
-          } else {
-            this.verifyBiometric()
-          }
-        }
-        )
+        .onOk(() => this.sendTransaction())
+        .onDismiss(() => reset?.())
     },
-
-    setwarningAttemptsStatus () {
-      this.verifyBiometric()
+    sendTransaction () {
+      this.customKeyboardState = 'dismiss'
+      this.handleSubmit()
     },
-
-    sendTransaction (action) {
-      if (action === 'proceed') {
-        this.customKeyboardState = 'dismiss'
-        this.handleSubmit()
-      } else {
-        this.resetSubmit()
-      }
-    },
-
-    resetSubmit () {
-      this.swiped = true
-      this.submitStatus = false
-      this.submitLabel = 'Processing'
-      this.pinDialogAction = ''
-    },
-
     getAsset (id) {
       let getter = 'assets/getAsset'
       if (this.isSmartBch) {
@@ -1728,12 +1638,6 @@ export default {
       .set-amount-button {
         font-size: 16px;
         text-decoration: none;
-      }
-    }
-    .slider-list-container {
-      .security-check-slide-item {
-        background-color: transparent;
-        border-radius: 40px;
       }
     }
   }
