@@ -10,6 +10,29 @@
         :backnavpath="backPath"
       ></header-nav>
       <q-banner
+        v-if="singleWallet"
+        dense
+        class="q-mx-md pt-card rounded-borders"
+        :class="getDarkModeClass(darkMode)"
+      >
+        <div class="float-right text-grey q-mr-xs" style="margin-top:0.9em;">
+          <q-icon name="info" size="2rem"/>
+          <q-menu class="q-py-xs q-px-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+            <div>
+              Using single address as wallet derived from main wallet
+            </div>
+            <div class="text-grey">Address path: {{ useAddressPath }}</div>
+          </q-menu>
+        </div>
+        <div class="text-grey">Wallet</div>
+        <div style="word-wrap: break-word;line-height:1.1em;">
+          {{ singleWalletAddress }}
+        </div>
+        <div class="text-grey">
+          {{ parseAssetDenomination(denomination, { ...asset, balance: actualWalletBalance.balance}) }}
+        </div>
+      </q-banner>
+      <q-banner
         v-if="assetId.startsWith('slp/')"
         inline-actions
         class="bg-red text-center q-mt-lg text-bow slp-disabled-banner"
@@ -21,7 +44,7 @@
         <div v-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel
             :jpp="jpp"
-            :wallet="wallet"
+            :wallet="singleWallet || wallet"
             class="q-mx-md"
             @paid="onJppPaymentSucess()"
           />
@@ -354,6 +377,7 @@ import {
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
+import SingleWallet from 'src/wallet/single-wallet'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -424,6 +448,10 @@ export default {
       type: String,
       required: false,
     },
+    useAddressPath: {
+      type: String,
+      required: false,
+    },
     backPath: {
       type: String,
       default: '/send/select-asset'
@@ -432,9 +460,12 @@ export default {
   data () {
     return {
       asset: {},
+      singleWallet: [].map(() => new SingleWallet())[0],
+      /** @type {Wallet} */
       wallet: null,
       walletType: '',
-      isCashToken: false,
+      isSLP: !this.isSmartBCH && this.assetId?.startsWith?.('slp/'),
+      isCashToken: !this.isSmartBCH && this.assetId?.startsWith?.('ct/'),
       // ctTokenAmount: null,
       forceUseDefaultNftImage: false,
 
@@ -501,6 +532,7 @@ export default {
       currentActiveRecipientIndex: 0,
       totalAmountSent: 0,
       totalFiatAmountSent: 0,
+      actualWalletBalance: { balance: 0, spendable: 0 },
       currentWalletBalance: 0,
       isLegacyAddress: false
     }
@@ -535,17 +567,34 @@ export default {
       }
       return true
     },
-    isSep20 () {
+    isSmartBch () {
       return this.network === 'sBCH'
     },
     isERC721 () {
-      return this.isSep20 && erc721IdRegexp.test(this.assetId)
+      return this.isSmartBch && erc721IdRegexp.test(this.assetId)
     },
     isNFT () {
-      if (this.isSep20 && erc721IdRegexp.test(this.assetId)) return true
+      if (this.isSmartBch && erc721IdRegexp.test(this.assetId)) return true
       if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
+    },
+    singleWalletAddress() {
+      if (!this.singleWallet) return ''
+      if (this.isCashToken) {
+        return this.isChipnet
+          ? this.singleWallet?.testnetTokenAddress
+          : this.singleWallet?.tokenAddress
+      }
+
+      if (this.isSLP) {
+        return this.isChipnet
+          ? this.singleWallet?.testnetSlpAddress
+          : this.singleWallet?.slpAddress
+      }
+      return this.isChipnet
+        ? this.singleWallet?.testnetAddress
+        : this.singleWallet?.cashAddress
     },
     defaultNftImage() {
       if (!this.isNFT) return ''
@@ -679,7 +728,7 @@ export default {
 
       let paymentUriData
       try {
-        paymentUriData = parsePaymentUri(content, { chain: this.isSep20 ? 'smart' : 'main' })
+        paymentUriData = parsePaymentUri(content, { chain: this.isSmartBch ? 'smart' : 'main' })
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
@@ -1013,7 +1062,7 @@ export default {
 
     getAsset (id) {
       let getter = 'assets/getAsset'
-      if (this.isSep20) {
+      if (this.isSmartBch) {
         getter = 'sep20/getAsset'
       }
       const assets = this.$store.getters[getter](id)
@@ -1032,7 +1081,7 @@ export default {
       currentInputExtras.setMax = true
 
       if (this.asset.id === 'bch') {
-        if (this.isSep20) {
+        if (this.isSmartBch) {
           this.computingMax = true
           const spendable = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
@@ -1049,19 +1098,19 @@ export default {
             })
           }
         } else {
-          const spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+          const spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.actualWalletBalance.spendable, true))
           currentInputExtras.amountFormatted = spendableAsset
-          currentRecipient.amount = this.asset.spendable
+          currentRecipient.amount = this.actualWalletBalance.spendable
         }
         if (this.setAmountInFiat) {
-          const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
+          const convertedFiat = this.convertToFiatAmount(this.actualWalletBalance.spendable)
           currentInputExtras.sendAmountInFiat = convertedFiat
         }
       } else {
         if (this.asset.id.startsWith('ct/')) {
-          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
+          currentRecipient.amount = this.actualWalletBalance.balance / (10 ** this.asset.decimals)
         } else {
-          currentRecipient.amount = this.asset.balance
+          currentRecipient.amount = this.actualWalletBalance.balance
         }
         currentInputExtras.amountFormatted = currentRecipient.amount
       }
@@ -1195,7 +1244,7 @@ export default {
         .reduce((acc, curr) => acc + curr, 0)
         .toFixed(8)
 
-      if (totalAmount > vm.asset.balance) {
+      if (totalAmount > vm.actualWalletBalance.balance) {
         vm.raiseNotifyError(vm.$t('TotalAmountError'))
         return
       }
@@ -1318,10 +1367,16 @@ export default {
       })
 
       if (toSendBCHRecipients.length > 0) {
-        const changeAddress = vm.getChangeAddress('bch')
-        vm.wallet.BCH
-          .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
-          .then(result => vm.promiseResponseHandler(result, vm.walletType))
+        if (vm.singleWallet) {
+          vm.singleWallet
+            .sendBch(toSendBCHRecipients, token)
+            .then(result => vm.promiseResponseHandler(result, vm.walletType))
+        } else {
+          const changeAddress = vm.getChangeAddress('bch')
+          vm.wallet.BCH
+            .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
+            .then(result => vm.promiseResponseHandler(result, vm.walletType))
+        }
       } else if (toSendSLPRecipients.length > 0) {
         const tokenId = vm.assetId.split('slp/')[1]
         const bchWallet = vm.getWallet('bch')
@@ -1330,14 +1385,20 @@ export default {
           mnemonic: vm.wallet.mnemonic,
           derivationPath: bchWallet.derivationPath
         }
-        const changeAddresses = {
-          bch: vm.getChangeAddress('bch'),
-          slp: vm.getChangeAddress('slp')
-        }
+        if (vm.singleWallet) {
+          vm.singleWallet
+            .sendSlp(tokenId, vm.tokenType, feeFunder, toSendSLPRecipients)
+            .then(result => vm.promiseResponseHandler(result, vm.walletType))
+        } else {
+          const changeAddresses = {
+            bch: vm.getChangeAddress('bch'),
+            slp: vm.getChangeAddress('slp'),
+          }
 
-        vm.wallet.SLP
-          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
-          .then(result => vm.promiseResponseHandler(result, vm.walletType))
+          vm.wallet.SLP
+            .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
+            .then(result => vm.promiseResponseHandler(result, vm.walletType))
+        }
       }
     },
     promiseResponseHandler (result, walletType) {
@@ -1487,6 +1548,19 @@ export default {
       keys.push(...Object.entries(this.inputExtras[index]))
       return keys
     },
+    async updateActualWalletBalance() {
+      let result
+      if (this.singleWallet) {
+        result = await this.singleWallet.getOrFetchBalance({ assetId: this.assetId })
+      } else {
+        result = this.asset
+      }
+      this.actualWalletBalance = {
+        balance: result?.balance,
+        spendable: result?.spendable,
+      }
+      return this.actualWalletBalance
+    },
     adjustWalletBalance () {
       const isToken = this.asset.id.startsWith('ct/')
       const tokenDenominator = 10 ** this.asset.decimals
@@ -1495,7 +1569,8 @@ export default {
         .map(a => Number(a.amount))
         .reduce((acc, curr) => acc + curr, 0)
         .toFixed(8)
-      const walletBalance = isToken ? this.asset.balance / tokenDenominator : this.asset.balance
+      const actualBalance = this.actualWalletBalance.balance
+      const walletBalance = isToken ? actualBalance / tokenDenominator : actualBalance
 
       this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
       // for tokens ('ct/'), convert back to original decimals
@@ -1516,6 +1591,26 @@ export default {
     },
     onSelectedDenomination (value) {
       this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
+    },
+    async initWallet() {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
+      const wallet = new Wallet(mnemonic, this.network)
+      this.wallet = markRaw(wallet)
+      if (this.isSmartBch) this.wallet.sBCH.getOrInitWallet()
+      if (!this.isSmartBch && this.useAddressPath) {
+        let wif
+        if (this.isSLP) wif = await wallet.SLP.getPrivateKey(this.useAddressPath)
+        else wif = await wallet.BCH.getPrivateKey(this.useAddressPath)
+        this.singleWallet = new SingleWallet({
+          wif, 
+          apiBaseUrl: wallet.BCH.watchtower._baseUrl,
+          isChipnet: this.isChipnet,
+        })
+      } else {
+        this.singleWallet = undefined
+      }
+      return { wallet, singleWallet: this.singleWallet }
     }
   },
 
@@ -1523,7 +1618,7 @@ export default {
     const vm = this
     vm.asset = vm.getAsset(vm.assetId)
 
-    if (vm.isSep20) {
+    if (vm.isSmartBch) {
       vm.walletType = sBCHWalletType
     } else if (vm.assetId.indexOf('slp/') > -1) {
       vm.walletType = 'slp'
@@ -1545,21 +1640,17 @@ export default {
       isUrl: false
     })
 
+    vm.selectedDenomination = vm.denomination
     // Load wallets
-    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      const wallet = new Wallet(mnemonic, vm.network)
-      vm.wallet = markRaw(wallet)
-      if (vm.network === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
-    })
+    vm.initWallet()
+      .then(() => vm.updateActualWalletBalance())
+      .then(() => vm.adjustWalletBalance())
 
     if (navigator.onLine) {
       vm.onConnectivityChange(true)
     }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
-
-    vm.selectedDenomination = vm.denomination
-    vm.currentWalletBalance = vm.asset.balance
   },
 
   unmounted () {
