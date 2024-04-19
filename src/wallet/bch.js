@@ -470,6 +470,10 @@ export function decodeBIP0021URI(paymentUri) {
     response.message = searchParams.message
     delete searchParams.message
   }
+  if (searchParams.expires) {
+    const now = Math.floor(Date.now() / 1000)
+    if (now >= searchParams.expires) throw new Error('PaymentRequestExpired')
+  }
 
   response.parameters = searchParams
 

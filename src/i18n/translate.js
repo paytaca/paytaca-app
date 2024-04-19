@@ -424,6 +424,7 @@ const phrases = {
       RampFiatNotice: "Our peer-to-peer BCH-to-fiat exchange will be here soon. Stay tuned!",
       Add_SEP721_Token: "Add SEP721 Token",
       SelectBCHDenomination: "BCH Denomination",
+      PaymentRequestExpired: 'Payment request has expired',
     }
   ],
   dynamic: [
