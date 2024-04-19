@@ -52,11 +52,21 @@ export function getOpenedNotificationRoute(context) {
     case(NotificationTypes.PAYMENT_REQUEST):
       route = {
         name: 'transaction-send',
-        query: {
-          assetId: 'bch',
-          network: 'BCH',
+        query: Object.assign({
+          assetId: openedNotification?.data?.assetId || 'bch',
+          network: openedNotification?.data?.network ||'BCH',
+          tokenType: openedNotification?.data?.token_type || undefined,
+          simpleNft: openedNotification?.data?.simple_nft,
+          symbol: openedNotification?.data?.symbol,
+          amount: openedNotification?.data?.amount,
+          fixed: openedNotification?.data?.fixed,
+          recipient: openedNotification?.data?.recipient,
+          image: openedNotification?.data?.image,
+          commitment: openedNotification?.data?.commitment,
+          capability: openedNotification?.data?.capability,
           paymentUrl: String(openedNotification?.data?.payment_url),
-        },
+          useAddressPath: openedNotification?.data?.use_address_path,
+        }),
       }
       break
   }

@@ -109,6 +109,7 @@ import { useStore } from "vuex"
 import { useQuasar } from "quasar";
 import { JSONPaymentProtocol } from "src/wallet/payment-uri"
 import { Wallet } from "src/wallet/index"
+import SingleWallet from "src/wallet/single-wallet";
 import DragSlide from "./drag-slide.vue";
 import SecurityCheckDialog from "./SecurityCheckDialog.vue";
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -128,7 +129,7 @@ const props = defineProps({
     required: true,
   },
   wallet: {
-    type: Wallet,
+    type: [Wallet, SingleWallet],
     required: true,
   }
 })
