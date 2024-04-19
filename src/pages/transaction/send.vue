@@ -6,7 +6,7 @@
     />
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <header-nav
-        :title="$t('Send') + ' ' + (asset.symbol || $route.query.name)"
+        :title="$t('Send') + ' ' + (asset.symbol || name || '')"
         :backnavpath="backPath"
       ></header-nav>
       <q-banner
@@ -28,7 +28,7 @@
         <div style="word-wrap: break-word;line-height:1.1em;">
           {{ singleWalletAddress }}
         </div>
-        <div class="text-grey">
+        <div v-if="asset?.symbol || actualWalletBalance.balance" class="text-grey">
           {{ parseAssetDenomination(denomination, { ...asset, balance: actualWalletBalance.balance}) }}
         </div>
       </q-banner>
@@ -62,10 +62,10 @@
               <div
                 class="q-mt-md text-center text-bow"
                 :class="getDarkModeClass(darkMode)"
-                v-if="$route.query.tokenType === 'CT-NFT'"
+                v-if="tokenType === 'CT-NFT'"
               >
-                <span>Name: {{ $route.query.name }}</span>
-                <p>Commitment: {{ $route.query.commitment }}</p>
+                <span>Name: {{ name }}</span>
+                <p style="word-break: break-all;">Commitment: {{ commitment }}</p>
               </div>
             </div>
             <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -246,7 +246,7 @@
             >
               <p style="font-size: 22px;">{{ $t('SuccessfullySent') }}</p>
               <template v-if="isNFT">
-                <p class="amount-label">{{ $route.query.name }}</p>
+                <p class="amount-label">{{ name }}</p>
               </template>
               <template v-else>
                 <p class="amount-label">
@@ -383,7 +383,7 @@ export default {
       required: true
     },
     tokenType: {
-      type: Number,
+      type: [Number, String],
       required: false,
       default: 1
     },
@@ -408,14 +408,22 @@ export default {
       type: String,
       required: false
     },
+    /** For NFTs; image url of nft */
     image: {
       type: String,
       required: false
     },
+    /** For NFTs; name of nft */
+    name: {
+      type: String,
+      required: false,
+    },
+    /** For Cashtoken NFTs */
     commitment: {
       type: String,
       required: false,
     },
+    /** For Cashtoken NFTs */
     capability: {
       type: String,
       required: false,

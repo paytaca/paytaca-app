@@ -1,3 +1,6 @@
+import { castBooleanSafe, castNumberSafe, removeNullish } from './utils'
+
+
 const routes = [
   {
     path: '/',
@@ -29,15 +32,16 @@ const routes = [
         name: 'transaction-send',
         props: route => {
           const props = Object.assign({}, route.query)
-          if (!isNaN(props.tokenType)) props.tokenType = Number(props.tokenType)
-          if (!isNaN(props.amount)) props.amount = Number(props.amount)
-          if (props.fixed === 'true') props.fixed = true
-          else if (props.fixed === 'false') props.fixed = false
-          if (props.simpleNft === 'true') props.simpleNft = true
-          else if (props.simpleNft === 'false') props.simpleNft = false
+          props.tokenType = castNumberSafe(props.tokenType)
+          props.amount = castNumberSafe(props.amount)
+          props.fixed = castBooleanSafe(props.fixed)
+          props.simpleNft = castBooleanSafe(props.simpleNft)
+          props.vout = castBooleanSafe(props.vout)
+          removeNullish(props)
           return props
         },
         component: () => import('pages/transaction/send.vue')
+        // component: () => import('pages/sandbox/SendPage.vue'),
       },
       {
         path: 'connect/',
