@@ -464,7 +464,6 @@ export default {
   PaymentDetailsNotFound: "Payment details not found",
   PaymentNotYetAcknowledged: "Payment not yet acknowledged by payment server. Make sure to check with recipient if it went through.",
   PaymentOTP: "Payment OTP",
-  PaymentRequestExpired: "Payment request has expired",
   PaymentRequestIsExpired: "Payment request is expired",
   PayoutAddresses: "Payout addresses",
   PayoutAddressesBig: "Payout Addresses",

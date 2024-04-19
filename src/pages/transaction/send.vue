@@ -707,7 +707,7 @@ export default {
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        if (error === 'PaymentRequestExpired') {
+        if (error === 'PaymentRequestIsExpired') {
           this.$q.notify({
             type: 'negative',
             color: 'red-4',

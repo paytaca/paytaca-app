@@ -472,7 +472,7 @@ export function decodeBIP0021URI(paymentUri) {
   }
   if (searchParams.expires) {
     const now = Math.floor(Date.now() / 1000)
-    if (now >= searchParams.expires) throw new Error('PaymentRequestExpired')
+    if (now >= searchParams.expires) throw new Error('PaymentRequestIsExpired')
   }
 
   response.parameters = searchParams
