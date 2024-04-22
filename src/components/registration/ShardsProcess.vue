@@ -1,19 +1,29 @@
 <template>
-  <p>Process Preview here</p>
+  <div class="text-center">
+    Below are QR code images generated from the shards. You can screenshot them by yourself
+    or use the button below to download them to your device.
+  </div>
 
-  <div>
+  <div class="q-mt-lg">
+    <div class="text-center q-mb-sm">
+      This QR code needs to be saved and stored securely in your device.
+    </div>
     <div id="personal-qr" class="flex flex-center q-py-md br-15 col-qr-code">
-      <p style="color: black">Keep this QR code</p>
+      <p style="color: black">Save this QR code in your device</p>
       <qr-code :text="shards[1]" :size="200" />
     </div>
+    <div class="text-center q-mt-md q-mb-sm">
+      This QR code needs to be shared to your friend. We highly advise that you share it after saving
+      instead of just storing it in your device.
+    </div>
     <div id="sharing-qr" class="flex flex-center q-py-md br-15 col-qr-code">
-      <p style="color: black">Share this QR code</p>
+      <p style="color: black">Share this QR code to a friend</p>
       <qr-code :text="shards[2]" :size="200" />
     </div>
     <div class="flex flex-center q-mt-md">
       <q-btn
         rounded
-        label="Download QR Codes"
+        label="Download QR Code Images"
         class="button"
         @click="takeScreenshot()"
       />
@@ -39,7 +49,8 @@ export default {
   name: 'ShardsProcess',
 
   props: {
-    mnemonic: String
+    mnemonic: String,
+    walletHash: String
   },
 
   data () {
@@ -91,10 +102,10 @@ export default {
       const vm = this
       document.addEventListener('deviceready', () => {}, false)
 
-      const qrElement = document.getElementById('personal-qr')
-      html2canvas(qrElement).then((canvas) => {
+      const personalQrElement = document.getElementById('personal-qr')
+      html2canvas(personalQrElement).then((canvas) => {
         const image = canvas.toDataURL('image/png')
-        const fileName = `personal-qr-${vm.shards[1].substring(0, 20)}.png`
+        const fileName = `personal-qr-${vm.walletHash.substring(0, 10)}.png`
 
         if (vm.$q.platform.is.mobile) {
           vm.saveToMobile(image, fileName)
@@ -102,22 +113,36 @@ export default {
           vm.saveToDesktop(image, fileName)
         }
       })
+
+      const sharingQrElement = document.getElementById('sharing-qr')
+      html2canvas(sharingQrElement).then((canvas) => {
+        const image = canvas.toDataURL('image/png')
+        const fileName = `sharing-qr-${vm.walletHash.substring(0, 10)}.png`
+
+        if (vm.$q.platform.is.mobile) {
+          vm.saveToMobile(image, fileName, true)
+        } else if (vm.$q.platform.is.desktop) {
+          vm.saveToDesktop(image, fileName, true)
+        }
+      })
     },
-    async saveToMobile (image, fileName) {
+    async saveToMobile (image, fileName, shouldDisplayNotif = false) {
       if (this.$q.platform.is.android) {
         const filePath = `${cordova.file.externalRootDirectory}Pictures/${fileName}`
         // eslint-disable-next-line no-undef
         const fileTransfer = new FileTransfer()
         try {
           fileTransfer.download(image, filePath, () => {
-            this.displayNotif('QR code image saved successfully.', 'blue-9', 'mdi-qrcode-plus')
+            if (shouldDisplayNotif) {
+              this.displayNotif('QR code images saved successfully.', 'blue-9', 'mdi-qrcode-plus')
+            }
           }, (error) => {
             console.log(error)
-            this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
+            this.displayNotif('An error occurred while saving the QR code images.', 'red-9', 'mdi-qrcode-remove')
           })
         } catch (error) {
           console.log(error)
-          this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
+          this.displayNotif('An error occurred while saving the QR code images.', 'red-9', 'mdi-qrcode-remove')
         }
       } else if (this.$q.platform.is.ios) {
         try {
@@ -132,15 +157,18 @@ export default {
         }
       }
     },
-    saveToDesktop (image, fileName) {
+    saveToDesktop (image, fileName, shouldDisplayNotif = false) {
       try {
         const link = document.createElement('a')
         link.href = image
         link.download = fileName
         link.click()
-        this.displayNotif('QR code image saved successfully.', 'blue-9', 'mdi-qrcode-plus')
+
+        if (shouldDisplayNotif) {
+          this.displayNotif('QR code images saved successfully.', 'blue-9', 'mdi-qrcode-plus')
+        }
       } catch (error) {
-        this.displayNotif('An error occurred while saving the QR code image.', 'red-9', 'mdi-qrcode-remove')
+        this.displayNotif('An error occurred while saving the QR code images.', 'red-9', 'mdi-qrcode-remove')
       }
     }
   }

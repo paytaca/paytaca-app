@@ -224,7 +224,7 @@
                 </template>
 
                 <template v-else-if="authenticationPhase === 'shards'">
-                  <ShardsProcess :mnemonic="mnemonic" />
+                  <ShardsProcess :mnemonic="mnemonic" :walletHash="newWalletHash" />
                 </template>
 
                 <template v-else-if="authenticationPhase === 'backup-phrase'">
@@ -355,6 +355,7 @@ export default {
       importSeedPhrase: false,
       seedPhraseBackup: null,
       mnemonic: '',
+      newWalletHash: '',
       steps: -1,
       totalSteps: 9,
       mnemonicVerified: false,
@@ -566,6 +567,7 @@ export default {
         wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes)
+      this.newWalletHash = wallet.BCH.walletHash
     },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
