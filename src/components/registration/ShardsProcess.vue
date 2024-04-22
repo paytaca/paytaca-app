@@ -1,61 +1,30 @@
 <template>
   <p>Process Preview here</p>
 
-  <!-- 1st process screenshot -->
-  <template v-if="processStep === 0">
-    <p>Screenshot the QR code of the first shard and store it somewhere safe.</p>
+  <div>
     <div id="personal-qr" class="flex flex-center q-py-md br-15 col-qr-code">
+      <p style="color: black">Keep this QR code</p>
       <qr-code :text="shards[1]" :size="200" />
+    </div>
+    <div id="sharing-qr" class="flex flex-center q-py-md br-15 col-qr-code">
+      <p style="color: black">Share this QR code</p>
+      <qr-code :text="shards[2]" :size="200" />
     </div>
     <div class="flex flex-center q-mt-md">
       <q-btn
         rounded
-        label="Take screenshot of QR"
+        label="Download QR Codes"
         class="button"
         @click="takeScreenshot()"
       />
     </div>
-  </template>
-
-  <!-- 2rd process pictured using another device (disable screenshot) -->
-  <template v-else-if="processStep === 1">
-    <p>Have a friend or another device take a picture of the QR code below and store it somewhere safe.</p>
-    <p>Storing it in this device is not advisable for this step.</p>
-    <div class="flex flex-center q-py-md br-15 col-qr-code">
-      <qr-code :text="shards[2]" :size="200" />
-    </div>
-    <p class="text-center q-my-md">Share QR code to a friend</p>
-    <div class="flex flex-center q-pb-sm row no-wrap q-gutter-x-md" style="overflow-x:auto;">
-      <template v-for="shareLink, index in shareLinks" :key="index">
-        <q-btn
-          rounded
-          padding="md"
-          size="md"
-          class="button"
-          :icon="shareLink.icon"
-          :href="shareLink.url"
-          target="_blank"
-        />
-      </template>
-    </div>
-  </template>
+  </div>
 
   <q-btn
     rounded
     label="Continue"
     class="q-mt-lg full-width button"
-    @click="advanceToNextStep()"
-  />
-  <q-btn
-    flat
-    padding="md"
-    :label="$t('Back')"
-    icon="arrow_back"
-    class="full-width button button-text-primary"
-    :class="getDarkModeClass(darkMode)"
-    @click="processStep -= 1"
-    v-if="processStep > 0"
-  />
+    />
 </template>
 
 <script>
@@ -75,8 +44,7 @@ export default {
 
   data () {
     return {
-      shards: [],
-      processStep: 0
+      shards: []
     }
   },
 
@@ -102,28 +70,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    shareLinks () {
-      const data = {
-        messenger: {
-          icon: 'fab fa-facebook-messenger',
-          url: '#'
-        },
-        telegram: {
-          icon: 'telegram',
-          url: '#'
-        },
-        whatsapp: {
-          icon: 'fab fa-whatsapp',
-          url: '#'
-        },
-        email: {
-          icon: 'email',
-          url: '#'
-        }
-      }
-
-      return data
     }
   },
 
@@ -137,15 +83,6 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
-    },
-    advanceToNextStep () {
-      const vm = this
-      vm.processStep += 1
-
-      if (vm.processStep === 2) {
-        vm.processStep = 0
-        // move to user preferences step
-      }
     },
     displayNotif (message, color, icon) {
       this.$q.notify({ message, timeout: 800, color, icon })
