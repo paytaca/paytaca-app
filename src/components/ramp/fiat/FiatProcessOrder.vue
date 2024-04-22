@@ -86,7 +86,7 @@
   </div>
   <AdSnapshotDialog v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
   <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-  <ChatDialog v-if="openChat" :data="order" @close="openChat=false"/>
+  <ChatDialog v-if="openChat" :order="order" @close="openChat=false"/>
 </template>
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
