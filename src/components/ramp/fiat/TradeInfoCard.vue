@@ -228,7 +228,7 @@ export default {
         const userMember = response?.filter(member => {
           return user.chat_identity_id === member.chat_identity.id
         })[0]
-        this.unread = userMember.unread_count
+        this.unread = userMember?.unread_count
       }).catch(console.error)
     },
     onViewAd () {

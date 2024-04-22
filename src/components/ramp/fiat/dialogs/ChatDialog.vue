@@ -419,7 +419,7 @@ export default {
   },
   props: {
     openDialog: Boolean,
-    data: {
+    order: {
       type: Object,
       default: null
     }
@@ -452,7 +452,7 @@ export default {
   },
   async mounted () {
     // Set Data Here
-    this.chatRef = generateChatRef(this.data.id, this.data.created_at)
+    this.chatRef = generateChatRef(this.order?.id, this.order?.created_at)
     this.stopInfiniteScroll()
     this.loadKeyPair()
     this.loadChatSession()
@@ -466,7 +466,7 @@ export default {
       return this.$store.getters['global/theme']
     },
     completedOrder () {
-      return ['CNCL', 'RLS', 'RFN'].includes(this.data?.status?.value)
+      return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
     }
   },
   methods: {
@@ -518,8 +518,8 @@ export default {
             createSession = true
           }
         })
-      await vm.fetchOrderMembers(vm.data?.id).then(async (members) => {
-        if (!['APL', 'RFN_PN', 'RLS_PN'].includes(this.data.status.value)) {
+      await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
+        if (!['APL', 'RFN_PN', 'RLS_PN'].includes(this.order.status.value)) {
           members = members.filter(member => !member.is_arbiter)
         } else {
           vm.arbiterIdentity = members.filter(member => member.is_arbiter)[0]
@@ -528,7 +528,7 @@ export default {
 
         // Create session if necessary
         if (createSession) {
-          await createChatSession(vm.data?.id, vm.data?.created_at).catch(error => { console.error(error) })
+          await createChatSession(vm.order?.id, vm.order?.created_at).catch(error => { console.error(error) })
           await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
         }
         await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
