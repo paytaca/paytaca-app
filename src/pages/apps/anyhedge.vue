@@ -754,7 +754,7 @@ function onHedgeFormCreate(data) {
     $q.dialog({
       title: `${data?.position === 'long' ? $t('LongPositionOffer') : $t('HedgePositionOffer')}`,
       message: `${data?.position === 'long' ? $t('LongPositionOfferCreated') : $t('HedgePositionOfferCreated')}`,
-      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
       ok: $t('OK'),
       seamless: true,
       style: 'word-break:break-all;',
@@ -776,7 +776,7 @@ function onHedgeFormCreate(data) {
       ok: $t('OK'),
       html: true,
       seamless: true,
-      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
       style: 'word-break:break-all;',
     }).onDismiss(() => {
       fetchHedgeContractsResponse.then(() => {
@@ -1116,7 +1116,7 @@ async function displayContractFromNotification(data={address: '', position: '' }
       message: $t('UnableToFindContract'),
       seamless: true,
       ok: $t('OK'),
-      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
     })
   }
   return contract
