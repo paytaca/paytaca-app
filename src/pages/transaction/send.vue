@@ -211,7 +211,7 @@
                   </a>
                 </div>
               </div>
-              <div class="add-recipient-button" v-if="showAddRecipientButton" @click.prevent="addAnotherRecipient">
+              <div class="add-recipient-button" v-if="showAddRecipientButton && !disableSending" @click.prevent="addAnotherRecipient">
                 <q-btn :label="$t('AddAnotherRecipient')" class="button" />
               </div>
               <div class="row" v-if="sending">
@@ -229,7 +229,7 @@
           />
 
           <DragSlide
-            v-if="showSlider"
+            v-if="showSlider && !disableSending"
             @swiped="slideToSubmit"
             class="absolute-bottom"
           />
@@ -466,6 +466,8 @@ export default {
       },
 
       jpp: null,
+      disableSending: false,
+      bip21Expires: null,
 
       sendDataMultiple: [{
         amount: null,
@@ -687,6 +689,8 @@ export default {
       ).format(dateObj)
     },
     onScannerDecode (content) {
+      this.disableSending = false
+      this.bip21Expires = null
       this.showQrScanner = false
       this.sliderStatus = false
       let address = content
@@ -977,6 +981,21 @@ export default {
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     async slideToSubmit (reset=() => {}) {
+      if (this.bip21Expires) {
+        const expires = parseInt(this.bip21Expires)
+        const now = Math.floor(Date.now() / 1000)
+        if (now >= expires) {
+          this.disableSending = true
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('PaymentRequestIsExpired')
+          })
+          return
+        }
+      }
+
       this.$q.dialog({
         component: SecurityCheckDialog,
       })
@@ -1460,6 +1479,24 @@ export default {
           currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
         }
 
+        const addressParse = new URLSearchParams(value.split('?')[1])
+        if (addressParse.has('expires')) {
+          const expires = parseInt(addressParse.get('expires'))
+          this.bip21Expires = expires
+          const now = Math.floor(Date.now() / 1000)
+          if (now >= expires) {
+            this.disableSending = true
+            this.$q.notify({
+              type: 'negative',
+              color: 'red-4',
+              timeout: 3000,
+              message: this.$t('PaymentRequestIsExpired')
+            })
+          }
+          return false
+        }
+
+        this.disableSending = false
         return true
       }
 
