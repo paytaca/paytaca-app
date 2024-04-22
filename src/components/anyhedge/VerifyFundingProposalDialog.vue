@@ -88,7 +88,7 @@ const title = ref(titleText)
 const spendingTx = ref('')
 async function verifyFundingProposalUtxo() {
   loading.value = true
-  if (props.position !== 'hedge' && props.position !== 'long') {
+  if (props.position !== 'short' && props.position !== 'long') {
     loading.value = false
     title.value = $t('InvalidData')
     errorMessage.value = $t('DetermineProposalError')

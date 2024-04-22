@@ -1,6 +1,9 @@
-import { AnyHedgeManager, SettlementType, ContractData } from '@generalprotocols/anyhedge'
+import { AnyHedgeManager, SettlementType, castContractDataV1toContractDataV2 } from '@generalprotocols/anyhedge'
+import { AnyHedgeArtifacts } from '@generalprotocols/anyhedge-contracts';
+import { AnyHedgeManager as AnyHedgeManagerOld } from '@generalprotocols/anyhedge-old';
 import ago from 's-ago'
 import { capitalize } from 'vue'
+import { castBigIntSafe } from './utils'
 
 export function formatPositionOfferStatus(value='') {
   if (!value) return ''
@@ -30,7 +33,7 @@ export function formatDate (date) {
   return ago(new Date(date))
 }
 
-export function formatUnits(value, decimals) {
+export function formatUnits(value, decimals=0) {
   return Math.round(Number(value)) / 10 ** decimals
 }
 
@@ -101,7 +104,7 @@ export function ellipsisText (value, config) {
  * @typedef {Object} SettlementAPI
  * @property {String} spending_transaction
  * @property {SettlementType} settlement_type
- * @property {Number} hedge_satoshis
+ * @property {Number} short_satoshis
  * @property {Number} long_satoshis
  * @property {String} oracle_pubkey
  * @property {Number} settlement_price
@@ -116,9 +119,9 @@ export function ellipsisText (value, config) {
  * 
  * @typedef {Object} MutualRedemptionAPI
  * @property {'refund' | 'early_maturation' | 'arbitrary'} redemption_type
- * @property {Number} hedge_satoshis
+ * @property {Number} short_satoshis
  * @property {Number} long_satoshis
- * @property {String|undefined|null} hedge_schnorr_sig
+ * @property {String|undefined|null} short_schnorr_sig
  * @property {String|undefined|null} long_schnorr_sig
  * @property {Number|undefined|null} settlement_price
  * @property {String|undefined|null} tx_hash
@@ -127,7 +130,7 @@ export function ellipsisText (value, config) {
  * @property {String} [position_taker]
  * @property {Number} [liquidity_fee]
  * @property {Number} [network_fee]
- * @property {Number} [total_hedge_funding_sats]
+ * @property {Number} [total_short_funding_sats]
  * @property {Number} [total_long_funding_sats]
  * 
  * 
@@ -164,7 +167,7 @@ export function ellipsisText (value, config) {
  * @property {Number} oracle_message_sequence
  * @property {String} settlement_service_fee
  * @property {String} settlement_service_fee_address
- * @property {Number} [calculated_hedge_sats]
+ * @property {Number} [calculated_short_sats]
  * @property {PriceOracleMessageAPI} [price_oracle_message]
 */
 
@@ -176,10 +179,10 @@ export function ellipsisText (value, config) {
  * @param {Number} data.satoshis - Hedge value in satoshis
  * @param {Number} data.start_timestamp
  * @param {Number} data.maturity_timestamp
- * @param {String} [data.hedge_wallet_hash]
- * @param {String} data.hedge_address
- * @param {String} data.hedge_pubkey
- * @param {String} [data.hedge_address_path]
+ * @param {String} [data.short_wallet_hash]
+ * @param {String} data.short_address
+ * @param {String} data.short_pubkey
+ * @param {String} [data.short_address_path]
  * @param {String} [data.long_wallet_hash]
  * @param {String} data.long_address
  * @param {String} data.long_pubkey
@@ -195,7 +198,7 @@ export function ellipsisText (value, config) {
  * @param {String|null} data.funding_tx_hash
  * @param {Boolean|null} data.funding_tx_hash_validated
  * @param {FeeAPI[]} data.fees
- * @param {FundingProposalAPI|null} data.hedge_funding_proposal
+ * @param {FundingProposalAPI|null} data.short_funding_proposal
  * @param {FundingProposalAPI|null} data.long_funding_proposal
  * @param {SettlementAPI[]} data.settlements
  * @param {FundingAPI[]} data.fundings
@@ -205,26 +208,31 @@ export function ellipsisText (value, config) {
  * 
  * @returns 
  */
+
 export async function parseHedgePositionData(data) {
   const units = (data.satoshis * data.start_price) / 10**8
   const contractCreationParameters = {
-    takerSide: data.metadata?.position_taker,
-    makerSide: data.metadata?.position_taker == 'hedge' ? 'long' : 'hedge',
+    takerSide: data.metadata?.position_taker == 'hedge' ? 'short': data.metadata?.position_taker,
+    makerSide: data.metadata?.position_taker == 'long' ? 'short' : 'long',
     nominalUnits: units,
     oraclePublicKey: data.oracle_pubkey,
     startingOracleMessage: data.starting_oracle_message || data.price_oracle_message?.message,
     startingOracleSignature: data.starting_oracle_signature || data.price_oracle_message?.signature,
-    maturityTimestamp: data?.maturity_timestamp,
+    maturityTimestamp: castBigIntSafe(data?.maturity_timestamp),
     highLiquidationPriceMultiplier: data.high_liquidation_multiplier,
     lowLiquidationPriceMultiplier: data.low_liquidation_multiplier,
-    hedgeMutualRedeemPublicKey: data.hedge_pubkey,
+    shortMutualRedeemPublicKey: data.short_pubkey,
     longMutualRedeemPublicKey: data.long_pubkey,
-    hedgePayoutAddress: data.hedge_address,
+    shortPayoutAddress: data.short_address,
     longPayoutAddress: data.long_address,
-    enableMutualRedemption: 1,
+    enableMutualRedemption: 1n,
+    isSimpleHedge: 1n, // NOTE: from v2 migration, not sure yet if to keep static
   }
 
   const contractData = await compileContract(contractCreationParameters, data.anyhedge_contract_version)
+  if (contractData.address == "bitcoincash:pd233wda673dycvvt9kgnn2m2gvt22zw559k28rn4sem5hs39wzpy6txepqs0") {
+    window.d = contractData
+  }
   if (contractData.address !== data.address) {
     console.warn(
       `Address mismatch when parsing hedge position got: "${contractData.address}" instead of "${data.address}"`,
@@ -233,8 +241,8 @@ export async function parseHedgePositionData(data) {
     )
   }
 
-  contractData.hedgeWalletHash = data.hedge_wallet_hash
-  contractData.hedgeAddressPath = data.hedge_address_path
+  contractData.shortWalletHash = data.short_wallet_hash
+  contractData.shortAddressPath = data.short_address_path
   contractData.longWalletHash = data.long_wallet_hash
   contractData.longAddressPath = data.long_address_path
   contractData.fundingTxHash = data.funding_tx_hash
@@ -244,8 +252,8 @@ export async function parseHedgePositionData(data) {
     data?.fundings.forEach(funding => {
       contractData.fundings.push({
         fundingTransactionHash: funding?.tx_hash,
-        fundingOutputIndex: funding?.funding_output,
-        fundingSatoshis: funding?.funding_satoshis,
+        fundingOutputIndex: castBigIntSafe(funding?.funding_output),
+        fundingSatoshis: castBigIntSafe(funding?.funding_satoshis),
       })
     })
   }
@@ -256,12 +264,12 @@ export async function parseHedgePositionData(data) {
     const index = contractData.fundings.findIndex(funding => funding.fundingTransactionHash == data.funding_tx_hash)
     if (index < 0) contractData.fundings.push({
       fundingTransactionHash: data.funding_tx_hash,
-      fundingOutputIndex: data?.funding?.funding_satoshis,
-      fundingSatoshis: data?.funding?.funding_output,
+      fundingOutputIndex: castBigIntSafe(data?.funding?.funding_satoshis),
+      fundingSatoshis: castBigIntSafe(data?.funding?.funding_output),
     })
   }
 
-  contractData.hedgeFundingProposal = data.hedge_funding_proposal
+  contractData.shortFundingProposal = data.short_funding_proposal
   contractData.longFundingProposal = data.long_funding_proposal
 
   if (Array.isArray(data?.fees)) {
@@ -269,44 +277,72 @@ export async function parseHedgePositionData(data) {
       name: fee?.name,
       description: fee?.description,
       address: fee?.address,
-      satoshis: fee?.satoshis,
+      satoshis: castBigIntSafe(fee?.satoshis),
     })).filter(fee => fee.address && fee.satoshis)
   }
 
   if (Array.isArray(data?.settlements)) {
-    contractData.settlements = data?.settlements.map(settlement => Object({
-      settlementTransactionHash: settlement.spending_transaction,
-      settlementType: settlement.settlement_type,
-      hedgePayoutInSatoshis: settlement.hedge_satoshis,
-      longPayoutInSatoshis: settlement.long_satoshis,
-      settlementPrice: settlement.settlement_price,
+    const settlementTxFee = contractData?.version?.includes?.('v0.11') ? 1175n : 1967n
+    data?.settlements?.forEach(settlement => {
+      const fundingSats = settlementTxFee + // fixed tx fee
+                          castBigIntSafe(settlement.short_satoshis) +
+                          castBigIntSafe(settlement.long_satoshis)
+      const txid = settlement.spending_transaction
+      const fundingIndex = contractData?.fundings?.findIndex?.(funding => {
+        if (funding?.fundingSatoshis !== fundingSats) return false
+        if (funding?.settlement && funding?.settlement?.settlementTransactionHash === txid) return true
 
-      settlementMessage: settlement?.settlement_message,
-      settlementSignature: settlement?.settlement_signature,
+        return !funding?.settlement
+      })
+      if (fundingIndex >= 0) {
+        contractData.fundings[fundingIndex].settlement = {
+          settlementType: settlement.settlement_type,
+          settlementTransactionHash: settlement.spending_transaction,
+          shortPayoutInSatoshis: castBigIntSafe(settlement.short_satoshis),
+          longPayoutInSatoshis: castBigIntSafe(settlement.long_satoshis),
+          settlementPrice: castBigIntSafe(settlement.settlement_price),
+          settlementMessage: settlement?.settlement_message || '',
+          settlementSignature: settlement?.settlement_signature || '',
+          previousMessage: settlement?.previous_message || '',
+          previousSignature: settlement?.previous_signature || '',
 
-      // Not actually part of ContractDataV1's settlement interface in anyhedge
-      oraclePublicKey: settlement.oracle_pubkey,
-      settlementPriceSequence: settlement.settlement_price_sequence,
-      settlementMessageSequence: settlement.settlement_message_sequence,
-      settlementMessageTimestamp: settlement.settlement_message_timestamp,
-    }))
+          // Not actually part of ContractDataV2's settlement interface in anyhedge
+          oraclePublicKey: settlement.oracle_pubkey,
+          settlementPriceSequence: settlement.settlement_price_sequence,
+          settlementMessageSequence: settlement.settlement_message_sequence,
+          settlementMessageTimestamp: settlement.settlement_message_timestamp,
+        }
+      }
+    })
   }
 
   if (data?.mutual_redemption) {
-    contractData.mutualRedemption = data.mutual_redemption
+    const mutualRedemption = data.mutual_redemption
+    contractData.mutualRedemption = mutualRedemption
+    contractData.mutualRedemption = {
+      initiator: mutualRedemption?.initiator === 'hedge'
+        ? 'short' : mutualRedemption?.initiator,
+      redemptionType: mutualRedemption?.redemption_type,
+      shortSatoshis: castBigIntSafe(mutualRedemption?.short_satoshis),
+      longSatoshis: castBigIntSafe(mutualRedemption?.long_satoshis),
+      shortSchnorrSig: mutualRedemption?.short_schnorr_sig,
+      longSchnorrSig: mutualRedemption.long_schnorr_sig,
+      settlementPrice: castBigIntSafe(mutualRedemption.settlement_price),
+      txHash: mutualRedemption.tx_hash,
+    }
   } else {
     contractData.mutualRedemption = null
   }
 
   if (data?.metadata) {
     contractData.apiMetadata = {
-      hedgeAddressPath:       data?.hedge_address_path,
+      shortAddressPath:       data?.short_address_path,
       longAddressPath:        data?.long_address_path,
-      positionTaker:          data?.metadata?.position_taker,
-      liquidityFee:           data?.metadata?.liquidity_fee,
-      networkFee:             data?.metadata?.network_fee,
-      totalHedgeFundingSats:  data?.metadata?.total_hedge_funding_sats,
-      totalLongFundingSats:   data?.metadata?.total_long_funding_sats,
+      positionTaker:          data?.metadata?.position_taker  === 'hedge' ? 'short' : data?.metadata?.position_taker,
+      liquidityFee:           castBigIntSafe(data?.metadata?.liquidity_fee),
+      networkFee:             castBigIntSafe(data?.metadata?.network_fee),
+      totalShortFundingSats:  castBigIntSafe(data?.metadata?.total_short_funding_sats),
+      totalLongFundingSats:   castBigIntSafe(data?.metadata?.total_long_funding_sats),
     }
   }
 
@@ -320,6 +356,20 @@ export async function parseHedgePositionData(data) {
 }
 
 export async function compileContract(contractCreationParameters, contractVersion) {
+  if (contractVersion && !AnyHedgeArtifacts[contractVersion]) {
+    const _castedCreationParams = Object.assign({}, contractCreationParameters)
+    if (_castedCreationParams?.takerSide === 'short') _castedCreationParams.takerSide = 'hedge'
+    if (_castedCreationParams?.makerSide === 'short') _castedCreationParams.makerSide = 'hedge'
+    _castedCreationParams.maturityTimestamp = parseInt(_castedCreationParams?.maturityTimestamp)
+    _castedCreationParams.enableMutualRedemption = parseInt(_castedCreationParams?.enableMutualRedemption)
+    _castedCreationParams.hedgeMutualRedeemPublicKey = _castedCreationParams?.shortMutualRedeemPublicKey
+    _castedCreationParams.hedgePayoutAddress = _castedCreationParams?.shortPayoutAddress
+    const managerOld = new AnyHedgeManagerOld({ contractVersion: contractVersion })
+    const contractDataV1 = await managerOld.createContract(_castedCreationParams)
+    const contractDataV2 = castContractDataV1toContractDataV2(contractDataV1)
+    return contractDataV2
+  }
+
   const manager = new AnyHedgeManager({ contractVersion: contractVersion })
   const contractData = await manager.createContract(contractCreationParameters)
   return contractData
@@ -327,7 +377,7 @@ export async function compileContract(contractCreationParameters, contractVersio
 
 /**
  * 
- * @param {ContractData} contract 
+ * @param {import('@generalprotocols/anyhedge').ContractDataV2} contract 
  */
 export function parseSettlementMetadata(contract) {
   const data = {
@@ -335,59 +385,59 @@ export function parseSettlementMetadata(contract) {
     settlementTypeText: '',
     mutualRedemptionTypeText: '',
 
-    settlementPriceValue: 0,
+    settlementPriceValue: 0n,
     settlementTimestamp: -1,
     txid: '',
-    hedge: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
-    long: { nominalUnits: 0, satoshis: 0, assetChangePctg: 0, bchChangePctg: 0 },
+    short: { nominalUnits: 0, satoshis: 0n, assetChangePctg: 0, bchChangePctg: 0 },
+    long: { nominalUnits: 0, satoshis: 0n, assetChangePctg: 0, bchChangePctg: 0 },
 
     summary: {
-      hedge: { assetChangePctg: 0, actualSatsChange: 0 },
-      long: { actualSatsChange: 0 },
+      short: { assetChangePctg: 0, actualSatsChange: 0n },
+      long: { actualSatsChange: 0n },
     }
   }
 
-  const settlement = contract?.settlements?.[0]
-  if (settlement?.hedgePayoutInSatoshis >= 0 && settlement?.longPayoutInSatoshis >= 0) {
+  const settlement = contract?.fundings.find(funding => funding?.settlement)?.settlement
+  if (settlement?.shortPayoutInSatoshis >= 0n && settlement?.longPayoutInSatoshis >= 0n) {
     data.txid = settlement?.settlementTransactionHash || ''
-    data.settlementPriceValue = settlement?.settlementPrice
+    data.settlementPriceValue = settlement?.settlementPrice || 0n
     data.settlementTimestamp = settlement?.settlementMessageTimestamp
 
     data.settlementType = settlement?.settlementType || ''
     data.settlementTypeText = capitalize(data.settlementType).replace('_', ' ').trim()
 
-    if (data.settlementType === 'mutual' && settlement?.settlementTransactionHash === contract?.mutualRedemption?.tx_hash) {
-      data.mutualRedemptionTypeText = contract?.mutualRedemption?.redemption_type || ''
+    if (data.settlementType === 'mutual' && settlement?.settlementTransactionHash === contract?.mutualRedemption?.txHash) {
+      data.mutualRedemptionTypeText = contract?.mutualRedemption?.redemptionType || ''
       data.mutualRedemptionTypeText = capitalize(data.mutualRedemptionTypeText).replace('_', ' ').trim()
-      if (!data.settlementPriceValue && contract?.mutualRedemption?.settlement_price) {
-        data.settlementPriceValue = contract?.mutualRedemption?.settlement_price
+      if (!data.settlementPriceValue && contract?.mutualRedemption?.settlementPrice) {
+        data.settlementPriceValue = contract?.mutualRedemption?.settlementPrice
       }
     }
 
-    const { hedgePayoutInSatoshis, longPayoutInSatoshis } = settlement
-    const hedgeUnits = (hedgePayoutInSatoshis * data.settlementPriceValue) / 10 ** 8
-    const longUnits = (longPayoutInSatoshis * data.settlementPriceValue) / 10 ** 8
+    const { shortPayoutInSatoshis, longPayoutInSatoshis } = settlement
+    const shortUnits = formatUnits(shortPayoutInSatoshis * data.settlementPriceValue, 8)
+    const longUnits = formatUnits(longPayoutInSatoshis * data.settlementPriceValue, 8)
 
-    data.hedge.nominalUnits = hedgeUnits
-    data.hedge.satoshis = hedgePayoutInSatoshis
+    data.short.nominalUnits = shortUnits
+    data.short.satoshis = shortPayoutInSatoshis
     data.long.nominalUnits = longUnits
     data.long.satoshis = longPayoutInSatoshis
 
-    data.hedge.assetChangePctg = Math.round((hedgeUnits / contract?.metadata?.nominalUnits) * 10000)
-    data.hedge.bchChangePctg = Math.round((hedgePayoutInSatoshis / contract?.metadata?.hedgeInputInSatoshis) * 10000)
+    data.short.assetChangePctg = Math.round((shortUnits / contract?.metadata?.nominalUnits) * 10000)
+    data.short.bchChangePctg = Math.round((formatUnits(shortPayoutInSatoshis) / formatUnits(contract?.metadata?.shortInputInSatoshis)) * 10000)
     data.long.assetChangePctg = Math.round((longUnits / contract?.metadata?.longInputInOracleUnits) * 10000)
-    data.long.bchChangePctg = Math.round((longPayoutInSatoshis / contract?.metadata?.longInputInSatoshis) * 10000)
+    data.long.bchChangePctg = Math.round((formatUnits(longPayoutInSatoshis) / formatUnits(contract?.metadata?.longInputInSatoshis)) * 10000)
 
-    data.hedge.assetChangePctg = -(10000 - data.hedge.assetChangePctg) / 100
-    data.hedge.bchChangePctg = -(10000 - data.hedge.bchChangePctg) / 100
+    data.short.assetChangePctg = -(10000 - data.short.assetChangePctg) / 100
+    data.short.bchChangePctg = -(10000 - data.short.bchChangePctg) / 100
     data.long.assetChangePctg = -(10000 - data.long.assetChangePctg) / 100
     data.long.bchChangePctg = -(10000 - data.long.bchChangePctg) / 100
 
-    if (contract?.apiMetadata?.totalHedgeFundingSats) {
-      data.summary.hedge.actualSatsChange = hedgePayoutInSatoshis - contract.apiMetadata.totalHedgeFundingSats
-      data.summary.hedge.assetChangePctg = data.hedge.assetChangePctg
+    if (contract?.apiMetadata?.totalShortFundingSats) {
+      data.summary.short.actualSatsChange = shortPayoutInSatoshis - contract.apiMetadata.totalShortFundingSats
+      data.summary.short.assetChangePctg = data.short.assetChangePctg
     } else {
-      data.summary.hedge = null
+      data.summary.short = null
     }
 
     if (contract?.apiMetadata?.totalLongFundingSats) {
@@ -447,6 +497,6 @@ export function parseCounterPartyInfo(counterPartyInfo) {
     oracleMessageSequence: counterPartyInfo?.oracle_message_sequence,
     settlementServiceFee: counterPartyInfo?.settlement_service_fee,
     settlementServiceFeeAddress: counterPartyInfo?.settlement_service_fee_address,
-    calculatedHedgeSats: counterPartyInfo?.calculated_hedge_sats,
+    calculatedShortSats: counterPartyInfo?.calculated_short_sats,
   }
 }

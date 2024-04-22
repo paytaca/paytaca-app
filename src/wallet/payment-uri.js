@@ -10,6 +10,7 @@ import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
 import { getWalletByNetwork } from './chipnet'
+import SingleWallet from './single-wallet'
 
 const bchjs = new BCHJS()
 /**
@@ -361,30 +362,37 @@ export class JSONPaymentProtocol {
     return this.transactions.map(tx => JSONPaymentProtocol.rawTxToHash(tx))
   }
 
+  get totalSendAmountSats() {
+    return this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
+  }
+
   /**
-   * @param {Wallet} wallet 
+   * @param {Wallet | SingleWallet} wallet 
    */
-  async prepareTransaction(wallet, changeAddress) {
-    const totalSendAmountSats = this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
-
-    if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash'))) {
-      throw JsonPaymentProtocolError('Invalid recipient address')
-    }
-
+  async getUtxosFromWallet(wallet) {
     const utxoOpts = {
       confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
     }
-    const bchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
-      `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
-      totalSendAmountSats,
+    let handle
+    let watchtower
+    if (wallet instanceof SingleWallet) {
+      handle = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
+      watchtower = wallet.watchtower
+    } else {
+      handle = `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`
+      watchtower = getWalletByNetwork(wallet, 'bch').watchtower
+    }
+    const bchUtxos = await watchtower.BCH.getBchUtxos(
+      handle,
+      this.totalSendAmountSats,
       utxoOpts,
     )
 
-    if (bchUtxos.cumulativeValue < totalSendAmountSats && utxoOpts.confirmed) {
+    if (bchUtxos.cumulativeValue < this.totalSendAmountSats && utxoOpts.confirmed) {
       console.log('Insufficient balance from confirmed utxos, checking usable unconfirmed utxos')
-      const unconfirmedBchUtxos = await getWalletByNetwork(wallet, 'bch').watchtower.BCH.getBchUtxos(
-        `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`,
-        totalSendAmountSats,
+      const unconfirmedBchUtxos = await watchtower.BCH.getBchUtxos(
+        handle,
+        this.totalSendAmountSats,
         { confirmed: false },
       )
       const confirmedTxHashes = {}
@@ -408,8 +416,19 @@ export class JSONPaymentProtocol {
         if (bchUtxos.cumulativeValue >= totalSendAmountSats) break
       }
     }
+    return bchUtxos
+  }
 
-    if (bchUtxos.cumulativeValue < totalSendAmountSats) {
+  /**
+   * @param {Wallet} wallet 
+   */
+  async prepareTransaction(wallet, changeAddress) {
+    if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash'))) {
+      throw JsonPaymentProtocolError('Invalid recipient address')
+    }
+
+    const bchUtxos = await this.getUtxosFromWallet(wallet);
+    if (bchUtxos.cumulativeValue < this.totalSendAmountSats) {
       throw JsonPaymentProtocolError('Not enough balance')
     }
 
@@ -424,8 +443,14 @@ export class JSONPaymentProtocol {
       const utxo = bchUtxos.utxos[i]
       txBuilder.addInput(utxo.tx_hash, utxo.tx_pos)
       totalInput = totalInput.plus(utxo.value)
-      const addressPath = utxo?.address_path || utxo.wallet_index
-      const utxoPkWif = await getWalletByNetwork(wallet, 'bch').getPrivateKey(addressPath)
+
+      let utxoPkWif
+      if (wallet instanceof SingleWallet) {
+        utxoPkWif = wallet.wif
+      } else {
+        const addressPath = utxo?.address_path || utxo.wallet_index
+        utxoPkWif = await getWalletByNetwork(wallet, 'bch').getPrivateKey(addressPath)
+      }
 
       inputs.push({
         utxo: utxo,
@@ -461,11 +486,18 @@ export class JSONPaymentProtocol {
     const txFee = Math.ceil(byteCount * feeRate)
 
     const senderRemainder = totalInput.minus(totalOutput.plus(txFee))
-    const dustLimit = getWalletByNetwork(wallet, 'bch').watchtower.BCH.getDustLimit()
+    const watchtower = (wallet instanceof SingleWallet ? wallet : getWalletByNetwork(wallet, 'bch')).watchtower
+    const dustLimit = watchtower.BCH.getDustLimit()
     if (senderRemainder.isGreaterThanOrEqualTo(dustLimit)) {
       // generate change address if no change address provided
-      if (!changeAddress) changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
-      console.log(changeAddress)
+      if (!changeAddress) {
+        if (wallet instanceof SingleWallet) {
+          changeAddress = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
+        } else {
+          changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
+        }
+      }
+      console.log('changeAddress', changeAddress)
       txBuilder.addOutput(
         bchjs.Address.toLegacyAddress(changeAddress),
         parseInt(senderRemainder)

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import BCHJS from '@psf/bch-js'
 import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256, hexToBin } from '@bitauth/libauth';
-import { IncorrectWIFError } from '@generalprotocols/anyhedge'
+import { IncorrectWIFError, decodeExtendedJson } from '@generalprotocols/anyhedge'
 import { ContractData } from '@generalprotocols/anyhedge';
 import { Wallet } from '../index'
 
@@ -38,10 +38,19 @@ const bchjs = new BCHJS()
  * @returns {ContractData}
  */
 export async function getContractStatus(contractAddress, signature, publicKey, managerConfig) {
-    const url = new URL(`${managerConfig.serviceScheme}://${managerConfig.serviceDomain}:${managerConfig.servicePort}/api/v1/contractStatus`)
+    const url = new URL(`${managerConfig.serviceScheme}://${managerConfig.serviceDomain}:${managerConfig.servicePort}/api/v2/contractStatus`)
     const opts = {
         params: { contractAddress, signature, publicKey },
         headers: { Authorization: managerConfig.authenticationToken },
+        transformResponse: [
+            function(data, /* headers */) {
+                try {
+                    return decodeExtendedJson(data)
+                } catch {
+                   return data
+                }
+            }
+        ]
     }
     const { data } = await axios.get(String(url), opts)
         .catch(error => {
@@ -64,14 +73,14 @@ export function checkPrivAndPubkey(privkey, pubkey) {
 /**
  * 
  * @param {ContractData} contractData 
- * @param {'hedge' | 'long'} position 
+ * @param {'short' | 'long'} position 
  * @param {Wallet} wallet
  */
 export async function getPrivateKey(contractData, position, wallet) {
     // accessed properties are from when 
-    const addressPath = position === 'hedge' ? contractData.hedgeAddressPath : contractData.longAddressPath
-    const pubkey = position === 'hedge'
-        ? contractData.parameters.hedgeMutualRedeemPublicKey
+    const addressPath = position === 'short' ? contractData.shortAddressPath : contractData.longAddressPath
+    const pubkey = position === 'short'
+        ? contractData.parameters.shortMutualRedeemPublicKey
         : contractData.parameters.longMutualRedeemPublicKey
     
     if (addressPath) {
@@ -105,4 +114,19 @@ export function txHexToHash(txHex='') {
     const digest1 = sha256.hash(hexToBin(txHex))
     const digest2 = sha256.hash(digest1)
     return binToHex(digest2.reverse())   
+}
+
+
+export function castBigInt(value, radix) {
+    try {
+        return BigInt(value)
+    } catch(error) {
+        return BigInt(parseInt(value, radix))
+    }
+}
+
+
+export function castBigIntSafe(value, radix) {
+    try { return castBigInt(value, radix) } catch { }
+    return value
 }

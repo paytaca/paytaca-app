@@ -17,11 +17,11 @@
         <div class="text-h6 q-space q-mt-sm">
           <template v-if="isPositionOffer">
             {{ $t('PositionOffer') }}
-            <template v-if="position === 'hedge'">({{ $t('Hedge') }})</template>
+            <template v-if="position === 'short'">({{ $t('Hedge') }})</template>
             <template v-else-if="position === 'long'">({{ $t('Long') }})</template>
           </template>
           <template v-else>
-            <template v-if="position === 'hedge'">{{ $t('Stabilize') }} ({{ $t('Hedge') }})</template>
+            <template v-if="position === 'short'">{{ $t('Stabilize') }} ({{ $t('Hedge') }})</template>
             <template v-else-if="position === 'long'">{{ $t('Leverage') }} ({{ $t('Long') }})</template>
             <template v-else>{{ $t('HedgeContract') }}</template>
           </template>
@@ -41,10 +41,10 @@
             <div class="col-6">
               <div class="text-grey-7">{{ $t('Hedge') }}</div>
               <div v-if="contractValues.priceValue">
-                {{ formatUnits(contractValues.hedge.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
+                {{ formatUnits(contractValues.short.nominalUnits, oracleInfo?.assetDecimals || 0) }} {{ oracleInfo?.assetCurrency || 'units' }}
               </div>
               <div>
-                {{ getAssetDenomination(denomination, contractValues.hedge.satoshis / (10**8)) }}
+                {{ getAssetDenomination(denomination, contractValues.short.satoshis / (10**8)) }}
               </div>
             </div>
             <div class="col-6">
@@ -81,29 +81,29 @@
             <div
               class="row items-start q-pr-md"
               v-ripple style="position:relative;"
-              @click="expandFundingAmounts.hedge = !expandFundingAmounts.hedge"
+              @click="expandFundingAmounts.short = !expandFundingAmounts.short"
             >
               <div>
                 <q-icon
                   name="arrow_right"
                   size="1.5em"
                   :style="{
-                    transform: expandFundingAmounts.hedge ? 'rotate(90deg)' : '',
+                    transform: expandFundingAmounts.short ? 'rotate(90deg)' : '',
                     transition: 'transform 0.25s',
                   }"
                 />
               </div>
               <div class="text-body1 text-grey">{{ $t('Hedge') }}</div>
               <div class="q-space text-body1 text-right">
-                {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.total / (10**8)) }}
+                {{ getAssetDenomination(denomination, fundingAmounts?.short?.total / (10**8)) }}
               </div>
             </div>
             <q-slide-transition>
-              <div v-if="expandFundingAmounts.hedge" class="q-pl-md">
+              <div v-if="expandFundingAmounts.short" class="q-pl-md">
                 <div class="row items-start q-pr-md">
                   <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Contract') }}</div>
                   <div class="q-space text-right">
-                    {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.sats / (10**8)) }}
+                    {{ getAssetDenomination(denomination, fundingAmounts?.short?.sats / (10**8)) }}
                   </div>
                 </div>
                 <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('Fees') }}</div>
@@ -111,12 +111,12 @@
                   <div class="row items-start q-pr-md">
                     <div class="text-caption text-grey" style="margin-bottom:-0.5em">{{ $t('NetworkFee') }}</div>
                     <div class="q-space text-right">
-                      {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.fees?.network / (10**8)) }}
+                      {{ getAssetDenomination(denomination, fundingAmounts?.short?.fees?.network / (10**8)) }}
                     </div>
                   </div>
                   <div>
                     <div
-                      v-for="(fee, index) in fundingAmounts?.hedge?.fees?.serviceFees" :key="index"
+                      v-for="(fee, index) in fundingAmounts?.short?.fees?.serviceFees" :key="index"
                       class="row items-start q-pr-md no-wrap"
                     >
                       <div class="text-caption text-grey ellipsis" style="margin-bottom:-0.5em">
@@ -152,20 +152,20 @@
                   </div>
 
                   <!-- Keeping this section for backward compabitibility -->
-                  <div v-if="premiumFeeMetadata?.hedge?.pctg" class="row items-start q-pr-md">
+                  <div v-if="premiumFeeMetadata?.short?.pctg" class="row items-start q-pr-md">
                     <div class="text-caption text-grey row-items-center" style="margin-bottom:-0.5em">
                       {{ $t('Premium') }}
                       <q-icon
-                        v-if="premiumFeeMetadata?.hedge"
-                        :color="premiumFeeMetadata?.hedge?.icon?.color"
-                        :name="premiumFeeMetadata?.hedge?.icon?.name"
+                        v-if="premiumFeeMetadata?.short"
+                        :color="premiumFeeMetadata?.short?.icon?.color"
+                        :name="premiumFeeMetadata?.short?.icon?.name"
                         size="1.5em"
                       >
                         <q-popup-proxy :breakpoint="0">
                           <div class="q-px-md q-py-sm pt-card pt-label" :class="getDarkModeClass(darkMode)">
                             {{ $t('PremiumIs') }}
-                            <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.hedge?.icon?.color}`]" style="word-break: keep-all;">
-                              {{ formatUnits(premiumFeeMetadata?.hedge?.pctg, 2) }}%
+                            <span :class="['text-weight-medium', `text-${premiumFeeMetadata?.short?.icon?.color}`]" style="word-break: keep-all;">
+                              {{ formatUnits(premiumFeeMetadata?.short?.pctg, 2) }}%
                             </span>
                             {{ $t('OfValue') }}
                           </div>
@@ -173,7 +173,7 @@
                       </q-icon>
                     </div>
                     <div class="q-space text-right">
-                      {{ getAssetDenomination(denomination, fundingAmounts?.hedge?.fees?.premium / (10**8)) }}
+                      {{ getAssetDenomination(denomination, fundingAmounts?.short?.fees?.premium / (10**8)) }}
                     </div>
                   </div>
                 </div>
@@ -339,9 +339,9 @@
 
         <div>
           <div class="text-grey text-subtitle1">{{ $t('PayoutAddresses') }}</div>
-          <div v-if="!isPositionOffer || pubkeys.hedgeAddress" class="q-mb-xs">
+          <div v-if="!isPositionOffer || pubkeys.shortAddress" class="q-mb-xs">
             <div class="text-caption text-grey" style="margin-bottom:-0.5em;">{{ $t('Hedge') }}:</div>
-            <div class="q-space" style="word-break:break-all;">{{pubkeys.hedgeAddress}}</div>
+            <div class="q-space" style="word-break:break-all;">{{pubkeys.shortAddress}}</div>
           </div>
           <div v-if="!isPositionOffer || pubkeys.longAddress" class="q-mb-xs">
             <div class="text-caption text-grey" style="margin-bottom:-0.5em;">{{ $t('Long') }}:</div>
@@ -418,9 +418,9 @@ const denomination = computed(() => store.getters['global/denomination'])
  * @property {Number} duration
  *
  * @typedef {Object} PubkeysProp
- * @property {String} hedgeAddress
- * @property {String} hedgePubkey
- * @property {String} hedgeAddressPath
+ * @property {String} shortAddress
+ * @property {String} shortPubkey
+ * @property {String} shortAddressPath
  * @property {String} longAddress
  * @property {String} longPubkey
  * @property {String} longAddressPath
@@ -477,36 +477,36 @@ const expandContractValues = ref(false)
 const contractValues = computed(() => {
   const data = {
     priceValue: 0,
-    hedge: { nominalUnits: 0, satoshis: 0 },
+    short: { nominalUnits: 0, satoshis: 0 },
     long: { nominalUnits: 0, satoshis: 0 },
   }
 
-  data.hedge.satoshis = props.intent.amount * 10 ** 8
+  data.short.satoshis = props.intent.amount * 10 ** 8
   if (!props.isPositionOffer) data.priceValue = props.priceData?.priceValue
   if (data.priceValue) {
-    data.hedge.nominalUnits = data.hedge.satoshis * data.priceValue
+    data.short.nominalUnits = data.short.satoshis * data.priceValue
 
     const lowPrice = Math.floor(props.intent.lowPriceMult * data.priceValue)
-    data.long.satoshis = Math.round((data.hedge.nominalUnits / lowPrice) -  data.hedge.satoshis)
+    data.long.satoshis = Math.round((data.short.nominalUnits / lowPrice) -  data.short.satoshis)
     data.long.nominalUnits = data.long.satoshis * data.priceValue
   } else {
-    data.long.satoshis = Math.round((data.hedge.satoshis / props.intent.lowPriceMult) - data.hedge.satoshis)
+    data.long.satoshis = Math.round((data.short.satoshis / props.intent.lowPriceMult) - data.short.satoshis)
   }
 
-  data.hedge.nominalUnits = Math.round(data.hedge.nominalUnits / 10 ** 8)
+  data.short.nominalUnits = Math.round(data.short.nominalUnits / 10 ** 8)
   data.long.nominalUnits = Math.round(data.long.nominalUnits / 10 ** 8)
 
   return data
 })
 
 const fundingAmounts = ref(null)
-const expandFundingAmounts = ref({ hedge: false, long: false })
+const expandFundingAmounts = ref({ short: false, long: false })
 onMounted(() => {
-  expandFundingAmounts.value.hedge = props.position === 'hedge'
+  expandFundingAmounts.value.short = props.position === 'short'
   expandFundingAmounts.value.long = props.position === 'long'
 })
 watch(() => [props.position], () => {
-  expandFundingAmounts.value.hedge = props.position === 'hedge'
+  expandFundingAmounts.value.short = props.position === 'short'
   expandFundingAmounts.value.long = props.position === 'long'
 })
 function updateFundingAmounts() {
@@ -516,15 +516,15 @@ function updateFundingAmounts() {
     startingOracleSignature: props.priceData.signature,
     lowLiquidationMultiplier: props.intent.lowPriceMult,
     startingPriceValue: props.priceData.priceValue,
-    hedgeAddress: props.pubkeys.hedgeAddress,
+    shortAddress: props.pubkeys.shortAddress,
     longAddress: props.pubkeys.longAddress,
     fees: props.funding?.fees,
     liquidityFee: props.funding.liquidityFee,
     position: props.positionTaker || props.position,
   })
     .then(newFundingAmounts => {
-      if (Array.isArray(newFundingAmounts?.hedge?.fees?.serviceFees)) {
-        attachFeeStats(newFundingAmounts?.hedge)
+      if (Array.isArray(newFundingAmounts?.short?.fees?.serviceFees)) {
+        attachFeeStats(newFundingAmounts?.short)
       }
       if (Array.isArray(newFundingAmounts?.long?.fees?.serviceFees)) {
         attachFeeStats(newFundingAmounts?.long)
@@ -550,7 +550,7 @@ onMounted(() => updateFundingAmounts())
 const premiumFeeMetadata = computed(() => {
   if (!fundingAmounts.value) return
   return {
-    hedge: parsePremiumFee(fundingAmounts.value.hedge),
+    short: parsePremiumFee(fundingAmounts.value.short),
     long: parsePremiumFee(fundingAmounts.value.long),
   }
 })
