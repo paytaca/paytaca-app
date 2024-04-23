@@ -1,5 +1,9 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <q-pull-to-refresh
+    id="app-container"
+    :class="getDarkModeClass(darkMode)"
+    @refresh="refreshPage"
+  >
     <HeaderNav
       title="AnyHedge"
       backnavpath="/apps"
@@ -332,7 +336,7 @@
       @makeKeyAction="makeKeyAction"
     />
     </div>
-  </div>
+  </q-pull-to-refresh>
 </template>
 <script setup>
 import { getMnemonic, Wallet } from '../../wallet'
@@ -388,27 +392,46 @@ function makeKeyAction (action) {
   }
 }
 
+async function refreshPage(done=() => {}, opts={ allAccountType: false }) {
+  try {
+    if (!wallet.value) await initWallet()
+
+    const promises = [].map(Promise.resolve)
+    if (!isWebSocketOpenOrRestaring()) promises.push(initWebsocket())
+
+    if (opts?.allAccountType || selectedAccountType.value === 'short') {
+      promises.push(
+        fetchSummary('short'),
+        fetchHedgeOffers(),
+        fetchHedgeContracts(),
+        updateHedgeOffersCount(),
+      )
+    }
+
+    if (opts?.allAccountType || selectedAccountType.value === 'long') {
+      promises.push(
+        fetchSummary('long'),
+        // fetchLongAccounts(),
+        fetchLongOffers(),
+        fetchLongPositions(),
+        updateLongOffersCount(),
+      )
+    }
+
+    await Promise.all(promises)
+  } finally {
+    done?.()
+  }
+}
+
 const wallet = ref(null)
 async function initWallet() {
   const mnemonic = await getMnemonic($store.getters['global/getWalletIndex'])
   wallet.value = markRaw(new Wallet(mnemonic))
 }
-onMounted(async () => {
-  await initWallet()
+onMounted(async () => refreshPage(()=>{}, { allAccountType: true }))
 
-  fetchSummary('short')
-  fetchSummary('long')
-  fetchHedgeOffers()
-  fetchHedgeContracts()
-  // fetchLongAccounts()
-  fetchLongOffers()
-  fetchLongPositions()
-  updateHedgeOffersCount()
-  updateLongOffersCount()
-  initWebsocket()
-})
-
-const socket = ref(null)
+const socket = ref([].map(() => new WebSocket())[0])
 const socketReconnection = ref({
   enable: true,
   attempts: 0,
@@ -416,6 +439,11 @@ const socketReconnection = ref({
   interval: 15 * 1000,
   timeoutId: null,
 })
+function isWebSocketOpenOrRestaring() {
+  if (socket.value?.readyState === WebSocket.OPEN) return true
+  return socketReconnection.value.enable && Boolean(socketReconnection.value.timeoutId)
+}
+
 const websocketMessageHandler = (message) => {
   const data = JSON.parse(message.data)
   if (data?.resource === 'long_account') fetchLongAccounts()
@@ -754,7 +782,7 @@ function onHedgeFormCreate(data) {
     $q.dialog({
       title: `${data?.position === 'long' ? $t('LongPositionOffer') : $t('HedgePositionOffer')}`,
       message: `${data?.position === 'long' ? $t('LongPositionOfferCreated') : $t('HedgePositionOfferCreated')}`,
-      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
       ok: $t('OK'),
       seamless: true,
       style: 'word-break:break-all;',
@@ -776,7 +804,7 @@ function onHedgeFormCreate(data) {
       ok: $t('OK'),
       html: true,
       seamless: true,
-      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
       style: 'word-break:break-all;',
     }).onDismiss(() => {
       fetchHedgeContractsResponse.then(() => {
@@ -1116,7 +1144,7 @@ async function displayContractFromNotification(data={address: '', position: '' }
       message: $t('UnableToFindContract'),
       seamless: true,
       ok: $t('OK'),
-      class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
     })
   }
   return contract

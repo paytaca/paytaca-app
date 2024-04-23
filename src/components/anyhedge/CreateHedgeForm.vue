@@ -1043,7 +1043,7 @@ async function createHedgePosition() {
           seamless: true,
           cancel: $t('Cancel'),
           color: 'brandblue',
-          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         })
         misc.isPositionOffer = true
         funding.prepareFunding = false
@@ -1142,6 +1142,16 @@ async function createHedgePosition() {
       }
     }
   }
+  console.log('Hedge form confirm', {
+    intent: intent,
+    pubkeys: pubkeys,
+    priceData: priceData,
+    funding: funding,
+    oracleInfo: oracleInfo,
+    position: position,
+    positionTaker: funding.positionTaker,
+    isPositionOffer: misc.isPositionOffer,
+  })
 
   try {
     loading.value = true
