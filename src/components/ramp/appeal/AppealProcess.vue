@@ -60,7 +60,7 @@
     </div>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-    <ChatDialog v-if="openChat" :data="appealDetailData?.order" @close="openChat=false"/>
+    <ChatDialog v-if="openChat" :order="appealDetailData?.order" @close="openChat=false"/>
   </div>
 </template>
 <script>
@@ -319,7 +319,7 @@ export default {
         const userMember = response?.filter(member => {
           return user.chat_identity_id === member.chat_identity.id
         })[0]
-        this.unread = userMember.unread_count
+        this.unread = userMember?.unread_count
       }).catch(console.error)
     },
     onVerifyAction (data) {

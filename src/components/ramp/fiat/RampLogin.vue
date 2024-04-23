@@ -180,11 +180,8 @@ export default {
       await updateSignerData(verifyingPubkey, currentIndex).catch(error => { return vm.handleError(error, 'Failed to update signer data') })
 
       // Update or create encrypting/decrypting keypair
-      const user = this.$store.getters['ramp/getUser']
-      if (!user) {
-        vm.hintMessage = 'Updating chat keypair'
-        await chatUtils.updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
-      }
+      vm.hintMessage = 'Updating chat keypair'
+      await chatUtils.updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
 
       if (!chatIdentity) {
         // Build payload and create chat identity
