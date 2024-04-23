@@ -643,14 +643,16 @@ export default {
       }
     },
     selectedAssetMarketPrice () {
-      if (!this.selectedAssetMarketPrice) {
-        this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
-      }
-      if (this.payloadAmount && this.payloadAmount > 0) {
-        const finalAmount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
-        this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
-        this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
-        this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
+      if (!this.bip21Expires) {
+        if (!this.selectedAssetMarketPrice) {
+          this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
+        }
+        if (this.payloadAmount && this.payloadAmount > 0) {
+          const finalAmount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
+          this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
+          this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
+          this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
+        }
       }
     },
     manualAddress (address) {
