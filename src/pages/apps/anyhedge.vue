@@ -6,15 +6,15 @@
       class="apps-header"
     />
     <q-tabs
-      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
+      :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : 'brandblue'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
       :style="{ 'margin-top': $q.platform.is.ios ? '-10px' : '-35px'}"
     >
       <q-tab
-        name="hedge"
+        name="short"
         class="network-selection-tab"
         :class="getDarkModeClass(darkMode)"
         :label="$t('Hedge')"
@@ -32,7 +32,7 @@
       :class="getDarkModeClass(darkMode)"
       style="transition: height 0.5s"
     >
-      <template v-if="selectedAccountType === 'hedge'">
+      <template v-if="selectedAccountType === 'short'">
         <q-card-section class="text-h5">
           <div>
           <div class="text-caption text-grey">{{ $t('TotalHedgeValue') }}</div>
@@ -152,7 +152,7 @@
       class="br-15 q-mx-md q-mb-md pt-card text-bow"
       :class="getDarkModeClass(darkMode)"
     >
-      <template v-if="selectedAccountType === 'hedge'">
+      <template v-if="selectedAccountType === 'short'">
         <q-expansion-item ref="offersDrawerRef" :label="$t('HedgeOffers')">
           <template v-slot:header>
             <q-item-section>
@@ -221,7 +221,7 @@
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
             <q-skeleton v-for="i in 3" type="rect"/>
           </q-card-section>
-          <HedgeContractsList v-else ref="hedgesListRef" :contracts="contracts" view-as="hedge" :wallet="wallet"/>
+          <HedgeContractsList v-else ref="hedgesListRef" :contracts="contracts" view-as="short" :wallet="wallet"/>
           <div class="row justify-center">
             <LimitOffsetPagination
               :pagination-props="{
@@ -364,7 +364,7 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
 const theme = computed(() => $store.getters['global/theme'])
-const selectedAccountType = ref('hedge')
+const selectedAccountType = ref('short')
 
 const hedgesDrawerRef = ref()
 const hedgesListRef = ref()
@@ -396,7 +396,7 @@ async function initWallet() {
 onMounted(async () => {
   await initWallet()
 
-  fetchSummary('hedge')
+  fetchSummary('short')
   fetchSummary('long')
   fetchHedgeOffers()
   fetchHedgeContracts()
@@ -421,8 +421,8 @@ const websocketMessageHandler = (message) => {
   if (data?.resource === 'long_account') fetchLongAccounts()
   if (data?.resource === 'hedge_position_offer') {
     if (data?.action === 'settled') {
-      if (data?.meta?.position === 'hedge') {
-        fetchSummary('hedge')
+      if (data?.meta?.position === 'short') {
+        fetchSummary('short')
         fetchHedgeOffers()
         fetchHedgeContracts()
         updateHedgeOffersCount()
@@ -433,17 +433,17 @@ const websocketMessageHandler = (message) => {
       }
     } else if (['accepted', 'cancel_accept', 'settled'].indexOf(data?.action) >= 0) {
       refetchHedgePositionOffer(data?.meta?.id)
-      if (data?.meta?.position === 'hedge') updateHedgeOffersCount()
+      if (data?.meta?.position === 'short') updateHedgeOffersCount()
       if (data?.meta?.position === 'long') updateLongOffersCount()
     }
   }
   if (data?.resource === 'hedge_position') {
     if (data?.action === 'funding_proposal') {
-      fetchSummary('hedge')
+      fetchSummary('short')
       fetchSummary('long')
       refetchContract(data?.meta?.address)
     } else if (data?.action === 'settlement') {
-      fetchSummary('hedge')
+      fetchSummary('short')
       fetchSummary('long')
       refetchContract(data?.meta?.address)
     } else if (data?.action === 'cancelled') {
@@ -543,13 +543,13 @@ function parseAssetSummaries(assetSummaries) {
 }
 const hedgeSummaryData = ref(null)
 const longSummaryData = ref(null)
-function fetchSummary(position='hedge') {
+function fetchSummary(position='short') {
   const walletHash = wallet.value.BCH.getWalletHash()
   const params = {
-    [position === 'hedge' ? 'hedge_wallet_hash' : 'long_wallet_hash']: walletHash,
+    [position === 'short' ? 'short_wallet_hash' : 'long_wallet_hash']: walletHash,
     settled: false, funding: 'complete',
   }
-  const summaryRef = position === 'hedge' ? hedgeSummaryData : longSummaryData
+  const summaryRef = position === 'short' ? hedgeSummaryData : longSummaryData
   anyhedgeBackend.get('anyhedge/hedge-positions/summary/', { params })
     .then(response => {
       summaryRef.value = response?.data
@@ -638,7 +638,7 @@ function updatePendingHedgeOffersCount() {
     {
       params: {
         wallet_hash: walletHash,
-        position: 'hedge',
+        position: 'short',
         statuses: 'pending',
         expired: false,
         limit: 1,
@@ -658,7 +658,7 @@ function updateAcceptedHedgeOffersCount() {
     {
       params: {
         wallet_hash: walletHash,
-        position: 'hedge',
+        position: 'short',
         statuses: 'accepted',
         limit: 1,
         offset: 999,
@@ -675,7 +675,7 @@ function fetchHedgeOffers(pagination) {
   fetchingHedgeOffers.value = true
   const params = {
     wallet_hash: walletHash,
-    position: 'hedge',
+    position: 'short',
     limit: pagination?.limit || DEFAULT_PAGE_SIZE,
     offset: pagination?.offset || 0,
 
@@ -721,7 +721,7 @@ function fetchHedgeContracts(pagination) {
     '/anyhedge/hedge-positions/',
     {
       params: {
-        hedge_wallet_hash: walletHash,
+        short_wallet_hash: walletHash,
         limit: pagination?.limit || DEFAULT_PAGE_SIZE,
         offset: pagination?.offset || 0,
       }
@@ -749,7 +749,7 @@ function onHedgeFormCreate(data) {
   if (data.hedgePositionOffer?.id) {
     fetchHedgeOffers()
     fetchLongOffers()
-    if (data.hedgePositionOffer?.position === 'hedge') updateHedgeOffersCount()
+    if (data.hedgePositionOffer?.position === 'short') updateHedgeOffersCount()
     if (data.hedgePositionOffer?.position === 'long') updateLongOffersCount()
     $q.dialog({
       title: `${data?.position === 'long' ? $t('LongPositionOffer') : $t('HedgePositionOffer')}`,
@@ -986,31 +986,32 @@ function refetchHedgePositionOffer(hedgeOfferId) {
 
 
 const updatedOracles = ref(false)
-watch(showCreateHedgeForm, () => {
-  if (!updatedOracles.value) {
-    anyhedgeBackend.get('anyhedge/oracles/')
-      .then(response => {
-        if (Array.isArray(response?.data?.results)) {
-          response.data.results.forEach(oracle => {
-            if (!oracle) return
+function updateOracles() {
+  if (updatedOracles.value) return
+  return anyhedgeBackend.get('anyhedge/oracles/')
+    .then(response => {
+      if (Array.isArray(response?.data?.results)) {
+        response.data.results.forEach(oracle => {
+          if (!oracle) return
 
-            const mutationPayload = {
-              active: oracle.active,
-              pubkey: oracle.pubkey,
-              assetName: oracle.asset_name,
-              assetCurrency: oracle.asset_currency,
-              assetDecimals: oracle.asset_decimals
-            }
-            $store.commit('anyhedge/setOracle', mutationPayload)
+          const mutationPayload = {
+            active: oracle.active,
+            pubkey: oracle.pubkey,
+            assetName: oracle.asset_name,
+            assetCurrency: oracle.asset_currency,
+            assetDecimals: oracle.asset_decimals
+          }
+          $store.commit('anyhedge/setOracle', mutationPayload)
 
-            const dispatchPayload = { oraclePubkey: mutationPayload.pubkey, checkTimestampAge: true }
-            $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
-          })
-          updatedOracles.value = true
-        }
-      })
-  }
-})
+          const dispatchPayload = { oraclePubkey: mutationPayload.pubkey, checkTimestampAge: true }
+          $store.dispatch('anyhedge/updateOracleLatestPrice', dispatchPayload)
+        })
+        updatedOracles.value = true
+      }
+    })
+}
+watch(showCreateHedgeForm, () => updateOracles())
+onMounted(() => updateOracles())
 
 
 function refetchContract(contractAddress) {
@@ -1037,7 +1038,7 @@ function refetchContract(contractAddress) {
 
 
 function fetchLiquidityServiceInfo() {
-  return generalProtocolLPBackend.get('/api/v1/liquidityServiceInformation')
+  return generalProtocolLPBackend.get('/api/v2/liquidityServiceInformation')
     .then(response => {
       if (response?.data?.liquidityParameters) {
         $store.commit('anyhedge/updateLiquidityServiceInfo', response.data)
@@ -1076,7 +1077,7 @@ async function displayContractFromNotification(data={address: '', position: '' }
   let _position, contract
 
   const hedgeContract = contracts.value.find(contract => contract?.address === address)
-  if (hedgeContract) [contract, _position] = [hedgeContract, 'hedge']
+  if (hedgeContract) [contract, _position] = [hedgeContract, 'short']
 
   if (!contract) {
     const longContract = longPositions.value.find(contract => contract?.address === address)
@@ -1089,7 +1090,7 @@ async function displayContractFromNotification(data={address: '', position: '' }
       const walletHash = wallet.value.BCH.getWalletHash()
       const response = await anyhedgeBackend.get(`anyhedge/hedge-positions/${address}/`)
       contract = await parseHedgePositionData(response?.data)
-      if (walletHash == contract.hedgeWalletHash) _position = 'hedge'
+      if (walletHash == contract.shortWalletHash) _position = 'short'
       else if (walletHash == contract.longWalletHash) _position = 'long'
     } catch(error) {
       console.error(error)
@@ -1097,7 +1098,7 @@ async function displayContractFromNotification(data={address: '', position: '' }
   }
 
   let contractsListRef
-  if (_position == 'hedge') contractsListRef = contracts
+  if (_position == 'short') contractsListRef = contracts
   else if (_position == 'long') contractsListRef = longPositions
 
   if (contractsListRef) {

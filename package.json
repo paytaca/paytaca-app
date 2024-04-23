@@ -10,7 +10,7 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
-    "@bitauth/libauth": "^2.0.0-alpha.8",
+    "@bitauth/libauth": "2.0.0-alpha.8",
     "@capacitor-community/barcode-scanner": "^2.1.1",
     "@capacitor-community/native-audio": "^3.0.4",
     "@capacitor/app": "^1.1.0",
@@ -23,7 +23,8 @@
     "@capacitor/push-notifications": "^1.0.9",
     "@capacitor/storage": "^1.0.3",
     "@electron/remote": "^1.2.0",
-    "@generalprotocols/anyhedge": "1.0.0-next.3670337504",
+    "@generalprotocols/anyhedge": "2.0.0-next.6536165483",
+    "@generalprotocols/anyhedge-old": "npm:@generalprotocols/anyhedge@1.0.0-next.3670337504",
     "@ionic/pwa-elements": "^3.0.2",
     "@jsonforms/core": "^3.1.0",
     "@jsonforms/vue": "^3.1.0",
@@ -63,6 +64,7 @@
     "leaflet": "^1.9.2",
     "mqtt": "^4.3.7",
     "net": "^1.0.2",
+    "node-fetch": "^2.7.0",
     "openpgp": "^5.5.0",
     "qrcode": "^1.5.1",
     "quasar": "^2.7.7",
@@ -93,8 +95,8 @@
     "watchtower-cash-js": "^0.1.49"
   },
   "overrides": {
-    "@generalprotocols/anyhedge@1.0.0-next.3670337504": {
-      "node-fetch": "^2.6.6"
+    "@generalprotocols/anyhedge-old": {
+      "node-fetch": "^2.7.0"
     }
   },
   "devDependencies": {

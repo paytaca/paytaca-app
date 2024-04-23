@@ -434,7 +434,7 @@ export default {
           dialog.hide()
 
           let viewAs
-          if (parsedContractData?.hedgeWalletHash === walletHash) viewAs = 'hedge'
+          if (parsedContractData?.shortWalletHash === walletHash) viewAs = 'short'
           if (parsedContractData?.longWalletHash === walletHash) viewAs = 'long'
           this.$q.dialog({
             component: HedgeContractDetailDialog,

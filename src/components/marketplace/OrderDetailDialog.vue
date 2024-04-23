@@ -143,7 +143,7 @@ export default defineComponent({
 </script>
 <style scoped lang="scss">
 table.items-table {
-  border-spacing: (map-get($space-md, 'x'))/2 0;
+  border-spacing: map-get($space-md, 'x') * -0.5 0;
 }
 table.items-table tr td:last-child {
   text-align: end;
