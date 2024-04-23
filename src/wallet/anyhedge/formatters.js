@@ -169,43 +169,43 @@ export function ellipsisText (value, config) {
  * @property {String} settlement_service_fee_address
  * @property {Number} [calculated_short_sats]
  * @property {PriceOracleMessageAPI} [price_oracle_message]
+ * 
+ * @typedef {Object} HedgePositionInfoAPI 
+ * @property {String} address - Address of hedge position contract
+ * @property {String} anyhedge_contract_version - Version used for hedge contract
+ * @property {Number} satoshis - Hedge value in satoshis
+ * @property {Number} start_timestamp
+ * @property {Number} maturity_timestamp
+ * @property {String} [short_wallet_hash]
+ * @property {String} short_address
+ * @property {String} short_pubkey
+ * @property {String} [short_address_path]
+ * @property {String} [long_wallet_hash]
+ * @property {String} long_address
+ * @property {String} long_pubkey
+ * @property {String} [long_address_path]
+ * @property {String} oracle_pubkey
+ * @property {Number} start_price
+ * @property {Number} low_liquidation_multiplier
+ * @property {Number} high_liquidation_multiplier
+ * @property {String} [starting_oracle_message]
+ * @property {String} [starting_oracle_signature]
+ * @property {Number} [cancelled_at]
+ * @property {String} [cancelled_by]
+ * @property {String|null} funding_tx_hash
+ * @property {Boolean|null} funding_tx_hash_validated
+ * @property {FeeAPI[]} fees
+ * @property {FundingProposalAPI|null} short_funding_proposal
+ * @property {FundingProposalAPI|null} long_funding_proposal
+ * @property {SettlementAPI[]} settlements
+ * @property {FundingAPI[]} fundings
+ * @property {MutualRedemptionAPI|null} mutual_redemption
+ * @property {MetadataAPI|null} metadata
+ * @property {PriceOracleMessageAPI} [price_oracle_message]
 */
 
 /**
- * 
- * @param {Object} data 
- * @param {String} data.address - Address of hedge position contract
- * @param {String} data.anyhedge_contract_version - Version used for hedge contract
- * @param {Number} data.satoshis - Hedge value in satoshis
- * @param {Number} data.start_timestamp
- * @param {Number} data.maturity_timestamp
- * @param {String} [data.short_wallet_hash]
- * @param {String} data.short_address
- * @param {String} data.short_pubkey
- * @param {String} [data.short_address_path]
- * @param {String} [data.long_wallet_hash]
- * @param {String} data.long_address
- * @param {String} data.long_pubkey
- * @param {String} [data.long_address_path]
- * @param {String} data.oracle_pubkey
- * @param {Number} data.start_price
- * @param {Number} data.low_liquidation_multiplier
- * @param {Number} data.high_liquidation_multiplier
- * @param {String} [data.starting_oracle_message]
- * @param {String} [data.starting_oracle_signature]
- * @param {Number} [data.cancelled_at]
- * @param {String} [data.cancelled_by]
- * @param {String|null} data.funding_tx_hash
- * @param {Boolean|null} data.funding_tx_hash_validated
- * @param {FeeAPI[]} data.fees
- * @param {FundingProposalAPI|null} data.short_funding_proposal
- * @param {FundingProposalAPI|null} data.long_funding_proposal
- * @param {SettlementAPI[]} data.settlements
- * @param {FundingAPI[]} data.fundings
- * @param {MutualRedemptionAPI|null} data.mutual_redemption
- * @param {MetadataAPI|null} data.metadata
- * @param {PriceOracleMessageAPI} [data.price_oracle_message]
- * 
+ * @param {HedgePositionInfoAPI} data 
  * @returns 
  */
 
@@ -335,14 +335,15 @@ export async function parseHedgePositionData(data) {
   }
 
   if (data?.metadata) {
+    const totalFundingSats = resolveTotalFundingSats(contractData, data)
     contractData.apiMetadata = {
       shortAddressPath:       data?.short_address_path,
       longAddressPath:        data?.long_address_path,
       positionTaker:          data?.metadata?.position_taker  === 'hedge' ? 'short' : data?.metadata?.position_taker,
       liquidityFee:           castBigIntSafe(data?.metadata?.liquidity_fee),
       networkFee:             castBigIntSafe(data?.metadata?.network_fee),
-      totalShortFundingSats:  castBigIntSafe(data?.metadata?.total_short_funding_sats),
-      totalLongFundingSats:   castBigIntSafe(data?.metadata?.total_long_funding_sats),
+      totalShortFundingSats:  castBigIntSafe(totalFundingSats.short),
+      totalLongFundingSats:   castBigIntSafe(totalFundingSats.long),
     }
   }
 
@@ -373,6 +374,26 @@ export async function compileContract(contractCreationParameters, contractVersio
   const manager = new AnyHedgeManager({ contractVersion: contractVersion })
   const contractData = await manager.createContract(contractCreationParameters)
   return contractData
+}
+
+/**
+ * @param {import('@generalprotocols/anyhedge').ContractData} contractData 
+ * @param {HedgePositionInfoAPI} data 
+ */
+function resolveTotalFundingSats(contractData, data) {
+  let short = castBigIntSafe(data?.short_funding_proposal?.tx_value)
+  let long = castBigIntSafe(data?.short_funding_proposal?.tx_value)
+
+  if (!short) short = castBigIntSafe(data.metadata.total_short_funding_sats)
+  if (!long) long = castBigIntSafe(data.metadata.total_long_funding_sats)
+
+  const fundingSats = contractData.fundings.map(funding => funding.fundingSatoshis).find(Boolean)
+  if (typeof fundingSats === 'bigint') {
+    if (!short && typeof long === 'bigint' && long) short = fundingSats - long
+    if (!long && typeof short === 'bigint' && short) long = fundingSats - short
+  }
+
+  return { short, long }
 }
 
 /**

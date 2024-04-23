@@ -369,6 +369,7 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
 /**
  * @param {Object} data 
  * @param {Number} data.amountSats
+ * @param {String} data.oraclePublicKey
  * @param {String} data.startingOracleMessage
  * @param {String} data.startingOracleSignature
  * @param {Number} data.lowLiquidationMultiplier
@@ -382,7 +383,6 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
  export async function calculateFundingAmountsWithFees(data) {
   // these data are necessary for generating contracts but doesnt affect the funding amounts
   const dummyData = {
-    oraclePublicKey: '03994dc2c759375e98afbf5049383cd987001c346d0f11aa262c105874fb1390c1',
     maturityTimestamp: Math.floor(Date.now() / 1000) + 86400,
     shortPublicKey: '0242ce009d64bd58c3a11b7c37f33c35177cf093b287ec4db96775381d4903be1d',
     longPublicKey: '02df07732b3b3fbfb71be46a2393bc07f5d65a0a6d25eb1809fd7a1675cd2d646d',
@@ -394,17 +394,18 @@ export function calculateFundingAmounts(contractData, position, liquidityProvide
     takerSide: data.position,
     makerSide: data.position == 'short' ? 'long' : 'short',
     nominalUnits: units,
-    oraclePublicKey: dummyData.oraclePublicKey,
+    oraclePublicKey: data.oraclePublicKey,
     startingOracleMessage: data.startingOracleMessage,
     startingOracleSignature: data.startingOracleSignature,
-    maturityTimestamp: dummyData.maturityTimestamp,
+    maturityTimestamp: castBigIntSafe(dummyData.maturityTimestamp),
     highLiquidationPriceMultiplier: dummyData.highLiquidationPriceMultiplier,
     lowLiquidationPriceMultiplier: data.lowLiquidationMultiplier,
     shortMutualRedeemPublicKey: dummyData.shortPublicKey,
     longMutualRedeemPublicKey: dummyData.longPublicKey,
     shortPayoutAddress: data.shortAddress,
     longPayoutAddress: data.longAddress,
-    enableMutualRedemption: 1,
+    enableMutualRedemption: 1n,
+    isSimpleHedge: 1n,
   }
   const manager = new AnyHedgeManager()
   const contractData = await manager.createContract(contractCreationParameters)
