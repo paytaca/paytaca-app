@@ -1,40 +1,70 @@
 <template>
-  <div class="text-center">
-    Below are QR code images generated from the shards. You can screenshot them by yourself
-    or use the button below to download them to your device.
-  </div>
+  <template v-if="isLoading">
+    <div
+      class="col pt-wallet q-mt-sm pt-card-2 text-center"
+      :class="getDarkModeClass(darkMode)"
+    >
+      <p class="dim-text q-pt-sm" style="text-align: center;">
+        Creating shards...
+      </p>
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+    </div>
+  </template>
 
-  <div class="q-mt-lg">
-    <div class="text-center q-mb-sm">
-      This QR code needs to be saved and stored securely in your device.
-    </div>
-    <div id="personal-qr" class="flex flex-center q-py-md br-15 col-qr-code">
-      <p style="color: black">Save this QR code in your device</p>
-      <qr-code :text="shards[1]" :size="200" />
-    </div>
-    <div class="text-center q-mt-md q-mb-sm">
-      This QR code needs to be shared to your friend. We highly advise that you share it after saving
-      instead of just storing it in your device.
-    </div>
-    <div id="sharing-qr" class="flex flex-center q-py-md br-15 col-qr-code">
-      <p style="color: black">Share this QR code to a friend</p>
-      <qr-code :text="shards[2]" :size="200" />
-    </div>
-    <div class="flex flex-center q-mt-md">
-      <q-btn
-        rounded
-        label="Download QR Code Images"
-        class="button"
-        @click="takeScreenshot()"
-      />
-    </div>
-  </div>
+  <template v-else>
+    <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">
+      Shards Authentication Phase
+    </h5>
+    <p class="dim-text" style="margin-top: 10px;">
+      Below are QR code images generated from the shards. You can screenshot them by yourself
+      or use the button below to download them to your device.
+    </p>
 
-  <q-btn
-    rounded
-    label="Continue"
-    class="q-mt-lg full-width button"
+    <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
+      <div
+        class="q-pa-sm br-15 pt-card"
+        :class="getDarkModeClass(darkMode)"
+        style="border: 2px solid gray;"
+      >
+        <div class="text-center q-mb-sm">
+          This QR code needs to be saved and stored securely in your device.
+        </div>
+        <div id="personal-qr" class="flex flex-center q-py-md col-qr-code">
+          <p style="color: black">Save this QR code in your device</p>
+          <qr-code :text="shards[1]" :size="200" />
+        </div>
+      </div>
+      <div
+        class="q-pa-sm q-mt-md br-15 pt-card"
+        :class="getDarkModeClass(darkMode)"
+        style="border: 2px solid gray;"
+      >
+        <div class="text-center q-mb-sm">
+          This QR code needs to be shared to your friend. We highly advise that you share it
+          immediately after saving instead of just storing it in your device.
+        </div>
+        <div id="sharing-qr" class="flex flex-center q-py-md col-qr-code">
+          <p style="color: black">Share this QR code to a friend</p>
+          <qr-code :text="shards[2]" :size="200" />
+        </div>
+      </div>
+      <div class="flex flex-center q-mt-md">
+        <q-btn
+          rounded
+          label="Download QR Code Images"
+          class="button"
+          @click="takeScreenshot()"
+        />
+      </div>
+    </div>
+
+    <q-btn
+      rounded
+      label="Continue"
+      class="q-mt-lg full-width button"
+      @click="$emit('proceed-to-next-step')"
     />
+  </template>
 </template>
 
 <script>
@@ -43,7 +73,9 @@ import html2canvas from 'html2canvas'
 
 import { Camera } from '@capacitor/camera'
 import { toHex } from 'hex-my-bytes'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
+import ProgressLoader from 'src/components/ProgressLoader'
 
 export default {
   name: 'ShardsProcess',
@@ -53,9 +85,18 @@ export default {
     walletHash: String
   },
 
+  emits: [
+    'proceed-to-next-step'
+  ],
+
+  components: {
+    ProgressLoader
+  },
+
   data () {
     return {
-      shards: []
+      shards: [],
+      isLoading: true
     }
   },
 
@@ -76,15 +117,22 @@ export default {
 
     // const recovered = sss.combine([vm.shards[0], vm.shards[1]])
     // console.log('recovered', recovered.toString())
+    setTimeout(() => {
+      vm.isLoading = false
+    }, 3000)
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
 
   methods: {
+    isNotDefaultTheme,
     getDarkModeClass,
     copyToClipboard (value) {
       this.$copyText(value)
