@@ -697,9 +697,6 @@ export default {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
 
-      // check for BIP21
-      if (this.onBIP21Amount(address)) return
-
       let paymentUriData
       try {
         paymentUriData = parsePaymentUri(content, { chain: this.isSmartBch ? 'smart' : 'main' })
@@ -707,12 +704,12 @@ export default {
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        if (error === 'PaymentRequestIsExpired') {
+        if (error?.message === 'PaymentRequestIsExpired') {
           this.$q.notify({
             type: 'negative',
             color: 'red-4',
             timeout: 3000,
-            mesage: this.$t(error)
+            message: this.$t(error.message)
           })
           return
         }
@@ -735,6 +732,9 @@ export default {
           return
         }
       }
+
+      // check for BIP21
+      this.onBIP21Amount(address)
 
       if (paymentUriData?.outputs?.[0]) {
         currency = paymentUriData.outputs[0].amount?.currency
