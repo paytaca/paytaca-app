@@ -199,7 +199,7 @@ export default {
     },
     // DESKTOP
     onScannerDecode (content) {
-      this.$emit('decode', content)
+      this.$emit('decode', content[0].rawValue)
     },
     onScannerInit (promise) {
       promise
