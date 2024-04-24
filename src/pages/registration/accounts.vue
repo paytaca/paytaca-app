@@ -38,7 +38,7 @@
                     rounded
                     class="full-width bg-blue-9 text-white button"
                     @click="() => { importSeedPhrase = true }"
-                    :label="$t('RestoreFromSeedPhrase')"
+                    :label="'Restore Existing Wallet'"
                   />
                 </div>
               </div>
