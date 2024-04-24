@@ -81,52 +81,62 @@
       :class="getDarkModeClass(darkMode, 'registration')"
       v-if="importSeedPhrase && mnemonic.length === 0"
     >
-      <div class="col-12 q-px-lg">
-        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
-          <div class="q-py-lg">
-            <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
-              {{ $t('RestoreWalletDescription') }}
-            </p>
-            <template v-if="useTextArea">
-              <div class="row justify-start q-mb-sm">
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon="arrow_back"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('EnterOneByOne')"
-                  @click="useTextArea = false, seedPhraseBackup = ''"
-                />
-              </div>
-              <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-            </template>
-            <template v-else>
-              <div class="row justify-end q-mb-xs">
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon-right="arrow_forward"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('PasteSeedPhrase')"
-                  @click="useTextArea = true, seedPhraseBackup = ''"
-                />
-              </div>
-              <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
-            </template>
-            <q-btn
-              rounded
-              class="full-width q-mt-md button"
-              @click="initCreateWallet()"
-              :disable="!validateSeedPhrase()"
-              :label="$t('RestoreWallet')"
-            />
+      <template v-if="authenticationPhase === 'options'">
+        options here
+      </template>
+
+      <template v-else-if="authenticationPhase === 'shards'">
+        shards here
+      </template>
+      <template v-else-if="authenticationPhase === 'backup-phrase'">
+        <div class="col-12 q-px-lg">
+          <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+            <div class="q-py-lg">
+              <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
+                {{ $t('RestoreWalletDescription') }}
+              </p>
+              <template v-if="useTextArea">
+                <div class="row justify-start q-mb-sm">
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon="arrow_back"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('EnterOneByOne')"
+                    @click="useTextArea = false, seedPhraseBackup = ''"
+                  />
+                </div>
+                <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+              </template>
+              <template v-else>
+                <div class="row justify-end q-mb-xs">
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon-right="arrow_forward"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('PasteSeedPhrase')"
+                    @click="useTextArea = true, seedPhraseBackup = ''"
+                  />
+                </div>
+                <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
+              </template>
+              <q-btn
+                rounded
+                class="full-width q-mt-md button"
+                @click="initCreateWallet()"
+                :disable="!validateSeedPhrase()"
+                :label="$t('RestoreWallet')"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </template>
+
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
@@ -206,47 +216,9 @@
             <div v-else>
               <template v-if="steps === totalSteps">
                 <template v-if="authenticationPhase === 'options'">
-                  <div class="text-bow" :class="getDarkModeClass(darkMode)">
-                    <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">
-                      Choose Authentication Phase
-                    </h5>
-                    <p class="dim-text" style="margin-top: 10px;">
-                      Choose the authentication method you want to use to proceed to the next phase.
-                    </p>
-                    <p class="dim-text">
-                      The Shard Authentication Phase is recommended for beginners, which is a simple but very secure method.
-                      The method works by encrypting the seed phrase and splitting it into 3 shards. One is stored securely
-                      by us, and the other two are for you to store and share. You can still view the seed phrase later in
-                      you wallet info.
-                    </p>
-                    <p class="dim-text">
-                      If you are an advanced user or just want to use the old authentication phase, you may opt to proceed
-                      with using the Seed Phrase Authentication Phase.
-                    </p>
-                  </div>
-                  <div class="row q-px-lg q-pt-sm">
-                    <q-btn
-                      rounded
-                      label="Proceed with Using Shards"
-                      class="full-width button"
-                      @click="changeAuthenticationPhase(true)"
-                    />
-                    <div class="col-12 text-center q-py-sm">
-                      <p
-                        style="font-size: 14px"
-                        class="q-my-none q-py-none text-uppercase text-weight-bold button button-text-primary"
-                        :class="getDarkModeClass(darkMode)"
-                      >
-                        {{ $t('or') }}
-                      </p>
-                    </div>
-                    <q-btn
-                      rounded
-                      label="Proceed with Using Seed Phrase"
-                      class="full-width button"
-                      @click="changeAuthenticationPhase(false)"
-                    />
-                  </div>
+                  <AuthenticationChooser
+                    @change-authentication-phase="onChangeAuthenticationPhase"
+                  />
                 </template>
 
                 <template v-else-if="authenticationPhase === 'shards'">
@@ -348,7 +320,8 @@ import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
-import ShardsProcess from 'src/components/registration/ShardsProcess.vue'
+import ShardsProcess from 'src/components/registration/ShardsProcess'
+import AuthenticationChooser from 'src/components/registration/AuthenticationChooser'
 
 function countWords(str) {
   if (str) {
@@ -376,7 +349,8 @@ export default {
     CurrencySelector,
     ThemeSelectorPreview,
     SeedPhraseContainer,
-    ShardsProcess
+    ShardsProcess,
+    AuthenticationChooser
   },
   data () {
     return {
@@ -679,11 +653,12 @@ export default {
         }).catch(console.log)
       }
     },
-    changeAuthenticationPhase (isShard) {
+    onChangeAuthenticationPhase (isShard) {
       this.authenticationPhase = isShard ? 'shards' : 'backup-phrase'
     },
     onProceedToNextStep () {
       this.steps = this.totalSteps
+      this.authenticationPhase = 'options'
       this.openSettings = true
     }
   },
