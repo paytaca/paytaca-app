@@ -512,6 +512,7 @@ watch(() => [props.position], () => {
 function updateFundingAmounts() {
   calculateFundingAmountsWithFees({
     amountSats: props.intent.amount * 10 ** 8,
+    oraclePublicKey: props.priceData.oraclePubkey,
     startingOracleMessage: props.priceData.message,
     startingOracleSignature: props.priceData.signature,
     lowLiquidationMultiplier: props.intent.lowPriceMult,
@@ -523,6 +524,7 @@ function updateFundingAmounts() {
     position: props.positionTaker || props.position,
   })
     .then(newFundingAmounts => {
+      console.log(newFundingAmounts)
       if (Array.isArray(newFundingAmounts?.short?.fees?.serviceFees)) {
         attachFeeStats(newFundingAmounts?.short)
       }
@@ -601,8 +603,6 @@ const durationData = computed(() => {
 
   return data
 })
-window.p = props
-window.t = updateFundingAmounts
 </script>
 
 <style lang="scss" scoped>

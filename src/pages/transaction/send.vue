@@ -211,7 +211,7 @@
                   </a>
                 </div>
               </div>
-              <div class="add-recipient-button" v-if="showAddRecipientButton" @click.prevent="addAnotherRecipient">
+              <div class="add-recipient-button" v-if="showAddRecipientButton && !disableSending" @click.prevent="addAnotherRecipient">
                 <q-btn :label="$t('AddAnotherRecipient')" class="button" />
               </div>
               <div class="row" v-if="sending">
@@ -229,7 +229,7 @@
           />
 
           <DragSlide
-            v-if="showSlider"
+            v-if="showSlider && !disableSending"
             @swiped="slideToSubmit"
             class="absolute-bottom"
           />
@@ -466,6 +466,8 @@ export default {
       },
 
       jpp: null,
+      disableSending: false,
+      bip21Expires: null,
 
       sendDataMultiple: [{
         amount: null,
@@ -641,14 +643,16 @@ export default {
       }
     },
     selectedAssetMarketPrice () {
-      if (!this.selectedAssetMarketPrice) {
-        this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
-      }
-      if (this.payloadAmount && this.payloadAmount > 0) {
-        const finalAmount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
-        this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
-        this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
-        this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
+      if (!this.bip21Expires) {
+        if (!this.selectedAssetMarketPrice) {
+          this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
+        }
+        if (this.payloadAmount && this.payloadAmount > 0) {
+          const finalAmount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
+          this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
+          this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
+          this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
+        }
       }
     },
     manualAddress (address) {
@@ -687,6 +691,8 @@ export default {
       ).format(dateObj)
     },
     onScannerDecode (content) {
+      this.disableSending = false
+      this.bip21Expires = null
       this.showQrScanner = false
       this.sliderStatus = false
       let address = content
@@ -697,9 +703,6 @@ export default {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
 
-      // check for BIP21
-      if (this.onBIP21Amount(address)) return
-
       let paymentUriData
       try {
         paymentUriData = parsePaymentUri(content, { chain: this.isSmartBch ? 'smart' : 'main' })
@@ -707,12 +710,12 @@ export default {
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        if (error === 'PaymentRequestIsExpired') {
+        if (error?.message === 'PaymentRequestIsExpired') {
           this.$q.notify({
             type: 'negative',
             color: 'red-4',
             timeout: 3000,
-            mesage: this.$t(error)
+            message: this.$t(error.message)
           })
           return
         }
@@ -735,6 +738,9 @@ export default {
           return
         }
       }
+
+      // check for BIP21
+      this.onBIP21Amount(address)
 
       if (paymentUriData?.outputs?.[0]) {
         currency = paymentUriData.outputs[0].amount?.currency
@@ -977,6 +983,21 @@ export default {
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     async slideToSubmit (reset=() => {}) {
+      if (this.bip21Expires) {
+        const expires = parseInt(this.bip21Expires)
+        const now = Math.floor(Date.now() / 1000)
+        if (now >= expires) {
+          this.disableSending = true
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('PaymentRequestIsExpired')
+          })
+          return
+        }
+      }
+
       this.$q.dialog({
         component: SecurityCheckDialog,
       })
@@ -1460,6 +1481,24 @@ export default {
           currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
         }
 
+        const addressParse = new URLSearchParams(value.split('?')[1])
+        if (addressParse.has('expires')) {
+          const expires = parseInt(addressParse.get('expires'))
+          this.bip21Expires = expires
+          const now = Math.floor(Date.now() / 1000)
+          if (now >= expires) {
+            this.disableSending = true
+            this.$q.notify({
+              type: 'negative',
+              color: 'red-4',
+              timeout: 3000,
+              message: this.$t('PaymentRequestIsExpired')
+            })
+          }
+          return false
+        }
+
+        this.disableSending = false
         return true
       }
 

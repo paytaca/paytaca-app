@@ -89,7 +89,7 @@
             <q-btn
               flat
               no-caps
-              :disable="!data?.wsConnected || countDown !== null"
+              :disable="!data?.wsConnected || appealCountdown !== null"
               :label="appealBtnLabel"
               class="q-space text-white"
               color="blue-6"
@@ -162,8 +162,8 @@ export default {
       nickname: this.$store.getters['ramp/getUser'].name,
       appeal: null,
       isloaded: false,
-      countDown: null,
-      countDownLoading: true,
+      appealCountdown: null,
+      appealCountdownLoading: true,
       timer: null,
       type: 'ongoing',
       openDialog: false,
@@ -201,12 +201,12 @@ export default {
     //   }
     // },
     appealBtnLabel () {
-      if (this.countDown) return `Appealable in ${this.countDown}`
+      if (this.appealCountdown) return `Appealable in ${this.appealCountdown}`
       return 'Submit an appeal'
     },
     showAppealBtn () {
       const stat = ['ESCRW', 'PD_PN', 'PD']
-      return stat.includes(this.data?.order?.status.value) && this.data?.order?.appealable_at && !this.countDownLoading
+      return stat.includes(this.data?.order?.status.value) && this.data?.order?.appealable_at && !this.appealCountdownLoading
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
@@ -267,9 +267,8 @@ export default {
       return stat.includes(this.data?.order?.status.value)
     },
     label () {
-      // console.log('test:', this.data?.order?.status.value)
       const labels = {
-        SBM: 'Please wait for the Ad Owner  to confirm your order.',
+        SBM: 'Please wait for counterparty to confirm your order. This order will automatically be cancelled if not confirmed within 24 hours.',
         CNF: 'Please wait for the Seller to Escrow the funds.',
         ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
         ESCRW: 'Please wait for the buyer to send and confirm their fiat payment.',
@@ -299,7 +298,7 @@ export default {
       if (this.isAppealed) {
         this.fetchAppeal()
       }
-      this.appealCountdown()
+      this.startAppealCountdown()
       this.checkStatus()
       this.fetchContractBalance()
       this.lockedPrice = this.formatCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
@@ -366,7 +365,7 @@ export default {
       console.log('onSubmitFeedback:', feedback)
       this.feedback = feedback
     },
-    appealCountdown () {
+    startAppealCountdown () {
       const vm = this
       if (vm.data?.order?.appealable_at) {
         const appealableDate = new Date(vm.data?.order?.appealable_at)
@@ -378,15 +377,15 @@ export default {
           const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
           const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-          if (hours > 0) vm.countDown = `${hours} hour(s)`
-          else if (minutes > 0) vm.countDown = `${minutes} minute(s)`
-          else if (seconds > 0) vm.countDown = `${seconds} second(s)`
+          if (hours > 0) vm.appealCountdown = `${hours} hour(s)`
+          else if (minutes > 0) vm.appealCountdown = `${minutes} minute(s)`
+          else if (seconds > 0) vm.appealCountdown = `${seconds} second(s)`
 
           if (distance < 0) {
             clearInterval(vm.timer)
-            vm.countDown = null
+            vm.appealCountdown = null
           }
-          vm.countDownLoading = false
+          vm.appealCountdownLoading = false
         }, 1000)
       }
     },
