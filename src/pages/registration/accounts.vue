@@ -77,12 +77,17 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
     </div>
     <div
-      class="row pt-wallet q-mt-sm pt-card-2"
+      class="pt-wallet q-mt-sm pt-card-2"
       :class="getDarkModeClass(darkMode, 'registration')"
       v-if="importSeedPhrase && mnemonic.length === 0"
     >
       <template v-if="authenticationPhase === 'options'">
-        options here
+        <div>
+          <AuthenticationChooser
+            :importSeedPhrase="importSeedPhrase"
+            @change-authentication-phase="onChangeAuthenticationPhase"
+          />
+        </div>
       </template>
 
       <template v-else-if="authenticationPhase === 'shards'">
@@ -136,7 +141,6 @@
           </div>
         </div>
       </template>
-
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
@@ -217,6 +221,7 @@
               <template v-if="steps === totalSteps">
                 <template v-if="authenticationPhase === 'options'">
                   <AuthenticationChooser
+                    :importSeedPhrase="importSeedPhrase"
                     @change-authentication-phase="onChangeAuthenticationPhase"
                   />
                 </template>
