@@ -32,7 +32,7 @@
         <qrcode-stream
           v-if="val"
           :camera="frontCamera ? 'front': 'auto'"
-          @decode="onScannerDecode"
+          @detect="onScannerDecode"
           @init="onScannerInit"
           :style="{
             position: 'absolute',
