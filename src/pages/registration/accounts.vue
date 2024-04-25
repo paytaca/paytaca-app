@@ -91,7 +91,7 @@
       </template>
 
       <template v-else-if="authenticationPhase === 'shards'">
-        shards here
+        <ShardsImport />
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
         <div class="col-12 q-px-lg">
@@ -327,6 +327,7 @@ import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPrevi
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import ShardsProcess from 'src/components/registration/ShardsProcess'
 import AuthenticationChooser from 'src/components/registration/AuthenticationChooser'
+import ShardsImport from 'src/components/registration/ShardsImport'
 
 function countWords(str) {
   if (str) {
@@ -355,7 +356,8 @@ export default {
     ThemeSelectorPreview,
     SeedPhraseContainer,
     ShardsProcess,
-    AuthenticationChooser
+    AuthenticationChooser,
+    ShardsImport
   },
   data () {
     return {

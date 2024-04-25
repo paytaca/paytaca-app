@@ -31,7 +31,7 @@
         </div>
         <div id="personal-qr" class="flex flex-center q-py-md col-qr-code">
           <p style="color: black">Save this QR code in your device</p>
-          <qr-code :text="shards[1]" :size="200" />
+          <qr-code :text="shards[1]" color="#253933" :size="200" error-level="H" />
         </div>
       </div>
       <div
@@ -45,7 +45,7 @@
         </div>
         <div id="sharing-qr" class="flex flex-center q-py-md col-qr-code">
           <p style="color: black">Share this QR code to a friend</p>
-          <qr-code :text="shards[2]" :size="200" />
+          <qr-code :text="shards[2]" color="#253933" :size="200" error-level="H" />
         </div>
       </div>
       <div class="flex flex-center q-mt-md">
@@ -165,7 +165,7 @@ export default {
       const sharingQrElement = document.getElementById('sharing-qr')
       html2canvas(sharingQrElement).then((canvas) => {
         const image = canvas.toDataURL('image/png')
-        const fileName = `sharing-qr-${vm.walletHash.substring(0, 10)}.png`
+        const fileName = `for-sharing-qr-${vm.walletHash.substring(0, 10)}.png`
 
         if (vm.$q.platform.is.mobile) {
           vm.saveToMobile(image, fileName, true)

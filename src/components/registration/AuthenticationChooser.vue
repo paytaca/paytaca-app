@@ -8,8 +8,13 @@
     </p>
 
     <template v-if="importSeedPhrase">
-      <p class="dim-text">If you have QR code images of the shards, proceed with using the Shard Authentication Phase.</p>
-      <p class="dim-text">Else, proceed with using the Seed Phrase Authentication Phase.</p>
+      <p class="dim-text">
+        If you have QR code images of the shards, proceed with using the Shard Authentication Phase.
+      </p>
+      <p class="dim-text">
+        If you do not have any QR images, or just want to use the old authentication, proceed
+        with using the Seed Phrase Authentication Phase.
+      </p>
     </template>
     <template v-else>
       <p class="dim-text">
@@ -19,7 +24,7 @@
         you wallet info.
       </p>
       <p class="dim-text">
-        If you are an advanced user or just want to use the old authentication phase, you may opt to proceed
+        If you are an advanced user or just want to use the old authentication phase, proceed
         with using the Seed Phrase Authentication Phase.
       </p>
     </template>
