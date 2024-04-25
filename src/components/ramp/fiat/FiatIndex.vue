@@ -44,6 +44,12 @@ export default {
     FiatProfileCard,
     ProgressLoader
   },
+  props: {
+    notif: {
+      type: Object,
+      default: null
+    }
+  },
   created () {
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
@@ -51,6 +57,10 @@ export default {
   },
   async mounted () {
     this.isLoading = false
+    if (Object.keys(this.notif).length > 0) {
+      this.menu = 'orders'
+      this.currentPage = 'FiatOrders'
+    }
   },
   async beforeUnmount () {
     // this.$store.commit('ramp/resetStoreFilters')
@@ -58,7 +68,7 @@ export default {
   },
   watch: {
     menu (val) {
-      this.$router.push({ name: 'ramp-fiat-' + val })
+      this.$router.push({ name: 'ramp-fiat-' + val, query: this.notif })
     }
   },
   methods: {

@@ -522,6 +522,11 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    handleRampNotif (notif) {
+      console.log('Handling Ramp Notification')
+      // order_notif & new_message
+      this.$router.push({ name: 'ramp-fiat', query: { order_id: notif.order_id, type: notif.type } })
+    },
     openPriceChart () {
       this.$q.dialog({
         component: PriceChart

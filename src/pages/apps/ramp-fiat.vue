@@ -7,7 +7,7 @@
       <RampLogin @loggedIn="loggedInAs" :error="errorMessage"/>
     </div>
     <div v-else>
-      <FiatIndex v-if="userType === 'peer'"/>
+      <FiatIndex v-if="userType === 'peer'" :notif="$route.query"/>
       <AppealIndex v-if="userType === 'arbiter'"/>
     </div>
   </div>

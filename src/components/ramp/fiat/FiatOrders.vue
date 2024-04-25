@@ -156,6 +156,7 @@
     v-if="state === 'view-order'"
     :key="fiatProcessOrderKey"
     :order-data="selectedOrder"
+    :notif-type="notifType"
     @back="returnOrderList()"
     @refresh="refreshOrder"
   />
@@ -267,7 +268,8 @@ export default {
       showSearch: false,
       filterComponentKey: 0,
       isAllCurrencies: true,
-      fiatCurrencies: []
+      fiatCurrencies: [],
+      notifType: null
     }
   },
   watch: {
@@ -315,9 +317,16 @@ export default {
     bus.on('view-ad', this.onViewAd)
   },
   async mounted () {
-    this.updateFilters()
-    this.fetchFiatCurrencies()
-    this.resetAndRefetchListings()
+    console.log('order-params: ', this.$route.query)
+    if (Object.keys(this.$route.query).length > 0) {
+      this.notifType = this.$route.query.type
+      this.selectedOrder = { id: this.$route.query.order_id }
+      this.state = 'view-order'
+    } else {
+      this.updateFilters()
+      this.fetchFiatCurrencies()
+      this.resetAndRefetchListings()
+    }
   },
   methods: {
     getDarkModeClass,

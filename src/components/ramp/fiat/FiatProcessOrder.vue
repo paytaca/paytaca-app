@@ -177,6 +177,10 @@ export default {
     orderData: {
       type: Object,
       default: null
+    },
+    notifType: {
+      type: String,
+      default: ''
     }
   },
   setup () {
@@ -333,6 +337,7 @@ export default {
     vm.fetchAd()
     vm.fetchFeedback().then(() => {
       vm.isloaded = true
+      if (this.notifType === 'new_message') { this.openChat = true}
     })
     this.setupWebsocket(5, 1000)
   },
