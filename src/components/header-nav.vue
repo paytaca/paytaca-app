@@ -33,6 +33,8 @@
 </template>
 
 <script>
+import { onUnmounted } from 'vue'
+
 export default {
   name: 'header-nav',
   props: {
@@ -43,6 +45,11 @@ export default {
     backnavpath: {
       type: String,
       default: ''
+    }
+  },
+  data() {
+    return {
+      addedBodyPadding: false
     }
   },
   computed: {
@@ -60,7 +67,16 @@ export default {
 
     if (headerNavHeight === 70) { // not iOS
       this.$refs['header-nav'].setAttribute('style', `height: ${headerTitleHeight > 32 ? '100' : '70'}px;`)
+      if (headerTitleHeight > 32) {
+        // move all elements 30px down due to the change in height
+        document.body.style.paddingTop = '30px';
+        this.addedBodyPadding = true
+      }
+
     }
+  },
+  beforeUnmount() {
+    if (this.addedBodyPadding) document.body.style.paddingTop = '';
   }
 }
 </script>
