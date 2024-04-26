@@ -8,7 +8,7 @@
     </div>
     <div v-else>
       <FiatIndex v-if="userType === 'peer'" :notif="$route.query"/>
-      <AppealIndex v-if="userType === 'arbiter'"/>
+      <AppealIndex v-if="userType === 'arbiter'" :notif="$route.query"/>
     </div>
   </div>
 </template>
