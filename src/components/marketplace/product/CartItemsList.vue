@@ -26,6 +26,21 @@
             </q-item-label>
           </q-item-section>  
         </q-item>
+        <q-separator/>
+        <q-item
+          clickable v-ripple v-close-popup
+          :to="{
+            name: 'app-marketplace-product',
+            params: { productId: cartItem?.variant?.product?.id },
+            query: { variantId: cartItem?.variant?.id },
+          }"
+        >
+          <q-item-section>
+            <q-item-label>
+              Go to page
+            </q-item-label>
+          </q-item-section>  
+        </q-item>
       </q-menu>
       <div class="row items-center no-wrap q-px-xs">
         <div class="q-space">
@@ -45,7 +60,17 @@
           </div>
         </div>
         <div class="col-2 q-pa-xs text-center">
-          x {{ cartItem.quantity }}
+          <div v-if="useQuantityInput" class="row items-center no-wrap">
+            x
+            <input
+              :disabled="disable"
+              :value="cartItem.quantity"
+              class="quantity-input"
+              @input="evt => updateQuantity(evt.target.value, cart, cartItem)"
+              @click.stop
+            />
+          </div>
+          <div v-else style="white-space: nowrap;"> x {{ cartItem?.quantity }}</div>
         </div>
         <div class="col-3 q-pa-xs text-right">
           {{ round(cartItem?.variant?.markupPrice * cartItem.quantity, 2) }} {{ currency }}
@@ -73,7 +98,7 @@ import { Cart, CartItem } from 'src/marketplace/objects'
 import { round } from 'src/marketplace/utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useStore } from 'vuex';
-import { useQuasar } from 'quasar';
+import { debounce, useQuasar } from 'quasar';
 import { computed, defineComponent } from 'vue'
 import CartItemFormDialog from '../CartItemFormDialog.vue';
 
@@ -83,6 +108,7 @@ export default defineComponent({
     cart: Cart,
     currency: String,
     disable: Boolean,
+    useQuantityInput: Boolean,
   },
   setup(props) {
     const $q = useQuasar()
@@ -110,6 +136,18 @@ export default defineComponent({
       $store.dispatch('marketplace/saveCart', cart)
     }
 
+    
+    const updateQuantity = debounce(function(quantity, cart=Cart.parse(), cartItem=CartItem.parse()) {
+      if (!Number.isSafeInteger(quantity) && quantity === undefined) return
+      if (!cart.items?.includes?.(cartItem)) return
+      if (!cartItem) return
+      if (cartItem.quantity === parseInt(quantity)) return
+      cartItem.quantity = quantity
+      saveCart(cart)
+    }, 1000)
+
+    const debouncedSaveCart = debounce(saveCart, 1000)
+
     function removeItemConfirm(cartItem=CartItem.parse()) {
       const cart = props.cart
       $q.dialog({
@@ -128,6 +166,7 @@ export default defineComponent({
 
     return {
       darkMode,
+      updateQuantity,
       openCartItemDialog,
       removeItemConfirm,
 
@@ -143,5 +182,13 @@ export default defineComponent({
 }
 .cart-item-container {
   margin-bottom: map-get($space-md, 'y');
+}
+.quantity-input {
+  outline: none;
+  background: inherit;
+  width: 100%;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: map-get($space-xs, 'y') map-get($space-xs, 'x');
 }
 </style>

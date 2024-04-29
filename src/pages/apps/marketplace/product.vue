@@ -211,6 +211,8 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const initialized = ref(false)
 function resetPage() {
   product.value.raw = null
+  delete product.value.addons
+  delete product.value.cartOptions
   collection.value.raw = null
   initialized.value = false
   productReview.value = null

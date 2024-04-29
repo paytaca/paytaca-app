@@ -58,7 +58,7 @@
               {{ activeStorefront?.name }}
               #{{ activeStorefront?.id }}
             </q-btn>
-            <q-chip v-if="!activeStorefrontIsActive" class="text-white" color="grey" size="sm">
+            <q-chip v-if="activeStorefront?.id && !activeStorefrontIsActive" class="text-white" color="grey" size="sm">
               Inactive
             </q-chip>
             <q-space/>
@@ -80,6 +80,7 @@
             </div>
             <CartItemsList
               v-if="activeStorefrontCart?.items?.length"
+              use-quantity-input
               :disable="activeStorefrontCart?.$state?.updating || !activeStorefrontIsActive"
               :cart="activeStorefrontCart"
               :currency="getStorefrontCurrency(activeStorefrontCart?.storefrontId)"
