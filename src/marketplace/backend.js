@@ -1,5 +1,6 @@
 import BCHJS from '@psf/bch-js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+import { setupCache } from 'axios-cache-interceptor'
 import axios from 'axios'
 
 const bchjs = new BCHJS()
@@ -90,3 +91,13 @@ export async function setSignerData(value='') {
     return { success: false, error: error }
   }
 }
+
+/**
+ * @param {import('axios-cache-interceptor').CacheOptions} cacheOpts 
+ * @returns 
+ */
+export function getCachedBackend(cacheOpts) {
+  return setupCache(axios.create({...backend.defaults}), cacheOpts)
+}
+
+export const cachedBackend = getCachedBackend()
