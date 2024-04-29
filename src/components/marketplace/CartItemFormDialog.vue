@@ -191,6 +191,7 @@ function syncAddonsFormData() {
 }
 
 function submit() {
+  addonsForm.value?.validate?.()
   if (cartOptionsHasErrors.value) return
   if (addonsFormError.value?.length > 0) return
 

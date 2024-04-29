@@ -245,6 +245,8 @@ function saveActiveCart() {
 }
 
 async function addSelectedVariantToCart() {
+  addonsForm.value?.validate?.()
+  if (addonsFormError.value?.length > 0) return
   if (cartOptionsHasErrors.value) return
   const cart = activeStorefrontCart.value?.id ? activeStorefrontCart.value : Cart.parse({
     storefront_id: product.value?.storefrontId,
