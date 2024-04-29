@@ -380,6 +380,8 @@ export class Product {
    * @param {String} [data.code]
    * @param {String[]} data.categories
    * @param {String[]} [data.cart_options]
+   * @param {Object[]} [data.addons]
+   * @param {Number} [data.addons_count]
    * @param {Boolean} data.has_cart_options
    * @param {String} data.image_url
    * @param {String} [data.variant_image_url]
@@ -404,6 +406,8 @@ export class Product {
     this.code = data?.code
     if (Array.isArray(data?.categories)) this.categories = [...data.categories]
     if (Array.isArray(data?.cart_options)) this.cartOptions = [...data.cart_options]
+    if (Array.isArray(data?.addons)) this.addons = data.addons.map(Addon.parse)
+    this.addonsCount = data?.addons?.length ?? data?.addons_count
     this.hasCartOptions = data?.has_cart_options
     this.imageUrl = data?.image_url
     this.variantImageUrl = data?.variant_image_url
@@ -501,13 +505,90 @@ export class Product {
         console.log('obj', obj)
         if (obj) {
           this.cartOptions = obj?.cart_options
-          if (this.$raw) this.$raw.cartOptions = obj?.cart_options
+          try {
+            if (this.$raw) this.$raw.cart_options = obj?.cart_options
+          } catch {}
         }
         return response
       })
       .finally(() => {
         this.$state.updatingCartOptions = false
       })
+  }
+
+  async fetchAddons() {
+    if (!this.id) return Promise.resolve()
+
+    this.$state.updatingAddons = true
+    const params = { ids: this.id }
+    return backend.get(`products/addons/`, { params })
+      .then(response => {
+        const obj = response?.data?.results?.find(product => product?.id == this?.id)
+        console.log('obj', obj)
+        if (obj) {
+          this.addons = obj?.addons.map?.(Addon.parse)
+          try {
+            if (this.$raw) this.$raw.addons = obj?.addons
+          } catch {}
+        }
+        return response
+      })
+      .finally(() => {
+        this.$state.updatingAddons = false
+      })
+  }
+}
+
+
+export class Addon {
+  static parse(data) {
+    return new Addon(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.label
+   * @param {Number} data.min_opts
+   * @param {Number} data.max_opts
+   * @param {{ id: Number, label: String, price: Number, markup_price: Number, require_input: Boolean }[]} data.options
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.label = data?.label
+    this.minOpts = data?.min_opts
+    this.maxOpts = data?.max_opts
+    this.options = (Array.isArray(data?.options) ? data.options : []).map(option => {
+      return {
+        id: option?.id,
+        label: option?.label,
+        price: option?.price,
+        markupPrice: option?.markup_price,
+        requireInput: option?.require_input,
+      }
+    })
+  }
+
+  get hasOptions() {
+    return this.options?.length > 1
+  }
+
+  get option() {
+    if (!this.hasOptions) return
+    return this.option[0]
+  }
+
+  get isRequired() {
+    return this.minOpts >= 1
   }
 }
 
