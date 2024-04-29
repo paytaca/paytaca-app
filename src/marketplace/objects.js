@@ -592,6 +592,38 @@ export class Addon {
   }
 }
 
+
+export class LineItemAddon {
+  static parse(data) {
+    return new LineItemAddon(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  } 
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.addon_option_id
+   * @param {String} data.label
+   * @param {Number} data.price
+   * @param {Number} data.markup_price
+   * @param {String} data.input_value
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.addonOptionId = data?.addon_option_id
+    this.label = data?.label
+    this.price = data?.price
+    this.markupPrice = data?.markup_price
+    this.inputValue = data?.input_value
+  }
+}
+
 export class CartItem {
   static parse(data) {
     return new CartItem(data)
@@ -610,6 +642,7 @@ export class CartItem {
    * @param {Object} data.variant
    * @param {Number} data.quantity
    * @param {{ schema:Object, data:Object }} [data.properties]
+   * @param {Object[]} [data.addons]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -617,6 +650,7 @@ export class CartItem {
     this.variant = Variant.parse(data?.variant)
     this.quantity = data?.quantity
     this.properties = data?.properties
+    this.addons = (Array.isArray(data?.addons) ? data.addons: []).map(LineItemAddon.parse)
   }
 
   get propertiesText() {
@@ -671,11 +705,21 @@ export class Cart {
         if (item?.properties?.data && Object.getOwnPropertyNames(item?.properties?.data)?.length) {
           properties = item.properties
         }
+        let addons
+        if (Array.isArray(item.addons)) {
+          addons = item.addons.map(lineItemAddon => {
+            return {
+              addon_option_id: lineItemAddon.addonOptionId,
+              input_value: lineItemAddon.inputValue,
+            }
+          })
+        }
 
         return {
           variant_id: item?.variant?.id,
           quantity: item?.quantity,
           properties: properties,
+          addons: addons,
         }
       }).filter(item => !isNaN(item?.quantity) && item.quantity >= 0 && item?.quantity !== '')
     }
@@ -1005,6 +1049,7 @@ export class OrderItem {
    * @param {Number} data.price
    * @param {Number} data.markup_price
    * @param {{ schema:Object, data:Object }} [data.properties]
+   * @param {Object[]} [data.addons]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1015,6 +1060,7 @@ export class OrderItem {
     this.price = data?.price
     this.markupPrice = data?.markup_price
     this.properties = data?.properties
+    this.addons = (Array.isArray(data?.addons) ? data.addons: []).map(LineItemAddon.parse)
   }
 
   get displayPrice() {
