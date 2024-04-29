@@ -202,6 +202,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { isConformingNamespaces } from '@walletconnect/utils'
 // import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 // import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
@@ -489,6 +490,7 @@ export default {
 
       for (const item in vm.tokenList) {
         const token = vm.tokenList[item]
+        // console.log('token list: ', token)
         if (unstableIcon.includes(vm.tokenList[item].coin)) {
           const index = unstableIcon.indexOf(vm.tokenList[item].coin)
           vm.tokenList[item].icon = '<img src="' + unstableIconImg[index] + '" style="height: 30px; width: 30px"/>'
@@ -545,6 +547,8 @@ export default {
       if (resp.status === 200 || resp.status === 201) {
         for (const item in resp.data) {
           const coinData = resp.data[item]
+          // console.log('coinData: ', coinData)
+
           // check if has offline network
           let offlineNetwork = []
           if (coinData.depositOffline.length) {
@@ -584,9 +588,23 @@ export default {
 
       let icon = null
       const resp = await vm.$axios.get(url)
+        .catch(error => {
+          console.log(error)
+        })
 
       if (resp) {
         icon = resp.data
+
+        // update height-width
+        const pattern = [/width="([^"]*)"/, /height="([^"]*)"/]
+        const match = [icon.match(pattern[0]), icon.match(pattern[1])]
+
+        if (match[0]) {
+          icon = icon.replace(match[0][0], 'width="50px"')
+        }
+        if (match[1]) {
+          icon = icon.replace(match[1][0], 'height="50px"')
+        }
       }
 
       return icon
