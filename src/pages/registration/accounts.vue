@@ -91,7 +91,7 @@
       </template>
 
       <template v-else-if="authenticationPhase === 'shards'">
-        <ShardsImport />
+        <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="initCreateWallet" />
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
         <div class="col-12 q-px-lg">
@@ -227,11 +227,26 @@
                 </template>
 
                 <template v-else-if="authenticationPhase === 'shards'">
-                  <ShardsProcess
-                    :mnemonic="mnemonic"
-                    :walletHash="newWalletHash"
-                    @proceed-to-next-step="onProceedToNextStep()"
-                  />
+                  <template v-if="seedPhraseBackup">
+                    <div class="text-bow" :class="getDarkModeClass(darkMode)">
+                      <p class="dim-text" style="margin-top: 10px;">
+                        Wallet restored successfully. Click on the button to continue.
+                      </p>
+                    </div>
+                    <q-btn
+                      rounded
+                      :label="$t('Continue')"
+                      class="q-mt-lg full-width button"
+                      @click="onProceedToNextStep"
+                    />
+                  </template>
+                  <template v-else>
+                    <ShardsProcess
+                      :mnemonic="mnemonic"
+                      :walletHash="newWalletHash"
+                      @proceed-to-next-step="onProceedToNextStep()"
+                    />
+                  </template>
                 </template>
 
                 <template v-else-if="authenticationPhase === 'backup-phrase'">
@@ -667,6 +682,9 @@ export default {
       this.steps = this.totalSteps
       this.authenticationPhase = 'options'
       this.openSettings = true
+    },
+    onValidatedQrs (seedPhrase) {
+      this.seedPhraseBackup = seedPhrase
     }
   },
   async mounted () {

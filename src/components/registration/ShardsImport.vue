@@ -4,7 +4,7 @@
     @decode="onScannerDecode"
   />
 
-  <!-- hidden q-file -->
+  <!-- hidden q-uploader -->
   <q-uploader
     ref="file-upload"
     v-model="fileModel"
@@ -39,8 +39,6 @@
         />
       </div>
     </div>
-    <!-- TODO revisit -->
-    <!-- <canvas ref="canvas" /> -->
     <div class="row flex items-center justify-between q-py-md">
       <p class="col-6 q-ma-xs" style="text-wrap: wrap;">
         Scan or upload the wallet's for sharing QR
@@ -63,7 +61,38 @@
       </div>
     </div>
 
+    <div class="row flex flex-center q-gutter-md q-mt-xs">
+      <template v-if="retrievedCodes.length === 1">
+        <qr-code :text="retrievedCodes[0]" color="#253933" :size="150" error-level="H" />
+        <div class="qr-placeholder-div"></div>
+      </template>
+      <template v-else-if="retrievedCodes.length === 2">
+        <qr-code :text="retrievedCodes[0]" color="#253933" :size="150" error-level="H" />
+        <qr-code :text="retrievedCodes[1]" color="#253933" :size="150" error-level="H" />
+      </template>
+      <template v-else>
+        <div class="qr-placeholder-div"></div>
+        <div class="qr-placeholder-div"></div>
+      </template>
+    </div>
     <!-- request another shard from us -->
+
+    <div class="flex flex-center">
+      <q-btn
+        rounded
+        class="q-mt-md button"
+        label="Clear QR"
+        @click="clearQRs"
+      />
+    </div>
+
+    <q-btn
+      rounded
+      class="full-width q-mt-lg q-mb-md button"
+      @click="$emit('restore-wallet')"
+      :disable="!areQRCodesValid"
+      :label="$t('RestoreWallet')"
+    />
   </div>
 </template>
 
@@ -77,6 +106,11 @@ import QrScanner from 'src/components/qr-scanner.vue'
 export default {
   name: 'ShardsImport',
 
+  emits: [
+    'set-seed-phrase',
+    'restore-wallet'
+  ],
+
   components: {
     QrScanner
   },
@@ -85,7 +119,8 @@ export default {
     return {
       showQrScanner: false,
       fileModel: null,
-      retrievedCodes: []
+      retrievedCodes: [],
+      areQRCodesValid: false
     }
   },
 
@@ -99,7 +134,8 @@ export default {
     getDarkModeClass,
     onScannerDecode (content) {
       this.showQrScanner = false
-      console.log(content)
+      this.retrievedCodes.push(content)
+      this.validateQRCodes()
     },
     triggerUpload () {
       const fileUploadRef = this.$refs['file-upload']
@@ -108,32 +144,30 @@ export default {
       fileUploadRef.pickFiles()
     },
     uploadedQrImage (qrFile) {
-      // console.log('file', qrFile)
       const reader = new FileReader()
       reader.onload = () => {
         const image = new Image()
         image.onload = () => {
-          // console.log('image', image)
           const canvas = document.createElement('canvas')
-          // const canvas = this.$refs.canvas
           const context = canvas.getContext('2d')
           canvas.width = image.width
           canvas.height = image.height
           context.drawImage(image, 0, 0)
           const imageData = context.getImageData(0, 0, image.width, image.height)
           const qrCode = jsqr(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' })
-          // console.log('imagedata', imageData)
-          // console.log('qrCode', qrCode)
 
           if (qrCode) {
-            // console.log('QR Code Data:', qrCode.data)
-            console.log('QR code data existing.')
             if (this.retrievedCodes.length < 2) {
               this.retrievedCodes.push(qrCode.data)
             }
-            // Display the QR code data in your Vue component
+            this.validateQRCodes()
           } else {
-            console.log('No QR Code found in the image.')
+            this.$q.notify({
+              message: 'No QR code found in the uploaded image.',
+              timeout: 800,
+              color: 'red-9',
+              icon: 'mdi-qrcode-remove'
+            })
           }
         }
         image.src = reader.result
@@ -143,19 +177,26 @@ export default {
       const fileUploadRef = this.$refs['file-upload']
       fileUploadRef.removeUploadedFiles()
       fileUploadRef.removeQueuedFiles()
+    },
+    validateQRCodes () {
       if (this.retrievedCodes.length === 2) {
-        console.log('heree', this.retrievedCodes)
-        const recovered = sss.combine([this.retrievedCodes[0], this.retrievedCodes[1]])
-        console.log('recovered: ', recovered.toString())
+        const recovered = sss.combine([this.retrievedCodes[0], this.retrievedCodes[1]]).toString()
+        this.areQRCodesValid = recovered.split(' ').length === 12
+        this.$emit('set-seed-phrase', recovered)
       }
-    }
-  },
-
-  watch: {
-    // TODO remove
-    fileModel (value) {
-      console.log('uploaded file', value)
+    },
+    clearQRs () {
+      this.retrievedCodes = []
+      this.areQRCodesValid = false
     }
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .qr-placeholder-div {
+    height: 150px;
+    width: 150px;
+    border: 2px solid gray;
+  }
+</style>

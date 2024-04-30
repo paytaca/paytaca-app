@@ -60,7 +60,7 @@
 
     <q-btn
       rounded
-      label="Continue"
+      :label="$t('Continue')"
       class="q-mt-lg full-width button"
       @click="$emit('proceed-to-next-step')"
     />
@@ -105,18 +105,15 @@ export default {
 
     // add loading for generating shards
     // after generation, save 1st shard to database; links should be hash of other 2 shards
-
-    const secret = Buffer.from(vm.mnemonic)
-    const shares = sss.split(secret, { shares: 3, threshold: 2 })
-    vm.shards = shares.map(a => toHex(a))
-
     // save to db
     // 1st shard is for watchtower to keep
     // 2nd is for user to save to device
     // 3rd is for user to share to someone or other device for storing
 
-    // const recovered = sss.combine([vm.shards[0], vm.shards[1]])
-    // console.log('recovered', recovered.toString())
+    const secret = Buffer.from(vm.mnemonic)
+    const shares = sss.split(secret, { shares: 3, threshold: 2 })
+    vm.shards = shares.map(a => toHex(a))
+
     setTimeout(() => {
       vm.isLoading = false
     }, 3000)
