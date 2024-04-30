@@ -91,15 +91,15 @@
                           <div class="col ib-text">
                             <div
                               class="q-mb-none pt-label sm-font-size"
-                              :class="getDarkModeClass(darkMode)"
-                            >
+                              :class="getDarkModeClass(darkMode)">
                               ORDER #{{ listing.id }}
+                              <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
                             </div>
                             <span
                               class=" pt-label md-font-size text-weight-bold"
                               :class="getDarkModeClass(darkMode)">
                               <!--@click.stop.prevent="viewUserProfile(listing)">-->
-                              {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
+                              {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
                             </span>
                             <div
                               class="col-transaction text-uppercase pt-label lg-font-size"

@@ -203,6 +203,7 @@ export async function fetchOrders (context, { statusType = null, params = null, 
 
       backend.get(apiURL, { params: parameters, authorize: true })
         .then((response) => {
+          console.log('orders:', response.data)
           switch (statusType) {
             case 'ONGOING':
               context.commit('updateOngoingOrders', { overwrite: overwrite, data: response.data })
