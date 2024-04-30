@@ -5,8 +5,9 @@
     <!-- <div v-if="historyInfo.ramp_type === 'on' && historyInfo.shift_status !== 'expired'" style="width: 100%; text-align: center; color: #3b7bf6;">
       <p style="font-size: 15px;" @click="openDepositInfo()">Show QR Code</p>
     </div> -->
+
     <div class="row no-wrap justify-around items-baseline">
-      <div class="col-5 column items-center">
+      <div class="col-4 column items-center">
         <div class="text-lowercase q-mt-sm pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px">
           {{ $t('From') }}
         </div>
@@ -30,7 +31,7 @@
         style="position: absolute; top: 120px;"
       />
 
-      <div class="col-5 column items-center">
+      <div class="col-4 column items-center">
         <div class="q-mt-sm text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px;">
           {{ $t('To') }}
         </div>
@@ -92,9 +93,9 @@
     <q-separator class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
 
     <q-item>
-      <q-item-section class="text-center q-pb-sm q-pt-sm">
+      <q-item-section class="text-center q-pb-sm q-pt-sm" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
         <q-item-label>Recieving Address: </q-item-label>
-        <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
+        <q-item-label class=" q-pt-xs">
         <span style="font-size: 13px;">{{ shiftInfo.settleAddress }}</span>
         </q-item-label>
       </q-item-section>
@@ -122,7 +123,8 @@ export default {
       shiftInfo: {},
       historyInfo: {},
       state: '',
-      darkMode: this.$store.getters['darkmode/getStatus']
+      darkMode: this.$store.getters['darkmode/getStatus'],
+      maxWidth: this.$q.screen.width
     }
   },
   props: {

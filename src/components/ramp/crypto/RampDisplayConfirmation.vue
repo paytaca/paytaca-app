@@ -1,6 +1,6 @@
 <template>
   <q-card
-    class="br-15 q-pt-sm q-mx-md pt-card text-bow"
+    class="br-15 q-mx-md q-pt-sm pt-card text-bow"
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded && !networkError"
   >

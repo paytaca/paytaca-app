@@ -490,7 +490,7 @@ export default {
 
       for (const item in vm.tokenList) {
         const token = vm.tokenList[item]
-        // console.log('token list: ', token)
+
         if (unstableIcon.includes(vm.tokenList[item].coin)) {
           const index = unstableIcon.indexOf(vm.tokenList[item].coin)
           vm.tokenList[item].icon = '<img src="' + unstableIconImg[index] + '" style="height: 30px; width: 30px"/>'
@@ -547,7 +547,6 @@ export default {
       if (resp.status === 200 || resp.status === 201) {
         for (const item in resp.data) {
           const coinData = resp.data[item]
-          // console.log('coinData: ', coinData)
 
           // check if has offline network
           let offlineNetwork = []
@@ -595,15 +594,35 @@ export default {
       if (resp) {
         icon = resp.data
 
-        // update height-width
-        const pattern = [/width="([^"]*)"/, /height="([^"]*)"/]
-        const match = [icon.match(pattern[0]), icon.match(pattern[1])]
+        if (icon.includes('svg')) {
+          // update height-width
+          const pattern = [/width="([^"]*)"/, /height="([^"]*)"/]
+          const match = [icon.match(pattern[0]), icon.match(pattern[1])]
 
-        if (match[0]) {
-          icon = icon.replace(match[0][0], 'width="50px"')
-        }
-        if (match[1]) {
-          icon = icon.replace(match[1][0], 'height="50px"')
+          if (match[0]) {
+            if (/\D/.test(match[0][1])) {
+              icon = icon.replace(match[0][0], 'width="50px"')
+            }
+          }
+          if (match[1]) {
+            if (/\D/.test(match[1][1])) {
+              icon = icon.replace(match[1][0], 'height="50px"')
+            }
+          }
+
+          // add missing viewBox
+          if (!icon.includes('viewBox') && match[0] && match[1]) {
+            const startIndex = icon.indexOf(match[1][0])
+            const lastIndex = startIndex + match[1][0].length + 1
+
+            // if (!/\D/.test(match[0][1]) && !/\D/.test(match[1][1])) {
+            const viewBox = `viewBox="0 0 ${match[0][1]} ${match[1][1]}" `
+
+            icon = icon.slice(0, lastIndex) + viewBox + icon.slice(lastIndex)
+            // }
+          }
+        } else {
+          icon = '<img src="' + url + '" style="height: 30px; width: 30px"/>'
         }
       }
 
