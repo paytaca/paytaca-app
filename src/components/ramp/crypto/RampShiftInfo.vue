@@ -20,16 +20,18 @@
         </div>
       </div>
 
-      <q-btn
-        rounded
-        flat
-        padding="sm"
-        icon="arrow_forward"
-        disable
-        class="button button-text-primary"
-        :class="getDarkModeClass(darkMode)"
-        style="position: absolute; top: 120px;"
-      />
+      <div class="col-4 text-center">
+        <br>
+        <q-btn
+          rounded
+          flat
+          padding="sm"
+          icon="arrow_forward"
+          disable
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+        />
+      </div>
 
       <div class="col-4 column items-center">
         <div class="q-mt-sm text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px;">
@@ -101,9 +103,9 @@
       </q-item-section>
     </q-item>
     <q-item>
-      <q-item-section class="text-center">
+      <q-item-section class="text-center" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
         <q-item-label>Refund Address: </q-item-label>
-        <q-item-label class="q-px-lg q-pt-xs" style="overflow-wrap: break-word">
+        <q-item-label class="q-px-lg q-pt-xs">
           <span style="font-size: 13px;">{{ shiftInfo.refundAddress }}</span>
         </q-item-label>
       </q-item-section>

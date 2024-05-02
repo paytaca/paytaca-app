@@ -3,12 +3,12 @@
     v-model="showQrScanner"
     @decode="onScannerDecode"
   />
-  <q-card
-    class="br-15 q-pt-sm q-mx-md q-mt-md q-mb-lg pt-card text-bow"
+  <div
+    class="q-mx-md q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded && state === 'form' && !error"
   >
-    <div class="row items-center justify-end q-mt-md q-mr-lg">
+    <div class="row items-center justify-end q-mr-lg">
       <q-btn
         round
         padding="xs"
@@ -165,7 +165,7 @@
         @click="checkData()"
       />
     </div>
-  </q-card>
+  </div>
   <div class="row justify-center q-py-lg" style="margin-top: 50%" v-if="!isloaded && !error">
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
@@ -202,6 +202,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus.js'
 import { isConformingNamespaces } from '@walletconnect/utils'
 // import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 // import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
@@ -248,6 +249,11 @@ export default {
       convertionRate: '',
       addrType: '',
       depositInfoState: 'created'
+    }
+  },
+  watch: {
+    state (val) {
+      bus.emit('update-state', val)
     }
   },
   methods: {
@@ -654,7 +660,7 @@ export default {
     }
   },
   async mounted () {
-    console.log('mounted RampShiftForm')
+    // console.log('mounted RampShiftForm')
     const vm = this
 
     //initial
