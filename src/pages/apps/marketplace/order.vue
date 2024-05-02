@@ -441,42 +441,54 @@
             </div>
             <table class="full-width items-table">
               <tr>
-                <th class="full-width">Item</th>
+                <th colspan="2" class="full-width">Item</th>
                 <th>Price</th>
                 <th>Quantity</th>
                 <th>Subtotal</th>
               </tr>
-              <tr v-for="orderItem in order?.items" :key="orderItem?.id">
-                <td>
-                  <q-btn
-                    flat no-caps
-                    padding="none"
-                    :to="{
-                      name: 'app-marketplace-product',
-                      params: { productId: orderItem?.variant?.product?.id },
-                      query: { variantId: orderItem?.variant?.id },
-                    }"
-                  >
-                    <div class="row items-center justify-left no-wrap full-width text-left">
-                      <q-img
-                        v-if="orderItem?.variant?.itemImage"
-                        :src="orderItem?.variant?.itemImage"
-                        width="35px"
-                        ratio="1"
-                        style="min-width:35px;"
-                        class="rounded-borders q-mr-xs"
-                      />
-                      <div class="q-space">
-                        <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
-                        <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+              <template v-for="orderItem in order?.items" :key="orderItem?.id">
+                <tr>
+                  <td colspan="2">
+                    <q-btn
+                      flat no-caps
+                      padding="none"
+                      :to="{
+                        name: 'app-marketplace-product',
+                        params: { productId: orderItem?.variant?.product?.id },
+                        query: { variantId: orderItem?.variant?.id },
+                      }"
+                    >
+                      <div class="row items-center justify-left no-wrap full-width text-left">
+                        <q-img
+                          v-if="orderItem?.variant?.itemImage"
+                          :src="orderItem?.variant?.itemImage"
+                          width="35px"
+                          ratio="1"
+                          style="min-width:35px;"
+                          class="rounded-borders q-mr-xs"
+                        />
+                        <div class="q-space">
+                          <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
+                          <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+                        </div>
                       </div>
-                    </div>
-                  </q-btn>
-                </td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.displayPrice }} {{ orderCurrency }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.displayPrice * orderItem?.quantity }} {{ orderCurrency }}</td>
-              </tr>
+                    </q-btn>
+                  </td>
+                  <td class="text-center" style="white-space:nowrap;">{{ orderItem?.displayPrice }} {{ orderCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ round(orderItem?.displayPrice * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+                </tr>
+                <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">
+                  <td></td>
+                  <td>
+                    <div>{{ addon?.label }}</div>
+                    <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
+                  </td>
+                  <td class="text-center" style="white-space:nowrap;">{{ addon?.markupPrice }} {{ orderCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ round(addon?.markupPrice * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+                </tr>
+              </template>
             </table>
           </q-card>
         </div>
@@ -652,7 +664,7 @@
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Storefront } from 'src/marketplace/objects'
-import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor } from 'src/marketplace/utils'
+import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor, round } from 'src/marketplace/utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted, inject, onActivated, onDeactivated } from 'vue'

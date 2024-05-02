@@ -1,12 +1,24 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" full-height>
-    <q-card :class="darkMode ? 'text-white pt-card-3' : 'text-black'">
-      <q-card-section>
-        <div class="row items-center no-wrap">
-          <div class="text-h6">Cart Item</div>
-          <q-space/>
-          <q-btn v-close-popup flat icon="close" class="q-r-mr-sm"/>
-        </div>
+  <q-dialog
+    v-model="innerVal"
+    ref="dialogRef"
+    @hide="onDialogHide"
+    position="bottom"
+    full-height
+    :data-update-key="updateKey" 
+  >
+  <!-- `updateKey` for force update purposes -->
+    <q-card
+      class="dialog-content-base"
+      :class="darkMode ? 'text-white pt-card-3' : 'text-black'"
+      style="max-height:60vh !important;"
+    >
+      <div class="row items-center no-wrap dialog-content-header">
+        <div class="text-h6">Cart Item</div>
+        <q-space/>
+        <q-btn v-close-popup flat icon="close" class="q-r-mr-sm"/>
+      </div>
+      <q-card-section class="q-pt-none">
         <div class="row items-center q-pl-sm">
           <q-space/>
           <q-btn
@@ -43,6 +55,17 @@
             />
           </q-card-section>
         </q-card>
+        <div v-if="fetchingAddons" class="text-center text-body1 q-pa-md text-grey">
+          Loading addon options
+          <q-spinner/>
+        </div>
+        <AddonsForm
+          ref="addonsForm"
+          v-if="addonOptions?.length"
+          :addons="addonOptions"
+          :currency="currency"
+          v-model="addonsFormData"
+        />
         <q-input
           label="Quantity"
           dense outlined
@@ -52,6 +75,7 @@
           bottom-slots
         />
         <q-btn
+          :disable="addonsFormError?.length > 0"
           no-caps
           label="OK"
           color="brandblue"
@@ -63,11 +87,13 @@
   </q-dialog>
 </template>
 <script setup>
+import { cachedBackend } from 'src/marketplace/backend';
 import { useDialogPluginComponent } from 'quasar'
-import { CartItem } from 'src/marketplace/objects';
+import { Addon, CartItem } from 'src/marketplace/objects';
 import { useStore } from 'vuex';
 import { computed, ref, watch, watchEffect } from 'vue';
 import JSONFormPreview from './JSONFormPreview.vue';
+import AddonsForm from './product/AddonsForm.vue';
 
 const $emit = defineEmits([
   'update:modelValue',
@@ -79,6 +105,8 @@ const props = defineProps({
   cartItem: CartItem,
   currency: String,
 })
+
+const updateKey = ref(0) // for force update purposes
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -93,6 +121,7 @@ watchEffect(() => {
   const product = props.cartItem?.variant?.product
   if (!product?.hasCartOptions || product?.cartOptions !== undefined) return
   product?.fetchCartOptions?.()
+  updateKey.value = updateKey.value + 1
 })
 
 const quantity = ref(Number(props.cartItem?.quantity))
@@ -113,8 +142,58 @@ const cartOptionsFormErrors = ref([])
 const cartOptionsHasErrors = computed(() => Boolean(cartOptionsFormErrors.value?.length))
 watch(() => [props.cartItem], () => cartOptionsFormErrors.value=[], { deep: true })
 
+
+const addonsForm = ref()
+const addonsFormError = computed(() => {
+  if (!addonsForm.value) return []
+  if (Array.isArray(addonsForm.value?.errors)) return addonsForm.value.errors
+  return []
+})
+const addonsFormData = ref([].map(() => {
+  return { addonOptionId: 0, inputValue: '' }
+}))
+const addonOptions = ref([].map(Addon.parse))
+const fetchingAddons = ref(false)
+watch(() => props.cartItem?.variant?.product?.id, () => {
+  syncAddonsFormData()
+  fetchAddonOptions()
+}, { immediate: true }) // to trigger onCreate
+function fetchAddonOptions() {
+  const productId = props.cartItem?.variant?.product?.id
+  if (!productId) return Promise.resolve()
+
+  const params = { ids: productId }
+  fetchingAddons.value = true
+  return cachedBackend.get('products/addons/', { params })
+    .then(response => {
+      const result = response?.data?.results?.find?.(_result => _result?.id == productId)
+      if (result) {
+        addonOptions.value = result.addons.map(Addon.parse)
+      }
+      return response
+    })
+    .finally(() => {
+      fetchingAddons.value = false
+    })
+}
+function syncAddonsFormData() {
+  if (!Array.isArray(props.cartItem?.addons)) {
+    addonsFormData.value = []
+    return
+  }
+
+  addonsFormData.value = props.cartItem.addons.map(addon => {
+    return {
+      addonOptionId: addon?.addonOptionId,
+      inputValue: addon?.inputValue,
+    }
+  }).filter(addon => addon.addonOptionId)
+}
+
 function submit() {
+  addonsForm.value?.validate?.()
   if (cartOptionsHasErrors.value) return
+  if (addonsFormError.value?.length > 0) return
 
   let properties
   if (cartOptionsFormData.value && Object.getOwnPropertyNames(cartOptionsFormData.value)?.length) {
@@ -124,6 +203,27 @@ function submit() {
     quantity: quantity.value,
     variant: props.cartItem?.variant,
     properties: properties,
+    addons: addonsFormData.value,
   })
 }
 </script>
+<style lang="scss" scoped>
+
+.dialog-content-base {
+  overflow: auto;
+  background-color: white;
+}
+
+.dialog-content-base .dialog-content-header {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  background-color: inherit;
+  padding: map-get($space-md, 'y') map-get($space-md, 'x');
+}
+
+body.body--dark .dialog-content-base {
+  background-color: $dark;
+}
+</style>
