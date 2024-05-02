@@ -2,22 +2,32 @@
   <template v-if="isLoading">
     <div
       class="col pt-wallet q-mt-sm pt-card-2 text-center"
-      :class="getDarkModeClass(darkMode)"
+      :class="[getDarkModeClass(darkMode), fromWalletInfo ? 'pt-card' : 'pt-card-2']"
     >
-      <p class="dim-text q-pt-sm" style="text-align: center;">
-        Creating shards...
+      <p
+        class="q-pt-sm"
+        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+        style="text-align: center;"
+      >
+        {{ fromWalletInfo ? 'Loading shards' : 'Creating shards' }}...
       </p>
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
     </div>
   </template>
 
   <template v-else>
-    <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">
+    <h5
+      v-if="!fromWalletInfo"
+      class="q-ma-none text-bow"
+      :class="getDarkModeClass(darkMode)">
       Shards Authentication Phase
     </h5>
-    <p class="dim-text" style="margin-top: 10px;">
-      Below are QR code images generated from the shards. You can screenshot them by yourself
-      or use the button below to download them to your device.
+    <p
+      :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+      style="margin-top: 10px;"
+    >
+      {{ fromWalletInfo ? 'Below are the shards for this wallet.' : 'Below are QR code images generated from the shards.' }}
+      You can screenshot them by yourself or use the button below to download them to your device.
     </p>
 
     <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
@@ -59,6 +69,7 @@
     </div>
 
     <q-btn
+      v-if="!fromWalletInfo"
       rounded
       :label="$t('Continue')"
       class="q-mt-lg full-width button"
@@ -82,7 +93,11 @@ export default {
 
   props: {
     mnemonic: String,
-    walletHash: String
+    walletHash: String,
+    fromWalletInfo: {
+      type: Boolean,
+      default: false
+    }
   },
 
   emits: [
