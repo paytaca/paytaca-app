@@ -62,8 +62,6 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/au
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import BCHJS from '@psf/bch-js'
-const bchjs = new BCHJS()
 
 export default {
   data () {
