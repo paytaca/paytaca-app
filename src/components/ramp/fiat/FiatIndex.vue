@@ -16,8 +16,7 @@ import FiatProfileCard from './FiatProfileCard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
-import { getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -67,9 +66,9 @@ export default {
       this.menu = 'orders'
       this.currentPage = 'FiatOrders'
     }
+    this.fetchUser()
   },
   async beforeUnmount () {
-    // this.$store.commit('ramp/resetStoreFilters')
     this.$store.commit('ramp/resetPaymentTypes')
   },
   watch: {
@@ -79,6 +78,11 @@ export default {
   },
   methods: {
     isNotDefaultTheme,
+    fetchUser () {
+      backend.get('ramp-p2p/user').then(response => {
+        this.updateUnreadCount(response?.data?.user?.unread_orders_count)
+      })
+    },
     hideMenu () {
       this.showFooterMenu = false
     },

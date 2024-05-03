@@ -77,7 +77,6 @@ export default {
       }
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        console.log('data:', data)
         bus.emit('update-unread-count', data.extra.unread_count)
         if (data.type === 'NEW_ORDER') {
           const currency = this.$store.getters['ramp/ordersCurrency']
@@ -100,6 +99,7 @@ export default {
           if (filterCheck && tradeTypeCheck && statusCheck && timeLimitCheck) {
             addToList = true
           }
+          // NB: this does not filter by payment types
 
           if (addToList) {
             const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
@@ -108,7 +108,6 @@ export default {
             } else {
               ongoingOrders.push(data.extra.order)
             }
-            console.log('ongoingOrders:', ongoingOrders)
             this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
           }
         }
