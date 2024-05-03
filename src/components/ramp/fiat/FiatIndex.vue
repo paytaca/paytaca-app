@@ -59,20 +59,18 @@ export default {
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
     bus.on('switch-menu', this.switchMenu)
+    bus.on('update-unread-count', this.updateUnreadCount)
   },
   async mounted () {
-    this.rampWallet = loadRampWallet()
     this.isLoading = false
     if (Object.keys(this.notif).length > 0) {
       this.menu = 'orders'
       this.currentPage = 'FiatOrders'
     }
-    this.setupWebsocket()
   },
   async beforeUnmount () {
     // this.$store.commit('ramp/resetStoreFilters')
     this.$store.commit('ramp/resetPaymentTypes')
-    // this.closeWSConnection()
   },
   watch: {
     menu (val) {
@@ -100,32 +98,8 @@ export default {
       this.switchMenu('orders')
       this.initStatusType = 'COMPLETED'
     },
-    setupWebsocket () {
-      const wsUrl = `${getBackendWsUrl()}general/${this.rampWallet.walletHash}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('data:', data)
-        this.footerData.unreadOrdersCount = data.extra.unread_count
-        if (data.type === 'NEW_ORDER') {
-          console.log('add order in ongoing orders')
-          // const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
-          // ongoingOrders.push(data.extra.order)
-          // console.log('ongoingOrders:', ongoingOrders)
-          // this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: ongoingOrders })
-        }
-      }
-      this.websocket.onclose = () => {
-        console.log('General WebSocket connection closed.')
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
+    updateUnreadCount (count) {
+      this.footerData.unreadOrdersCount = count
     }
   }
 }

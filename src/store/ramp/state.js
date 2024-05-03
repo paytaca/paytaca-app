@@ -85,6 +85,7 @@ export default function () {
         sell: true
       }
     },
-    migrateStoreOrderFilters: true
+    migrateStoreOrderFilters: true,
+    ordersCurrency: 'All'
   }
 }

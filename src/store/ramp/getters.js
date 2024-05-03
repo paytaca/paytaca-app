@@ -248,3 +248,7 @@ export function chatIdentity (state) {
     return state.chatIdentity[ref]
   }
 }
+
+export function ordersCurrency (state) {
+  return state.ordersCurrency
+}

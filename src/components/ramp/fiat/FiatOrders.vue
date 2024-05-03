@@ -456,6 +456,7 @@ export default {
       const vm = this
       const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'
       const currency = this.selectedCurrency?.symbol
+      vm.$store.commit('ramp/setOrdersCurrency', currency || 'All')
       const filters = vm.$store.getters[getterName](currency || 'All')
       if (filters) vm.filters = JSON.parse(JSON.stringify(filters))
     },

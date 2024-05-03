@@ -20,6 +20,8 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { deleteAuthToken } from 'src/wallet/ramp/auth'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { getBackendWsUrl } from 'src/wallet/ramp/backend'
 
 export default {
   components: {
@@ -49,7 +51,12 @@ export default {
     bus.on('session-expired', this.handleSessionEvent)
   },
   async mounted () {
+    this.rampWallet = loadRampWallet()
+    this.setupWebsocket()
     this.isloaded = true
+  },
+  beforeUnmount () {
+    this.closeWSConnection()
   },
   methods: {
     getDarkModeClass,
@@ -61,6 +68,60 @@ export default {
     loggedInAs (userType) {
       this.loggedIn = true
       this.userType = userType
+    },
+    setupWebsocket () {
+      const wsUrl = `${getBackendWsUrl()}general/${this.rampWallet.walletHash}/`
+      this.websocket = new WebSocket(wsUrl)
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established to ' + wsUrl)
+      }
+      this.websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        console.log('data:', data)
+        bus.emit('update-unread-count', data.extra.unread_count)
+        if (data.type === 'NEW_ORDER') {
+          const currency = this.$store.getters['ramp/ordersCurrency']
+          const filters = this.$store.getters['ramp/ongoingOrderFilters'](currency || 'All')
+          // filter the new order
+          let filterCheck = false
+          const order = data.extra.order
+          if ((currency === 'All' || order.ad.fiat_currency.symbol === currency) &&
+              filters.not_appealable && filters.ownership.notOwned && !filters.queryname) {
+            filterCheck = true
+          }
+          let tradeTypeCheck = false
+          if ((order.trade_type === 'BUY' && filters.trade_type.buy) || (order.trade_type === 'SELL' && filters.trade_type.sell)) {
+            tradeTypeCheck = true
+          }
+          const statusCheck = filters.status.includes(order.status.value)
+          const timeLimitCheck = filters.time_limits.includes(Number(order.ad.appeal_cooldown))
+
+          let addToList = false
+          if (filterCheck && tradeTypeCheck && statusCheck && timeLimitCheck) {
+            addToList = true
+          }
+
+          if (addToList) {
+            const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
+            if (filters.sort_type === 'descending') {
+              ongoingOrders.unshift(data.extra.order)
+            } else {
+              ongoingOrders.push(data.extra.order)
+            }
+            console.log('ongoingOrders:', ongoingOrders)
+            this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
+          }
+        }
+      }
+      this.websocket.onclose = () => {
+        console.log('General WebSocket connection closed.')
+      }
+    },
+    closeWSConnection () {
+      console.log('closeWSConnection')
+      if (this.websocket) {
+        this.websocket.close()
+      }
     }
   }
 }
