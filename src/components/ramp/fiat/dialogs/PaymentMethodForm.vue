@@ -105,9 +105,10 @@
             </div>
             <!-- Account Name -->
             <q-input
+              v-if="paymentMethod.account_name || paymentMethod.payment_type.acc_name_req"
               dense
               filled
-              label="Account Name (optional)"
+              label="Account Name"
               :dark="darkMode"
               v-model="paymentMethod.account_name"
               class="q-py-xs">
