@@ -90,7 +90,7 @@ export default {
         },
         {
           name: this.$t('Map'),
-          iconName: 'mdi-map',
+          iconName: 'public',
           path: '/apps/map/',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
@@ -118,9 +118,8 @@ export default {
         },
         {
           name: 'Crypto Swap',
-          iconName: 'currency_bitcoin',
+          iconName: 'mdi-autorenew',
           path: '/apps/ramp/crypto',
-          iconStyle: 'width:50;',
           active: true,
           smartBCHOnly: false
         },
