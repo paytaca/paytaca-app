@@ -60,10 +60,9 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import BCHJS from '@psf/bch-js'
-const bchjs = new BCHJS()
 
 export default {
   data () {
@@ -104,7 +103,6 @@ export default {
     }
   },
   mounted () {
-    // this.$store.commit('ramp/setStoreOrderFiltersMigrate', true)
     this.$store.dispatch('ramp/migrateStoreOrderFilters')
     this.dialog = true
     if (this.error) this.errorMessage = this.error
@@ -112,6 +110,9 @@ export default {
     this.fetchUser()
     this.rampWallet = loadRampWallet()
   },
+  // beforeUnmount () {
+  //   bus.emit('close-general-ws')
+  // },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,

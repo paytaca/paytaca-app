@@ -94,6 +94,7 @@
     <AppealProcess
       ref="appealProcess"
       :selectedAppeal="selectedAppeal"
+      :notif-type="notifType"
       @back="this.state = 'appeal-list'"
       @update-page-name="updatePageName"
     />
@@ -126,12 +127,19 @@ export default {
       totalPages: null,
       pageNumber: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
-      pageName: 'main'
+      pageName: 'main',
+      notifType: null
     }
   },
   components: {
     AppealProcess,
     HeaderNav
+  },
+  props: {
+    notif: {
+      type: Object,
+      default: null
+    }
   },
   watch: {
     statusType () {
@@ -165,7 +173,17 @@ export default {
   },
   async mounted () {
     this.loading = true
-    this.resetAndRefetchListings()
+    if (Object.keys(this.notif).length > 0) {
+      this.notifType = this.$route.query.type
+      this.selectedAppeal = {
+        order: {
+          id: this.notif.order_id
+        }
+      }
+      this.state = 'appeal-process'
+    } else {
+      this.resetAndRefetchListings()
+    }
   },
   methods: {
     getDarkModeClass,

@@ -12,7 +12,7 @@ export function types() {
 
     MARKETPLACE_ORDER_STATUS_UPDATE: 'marketplace_order_status_update',
     MARKETPLACE_ORDER_INCOMING_CALL: 'marketplace_order_incoming_call',
-    MARKETPLACE_CHAT_UNREAD_MESSAGES: 'marketplace_chat_unread_messages',
+    MARKETPLACE_CHAT_UNREAD_MESSAGES: 'marketplace_chat_unread_messages'
   })
 }
 

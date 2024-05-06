@@ -111,7 +111,11 @@ export default {
   },
   props: {
     selectedAppeal: Object,
-    initWallet: Object
+    initWallet: Object,
+    notifType: {
+      type: String,
+      default: ''
+    }
   },
   emits: ['back', 'updatePageName'],
   components: {
@@ -141,6 +145,7 @@ export default {
     await this.loadData()
     this.setupWebsocket()
     this.isloaded = true
+    if (this.notifType === 'new_message') { this.openChat = true}
   },
   beforeUnmount () {
     this.closeWSConnection()

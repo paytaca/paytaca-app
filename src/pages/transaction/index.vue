@@ -522,6 +522,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    handleRampNotif (notif) {
+      // console.log('Handling Ramp Notification')
+      this.$router.push({ name: 'ramp-fiat', query: notif })
+    },
     openPriceChart () {
       this.$q.dialog({
         component: PriceChart
@@ -939,6 +943,8 @@ export default {
         const logIndex = openedNotification?.data?.log_index
         this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
         this.$store.commit('notification/clearOpenedNotification')
+      } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
+        this.handleRampNotif(openedNotification?.data)
       }
     },
     async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH' }) {

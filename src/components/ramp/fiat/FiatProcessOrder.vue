@@ -177,6 +177,10 @@ export default {
     orderData: {
       type: Object,
       default: null
+    },
+    notifType: {
+      type: String,
+      default: ''
     }
   },
   setup () {
@@ -324,7 +328,6 @@ export default {
   },
   async mounted () {
     const vm = this
-
     await vm.fetchOrder()
     await vm.fetchFees()
     if (vm.order.contract) {
@@ -333,6 +336,7 @@ export default {
     vm.fetchAd()
     vm.fetchFeedback().then(() => {
       vm.isloaded = true
+      if (this.notifType === 'new_message') { this.openChat = true}
     })
     this.setupWebsocket(5, 1000)
   },
@@ -468,7 +472,7 @@ export default {
           .then(response => {
             vm.order = response.data
             vm.updateStatus(vm.order.status)
-
+            vm.updateOrderReadAt()
             const chatRef = generateChatRef(vm.order.id, vm.order.created_at)
             vm.chatRef = chatRef
             fetchChatSession(chatRef)
@@ -493,7 +497,28 @@ export default {
           })
       })
     },
-
+    updateOrderReadAt () {
+      const vm = this
+      if (vm.orderData.read_at) return
+      return new Promise((resolve, reject) => {
+        const url = `/ramp-p2p/order/${vm.orderData.id}/members`
+        backend.patch(url, null, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
     fetchAd () {
       return new Promise((resolve, reject) => {
         const vm = this
