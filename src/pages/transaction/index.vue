@@ -688,9 +688,8 @@ export default {
         id = vm.selectedAsset.id
       }
       vm.transactionsPageHasNext = false
-      await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store).then(() => {
-        vm.balanceLoaded = true
-      })
+      await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store)
+      vm.balanceLoaded = true
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
