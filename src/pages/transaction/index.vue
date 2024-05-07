@@ -481,7 +481,6 @@ export default {
       }
 
       const asset = this.$store.getters['assets/getAssets'][0]
-      this.formatBCHCardBalance(this.denomination, asset?.balance || 0)
       return asset
     },
     mainchainAssets() {
@@ -646,13 +645,15 @@ export default {
       this.$refs['transaction-list-component'].getTransactions()
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
     },
-    getBalance (id) {
-      this.balanceLoaded = false
-      if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
-      return this.getBchBalance(id)
+    getBalance (id, vm = null) {
+      if (vm === null) {
+        const vm = this
+      }
+      vm.balanceLoaded = false
+      if (vm.selectedNetwork === 'sBCH') return vm.getSbchBalance(id, vm)
+      return vm.getBchBalance(id, vm)
     },
-    getSbchBalance (id) {
-      const vm = this
+    getSbchBalance (id, vm) {
       if (!id) {
         id = vm.selectedAsset.id
       }
@@ -682,8 +683,7 @@ export default {
           })
       }
     },
-    async getBchBalance (id) {
-      const vm = this
+    async getBchBalance (id, vm) {
       if (!id) {
         id = vm.selectedAsset.id
       }
@@ -783,26 +783,6 @@ export default {
         this.verifyBiometric()
       }
     },
-
-    // logIn () {
-    //   const vm = this
-    //   setTimeout(() => {
-    //     // Security Authentication
-    //     if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-    //       SecureStoragePlugin.get({ key: 'pin' })
-    //         .then(() => {
-    //           vm.setVerifyDialogAction()
-    //         })
-    //         .catch(_err => {
-    //           vm.pinDialogAction = 'SET UP'
-    //         })
-    //     } else if (vm.$q.localStorage.getItem('preferredSecurity') === 'biometric') {
-    //       vm.verifyBiometric()
-    //     } else {
-    //       vm.checkFingerprintAuthEnabled()
-    //     }
-    //   }, 500)
-    // },
 
     executeActionTaken (action) {
       if (action !== 'cancel') {
@@ -916,7 +896,8 @@ export default {
           const selectedAssetExists = vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
-        vm.getBalance(vm.selectedAsset.id)
+
+        vm.getBalance(vm.selectedAsset.id, vm)
         vm.$refs['transaction-list-component'].getTransactions()
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
@@ -1149,7 +1130,6 @@ export default {
     const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
     const walletIndex = vm.$store.getters['global/getWalletIndex']
     const vaultRemovedAssetIds = vm.$store.getters['assets/getRemovedAssetIds'][walletIndex].asset ?? []
-    console.log(vaultRemovedAssetIds)
 
     if (tokens.length > 0) {
       const assetsId = assets.map(a => a.id)
@@ -1171,7 +1151,6 @@ export default {
       vm.transactionsLoaded = true
     })
 
-    vm.formatBCHCardBalance(vm.denomination)
     vm.$store.dispatch('market/updateAssetPrices', {})
     vm.computeWalletYield()
   }
