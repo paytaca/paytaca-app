@@ -38,7 +38,8 @@ export default {
       loggedIn: false,
       userType: null,
       errorMessage: null,
-      isloaded: false
+      isloaded: false,
+      reconnectWebsocket: true
     }
   },
   computed: {
@@ -52,7 +53,7 @@ export default {
   },
   async mounted () {
     this.rampWallet = loadRampWallet()
-    this.setupWebsocket()
+    this.setupWebsocket(20, 1000)
     this.isloaded = true
   },
   beforeUnmount () {
@@ -69,7 +70,7 @@ export default {
       this.loggedIn = true
       this.userType = userType
     },
-    setupWebsocket () {
+    setupWebsocket (retries, delayDuration) {
       const wsUrl = `${getBackendWsUrl()}general/${this.rampWallet.walletHash}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
@@ -114,13 +115,21 @@ export default {
       }
       this.websocket.onclose = () => {
         console.log('General WebSocket connection closed.')
+        if (this.reconnectWebsocket && retries > 0) {
+          console.log(`General Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
+          return this.delay(delayDuration)
+            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
+        }
       }
     },
     closeWSConnection () {
-      console.log('closeWSConnection')
+      this.reconnectWebsocket = false
       if (this.websocket) {
         this.websocket.close()
       }
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     }
   }
 }
