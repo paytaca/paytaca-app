@@ -5,15 +5,15 @@ export async function updateAssetBalanceOnLoad (id, wallet, store) {
   const updateAssetBalance = 'assets/updateAssetBalance'
 
   if (id.indexOf('slp/') > -1) {
-    getWalletByNetwork(wallet, 'slp').getBalance(tokenId).then(function (response) {
+    return getWalletByNetwork(wallet, 'slp').getBalance(tokenId).then(function (response) {
       store.commit(updateAssetBalance, { id, balance: response.balance })
     })
   } else if (id.indexOf('ct/') > -1) {
-    getWalletByNetwork(wallet, 'bch').getBalance(tokenId).then(response => {
+    return getWalletByNetwork(wallet, 'bch').getBalance(tokenId).then(response => {
       store.commit(updateAssetBalance, { id, balance: response.balance })
     })
   } else {
-    getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
+    return getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
       store.commit(updateAssetBalance, {
         id,
         balance: response.balance,
