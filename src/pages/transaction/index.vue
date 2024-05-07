@@ -645,10 +645,8 @@ export default {
       this.$refs['transaction-list-component'].getTransactions()
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
     },
-    getBalance (id, vm = null) {
-      if (vm === null) {
-        const vm = this
-      }
+    getBalance (id) {
+      const vm = this
       vm.balanceLoaded = false
       if (vm.selectedNetwork === 'sBCH') return vm.getSbchBalance(id, vm)
       return vm.getBchBalance(id, vm)
@@ -897,7 +895,7 @@ export default {
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
 
-        vm.getBalance(vm.selectedAsset.id, vm)
+        vm.getBalance(vm.selectedAsset.id)
         vm.$refs['transaction-list-component'].getTransactions()
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
