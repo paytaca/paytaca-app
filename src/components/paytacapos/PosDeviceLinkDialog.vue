@@ -1,5 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
+    <q-resize-observer @resize="resizeQrSize" />
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
@@ -21,15 +22,23 @@
           </div>
         </q-banner>
         <div class="qr-code-container">
-          <q-skeleton v-if="generatingLinkCode" height="250px" width="250px"/>
-          <qr-code
-            v-else
-            :text="qrCodeData"
-            color="#253933"
-            :size="250"
-            error-level="H"
-            class="q-mb-sm"
-          />
+          <div class="row items-center justify-center">
+            <q-skeleton v-if="generatingLinkCode" height="250px" width="250px"/>
+            <qr-code
+              v-else
+              :key="qrCodePxSize"
+              :text="qrCodeData"
+              color="#253933"
+              :size="qrCodePxSize"
+              error-level="H"
+            />
+          </div>
+          <div class="row items-center justify-end">
+            <q-btn-group rounded class="q-r-mb-md q-r-mr-md">
+              <q-btn padding="xs md" text-color="black" icon="zoom_out" @click="() => qrCodePxSize -= 25"/>
+              <q-btn padding="xs md" text-color="black" icon="zoom_in" @click="() => qrCodePxSize += 25"/>
+            </q-btn-group>
+          </div>
         </div>
         <div v-if="qrCodeData" class="row items-center justify-end q-gutter-sm">
           <q-field
@@ -159,6 +168,16 @@ async function generateLinkCode(opts) {
     })
 }
 
+const qrCodePxSize = ref(250)
+onMounted(() => resizeQrSize())
+function resizeQrSize() {
+  let minViewport = Math.min(window.innerWidth - 70, window.innerHeight - 55, 400)
+  let size = Math.max(window.innerWidth - 70, 250)
+  console.log({ minViewport, size })
+  size = Math.min(size, minViewport)
+  qrCodePxSize.value = size
+}
+
 const qrCodeDataLink = computed(() => `app://com.paytaca.pos/link?code=${qrCodeDataB64.value}`)
 const qrCodeDataB64 = computed(() => btoa(qrCodeData.value))
 const qrCodeData = computed(() => {
@@ -203,6 +222,7 @@ function copyToClipboard(value, message) {
   background-color: white;
 
   display: flex;
+  flex-flow: column;
   justify-content: center;
   align-content: center;
 
