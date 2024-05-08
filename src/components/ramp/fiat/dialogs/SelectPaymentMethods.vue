@@ -18,7 +18,7 @@
                   <div class="q-py-none row">
                       <div class="col ib-text">
                           <div class="md-font-size q-mb-none pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
-                              {{ option.payment_type.name }}
+                              {{ option.payment_type.short_name || option.payment_type.full_name }}
                           </div>
                           <div v-if="option.account_name" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
                               {{ option.account_name }}
@@ -99,9 +99,9 @@ export default {
     getDarkModeClass,
     filterPaymentTypes () {
       let currentMethods = null
-      currentMethods = this.paymentMethodOpts.map(p => p.payment_type.name)
+      currentMethods = this.paymentMethodOpts.map(p => p.payment_type)
       const availablePaymentTypes = this.paymentTypeOpts.filter(function (method) {
-        return !currentMethods.includes(method.name)
+        return !currentMethods.map(p => p.id).includes(method.id)
       })
       this.paymentTypeOpts = availablePaymentTypes
     },

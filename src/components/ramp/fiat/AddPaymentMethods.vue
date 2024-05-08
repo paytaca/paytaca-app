@@ -18,7 +18,7 @@
             <div class="row no-wrap">
               <div class="col-grow">
                 <div class="md-font-size">
-                  {{ method.payment_type?.name }}
+                  {{ method.payment_type?.short_name || method.payment_type?.full_name }}
                 </div>
                 <div class="subtext">
                   {{ method.account_name }}
@@ -393,15 +393,14 @@ export default {
     },
     filterPaymentMethod () {
       // filter ad payment methods to currency supported only
-      const paymentTypeOptNames = this.paymentTypeOpts.map(element => element.name)
-      let adCurrencyPaymentTypes = this.adPaymentMethods.filter(element => { return paymentTypeOptNames.includes(element.payment_type) })
-      adCurrencyPaymentTypes = adCurrencyPaymentTypes.map(p => p.payment_type)
+      const paymentTypeOptIds = this.paymentTypeOpts.map(element => element.id)
+      const adCurrencyPaymentTypes = this.adPaymentMethods.filter(element => { return paymentTypeOptIds.includes(element.payment_type.id) })
       // find matching and creatable ad payment methods
       const match = this.paymentMethods.filter(function (method) {
-        return adCurrencyPaymentTypes.includes(method.payment_type.name)
+        return adCurrencyPaymentTypes.map(p => p.payment_type?.id).includes(method.payment_type.id)
       })
-      const temp = match.map(p => p.payment_type?.name)
-      this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method))
+      const temp = match.map(p => p.payment_type?.id)
+      this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method.payment_type.id))
       return match
     },
     async fetchPaymentTypes () {

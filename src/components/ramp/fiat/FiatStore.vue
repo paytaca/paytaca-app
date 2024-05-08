@@ -137,7 +137,7 @@
                       <div class="q-gutter-sm q-pt-xs">
                         <q-badge v-for="method in listing.payment_methods" :key="method.id"
                         rounded outline :color="transactionType === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
-                        {{ method.payment_type }}
+                        {{ method.payment_type.name }}
                         </q-badge>
                       </div>
                     </div>

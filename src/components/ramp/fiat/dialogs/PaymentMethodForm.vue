@@ -11,7 +11,7 @@
       <div v-else>
         <q-card-section v-if="!errorMessage" class="text-center q-pt-none">
           <span class="lg-font-size text-weight-bold">
-            {{ paymentMethod.payment_type?.name}}:
+            {{ paymentMethod.payment_type?.full_name}}:
           </span><br>
           <span>
             {{ paymentMethod.account_identifier }}
@@ -51,7 +51,7 @@
             :disable="action !== 'createPaymentMethod'"
             v-model="paymentMethod.payment_type"
             label="Payment Type"
-            option-label="name"
+            option-label="full_name"
             class="q-py-xs"
             :dark="darkMode"
             :options="paymentTypeOpts"
@@ -60,7 +60,7 @@
               <q-item v-bind="scope.itemProps">
                 <q-item-section>
                   <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
-                    {{ scope.opt.name }}
+                    {{ scope.opt.full_name }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -235,9 +235,9 @@ export default {
     },
     filterPaymentTypes () {
       let currentMethods = null
-      currentMethods = this.currentPaymentMethods.map(p => p.payment_type.name)
+      currentMethods = this.currentPaymentMethods.map(p => p.payment_type.full_name)
       const availablePaymentTypes = this.paymentTypeOpts.filter(function (method) {
-        return !currentMethods.includes(method.name)
+        return !currentMethods.includes(method.full_name)
       })
       this.paymentTypeOpts = availablePaymentTypes
     },

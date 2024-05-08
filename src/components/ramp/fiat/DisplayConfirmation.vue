@@ -65,7 +65,7 @@
               <q-badge
                 v-for="method in postData.paymentMethods"
                 :key="method.id"
-                :label="method?.payment_type?.name"
+                :label="method?.payment_type?.short_name || method?.payment_type?.full_name"
                 rounded
                 outline
                 color="red"/>
