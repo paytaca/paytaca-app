@@ -36,7 +36,7 @@
     <!-- Create/Edit Payment Method -->
     <q-card v-else class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="q-mt-sm text-h6 text-center">{{action === 'createPaymentMethod' ? 'Add' : 'Edit'}} Payment Method</div>
+        <div class="q-mt-sm text-h6 text-center">{{action === 'createPaymentMethod' || action === 'addMethodFromAd' ? 'Add' : 'Edit'}} Payment Method</div>
       </q-card-section>
       <div v-if="loading" class="row justify-center">
         <ProgressLoader/>
@@ -105,11 +105,13 @@
             </div>
             <!-- Account Name -->
             <q-input
-              v-if="paymentMethod.account_name || paymentMethod.payment_type.acc_name_req"
+              v-if="paymentMethod.account_name || paymentMethod.payment_type.acc_name_required"
               dense
               filled
+              hide-bottom-space
               label="Account Name"
               :dark="darkMode"
+              :rules="[val => !!val || 'This field is required']"
               v-model="paymentMethod.account_name"
               class="q-py-xs">
             </q-input>
@@ -128,7 +130,7 @@
               flat
               label="Submit"
               class="col button"
-              :disable="isValidIdentifier(paymentMethod.account_identifier) !== true"
+              :disable="disableSubmitBtn"
               @click="onSubmit()"
               v-close-popup />
           </div>
@@ -173,6 +175,11 @@ export default {
     paymentType: Object,
     currency: String
   },
+  computed: {
+    disableSubmitBtn () {
+      return this.isValidIdentifier(this.paymentMethod.account_identifier) !== true || (this.paymentMethod.payment_type?.acc_name_required && !this.paymentMethod.account_name)
+    }
+  },
   async mounted () {
     switch (this.action) {
       case 'deletePaymentMethod':
@@ -209,7 +216,7 @@ export default {
           } else {
             return 'Invalid Phone Number'
           }
-        case 'Bank':
+        case 'Bank Account Number':
           if (/^(\d{9,35})$/.test(val)) {
             return true
           } else {

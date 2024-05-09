@@ -71,7 +71,7 @@
             <q-item-section>
               <div class="row">
                 <div class="col text-h5" style="font-size: 15px;">
-                  {{ method }}
+                  {{ method.payment_type?.name }}
                 </div>
                 <q-btn
                   outline
@@ -339,7 +339,7 @@ export default {
       this.openDialog = true
     },
     addMethodFromAd (data) {
-      const selectedType = this.paymentTypeOpts.filter(p => p?.name === data)[0]
+      const selectedType = this.paymentTypeOpts.filter(p => p?.id === data.payment_type?.id)[0]
       this.info = selectedType
       this.showPaymentMethodForm = true
       this.dialogType = 'addMethodFromAd'
@@ -371,16 +371,15 @@ export default {
       this.openDialog = true
     },
     selectMethod (data, index) {
-      const temp = this.selectedMethods.map(p => p.payment_type?.name)
-      if (temp.includes(data.payment_type?.name)) {
-        this.selectedMethods = this.selectedMethods.filter(p => p.payment_type?.name !== data.payment_type?.name)
+      const temp = this.selectedMethods.map(p => p.payment_type?.id)
+      if (temp.includes(data.payment_type?.id)) {
+        this.selectedMethods = this.selectedMethods.filter(p => p.payment_type?.id !== data.payment_type?.id)
       } else {
         this.selectedMethods.push(data)
       }
     },
     isPaymentSelected (payment) {
-      const temp = this.selectedMethods.map(p => p.payment_type?.name)
-      return (temp.includes(payment?.payment_type?.name))
+      return (this.selectedMethods.map(p => p.payment_type?.id).includes(payment?.payment_type?.id))
     },
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type?.name)
