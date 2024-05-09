@@ -55,12 +55,17 @@ export default {
     this.rampWallet = loadRampWallet()
     this.setupWebsocket(20, 1000)
     this.isloaded = true
+    this.resetFilters()
   },
   beforeUnmount () {
     this.closeWSConnection()
   },
   methods: {
     getDarkModeClass,
+    resetFilters () {
+      this.$store.commit('ramp/resetStoreFilters')
+      this.$store.commit('ramp/resetOrderFilters')
+    },
     handleSessionEvent (_data) {
       this.loggedIn = false
       this.errorMessage = 'Session expired'
