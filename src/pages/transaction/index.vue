@@ -922,6 +922,7 @@ export default {
         this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
         this.$store.commit('notification/clearOpenedNotification')
       } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
+        this.$store.commit('notification/clearOpenedNotification')
         this.handleRampNotif(openedNotification?.data)
       }
     },
