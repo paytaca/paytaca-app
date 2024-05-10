@@ -128,7 +128,7 @@
                             </div>
                           </div>
                           <div class="q-gutter-sm q-pt-xs">
-                            <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method.payment_type" />
+                            <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method.payment_type.name" />
                           </div>
                         </div>
                       </q-item-section>
