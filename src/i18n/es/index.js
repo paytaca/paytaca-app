@@ -553,7 +553,6 @@ export default {
   Requests: "Peticiones",
   Required: "Requerido",
   ResolvingLnsAddress: "Resolución de la dirección del nombre de LNS",
-  RestoreFromSeedPhrase: "Restaurar desde la frase de semillas",
   RestoreWallet: "Restaurar billetera",
   RestoreWalletDescription: "Restaurar su billetera Paytaca desde su frase de respaldo mnemónico",
   RestoringYourWallet: "Restaurando tu billetera",
