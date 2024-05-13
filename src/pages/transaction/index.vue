@@ -481,7 +481,6 @@ export default {
       }
 
       const asset = this.$store.getters['assets/getAssets'][0]
-      this.formatBCHCardBalance(this.denomination, asset?.balance || 0)
       return asset
     },
     mainchainAssets() {
@@ -522,6 +521,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    handleRampNotif (notif) {
+      // console.log('Handling Ramp Notification')
+      this.$router.push({ name: 'ramp-fiat', query: notif })
+    },
     openPriceChart () {
       this.$q.dialog({
         component: PriceChart
@@ -643,12 +646,12 @@ export default {
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
     },
     getBalance (id) {
-      this.balanceLoaded = false
-      if (this.selectedNetwork === 'sBCH') return this.getSbchBalance(id)
-      return this.getBchBalance(id)
-    },
-    getSbchBalance (id) {
       const vm = this
+      vm.balanceLoaded = false
+      if (vm.selectedNetwork === 'sBCH') return vm.getSbchBalance(id, vm)
+      return vm.getBchBalance(id, vm)
+    },
+    getSbchBalance (id, vm) {
       if (!id) {
         id = vm.selectedAsset.id
       }
@@ -678,15 +681,13 @@ export default {
           })
       }
     },
-    async getBchBalance (id) {
-      const vm = this
+    async getBchBalance (id, vm) {
       if (!id) {
         id = vm.selectedAsset.id
       }
       vm.transactionsPageHasNext = false
-      await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store).then(() => {
-        vm.balanceLoaded = true
-      })
+      await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store)
+      vm.balanceLoaded = true
     },
     refresh (done) {
       this.getBalance(this.bchAsset.id)
@@ -780,26 +781,6 @@ export default {
         this.verifyBiometric()
       }
     },
-
-    // logIn () {
-    //   const vm = this
-    //   setTimeout(() => {
-    //     // Security Authentication
-    //     if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-    //       SecureStoragePlugin.get({ key: 'pin' })
-    //         .then(() => {
-    //           vm.setVerifyDialogAction()
-    //         })
-    //         .catch(_err => {
-    //           vm.pinDialogAction = 'SET UP'
-    //         })
-    //     } else if (vm.$q.localStorage.getItem('preferredSecurity') === 'biometric') {
-    //       vm.verifyBiometric()
-    //     } else {
-    //       vm.checkFingerprintAuthEnabled()
-    //     }
-    //   }, 500)
-    // },
 
     executeActionTaken (action) {
       if (action !== 'cancel') {
@@ -913,6 +894,7 @@ export default {
           const selectedAssetExists = vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
+
         vm.getBalance(vm.selectedAsset.id)
         vm.$refs['transaction-list-component'].getTransactions()
 
@@ -939,6 +921,9 @@ export default {
         const logIndex = openedNotification?.data?.log_index
         this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
         this.$store.commit('notification/clearOpenedNotification')
+      } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
+        this.$store.commit('notification/clearOpenedNotification')
+        this.handleRampNotif(openedNotification?.data)
       }
     },
     async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH' }) {
@@ -1165,7 +1150,6 @@ export default {
       vm.transactionsLoaded = true
     })
 
-    vm.formatBCHCardBalance(vm.denomination)
     vm.$store.dispatch('market/updateAssetPrices', {})
     vm.computeWalletYield()
   }

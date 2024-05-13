@@ -145,10 +145,19 @@
               />
             </q-card-section>
           </q-card>
+          <AddonsForm
+            ref="addonsForm"
+            v-if="product?.addons?.length"
+            :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
+            :addons="product?.addons"
+            :currency="currency"
+            v-model="addonsFormData"
+            :debounce="750"
+          />
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
-              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating || addonsFormError?.length > 0"
               label="Quantity"
               dense outlined
               :dark="darkMode"
@@ -159,7 +168,7 @@
             />
             <q-btn
               v-else
-              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating || addonsFormError?.length > 0"
               no-caps label="Add to cart"
               color="brandblue"
               class="full-width q-mt-md"
@@ -173,7 +182,7 @@
 </template>
 <script setup>
 import { Cart, Collection, Product, Review } from 'src/marketplace/objects'
-import { backend } from 'src/marketplace/backend'
+import { backend, getCachedBackend } from 'src/marketplace/backend'
 import { roundRating } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -184,6 +193,10 @@ import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import JSONFormPreview from 'src/components/marketplace/JSONFormPreview.vue'
 import ReviewFormDialog from 'src/components/marketplace/reviews/ReviewFormDialog.vue'
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
+import AddonsForm from 'src/components/marketplace/product/AddonsForm.vue'
+
+
+const cachedBackend = getCachedBackend({ ttl: 30 * 1000 })
 
 const props = defineProps({
   collectionId: [Number, String],
@@ -198,6 +211,8 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const initialized = ref(false)
 function resetPage() {
   product.value.raw = null
+  delete product.value.addons
+  delete product.value.cartOptions
   collection.value.raw = null
   initialized.value = false
   productReview.value = null
@@ -232,6 +247,8 @@ function saveActiveCart() {
 }
 
 async function addSelectedVariantToCart() {
+  addonsForm.value?.validate?.()
+  if (addonsFormError.value?.length > 0) return
   if (cartOptionsHasErrors.value) return
   const cart = activeStorefrontCart.value?.id ? activeStorefrontCart.value : Cart.parse({
     storefront_id: product.value?.storefrontId,
@@ -247,6 +264,12 @@ async function addSelectedVariantToCart() {
         schema: product.value?.cartOptions,
         data: cartOptionsFormData.value,
       },
+      addons: addonsFormData.value.map(addonData => {
+        return {
+          addonOptionId: addonData.addonOptionId,
+          inputValue: addonData.inputValue,
+        }
+      })
     })
   }
   $store.dispatch('marketplace/saveCart', cart)
@@ -261,7 +284,7 @@ function fetchCollection() {
   }
 
   fetchingCollection.value = true
-  return backend.get(`connecta/collections/${props?.collectionId}/`)
+  return cachedBackend.get(`connecta/collections/${props?.collectionId}/`)
     .then(response => {
       collection.value = Collection.parse(response?.data)
       return response
@@ -275,7 +298,7 @@ const product = ref(Product.parse())
 const fetchingProduct = ref(false)
 function fetchProduct() {
   fetchingProduct.value = true
-  return backend.get(`products/${props?.productId}/`)
+  return cachedBackend.get(`products/${props?.productId}/`)
     .then(response => {
       product.value = Product.parse(response?.data)
       if (!initialized.value) selectVariantFromProps()
@@ -343,6 +366,53 @@ const cartOptionsHasErrors = computed(() => Boolean(cartOptionsFormErrors.value?
 watch(() => [product.value?.cartOptions], () => cartOptionsFormErrors.value=[], { deep: true })
 
 
+const addonsForm = ref()
+const addonsFormError = computed(() => {
+  if (!addonsForm.value) return []
+  if (Array.isArray(addonsForm.value?.errors)) return addonsForm.value.errors
+  return []
+})
+const addonsFormData = ref([].map(() => {
+  return { addonOptionId: 0, inputValue: '' }
+}))
+watch(selectedVariant, () => addonsForm.value?.resetValidation())
+watch(() => [product.value?.addons, cartItem.value?.addons], () => syncAddonsFormData())
+watch(addonsFormData, () => {
+  if (!cartItem.value) return
+  if (addonsFormError.value?.length > 0) return
+
+  const normalize = data => {
+    return data?.
+      map(lineItemAddon => {
+        return { addonOptionId: lineItemAddon?.addonOptionId, inputValue: lineItemAddon?.inputValue }
+      })
+      .sort((obj1, obj2) => obj1.addonOptionId - obj2.addonOptionId)
+  }
+
+  const normalizedCartItemData = normalize(cartItem.value?.addons)
+  const normalizedFormData = normalize(addonsFormData.value)
+  console.log({normalizedCartItemData, normalizedFormData})
+  if (JSON.stringify(normalizedCartItemData) == JSON.stringify(normalizedFormData)) return
+
+  cartItem.value.addons = normalizedFormData
+  saveActiveCart()
+}, { immediate: true })
+
+function syncAddonsFormData() {
+  if (!Array.isArray(cartItem.value?.addons)) {
+    addonsFormData.value = []
+    return
+  }
+
+  addonsFormData.value = cartItem.value.addons.map(addon => {
+    return {
+      addonOptionId: addon?.addonOptionId,
+      inputValue: addon?.inputValue,
+    }
+  }).filter(addon => addon.addonOptionId)
+}
+
+
 function openImage(img, title) {
   if (!img) return
   $q.dialog({
@@ -360,7 +430,7 @@ const openReviewsDialog = ref(false)
 watch(() => [props?.productId, customer.value?.id], () => fetchReview())
 const productReview = ref([].map(Review.parse)[0])
 function fetchReview() {
-  return backend.get(`reviews/`, { params : {
+  return cachedBackend.get(`reviews/`, { params : {
     product_id: props?.productId || 0,
     created_by_customer_id: customer.value?.id || 0,
     limit: 1,

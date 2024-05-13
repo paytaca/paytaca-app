@@ -4,16 +4,6 @@
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded"
   >
-    <div>
-      <q-btn
-        flat
-        padding="md"
-        icon="arrow_back"
-        class="button button-text-primary"
-        :class="getDarkModeClass(darkMode)"
-        @click="$emit('retry')"
-      />
-    </div>
     <div v-if="!sendBCH">
       <div v-if="!shiftExpired">
         <div class="text-center justify-center text-h6">
@@ -33,7 +23,7 @@
           </div>
         </div>
         <div class="row">
-          <div class="col copy-address-container"  @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
+          <div class="col copy-address-container" :style="`width: ${maxWidth - 80}px`" @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
             <span class="qr-code-text text-weight-light text-center">
               <div style="letter-spacing: 1px" class="pt-label" :class="getDarkModeClass(darkMode)">
                 {{ shiftInfo.shift_info.deposit.address }}
@@ -107,7 +97,8 @@ export default {
       state: '',
       baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
       error: false,
-      isloaded: false
+      isloaded: false,
+      maxWidth: this.$q.screen.width
     }
   },
   props: {

@@ -91,15 +91,15 @@
                           <div class="col ib-text">
                             <div
                               class="q-mb-none pt-label sm-font-size"
-                              :class="getDarkModeClass(darkMode)"
-                            >
+                              :class="getDarkModeClass(darkMode)">
                               ORDER #{{ listing.id }}
+                              <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
                             </div>
                             <span
                               class=" pt-label md-font-size text-weight-bold"
                               :class="getDarkModeClass(darkMode)">
                               <!--@click.stop.prevent="viewUserProfile(listing)">-->
-                              {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="blue-6" label="You" />
+                              {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
                             </span>
                             <div
                               class="col-transaction text-uppercase pt-label lg-font-size"
@@ -156,6 +156,7 @@
     v-if="state === 'view-order'"
     :key="fiatProcessOrderKey"
     :order-data="selectedOrder"
+    :notif-type="notifType"
     @back="returnOrderList()"
     @refresh="refreshOrder"
   />
@@ -267,7 +268,8 @@ export default {
       showSearch: false,
       filterComponentKey: 0,
       isAllCurrencies: true,
-      fiatCurrencies: []
+      fiatCurrencies: [],
+      notifType: null
     }
   },
   watch: {
@@ -315,9 +317,16 @@ export default {
     bus.on('view-ad', this.onViewAd)
   },
   async mounted () {
-    this.updateFilters()
-    this.fetchFiatCurrencies()
-    this.resetAndRefetchListings()
+    console.log('order-params: ', this.$route.query)
+    if (Object.keys(this.$route.query).length > 0) {
+      this.notifType = this.$route.query.type
+      this.selectedOrder = { id: this.$route.query.order_id }
+      this.state = 'view-order'
+    } else {
+      this.updateFilters()
+      this.fetchFiatCurrencies()
+      this.resetAndRefetchListings()
+    }
   },
   methods: {
     getDarkModeClass,
@@ -447,6 +456,7 @@ export default {
       const vm = this
       const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'
       const currency = this.selectedCurrency?.symbol
+      vm.$store.commit('ramp/setOrdersCurrency', currency || 'All')
       const filters = vm.$store.getters[getterName](currency || 'All')
       if (filters) vm.filters = JSON.parse(JSON.stringify(filters))
     },

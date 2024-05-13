@@ -18,7 +18,7 @@
             <div class="row no-wrap">
               <div class="col-grow">
                 <div class="md-font-size">
-                  {{ method.payment_type?.name }}
+                  {{ method.payment_type?.short_name || method.payment_type?.full_name }}
                 </div>
                 <div class="subtext">
                   {{ method.account_name }}
@@ -71,7 +71,7 @@
             <q-item-section>
               <div class="row">
                 <div class="col text-h5" style="font-size: 15px;">
-                  {{ method }}
+                  {{ method.payment_type?.name }}
                 </div>
                 <q-btn
                   outline
@@ -339,7 +339,7 @@ export default {
       this.openDialog = true
     },
     addMethodFromAd (data) {
-      const selectedType = this.paymentTypeOpts.filter(p => p?.name === data)[0]
+      const selectedType = this.paymentTypeOpts.filter(p => p?.id === data.payment_type?.id)[0]
       this.info = selectedType
       this.showPaymentMethodForm = true
       this.dialogType = 'addMethodFromAd'
@@ -371,16 +371,15 @@ export default {
       this.openDialog = true
     },
     selectMethod (data, index) {
-      const temp = this.selectedMethods.map(p => p.payment_type?.name)
-      if (temp.includes(data.payment_type?.name)) {
-        this.selectedMethods = this.selectedMethods.filter(p => p.payment_type?.name !== data.payment_type?.name)
+      const temp = this.selectedMethods.map(p => p.payment_type?.id)
+      if (temp.includes(data.payment_type?.id)) {
+        this.selectedMethods = this.selectedMethods.filter(p => p.payment_type?.id !== data.payment_type?.id)
       } else {
         this.selectedMethods.push(data)
       }
     },
     isPaymentSelected (payment) {
-      const temp = this.selectedMethods.map(p => p.payment_type?.name)
-      return (temp.includes(payment?.payment_type?.name))
+      return (this.selectedMethods.map(p => p.payment_type?.id).includes(payment?.payment_type?.id))
     },
     selectButtonColor (type) {
       const temp = this.selectedMethods.map(p => p.payment_type?.name)
@@ -393,15 +392,14 @@ export default {
     },
     filterPaymentMethod () {
       // filter ad payment methods to currency supported only
-      const paymentTypeOptNames = this.paymentTypeOpts.map(element => element.name)
-      let adCurrencyPaymentTypes = this.adPaymentMethods.filter(element => { return paymentTypeOptNames.includes(element.payment_type) })
-      adCurrencyPaymentTypes = adCurrencyPaymentTypes.map(p => p.payment_type)
+      const paymentTypeOptIds = this.paymentTypeOpts.map(element => element.id)
+      const adCurrencyPaymentTypes = this.adPaymentMethods.filter(element => { return paymentTypeOptIds.includes(element.payment_type.id) })
       // find matching and creatable ad payment methods
       const match = this.paymentMethods.filter(function (method) {
-        return adCurrencyPaymentTypes.includes(method.payment_type.name)
+        return adCurrencyPaymentTypes.map(p => p.payment_type?.id).includes(method.payment_type.id)
       })
-      const temp = match.map(p => p.payment_type?.name)
-      this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method))
+      const temp = match.map(p => p.payment_type?.id)
+      this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method.payment_type.id))
       return match
     },
     async fetchPaymentTypes () {

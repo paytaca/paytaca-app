@@ -412,3 +412,7 @@ export function resetChatIdentity (state) {
 export function setStoreOrderFiltersMigrate (state, value) {
   state.migrateStoreOrderFilters = value
 }
+
+export function setOrdersCurrency (state, value) {
+  state.ordersCurrency = value
+}

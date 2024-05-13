@@ -1,6 +1,6 @@
 {
   "name": "paytaca",
-  "version": "0.18.1",
+  "version": "0.18.3",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "productName": "Paytaca",
   "author": "joemar@paytaca.com",
@@ -47,7 +47,7 @@
     "bitcoincashjs-lib": "^3.3.3",
     "bs58": "^5.0.0",
     "buffer": "^6.0.3",
-    "capacitor-native-biometric": "^3.0.3",
+    "capacitor-native-biometric": "^4.2.2",
     "capacitor-secure-storage-plugin": "^0.5.1",
     "cashc": "^0.8.0",
     "cashc0.7.5": "npm:cashc@^0.7.5",

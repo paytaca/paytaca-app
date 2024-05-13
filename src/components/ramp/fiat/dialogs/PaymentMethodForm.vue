@@ -11,7 +11,7 @@
       <div v-else>
         <q-card-section v-if="!errorMessage" class="text-center q-pt-none">
           <span class="lg-font-size text-weight-bold">
-            {{ paymentMethod.payment_type?.name}}:
+            {{ paymentMethod.payment_type?.full_name}}:
           </span><br>
           <span>
             {{ paymentMethod.account_identifier }}
@@ -36,7 +36,7 @@
     <!-- Create/Edit Payment Method -->
     <q-card v-else class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="q-mt-sm text-h6 text-center">{{action === 'createPaymentMethod' ? 'Add' : 'Edit'}} Payment Method</div>
+        <div class="q-mt-sm text-h6 text-center">{{action === 'createPaymentMethod' || action === 'addMethodFromAd' ? 'Add' : 'Edit'}} Payment Method</div>
       </q-card-section>
       <div v-if="loading" class="row justify-center">
         <ProgressLoader/>
@@ -51,7 +51,7 @@
             :disable="action !== 'createPaymentMethod'"
             v-model="paymentMethod.payment_type"
             label="Payment Type"
-            option-label="name"
+            option-label="full_name"
             class="q-py-xs"
             :dark="darkMode"
             :options="paymentTypeOpts"
@@ -60,7 +60,7 @@
               <q-item v-bind="scope.itemProps">
                 <q-item-section>
                   <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
-                    {{ scope.opt.name }}
+                    {{ scope.opt.full_name }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -105,10 +105,13 @@
             </div>
             <!-- Account Name -->
             <q-input
+              v-if="paymentMethod.account_name || paymentMethod.payment_type.acc_name_required"
               dense
               filled
-              label="Account Name (optional)"
+              hide-bottom-space
+              label="Account Name"
               :dark="darkMode"
+              :rules="[val => !!val || 'This field is required']"
               v-model="paymentMethod.account_name"
               class="q-py-xs">
             </q-input>
@@ -127,7 +130,7 @@
               flat
               label="Submit"
               class="col button"
-              :disable="isValidIdentifier(paymentMethod.account_identifier) !== true"
+              :disable="disableSubmitBtn"
               @click="onSubmit()"
               v-close-popup />
           </div>
@@ -172,6 +175,11 @@ export default {
     paymentType: Object,
     currency: String
   },
+  computed: {
+    disableSubmitBtn () {
+      return this.isValidIdentifier(this.paymentMethod.account_identifier) !== true || (this.paymentMethod.payment_type?.acc_name_required && !this.paymentMethod.account_name)
+    }
+  },
   async mounted () {
     switch (this.action) {
       case 'deletePaymentMethod':
@@ -208,7 +216,7 @@ export default {
           } else {
             return 'Invalid Phone Number'
           }
-        case 'Bank':
+        case 'Bank Account Number':
           if (/^(\d{9,35})$/.test(val)) {
             return true
           } else {
@@ -234,9 +242,9 @@ export default {
     },
     filterPaymentTypes () {
       let currentMethods = null
-      currentMethods = this.currentPaymentMethods.map(p => p.payment_type.name)
+      currentMethods = this.currentPaymentMethods.map(p => p.payment_type.full_name)
       const availablePaymentTypes = this.paymentTypeOpts.filter(function (method) {
-        return !currentMethods.includes(method.name)
+        return !currentMethods.includes(method.full_name)
       })
       this.paymentTypeOpts = availablePaymentTypes
     },

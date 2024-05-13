@@ -1,6 +1,6 @@
 {
   "name": "paytaca",
-  "version": "0.18.1",
+  "version": "0.18.3",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "author": "joemar@paytaca.com",
   "private": true,
@@ -17,7 +17,7 @@
     "@capacitor/geolocation": "^1.3.1",
     "@capacitor/ios": "^3.7.0",
     "@capacitor/push-notifications": "^1.0.9",
-    "capacitor-native-biometric": "^3.0.3",
+    "capacitor-native-biometric": "^4.2.2",
     "cordova-plugin-file": "^8.0.1",
     "cordova-plugin-file-transfer": "^2.0.0"
   }

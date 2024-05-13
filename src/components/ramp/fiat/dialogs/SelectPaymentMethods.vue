@@ -5,7 +5,6 @@
         <q-card-section class="q-mx-sm">
           <div class="text-weight-bold text-center lg-font-size">Select Payment Methods</div>
           <div v-if="hasAlienPaymentsSelected" style="color:red" class="text-center q-mx-md sm-font-size">Please unselect unsupported payment methods</div>
-          <div v-else-if="paymentTypeOpts.length === 0" class="q-mt-md text-center q-mx-md sm-font-size">This currency does not support any payment methods yet.</div>
           <div v-else class="subtext text-center" style="font-size: 13px;">Select only up to 5 methods</div>
         </q-card-section>
         <q-card-section v-if="paymentMethodOpts.length > 0" class="text-left q-pt-sm q-mx-xs">
@@ -19,7 +18,7 @@
                   <div class="q-py-none row">
                       <div class="col ib-text">
                           <div class="md-font-size q-mb-none pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
-                              {{ option.payment_type.name }}
+                              {{ option.payment_type.short_name || option.payment_type.full_name }}
                           </div>
                           <div v-if="option.account_name" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
                               {{ option.account_name }}
@@ -51,7 +50,7 @@
         </q-card-section>
         </q-card>
     </q-dialog>
-    <PaymentMethodForm v-if="showPaymentMethodForm" action="createPaymentMethod" :currency="currency" @back="showPaymentMethodForm=false" @success="fetchPaymentMethods"/>
+    <PaymentMethodForm v-if="showPaymentMethodForm" action="createPaymentMethod" :currency="currency" @back="showPaymentMethodForm=false" @success="onSuccessAddPaymentMethod"/>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -100,11 +99,15 @@ export default {
     getDarkModeClass,
     filterPaymentTypes () {
       let currentMethods = null
-      currentMethods = this.paymentMethodOpts.map(p => p.payment_type.name)
+      currentMethods = this.paymentMethodOpts.map(p => p.payment_type)
       const availablePaymentTypes = this.paymentTypeOpts.filter(function (method) {
-        return !currentMethods.includes(method.name)
+        return !currentMethods.map(p => p.id).includes(method.id)
       })
       this.paymentTypeOpts = availablePaymentTypes
+    },
+    async onSuccessAddPaymentMethod () {
+      await this.fetchPaymentTypes()
+      await this.fetchPaymentMethods()
     },
     async fetchPaymentTypes () {
       const vm = this
@@ -131,7 +134,8 @@ export default {
       await backend.get('/ramp-p2p/payment-method/', { params: { currency: vm.currency }, authorize: true })
         .then(response => {
           // filters the payment method options to currency supported only
-          vm.paymentMethodOpts = response.data.map((element) => {
+          vm.paymentMethodOpts = response.data
+          vm.paymentMethodOpts.forEach((element) => {
             // checks & adds a field to mark if supported payment method is currently selected
             const selected = vm.selectedPaymentMethods.some((item) => {
               return item.id === element.id

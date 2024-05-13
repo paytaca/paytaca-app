@@ -108,7 +108,7 @@
                   :outline="!orderFilters.payment_types?.includes(payment.id)"
                   @click="setOrderFilter('payment-type', payment.id)"
                   :key="payment.id">
-                  {{ payment.name }}
+                  {{ payment.short_name || payment.full_name }}
                 </q-badge>
               </div>
             </div>
@@ -235,7 +235,7 @@
                 :outline="!storeFilters.payment_types?.includes(payment.id)"
                 @click="setStoreFilter('payment-type', payment.id)"
                 :key="payment.id">
-                {{ payment.name }}
+                {{ payment.short_name || payment.full_name }}
               </q-badge>
             </div>
           </div>

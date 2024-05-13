@@ -1,25 +1,16 @@
 <template>
-  <q-card
-    class="br-15 q-pt-sm q-mx-md pt-card text-bow"
+  <div
+    class="q-mx-md q-pt-sm text-bow"
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded && !networkError"
   >
-    <div class="q-pl-sm q-pt-sm">
-      <q-btn
-        rounded
-        flat
-        icon="close"
-        class="close-button"
-        @click="$emit('close')"
-      />
-    </div>
     <div class="q-pb-lg">
       <RampShiftInfo
         class="q-pb-md"
         :info="rampData"
       />
     </div>
-  </q-card>
+  </div>
   <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>

@@ -58,7 +58,7 @@
               {{ activeStorefront?.name }}
               #{{ activeStorefront?.id }}
             </q-btn>
-            <q-chip v-if="!activeStorefrontIsActive" class="text-white" color="grey" size="sm">
+            <q-chip v-if="activeStorefront?.id && !activeStorefrontIsActive" class="text-white" color="grey" size="sm">
               Inactive
             </q-chip>
             <q-space/>
@@ -78,50 +78,13 @@
             <div v-if="!activeStorefrontCart?.items?.length && activeStorefront?.id" class="text-center text-grey q-mb-md q-mt-lg">
               Add items to cart
             </div>
-            <div
-              v-for="cartItem in activeStorefrontCart?.items" :key="`${activeStorefrontCart?.id}-${cartItem?.variant?.id}`"
-              class="row items-center no-wrap q-px-xs"
-            >
-              <div class="q-space">
-                <q-btn
-                  flat no-caps
-                  padding="none"
-                  @click="() => openCartItemDialog(cartItem)"
-                >
-                  <div class="row items-center justify-left no-wrap full-width text-left">
-                    <q-img
-                      v-if="cartItem?.variant?.itemImage"
-                      :src="cartItem?.variant?.itemImage"
-                      width="35px"
-                      ratio="1"
-                      style="min-width:35px;"
-                      class="rounded-borders q-mr-xs"
-                    />
-                    <div class="q-space">
-                      <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
-                      <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
-                    </div>
-                  </div>
-                </q-btn>
-              </div>
-              <div class="col-3 q-pa-xs">
-                {{ cartItem?.variant?.markupPrice }}
-                {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
-              </div>
-              <div class="col-3 q-pa-xs">
-                <q-input
-                  dense
-                  outlined
-                  :disable="activeStorefrontCart?.$state?.updating || !activeStorefrontIsActive"
-                  :dark="darkMode"
-                  type="number"
-                  v-model.number="cartItem.quantity"
-                  :debounce="750"
-                  @update:model-value="() => saveCart(activeStorefrontCart)"
-                >
-                </q-input>
-              </div>
-            </div>
+            <CartItemsList
+              v-if="activeStorefrontCart?.items?.length"
+              use-quantity-input
+              :disable="activeStorefrontCart?.$state?.updating || !activeStorefrontIsActive"
+              :cart="activeStorefrontCart"
+              :currency="getStorefrontCurrency(activeStorefrontCart?.storefrontId)"
+            />
           </div>
           <div v-if="activeStorefrontCart?.markupSubtotal" class="row items-center q-mx-xs q-mt-md">
             <div class="text-h6 q-space q-pr-xs">Subtotal</div>
@@ -157,9 +120,13 @@ import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import CartItemFormDialog from 'src/components/marketplace/CartItemFormDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import CartItemsList from 'src/components/marketplace/product/CartItemsList.vue'
 
 export default {
   name: 'MarketplaceLayout',
+  components: {
+    CartItemsList,
+  },
   setup() {
     const $q = useQuasar()
     const $route = useRoute()
@@ -317,6 +284,8 @@ export default {
     }
 
     function saveCart(cart=Cart.parse()) {
+      console.log({ cart })
+      window.oc = cart
       $store.dispatch('marketplace/saveCart', cart)
     }
 
