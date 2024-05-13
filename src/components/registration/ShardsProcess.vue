@@ -85,6 +85,7 @@ import html2canvas from 'html2canvas'
 import { Camera } from '@capacitor/camera'
 import { toHex } from 'hex-my-bytes'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { saveShardToWatchtower } from 'src/wallet/shards'
 
 import ProgressLoader from 'src/components/ProgressLoader'
 
@@ -115,12 +116,9 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
     const vm = this
 
-    // add loading for generating shards
-    // after generation, save 1st shard to database; links should be hash of other 2 shards
-    // save to db
     // 1st shard is for watchtower to keep
     // 2nd is for user to save to device
     // 3rd is for user to share to someone or other device for storing
@@ -128,6 +126,8 @@ export default {
     const secret = Buffer.from(vm.mnemonic)
     const shares = sss.split(secret, { shares: 3, threshold: 2 })
     vm.shards = shares.map(a => toHex(a))
+
+    await saveShardToWatchtower(vm.shards)
 
     setTimeout(() => {
       vm.isLoading = false
