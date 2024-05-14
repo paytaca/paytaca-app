@@ -553,6 +553,7 @@ export default {
   Requests: "Anfragen",
   Required: "Erforderlich",
   ResolvingLnsAddress: "Lösung der LNS -Namensadresse",
+  RestoreFromSeedPhrase: "Vom Samenphrase wiederherstellen",
   RestoreWallet: "Brieftasche wiederherstellen",
   RestoreWalletDescription: "Stellen Sie Ihre Paytaca -Brieftasche von seinem mnemonischen Backup -Phrase wieder her",
   RestoringYourWallet: "Restaurieren Sie Ihre Brieftasche",

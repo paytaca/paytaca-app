@@ -553,6 +553,7 @@ export default {
   Requests: "Requests",
   Required: "Required",
   ResolvingLnsAddress: "Resolving LNS name address",
+  RestoreFromSeedPhrase: "Restore From Seed Phrase",
   RestoreWallet: "Restore Wallet",
   RestoreWalletDescription: "Restore your Paytaca wallet from its mnemonic backup phrase",
   RestoringYourWallet: "Restoring your wallet",
