@@ -14,7 +14,7 @@ export async function saveShardToWatchtower (shards) {
   }
 
   try {
-    await watchtower.BCH._api.post('wallet/shard', data)
+    await watchtower.BCH._api.post('wallet/shard/', data)
   } catch (error) {
     console.error(error)
   }
