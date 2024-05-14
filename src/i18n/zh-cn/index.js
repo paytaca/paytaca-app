@@ -553,6 +553,7 @@ export default {
   Requests: "要求",
   Required: "必需的",
   ResolvingLnsAddress: "解决LNS名称地址",
+  RestoreFromSeedPhrase: "从种子短语还原",
   RestoreWallet: "还原钱包",
   RestoreWalletDescription: "从助记符备用短语中恢复您的Paytaca钱包",
   RestoringYourWallet: "恢复钱包",

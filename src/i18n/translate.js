@@ -286,6 +286,7 @@ const phrases = {
       RemoveBranch: "Remove branch",
       RemoveBranchConfirm: "Remove branch. Are you sure?",
       RemoveDevice: "Remove Device",
+      RestoreFromSeedPhrase: "Restore From Seed Phrase",
       RemoveDeviceFailed: "Remove Device Failed",
       RemovePOSDevice: "Remove POS device",
       SalesReport: "Sales Report",
