@@ -18,6 +18,11 @@
       Restore your Paytaca wallet from the QR code of its shards
     </p>
 
+    <p class="q-pa-sm text-center" style="border: 3px solid orange;">
+      Before uploading a screenshot containing the QR, make sure that you crop
+      the image up to the red square containing the QR before uploading.
+    </p>
+
     <div class="row flex items-center justify-between q-py-md">
       <p class="col-6 q-ma-xs" style="text-wrap: wrap;">
         Scan or upload the wallet's personal QR
