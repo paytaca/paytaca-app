@@ -513,33 +513,18 @@ export async function createFundingProposal(contractData, position, wallet, addr
 }
 
 export async function isUtxoSpent(txHash, index) {
-  const response = { success: false, spent: false, error: undefined, spendingTx: '' }
-  const query = {
-    "v": 3,
-    "q": {
-      "find": { "in.e.h": txHash, "in.e.i": index },
-      "project": { "tx.h": 1 }
-    }
-  }
-  const url = `https://bitdb.bch.sx/q/${btoa(JSON.stringify(query))}`
+  const response = { success: false, spent: false, error: undefined }
   try {
-    const queryResp = await axios.get(url)
-    let spendingTx = ''
-    // console.log(Array.isArray(queryResp?.data?.u))
-    // console.log(Array.isArray(queryResp?.data?.c))
-    // console.log(queryResp?.data?.u)
-    // console.log(queryResp?.data?.c)
-    if (Array.isArray(queryResp?.data?.u)) spendingTx = queryResp.data.u.find(tx => tx?.tx?.h)?.tx?.h || spendingTx
-    if (Array.isArray(queryResp?.data?.c)) spendingTx = queryResp.data.c.find(tx => tx?.tx?.h)?.tx?.h || spendingTx
-
-    response.spent = Boolean(spendingTx)
-    response.spendingTx = spendingTx
+    const result = await axios.get(`https://api.fullstack.cash/v5/blockchain/getTxOut/${txHash}/${index}/`)
+    if (result.data === null) {
+      response.spent = true
+    }
     response.success = true
+    return response
   } catch(error) {
     console.error(error)
     response.success = false
     response.error = error
     return response
   }
-  return response
 }
