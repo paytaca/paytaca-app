@@ -96,7 +96,7 @@
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                     :class="getDarkModeClass(darkMode)">
-                    {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol) }}
+                    {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
@@ -140,7 +140,7 @@
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                     :class="getDarkModeClass(darkMode)">
-                    {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol) }}
+                    {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
                 <span class="sm-font-size">/BCH</span>
               </div>

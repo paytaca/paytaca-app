@@ -73,7 +73,7 @@
                 {{ amountError }}
               </div>
               <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                = {{ formattedCurrency(equivalentAmount, ad?.fiat_currency?.symbol) }} {{ !byFiat ? '' : 'BCH' }}
+                = {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ formattedCurrency(equivalentAmount.toFixed(!byFiat ? 2 : 8), ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ !byFiat ? '' : 'BCH' }}
               </div>
               <div class="justify-end q-gutter-sm q-pr-sm">
                 <q-btn
