@@ -8,6 +8,7 @@ const fs = require("fs")
  * 
  * THIS DOES NOT TRANSLATE THE INTERPOLATED STRINGS PROPERLY (you have to do it manually)
  *
+ * WHEN ADDING A PHRASE/WORD, make sure to not mix dynamic (interpolated) and static strings
  *
  * To execute this script:
  * 1) go to the directory of this file
@@ -903,18 +904,20 @@ const hardcodedTranslations = {
 }
 
 
+const index = 'index.js'
+const interpolatedStrRegex = /\{(\w|\p{Script=Han})+\}/gu
+const htmlClassRegex = /[“|"](\s|\w|\p{Script=Han})+[”|"]/gu
+
 /*
   check for supported language codes here
   https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
 */
-
-const index = 'index.js'
 const supportedLangs = [
-  // 'en-us',
-  // 'es',
-  // 'zh-tw',
-  // 'zh-cn',
-  // 'de',
+  'en-us',
+  'es',
+  'zh-tw',
+  'zh-cn',
+  'de',
   'ha',
   'pt',
 
@@ -969,6 +972,10 @@ function copy (from, to) {
   )
 }
 
+async function sleep (seconds) {
+  await new Promise(r => setTimeout(r, seconds * 1000))
+}
+
 // get text group label for logging
 function getTextGroupLabel (index) {
   const wordsLen = words.length
@@ -990,31 +997,34 @@ function getTextGroupLabel (index) {
   }
 }
 
-
 // print out length of texts for verification later after writing to file
-let sum = 0
-for (const group of TEXT_GROUPS) {
-  sum += Object.keys(group).length
+function getTotalLines () {
+  let sum = 0
+  for (const group of TEXT_GROUPS) {
+    sum += Object.keys(group).length
+  }
+  return sum
 }
-console.log('Expected no. of translation keys on i18n files: ', sum)
 
 
 // translate all texts here
-let jsonData = {};
-
 (async () => {
+  const sum = getTotalLines()
+  console.log('Expected no. of translation keys on i18n files: ', sum)
+  
+  let jsonData = {}
+
   for (let lang of supportedLangs) {
+    await sleep(1)
+
     if (lang.includes(":")) {
-      await new Promise(r => setTimeout(r, 1000))  // added delay to properly load the main language before copying
       const [ branchLang, mainLang ] = lang.split(":")
       copy(mainLang, branchLang)
       continue
     }
 
     let codes = { from: 'en', to: lang }
-    if (lang === 'en-us') {
-      codes.to = 'en'
-    }
+    if (lang === 'en-us') codes.to = 'en'
 
     console.log('==============================')
     console.log(`Processing ${codes.to}:`)
@@ -1029,25 +1039,52 @@ let jsonData = {};
       const label = getTextGroupLabel(index)
       console.log(`Translating ${label}...`)
 
-      let _group
-      if (Object.keys(hardcodedTranslations).indexOf(lang) > -1) {
-        _group = {...group, ...hardcodedTranslations[lang]}
-        codes.except = Object.keys(hardcodedTranslations[lang])
-      } else {
-        _group = group
+      // store all the interpolated substring in an object with its corresponding key
+      const interpolatedWords = {}
+      for (const [key, value] of Object.entries(group)) {
+        const interpolatedMatches = value.match(interpolatedStrRegex)
+        if (interpolatedMatches !== null) interpolatedWords[key] = interpolatedMatches
       }
 
-      const translatedObj = await translate(_group, codes)
+      // translate in bulks
+      let translatedObj = await translate(group, codes)
+      
+      // replace the translated interpolation placeholder with the untranslated one
+      if (Object.keys(interpolatedWords).length !== 0) {
+        const placeholder = '{STRING}'
+        for (const [key, value] of Object.entries(translatedObj)) {
+          translatedObj[key] = value.replace(interpolatedStrRegex, placeholder)
+          for (const interpolatedKey of interpolatedWords[key]) {
+            translatedObj[key] = translatedObj[key].replace(placeholder, interpolatedKey)
+          }
+        }
+      }
 
+      // override hardcoded translations
+      if (Object.keys(hardcodedTranslations).indexOf(lang) > -1) {
+        translatedObj = {
+          ...translatedObj,
+          ...hardcodedTranslations[lang]
+        }
+      }
+
+      // place code here to replace any word or capitalization on a phrase or word
+      for (const [key, value] of Object.entries(translatedObj)) {
+        translatedObj[key] = value
+          .replaceAll('bch', 'BCH')
+          .replaceAll('utxo', 'UTXO')
+          .replaceAll(htmlClassRegex, '"highlighted-word"')
+          .replaceAll('<-span', '<span')
+      }
+      
       // merge the previous and current objects
       Object.assign(jsonData, translatedObj)
       jsonData = orderObj(jsonData)
 
+      // add commented notes
       let strData = '// NOTE: DONT EDIT THIS FILE\n'
-      strData +=
-        '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'
+      strData += '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'
       strData += 'export default '
-
       strData += JSON.stringify(jsonData, null, 2)
 
       // to remove the quotes on keys after stringify
