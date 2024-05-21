@@ -915,8 +915,8 @@ const supportedLangs = [
   // 'zh-tw',
   // 'zh-cn',
   // 'de',
-  // 'ha',
-  // 'pt',
+  'ha',
+  'pt',
 
   /* 
     LANGUAGE BRANCH (variations)
@@ -928,8 +928,8 @@ const supportedLangs = [
     SYNTAX: {branch-language}:{main-language}
   */
 
-  // 'es-ar:es',
-  // 'pt-br:pt',
+  'es-ar:es',
+  'pt-br:pt',
 ]
 
 // ordering of keys
@@ -951,14 +951,12 @@ function write (data, to) {
     data,
     (err) => {
       if (err) throw err
-      console.log(`Written data to ${toPath}`)
     }
   )
 }
 
 // used to copy branch languages from their main languages
 function copy (from, to) {
-  // File destination.txt will be created or overwritten by default.
   const fromPath = `./${from}/${index}`
   const toPath = `./${to}/${index}`
 
@@ -967,7 +965,6 @@ function copy (from, to) {
     toPath,
     (err) => {
       if (err) throw err
-      console.log(`Copied ${fromPath} to ${toPath}`)
     }
   )
 }
@@ -975,19 +972,24 @@ function copy (from, to) {
 // get text group label for logging
 function getTextGroupLabel (index) {
   const wordsLen = words.length
-  const staticPhrasesLen = phrases.static.length
-  const wordsAndStaticPhrasesLen = staticPhrasesLen + wordsLen
+  const staticLen = phrases.static.length
+  const wordsAndStaticLen = staticLen + wordsLen
+  const wordsStaticAndDynamicLen = wordsAndStaticLen + phrases.dynamic.length
 
   if (index < wordsLen) {
     return `words group ${index + 1}`
-  } else if (index < wordsAndStaticPhrasesLen) {
+  } else if (index < wordsAndStaticLen) {
     const groupNo = index - (wordsLen - 1)
     return `static phrases group ${groupNo}`
-  } else {
-    const groupNo = index - (wordsAndStaticPhrasesLen - 1)
+  } else if (index < wordsStaticAndDynamicLen) {
+    const groupNo = index - (wordsAndStaticLen - 1)
     return `dynamic phrases group ${groupNo}`
+  } else {
+    const groupNo = index - (wordsStaticAndDynamicLen - 1)
+    return `other group ${groupNo}`
   }
 }
+
 
 // print out length of texts for verification later after writing to file
 let sum = 0
@@ -996,17 +998,18 @@ for (const group of TEXT_GROUPS) {
 }
 console.log('Expected no. of translation keys on i18n files: ', sum)
 
+
 // translate all texts here
 let jsonData = {};
 
 (async () => {
   for (let lang of supportedLangs) {
     if (lang.includes(":")) {
+      await new Promise(r => setTimeout(r, 1000))  // added delay to properly load the main language before copying
       const [ branchLang, mainLang ] = lang.split(":")
       copy(mainLang, branchLang)
       continue
     }
-
 
     let codes = { from: 'en', to: lang }
     if (lang === 'en-us') {

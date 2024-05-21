@@ -512,7 +512,7 @@ export default {
   Recover: "Recuperar",
   RecoverGift: "Recuperar presente",
   RecoverGiftCompleted: "Recupere o presente concluído!",
-  RecoverGiftDescription: "Recupere o presente de {quantidade} bch.Continuar?",
+  RecoverGiftDescription: "Recupere o presente de {vale} bch.Continuar?",
   Recovered: "Recuperado",
   RecoveringGift: "Presente de recuperação ...",
   ReferenceId: "referência ID",
