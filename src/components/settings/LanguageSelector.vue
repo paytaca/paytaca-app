@@ -51,7 +51,11 @@ export default {
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
         { value: 'zh-tw', label: this.$t('ChineseTraditional') },
         { value: 'de', label: this.$t('German') },
+        { value: 'ha', label: this.$t('Hausa') },
+        { value: 'pt', label: this.$t('Portuguese') },
+        { value: 'pt-br', label: this.$t('BrazilianPortuguese') },
         { value: 'es', label: this.$t('Spanish') },
+        { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
       ],
       localeOptions: []
     }
