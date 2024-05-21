@@ -221,7 +221,7 @@ export default {
     },
     fiatAmount () {
       const amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
-      return this.formatCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol)
+      return this.formatCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '')
     }
   },
   async mounted () {
