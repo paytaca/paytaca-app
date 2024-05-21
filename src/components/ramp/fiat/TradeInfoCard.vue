@@ -96,18 +96,19 @@
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                     :class="getDarkModeClass(darkMode)">
-                    {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol) }}
+                    {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
               <div v-if="type === 'order'">
                 <div class="xs-font-size">Trade Amount</div>
+                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">{{ byFiat ? order?.ad?.fiat_currency?.symbol : '' }}</span>&nbsp;
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                     :class="getDarkModeClass(darkMode)">
                     {{ tradeAmount }}
                 </span>
-                <span class="sm-font-size q-ml-xs">{{ byFiat ? order?.ad?.fiat_currency?.symbol : 'BCH' }}</span>
+                <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div v-if="type === 'order'" class="row q-mt-none">
                 <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
@@ -123,12 +124,13 @@
             <div class="col-auto">
               <div class="row xs-font-size">Trade Amount</div>
               <div class="q-mb-none">
+                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">{{ byFiat ? order?.ad?.fiat_currency?.symbol : '' }}</span>
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                     :class="getDarkModeClass(darkMode)">
                     {{ tradeAmount }}
                 </span>
-                <span class="sm-font-size q-ml-xs">{{ byFiat ? order?.ad?.fiat_currency?.symbol : 'BCH' }}</span>
+                <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div class="row q-mt-none">
                 <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
@@ -140,7 +142,7 @@
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                     :class="getDarkModeClass(darkMode)">
-                    {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol) }}
+                    {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
                 <span class="sm-font-size">/BCH</span>
               </div>
@@ -196,11 +198,11 @@ export default {
     tradeAmount () {
       let amount = 0
       if (this.byFiat) {
-        amount = formatCurrency(Number(this.order?.crypto_amount) * Number(this.order?.locked_price), this.order?.ad?.fiat_currency?.symbol)
+        amount = formatCurrency((Number(this.order?.crypto_amount) * Number(this.order?.locked_price)).toFixed(2), this.order?.ad?.fiat_currency?.symbol)
       } else {
-        amount = Number(this.order?.crypto_amount)
+        amount = parseFloat(Number(this.order?.crypto_amount).toFixed(8))
       }
-      return amount
+      return String(amount).replace(/[^\d.,-]/g, '')
     },
     counterparty () {
       let counterparty = this.ad?.owner

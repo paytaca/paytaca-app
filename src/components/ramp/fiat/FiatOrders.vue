@@ -106,7 +106,7 @@
                               :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
                             >
                             <!-- :style="amountColor(listing.trade_type)" -->
-                              {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol) }}
+                              {{ listing.ad?.fiat_currency?.symbol }} {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                             </div>
                             <div class="sm-font-size">
                               {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>

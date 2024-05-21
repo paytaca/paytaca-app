@@ -89,8 +89,8 @@
                 <span class="col text-right">Current Market Price</span>
               </div>
               <div class="row justify-between">
-                <span class="col text-left text-weight-bold md-font-size">{{ formattedCurrency(priceAmount) }}</span>
-                <span class="col text-right md-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
+                <span class="col text-left text-weight-bold md-font-size">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(priceAmount).replace(/[^\d.,-]/g, '') }}</span>
+                <span class="col text-right md-font-size" style="float: right;">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(marketPrice).replace(/[^\d.,-]/g, '') }}</span>
               </div>
             </div>
           </div>
