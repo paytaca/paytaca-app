@@ -540,7 +540,7 @@ export default {
           } catch(error) { console.error(error) }
         })
 
-        bchWallet.getXPubKey().then(function (xpub) {
+        await bchWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
             type: 'bch',
@@ -553,7 +553,7 @@ export default {
       for (const slpWallet of slpWallets) {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
-        slpWallet.getNewAddressSet(0).then(function (addresses) {
+        await slpWallet.getNewAddressSet(0).then(function (addresses) {
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'slp',
@@ -566,7 +566,7 @@ export default {
           vm.steps += 1
         })
 
-        slpWallet.getXPubKey().then(function (xpub) {
+        await slpWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
             type: 'slp',
@@ -576,7 +576,7 @@ export default {
         })
       }
 
-      wallet.sBCH.subscribeWallet().then(function () {
+      await wallet.sBCH.subscribeWallet().then(function () {
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
           derivationPath: wallet.sBCH.derivationPath,
