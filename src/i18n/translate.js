@@ -5,6 +5,8 @@ const fs = require("fs")
  * NOTE: YOU ONLY NEED TO UPDATE TEXTS HERE and run this script.
  * This script automatically translates and writes the translated
  * objects to the language index files (i18n/{language}/index.js)
+ * 
+ * THIS DOES NOT TRANSLATE THE INTERPOLATED STRINGS PROPERLY (you have to do it manually)
  *
  *
  * To execute this script:
@@ -132,6 +134,9 @@ const words = [
     Expired: "Expired",
     High: "High",
     Liquidity: "Liquidity",
+    ArgentinianSpanish: "Spanish (Argentina)",
+    BrazilianPortuguese: "Portuguese (Brazil)",
+    Hausa: "Hausa",
   }
 ]
 const phrases = {
@@ -897,9 +902,35 @@ const hardcodedTranslations = {
   }
 }
 
-// check for supported language codes here
-// https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
-const supportedLangs = ['en-us', 'es', 'zh-tw', 'zh-cn', 'de']
+
+/*
+  check for supported language codes here
+  https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
+*/
+
+const index = 'index.js'
+const supportedLangs = [
+  // 'en-us',
+  // 'es',
+  // 'zh-tw',
+  // 'zh-cn',
+  // 'de',
+  // 'ha',
+  // 'pt',
+
+  /* 
+    LANGUAGE BRANCH (variations)
+
+    place the unsupported languages here,
+    these langs will just be copied from the main language (e.g. es will be copied to es-ar)
+    and be translated by real people
+
+    SYNTAX: {branch-language}:{main-language}
+  */
+
+  // 'es-ar:es',
+  // 'pt-br:pt',
+]
 
 // ordering of keys
 function orderObj (unorderedObj) {
@@ -913,9 +944,32 @@ function orderObj (unorderedObj) {
 
 // writing to language index files
 function write (data, to) {
-  fs.writeFile(`./${to}/index.js`, data, (err) => {
-    if (err) throw err
-  })
+  const toPath = `./${to}/${index}`
+
+  fs.writeFile(
+    toPath,
+    data,
+    (err) => {
+      if (err) throw err
+      console.log(`Written data to ${toPath}`)
+    }
+  )
+}
+
+// used to copy branch languages from their main languages
+function copy (from, to) {
+  // File destination.txt will be created or overwritten by default.
+  const fromPath = `./${from}/${index}`
+  const toPath = `./${to}/${index}`
+
+  fs.copyFile(
+    fromPath,
+    toPath,
+    (err) => {
+      if (err) throw err
+      console.log(`Copied ${fromPath} to ${toPath}`)
+    }
+  )
 }
 
 // get text group label for logging
@@ -947,6 +1001,13 @@ let jsonData = {};
 
 (async () => {
   for (let lang of supportedLangs) {
+    if (lang.includes(":")) {
+      const [ branchLang, mainLang ] = lang.split(":")
+      copy(mainLang, branchLang)
+      continue
+    }
+
+
     let codes = { from: 'en', to: lang }
     if (lang === 'en-us') {
       codes.to = 'en'
