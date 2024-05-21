@@ -73,13 +73,27 @@
 
     <div class="row flex flex-center q-gutter-md q-mt-xs">
       <template v-if="retrievedCodes[0] !== null">
-        <qr-code :text="retrievedCodes[0]" color="#253933" :size="150" error-level="H" />
+        <qr-code
+          :text="retrievedCodes[0]"
+          color="#253933"
+          :size="140"
+          error-level="H"
+          class="qr-div-code"
+          :class="qrCodeDivClass"
+        />
       </template>
       <template v-else>
         <div class="qr-placeholder-div"></div>
       </template>
       <template v-if="retrievedCodes[1] !== null">
-        <qr-code :text="retrievedCodes[1]" color="#253933" :size="150" error-level="H" />
+        <qr-code
+          :text="retrievedCodes[1]"
+          color="#253933"
+          :size="140"
+          error-level="H"
+          class="qr-div-code"
+          :class="qrCodeDivClass"
+        />
       </template>
       <template v-else>
         <div class="qr-placeholder-div"></div>
@@ -134,7 +148,8 @@ export default {
       isPersonalClicked: false,
       isForSharingClicked: false,
       disablePersonal: false,
-      disableForSharing: false
+      disableForSharing: false,
+      qrCodeDivClass: ''
     }
   },
 
@@ -197,9 +212,9 @@ export default {
               vm.isForSharingClicked = false
             }
 
-            this.validateQRCodes()
+            vm.validateQRCodes()
           } else {
-            this.$q.notify({
+            vm.$q.notify({
               message: 'No QR code found in the uploaded image.',
               timeout: 800,
               color: 'red-9',
@@ -221,6 +236,7 @@ export default {
       if (vm.retrievedCodes[0] && vm.retrievedCodes[1]) {
         const recovered = sss.combine([vm.retrievedCodes[0], vm.retrievedCodes[1]]).toString()
         vm.areQRCodesValid = recovered.split(' ').length === 12
+        vm.qrCodeDivClass = vm.areQRCodesValid ? 'match' : 'not-match'
         vm.$emit('set-seed-phrase', recovered)
       }
     },
@@ -231,6 +247,7 @@ export default {
       this.isForSharingClicked = false
       this.disablePersonal = false
       this.disableForSharing = false
+      this.qrCodeDivClass = ''
     }
   }
 }
@@ -241,5 +258,17 @@ export default {
     height: 150px;
     width: 150px;
     border: 2px solid gray;
+  }
+  .qr-div-code {
+    padding: 5px;
+    border: 2px solid gray;
+
+    &.not-match {
+      border: 2px solid red;
+    }
+
+    &.match {
+      border: 2px solid greenyellow;
+    }
   }
 </style>
