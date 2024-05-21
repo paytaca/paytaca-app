@@ -67,6 +67,34 @@
           </div>
         </q-tab-panel>
         <q-tab-panel name="delivery" :dark="darkMode">
+          <div class="q-mb-md">
+            <q-btn-toggle
+              v-model="formData.deliveryType"
+              unelevated
+              spread
+              no-caps
+              toggle-color="brandblue"
+              :options="[
+                { value: Checkout.DeliveryTypes.STORE_PICKUP, slot: 'store_pickup' },
+                { value: Checkout.DeliveryTypes.LOCAL_DELIVERY, slot: 'local_delivery' },
+              ]"
+            >
+              <template v-slot:store_pickup="ctx">
+                <div>
+                  <q-icon name="storefront" size="md"/>
+                  <div class="text-caption">Store pickup</div>
+                </div>
+              </template>
+              <template v-slot:local_delivery="ctx">
+                <div>
+                  <q-icon name="delivery_dining" size="md"/>
+                  <div class="text-caption">Local Delivery</div>
+                </div>
+              </template>
+            </q-btn-toggle>
+          </div>
+          <q-slide-transition>
+          <div v-if="formData.deliveryType == Checkout.DeliveryTypes.LOCAL_DELIVERY">
             <div class="text-subtitle1">Rider</div>
             <q-field
               dense outlined readonly
@@ -105,6 +133,8 @@
                 />
               </template>
             </q-field>
+          </div>
+          </q-slide-transition>
           <q-form @submit="() => submitDeliveryAddress().then(() => nextTab())">
             <q-banner v-if="formErrors?.delivery?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
               <div v-if="formErrors?.delivery?.detail?.length === 1">
@@ -173,143 +203,146 @@
                 :dark="darkMode"
               />
             </q-input>
-
-            <div class="row items-center q-mb-sm">
-              <div class="text-subtitle1">Address</div>
-              <q-space/>
-              <div class="q-r-mx-lg">
-                <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
-              </div>
-            </div>
-            <div v-if="customerLocations?.length > 0" class="row items-center q-mb-sm">
-              <q-space/>
-              <q-btn
-                flat
-                no-caps label="Saved addresses"
-                padding="2px sm"
-                class="q-r-mx-md text-underline button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
-                @click="() => customerLocationsDialog.show = !customerLocationsDialog.show"
-              />
-              <CustomerLocationsDialog v-model="customerLocationsDialog.show">
-                <template v-slot:actions="context">
+            <q-slide-transition>
+              <div v-if="formData.deliveryType !== Checkout.DeliveryTypes.STORE_PICKUP">
+                <div class="row items-center q-mb-sm">
+                  <div class="text-subtitle1">Address</div>
+                  <q-space/>
+                  <div class="q-r-mx-lg">
+                    <GeolocateBtn @geolocate="position => onGeolocate(position)"/>
+                  </div>
+                </div>
+                <div v-if="customerLocations?.length > 0" class="row items-center q-mb-sm">
+                  <q-space/>
                   <q-btn
                     flat
-                    label="Select"
-                    v-close-popup
-                    @click="setAsDeliveryLocation(context.location)"
+                    no-caps label="Saved addresses"
+                    padding="2px sm"
+                    class="q-r-mx-md text-underline button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    @click="() => customerLocationsDialog.show = !customerLocationsDialog.show"
                   />
-                </template>
-              </CustomerLocationsDialog>
-            </div>
-            <q-input
-              outlined
-              dense
-              :disable="loading"
-              :dark="darkMode"
-              label="Address"
-              v-model="formData.delivery.address.address1"
-              :error="Boolean(formErrors?.delivery?.location?.address1)"
-              :error-message="formErrors?.delivery?.location?.address1"
-            />
-            <div class="row items-start">
-              <q-input
-                outlined
-                dense
-                :disable="loading"
-                :dark="darkMode"
-                label="Street*"
-                v-model="formData.delivery.address.street"
-                class="col-12 col-sm-6"
-                :error="Boolean(formErrors?.delivery?.location?.street)"
-                :error-message="formErrors?.delivery?.location?.street"
-                :rules="[
-                  val => Boolean(val) || 'Required',
-                ]"
-              />
-              <q-input
-                outlined
-                dense
-                :disable="loading"
-                :dark="darkMode"
-                label="City*"
-                v-model="formData.delivery.address.city"
-                class="col-12 col-sm-6"
-                :error="Boolean(formErrors?.delivery?.location?.city)"
-                :error-message="formErrors?.delivery?.location?.city"
-                :rules="[
-                  val => Boolean(val) || 'Required',
-                ]"
-              />
-            </div>
-
-            <div class="row items-start">
-              <q-input
-                outlined
-                dense
-                :disable="loading"
-                :dark="darkMode"
-                label="State / Province *"
-                v-model="formData.delivery.address.state"
-                class="col-12 col-sm-6"
-                :error="Boolean(formErrors?.delivery?.location?.state)"
-                :error-message="formErrors?.delivery?.location?.state"
-                :rules="[
-                  val => Boolean(val) || 'Required',
-                ]"
-              />
-              <CountriesFieldWrapper v-slot="{ filteredCountriesOpts, filterCountriesOpts }">
-                <q-select
+                  <CustomerLocationsDialog v-model="customerLocationsDialog.show">
+                    <template v-slot:actions="context">
+                      <q-btn
+                        flat
+                        label="Select"
+                        v-close-popup
+                        @click="setAsDeliveryLocation(context.location)"
+                      />
+                    </template>
+                  </CustomerLocationsDialog>
+                </div>
+                <q-input
                   outlined
                   dense
                   :disable="loading"
                   :dark="darkMode"
-                  label="Country*"
-                  clearable
-                  use-input
-                  fill-input
-                  hide-selected
-                  :options="filteredCountriesOpts"
-                  @filter="filterCountriesOpts"
-                  v-model="formData.delivery.address.country"
-                  class="col-12 col-sm-6"
-                  :popup-content-class="darkMode ? '': 'text-black'"
-                  :error="Boolean(formErrors?.delivery?.location?.country)"
-                  :error-message="formErrors?.delivery?.location?.country"
-                  :rules="[
-                    val => Boolean(val) || 'Required',
-                  ]"
+                  label="Address"
+                  v-model="formData.delivery.address.address1"
+                  :error="Boolean(formErrors?.delivery?.location?.address1)"
+                  :error-message="formErrors?.delivery?.location?.address1"
                 />
-              </CountriesFieldWrapper>
-            </div>
-            <div class="row items-center q-gutter-x-sm q-mt-sm">
-              <q-btn
-                no-caps flat
-                :disable="loading"
-                class="q-space button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
-                @click="selectCoordinates()"
-              >
-                <q-icon name="location_on"/>
-                <template v-if="validCoordinates">
-                  {{ formData.delivery.address.longitude }}, {{ formData.delivery.address.latitude }}
-                </template>
-                <template v-else>
-                  Pin location
-                </template>
-              </q-btn>
-              <q-btn
-                v-if="validCoordinates"
-                icon="close"
-                padding="xs"
-                flat
-                class="close-button"
-                @click="() => {
-                  formData.delivery.address.longitude = null
-                  formData.delivery.address.latitude = null
-                }"
-              />
-            </div>
+                <div class="row items-start">
+                  <q-input
+                    outlined
+                    dense
+                    :disable="loading"
+                    :dark="darkMode"
+                    label="Street*"
+                    v-model="formData.delivery.address.street"
+                    class="col-12 col-sm-6"
+                    :error="Boolean(formErrors?.delivery?.location?.street)"
+                    :error-message="formErrors?.delivery?.location?.street"
+                    :rules="[
+                      val => Boolean(val) || 'Required',
+                    ]"
+                  />
+                  <q-input
+                    outlined
+                    dense
+                    :disable="loading"
+                    :dark="darkMode"
+                    label="City*"
+                    v-model="formData.delivery.address.city"
+                    class="col-12 col-sm-6"
+                    :error="Boolean(formErrors?.delivery?.location?.city)"
+                    :error-message="formErrors?.delivery?.location?.city"
+                    :rules="[
+                      val => Boolean(val) || 'Required',
+                    ]"
+                  />
+                </div>
+
+                <div class="row items-start">
+                  <q-input
+                    outlined
+                    dense
+                    :disable="loading"
+                    :dark="darkMode"
+                    label="State / Province *"
+                    v-model="formData.delivery.address.state"
+                    class="col-12 col-sm-6"
+                    :error="Boolean(formErrors?.delivery?.location?.state)"
+                    :error-message="formErrors?.delivery?.location?.state"
+                    :rules="[
+                      val => Boolean(val) || 'Required',
+                    ]"
+                  />
+                  <CountriesFieldWrapper v-slot="{ filteredCountriesOpts, filterCountriesOpts }">
+                    <q-select
+                      outlined
+                      dense
+                      :disable="loading"
+                      :dark="darkMode"
+                      label="Country*"
+                      clearable
+                      use-input
+                      fill-input
+                      hide-selected
+                      :options="filteredCountriesOpts"
+                      @filter="filterCountriesOpts"
+                      v-model="formData.delivery.address.country"
+                      class="col-12 col-sm-6"
+                      :popup-content-class="darkMode ? '': 'text-black'"
+                      :error="Boolean(formErrors?.delivery?.location?.country)"
+                      :error-message="formErrors?.delivery?.location?.country"
+                      :rules="[
+                        val => Boolean(val) || 'Required',
+                      ]"
+                    />
+                  </CountriesFieldWrapper>
+                </div>
+                <div class="row items-center q-gutter-x-sm q-mt-sm">
+                  <q-btn
+                    no-caps flat
+                    :disable="loading"
+                    class="q-space button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    @click="selectCoordinates()"
+                  >
+                    <q-icon name="location_on"/>
+                    <template v-if="validCoordinates">
+                      {{ formData.delivery.address.longitude }}, {{ formData.delivery.address.latitude }}
+                    </template>
+                    <template v-else>
+                      Pin location
+                    </template>
+                  </q-btn>
+                  <q-btn
+                    v-if="validCoordinates"
+                    icon="close"
+                    padding="xs"
+                    flat
+                    class="close-button"
+                    @click="() => {
+                      formData.delivery.address.longitude = null
+                      formData.delivery.address.latitude = null
+                    }"
+                  />
+                </div>
+              </div>
+            </q-slide-transition>
             <div class="q-mt-sm">
               <q-btn
                 :loading="loading"
@@ -375,11 +408,24 @@
             <div v-if="displayBch" class="text-right">{{ checkoutAmounts.subtotal.bch }} BCH</div>
             <div v-else class="text-right">{{ checkoutAmounts.subtotal.currency }} {{ checkoutCurrency }}</div>
           </div>
-          <div class="row items-start text-subtitle1" @click="toggleAmountsDisplay">
-            <div class="q-space">Delivery fee</div>
-            <div v-if="checkout?.deliveryAddress?.distance" class="text-grey q-mx-xs">{{ (checkout?.deliveryAddress?.distance / 1000).toFixed(3) }} km</div>
-            <div v-if="displayBch" class="text-right">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
-            <div v-else class="text-right">{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+          <div
+            :class="[
+              'row items-start text-subtitle1',
+              isStorePickup ? 'text-grey' : '',
+            ]"
+            @click="toggleAmountsDisplay"
+          >
+            <div class="q-space">
+              Delivery fee
+              <template v-if="isStorePickup">(Store pickup)</template>
+            </div>
+            <template v-if="checkout?.deliveryType === Checkout.DeliveryTypes.LOCAL_DELIVERY">
+              <div v-if="checkout?.deliveryAddress?.distance" class="text-grey q-mx-xs">{{ (checkout?.deliveryAddress?.distance / 1000).toFixed(3) }} km</div>
+            </template>
+            <div :class="isStorePickup ? 'line-through text-grey' : ''">
+              <div v-if="displayBch" class="text-right">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
+              <div v-else class="text-right">{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+            </div>
           </div>
           <div class="row items-start text-h6" @click="toggleAmountsDisplay">
             <div class="q-space">Total</div>
@@ -877,6 +923,7 @@ const formData = ref({
   payment: {
     escrowRefundAddress: '',
   },
+  deliveryType: '',
   delivery: {
     firstName: '',
     lastName: '',
@@ -901,6 +948,7 @@ function resetFormData(opts={ resetRider: false }) {
     payment: {
       escrowRefundAddress: checkout.value?.payment?.escrowRefundAddress || bchAddress.value,
     },
+    deliveryType: checkout.value?.deliveryType || '',
     delivery: {
       rider: existingRider,
       firstName: checkout?.value?.deliveryAddress?.firstName || '',
@@ -1063,6 +1111,10 @@ onUnmounted(() => unsubscribeCacheCartMutation?.())
 
 const fetchingCheckout = ref(false)
 const checkout = ref(Checkout.parse())
+const isStorePickup = computed(() => {
+  return checkout.value?.deliveryType === Checkout.DeliveryTypes.STORE_PICKUP &&
+    checkout.value.payment?.deliveryFee == 0
+})
 const fetchCheckoutError = ref('')
 const checkoutCurrency = computed(() => checkout.value?.currency?.symbol)
 const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice?.price || undefined)
@@ -1117,7 +1169,10 @@ function fetchCheckout() {
   }
 
   if (!initialized.value && !Number.isNaN(parsedSessionLocationData?.longitude) && !Number.isNaN(parsedSessionLocationData?.latitude)) {  
-    const data = { delivery_address: { location: parsedSessionLocationData } }
+    const data = {
+      delivery_type: Checkout.DeliveryTypes.LOCAL_DELIVERY,
+      delivery_address: { location: parsedSessionLocationData },
+    }
     if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
     else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
   } else {
@@ -1184,6 +1239,7 @@ function setAsDeliveryLocation(location=Location.parse()) {
 
 
 async function findRider(opts={ replaceExisting: false, skipReplaceIfEmpty: false, displayDialog: false }) {
+  if (formData.value?.deliveryType !== Checkout.DeliveryTypes.LOCAL_DELIVERY) return
   if (!opts?.replaceExisting && formData.value?.delivery?.rider?.id) return
   loadingState.value.rider = true
   loadingMsg.value = 'Finding a rider'
@@ -1219,17 +1275,19 @@ async function findRider(opts={ replaceExisting: false, skipReplaceIfEmpty: fals
     return new Promise((resolve, reject) => {
       dialogUpdate({
         title: 'No riders nearby found',
-        message: 'We might have trouble delivering your order. Do you wish to proceed?',
+        message: 'Local delivery might not be available. Would you like to opt for store pickup instead?',
         persistent: true,
         progress: false,
         cancel: { flat: true, noCaps: true, label: 'Cancel', color: 'grey' },
-        ok: { flat: true, noCaps: true, label: 'Proceed', color: 'brandblue', class: 'button' },
+        ok: { flat: true, noCaps: true, label: 'Store pickup', color: 'brandblue', class: 'button' },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       }).onCancel(() => {
         $router.replace({ params: { cartId: undefined } })
         $router.go(-1)
         reject()
       }).onOk(() => {
+        formData.value.deliveryType = Checkout.DeliveryTypes.STORE_PICKUP
+        saveDeliveryAddress()
         resolve()
       })
     })
@@ -1284,6 +1342,9 @@ async function updateDeliveryFee() {
       loadingState.value.deliveryFee = false
       loadingMsg.value = resolveLoadingMsg()
     })
+    .finally(() => {
+      updateDeliveryFeePromise.value = undefined
+    })
 }
 
 async function submitDeliveryAddress() {
@@ -1309,6 +1370,7 @@ function saveDeliveryAddress() {
   loadingState.value.deliveryAddress = true
   loadingMsg.value = 'Updating address'
   return updateCheckout({
+    delivery_type: formData.value.deliveryType,
     delivery_address: {
       first_name: formData.value?.delivery?.firstName,
       last_name: formData.value?.delivery?.lastName,
@@ -1331,6 +1393,7 @@ function saveDeliveryAddress() {
     formErrors.value.delivery.detail = errorParser.toArray(data?.delivery_address?.non_field_errors)
     if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = errorParser.toArray(data?.non_field_errors)
     if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = errorParser.toArray(data?.delivery_address?.location) 
+    if (!formErrors.value.delivery.detail?.length) formErrors.value.delivery.detail = errorParser.toArray(data?.delivery_type) 
     formErrors.value.delivery.firstName = errorParser.firstElementOrValue(data?.delivery_address?.first_name)
     formErrors.value.delivery.lastName = errorParser.firstElementOrValue(data?.delivery_address?.last_name)
     formErrors.value.delivery.phoneNumber = errorParser.firstElementOrValue(data?.delivery_address?.phone_number)
@@ -1411,7 +1474,7 @@ async function attemptCreatePayment(opts={ checkCurrentTab: true }) {
   if (!checkout.value.id) return
   if (checkout.value.totalPayable < 0) return
 
-  if (opts?.checkCurrentTab && tabs.value.active != 'payment')
+  if (opts?.checkCurrentTab && tabs.value.active != 'payment') return
 
   await fetchPaymentPromise.value
   await updateBchPricePromise.value?.catch?.(console.error)
@@ -1958,5 +2021,9 @@ table.items-table td {
   .q-banner .banner-error:not(:only-child) {
     display: list-item;
     margin-left: 0.75em;
+  }
+
+  .line-through {
+    text-decoration: line-through;
   }
 </style>
