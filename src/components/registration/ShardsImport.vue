@@ -33,17 +33,20 @@
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="mdi-qrcode"
-          @click="showQrScanner = true"
+          :disable="disablePersonal"
+          @click="showQrScanner = true, isPersonalClicked = true"
         />
         <q-btn
           round
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="upload"
-          @click="triggerUpload"
+          :disable="disablePersonal"
+          @click="triggerUpload(), isPersonalClicked = true"
         />
       </div>
     </div>
+
     <div class="row flex items-center justify-between q-py-md">
       <p class="col-6 q-ma-xs" style="text-wrap: wrap;">
         Scan or upload the wallet's for sharing QR
@@ -54,29 +57,31 @@
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="mdi-qrcode"
-          @click="showQrScanner = true"
+          :disable="disableForSharing"
+          @click="showQrScanner = true, isForSharingClicked = true"
         />
         <q-btn
           round
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="upload"
-          @click="triggerUpload"
+          :disable="disableForSharing"
+          @click="triggerUpload(), isForSharingClicked = true"
         />
       </div>
     </div>
 
     <div class="row flex flex-center q-gutter-md q-mt-xs">
-      <template v-if="retrievedCodes.length === 1">
+      <template v-if="retrievedCodes[0] !== null">
         <qr-code :text="retrievedCodes[0]" color="#253933" :size="150" error-level="H" />
-        <div class="qr-placeholder-div"></div>
-      </template>
-      <template v-else-if="retrievedCodes.length === 2">
-        <qr-code :text="retrievedCodes[0]" color="#253933" :size="150" error-level="H" />
-        <qr-code :text="retrievedCodes[1]" color="#253933" :size="150" error-level="H" />
       </template>
       <template v-else>
         <div class="qr-placeholder-div"></div>
+      </template>
+      <template v-if="retrievedCodes[1] !== null">
+        <qr-code :text="retrievedCodes[1]" color="#253933" :size="150" error-level="H" />
+      </template>
+      <template v-else>
         <div class="qr-placeholder-div"></div>
       </template>
     </div>
@@ -124,8 +129,12 @@ export default {
     return {
       showQrScanner: false,
       fileModel: null,
-      retrievedCodes: [],
-      areQRCodesValid: false
+      retrievedCodes: [null, null],
+      areQRCodesValid: false,
+      isPersonalClicked: false,
+      isForSharingClicked: false,
+      disablePersonal: false,
+      disableForSharing: false
     }
   },
 
@@ -138,9 +147,22 @@ export default {
   methods: {
     getDarkModeClass,
     onScannerDecode (content) {
-      this.showQrScanner = false
-      this.retrievedCodes.push(content)
-      this.validateQRCodes()
+      const vm = this
+      vm.showQrScanner = false
+
+      if (vm.isPersonalClicked) {
+        vm.retrievedCodes[0] = content
+        vm.disablePersonal = true
+        vm.isPersonalClicked = false
+      }
+
+      if (vm.isForSharingClicked) {
+        vm.retrievedCodes[1] = content
+        vm.disableForSharing = true
+        vm.isForSharingClicked = false
+      }
+
+      vm.validateQRCodes()
     },
     triggerUpload () {
       const fileUploadRef = this.$refs['file-upload']
@@ -149,6 +171,7 @@ export default {
       fileUploadRef.pickFiles()
     },
     uploadedQrImage (qrFile) {
+      const vm = this
       const reader = new FileReader()
       reader.onload = () => {
         const image = new Image()
@@ -162,9 +185,18 @@ export default {
           const qrCode = jsqr(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' })
 
           if (qrCode) {
-            if (this.retrievedCodes.length < 2) {
-              this.retrievedCodes.push(qrCode.data)
+            if (vm.isPersonalClicked) {
+              vm.retrievedCodes[0] = qrCode.data
+              vm.disablePersonal = true
+              vm.isPersonalClicked = false
             }
+
+            if (vm.isForSharingClicked) {
+              vm.retrievedCodes[1] = qrCode.data
+              vm.disableForSharing = true
+              vm.isForSharingClicked = false
+            }
+
             this.validateQRCodes()
           } else {
             this.$q.notify({
@@ -184,15 +216,21 @@ export default {
       fileUploadRef.removeQueuedFiles()
     },
     validateQRCodes () {
-      if (this.retrievedCodes.length === 2) {
-        const recovered = sss.combine([this.retrievedCodes[0], this.retrievedCodes[1]]).toString()
-        this.areQRCodesValid = recovered.split(' ').length === 12
-        this.$emit('set-seed-phrase', recovered)
+      const vm = this
+
+      if (vm.retrievedCodes[0] && vm.retrievedCodes[1]) {
+        const recovered = sss.combine([vm.retrievedCodes[0], vm.retrievedCodes[1]]).toString()
+        vm.areQRCodesValid = recovered.split(' ').length === 12
+        vm.$emit('set-seed-phrase', recovered)
       }
     },
     clearQRs () {
-      this.retrievedCodes = []
+      this.retrievedCodes = [null, null]
       this.areQRCodesValid = false
+      this.isPersonalClicked = false
+      this.isForSharingClicked = false
+      this.disablePersonal = false
+      this.disableForSharing = false
     }
   }
 }

@@ -219,8 +219,8 @@ export default {
         try {
           appContainer.classList.add(hide)
         } catch (error) {
-          registrationContainer.classList.add(visibilityHidden)
           scannerUI.classList.add(visibilityVisible)
+          registrationContainer.classList.add(visibilityHidden)
         }
         document.body.classList.add(transparent)
         scannerUI.classList.remove(hide)
@@ -228,8 +228,8 @@ export default {
         try {
           appContainer.classList.remove(hide)
         } catch (error) {
-          registrationContainer.classList.remove(visibilityHidden)
           scannerUI.classList.remove(visibilityVisible)
+          registrationContainer.classList.remove(visibilityHidden)
         }
         document.body.classList.remove(transparent)
         scannerUI.classList.add(hide)
