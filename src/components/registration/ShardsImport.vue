@@ -163,20 +163,9 @@ export default {
     getDarkModeClass,
     onScannerDecode (content) {
       const vm = this
+
       vm.showQrScanner = false
-
-      if (vm.isPersonalClicked) {
-        vm.retrievedCodes[0] = content
-        vm.disablePersonal = true
-        vm.isPersonalClicked = false
-      }
-
-      if (vm.isForSharingClicked) {
-        vm.retrievedCodes[1] = content
-        vm.disableForSharing = true
-        vm.isForSharingClicked = false
-      }
-
+      vm.addData(content)
       vm.validateQRCodes()
     },
     triggerUpload () {
@@ -196,22 +185,21 @@ export default {
           canvas.width = image.width
           canvas.height = image.height
           context.drawImage(image, 0, 0)
-          const imageData = context.getImageData(0, 0, image.width, image.height)
+          let imageData = context.getImageData(0, 0, image.width, image.height)
+
+          const cropCoords = vm.processUploadedQr(imageData)
+          if (cropCoords) {
+            context.clearRect(0, 0, image.width, image.height)
+            canvas.width = cropCoords.x1 - cropCoords.x
+            canvas.height = cropCoords.y1 - cropCoords.y
+            context.drawImage(image, cropCoords.x, cropCoords.y, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height)
+            imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+          }
+
           const qrCode = jsqr(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' })
 
           if (qrCode) {
-            if (vm.isPersonalClicked) {
-              vm.retrievedCodes[0] = qrCode.data
-              vm.disablePersonal = true
-              vm.isPersonalClicked = false
-            }
-
-            if (vm.isForSharingClicked) {
-              vm.retrievedCodes[1] = qrCode.data
-              vm.disableForSharing = true
-              vm.isForSharingClicked = false
-            }
-
+            vm.addData(qrCode.data)
             vm.validateQRCodes()
           } else {
             vm.$q.notify({
@@ -248,6 +236,63 @@ export default {
       this.disablePersonal = false
       this.disableForSharing = false
       this.qrCodeDivClass = ''
+    },
+    addData (data) {
+      const vm = this
+
+      if (vm.isPersonalClicked) {
+        vm.retrievedCodes[0] = data
+        vm.disablePersonal = true
+        vm.isPersonalClicked = false
+      }
+
+      if (vm.isForSharingClicked) {
+        vm.retrievedCodes[1] = data
+        vm.disableForSharing = true
+        vm.isForSharingClicked = false
+      }
+    },
+    processUploadedQr (imageData) {
+      // crop qr code from the image if the image contains the red square with the QR inside
+      const data = imageData.data
+      let j = 1, k = 1
+      let hasDetectedRedSquarePixel = false
+      const startingRedSquarePixel = { x: -1, y: -1 }
+
+      for (let i = 0; i < data.length; i += 4) {
+        // rgb 237, 95, 89 color of red square
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
+        const rThreshold = r >= 199 && r <= 237
+        const gThreshold = g >= 95 && g <= 109
+        const bThreshold = b >= 89 && b <= 108
+
+        if (rThreshold && gThreshold && bThreshold && !hasDetectedRedSquarePixel) {
+          hasDetectedRedSquarePixel = true
+          startingRedSquarePixel.x = k
+          startingRedSquarePixel.y = j
+        }
+
+        if (i / 4 / j === imageData.width) {
+          j += 1
+          k = 1
+        }
+
+        k++
+      }
+
+      console.log(startingRedSquarePixel)
+      if (startingRedSquarePixel.x > 5 && startingRedSquarePixel.y > 5) {
+        const x = startingRedSquarePixel.x + 15 // border thickness
+        const y = startingRedSquarePixel.y + 4 + 45 // border thickness + space occupied by text
+        const x1 = x + 225 // width of qr - border thickness - padding
+        const y1 = y + 225 // height of qr - border thickness - padding
+
+        return { x, y, x1, y1 }
+      }
+
+      return null
     }
   }
 }
