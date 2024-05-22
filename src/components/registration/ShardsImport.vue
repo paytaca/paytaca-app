@@ -208,6 +208,14 @@ export default {
               color: 'red-9',
               icon: 'mdi-qrcode-remove'
             })
+
+            if (vm.isPersonalClicked && vm.retrievedCodes[0] === null) {
+              vm.isPersonalClicked = false
+            }
+
+            if (vm.isForSharingClicked && vm.retrievedCodes[1] === null) {
+              vm.isForSharingClicked = false
+            }
           }
         }
         image.src = reader.result
@@ -282,7 +290,6 @@ export default {
         k++
       }
 
-      console.log(startingRedSquarePixel)
       if (startingRedSquarePixel.x > 5 && startingRedSquarePixel.y > 5) {
         const x = startingRedSquarePixel.x + 15 // border thickness
         const y = startingRedSquarePixel.y + 4 + 45 // border thickness + space occupied by text
