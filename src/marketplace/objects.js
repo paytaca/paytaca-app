@@ -1093,6 +1093,7 @@ export class Order {
     CONFIRMED: 'confirmed',
     PREPARING: 'preparing',
     READY_FOR_PICKUP: 'ready_for_pickup',
+    PICKED_UP: 'picked_up',
     ON_DELIVERY: 'on_delivery',
     DELIVERED: 'delivered',
     COMPLETED: 'completed',
@@ -1281,6 +1282,10 @@ export class Order {
 
   get isReadyForPickup() {
     return this.status === Order.Status.READY_FOR_PICKUP
+  }
+
+  get isPickedUp() {
+    return this.status === Order.Status.PICKED_UP
   }
 
   get isDelivered() {

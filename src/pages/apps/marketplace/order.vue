@@ -167,39 +167,21 @@
             </div>
           </div>
         </div>
-        <div class="row items-center justify-between q-mt-sm">
-          <q-btn
-            outline
-            rounded
-            no-caps
-            :color="disputeButtonOpts.color"
-            padding="1px sm"
-            @click="() => showOrderDisputeDialog()"
-          >
-            Dispute
-            <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
-          </q-btn>
-          <q-btn
-            rounded
-            no-caps
-            :disable="hasOngoingDispute"
-            :loading="completingOrder"
-            label="Mark as Complete"
-            class="button"
-            padding="1px sm"
-            @click="() => completeOrderConfirm()"
-          />
-        </div>
       </q-banner>
       <q-banner
-        v-if="order?.isDelivered" rounded
+        v-if="order?.isDelivered || (order?.isStorePickup && order?.isPickedUp)" rounded
         class="q-mx-xs q-my-sm pt-card text-bow"
         :class="getDarkModeClass(darkMode)"
       >
         <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
           <div class="q-space">
             <div class="text-subtitle1">
-              Order delivered!
+              <template v-if="order?.isStorePickup && order?.isPickedUp">
+                Order picked up!
+              </template>
+              <template v-else>
+                Order delivered!
+              </template>
               <q-spinner v-if="completingOrder"/>
             </div>
             <div class="text-caption text-grey">Review your order and mark completed if there are no problems</div>
@@ -1353,7 +1335,9 @@ const autoCompleteTimeRemainingText = computed(() => {
   return `${negative ? '-' : ''}${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
 })
 function shouldRunAutoCompleteCountdown() {
-  if (order.value.status != 'delivered') return false
+  const isDelivered = order.value?.isDelivered
+  const isPickedUp = order.value.isStorePickup && order.value.isPickedUp
+  if (!isDelivered && !isPickedUp) return false
   return Date.now() < order.value.autoCompleteAtTimestamp
 }
 
