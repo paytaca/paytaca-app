@@ -822,6 +822,14 @@ export class JSONPaymentProtocol {
   }
 
   static async getTxConfirmations(txid='') {
+    const response = await axios.get(`https://watchtower.cash/api/transactions/${txid}/`).catch(console.log)
+    if (response?.data?.details?.txid) {
+      return {
+        txid: response?.data?.details?.txid,
+        confirmations: response?.data?.details?.confirmations,
+      }
+    }
+
     return axios.get(
       `https://rest1.biggestfan.net/v2/rawtransactions/getRawTransaction/${txid}/`,
       { params: { verbose: true } },
@@ -840,7 +848,6 @@ export class JSONPaymentProtocol {
         return axios.get(`https://api.fullstack.cash/v5/electrumx/tx/data/${txid}/`) 
           .then(response => {
             if (!response?.success) return Promise.reject(new Error(response?.data?.error))
-
             return {
               txid: response?.data?.details?.txid,
               confirmations: response?.data?.details?.confirmations,
