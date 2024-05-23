@@ -1816,6 +1816,8 @@ function updateCheckout(data) {
 }
 
 async function completeCheckout() {
+  if (loadingState.value.completing) return
+
   const data = {
     rider_id: formData.value?.delivery?.rider?.id || undefined,
   }

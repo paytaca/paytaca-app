@@ -1413,7 +1413,10 @@ async function completeOrderConfirm() {
   return completeOrder()
 }
 function completeOrder() {
-  if (!order.value.isDelivered || (order.value.isStorePickup && order.value.isReadyForPickup)) return
+  const isDelivered = order.value?.isDelivered
+  const isPickedUp = order.value?.isStorePickup && order.value?.isPickedUp
+  if (!isDelivered && !isPickedUp) return
+
   const data = { status: 'completed' }
 
   const dialog = $q.dialog({
