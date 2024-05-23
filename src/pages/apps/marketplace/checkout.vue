@@ -796,6 +796,9 @@ import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import CartItemsList from 'src/components/marketplace/product/CartItemsList.vue'
 import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDialog.vue'
 
+import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
+import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
+
 const props = defineProps({
   checkoutId: [String, Number],
   cartId: [String, Number],
@@ -1936,6 +1939,12 @@ function displayStorefrontLocation() {
     headerText: checkoutStorefront.value?.name,
     latitude: Number(checkoutStorefront.value?.location?.latitude),
     longitude: Number(checkoutStorefront.value?.location?.longitude),
+    markerIcon: {
+      iconUrl: merchantLocationPin,
+      iconSize: [30, 45],
+      iconAnchor: [15, 45],
+      popupAnchor:  [0, -45],
+    }
   })
 }
 
@@ -1947,17 +1956,25 @@ function displayDeliveryAddressLocation() {
     headerText: 'Delivery address',
     latitude: Number(checkout.value?.deliveryAddress?.location?.latitude),
     longitude: Number(checkout.value?.deliveryAddress?.location?.longitude),
+    markerIcon: {
+      iconUrl: customerLocationPin,
+      iconSize: [30, 45],
+      iconAnchor: [15, 45],
+      popupAnchor:  [0, -45],
+    }
   })
 }
 
-function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefined, hideCancel: undefined }) {
+function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefined, hideCancel: undefined, markerIcon: undefined }) {
+  console.log(opts)
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
       static: true,
       headerText: opts?.headerText,
       hideCancel: opts?.hideCancel,
-      initLocation: { latitude: opts?.latitude, longitude: opts?.longitude }
+      initLocation: { latitude: opts?.latitude, longitude: opts?.longitude },
+      markerIcon: opts?.markerIcon,
     }
   })
 }
