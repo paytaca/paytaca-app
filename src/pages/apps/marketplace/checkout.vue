@@ -874,6 +874,8 @@ async function resetTabs() {
 
   await asyncSleep(10)
   if (!validCoordinates.value) return
+  if (!checkout.value.deliveryAddress?.distance) await updateDeliveryFee().catch(console.error)
+  await suggestStorePickup()
   await findRider({ replaceExisting: false, displayDialog: true })
   nextTab()
 
@@ -1314,6 +1316,29 @@ function findRiders(excludeIds=[]) {
       console.error(error)
       return []
     })
+}
+
+function suggestStorePickup() {
+  const deliveryDistance = parseFloat(checkout.value?.deliveryAddress?.distance)
+  if (Number.isNaN(deliveryDistance) || deliveryDistance >= 250) return Promise.resolve()
+
+  return dialogPromise({
+    component: StorePickupDialog,
+    componentProps: {
+      storefront: checkoutStorefront.value,
+      relativeLocation: checkout.value?.deliveryAddress?.location,
+      title: 'Store Pickup',
+      message: `Your delivery address is close to the store.
+            Would you like to pick up from the store instead
+            to save ${checkout.value.payment?.deliveryFee} ${checkoutCurrency.value}?
+          `
+    }
+  })
+    .then(() => {
+      formData.value.deliveryType = Checkout.DeliveryTypes.STORE_PICKUP
+      return saveDeliveryAddress().then(() => updateDeliveryFee()).catch(console.error)
+    })
+    .catch(() => {})
 }
 
 const updateDeliveryFeePromise = ref()

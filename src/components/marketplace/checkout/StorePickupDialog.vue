@@ -17,7 +17,9 @@
         <q-btn v-close-popup flat icon="close" class="q-r-mr-lg"/>
       </div>
       <q-card-section class="q-pt-none">
-        <div>{{ message }}</div>
+        <slot name="message" v-bind="distanceData">
+          <div>{{ message }}</div>
+        </slot>
         <q-banner class="shadow-2 pt-card-2 q-mt-sm" :class="getDarkModeClass(darkMode)" rounded>
           <div class="row items-center no-wrap">
             <img :src="merchantLocationPin" style="height:2.5rem;" class="q-my-xs q-mr-sm"/>
@@ -131,7 +133,14 @@ export default defineComponent({
         { params, cache: { ttle: 300 * 1000 } },
       )
         .then(response => {
-          return { type: 'driving', distance: response?.data?.distance }
+          return {
+            type: 'driving',
+            distance: parseFloat(response?.data?.distance),
+            deliveryFee: {
+              amount: parseFloat(response?.data?.fee),
+              currency: response?.data?.currency_symbol || '',
+            }
+          }
         })
         .catch(() => {
           const distance = aerialDistance({
@@ -140,7 +149,7 @@ export default defineComponent({
           })
           return { type: 'aerial', distance }
         })
-    }, { type: 'aerial', distance: NaN})
+    }, { type: 'aerial', distance: NaN })
 
     const distance = computed(() => distanceData.value.distance)
     const distanceColor = computed(() => {
