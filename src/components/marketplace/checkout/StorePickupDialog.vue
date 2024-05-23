@@ -28,6 +28,7 @@
                 <template v-if="formattedDistance">
                   |
                   <span :class="`text-${distanceColor} text-weight-medium`">
+                    <template v-if="distanceData?.type === 'aerial'">&GreaterEqual;</template>
                     {{ formattedDistance }}
                   </span>
                 </template>
@@ -68,6 +69,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { Storefront } from 'src/marketplace/objects';
 import { aerialDistance, round } from 'src/marketplace/utils';
+import { computedAsync } from '@vueuse/core';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { defineComponent, ref, watch, computed } from 'vue'
@@ -75,7 +77,7 @@ import LeafletMapDialog from 'src/components/LeafletMapDialog.vue';
 
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
-
+import { cachedBackend } from 'src/marketplace/backend';
 
 export default defineComponent({
   name: 'StorePickupDialog',
@@ -114,17 +116,33 @@ export default defineComponent({
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-    const distance = computed(() => {
+    const distanceData = computedAsync(() => {
       const lat = parseFloat(props.relativeLocation?.latitude)
       const lng = parseFloat(props.relativeLocation?.longitude)
       if (Number.isNaN(lat) || Number.isNaN(lng)) return
       if (!props.storefront?.location?.validCoordinates) return
 
-      return aerialDistance({
-        pos1: { latitude: lat, longitude: lng },
-        pos2: props.storefront?.location,
-      })
-    })
+      const params = {
+        storefront_id: props.storefront?.id,
+        delivery_location: [round(lat, 6), round(lng, 6)].join(','),
+      }
+      return cachedBackend.get(
+        `connecta-express/calculate_delivery/`,
+        { params, cache: { ttle: 300 * 1000 } },
+      )
+        .then(response => {
+          return { type: 'driving', distance: response?.data?.distance }
+        })
+        .catch(() => {
+          const distance = aerialDistance({
+            pos1: { latitude: lat, longitude: lng },
+            pos2: props.storefront?.location,
+          })
+          return { type: 'aerial', distance }
+        })
+    }, { type: 'aerial', distance: NaN})
+
+    const distance = computed(() => distanceData.value.distance)
     const distanceColor = computed(() => {
       if (Number.isNaN(distance.value)) return 'grey'
       if (distance.value > 500) return 'amber'
@@ -173,6 +191,7 @@ export default defineComponent({
       innerVal,
       darkMode,
 
+      distanceData,
       distance,
       distanceColor,
       formattedDistance,
