@@ -75,16 +75,16 @@
                                 {{ listing.price_type }}
                               </span><br>
                               <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
-                                {{ listing.fiat_currency.symbol  }} {{ formattedCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
+                                {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                               </span>
                               <span class="sm-font-size">/BCH</span>
                               <div class="sm-font-size row q-gutter-md">
                                 <span>Quantity</span>
-                                <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
+                                <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
                               </div>
                               <div class="sm-font-size row q-gutter-md">
                                 <span>Limits</span>
-                                <span>{{ parseFloat(listing.trade_floor) }} - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                                <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minAmount([listing.trade_amount, listing.trade_ceiling]), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                               </div>
                               <div class="row sm-font-size q-gutter-md">
                                 <span>Appealable in </span>
@@ -257,6 +257,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    formatCurrency,
     customBack () {
       const vm = this
       switch (vm.pageName) {
@@ -274,12 +275,14 @@ export default {
           break
       }
     },
-    maxAmount (tradeAmount, tradeCeiling) {
-      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
-        return parseFloat(tradeAmount)
-      } else {
-        return parseFloat(tradeCeiling)
-      }
+    tradeAmountCurrency (ad) {
+      return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    tradeLimitsCurrency (ad) {
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    minAmount (amounts) {
+      return Math.min.apply(null, amounts)
     },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
@@ -415,13 +418,6 @@ export default {
     },
     formattedDate (value) {
       return formatDate(value)
-    },
-    formattedCurrency (value, currency, fiat = true) {
-      if (fiat) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
-      }
     }
   }
 }

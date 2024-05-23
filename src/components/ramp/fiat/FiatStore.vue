@@ -125,11 +125,11 @@
                           <div class="sm-font-size">
                             <div class="row">
                               <span class="col-3">Quantity</span>
-                              <span class="col">{{ formattedCurrency(listing.trade_amount) }} BCH</span>
+                              <span class="col">{{ formattedCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
                             </div>
                             <div class="row">
                               <span class="col-3">Limit</span>
-                              <span class="col"> {{ parseFloat(listing.trade_floor) }} {{ listing.crypto_currency.symbol }}  - {{ parseFloat(listing.trade_amount) }} {{ listing.crypto_currency.symbol }}</span>
+                              <span class="col"> {{ formattedCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formattedCurrency(minAmount([listing.trade_amount, listing.trade_ceiling]), listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
                             </div>
                           </div>
                         </div>
@@ -305,6 +305,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    minAmount (amounts) {
+      return Math.min.apply(null, amounts)
+    },
     onFilterListings (filters) {
       this.filters = filters
       this.resetAndRefetchListings()

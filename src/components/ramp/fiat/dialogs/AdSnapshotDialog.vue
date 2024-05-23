@@ -20,19 +20,25 @@
           <div class="row justify-between no-wrap q-mx-lg">
             <span>{{ snapshot?.price_type === 'FIXED' ? 'Fixed' : 'Floating' }} Price</span>
             <span class="text-nowrap q-ml-xs">
-              {{ snapshot?.price_type === 'FIXED' ? formattedCurrency(snapshot?.fixed_price, snapshot?.fiat_currency?.symbol) : Number(snapshot?.floating_price) }}{{ snapshot?.price_type === 'FLOATING' ? '%': '' }}
+              {{ snapshot?.price_type === 'FIXED' ? formatCurrency(snapshot?.fixed_price, snapshot?.fiat_currency?.symbol) : Number(snapshot?.floating_price) }}{{ snapshot?.price_type === 'FLOATING' ? '%': '' }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Price</span>
+            <span>Locked Price</span>
             <span class="text-nowrap q-ml-xs">
-              {{ snapshot?.fiat_currency?.symbol }} {{ formattedCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
+              {{ formatCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ snapshot?.fiat_currency?.symbol }}
+            </span>
+          </div>
+          <div class="row justify-between no-wrap q-mx-lg">
+            <span>Trade Quantity</span>
+            <span class="text-nowrap q-ml-xs">
+              {{ formatCurrency(snapshot?.trade_amount, tradeAmountCurrency(snapshot)) }} {{ tradeAmountCurrency(snapshot) }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Trade Limit</span>
             <span class="text-nowrap q-ml-xs">
-              {{ formattedCurrency(snapshot?.trade_floor) }} - {{ formattedCurrency(snapshot?.trade_ceiling) }} BCH
+              {{ formatCurrency(snapshot?.trade_floor, tradeLimitsCurrency(snapshot)) }} - {{ formatCurrency(minAmount([snapshot?.trade_ceiling, snapshot?.trade_amount]), tradeLimitsCurrency(snapshot)) }} {{ tradeLimitsCurrency(snapshot) }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
@@ -111,12 +117,15 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
-    formattedCurrency (value, currency = null) {
-      if (currency) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
-      }
+    formatCurrency,
+    minAmount (amounts) {
+      return Math.min.apply(null, amounts)
+    },
+    tradeAmountCurrency (ad) {
+      return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    tradeLimitsCurrency (ad) {
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)

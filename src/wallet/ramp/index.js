@@ -38,7 +38,6 @@ export function formatCurrency (value, currency) {
       maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 8
     }
     formattedNumber = parsedValue.toLocaleString(undefined, {
-      style: 'currency',
       currency: currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: maximumFractionDigits
