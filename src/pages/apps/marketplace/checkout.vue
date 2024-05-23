@@ -794,6 +794,7 @@ import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import RefundPaymentsDialog from 'src/components/marketplace/RefundPaymentsDialog.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import CartItemsList from 'src/components/marketplace/product/CartItemsList.vue'
+import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDialog.vue'
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -1266,21 +1267,16 @@ async function findRider(opts={ replaceExisting: false, skipReplaceIfEmpty: fals
     loadingState.value.rider = false
     loadingMsg.value = resolveLoadingMsg()
     formData.value.delivery.rider = riders[0]
-    if (riders?.length) {
-      dialog?.hide?.()
-      return
-    }
+    dialog?.hide?.()
+    if (riders?.length) return
 
-    const dialogUpdate = dialog ? dialog.update : $q.dialog
     return new Promise((resolve, reject) => {
-      dialogUpdate({
-        title: 'No riders nearby found',
-        message: 'Local delivery might not be available. Would you like to opt for store pickup instead?',
-        persistent: true,
-        progress: false,
-        cancel: { flat: true, noCaps: true, label: 'Cancel', color: 'grey' },
-        ok: { flat: true, noCaps: true, label: 'Store pickup', color: 'brandblue', class: 'button' },
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+      $q.dialog({
+        component: StorePickupDialog,
+        componentProps: {
+          storefront: checkoutStorefront.value,
+          relativeLocation: checkout.value?.deliveryAddress?.location,
+        },
       }).onCancel(() => {
         $router.replace({ params: { cartId: undefined } })
         $router.go(-1)
@@ -1808,7 +1804,6 @@ async function openRefundPaymentsDialog() {
 
   // setTimeout(() => refundPaymentsDialogRef.value?.refundPayments?.(), 250)
 }
-window.t = () => openRefundPaymentsDialog()
 
 function updateCheckout(data) {
   return backend.patch(`connecta/checkouts/${checkout.value.id}/`, data)
