@@ -40,13 +40,15 @@
             <div class="sm-font-size">SELLER</div>
             <div class="row justify-end">
                 <div class="col q-py-none">
-                    <q-btn flat no-caps dense
-                        padding="none"
-                        color="primary"
-                        class="q-py-none q-my-none row lg-font-size text-weight-bold"
-                        @click="onViewPeer(order?.members?.seller?.id)">
-                        {{ order?.members?.seller?.name }}
-                    </q-btn>
+                    <div style="max-width: 125px; overflow-x: auto;">
+                      <q-btn flat no-caps dense
+                          padding="none"
+                          color="primary"
+                          class="q-py-none q-my-none row lg-font-size text-weight-bold"
+                          @click="onViewPeer(order?.members?.seller?.id)">
+                          {{ order?.members?.seller?.name }}
+                      </q-btn>
+                    </div>
                     <div class="row">
                         <q-rating
                         readonly
@@ -64,16 +66,18 @@
           <div class="col-auto text-right">
             <div class="sm-font-size">BUYER</div>
             <div class="row justify-end q-py-none">
-              <q-btn
-                  flat
-                  no-caps
-                  dense
-                  padding="none"
-                  color="primary"
-                  class="row lg-font-size text-weight-bold"
-                  @click="onViewPeer(order?.members?.buyer?.id)">
-                  {{ order?.members?.buyer?.name }}
-              </q-btn>
+              <div style="max-width: 125px; overflow-x: auto;">
+                <q-btn
+                    flat
+                    no-caps
+                    dense
+                    padding="none"
+                    color="primary"
+                    class="row lg-font-size text-weight-bold"
+                    @click="onViewPeer(order?.members?.buyer?.id)">
+                    {{ order?.members?.buyer?.name }}
+                </q-btn>
+              </div>
             </div>
             <div class="row justify-end text-right">
                 <q-rating
@@ -104,11 +108,8 @@
               </div>
               <div v-if="type === 'order'">
                 <div class="xs-font-size">Trade Amount</div>
-                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">{{ byFiat ? order?.ad?.fiat_currency?.symbol : '' }}</span>&nbsp;
-                <span
-                    class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                    :class="getDarkModeClass(darkMode)">
-                    {{ tradeAmount }}
+                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                  {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}{{ tradeAmount }}
                 </span>
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
@@ -126,10 +127,10 @@
             <div class="col-auto">
               <div class="row xs-font-size">Trade Amount</div>
               <div class="q-mb-none">
-                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">{{ byFiat ? order?.ad?.fiat_currency?.symbol : '' }}</span>
-                <span
-                    class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                    :class="getDarkModeClass(darkMode)">
+                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">
+                  {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}
+                </span>
+                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
                     {{ tradeAmount }}
                 </span>
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
