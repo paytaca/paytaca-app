@@ -118,7 +118,7 @@
           <!-- create order btn -->
           <div class="row q-mx-lg q-py-md" v-if="!isOwner">
             <q-btn
-              :disabled="!isValidInputAmount(amount)"
+              :disabled="!isValidInputAmount(amount) || arbitersAvailable?.length === 0"
               rounded
               no-caps
               :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
@@ -126,6 +126,11 @@
               class="q-space"
               @click="submit()">
             </q-btn>
+          </div>
+
+          <!-- Warning message for when no currency arbiter is available for ad -->
+          <div class="warning-box q-mx-md" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'" v-if="arbitersAvailable?.length === 0">
+            There is currently no arbiter available for this ad's currency. Please try again later.
           </div>
 
           <!-- edit ad button: For ad owners only -->
@@ -244,7 +249,8 @@ export default {
         comment: '',
         is_posted: false
       },
-      marketPrice: 0
+      marketPrice: 0,
+      arbitersAvailable: []
     }
   },
   setup () {
@@ -326,6 +332,7 @@ export default {
   async mounted () {
     const vm = this
     await vm.fetchAd()
+    await vm.fetchArbiters()
     vm.setupWebsocket()
     vm.isloaded = true
   },
@@ -435,10 +442,6 @@ export default {
             this.amount = this.ad.trade_floor
             this.byFiat = this.ad.trade_limits_in_fiat
           }
-          // if (this.ad.trade_limits_in_fiat) {
-          //   this.amount = (this.ad.trade_floor / this.ad.price).toFixed(8)
-          //   if (this.amount < 0.00001) this.amount = 0.00001
-          // }
         })
         .catch(error => {
           if (error.response) {
@@ -497,6 +500,24 @@ export default {
               console.error(error.response)
             } else {
               console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
+    fetchArbiters () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('ramp-p2p/arbiter', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
+          .then(response => {
+            console.log('fetchArbiter:', response.data)
+            vm.arbitersAvailable = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
             }
             reject(error)
           })
@@ -728,5 +749,18 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #fff9c4; /* Light yellow background */
+  border: 1px solid #fbc02d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fbc02d; /* Border color */
 }
 </style>

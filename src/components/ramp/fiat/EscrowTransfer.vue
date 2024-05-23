@@ -10,7 +10,10 @@
         filled
         dense
         v-model="selectedArbiter"
-        :loading="!selectedArbiter"
+        hide-bottom-space
+        :error="!arbiterOptions || arbiterOptions.length === 0"
+        :error-message="arbiterOptionsMessage"
+        :loading="arbiterOptions?.length > 0 && !selectedArbiter"
         :label="selectedArbiter ? selectedArbiter.address : ''"
         :options="arbiterOptions"
         :disable="!contractAddress || sendingBch"
@@ -42,7 +45,7 @@
         error-message="Contract address mismatch"
         :error="contractAddress && data.escrow?.getAddress() && !contractAddressMatch(contractAddress)"
         :dark="darkMode"
-        :loading="!contractAddress"
+        :loading="arbiterOptions?.length > 0 && !contractAddress"
         v-model="contractAddress">
         <template v-slot:append v-if="contractAddress">
           <div @click="copyToClipboard(contractAddress)">
@@ -96,7 +99,7 @@
     <RampDragSlide
       :key="dragSlideKey"
       :locked="!contractAddressMatch(contractAddress)"
-      v-if="showDragSlide && data?.wsConnected && !sendingBch && contractAddress"
+      v-if="showDragSlide"
       :style="{
         position: 'fixed',
         bottom: 0,
@@ -131,7 +134,7 @@ export default {
       fees: null,
       transferAmount: null,
       txid: null,
-      showDragSlide: false,
+      dragSlideOn: false,
       sendErrors: [],
       sendingBch: false,
       dragSlideKey: 0,
@@ -147,10 +150,16 @@ export default {
   },
   watch: {
     fees (value) {
-      if (value) this.showDragSlide = true
+      if (value) this.dragSlideOn = true
     }
   },
   computed: {
+    showDragSlide () {
+      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && this.data?.wsConnected && !this.sendingBch && this.contractAddress)
+    },
+    arbiterOptionsMessage () {
+      return `No available arbiter found for currency ${this.order?.ad?.fiat_currency?.symbol}`
+    },
     balance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
@@ -221,7 +230,7 @@ export default {
       const vm = this
       if (!vm.contractAddressMatch(this.contractAddress)) {
         vm.sendErrors = ['Contract address mismatch']
-        vm.showDragSlide = true
+        vm.dragSlideOn = true
         vm.dragSlideKey++
         return
       }
@@ -257,14 +266,14 @@ export default {
               } else {
                 vm.sendErrors.push(result.error)
               }
-              vm.showDragSlide = true
+              vm.dragSlideOn = true
               vm.dragSlideKey++
               reject(result)
             }
           })
         ).catch(error => {
           vm.sendErrors.push(error)
-          vm.showDragSlide = true
+          vm.dragSlideOn = true
           vm.dragSlideKey++
           vm.sendingBch = false
           reject(error)
@@ -294,7 +303,7 @@ export default {
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('ramp-p2p/arbiter', { authorize: true })
+        backend.get('ramp-p2p/arbiter', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
           .then(response => {
             vm.arbiterOptions = response.data
             if (vm.arbiterOptions.length > 0) {
@@ -305,6 +314,9 @@ export default {
                   return Number(obj.id) === vm.selectedArbiter.id
                 })
               }
+            } else {
+              vm.selectedArbiter = null
+              vm.contractAddress = null
             }
             resolve(response.data)
             vm.loading = false
@@ -324,7 +336,7 @@ export default {
         const vm = this
         const body = {
           order_id: vm.order?.id,
-          arbiter_id: vm.selectedArbiter.id,
+          arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
         backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
@@ -355,12 +367,12 @@ export default {
       }
     },
     onSecurityOk () {
-      this.showDragSlide = false
+      this.dragSlideOn = false
       this.dragSlideKey++
       this.completePayment()
     },
     onSecurityCancel () {
-      this.showDragSlide = true
+      this.dragSlideOn = true
       this.dragSlideKey++
     },
     formattedAddress (address) {

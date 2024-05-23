@@ -5,24 +5,26 @@
         <div class="xs-font-size">Trading with</div>
         <div class="row justify-end">
             <div class="col q-py-none">
-                <q-btn flat no-caps dense
-                    padding="none"
-                    color="primary"
-                    class="q-py-none q-my-none row lg-font-size text-weight-bold"
-                    @click="onViewPeer(counterparty?.id)">
-                    {{ counterparty?.name }}
-                </q-btn>
+                <div style="overflow-x: scroll; max-width: 200px;">
+                  <q-btn flat no-caps dense
+                      padding="none"
+                      color="primary"
+                      class="q-py-none q-my-none row lg-font-size text-weight-bold"
+                      @click="onViewPeer(counterparty?.id)">
+                      {{ counterparty?.name }}
+                  </q-btn>
+                </div>
                 <div class="row">
-                    <q-rating
-                    readonly
-                    :model-value="counterparty?.rating || 0"
-                    :v-model="counterparty?.rating || 0"
-                    size="1em"
-                    color="yellow-9"
-                    icon="star"
-                    icon-half="star_half"
-                    @click="onViewReviews"/>
-                    <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
+                  <q-rating
+                  readonly
+                  :model-value="counterparty?.rating || 0"
+                  :v-model="counterparty?.rating || 0"
+                  size="1em"
+                  color="yellow-9"
+                  icon="star"
+                  icon-half="star_half"
+                  @click="onViewReviews"/>
+                  <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
