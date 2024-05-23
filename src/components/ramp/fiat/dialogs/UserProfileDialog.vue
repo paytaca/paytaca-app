@@ -88,22 +88,21 @@
                             <span
                                 class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                                 :class="getDarkModeClass(darkMode)">
-                                {{ formattedCurrency(ad.price, ad?.fiat_currency?.symbol) }}
+                                {{ ad?.fiat_currency?.symbol }} {{ formatCurrency(ad.price, ad?.fiat_currency?.symbol) }}
                             </span>
                             <span class="sm-font-size">/BCH</span><br>
                             <div class="sm-font-size">
                                 <div class="row">
                                 <span class="col-3">Quantity</span>
-                                <span class="col">{{ formattedCurrency(ad.trade_amount, false) }} BCH</span>
+                                <span class="col">{{ formatCurrency(ad.trade_amount, tradeAmountCurrency(ad)) }} {{  tradeAmountCurrency(ad) }}</span>
                                 </div>
                                 <div class="row">
                                 <span class="col-3">Limit</span>
-                                <span class="col"> {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency?.symbol }}  - {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency?.symbol }}</span>
+                                <span class="col"> {{ formatCurrency(ad.trade_floor, tradeLimitsCurrency(ad)) }} - {{ formatCurrency(minAmount([ad.trade_amount, ad.trade_ceiling]), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}</span>
                                 </div>
                             </div>
                             <div class="row sm-font-size q-gutter-md">
-                                <span>Appealable in </span>
-                                <span>{{ appealCooldown(ad.appeal_cooldown).label }}</span>
+                                <span>Appealable in {{ appealCooldown(ad.appeal_cooldown).label }}</span>                                <span></span>
                             </div>
                             </div>
                         </q-item-section>
@@ -198,6 +197,16 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    formatCurrency,
+    tradeAmountCurrency (ad) {
+      return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    tradeLimitsCurrency (ad) {
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    minAmount (amounts) {
+      return Math.min.apply(null, amounts)
+    },
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
@@ -324,9 +333,6 @@ export default {
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
-    },
-    formattedCurrency (value, currency) {
-      return formatCurrency(value, currency)
     },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
