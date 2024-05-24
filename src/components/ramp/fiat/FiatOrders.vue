@@ -95,18 +95,14 @@
                               ORDER #{{ listing.id }}
                               <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
                             </div>
-                            <!-- <div style="max-width: 120px; overflow-x: auto"> -->
-                              <span
-                                class=" pt-label md-font-size text-weight-bold"
-                                :class="getDarkModeClass(darkMode)">
-                                {{ listing.owner?.name?.substring(0,12) }}<q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
-                              </span>
-                            <!-- </div> -->
+                            <span
+                              class=" pt-label md-font-size text-weight-bold"
+                              :class="getDarkModeClass(darkMode)">
+                              {{ listing.owner?.name?.substring(0,12) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
+                            </span>
                             <div
                               class="col-transaction text-uppercase pt-label lg-font-size"
-                              :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
-                            >
-                            <!-- :style="amountColor(listing.trade_type)" -->
+                              :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
                               {{ listing.ad?.fiat_currency?.symbol }} {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                             </div>
                             <div class="sm-font-size">

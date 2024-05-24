@@ -441,6 +441,9 @@ export default {
           if (!this.isloaded) {
             this.amount = this.ad.trade_floor
             this.byFiat = this.ad.trade_limits_in_fiat
+            if (this.byFiat) {
+              this.amount = Number(this.amount).toFixed(2)
+            }
           }
         })
         .catch(error => {
@@ -545,8 +548,8 @@ export default {
         value = this.equivalentAmount
       }
       const parsedValue = parseFloat(value)
-      const tradeFloor = parseFloat(this.ad.trade_floor)
-      const tradeCeiling = parseFloat(this.ad.trade_amount)
+      let tradeFloor = parseFloat(this.ad.trade_floor)
+      let tradeCeiling = parseFloat(this.minAmount([this.ad.trade_amount, this.ad.trade_ceiling]))
 
       for (const index in decCount) {
         if (index < 1) {
@@ -563,6 +566,9 @@ export default {
       // if trade limits in fiat, check if amount in fiat is less than tradeFloor
       // if trade limits not in fiat, check if amount in bch is less than tradeFloor
       if (this.ad.trade_limits_in_fiat) {
+        tradeFloor = Number(tradeFloor.toFixed(2))
+        tradeCeiling = Number(tradeCeiling.toFixed(2))
+
         let amount = this.amount
         if (!this.byFiat) {
           amount = parsedValue * this.ad.price
@@ -634,7 +640,7 @@ export default {
         }
       }
       if (max) {
-        const tradeCeiling = parseFloat(this.ad.trade_ceiling)
+        const tradeCeiling = this.minAmount([this.ad.trade_ceiling, this.ad.trade_amount])
         if (this.byFiat) {
           if (this.ad.trade_limits_in_fiat) {
             amount = tradeCeiling
@@ -658,6 +664,9 @@ export default {
         }
       }
       this.amount = amount.toFixed(this.byFiat ? 2 : 8)
+    },
+    minAmount (amounts) {
+      return Math.min.apply(null, amounts)
     },
     getCryptoAmount () {
       if (!this.byFiat) {
