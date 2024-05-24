@@ -1504,6 +1504,7 @@ async function attemptCreatePayment(opts={ checkCurrentTab: true }) {
   await updateBchPricePromise.value?.catch?.(console.error)
   await updateDeliveryFeePromise.value
   await createPaymentPromise.value?.catch?.(console.error)
+  await asyncSleep(10)
   if (!payment.value) return createPayment()
 }
 const createPayment = debounce(async () => {
