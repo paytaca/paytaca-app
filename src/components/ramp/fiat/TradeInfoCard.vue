@@ -5,6 +5,7 @@
         <div class="xs-font-size">Trading with</div>
         <div class="row justify-end">
             <div class="col q-py-none">
+<<<<<<< HEAD
                 <div style="overflow-x: scroll; max-width: 200px;">
                   <q-btn flat no-caps dense
                       padding="none"
@@ -14,6 +15,15 @@
                       {{ counterparty?.name }}
                   </q-btn>
                 </div>
+=======
+                <q-btn flat no-caps dense
+                    padding="none"
+                    color="primary"
+                    class="q-py-none q-my-none row lg-font-size text-weight-bold"
+                    @click="onViewPeer(counterparty?.id)">
+                    {{ userNameView(counterparty?.name) }}
+                </q-btn>
+>>>>>>> fix/p2p-ramp-chat
                 <div class="row">
                   <q-rating
                   readonly
@@ -218,6 +228,11 @@ export default {
   methods: {
     formatCurrency,
     getDarkModeClass,
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    },
     onLastReadUpdate () {
       this.fetchChatUnread(this.chatRef)
     },

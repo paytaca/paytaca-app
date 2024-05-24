@@ -17,7 +17,7 @@
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
             <div class="text-weight-bold lg-font-size q-pt-sm">
-              {{ user.name }}
+              <span id="target-name">{{ user.name }}</span>
               <q-icon
                 @click="editNickname = true"
                 v-if="user?.self"
@@ -107,7 +107,7 @@
             </div>
             <div v-else class="q-mx-lg q-px-md">
                 <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-                  <div class="text-weight-bold sm-font-size">{{  review.from_peer.name }}</div>
+                  <div class="text-weight-bold sm-font-size">{{ userNameView(review.from_peer.name) }}</div>
                   <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
                   <div class="sm-font-text">
                     <q-rating
@@ -298,6 +298,11 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    },
     onBackPM () {
       this.$refs.addPaymentMethods.onBack()
     },

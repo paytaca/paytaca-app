@@ -96,7 +96,7 @@
                               :class="{'pt-label dark': darkMode}"
                               class="md-font-size">
                               <!-- @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)"> -->
-                              {{ listing.owner.name }}
+                              {{ userNameView(listing.owner.name) }}
                             </span>
                             <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
                           </div>
@@ -307,6 +307,11 @@ export default {
     getDarkModeClass,
     minAmount (amounts) {
       return Math.min.apply(null, amounts)
+    },
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
     },
     onFilterListings (filters) {
       this.filters = filters
