@@ -11,12 +11,10 @@
         dense
         v-model="selectedArbiter"
         hide-bottom-space
-        :error="!arbiterOptions || arbiterOptions.length === 0"
-        :error-message="arbiterOptionsMessage"
         :loading="arbiterOptions?.length > 0 && !selectedArbiter"
         :label="selectedArbiter ? selectedArbiter.address : ''"
         :options="arbiterOptions"
-        :disable="!contractAddress || sendingBch"
+        :disable="!contractAddress || sendingBch || !hasArbiters"
         @update:model-value="selectArbiter"
         behavior="dialog">
           <template v-slot:option="scope">
@@ -45,7 +43,8 @@
         error-message="Contract address mismatch"
         :error="contractAddress && data.escrow?.getAddress() && !contractAddressMatch(contractAddress)"
         :dark="darkMode"
-        :loading="arbiterOptions?.length > 0 && !contractAddress"
+        :loading="hasArbiters && !contractAddress"
+        :disable="!hasArbiters"
         v-model="contractAddress">
         <template v-slot:append v-if="contractAddress">
           <div @click="copyToClipboard(contractAddress)">
@@ -96,6 +95,10 @@
         </div>
       </div>
     </div>
+    <!-- Warning message for when no currency arbiter is available for ad -->
+    <div v-if="!hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+      There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
+    </div>
     <RampDragSlide
       :key="dragSlideKey"
       :locked="!contractAddressMatch(contractAddress)"
@@ -141,7 +144,7 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
-  emits: ['back', 'success', 'refresh'],
+  emits: ['back', 'success', 'refresh', 'updateArbiterStatus'],
   components: {
     RampDragSlide
   },
@@ -151,9 +154,15 @@ export default {
   watch: {
     fees (value) {
       if (value) this.dragSlideOn = true
+    },
+    arbiterOptions (value) {
+      this.$emit('updateArbiterStatus', value?.length > 0)
     }
   },
   computed: {
+    hasArbiters () {
+      return this.arbiterOptions?.length > 0
+    },
     showDragSlide () {
       return (this.dragSlideOn && this.arbiterOptions?.length > 0 && this.data?.wsConnected && !this.sendingBch && this.contractAddress)
     },
@@ -203,12 +212,14 @@ export default {
           vm.generateContractAddress()
         }
       })
+      if (vm.hasArbiters) {
+        vm.selectedArbiter = vm.data.arbiter
+        vm.contractAddress = vm.data.contractAddress
+      }
     },
     loadData () {
       const vm = this
       vm.order = vm.data.order
-      vm.selectedArbiter = vm.data.arbiter
-      vm.contractAddress = vm.data.contractAddress
       vm.fees = vm.data.fees
       vm.updateTransferAmount(vm.data.transferAmount)
       if (vm.contractAddress) {
@@ -405,5 +416,19 @@ export default {
 
 .lg-font-size {
   font-size: large;
+}
+
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #fff9c4; /* Light yellow background */
+  border: 1px solid #fbc02d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fbc02d; /* Border color */
 }
 </style>

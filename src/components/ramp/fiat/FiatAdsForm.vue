@@ -210,6 +210,10 @@
                 label="Public"
               />
             </div>
+            <!-- Warning message for when no currency arbiter is available for ad -->
+            <div v-if="!hasArbiters" class="warning-box q-mx-lg q-mb-md q-mt-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+              There’s currently no arbiter assigned for the currency ({{ this.adData.fiatCurrency?.symbol }}). Orders cannot be placed for this ad until an arbiter is assigned.
+            </div>
           </div>
           <div class="row q-mx-lg q-px-md q-mt-xs q-mb-md">
             <q-btn
@@ -379,7 +383,8 @@ export default {
       text: '',
       readOnlyState: false,
       setTradeQuantityInFiat: false,
-      setTradeLimitsInFiat: false
+      setTradeLimitsInFiat: false,
+      arbiterOptions: []
     }
   },
   props: {
@@ -391,6 +396,9 @@ export default {
     bus.emit('hide-menu')
   },
   computed: {
+    hasArbiters () {
+      return this.arbiterOptions.length > 0
+    },
     hints () {
       return {
         priceValue: this.adData.priceType === 'FLOATING' ? `Price is ${this.priceValue}% of market price` : 'Fixed prices do not change',
@@ -428,6 +436,7 @@ export default {
     const vm = this
     vm.loading = true
     await vm.fetchAd()
+    await vm.fetchArbiters()
     await vm.getInitialMarketPrice()
     vm.updatePriceValue(vm.adData.priceType)
     vm.loading = false
@@ -498,6 +507,7 @@ export default {
     'adData.fiatCurrency' () {
       this.adData.fixedPrice = 0
       this.getInitialMarketPrice()
+      this.fetchArbiters()
     },
     'adData.priceType' (value) {
       const vm = this
@@ -642,6 +652,23 @@ export default {
           .catch(error => {
             vm.handleRequestError(error)
             vm.swipeStatus = false
+            reject(error)
+          })
+      })
+    },
+    fetchArbiters () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('ramp-p2p/arbiter', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
+          .then(response => {
+            vm.arbiterOptions = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
             reject(error)
           })
       })
@@ -932,5 +959,19 @@ export default {
 
 .md-font-size {
   font-size: medium;
+}
+
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #fff9c4; /* Light yellow background */
+  border: 1px solid #fbc02d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fbc02d; /* Border color */
 }
 </style>
