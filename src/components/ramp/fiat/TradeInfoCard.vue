@@ -10,7 +10,7 @@
                     color="primary"
                     class="q-py-none q-my-none row lg-font-size text-weight-bold"
                     @click="onViewPeer(counterparty?.id)">
-                    {{ counterparty?.name }}
+                    {{ userNameView(counterparty?.name) }}
                 </q-btn>
                 <div class="row">
                     <q-rating
@@ -215,6 +215,11 @@ export default {
   methods: {
     formatCurrency,
     getDarkModeClass,
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    },
     onLastReadUpdate () {
       this.fetchChatUnread(this.chatRef)
     },

@@ -304,6 +304,7 @@
             filled
             :dark="darkMode"
             v-model="nickname"
+            maxlength="30"
           >
             <!-- <template v-slot:append>
               <q-icon size="xs" name="close" @click="nickname = ''"/>&nbsp;
