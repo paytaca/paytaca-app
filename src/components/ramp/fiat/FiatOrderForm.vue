@@ -57,6 +57,7 @@
               type="text"
               inputmode="none"
               label="Amount"
+              :disable="!hasArbiters"
               :dark="darkMode"
               :rules="[isValidInputAmount]"
               v-model="amount"
@@ -81,6 +82,7 @@
                   padding="none"
                   flat
                   dense
+                  :disable="!hasArbiters"
                   :class="getDarkModeClass(darkMode)"
                   label="MIN"
                   @click="updateInput(max=false, min=true)"/>
@@ -88,6 +90,7 @@
                   class="sm-font-size button button-text-primary"
                   padding="none"
                   flat
+                  :disable="!hasArbiters"
                   :class="getDarkModeClass(darkMode)"
                   label="MAX"
                   @click="updateInput(max=true, min=false)"/>
@@ -99,6 +102,7 @@
                 padding="none"
                 flat
                 no-caps
+                :disable="!hasArbiters"
                 :class="getDarkModeClass(darkMode)"
                 @click="byFiat = !byFiat">
                 Set amount in {{ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }}
@@ -116,9 +120,9 @@
           </div>
 
           <!-- create order btn -->
-          <div class="row q-mx-lg q-py-md" v-if="!isOwner">
+          <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
             <q-btn
-              :disabled="!isValidInputAmount(amount) || arbitersAvailable?.length === 0"
+              :disabled="!isValidInputAmount(amount) || !hasArbiters"
               rounded
               no-caps
               :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
@@ -129,12 +133,12 @@
           </div>
 
           <!-- Warning message for when no currency arbiter is available for ad -->
-          <div class="warning-box q-mx-md" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'" v-if="arbitersAvailable?.length === 0">
-            There is currently no arbiter available for this ad's currency. Please try again later.
+          <div v-if="!hasArbiters" class="warning-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+            There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
           </div>
 
           <!-- edit ad button: For ad owners only -->
-          <div class="row q-mx-lg q-py-md" v-if="isOwner">
+          <div class="row q-mx-lg q-py-sm" v-if="isOwner">
             <q-btn
               rounded
               no-caps
@@ -283,6 +287,9 @@ export default {
   },
   emits: ['back', 'orderCanceled', 'updatePageName'],
   computed: {
+    hasArbiters () {
+      return this.arbitersAvailable?.length > 0
+    },
     appealCooldown () {
       return getAppealCooldown(this.ad?.appeal_cooldown)
     },
