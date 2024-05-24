@@ -231,17 +231,7 @@
       <div class="col-12 q-px-lg q-mt-md">
         <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
-          <q-item clickable @click="executeSecurityChecking('seedphrase')">
-            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-              <q-item-label class="text-center">{{ $t('ClickToReveal') }}</q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </div>
-      <div class="col-12 q-px-lg q-mt-md">
-        <p class="section-title">Seed Phrase Shards</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
-          <q-item clickable @click="executeSecurityChecking('shard')">
+          <q-item clickable @click="executeSecurityChecking">
             <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
               <q-item-label class="text-center">{{ $t('ClickToReveal') }}</q-item-label>
             </q-item-section>
@@ -265,7 +255,6 @@ import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
 import SeedPhraseDialog from 'src/components/wallet-info/SeedPhraseDialog'
-import ShardsDialog from 'src/components/wallet-info/ShardsDialog'
 import { getMnemonic, Wallet } from '../../wallet'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -280,9 +269,7 @@ export default {
     pinDialog,
     biometricWarningAttmepts,
     // eslint-disable-next-line vue/no-unused-components
-    SeedPhraseDialog,
-    // eslint-disable-next-line vue/no-unused-components
-    ShardsDialog
+    SeedPhraseDialog
   },
   data () {
     return {
@@ -304,8 +291,7 @@ export default {
 
       prevUtxoStatusUpdateTimeout: null,
 
-      disableDeleteButton: false,
-      authOption: 'seedphrase'
+      disableDeleteButton: false
     }
   },
   computed: {
@@ -588,9 +574,8 @@ export default {
           this.scanningSlpAddresses = false
         })
     },
-    executeSecurityChecking (auth) {
+    executeSecurityChecking () {
       const vm = this
-      vm.authOption = auth
       if (vm.showMnemonic === false) {
         setTimeout(() => {
           if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
@@ -661,27 +646,16 @@ export default {
       })
     },
     toggleMnemonicDisplay (action) {
-      const vm = this
-
-      vm.pinDialogAction = ''
+      this.pinDialogAction = ''
       if (action === 'proceed') {
-        vm.showMnemonic = !vm.showMnemonic
+        this.showMnemonic = !this.showMnemonic
       } else if (action === undefined) {
-        if (vm.authOption === 'seedphrase') {
-          vm.$q.dialog({
-            component: SeedPhraseDialog,
-            componentProps: { mnemonic: vm.mnemonic }
-          }).onDismiss(() => {
-            vm.toggleMnemonicDisplay('proceed')
-          })
-        } else if (vm.authOption === 'shard') {
-          vm.$q.dialog({
-            component: ShardsDialog,
-            componentProps: { mnemonic: vm.mnemonic, walletHash: vm.getWallet('bch').walletHash }
-          }).onDismiss(() => {
-            vm.toggleMnemonicDisplay('proceed')
-          })
-        }
+        this.$q.dialog({
+          component: SeedPhraseDialog,
+          componentProps: { mnemonic: this.mnemonic }
+        }).onDismiss(() => {
+          this.toggleMnemonicDisplay('proceed')
+        })
       }
     },
     showDeleteDialog () {

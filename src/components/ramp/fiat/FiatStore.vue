@@ -119,7 +119,7 @@
                           <span
                             class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                             :class="getDarkModeClass(darkMode)">
-                            {{ formattedCurrency(listing.price, listing.fiat_currency.symbol) }}
+                            {{ listing.fiat_currency.symbol }} {{ formattedCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                           </span>
                           <span class="sm-font-size">/BCH</span><br>
                           <div class="sm-font-size">

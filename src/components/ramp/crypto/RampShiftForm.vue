@@ -248,7 +248,8 @@ export default {
       shiftData: {},
       convertionRate: '',
       addrType: '',
-      depositInfoState: 'created'
+      depositInfoState: 'created',
+      prefix: ['ethereum']
     }
   },
   watch: {
@@ -405,6 +406,13 @@ export default {
     onScannerDecode (content) {
       const vm = this
       vm.showQrScanner = false
+
+      // Remove prefix on address
+      for (const index in this.prefix) {
+        if (content.startsWith(`${this.prefix[index]}:`)) {
+          content = content.replace(`${this.prefix[index]}:`, '')
+        }
+      }
 
       if (vm.addrType === 'receive') {
         vm.settleAddress = content

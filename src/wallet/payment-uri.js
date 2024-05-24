@@ -821,45 +821,51 @@ export class JSONPaymentProtocol {
     return sha256(sha256(Buffer.from(tx, 'hex'))).reverse().toString('hex')
   }
 
-  static async txExists(txid='') {
-    const query = {
-      v: 3,
-      q: {
-        find: {
-          "tx.h": txid,
-        },
-        "project": { "tx.h": 1  },
-        "limit": 10
+  static async getTxConfirmations(txid='') {
+    const response = await axios.get(`https://watchtower.cash/api/transactions/${txid}/`).catch(console.log)
+    if (response?.data?.details?.txid) {
+      return {
+        txid: response?.data?.details?.txid,
+        confirmations: response?.data?.details?.confirmations,
       }
     }
-    const serializedQuery = btoa(JSON.stringify(query))
-    const response = await axios.get(`https://bitdb.bch.sx/q/${serializedQuery}`)
-    if (Array.isArray(response.data?.c) && response.data?.c.some(record => record?.tx?.h === txid)) {
-      return true
-    } else if(Array.isArray(response.data?.u) && response.data?.u.some(record => record?.tx?.h === txid)) {
-      return true
-    }
-    return false
+
+    return axios.get(
+      `https://rest1.biggestfan.net/v2/rawtransactions/getRawTransaction/${txid}/`,
+      { params: { verbose: true } },
+    )
+      .then(response => {
+        if (response?.data?.error) return Promise.reject(new Error(response?.data?.error))
+        return {
+          txid: response?.data?.txid,
+          confirmations: response?.data?.confirmations,
+        }
+      })
+      .catch(error => {
+        // response status for rate limit
+        if (error?.response?.status !== 503) return Promise.reject(error)
+
+        return axios.get(`https://api.fullstack.cash/v5/electrumx/tx/data/${txid}/`) 
+          .then(response => {
+            if (!response?.success) return Promise.reject(new Error(response?.data?.error))
+            return {
+              txid: response?.data?.details?.txid,
+              confirmations: response?.data?.details?.confirmations,
+            }
+          })
+      })
+  }
+
+  static async txExists(txid='') {
+    const result = await JSONPaymentProtocol.getTxConfirmations(txid).catch(console.error)
+    return Boolean(result?.txid)
   }
 
   static async isTxConfirmed(txid='') {
-    const query = {
-      v: 3,
-      q: {
-        find: {
-          "tx.h": txid,
-        },
-        "project": { "tx.h": 1  },
-        "limit": 10
-      }
+    const result = await JSONPaymentProtocol.getTxConfirmations(txid).catch(console.error)
+    return {
+      exists: Boolean(result?.txid),
+      confirmed: Boolean(result?.confirmations > 0),
     }
-    const serializedQuery = btoa(JSON.stringify(query))
-    const response = await axios.get(`https://bitdb.bch.sx/q/${serializedQuery}`)
-    if (Array.isArray(response.data?.c) && response.data?.c.some(record => record?.tx?.h === txid)) {
-      return { exists: true, confirmed: true }
-    } else if(Array.isArray(response.data?.u) && response.data?.u.some(record => record?.tx?.h === txid)) {
-      return { exists: true, confirmed: false }
-    }
-    return { exists: false, confirmed: false }
   }
 }

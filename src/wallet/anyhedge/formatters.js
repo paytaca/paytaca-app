@@ -116,6 +116,7 @@ export function ellipsisText (value, config) {
  * @property {String} tx_hash
  * @property {Number} funding_satoshis
  * @property {Number} funding_output
+ * @property {String} settlement_txid
  * 
  * @typedef {Object} MutualRedemptionAPI
  * @property {'refund' | 'early_maturation' | 'arbitrary'} redemption_type
@@ -254,6 +255,7 @@ export async function parseHedgePositionData(data) {
         fundingTransactionHash: funding?.tx_hash,
         fundingOutputIndex: castBigIntSafe(funding?.funding_output),
         fundingSatoshis: castBigIntSafe(funding?.funding_satoshis),
+        _settlementTxid: funding?.settlement_txid,
       })
     })
   }
@@ -282,6 +284,7 @@ export async function parseHedgePositionData(data) {
   }
 
   if (Array.isArray(data?.settlements)) {
+    // NOTE: turns out this tx fee is not fixed, need to find a new way
     const settlementTxFee = contractData?.version?.includes?.('v0.11') ? 1175n : 1967n
     data?.settlements?.forEach(settlement => {
       const fundingSats = settlementTxFee + // fixed tx fee
@@ -289,11 +292,12 @@ export async function parseHedgePositionData(data) {
                           castBigIntSafe(settlement.long_satoshis)
       const txid = settlement.spending_transaction
       const fundingIndex = contractData?.fundings?.findIndex?.(funding => {
-        if (funding?.fundingSatoshis !== fundingSats) return false
-        if (funding?.settlement && funding?.settlement?.settlementTransactionHash === txid) return true
-
+        const exactSats = funding?.fundingSatoshis === fundingSats
+        const matchingSettlementTxid = funding?._settlementTxid === txid
+        if (exactSats || matchingSettlementTxid) return true
         return !funding?.settlement
       })
+
       if (fundingIndex >= 0) {
         contractData.fundings[fundingIndex].settlement = {
           settlementType: settlement.settlement_type,

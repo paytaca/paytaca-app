@@ -26,7 +26,7 @@
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Price</span>
             <span class="text-nowrap q-ml-xs">
-              {{ formattedCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol) }}
+              {{ snapshot?.fiat_currency?.symbol }} {{ formattedCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
