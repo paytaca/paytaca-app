@@ -5,25 +5,15 @@
         <div class="xs-font-size">Trading with</div>
         <div class="row justify-end">
             <div class="col q-py-none">
-<<<<<<< HEAD
                 <div style="overflow-x: scroll; max-width: 200px;">
                   <q-btn flat no-caps dense
                       padding="none"
                       color="primary"
                       class="q-py-none q-my-none row lg-font-size text-weight-bold"
                       @click="onViewPeer(counterparty?.id)">
-                      {{ counterparty?.name }}
+                      {{ userNameView(counterparty?.name) }}
                   </q-btn>
                 </div>
-=======
-                <q-btn flat no-caps dense
-                    padding="none"
-                    color="primary"
-                    class="q-py-none q-my-none row lg-font-size text-weight-bold"
-                    @click="onViewPeer(counterparty?.id)">
-                    {{ userNameView(counterparty?.name) }}
-                </q-btn>
->>>>>>> fix/p2p-ramp-chat
                 <div class="row">
                   <q-rating
                   readonly

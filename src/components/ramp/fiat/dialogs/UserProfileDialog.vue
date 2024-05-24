@@ -40,7 +40,7 @@
                     </div>
                     <div v-else class="q-mx-lg q-px-md">
                         <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-                            <div class="text-weight-bold sm-font-size">{{  review.from_peer.name }}</div>
+                            <div class="text-weight-bold sm-font-size">{{  userNameView(review.from_peer.name) }}</div>
                             <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
                             <div class="sm-font-text">
                             <q-rating
@@ -198,6 +198,11 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    },
     tradeAmountCurrency (ad) {
       return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
