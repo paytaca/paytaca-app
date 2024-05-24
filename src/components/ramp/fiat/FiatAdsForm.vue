@@ -411,21 +411,6 @@ export default {
     confirmationData () {
       const vm = this
       const data = { ...vm.adData }
-      // const tradeAmount = parseFloat(data.tradeAmount)
-      // // if (vm.setTradeQuantityInFiat) {
-      // //   tradeAmount = (tradeAmount / vm.marketPrice).toFixed(8)
-      // // }
-      // const tradeFloor = parseFloat(data.tradeFloor)
-      // // if (vm.setTradeLimitsInFiat) {
-      // //   tradeFloor = (tradeFloor / vm.marketPrice).toFixed(8)
-      // // }
-      // const tradeCeiling = parseFloat(data.tradeCeiling)
-      // // if (vm.setTradeLimitsInFiat) {
-      // //   tradeCeiling = (tradeCeiling / vm.marketPrice).toFixed(8)
-      // // }
-      // data.tradeAmount = tradeAmount
-      // data.tradeFloor = tradeFloor
-      // data.tradeCeiling = tradeCeiling
       data.isTradeAmountFiat = this.setTradeQuantityInFiat
       data.isTradeLimitsFiat = this.setTradeLimitsInFiat
       console.log('confirmationData:', data)
@@ -435,9 +420,9 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
+    await vm.getInitialMarketPrice()
     await vm.fetchAd()
     await vm.fetchArbiters()
-    await vm.getInitialMarketPrice()
     vm.updatePriceValue(vm.adData.priceType)
     vm.loading = false
     vm.setupWebsocket()
@@ -448,9 +433,6 @@ export default {
     this.closeWSConnection()
   },
   watch: {
-    'adData.tradeAmount' (val) {
-      console.log('tradeAmount:', val)
-    },
     setTradeQuantityInFiat (value) {
       console.log('setTradeQuantityInFiat:', value)
       if (this.loading) return
@@ -596,7 +578,29 @@ export default {
           vm.adData.fiatCurrency = data.fiat_currency
           vm.adData.tradeAmount = parseFloat(data.trade_amount)
           vm.adData.tradeFloor = parseFloat(data.trade_floor)
-          vm.adData.tradeCeiling = parseFloat(data.trade_ceiling) ? parseFloat(data.trade_ceiling) : parseFloat(data.trade_amount)
+          // vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
+          
+          // if trade amount is lesser than trade_ceiling, set trade_amount as trade_ceiling
+          let tradeAmount = parseFloat(data.trade_amount)
+          let tradeCeiling = parseFloat(data.trade_ceiling)
+
+          if (data.trade_limits_in_fiat) {
+            // if trade_limits in fiat and trade_amount in BCH
+            // convert trade_amount to fiat
+            if (!data.trade_amount_in_fiat) {
+              tradeAmount = tradeAmount * vm.marketPrice
+            }
+            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+          } else {
+            // If trade_limits in BCH and trade_amount in fiat:
+            // convert trade amount to BCH
+            if (data.trade_amount_in_fiat) {
+              tradeAmount = tradeAmount / vm.marketPrice
+            }
+            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+          }
+
+          vm.adData.tradeCeiling = tradeCeiling
           vm.adData.paymentMethods = data.payment_methods
           vm.adData.isPublic = data.is_public
           vm.appealCooldown = getAppealCooldown(data.appeal_cooldown)
@@ -613,9 +617,9 @@ export default {
           }
 
           // check tradeCeiling & tradeAmount
-          if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
-            vm.adData.tradeCeiling = vm.adData.tradeAmount
-          }
+          // if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
+          //   vm.adData.tradeCeiling = vm.adData.tradeAmount
+          // }
         })
         .catch(error => {
           vm.swipeStatus = false

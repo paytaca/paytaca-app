@@ -84,7 +84,7 @@
                               </div>
                               <div class="sm-font-size row q-gutter-md">
                                 <span>Limits</span>
-                                <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minAmount([listing.trade_amount, listing.trade_ceiling]), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
+                                <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                               </div>
                               <div class="row sm-font-size q-gutter-md">
                                 <span>Appealable in </span>
@@ -281,7 +281,25 @@ export default {
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
-    minAmount (amounts) {
+    minTradeAmount (ad) {
+      let tradeAmount = parseFloat(ad.trade_amount)
+      let tradeCeiling = parseFloat(ad.trade_ceiling)
+      if (ad.trade_limits_in_fiat) {
+        // if trade_limits in fiat and trade_amount in BCH
+        // convert trade_amount to fiat
+        if (!ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount * ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      } else {
+        // If trade_limits in BCH and trade_amount in fiat:
+        // convert trade amount to BCH
+        if (ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount / ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      }
+      const amounts = [tradeAmount, tradeCeiling]
       return Math.min.apply(null, amounts)
     },
     appealCooldown (appealCooldownChoice) {

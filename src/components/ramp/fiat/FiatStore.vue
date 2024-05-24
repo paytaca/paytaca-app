@@ -119,17 +119,17 @@
                           <span
                             class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                             :class="getDarkModeClass(darkMode)">
-                            {{ listing.fiat_currency.symbol }} {{ formattedCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
+                            {{ listing.fiat_currency.symbol }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                           </span>
                           <span class="sm-font-size">/BCH</span><br>
                           <div class="sm-font-size">
                             <div class="row">
                               <span class="col-3">Quantity</span>
-                              <span class="col">{{ formattedCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                              <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
                             </div>
                             <div class="row">
                               <span class="col-3">Limit</span>
-                              <span class="col"> {{ formattedCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formattedCurrency(minAmount([listing.trade_amount, listing.trade_ceiling]), listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                              <span class="col"> {{ formatCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formatCurrency(minTradeAmount(listing), listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
                             </div>
                           </div>
                         </div>
@@ -305,7 +305,26 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    minAmount (amounts) {
+    formatCurrency,
+    minTradeAmount (ad) {
+      let tradeAmount = parseFloat(ad.trade_amount)
+      let tradeCeiling = parseFloat(ad.trade_ceiling)
+      if (ad.trade_limits_in_fiat) {
+        // if trade_limits in fiat and trade_amount in BCH
+        // convert trade_amount to fiat
+        if (!ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount * ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      } else {
+        // If trade_limits in BCH and trade_amount in fiat:
+        // convert trade amount to BCH
+        if (ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount / ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      }
+      const amounts = [tradeAmount, tradeCeiling]
       return Math.min.apply(null, amounts)
     },
     onFilterListings (filters) {
@@ -490,13 +509,6 @@ export default {
       if (this.$refs.scrollTargetRef) {
         const scrollElement = this.$refs.scrollTargetRef.$el
         scrollElement.scrollTop = 0
-      }
-    },
-    formattedCurrency (value, currency) {
-      if (currency) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
       }
     },
     onOrderCanceled () {
