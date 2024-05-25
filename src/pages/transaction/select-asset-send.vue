@@ -151,7 +151,6 @@ export default {
               symbol: 'sBCH',
               logo: 'sep20-logo.png',
             },)
-            console.log(item)
           }
           return item
         })
