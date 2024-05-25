@@ -1028,17 +1028,18 @@ export default {
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       currentInputExtras.setMax = true
+      let spendableAsset = 0
 
       if (this.asset.id === 'bch') {
         if (this.isSmartBch) {
           this.computingMax = true
-          const spendable = await this.wallet.sBCH.getMaxSpendableBch(
+          spendableAsset = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
             this.sendDataMultiple[0].recipient
           )
-          currentRecipient.amount = spendable
+          currentRecipient.amount = parseFloat(spendableAsset)
           this.computingMax = false
-          if (spendable < 0) {
+          if (spendableAsset < 0) {
             this.$q.notify({
               type: 'negative',
               color: 'red-4',
@@ -1047,10 +1048,10 @@ export default {
             })
           }
         } else {
-          const spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.actualWalletBalance.spendable, true))
-          currentInputExtras.amountFormatted = spendableAsset
+          spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.actualWalletBalance.spendable, true))
           currentRecipient.amount = this.actualWalletBalance.spendable
         }
+        currentInputExtras.amountFormatted = spendableAsset
         if (this.setAmountInFiat) {
           const convertedFiat = this.convertToFiatAmount(this.actualWalletBalance.spendable)
           currentInputExtras.sendAmountInFiat = convertedFiat
