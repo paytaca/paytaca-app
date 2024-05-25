@@ -62,6 +62,7 @@ const props = defineProps({
   initLocation: Object,
   static: Boolean,
   hideCancel: Boolean,
+  markerIcon: Object,
 })
 
 const mapUid = computed(() => `leaflet-map-${uid.value}`)
@@ -88,11 +89,11 @@ function initMap() {
   leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(_map);
+  console.log('props.markerIcon', props.markerIcon)
+  const iconOpts = Object.assign({ prefix: 'mdi', glyph: 'location_on' }, props.markerIcon)
+  const icon = iconOpts?.iconUrl ? leaflet.icon(iconOpts) : leaflet.icon.glyph(iconOpts)
   const _pin = leaflet.marker(_map.getCenter(), {
-    icon: leaflet.icon.glyph({
-      prefix: 'mdi',
-      glyph: 'location_on',
-    }),
+    icon: icon,
   }).addTo(_map)
 
   pin.value = markRaw(_pin)

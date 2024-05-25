@@ -62,6 +62,12 @@ export class Location {
   get validCoordinates() {
     return isFinite(parseFloat(this.longitude)) && isFinite(parseFloat(this.latitude))
   }
+
+  get gmapsDirectionUrl() {
+    if (!this.validCoordinates) return ''
+    const destination = `${this.latitude},${this.longitude}`
+    return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${destination}`
+  }
 }
 
 
@@ -884,6 +890,12 @@ export class DeliveryAddress {
 }
 
 export class Checkout {
+  static DeliveryTypes = Object.freeze({
+    LOCAL_DELIVERY: 'local_delivery',
+    STORE_PICKUP: 'store_pickup',
+    SHIPPING: 'shipping',
+  })
+
   static parse(data) {
     return new Checkout(data)
   }
@@ -905,6 +917,7 @@ export class Checkout {
    * @param {Number} data.order_id
    * @param {CurrencyInfo} data.currency
    * @param {Object} data.cart
+   * @param {'local_delivery' | 'store_pickup' | 'shipping'} data.delivery_type
    * @param {Object} data.delivery_address
    * @param {Object} data.payment
    * @param {Number} [data.total_paid]
@@ -922,6 +935,7 @@ export class Checkout {
     this.checkoutId = data?.checkout_id
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.cart = Cart.parse(data?.cart)
+    this.deliveryType = data?.delivery_type
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.payment = {
       bchPrice: BchPrice.parse(data?.payment?.bch_price),
@@ -1074,6 +1088,17 @@ export class OrderItem {
 
 
 export class Order {
+  static Status = Object.freeze({
+    PENDING: 'pending',
+    CONFIRMED: 'confirmed',
+    PREPARING: 'preparing',
+    READY_FOR_PICKUP: 'ready_for_pickup',
+    PICKED_UP: 'picked_up',
+    ON_DELIVERY: 'on_delivery',
+    DELIVERED: 'delivered',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled',
+  })
   static parse(data) {
     return new Order(data) 
   }
@@ -1095,6 +1120,7 @@ export class Order {
    * @param {{ code:String, symbol:String }} data.currency
    * @param {Object} data.bch_price
    * @param {Object} [data.customer]
+   * @param {'local_delivery' | 'store_pickup' | 'shipping'} data.delivery_type
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
    * @param {Number} data.subtotal
@@ -1123,6 +1149,7 @@ export class Order {
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.bchPrice = BchPrice.parse(data?.bch_price)
     if (data?.customer) this.customer = Customer.parse(data?.customer)
+    this.deliveryType = data?.delivery_type
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
     this.subtotal = data?.subtotal
@@ -1243,6 +1270,26 @@ export class Order {
   get autoCompleteAtTimestamp() {
     if (!this.autoCompleteAt) return
     return this.autoCompleteAt * 1
+  }
+
+  get isStorePickup() {
+    return this.deliveryType == Checkout.DeliveryTypes.STORE_PICKUP
+  }
+
+  get isPending() {
+    return this.status === Order.Status.PENDING
+  }
+
+  get isReadyForPickup() {
+    return this.status === Order.Status.READY_FOR_PICKUP
+  }
+
+  get isPickedUp() {
+    return this.status === Order.Status.PICKED_UP
+  }
+
+  get isDelivered() {
+    return this.status == Order.Status.DELIVERED
   }
 
   async fetchStorefront() {

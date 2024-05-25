@@ -23,6 +23,7 @@ export default {
     const $q = useQuasar()
     const theme = computed(() => store?.state?.global?.theme)
     const darkMode = computed(() => store?.state?.darkmode?.darkmode)
+    window.toggleDark = () => store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
     watchEffect(() => {
       // Set the theme
