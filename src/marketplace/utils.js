@@ -30,7 +30,7 @@ export function lineItemPropertiesToText(data) {
 }
 
 /**
- * @typedef {'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'on_delivery' | 'delivered' | 'completed' | 'cancelled'} OrderStatus
+ * @typedef {'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'picked_up' | 'on_delivery' | 'delivered' | 'completed' | 'cancelled'} OrderStatus
  */
 
 /**
@@ -56,6 +56,8 @@ export function parseOrderStatusColor(value) {
       return 'amber-7'
     case 'ready_for_pickup':
       return 'amber-8'
+    case 'picked_up': 
+      return 'green'
     case 'on_delivery':
       return 'green'
     case 'delivered':

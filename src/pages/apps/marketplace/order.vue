@@ -45,7 +45,7 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
-            <template v-if="order.status === 'pending'">
+            <template v-if="order.isPending">
               <q-separator/>
               <q-item
                 v-close-popup clickable
@@ -82,14 +82,14 @@
       </div>
       <template v-if="order?.inProgress">
         <q-banner
-          v-if="['ready_for_pickup', 'on_delivery'].includes(order?.status) && orderDeadlines.delivery.text"
+          v-if="!order.isStorePickup && ['ready_for_pickup', 'on_delivery'].includes(order?.status) && orderDeadlines.delivery.text"
           class="q-mx-xs q-my-sm pt-card text-bow"
           :class="getDarkModeClass(darkMode)"
         >
           {{ orderDeadlines.delivery.text }}
         </q-banner>
         <q-banner
-          v-else-if="orderDeadlines.preparation.text"
+          v-else-if="['confirmed', 'preparing'].includes(order?.status) && orderDeadlines.preparation.text"
           class="q-mx-xs q-my-sm pt-card text-bow"
           :class="getDarkModeClass(darkMode)"
         >
@@ -128,14 +128,60 @@
         </q-banner>
       </template>
       <q-banner
-        v-if="order?.status == 'delivered'" rounded
+        v-if="order.isStorePickup && order.isReadyForPickup"
+        class="q-mx-xs q-my-sm pt-card text-bow"
+        :class="getDarkModeClass(darkMode)"
+      >
+        <div>
+          <q-btn
+            v-if="storefront?.location?.gmapsDirectionUrl"
+            padding="none sm"
+            no-caps
+            target="_blank"
+            color="brandblue"
+            class="float-right q-mt-sm q-mx-sm"
+            :href="storefront?.location?.gmapsDirectionUrl"
+          >
+            <q-icon name="directions" size="1.1em" class="q-mr-xs"/>
+            <span>Directions</span>
+            <q-icon name="open_in_new" size="0.7em" color="grey-3" class="q-ml-sm"/>
+          </q-btn>
+          <q-btn
+            v-else
+            padding="none sm"
+            no-caps
+            color="brandblue"
+            class="float-right q-mt-sm q-mx-sm"
+            @click="() => showMap = true"
+          >
+            <q-icon name="map" size="1.1em" class="q-mr-xs"/>
+            <span>Open Map</span>
+          </q-btn>
+          <div class="text-subtitle1">
+            Order is ready for pickup!
+            <q-spinner v-if="completingOrder"/>
+          </div>
+          <div class="row items-center">
+            <div class="text-caption text-grey q-space">
+              Pickup your order from the store and mark the order as completed.
+            </div>
+          </div>
+        </div>
+      </q-banner>
+      <q-banner
+        v-if="order?.isDelivered || (order?.isStorePickup && order?.isPickedUp)" rounded
         class="q-mx-xs q-my-sm pt-card text-bow"
         :class="getDarkModeClass(darkMode)"
       >
         <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
           <div class="q-space">
             <div class="text-subtitle1">
-              Order delivered!
+              <template v-if="order?.isStorePickup && order?.isPickedUp">
+                Order picked up!
+              </template>
+              <template v-else>
+                Order delivered!
+              </template>
               <q-spinner v-if="completingOrder"/>
             </div>
             <div class="text-caption text-grey">Review your order and mark completed if there are no problems</div>
@@ -307,8 +353,40 @@
               </div>
             </div>
           </q-card>
+          <LeafletMapDialog ref="mapDialog" v-model="showMap" :locations="mapLocations"/>
           <q-card
-            v-if="order?.deliveryAddress?.id || delivery?.id"
+            v-if="order?.isStorePickup"
+            class="q-px-md q-py-sm pt-card text-bow"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <div class="text-subtitle1">Store pickup</div>
+            <div v-if="order.status !== 'completed'" class="text-grey text-caption bottom">
+              Pickup order after order is prepared
+            </div>
+            <q-separator spaced/>
+            <div
+              class="row items-start no-wrap"
+              v-ripple style="position:relative;"
+              @click="() => showMap = true"
+            >
+              <img :src="merchantLocationPin" style="height:1.9rem;" class="q-mb-xs q-mr-xs"/>
+              <div class="q-space">
+                <div class="text-subtitle2">{{ storefront?.name }}</div>
+                <div>{{ storefront?.location?.formatted }}</div>
+              </div>
+              <q-btn
+                v-if="storefront?.location?.gmapsDirectionUrl"
+                flat
+                padding="sm"
+                icon="directions"
+                target="_blank"
+                @click.stop
+                :href="storefront?.location?.gmapsDirectionUrl"
+              />
+            </div>
+          </q-card>
+          <q-card
+            v-if="!order?.isStorePickup && order?.deliveryAddress?.id || delivery?.id"
             class="q-px-md q-py-sm pt-card text-bow"
             :class="getDarkModeClass(darkMode)"
           >
@@ -321,32 +399,11 @@
               :class="getDarkModeClass(darkMode)"
               @click="() => showMap = true"
             />
-            <LeafletMapDialog ref="mapDialog" v-model="showMap" :locations="mapLocations"/>
             <div class="text-subtitle1">
               Delivery
               <span v-if="delivery?.id" class="text-grey">#{{ delivery?.id }}</span>
-              <!-- <q-icon
-                v-if="delivery?.id && (delivery?.pickedUpAt || delivery?.deliveredAt)"
-                name="delivery_dining"
-                size="1.75em"
-                :color="delivery?.deliveredAt ? 'green' : 'amber'"
-              >
-                <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                  <div v-if="delivery.pickedUpAt">
-                    Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
-                  </div>
-                  <div v-if="delivery.deliveredAt">
-                    Delivered {{ formatDateRelative(delivery.deliveredAt) }}
-                  </div>
-                </q-menu>
-              </q-icon> -->
             </div>
             <q-separator :dark="darkMode" class="q-mb-sm"/>
-            <!-- <div v-if="delivery?.id" class="text-caption row items-center no-wrap">
-              <div>{{ formatTimestampToText(delivery?.createdAt) }}</div>
-              <q-space/>
-              <div>#{{ delivery?.id }}</div>
-            </div> -->
             <div v-if="delivery?.id">
               <div
                 v-if="delivery.deliveredAt || delivery.pickedUpAt"
@@ -937,7 +994,7 @@ const mapLocations = computed(() => {
   }
 
   const deliveryLoc = deliveryPanel.value?.deliveryAddress?.location
-  if (deliveryLoc?.validCoordinates) {
+  if (deliveryLoc?.validCoordinates && !order.value?.isStorePickup) {
     data.push({
       lat: deliveryLoc?.latitude,
       lon: deliveryLoc?.longitude,
@@ -1278,7 +1335,9 @@ const autoCompleteTimeRemainingText = computed(() => {
   return `${negative ? '-' : ''}${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
 })
 function shouldRunAutoCompleteCountdown() {
-  if (order.value.status != 'delivered') return false
+  const isDelivered = order.value?.isDelivered
+  const isPickedUp = order.value.isStorePickup && order.value.isPickedUp
+  if (!isDelivered && !isPickedUp) return false
   return Date.now() < order.value.autoCompleteAtTimestamp
 }
 
@@ -1340,9 +1399,24 @@ function cancelOrder() {
 
 const completingOrder = ref(false)
 const showOrderCompletedPrompt = ref(false)
-window.s = showOrderCompletedPrompt
+async function completeOrderConfirm() {
+  if (!order.value.isStorePickup) return completeOrder()
+  await new Promise((resolve, reject) => {
+    $q.dialog({
+      title: 'Order complete',
+      message: 'This action cannot be reversed. Are you sure?',
+      ok: true,
+      cancel: true,
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+    }).onOk(resolve).onDismiss(reject)
+  }).catch(() => {})
+  return completeOrder()
+}
 function completeOrder() {
-  if (order.value.status != 'delivered') return
+  const isDelivered = order.value?.isDelivered
+  const isPickedUp = order.value?.isStorePickup && order.value?.isPickedUp
+  if (!isDelivered && !isPickedUp) return
+
   const data = { status: 'completed' }
 
   const dialog = $q.dialog({

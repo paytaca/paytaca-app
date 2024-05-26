@@ -170,6 +170,7 @@
                     :setAmountInFiat="setAmountInFiat"
                     :selectedAssetMarketPrice="selectedAssetMarketPrice"
                     :isNFT="isNFT"
+                    :currentWalletBalance="currentWalletBalance"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :convertToFiatAmount="convertToFiatAmount"
                     :setMaximumSendAmount="setMaximumSendAmount"
@@ -1027,17 +1028,18 @@ export default {
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       currentInputExtras.setMax = true
+      let spendableAsset = 0
 
       if (this.asset.id === 'bch') {
         if (this.isSmartBch) {
           this.computingMax = true
-          const spendable = await this.wallet.sBCH.getMaxSpendableBch(
+          spendableAsset = await this.wallet.sBCH.getMaxSpendableBch(
             String(this.asset.balance),
             this.sendDataMultiple[0].recipient
           )
-          currentRecipient.amount = spendable
+          currentRecipient.amount = parseFloat(spendableAsset)
           this.computingMax = false
-          if (spendable < 0) {
+          if (spendableAsset < 0) {
             this.$q.notify({
               type: 'negative',
               color: 'red-4',
@@ -1046,10 +1048,10 @@ export default {
             })
           }
         } else {
-          const spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.actualWalletBalance.spendable, true))
-          currentInputExtras.amountFormatted = spendableAsset
+          spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.actualWalletBalance.spendable, true))
           currentRecipient.amount = this.actualWalletBalance.spendable
         }
+        currentInputExtras.amountFormatted = spendableAsset
         if (this.setAmountInFiat) {
           const convertedFiat = this.convertToFiatAmount(this.actualWalletBalance.spendable)
           currentInputExtras.sendAmountInFiat = convertedFiat
@@ -1223,13 +1225,13 @@ export default {
               let promise = null
               if (sep20IdRegexp.test(vm.assetId)) {
                 const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
-                promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(vm.sendData.amount), addressObj.address)
+                promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(sendData.amount), addressObj.address)
               } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
                 const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
                 const tokenId = vm.assetId.match(erc721IdRegexp)[2]
                 promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
               } else {
-                promise = vm.wallet.sBCH.sendBch(String(vm.sendData.amount), addressObj.address)
+                promise = vm.wallet.sBCH.sendBch(String(sendData.amount), addressObj.address)
               }
 
               if (promise) {
@@ -1280,7 +1282,7 @@ export default {
                   // eslint-disable-next-line no-undef
                   new TokenSendRequest({
                     cashaddr: address,
-                    amount: vm.sendData.amount,
+                    amount: sendData.amount,
                     tokenId: vm.assetId.split('/')[1]
                   })
                 ])
@@ -1537,7 +1539,6 @@ export default {
         .toFixed(8)
       const actualBalance = this.actualWalletBalance.balance
       const walletBalance = isToken ? actualBalance / tokenDenominator : actualBalance
-
       this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
       // for tokens ('ct/'), convert back to original decimals
       if (isToken) this.currentWalletBalance *= tokenDenominator

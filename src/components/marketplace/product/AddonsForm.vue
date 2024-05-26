@@ -96,7 +96,6 @@ export default defineComponent({
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-    window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
 
     const innerVal = ref([].map(_parseAddonData))
