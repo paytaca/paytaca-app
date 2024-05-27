@@ -4,11 +4,14 @@
     @decode="onScannerDecode"
   />
 
-  <qrcode-capture
+  <input
+    @change="onUploadDetect"
     ref="qr-upload"
-    capture="null"
+    type="file"
+    name="image"
+    accept="image/*"
     style="display: none;"
-    @detect="onUploadDetect"
+    :capture="null"
   />
 
   <div class="text-bow q-px-lg" :class="getDarkModeClass(darkMode)">
@@ -35,7 +38,7 @@
           class="btn-scan button text-white bg-grad"
           icon="upload"
           :disable="disablePersonal"
-          @click="isPersonalClicked = true, $refs['qr-upload'].$el.click()"
+          @click="isPersonalClicked = true, $refs['qr-upload'].click()"
         />
       </div>
     </div>
@@ -59,7 +62,7 @@
           class="btn-scan button text-white bg-grad"
           icon="upload"
           :disable="disableForSharing"
-          @click="isForSharingClicked = true, $refs['qr-upload'].$el.click()"
+          @click="isForSharingClicked = true, $refs['qr-upload'].click()"
         />
       </div>
     </div>
@@ -114,7 +117,7 @@
 
 <script>
 import sss from 'shamirs-secret-sharing'
-import { QrcodeCapture } from 'vue-qrcode-reader'
+import { BarcodeDetector } from 'barcode-detector/pure'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import QrScanner from 'src/components/qr-scanner.vue'
@@ -128,8 +131,7 @@ export default {
   ],
 
   components: {
-    QrScanner,
-    QrcodeCapture
+    QrScanner
   },
 
   data () {
@@ -161,17 +163,26 @@ export default {
       vm.addData(content)
       vm.validateQRCodes()
     },
-    onUploadDetect (detectedCode) {
-      if (detectedCode.length > 0) {
-        this.addData(detectedCode[0].rawValue)
-        this.validateQRCodes()
-      } else {
-        this.$q.notify({
-          message: 'No QR code found in the uploaded image.',
-          timeout: 800,
-          color: 'red-9',
-          icon: 'mdi-qrcode-remove'
+    async onUploadDetect (event) {
+      const vm = this
+
+      try {
+        const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] })
+        await barcodeDetector.detect(event.target.files[0]).then((detectedCode) => {
+          if (detectedCode.length > 0) {
+            vm.addData(detectedCode[0].rawValue)
+            vm.validateQRCodes()
+          } else {
+            vm.$q.notify({
+              message: 'No QR code found in the uploaded image.',
+              timeout: 800,
+              color: 'red-9',
+              icon: 'mdi-qrcode-remove'
+            })
+          }
         })
+      } catch (_error) {
+        vm.validateQRCodes()
       }
     },
     validateQRCodes () {
@@ -193,13 +204,15 @@ export default {
       }
     },
     clearQRs () {
-      this.retrievedCodes = [null, null]
-      this.areQRCodesValid = false
-      this.isPersonalClicked = false
-      this.isForSharingClicked = false
-      this.disablePersonal = false
-      this.disableForSharing = false
-      this.qrCodeDivClass = ''
+      const vm = this
+
+      vm.retrievedCodes = [null, null]
+      vm.areQRCodesValid = false
+      vm.isPersonalClicked = false
+      vm.isForSharingClicked = false
+      vm.disablePersonal = false
+      vm.disableForSharing = false
+      vm.qrCodeDivClass = ''
     },
     addData (data) {
       const vm = this
