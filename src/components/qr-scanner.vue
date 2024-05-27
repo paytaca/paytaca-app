@@ -219,20 +219,28 @@ export default {
         try {
           appContainer.classList.add(hide)
         } catch (error) {
-          scannerUI.classList.add(visibilityVisible)
-          registrationContainer.classList.add(visibilityHidden)
+          try {
+            scannerUI.classList.add(visibilityVisible)
+            registrationContainer.classList.add(visibilityHidden)
+          } catch (error1) {}
         }
         document.body.classList.add(transparent)
-        scannerUI.classList.remove(hide)
+        try {
+          scannerUI.classList.remove(hide)
+        } catch (error1) {}
       } else {
         try {
           appContainer.classList.remove(hide)
         } catch (error) {
-          scannerUI.classList.remove(visibilityVisible)
-          registrationContainer.classList.remove(visibilityHidden)
+          try {
+            scannerUI.classList.remove(visibilityVisible)
+            registrationContainer.classList.remove(visibilityHidden)
+          } catch (error1) {}
         }
         document.body.classList.remove(transparent)
-        scannerUI.classList.add(hide)
+        try {
+          scannerUI.classList.add(hide)
+        } catch (error1) {}
       }
     }
   },
