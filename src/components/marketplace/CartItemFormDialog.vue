@@ -59,13 +59,15 @@
           Loading addon options
           <q-spinner/>
         </div>
-        <AddonsForm
-          ref="addonsForm"
-          v-if="addonOptions?.length"
-          :addons="addonOptions"
-          :currency="currency"
-          v-model="addonsFormData"
-        />
+        <template v-if="addonOptions?.length">
+          <div class="text-h6">Addons</div>
+          <AddonsForm
+            ref="addonsForm"
+            :addons="addonOptions"
+            :currency="currency"
+            v-model="addonsFormData"
+          />
+        </template>
         <q-input
           label="Quantity"
           dense outlined
