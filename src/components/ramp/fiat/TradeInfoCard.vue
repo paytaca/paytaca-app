@@ -5,7 +5,7 @@
         <div class="xs-font-size">Trading with</div>
         <div class="row justify-end">
             <div class="col q-py-none">
-                <div style="overflow-x: scroll; max-width: 200px;">
+                <div style="overflow-x: auto; max-width: 125px;">
                   <q-btn flat no-caps dense
                       padding="none"
                       color="primary"

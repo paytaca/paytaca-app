@@ -14,26 +14,30 @@
           :class="getDarkModeClass(darkMode)">
           Chat
         </div>
-        <div
+      </div>
+      <div class="q-pt-sm">
+        <q-btn
+          rounded
+          no-caps
+          padding="sm"
+          class="q-ml-md close-button"
+          icon="close"
+          flat
+          @click="$emit('close')"
+        />
+      </div>
+    </div>
+    <div class="q-px-lg">
+      <div
           v-if="chatMembers?.length > 0"
           style="letter-spacing: 1px;"
           class="font-13"
           :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
         >
           <span v-for="(member, index) in chatMembers" :key="index">
-            <span>{{ member.name }}</span><span v-if="member.is_user"> (You)</span><span v-if="member.is_arbiter"> (Arbiter)</span>{{ index < chatMembers.length-1 ? ', ' : ''}}
+            <span>{{ userNameView(member.name) }}</span><span v-if="member.is_user"> (You)</span><span v-if="member.is_arbiter"> (Arbiter)</span>{{ index < chatMembers.length-1 ? ', ' : ''}}
           </span>
         </div>
-      </div>
-      <q-btn
-        rounded
-        no-caps
-        padding="sm"
-        class="q-ml-md close-button"
-        icon="close"
-        flat
-        @click="$emit('close')"
-      />
     </div>
 
     <!-- Convo -->
@@ -66,7 +70,7 @@
                 <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
                   <div v-if="message.message" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
-                      :name="message.chatIdentity.is_user? 'You': message.chatIdentity.name"
+                      :name="message.chatIdentity.is_user? 'me': userNameView(message.chatIdentity.name)"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
                       :stamp="formattedDate(message.createdAt)"
                       :sent="message.chatIdentity.is_user"
@@ -111,7 +115,7 @@
                       :class="message.chatIdentity.is_user? 'text-right' : ''"
                       :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'"
                     >
-                      {{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}
+                      {{ message.chatIdentity.is_user ? 'me' : userNameView(message.chatIdentity.name) }}
                     </div>
                     <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
                       <q-avatar size="6" v-if="!message.chatIdentity.is_user">
@@ -158,7 +162,7 @@
                 <div class="q-px-md row justify-center" v-else>
                   <div style="width: 100%;" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
-                      :name="message.chatIdentity.is_user ? 'me' : message.chatIdentity.name"
+                      :name="message.chatIdentity.is_user ? 'me' : userNameView(message.chatIdentity.name)"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
                       :stamp="formattedDate(message.createdAt)"
                       :sent="message.chatIdentity.is_user"
@@ -472,6 +476,11 @@ export default {
   methods: {
     isNotDefaultTheme,
     getDarkModeClass,
+    userNameView (name) {
+      const limitedView = name.length > 10 ? name.substring(0, 7) + '...' : name;
+
+      return limitedView
+    },
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)

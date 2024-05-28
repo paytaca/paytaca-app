@@ -98,7 +98,7 @@
                             <span
                               class=" pt-label md-font-size text-weight-bold"
                               :class="getDarkModeClass(darkMode)">
-                              {{ listing.owner?.name?.substring(0,12) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
+                              {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
                             </span>
                             <div
                               class="col-transaction text-uppercase pt-label lg-font-size"
@@ -327,6 +327,11 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    },
     showCurrencySelect () {
       this.$q.dialog({
         component: CurrencyFilterDialog,
