@@ -473,8 +473,10 @@ export default {
       const vm = this
       const members = vm.order?.members
       for (const type in members) {
-        if (members[type].chat_identity_id === id) {
-          return type.charAt(0).toUpperCase() + type.slice(1)
+        if (members[type]) {
+          if (members[type].chat_identity_id === id) {
+            return type.charAt(0).toUpperCase() + type.slice(1)
+          }
         }
       }
     },
