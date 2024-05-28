@@ -200,7 +200,7 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
-            <q-item v-if="anyhedgeContracts?.length">
+            <!-- <q-item v-if="anyhedgeContracts?.length">
               <q-item-section>
                 <q-item-label class="text-gray" caption>AnyHedge</q-item-label>
                 <q-item-label v-for="(contractInfo, index) in anyhedgeContracts" :key="index">
@@ -227,7 +227,7 @@
                   </div>
                 </q-item-label>
               </q-item-section>
-            </q-item>
+            </q-item> -->
             <q-item clickable>
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
@@ -255,6 +255,36 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
+            <div v-for="(group, index) in attributeDetails" class="q-pa-sm shadow-1 q-my-sm br-15"> 
+              <div class="q-px-md text-subtitle1">{{group?.name}}</div>
+              <q-separator inset/>
+              <q-item
+                v-for="(attributeDetails, index2) in group?.items" :key="`${index}-${index2}`"
+              >
+                <q-item-section>
+                  <q-item-label class="text-grey">{{ attributeDetails?.label }}</q-item-label>
+                  <q-item-label>
+                    <div class="row items-center">
+                      <div class="q-space">
+                        {{ attributeDetails?.text }}
+                      </div>
+                      <template v-for="(action, index3) in attributeDetails?.actions" :key="`${index}-${index2}-${index3}`">
+                        <q-btn
+                          flat :icon="action?.icon"
+                          size="sm" padding="xs sm"
+                          @click.stop="() => handleAttributeAction(action)"
+                        />
+                        <q-separator
+                          v-if="index3 < attributeDetails?.actions?.length - 1"
+                          vertical
+                          :dark="darkMode"
+                        />
+                      </template>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
           </q-list>
         </q-card-section>
       </q-card>
@@ -270,6 +300,7 @@ import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDeta
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 
 export default {
   name: 'transaction',
@@ -374,6 +405,10 @@ export default {
         })
         .filter(Boolean)
       return contracts
+    },
+    attributeDetails() {
+      if (!Array.isArray(this.transaction?.attributes)) return []
+      return parseAttributesToGroups({attributes: this.transaction?.attributes})
     }
   },
   methods: {
@@ -459,6 +494,17 @@ export default {
       return Number(currentYield.toFixed(2)) === 0.00 || Number(currentYield.toFixed(2)) === 0
         ? Math.abs(currentYield)
         : currentYield
+    },
+    /**
+     * @param {{type: String, args?: any[]}} action
+     */
+    handleAttributeAction(action) {
+      const args = Array.isArray(action?.args) ? action?.args : []
+      if (action?.type === 'copy_to_clipboard') {
+        return this.copyToClipboard(...args)
+      } else if (action?.type === 'open_anyhedge_contract') {
+        return this.displayAnyhedgeContract(...args)
+      }
     }
   },
   mounted () {
