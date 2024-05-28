@@ -32,11 +32,17 @@ export function formatOrderStatus (value) {
 export function formatCurrency (value, currency) {
   let formattedNumber = null
   const parsedValue = parseFloat(value)
+  let maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 2
+  if (parsedValue < 0.01) {
+    maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 3
+  }
+  if (parsedValue < 0.001) {
+    maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 6
+  }
+  if (parsedValue < 0.0001) {
+    maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 8
+  }
   if (currency) {
-    let maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 2
-    if (parsedValue < 1) {
-      maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 8
-    }
     formattedNumber = parsedValue.toLocaleString(undefined, {
       currency: currency,
       minimumFractionDigits: 0,
@@ -45,7 +51,7 @@ export function formatCurrency (value, currency) {
   } else {
     formattedNumber = parsedValue.toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: parsedValue % 1 === 0 ? 0 : 8
+      maximumFractionDigits: maximumFractionDigits
     })
   }
   return formattedNumber

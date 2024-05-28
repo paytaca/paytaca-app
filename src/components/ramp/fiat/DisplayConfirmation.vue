@@ -28,10 +28,10 @@
               <div class="row justify-between no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
                 <span>Price</span>
                 <span v-if="marketPrice && adData.priceType === 'FLOATING'" class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(((marketPrice * adData.floatingPrice) / 100), postData.fiatCurrency.symbol) }}
+                  {{ formatCurrency(((marketPrice * adData.floatingPrice) / 100), postData.fiatCurrency.symbol) }}
                 </span>
                 <span v-if="adData.priceType === 'FIXED'" class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) }}
+                  {{ formatCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) }}
                 </span>
               </div>
             </div>
@@ -50,11 +50,11 @@
               </div> -->
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Minimum</span>
-                <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} {{ adData.isTradeLimitsFiat ? adData.fiatCurrency.symbol : adData.cryptoCurrency.symbol }} </span>
+                <span class="text-nowrap q-ml-xs">{{ formatCurrency(adData.tradeFloor, tradeLimitsCurrency(adData)) }} {{ tradeLimitsCurrency(adData) }} </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Maximum</span>
-                <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeCeiling) }} {{ adData.isTradeLimitsFiat ? adData.fiatCurrency.symbol : adData.cryptoCurrency.symbol }} </span>
+                <span class="text-nowrap q-ml-xs">{{ formatCurrency(adData.tradeCeiling, tradeLimitsCurrency(adData)) }} {{ tradeLimitsCurrency(adData) }} </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Appealable after</span>
@@ -206,8 +206,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    formattedCurrency (value, currency) {
-      return formatCurrency(value, currency)
+    formatCurrency,
+    tradeLimitsCurrency (ad) {
+      return (ad.isTradeLimitsFiat ? ad.fiatCurrency.symbol : ad.cryptoCurrency.symbol)
     },
     checkMatchingPaymentMethod (userPM, adMethodList) {
       adMethodList = adMethodList.map(p => p.payment_type)
