@@ -5,13 +5,13 @@
         <div class="xs-font-size">Trading with</div>
         <div class="row justify-end">
             <div class="col q-py-none">
-                <div style="overflow-x: scroll; max-width: 200px;">
+                <div style="overflow-x: auto; max-width: 125px;">
                   <q-btn flat no-caps dense
                       padding="none"
                       color="primary"
                       class="q-py-none q-my-none row lg-font-size text-weight-bold"
                       @click="onViewPeer(counterparty?.id)">
-                      {{ userNameView(counterparty?.name) }}
+                      {{ counterparty?.name }}
                   </q-btn>
                 </div>
                 <div class="row">
@@ -218,11 +218,6 @@ export default {
   methods: {
     formatCurrency,
     getDarkModeClass,
-    userNameView (name) {
-      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
-
-      return limitedView
-    },
     onLastReadUpdate () {
       this.fetchChatUnread(this.chatRef)
     },
