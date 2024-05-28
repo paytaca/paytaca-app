@@ -4,24 +4,23 @@
     @decode="onScannerDecode"
   />
 
-  <input
-    @change="onUploadDetect"
+  <q-file
     ref="qr-upload"
-    type="file"
-    name="image"
-    accept="image/*"
     style="display: none;"
-    :capture="null"
+    v-model="fileModel"
+    accept="image/*"
+    :model-value="null"
+    @update:model-value="onUploadDetect"
   />
 
   <div class="text-bow q-px-lg" :class="getDarkModeClass(darkMode)">
     <p class="text-center text-subtitle1">
-      Restore your Paytaca wallet from the QR code of its shards
+      {{ $t('RestoreShardsDescription') }}
     </p>
 
     <div class="row flex items-center justify-between q-py-md">
       <p class="col-6 q-ma-xs" style="text-wrap: wrap;">
-        Scan or upload the wallet's personal QR
+        {{ $t('ScanUploadPersonalQR') }}
       </p>
       <div class="q-gutter-md">
         <q-btn
@@ -38,14 +37,14 @@
           class="btn-scan button text-white bg-grad"
           icon="upload"
           :disable="disablePersonal"
-          @click="isPersonalClicked = true, $refs['qr-upload'].click()"
+          @click="isPersonalClicked = true, $refs['qr-upload'].pickFiles()"
         />
       </div>
     </div>
 
     <div class="row flex items-center justify-between q-py-md">
       <p class="col-6 q-ma-xs" style="text-wrap: wrap;">
-        Scan or upload the wallet's for sharing QR
+        {{ $t('ScanUploadForSharingQR') }}
       </p>
       <div class="q-gutter-md">
         <q-btn
@@ -62,7 +61,7 @@
           class="btn-scan button text-white bg-grad"
           icon="upload"
           :disable="disableForSharing"
-          @click="isForSharingClicked = true, $refs['qr-upload'].click()"
+          @click="isForSharingClicked = true, $refs['qr-upload'].pickFiles()"
         />
       </div>
     </div>
@@ -100,7 +99,7 @@
       <q-btn
         rounded
         class="q-mt-md button"
-        label="Clear QR"
+        :label="$t('ClearQR')"
         @click="clearQRs"
       />
     </div>
@@ -163,12 +162,12 @@ export default {
       vm.addData(content)
       vm.validateQRCodes()
     },
-    async onUploadDetect (event) {
+    async onUploadDetect (file) {
       const vm = this
 
       try {
         const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] })
-        await barcodeDetector.detect(event.target.files[0]).then((detectedCode) => {
+        await barcodeDetector.detect(file).then((detectedCode) => {
           if (detectedCode.length > 0) {
             vm.addData(detectedCode[0].rawValue)
             vm.validateQRCodes()
