@@ -94,13 +94,7 @@ export default {
       this.$emit('input', false)
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
-      try {
-        document.getElementById('app-container').classList.remove('hide-section')
-        document.body.classList.remove('transparent-body')
-        document.getElementById('qr-scanner-ui').classList.add('hide-section')
-      } catch (err) {
-        // console.log(err)
-      }
+      this.adjustComponentsClasslist(false)
 
       if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     },
@@ -115,27 +109,16 @@ export default {
     },
     async scanBarcode () {
       BarcodeScanner.hideBackground()
-      const appContainer = document.getElementById('app-container')
-      const scannerUI = document.getElementById('qr-scanner-ui')
-      const hide = 'hide-section'
-      const transparent = 'transparent-body'
-
-      appContainer.classList.add(hide)
-      document.body.classList.add(transparent)
-      scannerUI.classList.remove(hide)
+      this.adjustComponentsClasslist(true)
 
       const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
 
       if (res.content) {
         BarcodeScanner.showBackground()
-        appContainer.classList.remove(hide)
-        document.body.classList.remove(transparent)
-        scannerUI.classList.add(hide)
+        this.adjustComponentsClasslist(false)
         this.$emit('decode', res.content)
       } else {
-        appContainer.classList.remove(hide)
-        document.body.classList.remove(transparent)
-        scannerUI.classList.add(hide)
+        this.adjustComponentsClasslist(false)
         this.$emit('input', false)
       }
     },
@@ -222,6 +205,43 @@ export default {
             this.error = this.$t('UnknownErrorOccurred') + ': ' + error.message
           }
         })
+    },
+    adjustComponentsClasslist (isScanning) {
+      const appContainer = document.getElementById('app-container')
+      const scannerUI = document.getElementById('qr-scanner-ui')
+      const registrationContainer = document.getElementById('registration-container')
+      const hide = 'hide-section'
+      const transparent = 'transparent-body'
+      const visibilityHidden = 'visibility-hide'
+      const visibilityVisible = 'visibility-visible'
+
+      if (isScanning) {
+        try {
+          appContainer.classList.add(hide)
+        } catch (error) {
+          try {
+            scannerUI.classList.add(visibilityVisible)
+            registrationContainer.classList.add(visibilityHidden)
+          } catch (error1) {}
+        }
+        document.body.classList.add(transparent)
+        try {
+          scannerUI.classList.remove(hide)
+        } catch (error1) {}
+      } else {
+        try {
+          appContainer.classList.remove(hide)
+        } catch (error) {
+          try {
+            scannerUI.classList.remove(visibilityVisible)
+            registrationContainer.classList.remove(visibilityHidden)
+          } catch (error1) {}
+        }
+        document.body.classList.remove(transparent)
+        try {
+          scannerUI.classList.add(hide)
+        } catch (error1) {}
+      }
     }
   },
   deactivated () {
@@ -276,5 +296,16 @@ export default {
 }
 .cancel-barcode-button {
   display: block !important;
+}
+.visibility-hide {
+  visibility: hidden;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+.visibility-visible {
+  visibility: visible;
+  position: fixed !important;
 }
 </style>

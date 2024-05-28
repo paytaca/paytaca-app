@@ -60,6 +60,7 @@
     "ethereumjs-wallet": "^1.0.2",
     "ethers": "^5.5.3",
     "hex-my-bytes": "^1.0.0",
+    "html2canvas": "^1.4.1",
     "js-sha256": "^0.9.0",
     "leaflet": "^1.9.2",
     "mqtt": "^4.3.7",

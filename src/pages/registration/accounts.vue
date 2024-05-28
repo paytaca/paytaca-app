@@ -38,7 +38,7 @@
                     rounded
                     class="full-width bg-blue-9 text-white button"
                     @click="() => { importSeedPhrase = true }"
-                    :label="$t('RestoreFromSeedPhrase')"
+                    :label="'Restore Existing Wallet'"
                   />
                 </div>
               </div>
@@ -77,56 +77,70 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
     </div>
     <div
-      class="row pt-wallet q-mt-sm pt-card-2"
+      class="pt-wallet q-mt-sm pt-card-2"
       :class="getDarkModeClass(darkMode, 'registration')"
       v-if="importSeedPhrase && mnemonic.length === 0"
     >
-      <div class="col-12 q-px-lg">
-        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
-          <div class="q-py-lg">
-            <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
-              {{ $t('RestoreWalletDescription') }}
-            </p>
-            <template v-if="useTextArea">
-              <div class="row justify-start q-mb-sm">
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon="arrow_back"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('EnterOneByOne')"
-                  @click="useTextArea = false, seedPhraseBackup = ''"
-                />
-              </div>
-              <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-            </template>
-            <template v-else>
-              <div class="row justify-end q-mb-xs">
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon-right="arrow_forward"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('PasteSeedPhrase')"
-                  @click="useTextArea = true, seedPhraseBackup = ''"
-                />
-              </div>
-              <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
-            </template>
-            <q-btn
-              rounded
-              class="full-width q-mt-md button"
-              @click="initCreateWallet()"
-              :disable="!validateSeedPhrase()"
-              :label="$t('RestoreWallet')"
-            />
+      <template v-if="authenticationPhase === 'options'">
+        <div>
+          <AuthenticationChooser
+            :importSeedPhrase="importSeedPhrase"
+            @change-authentication-phase="onChangeAuthenticationPhase"
+          />
+        </div>
+      </template>
+
+      <template v-else-if="authenticationPhase === 'shards'">
+        <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="initCreateWallet" />
+      </template>
+      <template v-else-if="authenticationPhase === 'backup-phrase'">
+        <div class="col-12 q-px-lg">
+          <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+            <div class="q-py-lg">
+              <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
+                {{ $t('RestoreWalletDescription') }}
+              </p>
+              <template v-if="useTextArea">
+                <div class="row justify-start q-mb-sm">
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon="arrow_back"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('EnterOneByOne')"
+                    @click="useTextArea = false, seedPhraseBackup = ''"
+                  />
+                </div>
+                <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+              </template>
+              <template v-else>
+                <div class="row justify-end q-mb-xs">
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon-right="arrow_forward"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('PasteSeedPhrase')"
+                    @click="useTextArea = true, seedPhraseBackup = ''"
+                  />
+                </div>
+                <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
+              </template>
+              <q-btn
+                rounded
+                class="full-width q-mt-md button"
+                @click="initCreateWallet()"
+                :disable="!validateSeedPhrase()"
+                :label="$t('RestoreWallet')"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
@@ -201,61 +215,94 @@
               <ThemeSelectorPreview
                 :choosePreferedSecurity="choosePreferedSecurity"
               />
-                <!-- <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/> -->
             </div>
 
             <div v-else>
               <template v-if="steps === totalSteps">
-                <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
-                <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription1') }}
-                </p>
-                <p v-else class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription2') }}
-                </p>
-              </template>
-
-              <div class="row" id="mnemonic">
-                <template v-if="steps === totalSteps">
-                  <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                    <SeedPhraseContainer :mnemonic="mnemonic" />
-                  </div>
-                  <div v-else>
-                    <div>
-                      <q-btn
-                        flat
-                        no-caps
-                        padding="xs sm"
-                        icon="arrow_back"
-                        color="black"
-                        class="button button-text-primary"
-                        :class="getDarkModeClass(darkMode)"
-                        :label="$t('MnemonicBackupPhrase')"
-                        @click="showMnemonicTest = false"
-                      />
-                    </div>
-                    <MnemonicTest
-                      :mnemonic="mnemonic"
-                      @matched="mnemonicVerified = true"
-                      class="q-mb-md"
-                    />
-                  </div>
+                <template v-if="authenticationPhase === 'options'">
+                  <AuthenticationChooser
+                    :importSeedPhrase="importSeedPhrase"
+                    @change-authentication-phase="onChangeAuthenticationPhase"
+                  />
                 </template>
-              </div>
-              <div class="row q=mt-md" v-if="steps === totalSteps">
-                <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
-                <template v-else>
-                  <template v-if="$q.platform.is.mobile">
-                    <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
-                      {{ $t('SkipVerification') }}
-                    </q-btn>
-                    <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+
+                <template v-else-if="authenticationPhase === 'shards'">
+                  <template v-if="seedPhraseBackup">
+                    <div class="text-bow" :class="getDarkModeClass(darkMode)">
+                      <p class="dim-text" style="margin-top: 10px;">
+                        Wallet restored successfully. Click on the button to continue.
+                      </p>
+                    </div>
+                    <q-btn
+                      rounded
+                      :label="$t('Continue')"
+                      class="q-mt-lg full-width button"
+                      @click="onProceedToNextStep"
+                    />
                   </template>
                   <template v-else>
-                    <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                    <ShardsProcess
+                      :mnemonic="mnemonic"
+                      :walletHash="newWalletHash"
+                      @proceed-to-next-step="onProceedToNextStep()"
+                    />
                   </template>
                 </template>
-              </div>
+
+                <template v-else-if="authenticationPhase === 'backup-phrase'">
+                  <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
+                  <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+                    {{ $t('MnemonicBackupPhraseDescription1') }}
+                  </p>
+                  <p v-else class="dim-text" style="margin-top: 10px;">
+                    {{ $t('MnemonicBackupPhraseDescription2') }}
+                  </p>
+                </template>
+              </template>
+
+              <template v-if="authenticationPhase === 'backup-phrase'">
+                <div class="row" id="mnemonic">
+                  <template v-if="steps === totalSteps">
+                    <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
+                      <SeedPhraseContainer :mnemonic="mnemonic" />
+                    </div>
+                    <div v-else>
+                      <div>
+                        <q-btn
+                          flat
+                          no-caps
+                          padding="xs sm"
+                          icon="arrow_back"
+                          color="black"
+                          class="button button-text-primary"
+                          :class="getDarkModeClass(darkMode)"
+                          :label="$t('MnemonicBackupPhrase')"
+                          @click="showMnemonicTest = false"
+                        />
+                      </div>
+                      <MnemonicTest
+                        :mnemonic="mnemonic"
+                        @matched="mnemonicVerified = true"
+                        class="q-mb-md"
+                      />
+                    </div>
+                  </template>
+                </div>
+                <div class="row q=mt-md" v-if="steps === totalSteps">
+                  <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
+                  <template v-else>
+                    <template v-if="$q.platform.is.mobile">
+                      <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
+                        {{ $t('SkipVerification') }}
+                      </q-btn>
+                      <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                    </template>
+                    <template v-else>
+                      <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                    </template>
+                  </template>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -293,6 +340,9 @@ import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+import ShardsProcess from 'src/components/registration/ShardsProcess'
+import AuthenticationChooser from 'src/components/registration/AuthenticationChooser'
+import ShardsImport from 'src/components/registration/ShardsImport'
 
 function countWords(str) {
   if (str) {
@@ -319,7 +369,10 @@ export default {
     CountrySelector,
     CurrencySelector,
     ThemeSelectorPreview,
-    SeedPhraseContainer
+    SeedPhraseContainer,
+    ShardsProcess,
+    AuthenticationChooser,
+    ShardsImport
   },
   data () {
     return {
@@ -328,6 +381,7 @@ export default {
       importSeedPhrase: false,
       seedPhraseBackup: null,
       mnemonic: '',
+      newWalletHash: '',
       steps: -1,
       totalSteps: 9,
       mnemonicVerified: false,
@@ -338,7 +392,9 @@ export default {
       walletIndex: 0,
       currencySelectorRerender: false,
       openThemeSelector: false,
-      useTextArea: false
+      useTextArea: false,
+      authenticationPhase: 'options',
+      skipToBackupPhrase: false
     }
   },
   watch: {
@@ -484,7 +540,7 @@ export default {
           } catch(error) { console.error(error) }
         })
 
-        bchWallet.getXPubKey().then(function (xpub) {
+        await bchWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
             type: 'bch',
@@ -497,7 +553,7 @@ export default {
       for (const slpWallet of slpWallets) {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
-        slpWallet.getNewAddressSet(0).then(function (addresses) {
+        await slpWallet.getNewAddressSet(0).then(function (addresses) {
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'slp',
@@ -510,7 +566,7 @@ export default {
           vm.steps += 1
         })
 
-        slpWallet.getXPubKey().then(function (xpub) {
+        await slpWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
             type: 'slp',
@@ -520,7 +576,7 @@ export default {
         })
       }
 
-      wallet.sBCH.subscribeWallet().then(function () {
+      await wallet.sBCH.subscribeWallet().then(function () {
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
           derivationPath: wallet.sBCH.derivationPath,
@@ -537,6 +593,7 @@ export default {
         wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes)
+      this.newWalletHash = wallet.BCH.walletHash
     },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
@@ -617,6 +674,17 @@ export default {
           message: 'Enable push notifications to receive updates from the app',
         }).catch(console.log)
       }
+    },
+    onChangeAuthenticationPhase (isShard) {
+      this.authenticationPhase = isShard ? 'shards' : 'backup-phrase'
+    },
+    onProceedToNextStep () {
+      this.steps = this.totalSteps
+      this.authenticationPhase = 'options'
+      this.openSettings = true
+    },
+    onValidatedQrs (seedPhrase) {
+      this.seedPhraseBackup = seedPhrase
     }
   },
   async mounted () {
