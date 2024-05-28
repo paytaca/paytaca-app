@@ -20,7 +20,7 @@
       v-if="!fromWalletInfo"
       class="q-ma-none text-bow"
       :class="getDarkModeClass(darkMode)">
-      Shards Authentication Phase
+      Shards Backup Phase
     </h5>
     <p
       :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
