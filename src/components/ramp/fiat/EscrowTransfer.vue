@@ -41,7 +41,7 @@
         hide-bottom-space
         bottom-slots
         error-message="Contract address mismatch"
-        :error="contractAddress && data.escrow?.getAddress() && !contractAddressMatch(contractAddress)"
+        :error="contractAddress && escrowContract?.getAddress() && !contractAddressMatch(contractAddress)"
         :dark="darkMode"
         :loading="hasArbiters && !contractAddress"
         :disable="!hasArbiters"
@@ -122,6 +122,7 @@ import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
+import RampContract from 'src/wallet/ramp/contract'
 
 export default {
   data () {
@@ -141,6 +142,7 @@ export default {
       sendErrors: [],
       sendingBch: false,
       dragSlideKey: 0,
+      escrowContract: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -198,18 +200,19 @@ export default {
       this.$emit('refresh')
     },
     contractAddressMatch (contractAddress) {
-      const localContractAddress = this.data.escrow?.getAddress()
+      const localContractAddress = this.escrowContract?.getAddress()
       return localContractAddress === contractAddress
     },
     selectArbiter () {
       this.contractAddress = null
       this.generateContractAddress()
     },
-    loadContract () {
+    async loadContract () {
       const vm = this
-      vm.fetchArbiters().then(() => {
+      await vm.fetchArbiters().then(async () => {
         if (!vm.contractAddress) {
-          vm.generateContractAddress()
+          await vm.generateContractAddress()
+          await vm.generateContract()
         }
       })
       if (vm.hasArbiters) {
@@ -352,11 +355,7 @@ export default {
         }
         backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
           .then(response => {
-            if (response.data) {
-              if (response.data.address) {
-                vm.contractAddress = response.data.address
-              }
-            }
+            vm.contractAddress = response.data?.address
             vm.loading = false
             resolve(response.data)
           })
@@ -401,6 +400,63 @@ export default {
         timeout: 800,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
+      })
+    },
+    async generateContract () {
+      console.log('generating contract..')
+      const vm = this
+      const fees = await vm.fetchFees()
+      await vm.fetchContract(vm.order.id).then(contract => {
+        if (vm.escrowContract || !contract) return
+        const publicKeys = contract.pubkeys
+        const addresses = contract.addresses
+        const fees_ = {
+          arbitrationFee: fees.breakdown?.arbitration_fee,
+          serviceFee: fees.breakdown?.service_fee,
+          contractFee: fees.breakdown?.hardcoded_fee
+        }
+        const timestamp = contract.timestamp
+        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+      })
+    },
+    fetchContract (orderId) {
+      return new Promise((resolve, reject) => {
+        const url = '/ramp-p2p/order/contract'
+        backend.get(url, { params: { order_id: orderId }, authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
+    fetchFees () {
+      return new Promise((resolve, reject) => {
+        const url = '/ramp-p2p/order/contract/fees'
+        backend.get(url, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
       })
     }
   }

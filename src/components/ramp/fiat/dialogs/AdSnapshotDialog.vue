@@ -38,7 +38,7 @@
           <div class="row justify-between no-wrap q-mx-lg">
             <span>Trade Limit</span>
             <span class="text-nowrap q-ml-xs">
-              {{ formatCurrency(snapshot?.trade_floor, tradeLimitsCurrency(snapshot)) }} - {{ formatCurrency(minAmount([snapshot?.trade_ceiling, snapshot?.trade_amount]), tradeLimitsCurrency(snapshot)) }} {{ tradeLimitsCurrency(snapshot) }}
+              {{ formatCurrency(snapshot?.trade_floor, tradeLimitsCurrency(snapshot)) }} - {{ formatCurrency(minTradeAmount(snapshot), tradeLimitsCurrency(snapshot)) }} {{ tradeLimitsCurrency(snapshot) }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
@@ -118,8 +118,25 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
-    minAmount (amounts) {
-      return Math.min.apply(null, amounts)
+    minTradeAmount (ad) {
+      let tradeAmount = parseFloat(ad.trade_amount)
+      let tradeCeiling = parseFloat(ad.trade_ceiling)
+      if (ad.trade_limits_in_fiat) {
+        // if trade_limits in fiat and trade_amount in BCH
+        // convert trade_amount to fiat
+        if (!ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount * ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      } else {
+        // If trade_limits in BCH and trade_amount in fiat:
+        // convert trade amount to BCH
+        if (ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount / ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      }
+      return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
     tradeAmountCurrency (ad) {
       return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)

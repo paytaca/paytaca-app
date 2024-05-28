@@ -32,13 +32,13 @@
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Min Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ ad?.trade_limits_in_fiat ? parseFloat(ad.trade_floor).toFixed(2) : parseFloat(ad.trade_floor) }} {{ ad?.trade_limits_in_fiat ? ad?.fiat_currency.symbol : ad?.crypto_currency?.symbol }}
+                {{ formatCurrency(ad?.trade_floor, tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Max Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ ad?.trade_limits_in_fiat ? parseFloat(ad.trade_amount).toFixed(2) : parseFloat(ad.trade_amount) }} {{ ad?.trade_limits_in_fiat ? ad?.fiat_currency.symbol : ad?.crypto_currency?.symbol }}
+                {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
@@ -74,7 +74,7 @@
                 {{ amountError }}
               </div>
               <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                = {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ formattedCurrency(equivalentAmount.toFixed(!byFiat ? 2 : 8), ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ !byFiat ? '' : 'BCH' }}
+                = {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ formatCurrency(equivalentAmount.toFixed(!byFiat ? 2 : 8), ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ !byFiat ? '' : 'BCH' }}
               </div>
               <div class="justify-end q-gutter-sm q-pr-sm">
                 <q-btn
@@ -349,6 +349,7 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    formatCurrency,
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
       let proceed = false
@@ -539,13 +540,6 @@ export default {
         .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
         .catch(console.error)
     },
-    formattedCurrency (value, currency = null) {
-      if (!this.byFiat) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
-      }
-    },
     isValidInputAmount (value = this.amount) {
       let valid = true
       const decCount = [0, 0]
@@ -556,7 +550,7 @@ export default {
       }
       const parsedValue = parseFloat(value)
       let tradeFloor = parseFloat(this.ad.trade_floor)
-      let tradeCeiling = parseFloat(this.minAmount([this.ad.trade_amount, this.ad.trade_ceiling]))
+      let tradeCeiling = parseFloat(this.minTradeAmount(this.ad))
 
       for (const index in decCount) {
         if (index < 1) {
@@ -647,7 +641,7 @@ export default {
         }
       }
       if (max) {
-        const tradeCeiling = this.minAmount([this.ad.trade_ceiling, this.ad.trade_amount])
+        const tradeCeiling = this.minTradeAmount(this.ad)
         if (this.byFiat) {
           if (this.ad.trade_limits_in_fiat) {
             amount = tradeCeiling
@@ -672,8 +666,28 @@ export default {
       }
       this.amount = amount.toFixed(this.byFiat ? 2 : 8)
     },
-    minAmount (amounts) {
-      return Math.min.apply(null, amounts)
+    tradeLimitsCurrency (ad) {
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    minTradeAmount (ad) {
+      let tradeAmount = parseFloat(ad.trade_amount)
+      let tradeCeiling = parseFloat(ad.trade_ceiling)
+      if (ad.trade_limits_in_fiat) {
+        // if trade_limits in fiat and trade_amount in BCH
+        // convert trade_amount to fiat
+        if (!ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount * ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      } else {
+        // If trade_limits in BCH and trade_amount in fiat:
+        // convert trade amount to BCH
+        if (ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount / ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      }
+      return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
     getCryptoAmount () {
       if (!this.byFiat) {
