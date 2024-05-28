@@ -222,7 +222,7 @@ export default {
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
         fees: this.fees,
-        escrow: this.escrowContract,
+        // escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
     },

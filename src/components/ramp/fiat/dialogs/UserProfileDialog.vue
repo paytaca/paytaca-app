@@ -98,7 +98,7 @@
                                 </div>
                                 <div class="row">
                                 <span class="col-3">Limit</span>
-                                <span class="col"> {{ formatCurrency(ad.trade_floor, tradeLimitsCurrency(ad)) }} - {{ formatCurrency(minAmount([ad.trade_amount, ad.trade_ceiling]), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}</span>
+                                <span class="col"> {{ formatCurrency(ad.trade_floor, tradeLimitsCurrency(ad)) }} - {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}</span>
                                 </div>
                             </div>
                             <div class="row sm-font-size q-gutter-md">
@@ -209,8 +209,25 @@ export default {
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
-    minAmount (amounts) {
-      return Math.min.apply(null, amounts)
+    minTradeAmount (ad) {
+      let tradeAmount = parseFloat(ad.trade_amount)
+      let tradeCeiling = parseFloat(ad.trade_ceiling)
+      if (ad.trade_limits_in_fiat) {
+        // if trade_limits in fiat and trade_amount in BCH
+        // convert trade_amount to fiat
+        if (!ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount * ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      } else {
+        // If trade_limits in BCH and trade_amount in fiat:
+        // convert trade amount to BCH
+        if (ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount / ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      }
+      return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
     formattedDate (value) {
       const relative = true
