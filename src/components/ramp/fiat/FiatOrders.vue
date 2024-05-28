@@ -98,14 +98,11 @@
                             <span
                               class=" pt-label md-font-size text-weight-bold"
                               :class="getDarkModeClass(darkMode)">
-                              <!--@click.stop.prevent="viewUserProfile(listing)">-->
-                              {{ listing.owner.name }} <q-badge v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
+                              {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
                             </span>
                             <div
                               class="col-transaction text-uppercase pt-label lg-font-size"
-                              :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]"
-                            >
-                            <!-- :style="amountColor(listing.trade_type)" -->
+                              :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
                               {{ listing.ad?.fiat_currency?.symbol }} {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                             </div>
                             <div class="sm-font-size">
@@ -330,6 +327,11 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    },
     showCurrencySelect () {
       this.$q.dialog({
         component: CurrencyFilterDialog,

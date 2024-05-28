@@ -37,6 +37,7 @@
             @success="onEscrowSuccess"
             @back="onBack"
             @refresh="generateContract"
+            @updateArbiterStatus="onUpdateArbiterStatus"
           />
           <VerifyTransaction
             v-if="state === 'tx-confirmation'"
@@ -157,7 +158,8 @@ export default {
       peerInfo: {},
       hasUnread: false,
       chatRef: '',
-      hideTradeInfo: false
+      hideTradeInfo: false,
+      hasArbiters: true
     }
   },
   components: {
@@ -193,7 +195,7 @@ export default {
   computed: {
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 380 : this.$q.screen.height - 350
-      if (this.state === 'escrow-bch' || this.state === 'payment-confirmation') {
+      if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
       }
       return height + 200
@@ -220,7 +222,7 @@ export default {
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
         fees: this.fees,
-        escrow: this.escrowContract,
+        // escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
     },
@@ -347,6 +349,9 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    onUpdateArbiterStatus (hasArbiters) {
+      this.hasArbiters = hasArbiters
+    },
     reloadChildComponents () {
       this.standByDisplayKey++
       this.escrowTransferKey++

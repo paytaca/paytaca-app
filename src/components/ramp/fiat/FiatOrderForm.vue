@@ -32,13 +32,13 @@
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Min Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ parseFloat(ad.trade_floor) }} {{ ad?.crypto_currency?.symbol }}
+                {{ formatCurrency(ad?.trade_floor, tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
               <span>Max Trade Limit</span>
               <span class="text-nowrap q-ml-xs">
-                {{ parseFloat(ad.trade_amount) }} {{ ad?.crypto_currency?.symbol }}
+                {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
@@ -57,6 +57,7 @@
               type="text"
               inputmode="none"
               label="Amount"
+              :disable="!hasArbiters"
               :dark="darkMode"
               :rules="[isValidInputAmount]"
               v-model="amount"
@@ -73,7 +74,7 @@
                 {{ amountError }}
               </div>
               <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                = {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ formattedCurrency(equivalentAmount.toFixed(!byFiat ? 2 : 8), ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ !byFiat ? '' : 'BCH' }}
+                = {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ formatCurrency(equivalentAmount.toFixed(!byFiat ? 2 : 8), ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ !byFiat ? '' : 'BCH' }}
               </div>
               <div class="justify-end q-gutter-sm q-pr-sm">
                 <q-btn
@@ -81,6 +82,7 @@
                   padding="none"
                   flat
                   dense
+                  :disable="!hasArbiters"
                   :class="getDarkModeClass(darkMode)"
                   label="MIN"
                   @click="updateInput(max=false, min=true)"/>
@@ -88,6 +90,7 @@
                   class="sm-font-size button button-text-primary"
                   padding="none"
                   flat
+                  :disable="!hasArbiters"
                   :class="getDarkModeClass(darkMode)"
                   label="MAX"
                   @click="updateInput(max=true, min=false)"/>
@@ -99,6 +102,7 @@
                 padding="none"
                 flat
                 no-caps
+                :disable="!hasArbiters"
                 :class="getDarkModeClass(darkMode)"
                 @click="byFiat = !byFiat">
                 Set amount in {{ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }}
@@ -116,9 +120,9 @@
           </div>
 
           <!-- create order btn -->
-          <div class="row q-mx-lg q-py-md" v-if="!isOwner">
+          <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
             <q-btn
-              :disabled="!isValidInputAmount(amount)"
+              :disabled="!isValidInputAmount(amount) || !hasArbiters"
               rounded
               no-caps
               :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
@@ -128,8 +132,13 @@
             </q-btn>
           </div>
 
+          <!-- Warning message for when no currency arbiter is available for ad -->
+          <div v-if="!hasArbiters" class="warning-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+            There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+          </div>
+
           <!-- edit ad button: For ad owners only -->
-          <div class="row q-mx-lg q-py-md" v-if="isOwner">
+          <div class="row q-mx-lg q-py-sm" v-if="isOwner">
             <q-btn
               rounded
               no-caps
@@ -212,7 +221,7 @@ import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers } from 'src/wallet/ramp/chat'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -220,6 +229,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
+      websocket: null,
       isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (70 + 100),
       customKeyboardState: 'dismiss',
@@ -242,7 +252,9 @@ export default {
         rating: 3,
         comment: '',
         is_posted: false
-      }
+      },
+      marketPrice: 0,
+      arbitersAvailable: []
     }
   },
   setup () {
@@ -275,6 +287,9 @@ export default {
   },
   emits: ['back', 'orderCanceled', 'updatePageName'],
   computed: {
+    hasArbiters () {
+      return this.arbitersAvailable?.length > 0
+    },
     appealCooldown () {
       return getAppealCooldown(this.ad?.appeal_cooldown)
     },
@@ -315,19 +330,26 @@ export default {
       } else {
         this.minHeight += 250
       }
+    },
+    marketPrice (val) {
+      // polling ad info whenever market price update
+      this.fetchAd()
     }
   },
   async mounted () {
     const vm = this
     await vm.fetchAd()
-    if (this.ad) {
-      this.amount = parseFloat(this.ad.trade_floor)
-    }
+    await vm.fetchArbiters()
+    vm.setupWebsocket()
     vm.isloaded = true
+  },
+  beforeUnmount () {
+    this.closeWSConnection()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    formatCurrency,
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
       let proceed = false
@@ -421,21 +443,27 @@ export default {
       this.title = 'Confirm Order?'
     },
     async fetchAd () {
-      const vm = this
-      try {
-        const response = await backend.get(`/ramp-p2p/ad/${vm.adId}`, { authorize: true })
-        vm.ad = response.data
-        this.amount = this.ad.trade_floor
-      } catch (error) {
-        if (error.response) {
-          console.error(error.response)
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+      await backend.get(`/ramp-p2p/ad/${this.adId}`, { authorize: true })
+        .then(response => {
+          this.ad = response.data
+          if (!this.isloaded) {
+            this.amount = this.ad.trade_floor
+            this.byFiat = this.ad.trade_limits_in_fiat
+            if (this.byFiat) {
+              this.amount = Number(this.amount).toFixed(2)
+            }
           }
-        } else {
-          console.error(error)
-        }
-      }
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
+        })
     },
     async createOrder () {
       const vm = this
@@ -488,18 +516,29 @@ export default {
           })
       })
     },
+    fetchArbiters () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('ramp-p2p/arbiter', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
+          .then(response => {
+            console.log('fetchArbiter:', response.data)
+            vm.arbitersAvailable = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+            reject(error)
+          })
+      })
+    },
     createGroupChat (orderId, members, createdAt) {
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       createChatSession(orderId, createdAt)
         .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
         .catch(console.error)
-    },
-    formattedCurrency (value, currency = null) {
-      if (!this.byFiat) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
-      }
     },
     isValidInputAmount (value = this.amount) {
       let valid = true
@@ -510,8 +549,8 @@ export default {
         value = this.equivalentAmount
       }
       const parsedValue = parseFloat(value)
-      const tradeFloor = parseFloat(this.ad.trade_floor)
-      const tradeCeiling = parseFloat(this.ad.trade_amount)
+      let tradeFloor = parseFloat(this.ad.trade_floor)
+      let tradeCeiling = parseFloat(this.minTradeAmount(this.ad))
 
       for (const index in decCount) {
         if (index < 1) {
@@ -525,15 +564,42 @@ export default {
         valid = false
         this.amountError = 'Amount cannot be none or undefined'
       }
-      if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
-        valid = false
-        this.amountError = 'Amount must be greater than minimum trade limit'
+      // if trade limits in fiat, check if amount in fiat is less than tradeFloor
+      // if trade limits not in fiat, check if amount in bch is less than tradeFloor
+      if (this.ad.trade_limits_in_fiat) {
+        tradeFloor = Number(tradeFloor.toFixed(2))
+        tradeCeiling = Number(tradeCeiling.toFixed(2))
+
+        let amount = this.amount
+        if (!this.byFiat) {
+          amount = parsedValue * this.ad.price
+        }
+        amount = Number(amount)
+        // check if amount is less than trade floor
+        if (amount.toFixed(2) < tradeFloor) {
+          console.log('amount is less than tradeFloor')
+          console.log(`amount: ${amount}, tradeFloor: ${tradeFloor}`)
+          valid = false
+          this.amountError = 'Amount must be greater than minimum trade limit'
+        }
+        // check if amount is greater than trade ceiling
+        if (amount.toFixed(2) > tradeCeiling) {
+          console.log('amount is greater than tradeCeiling')
+          console.log(`amount: ${amount}, tradeCeiling: ${tradeCeiling}`)
+          valid = false
+          this.amountError = 'Amount must be lesser than maximum trade limit'
+        }
       }
-      if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
-        parsedValue.toFixed(decCount[1])
-        valid = false
-        this.amountError = 'Amount must be lesser than the maximum trade limit'
-      }
+
+      // if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
+      //   valid = false
+      //   this.amountError = 'Amount must be greater than minimum trade limit'
+      // }
+      // if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
+      //   parsedValue.toFixed(decCount[1])
+      //   valid = false
+      //   this.amountError = 'Amount must be lesser than the maximum trade limit'
+      // }
       if (this.ad.trade_type === 'BUY') {
         if (this.balanceExceeded) {
           valid = false
@@ -556,15 +622,72 @@ export default {
       }
     },
     updateInput (max = false, min = false) {
+      if (!this.isloaded) return
       let amount = this.amount
-      if (min) amount = parseFloat(this.ad.trade_floor)
-      if (max) amount = parseFloat(this.ad.trade_amount)
-      if (!this.byFiat) {
-        if (!max && !min) amount = Number(parseFloat(amount) / parseFloat(this.ad.price))
-      } else {
-        amount = Number(amount * parseFloat(this.ad.price))
+      if (min) {
+        const tradeFloor = parseFloat(this.ad.trade_floor)
+        if (this.byFiat) {
+          if (this.ad.trade_limits_in_fiat) {
+            amount = tradeFloor
+          } else {
+            amount = tradeFloor * this.ad.price
+          }
+        } else {
+          if (this.ad.trade_limits_in_fiat) {
+            amount = tradeFloor / this.ad.price
+          } else {
+            amount = tradeFloor
+          }
+        }
       }
-      this.amount = parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
+      if (max) {
+        const tradeCeiling = this.minTradeAmount(this.ad)
+        if (this.byFiat) {
+          if (this.ad.trade_limits_in_fiat) {
+            amount = tradeCeiling
+          } else {
+            amount = tradeCeiling * this.ad.price
+          }
+        } else {
+          if (this.ad.trade_limits_in_fiat) {
+            amount = tradeCeiling / this.ad.price
+          } else {
+            amount = tradeCeiling
+          }
+        }
+      }
+      if (!min && !max) {
+        const price = parseFloat(this.ad.price)
+        if (this.byFiat) {
+          amount = amount * price
+        } else {
+          amount = amount / price
+        }
+      }
+      this.amount = amount.toFixed(this.byFiat ? 2 : 8)
+    },
+    tradeLimitsCurrency (ad) {
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    minTradeAmount (ad) {
+      let tradeAmount = parseFloat(ad.trade_amount)
+      let tradeCeiling = parseFloat(ad.trade_ceiling)
+      if (ad.trade_limits_in_fiat) {
+        // if trade_limits in fiat and trade_amount in BCH
+        // convert trade_amount to fiat
+        if (!ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount * ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      } else {
+        // If trade_limits in BCH and trade_amount in fiat:
+        // convert trade amount to BCH
+        if (ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount / ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      }
+      return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
     getCryptoAmount () {
       if (!this.byFiat) {
@@ -610,6 +733,29 @@ export default {
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
+    },
+    setupWebsocket () {
+      const wsUrl = `${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`
+      this.websocket = new WebSocket(wsUrl)
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established to ' + wsUrl)
+      }
+      this.websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        const price = parseFloat(data.price)
+        if (price) {
+          this.marketPrice = price.toFixed(2)
+          console.log('Updated market price to :', this.marketPrice)
+        }
+      }
+      this.websocket.onclose = () => {
+        console.log('WebSocket connection closed.')
+      }
+    },
+    closeWSConnection () {
+      if (this.websocket) {
+        this.websocket.close()
+      }
     }
   }
 }
@@ -633,5 +779,18 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #fff9c4; /* Light yellow background */
+  border: 1px solid #fbc02d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fbc02d; /* Border color */
 }
 </style>

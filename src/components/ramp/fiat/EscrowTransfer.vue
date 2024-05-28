@@ -10,10 +10,11 @@
         filled
         dense
         v-model="selectedArbiter"
-        :loading="!selectedArbiter"
+        hide-bottom-space
+        :loading="arbiterOptions?.length > 0 && !selectedArbiter"
         :label="selectedArbiter ? selectedArbiter.address : ''"
         :options="arbiterOptions"
-        :disable="!contractAddress || sendingBch"
+        :disable="!contractAddress || sendingBch || !hasArbiters"
         @update:model-value="selectArbiter"
         behavior="dialog">
           <template v-slot:option="scope">
@@ -40,9 +41,10 @@
         hide-bottom-space
         bottom-slots
         error-message="Contract address mismatch"
-        :error="contractAddress && data.escrow?.getAddress() && !contractAddressMatch(contractAddress)"
+        :error="contractAddress && escrowContract?.getAddress() && !contractAddressMatch(contractAddress)"
         :dark="darkMode"
-        :loading="!contractAddress"
+        :loading="hasArbiters && !contractAddress"
+        :disable="!hasArbiters"
         v-model="contractAddress">
         <template v-slot:append v-if="contractAddress">
           <div @click="copyToClipboard(contractAddress)">
@@ -93,10 +95,14 @@
         </div>
       </div>
     </div>
+    <!-- Warning message for when no currency arbiter is available for ad -->
+    <div v-if="!hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+      There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
+    </div>
     <RampDragSlide
       :key="dragSlideKey"
       :locked="!contractAddressMatch(contractAddress)"
-      v-if="showDragSlide && data?.wsConnected && !sendingBch && contractAddress"
+      v-if="showDragSlide"
       :style="{
         position: 'fixed',
         bottom: 0,
@@ -116,6 +122,7 @@ import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { backend } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
+import RampContract from 'src/wallet/ramp/contract'
 
 export default {
   data () {
@@ -131,14 +138,15 @@ export default {
       fees: null,
       transferAmount: null,
       txid: null,
-      showDragSlide: false,
+      dragSlideOn: false,
       sendErrors: [],
       sendingBch: false,
       dragSlideKey: 0,
+      escrowContract: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
-  emits: ['back', 'success', 'refresh'],
+  emits: ['back', 'success', 'refresh', 'updateArbiterStatus'],
   components: {
     RampDragSlide
   },
@@ -147,10 +155,22 @@ export default {
   },
   watch: {
     fees (value) {
-      if (value) this.showDragSlide = true
+      if (value) this.dragSlideOn = true
+    },
+    arbiterOptions (value) {
+      this.$emit('updateArbiterStatus', value?.length > 0)
     }
   },
   computed: {
+    hasArbiters () {
+      return this.arbiterOptions?.length > 0
+    },
+    showDragSlide () {
+      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && this.data?.wsConnected && !this.sendingBch && this.contractAddress)
+    },
+    arbiterOptionsMessage () {
+      return `No available arbiter found for currency ${this.order?.ad?.fiat_currency?.symbol}`
+    },
     balance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
@@ -180,26 +200,29 @@ export default {
       this.$emit('refresh')
     },
     contractAddressMatch (contractAddress) {
-      const localContractAddress = this.data.escrow?.getAddress()
+      const localContractAddress = this.escrowContract?.getAddress()
       return localContractAddress === contractAddress
     },
     selectArbiter () {
       this.contractAddress = null
       this.generateContractAddress()
     },
-    loadContract () {
+    async loadContract () {
       const vm = this
-      vm.fetchArbiters().then(() => {
+      await vm.fetchArbiters().then(async () => {
         if (!vm.contractAddress) {
-          vm.generateContractAddress()
+          await vm.generateContractAddress()
+          await vm.generateContract()
         }
       })
+      if (vm.hasArbiters) {
+        vm.selectedArbiter = vm.data.arbiter
+        vm.contractAddress = vm.data.contractAddress
+      }
     },
     loadData () {
       const vm = this
       vm.order = vm.data.order
-      vm.selectedArbiter = vm.data.arbiter
-      vm.contractAddress = vm.data.contractAddress
       vm.fees = vm.data.fees
       vm.updateTransferAmount(vm.data.transferAmount)
       if (vm.contractAddress) {
@@ -221,7 +244,7 @@ export default {
       const vm = this
       if (!vm.contractAddressMatch(this.contractAddress)) {
         vm.sendErrors = ['Contract address mismatch']
-        vm.showDragSlide = true
+        vm.dragSlideOn = true
         vm.dragSlideKey++
         return
       }
@@ -257,14 +280,14 @@ export default {
               } else {
                 vm.sendErrors.push(result.error)
               }
-              vm.showDragSlide = true
+              vm.dragSlideOn = true
               vm.dragSlideKey++
               reject(result)
             }
           })
         ).catch(error => {
           vm.sendErrors.push(error)
-          vm.showDragSlide = true
+          vm.dragSlideOn = true
           vm.dragSlideKey++
           vm.sendingBch = false
           reject(error)
@@ -294,7 +317,7 @@ export default {
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('ramp-p2p/arbiter', { authorize: true })
+        backend.get('ramp-p2p/arbiter', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
           .then(response => {
             vm.arbiterOptions = response.data
             if (vm.arbiterOptions.length > 0) {
@@ -305,6 +328,9 @@ export default {
                   return Number(obj.id) === vm.selectedArbiter.id
                 })
               }
+            } else {
+              vm.selectedArbiter = null
+              vm.contractAddress = null
             }
             resolve(response.data)
             vm.loading = false
@@ -324,16 +350,12 @@ export default {
         const vm = this
         const body = {
           order_id: vm.order?.id,
-          arbiter_id: vm.selectedArbiter.id,
+          arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
         backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
           .then(response => {
-            if (response.data) {
-              if (response.data.address) {
-                vm.contractAddress = response.data.address
-              }
-            }
+            vm.contractAddress = response.data?.address
             vm.loading = false
             resolve(response.data)
           })
@@ -355,12 +377,12 @@ export default {
       }
     },
     onSecurityOk () {
-      this.showDragSlide = false
+      this.dragSlideOn = false
       this.dragSlideKey++
       this.completePayment()
     },
     onSecurityCancel () {
-      this.showDragSlide = true
+      this.dragSlideOn = true
       this.dragSlideKey++
     },
     formattedAddress (address) {
@@ -379,6 +401,63 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
+    },
+    async generateContract () {
+      console.log('generating contract..')
+      const vm = this
+      const fees = await vm.fetchFees()
+      await vm.fetchContract(vm.order.id).then(contract => {
+        if (vm.escrowContract || !contract) return
+        const publicKeys = contract.pubkeys
+        const addresses = contract.addresses
+        const fees_ = {
+          arbitrationFee: fees.breakdown?.arbitration_fee,
+          serviceFee: fees.breakdown?.service_fee,
+          contractFee: fees.breakdown?.hardcoded_fee
+        }
+        const timestamp = contract.timestamp
+        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+      })
+    },
+    fetchContract (orderId) {
+      return new Promise((resolve, reject) => {
+        const url = '/ramp-p2p/order/contract'
+        backend.get(url, { params: { order_id: orderId }, authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
+    fetchFees () {
+      return new Promise((resolve, reject) => {
+        const url = '/ramp-p2p/order/contract/fees'
+        backend.get(url, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
     }
   }
 }
@@ -393,5 +472,19 @@ export default {
 
 .lg-font-size {
   font-size: large;
+}
+
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #fff9c4; /* Light yellow background */
+  border: 1px solid #fbc02d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fbc02d; /* Border color */
 }
 </style>

@@ -107,20 +107,21 @@
                 outlined
                 rounded
                 hide-bottom-space
+                type="number"
                 :hint="hints.tradeAmount"
                 :dark="darkMode"
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                type="number"
-                :rules="tradeAmountValidation"
+                :rules="[tradeAmountValidation]"
                 v-model="adData.tradeAmount"
                 @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
                 <template v-slot:prepend>
                   <span class="text-weight-bold sm-font-size">
-                    BCH
+                    {{ setTradeQuantityInFiat?  selectedCurrency.symbol : 'BCH'}}
                   </span>
                 </template>
               </q-input>
             </div>
+            <q-checkbox size="sm" v-model="setTradeQuantityInFiat" class="q-mx-md sm-font-size" color="blue-8">Set quantity in fiat </q-checkbox>
             <div class="q-px-md q-mt-sm">
               <div class="q-pb-xs q-pl-sm text-weight-bold">
                 <span>Trade Limit</span>&nbsp;
@@ -138,11 +139,11 @@
                     :hint="hints.minAmount"
                     :dark="darkMode"
                     :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    :rules="tradeLimitValidation"
+                    :rules="[tradeLimitValidation]"
                     v-model="adData.tradeFloor"
                     @blur="$refs.tradeCeilingRef.validate(); $refs.tradeAmountRef.validate()">
                     <template v-slot:append>
-                      <span class="sm-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
+                      <span class="sm-font-size">{{ setTradeLimitsInFiat?  selectedCurrency.symbol : 'BCH'}}</span>
                     </template>
                   </q-input>
                 </div>
@@ -161,16 +162,17 @@
                     :dark="darkMode"
                     :hint="hints.maxAmount"
                     :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    :rules="tradeLimitValidation"
+                    :rules="[tradeLimitValidation]"
                     v-model="adData.tradeCeiling"
                     @blur="$refs.tradeFloorRef.validate(); $refs.tradeAmountRef.validate()">
                     <template v-slot:append>
-                      <span class="sm-font-size">{{ adData.cryptoCurrency.symbol }}</span>
+                      <span class="sm-font-size">{{ setTradeLimitsInFiat?  selectedCurrency.symbol : 'BCH'}}</span>
                     </template>
                   </q-input>
                 </div>
               </div>
             </div>
+            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8"> Set limits in fiat </q-checkbox>
           </div>
 
           <!-- Appeal Cooldown -->
@@ -208,6 +210,10 @@
                 label="Public"
               />
             </div>
+            <!-- Warning message for when no currency arbiter is available for ad -->
+            <div v-if="!hasArbiters" class="warning-box q-mx-lg q-mb-md q-mt-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+              There’s currently no arbiter assigned for the currency ({{ this.adData.fiatCurrency?.symbol }}). Orders cannot be placed for this ad until an arbiter is assigned.
+            </div>
           </div>
           <div class="row q-mx-lg q-px-md q-mt-xs q-mb-md">
             <q-btn
@@ -241,7 +247,7 @@
   </div>
   <div v-if="step === 3">
     <DisplayConfirmation
-      :post-data="adData"
+      :post-data="confirmationData"
       :ptl="appealCooldown"
       :transaction-type="transactionType"
       v-on:back="step--"
@@ -347,17 +353,17 @@ export default {
         (val) => !!val || 'This is required',
         (val) => val > 0 || 'Cannot be zero'
       ],
-      tradeLimitValidation: [
-        (val) => !!val || 'This is required',
-        (val) => val > 0 || 'Cannot be zero',
-        (val) => Number(val) <= Number(this.adData.tradeAmount) || 'Cannot exceed trade quantity',
-        () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || 'Invalid range'
-      ],
-      tradeAmountValidation: [
-        (val) => !!val || 'This is required',
-        (val) => val > 0 || 'Cannot be zero',
-        (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
-      ],
+      // tradeLimitValidation: [
+      //   (val) => !!val || 'This is required',
+      //   (val) => val > 0 || 'Cannot be zero',
+      //   (val) => this.tradeLimitVsQuantityValid(val) || 'Cannot exceed trade quantity',
+      //   () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || 'Invalid range'
+      // ],
+      // tradeAmountValidation: [
+      //   (val) => !!val || 'This is required',
+      //   (val) => val > 0 || 'Cannot be zero',
+      //   (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
+      // ],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       instruction: { // temp
         'price-setting': {
@@ -375,7 +381,10 @@ export default {
       },
       title: '',
       text: '',
-      readOnlyState: false
+      readOnlyState: false,
+      setTradeQuantityInFiat: false,
+      setTradeLimitsInFiat: false,
+      arbiterOptions: []
     }
   },
   props: {
@@ -387,6 +396,9 @@ export default {
     bus.emit('hide-menu')
   },
   computed: {
+    hasArbiters () {
+      return this.arbiterOptions.length > 0
+    },
     hints () {
       return {
         priceValue: this.adData.priceType === 'FLOATING' ? `Price is ${this.priceValue}% of market price` : 'Fixed prices do not change',
@@ -395,13 +407,22 @@ export default {
         maxAmount: 'The max amount per transaction',
         appealCooldown: 'The waiting period before counterparties can submit dispute appeals'
       }
+    },
+    confirmationData () {
+      const vm = this
+      const data = { ...vm.adData }
+      data.isTradeAmountFiat = this.setTradeQuantityInFiat
+      data.isTradeLimitsFiat = this.setTradeLimitsInFiat
+      console.log('confirmationData:', data)
+      return data
     }
   },
   async mounted () {
     const vm = this
     vm.loading = true
-    vm.fetchAd()
     await vm.getInitialMarketPrice()
+    await vm.fetchAd()
+    await vm.fetchArbiters()
     vm.updatePriceValue(vm.adData.priceType)
     vm.loading = false
     vm.setupWebsocket()
@@ -412,6 +433,50 @@ export default {
     this.closeWSConnection()
   },
   watch: {
+    setTradeQuantityInFiat (value) {
+      console.log('setTradeQuantityInFiat:', value)
+      if (this.loading) return
+      if (value) {
+        let amount = this.adData.tradeAmount * this.marketPrice
+        if (amount % 1 !== 0) {
+          amount = amount.toFixed(2)
+        }
+        this.adData.tradeAmount = amount
+      } else {
+        let amount = this.adData.tradeAmount / this.marketPrice
+        if (amount % 1 !== 0) {
+          amount = amount.toFixed(8)
+        }
+        this.adData.tradeAmount = amount
+      }
+      console.log('tradeAmount__:', this.adData.tradeAmount)
+    },
+    setTradeLimitsInFiat (value) {
+      if (this.loading) return
+      if (value) {
+        let floor = this.adData.tradeFloor * this.marketPrice
+        let ceiling = this.adData.tradeCeiling * this.marketPrice
+        if (floor % 1 !== 0) {
+          floor = floor.toFixed(2)
+        }
+        if (ceiling % 1 !== 0) {
+          ceiling = ceiling.toFixed(2)
+        }
+        this.adData.tradeFloor = floor
+        this.adData.tradeCeiling = ceiling
+      } else {
+        let floor = this.adData.tradeFloor / this.marketPrice
+        let ceiling = this.adData.tradeCeiling / this.marketPrice
+        if (floor % 1 !== 0) {
+          floor = floor.toFixed(8)
+        }
+        if (ceiling % 1 !== 0) {
+          ceiling = ceiling.toFixed(8)
+        }
+        this.adData.tradeFloor = floor
+        this.adData.tradeCeiling = ceiling
+      }
+    },
     step (value) {
       this.$emit('updatePageName', `ad-form-${value}`)
     },
@@ -424,6 +489,7 @@ export default {
     'adData.fiatCurrency' () {
       this.adData.fixedPrice = 0
       this.getInitialMarketPrice()
+      this.fetchArbiters()
     },
     'adData.priceType' (value) {
       const vm = this
@@ -451,6 +517,28 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    tradeAmountValidation (val) {
+      if (!val) return 'This is required'
+      if (val <= 0) return 'Cannot be zero'
+      let tradeFloor = Number(this.adData.tradeFloor)
+      if (this.setTradeLimitsInFiat) tradeFloor = (tradeFloor / this.marketPrice).toFixed(8)
+      let tradeAmount = Number(val)
+      if (this.setTradeQuantityInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
+      if (tradeFloor > tradeAmount) return 'Cannot be less than min trade limit'
+    },
+    tradeLimitValidation (val) {
+      if (!val) return 'This is required'
+      if (val <= 0) return 'Cannot be zero'
+      if (Number(this.adData.tradeFloor) > Number(this.adData.tradeCeiling)) return 'Invalid range'
+
+      let tradeAmount = Number(this.adData.tradeAmount)
+      if (this.setTradeQuantityInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
+      let tradeLimit = Number(val)
+      if (this.setTradeLimitsInFiat) tradeLimit = (tradeLimit / this.marketPrice).toFixed(8)
+      if (tradeLimit > tradeAmount) return 'Cannot exceed trade quantity'
+
+      return true
+    },
     showCurrencySelect () {
       this.readOnlyState = true
       this.$q.dialog({
@@ -476,11 +564,12 @@ export default {
 
       this.openDialog = true
     },
-    fetchAd () {
+    async fetchAd () {
       const vm = this
       if (!vm.selectedAdId) return
-      backend.get(`/ramp-p2p/ad/${vm.selectedAdId}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${vm.selectedAdId}`, { authorize: true })
         .then(response => {
+          console.log('response:', response)
           const data = response.data
           vm.adData.tradeType = data.trade_type
           vm.adData.priceType = data.price_type
@@ -489,12 +578,36 @@ export default {
           vm.adData.fiatCurrency = data.fiat_currency
           vm.adData.tradeAmount = parseFloat(data.trade_amount)
           vm.adData.tradeFloor = parseFloat(data.trade_floor)
-          vm.adData.tradeCeiling = parseFloat(data.trade_ceiling) ? parseFloat(data.trade_ceiling) : parseFloat(data.trade_amount)
+          // vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
+          
+          // if trade amount is lesser than trade_ceiling, set trade_amount as trade_ceiling
+          let tradeAmount = parseFloat(data.trade_amount)
+          let tradeCeiling = parseFloat(data.trade_ceiling)
+
+          if (data.trade_limits_in_fiat) {
+            // if trade_limits in fiat and trade_amount in BCH
+            // convert trade_amount to fiat
+            if (!data.trade_amount_in_fiat) {
+              tradeAmount = tradeAmount * vm.marketPrice
+            }
+            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+          } else {
+            // If trade_limits in BCH and trade_amount in fiat:
+            // convert trade amount to BCH
+            if (data.trade_amount_in_fiat) {
+              tradeAmount = tradeAmount / vm.marketPrice
+            }
+            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+          }
+
+          vm.adData.tradeCeiling = tradeCeiling
           vm.adData.paymentMethods = data.payment_methods
           vm.adData.isPublic = data.is_public
           vm.appealCooldown = getAppealCooldown(data.appeal_cooldown)
           vm.adData.appealCooldown = vm.appealCooldown
           vm.selectedCurrency = data.fiat_currency
+          vm.setTradeLimitsInFiat = data.trade_limits_in_fiat
+          vm.setTradeQuantityInFiat = data.trade_amount_in_fiat
 
           // price
           if (vm.adData.priceType === 'FLOATING') {
@@ -504,9 +617,9 @@ export default {
           }
 
           // check tradeCeiling & tradeAmount
-          if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
-            vm.adData.tradeCeiling = vm.adData.tradeAmount
-          }
+          // if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
+          //   vm.adData.tradeCeiling = vm.adData.tradeAmount
+          // }
         })
         .catch(error => {
           vm.swipeStatus = false
@@ -543,6 +656,23 @@ export default {
           .catch(error => {
             vm.handleRequestError(error)
             vm.swipeStatus = false
+            reject(error)
+          })
+      })
+    },
+    fetchArbiters () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('ramp-p2p/arbiter', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
+          .then(response => {
+            vm.arbiterOptions = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
             reject(error)
           })
       })
@@ -641,6 +771,18 @@ export default {
       const defaultCrypto = 'BCH'
       const data = vm.adData
       const idList = data.paymentMethods.map(obj => obj.id)
+      // let tradeAmount = parseFloat(data.tradeAmount)
+      // if (vm.setTradeQuantityInFiat) {
+      //   tradeAmount = (tradeAmount / vm.marketPrice).toFixed(8)
+      // }
+      // let tradeFloor = parseFloat(data.tradeFloor)
+      // if (vm.setTradeLimitsInFiat) {
+      //   tradeFloor = (tradeFloor / vm.marketPrice).toFixed(8)
+      // }
+      // let tradeCeiling = parseFloat(data.tradeCeiling)
+      // if (vm.setTradeLimitsInFiat) {
+      //   tradeCeiling = (tradeCeiling / vm.marketPrice).toFixed(8)
+      // }
       return {
         trade_type: data.tradeType,
         price_type: data.priceType,
@@ -651,6 +793,8 @@ export default {
         trade_floor: parseFloat(data.tradeFloor),
         trade_ceiling: parseFloat(data.tradeCeiling),
         trade_amount: parseFloat(data.tradeAmount),
+        trade_limits_in_fiat: this.setTradeLimitsInFiat,
+        trade_amount_in_fiat: this.setTradeQuantityInFiat,
         appeal_cooldown_choice: data.appealCooldown.value,
         payment_methods: idList,
         is_public: data.isPublic
@@ -747,9 +891,14 @@ export default {
     },
     tradeLimitsValid () {
       const vm = this
-      const floor = vm.adData?.tradeFloor
-      const ceiling = vm.adData?.tradeCeiling
-      const quantity = vm.adData?.tradeAmount
+      let floor = vm.adData?.tradeFloor
+      let ceiling = vm.adData?.tradeCeiling
+      if (vm.setTradeLimitsInFiat) {
+        floor = (floor / vm.marketPrice).toFixed(8)
+        ceiling = (ceiling / vm.marketPrice).toFixed(8)
+      }
+      let quantity = vm.adData?.tradeAmount
+      if (vm.setTradeQuantityInFiat) quantity = (quantity / vm.marketPrice).toFixed(8)
       return floor > 0 && floor <= ceiling && ceiling <= quantity
     },
     isAmountValid (value) {
@@ -814,5 +963,19 @@ export default {
 
 .md-font-size {
   font-size: medium;
+}
+
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #fff9c4; /* Light yellow background */
+  border: 1px solid #fbc02d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fbc02d; /* Border color */
 }
 </style>

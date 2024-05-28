@@ -14,32 +14,24 @@
           :class="getDarkModeClass(darkMode)">
           Chat
         </div>
-        <div
-          v-if="chatMembers?.length > 0"
-          style="letter-spacing: 1px;"
-          class="font-13"
-          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-        >
-          <span v-for="(member, index) in chatMembers" :key="index">
-            <span>{{ member.name }}</span><span v-if="member.is_user"> (You)</span><span v-if="member.is_arbiter"> (Arbiter)</span>{{ index < chatMembers.length-1 ? ', ' : ''}}
-          </span>
-        </div>
       </div>
-      <q-btn
-        rounded
-        no-caps
-        padding="sm"
-        class="q-ml-md close-button"
-        icon="close"
-        flat
-        @click="$emit('close')"
-      />
+      <div class="q-pt-sm">
+        <q-btn
+          rounded
+          no-caps
+          padding="sm"
+          class="q-ml-md close-button"
+          icon="close"
+          flat
+          @click="$emit('close')"
+        />
+      </div>
     </div>
 
     <!-- Convo -->
     <q-list
       ref="scrollTargetRef"
-      :style="`height: ${attachmentUrl ? maxHeight - 300 : maxHeight - 140}px`"
+      :style="`height: ${attachmentUrl ? maxHeight - 280 : maxHeight - 120}px`"
       style="overflow: auto;"
     >
       <q-infinite-scroll
@@ -63,10 +55,10 @@
           <div v-for="(message, index) in convo.messages" :key="index" class="">
             <!-- <q-item> -->
               <q-item-section>
-                <div class="q-px-md justify-center" v-if="message.encryptedAttachmentUrl">
+                <div class="q-px-md justify-center q-pb-lg q-mb-md" v-if="message.encryptedAttachmentUrl">
                   <div v-if="message.message" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
-                      :name="message.chatIdentity.is_user? 'You': message.chatIdentity.name"
+                      :name="`(${memberType(message.chatIdentity.id)}) ${userNameView(message.chatIdentity.name)}`"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
                       :stamp="formattedDate(message.createdAt)"
                       :sent="message.chatIdentity.is_user"
@@ -111,7 +103,7 @@
                       :class="message.chatIdentity.is_user? 'text-right' : ''"
                       :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'"
                     >
-                      {{ message.chatIdentity.is_user ? 'me' : message.chatIdentity.name }}
+                      {{ `(${memberType(message.chatIdentity.id)}) ${userNameView(message.chatIdentity.name)}` }}
                     </div>
                     <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
                       <q-avatar size="6" v-if="!message.chatIdentity.is_user">
@@ -158,7 +150,7 @@
                 <div class="q-px-md row justify-center" v-else>
                   <div style="width: 100%;" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
-                      :name="message.chatIdentity.is_user ? 'me' : message.chatIdentity.name"
+                      :name="`(${memberType(message.chatIdentity.id)}) ${userNameView(message.chatIdentity.name)}`"
                       :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
                       :stamp="formattedDate(message.createdAt)"
                       :sent="message.chatIdentity.is_user"
@@ -472,6 +464,22 @@ export default {
   methods: {
     isNotDefaultTheme,
     getDarkModeClass,
+    userNameView (name) {
+      const limitedView = name.length > 13 ? name.substring(0, 10) + '...' : name;
+
+      return limitedView
+    },
+    memberType (id) {
+      const vm = this
+      const members = vm.order?.members
+      for (const type in members) {
+        if (members[type]) {
+          if (members[type].chat_identity_id === id) {
+            return type.charAt(0).toUpperCase() + type.slice(1)
+          }
+        }
+      }
+    },
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
@@ -524,6 +532,7 @@ export default {
         } else {
           vm.arbiterIdentity = members.filter(member => member.is_arbiter)[0]
         }
+
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
 
         // Create session if necessary
@@ -555,6 +564,7 @@ export default {
                 }
                 updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
               }
+
               return {
                 id: member.chat_identity.id,
                 name: member.chat_identity.ref === chatIdentity.ref ? name : member.chat_identity.name,

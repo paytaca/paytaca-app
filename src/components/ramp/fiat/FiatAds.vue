@@ -75,16 +75,16 @@
                                 {{ listing.price_type }}
                               </span><br>
                               <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
-                                {{ listing.fiat_currency.symbol  }} {{ formattedCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
+                                {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                               </span>
                               <span class="sm-font-size">/BCH</span>
                               <div class="sm-font-size row q-gutter-md">
                                 <span>Quantity</span>
-                                <span>{{ formattedCurrency(listing.trade_amount, null, false) }} BCH</span>
+                                <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
                               </div>
                               <div class="sm-font-size row q-gutter-md">
                                 <span>Limits</span>
-                                <span>{{ parseFloat(listing.trade_floor) }} - {{ maxAmount(listing.trade_amount, listing.trade_ceiling) }} {{ listing.crypto_currency.symbol }}</span>
+                                <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                               </div>
                               <div class="row sm-font-size q-gutter-md">
                                 <span>Appealable in </span>
@@ -257,6 +257,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    formatCurrency,
     customBack () {
       const vm = this
       switch (vm.pageName) {
@@ -274,12 +275,32 @@ export default {
           break
       }
     },
-    maxAmount (tradeAmount, tradeCeiling) {
-      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
-        return parseFloat(tradeAmount)
+    tradeAmountCurrency (ad) {
+      return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    tradeLimitsCurrency (ad) {
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+    },
+    minTradeAmount (ad) {
+      let tradeAmount = parseFloat(ad.trade_amount)
+      let tradeCeiling = parseFloat(ad.trade_ceiling)
+      if (ad.trade_limits_in_fiat) {
+        // if trade_limits in fiat and trade_amount in BCH
+        // convert trade_amount to fiat
+        if (!ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount * ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
       } else {
-        return parseFloat(tradeCeiling)
+        // If trade_limits in BCH and trade_amount in fiat:
+        // convert trade amount to BCH
+        if (ad.trade_amount_in_fiat) {
+          tradeAmount = tradeAmount / ad.price
+        }
+        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
       }
+      const amounts = [tradeAmount, tradeCeiling]
+      return Math.min.apply(null, amounts)
     },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
@@ -415,13 +436,6 @@ export default {
     },
     formattedDate (value) {
       return formatDate(value)
-    },
-    formattedCurrency (value, currency, fiat = true) {
-      if (fiat) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
-      }
     }
   }
 }
