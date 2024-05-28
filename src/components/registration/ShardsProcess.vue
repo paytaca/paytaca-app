@@ -71,6 +71,7 @@
     <q-btn
       v-if="!fromWalletInfo"
       rounded
+      :disable="disableContinue"
       :label="$t('Continue')"
       class="q-mt-lg full-width button"
       @click="$emit('proceed-to-next-step')"
@@ -112,7 +113,8 @@ export default {
   data () {
     return {
       shards: [],
-      isLoading: true
+      isLoading: true,
+      disableContinue: true
     }
   },
 
@@ -185,6 +187,10 @@ export default {
           vm.saveToDesktop(image, fileName, true)
         }
       })
+
+      if (!vm.fromWalletInfo) {
+        vm.disableContinue = false
+      }
     },
     async saveToMobile (image, fileName, shouldDisplayNotif = false) {
       if (this.$q.platform.is.android) {
