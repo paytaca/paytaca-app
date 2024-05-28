@@ -503,6 +503,34 @@ const hongKongSpecific = [
   }
 ]
 
+const shardsBackupTexts = [{
+  RestoreExistingWallet: "Restore Existing Wallet",
+  WalletRestoredDescription: "Wallet restored successfully. Click on the button to continue.",
+  ChooseBackupPhase: "Choose Backup Phase",
+  ChooseBackupPhaseDescription: "Choose the wallet backup method you want to use to proceed to the next phase.",
+  ImportShardsDescription: "If you have QR code images of the shards, proceed with using the Shards backup method.",
+  ImportSeedPhraseDescription: "If you do not have any QR images, or just want to use the old backup, proceed with using the Seed Phrase backup method.",
+  CreateShardsDescription: "The Shards backup method is recommended for beginners, which is a simple but very secure method. It works by encrypting the seed phrase and splitting it into 3 shards. One is stored securely by us, and the other two are for you to store and share. You can still view the seed phrase and the generated shards later in you wallet info.",
+  CreateSeedPhraseDescription: "If you are an advanced user or just want to use the old backup phase, proceed with using the Seed Phrase backup method.",
+  ProceedWithShards: "Proceed with Using Shards",
+  ProceedWithSeedPhrase: "Proceed with Using Seed Phrase",
+  RestoreShardsDescription: "Restore your Paytaca wallet from the QR code of its shards",
+  ScanUploadPersonalQR: "Scan or upload the wallet's personal QR",
+  ScanUploadForSharingQR: "Scan or upload the wallet's for sharing QR",
+  ClearQR: "Clear QR",
+  LoadingShards: "Loading shards",
+  CreatingShards: "Creating shards",
+  ShardsBackupPhase: "Shards Backup Phase",
+  ShardsBackupPhaseDescription1: "Below are the shards for this wallet.",
+  ShardsBackupPhaseDescription2: "Below are QR code images generated from the shards.",
+  ShardsBackupPhaseDescription3: "You can screenshot them by yourself or use the button below to download them to your device.",
+  PersonalQRDescription1: "This QR code needs to be saved and stored securely in your device.",
+  PersonalQRDescription2: "Save this QR code in your device",
+  ForSharingQRDescription1: "This QR code needs to be shared to your friend. We highly advise that you share it immediately after saving instead of just storing it in your device.",
+  ForSharingQRDescription2: "Share this QR code to a friend",
+  DownloadQRCodeImages: "Download QR Code Images"
+}]
+
 const additional = [
   {
     Theme: "Theme",
@@ -882,6 +910,7 @@ const TEXT_GROUPS = [
   ...phrases.static,
   ...phrases.dynamic,
   ...hongKongSpecific,
+  ...shardsBackupTexts,
   ...additional
 ]
 

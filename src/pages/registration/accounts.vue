@@ -38,7 +38,7 @@
                     rounded
                     class="full-width bg-blue-9 text-white button"
                     @click="() => { importSeedPhrase = true }"
-                    :label="'Restore Existing Wallet'"
+                    :label="$t('RestoreExistingWallet')"
                   />
                 </div>
               </div>
@@ -230,7 +230,7 @@
                   <template v-if="seedPhraseBackup">
                     <div class="text-bow" :class="getDarkModeClass(darkMode)">
                       <p class="dim-text" style="margin-top: 10px;">
-                        Wallet restored successfully. Click on the button to continue.
+                        {{ $t('WalletRestoredDescription') }}
                       </p>
                     </div>
                     <q-btn

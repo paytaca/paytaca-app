@@ -15,12 +15,12 @@
 
   <div class="text-bow q-px-lg" :class="getDarkModeClass(darkMode)">
     <p class="text-center text-subtitle1">
-      Restore your Paytaca wallet from the QR code of its shards
+      {{ $t('RestoreShardsDescription') }}
     </p>
 
     <div class="row flex items-center justify-between q-py-md">
       <p class="col-6 q-ma-xs" style="text-wrap: wrap;">
-        Scan or upload the wallet's personal QR
+        {{ $t('ScanUploadPersonalQR') }}
       </p>
       <div class="q-gutter-md">
         <q-btn
@@ -44,7 +44,7 @@
 
     <div class="row flex items-center justify-between q-py-md">
       <p class="col-6 q-ma-xs" style="text-wrap: wrap;">
-        Scan or upload the wallet's for sharing QR
+        {{ $t('ScanUploadForSharingQR') }}
       </p>
       <div class="q-gutter-md">
         <q-btn
@@ -99,7 +99,7 @@
       <q-btn
         rounded
         class="q-mt-md button"
-        label="Clear QR"
+        :label="$t('ClearQR')"
         @click="clearQRs"
       />
     </div>

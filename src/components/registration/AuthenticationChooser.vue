@@ -1,39 +1,26 @@
 <template>
   <div class="text-bow" :class="[getDarkModeClass(darkMode), importSeedPhrase ? 'q-px-lg' : '']">
     <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">
-      Choose Backup Phase
+      {{ $t('ChooseBackupPhase') }}
     </h5>
     <p class="dim-text" style="margin-top: 10px;">
-      Choose the wallet backup method you want to use to proceed to the next phase.
+      {{ $t('ChooseBackupPhaseDescription') }}
     </p>
 
     <template v-if="importSeedPhrase">
-      <p class="dim-text">
-        If you have QR code images of the shards, proceed with using the Shards backup method.
-      </p>
-      <p class="dim-text">
-        If you do not have any QR images, or just want to use the old backup, proceed
-        with using the Seed Phrase backup method.
-      </p>
+      <p class="dim-text">{{ $t('ImportShardsDescription') }}</p>
+      <p class="dim-text">{{ $t('ImportSeedPhraseDescription') }}</p>
     </template>
     <template v-else>
-      <p class="dim-text">
-        The Shards backup method is recommended for beginners, which is a simple but very secure method.
-        The method works by encrypting the seed phrase and splitting it into 3 shards. One is stored securely
-        by us, and the other two are for you to store and share. You can still view the seed phrase and the
-        generated shards later in you wallet info.
-      </p>
-      <p class="dim-text">
-        If you are an advanced user or just want to use the old backup phase, proceed
-        with using the Seed Phrase backup method.
-      </p>
+      <p class="dim-text">{{ $t('CreateShardsDescription') }}</p>
+      <p class="dim-text">{{ $t('CreateSeedPhraseDescription') }}</p>
     </template>
   </div>
 
   <div class="row q-px-lg q-pt-sm">
     <q-btn
       rounded
-      label="Proceed with Using Shards"
+      :label="$t('ProceedWithShards')"
       class="full-width button"
       @click="$emit('change-authentication-phase', true)"
     />
@@ -48,7 +35,7 @@
     </div>
     <q-btn
       rounded
-      label="Proceed with Using Seed Phrase"
+      :label="$t('ProceedWithSeedPhrase')"
       class="full-width button"
       @click="$emit('change-authentication-phase', false)"
     />

@@ -9,7 +9,7 @@
         :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
         style="text-align: center;"
       >
-        {{ fromWalletInfo ? 'Loading shards' : 'Creating shards' }}...
+        {{ fromWalletInfo ? $t('LoadingShards') : $t('CreatingShards') }}...
       </p>
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
     </div>
@@ -19,15 +19,16 @@
     <h5
       v-if="!fromWalletInfo"
       class="q-ma-none text-bow"
-      :class="getDarkModeClass(darkMode)">
-      Shards Backup Phase
+      :class="getDarkModeClass(darkMode)"
+    >
+      {{ $t('ShardsBackupPhase') }}
     </h5>
     <p
       :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
       style="margin-top: 10px;"
     >
-      {{ fromWalletInfo ? 'Below are the shards for this wallet.' : 'Below are QR code images generated from the shards.' }}
-      You can screenshot them by yourself or use the button below to download them to your device.
+      {{ fromWalletInfo ? $t('ShardsBackupPhaseDescription1') : $t('ShardsBackupPhaseDescription2') }}
+      {{ $t('ShardsBackupPhaseDescription3') }}
     </p>
 
     <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
@@ -37,10 +38,10 @@
         style="border: 2px solid gray;"
       >
         <div class="text-center q-mb-sm">
-          This QR code needs to be saved and stored securely in your device.
+          {{ $t('PersonalQRDescription1') }}
         </div>
         <div id="personal-qr" class="flex flex-center q-py-md col-qr-code">
-          <p style="color: black">Save this QR code in your device</p>
+          <p style="color: black">{{ $t('PersonalQRDescription2') }}</p>
           <qr-code :text="shards[1]" color="#253933" :size="200" error-level="H" />
         </div>
       </div>
@@ -50,18 +51,17 @@
         style="border: 2px solid gray;"
       >
         <div class="text-center q-mb-sm">
-          This QR code needs to be shared to your friend. We highly advise that you share it
-          immediately after saving instead of just storing it in your device.
+          {{ $t('ForSharingQRDescription1') }}
         </div>
         <div id="sharing-qr" class="flex flex-center q-py-md col-qr-code">
-          <p style="color: black">Share this QR code to a friend</p>
+          <p style="color: black">{{ $t('ForSharingQRDescription2') }}</p>
           <qr-code :text="shards[2]" color="#253933" :size="200" error-level="H" />
         </div>
       </div>
       <div class="flex flex-center q-mt-md">
         <q-btn
           rounded
-          label="Download QR Code Images"
+          :label="$t('DownloadQRCodeImages')"
           class="button"
           @click="takeScreenshot()"
         />
