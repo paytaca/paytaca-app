@@ -29,7 +29,7 @@ export function formatKeyName(key='') {
 
 
 /**
- * @param {{ key:String, value:String }} attribute
+ * @param {{ key:String, value:String, description?:String }} attribute
  */
 export function parseAttributeToBadge(attribute) {
   const icons = {
@@ -39,52 +39,53 @@ export function parseAttributeToBadge(attribute) {
 
   const key = attribute?.key
   const value = attribute?.value
+  const description = attribute?.description
   if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeFundingTx)) {
     return {
       custom: true,
       text: 'AnyHedge',
       icon: icons.anyhedge,
-      description: 'Funding transaction',
+      description: description || 'Funding transaction',
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeHedgeFundingUtxo)) {
     return {
       custom: true,
       text: 'AnyHedge',
       icon: icons.anyhedge,
-      description: 'Short funding transaction',
+      description: description || 'Short funding transaction',
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeLongFundingUtxo)) {
     return {
       custom: true,
       text: 'AnyHedge',
       icon: icons.anyhedge,
-      description: 'Long funding transaction',
+      description: description || 'Long funding transaction',
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.VoucherClaim)) {
     return {
       custom: true,
       text: value,
       icon: 'mdi-ticket-confirmation',
-      description: 'Voucher claim',
+      description: description || 'Voucher claim',
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.SpicebotTip)) {
     return {
       custom: true,
       text: 'Tip',
-      description: 'Tip sent through Spicebot'
+      description: description || 'Tip sent through Spicebot'
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.GiftClaim)) {
     return {
       custom: true,
       text: 'Gift',
-      description: 'Gift Claim',
+      description: description || 'Gift Claim',
     }
   }
 
   return {
     custom: false,
     text: formatKeyName(key),
-    description: value,
+    description: description || value,
   }
 }
 
@@ -93,11 +94,13 @@ export function parseAttributeToBadge(attribute) {
  *        actions when clicked/pressed but the function must be implemented in the component
  *        since it might use functions/data that are accessible within the component only
 
- * @param {{ key:String, value:String }} attribute 
+ * @param {{ key:String, value:String, description?:String }} attribute 
  */
 export function parseAttributeToDetails(attribute) {
+  const DEFAULT_GROUP_NAME = "Other"
   const key = attribute?.key
   const value = attribute?.value
+  const description = attribute?.description
 
   const anyhedgeActions = (address) => {
     return [
@@ -110,6 +113,7 @@ export function parseAttributeToDetails(attribute) {
     return {
       groupName: 'AnyHedge',
       label: 'Funding transaction',
+      tooltip: description,
       text: ellipsisText(value, { end: 5 }),
       actions: anyhedgeActions(value),
     }
@@ -117,6 +121,7 @@ export function parseAttributeToDetails(attribute) {
     return {
       groupName: 'AnyHedge',
       label: 'Short funding transaction',
+      tooltip: description,
       text: ellipsisText(value, { end: 5 }),
       actions: anyhedgeActions(value),
     }
@@ -124,33 +129,43 @@ export function parseAttributeToDetails(attribute) {
     return {
       groupName: 'AnyHedge',
       label: 'Long funding transaction',
+      tooltip: description,
       text: ellipsisText(value, { end: 5 }),
       actions: anyhedgeActions(value),
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.VoucherClaim)) {
     return {
-      groupName: value,
+      groupName: DEFAULT_GROUP_NAME,
+      label: 'Voucher claim',
+      tooltip: description,
       text: value,
       actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.SpicebotTip)) {
     return {
-      groupName: 'Spicebot Tip',
+      groupName: DEFAULT_GROUP_NAME,
+      label: 'Spicebot Tip',
+      tooltip: description,
       text: value,
-      actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
+      actions: [
+        { icon: 'content_copy', type: 'copy_to_clipboard', args: [value] },
+        { icon: 'open_in_new', type: 'open_jpp_invoice', args: [value] },
+      ],
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.GiftClaim)) {
     return {
-      groupName: 'Gift Claim',
-      label: '',
+      groupName: DEFAULT_GROUP_NAME,
+      label: 'Gift Claim',
+      tooltip: description,
       text: value,
       actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
     }
   }
 
   return {
-    groupName: 'Other Details',
+    groupName: DEFAULT_GROUP_NAME,
     label: formatKeyName(key),
+    tooltip: description,
     text: value,
     actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
   }
