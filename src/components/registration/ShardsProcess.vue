@@ -41,6 +41,7 @@
           {{ $t('PersonalQRDescription1') }}
         </div>
         <div id="personal-qr" class="flex flex-center q-py-md col-qr-code">
+          <p style="color: black; margin-bottom: 0;">First Shard</p>
           <p style="color: black">{{ $t('PersonalQRDescription2') }}</p>
           <qr-code :text="shards[1]" color="#253933" :size="200" error-level="H" />
         </div>
@@ -54,6 +55,7 @@
           {{ $t('ForSharingQRDescription1') }}
         </div>
         <div id="sharing-qr" class="flex flex-center q-py-md col-qr-code">
+          <p style="color: black; margin-bottom: 0;">Second Shard</p>
           <p style="color: black">{{ $t('ForSharingQRDescription2') }}</p>
           <qr-code :text="shards[2]" color="#253933" :size="200" error-level="H" />
         </div>
@@ -142,6 +144,9 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    isDesktop () {
+      return this.$q.platform.is.desktop
     }
   },
 
@@ -167,11 +172,11 @@ export default {
       const personalQrElement = document.getElementById('personal-qr')
       html2canvas(personalQrElement).then((canvas) => {
         const image = canvas.toDataURL('image/png')
-        const fileName = `personal-qr-${vm.walletHash.substring(0, 10)}.png`
+        const fileName = `qr-first-shard-${vm.walletHash.substring(0, 10)}.png`
 
         if (vm.$q.platform.is.mobile) {
           vm.saveToMobile(image, fileName)
-        } else if (vm.$q.platform.is.desktop) {
+        } else if (this.isDesktop) {
           vm.saveToDesktop(image, fileName)
         }
       })
@@ -179,11 +184,11 @@ export default {
       const sharingQrElement = document.getElementById('sharing-qr')
       html2canvas(sharingQrElement).then((canvas) => {
         const image = canvas.toDataURL('image/png')
-        const fileName = `for-sharing-qr-${vm.walletHash.substring(0, 10)}.png`
+        const fileName = `qr-second-shard-${vm.walletHash.substring(0, 10)}.png`
 
         if (vm.$q.platform.is.mobile) {
           vm.saveToMobile(image, fileName, true)
-        } else if (vm.$q.platform.is.desktop) {
+        } else if (this.isDesktop) {
           vm.saveToDesktop(image, fileName, true)
         }
       })
