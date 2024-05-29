@@ -15,7 +15,7 @@ export async function handleOpenedNotification(context) {
       'push notification wallet index:', multiWalletIndex,
       'redirecting to push notification page',
     )
-    $router.push('push-notification-router')
+    $router.push({ name: 'push-notification-router' })
     return
   }
 
