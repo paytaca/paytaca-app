@@ -4,11 +4,11 @@
       <q-card
         ref="card"
         v-if="transaction && transaction.asset"
-        style="padding: 20px 10px 5px 0;"
+        style="padding: 20px 10px 5px 0; max-height:85vh;"
         class="br-15 pt-card text-bow"
         :class="getDarkModeClass(darkMode)"
       >
-        <div class="close-button-container">
+        <div class="close-button-container row items-center justify-end">
           <q-btn icon="close" flat round dense v-close-popup class="close-button" />
         </div>
         <div class="text-h6 text-uppercase text-center">
@@ -622,9 +622,9 @@ export default {
 
 <style lang="scss" scoped>
   .close-button-container {
-    right: 10px;
-    top: 10px;
-    position: absolute;
+    right: 0;
+    top: 0;
+    position: sticky;
     z-index: 100;
   }
   .record-type-icon {
