@@ -74,6 +74,10 @@
                                 style="font-size: 13px;">
                                 {{ listing.price_type }}
                               </span><br>
+                              <div class="row q-gutter-md">
+                                <span>{{ listing.trade_count }} trades</span>
+                                <span>{{ listing.completion_rate }}% completion</span>
+                              </div>
                               <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
                                 {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                               </span>
@@ -86,7 +90,7 @@
                                 <span>Limits</span>
                                 <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                               </div>
-                              <div class="row sm-font-size q-gutter-md">
+                              <div class="sm-font-size">
                                 <span>Appealable in </span>
                                 <span class="text-weight-bold">{{ appealCooldown(listing.appeal_cooldown).label }}</span>
                               </div>
