@@ -339,6 +339,7 @@
   </q-pull-to-refresh>
 </template>
 <script setup>
+import { bus } from 'src/wallet/event-bus'
 import { getMnemonic, Wallet } from '../../wallet'
 import { anyhedgeBackend, connectWebsocketUpdates, generalProtocolLPBackend } from '../../wallet/anyhedge/backend'
 import { formatUnits, ellipsisText, parseHedgePositionData, parseHedgePositionOffer, formatPositionOfferStatus, resolvePositionOfferColor } from '../../wallet/anyhedge/formatters'
@@ -349,6 +350,7 @@ import HeaderNav from '../../components/header-nav'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import AddLiquidityForm from 'src/components/anyhedge/AddLiquidityForm.vue'
 import CreateHedgeForm from 'src/components/anyhedge/CreateHedgeForm.vue'
+import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
@@ -1076,13 +1078,11 @@ function fetchLiquidityServiceInfo() {
 }
 onMounted(() => fetchLiquidityServiceInfo())
 
-const openedNotification = computed(() => $store.getters['notification/openedNotification'])
-watch(() => [openedNotification.value?.id], () => handleOpenedNotification())
-onMounted(() => handleOpenedNotification())
-function handleOpenedNotification() {
+bus.on('handle-push-notification', handleOpenedNotification)
+function handleOpenedNotification(openedNotification) {
   const notificationTypes = $store.getters['notification/types']
 
-  const type = openedNotification.value?.data?.type
+  const type = openedNotification?.data?.type
   const openContractTypes = [
     notificationTypes.ANYHEDGE_OFFER_SETTLED,
     notificationTypes.ANYHEDGE_MATURED,
@@ -1093,10 +1093,9 @@ function handleOpenedNotification() {
   ]
 
   if (openContractTypes.indexOf(type) >= 0) {
-    const address = openedNotification.value?.data?.address
-    const position = openedNotification.value?.data?.position
+    const address = openedNotification?.data?.address
+    const position = openedNotification?.data?.position
     displayContractFromNotification({address, position})
-    $store.commit('notification/clearOpenedNotification')
   }
 }
 
@@ -1115,7 +1114,10 @@ async function displayContractFromNotification(data={address: '', position: '' }
 
   if (!contract) {
     try {
-      if (!wallet.value) await initWallet()
+      if (!wallet.value) {
+        console.log('Initializing wallet')
+        await initWallet()
+      }
       const walletHash = wallet.value.BCH.getWalletHash()
       const response = await anyhedgeBackend.get(`anyhedge/hedge-positions/${address}/`)
       contract = await parseHedgePositionData(response?.data)
@@ -1139,7 +1141,15 @@ async function displayContractFromNotification(data={address: '', position: '' }
   if (_position && !selectedAccountType.value !== _position) selectedAccountType.value = _position
   if (contract) {
     hedgesDrawerRef.value?.show?.()
-    hedgesListRef?.value?.displayContractInDialog?.(contract)
+    if (hedgesListRef?.value?.displayContractInDialog) {
+      hedgesListRef?.value?.displayContractInDialog?.(contract)
+    } else {
+      $q.dialog({
+        component: HedgeContractDetailDialog,
+        componentProps: { contract: contract, viewAs: _position, wallet: wallet.value }
+      })
+    }
+    
   } else {
     $q.dialog({
       message: $t('UnableToFindContract'),
