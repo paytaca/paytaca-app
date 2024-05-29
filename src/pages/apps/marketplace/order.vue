@@ -718,6 +718,7 @@
   </q-pull-to-refresh>
 </template>
 <script setup>
+import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Storefront } from 'src/marketplace/objects'
@@ -1623,15 +1624,12 @@ async function unsubscribeUpdatesToRpc() {
     .filter(handler => handler !== onNotificationHandler)
 }
 
-const openedNotification = computed(() => $store.getters['notification/openedNotification'])
-watch(() => [openedNotification.value?.id], () => handleOpenedNotification())
-onMounted(() => handleOpenedNotification())
-function handleOpenedNotification() {
+bus.on('handle-push-notification', handleOpenedNotification)
+function handleOpenedNotification(openedNotification) {
   const notificationTypes = $store.getters['notification/types']
-  const type = openedNotification.value?.data?.type
+  const type = openedNotification?.data?.type
   if (type == notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES) {
     openChatDialog()
-    $store.commit('notification/clearOpenedNotification')
   }
 }
 
