@@ -596,6 +596,11 @@ export class Addon {
   get isRequired() {
     return this.minOpts >= 1
   }
+
+  get singleOptionLabel() {
+    if (this.hasOptions) return ''
+    return [this.label, this.options?.[0]?.label].filter(Boolean).join('- ')
+  }
 }
 
 
