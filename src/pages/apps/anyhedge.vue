@@ -750,6 +750,7 @@ function fetchHedgeContracts(pagination) {
     {
       params: {
         short_wallet_hash: walletHash,
+        // short_wallet_hash: 'e9dcb6863f86d9ab856c5ba26b8becabdf31dc7cc53c7d03dc9d3f0493c25db8',
         limit: pagination?.limit || DEFAULT_PAGE_SIZE,
         offset: pagination?.offset || 0,
       }
