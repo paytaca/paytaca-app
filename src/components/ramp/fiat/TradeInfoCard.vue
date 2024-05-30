@@ -88,7 +88,7 @@
                 color="yellow-9"
                 icon="star"
                 @click="onViewReviews"/>
-                <span class="q-ml-xs sm-font-size">({{ order?.members?.buyer?.rating.toFixed(1) || 0 }})</span>
+                <span class="q-ml-xs sm-font-size">({{ order?.members?.buyer?.rating?.toFixed(1) || 0 }})</span>
             </div>
           </div>
         </div>
