@@ -1501,6 +1501,7 @@ async function attemptCreatePayment(opts={ checkCurrentTab: true }) {
   if (opts?.checkCurrentTab && tabs.value.active != 'payment') return
 
   await fetchPaymentPromise.value
+  if (!checkout.value?.payment?.bchPrice?.price) await updateBchPrice()?.catch?.(console.error)
   await updateBchPricePromise.value?.catch?.(console.error)
   await updateDeliveryFeePromise.value
   await createPaymentPromise.value?.catch?.(console.error)
@@ -2012,8 +2013,9 @@ async function refreshPage(done=() => {}) {
     await Promise.all([
       fetchCheckout()
         .finally(() => resetFormData())
-        .then(() => { updateBchPrice() })
-        .then(() => fetchPayments())
+        .then(() => {
+          return Promise.all([updateBchPrice(), fetchPayments()])
+        })
         .then(() => attemptCreatePayment()),
     ])
   } finally {
