@@ -78,6 +78,7 @@
                 { value: Checkout.DeliveryTypes.STORE_PICKUP, slot: 'store_pickup' },
                 { value: Checkout.DeliveryTypes.LOCAL_DELIVERY, slot: 'local_delivery' },
               ]"
+              @update:modelValue="() => findRider({ displayDialog: true })"
             >
               <template v-slot:store_pickup="ctx">
                 <div>
@@ -129,7 +130,7 @@
                   flat
                   icon="search"
                   padding="sm"
-                  @click="() => findRider({ replaceExisting: true, displayDialog: true })"
+                  @click="() => findRider({ replaceExisting: true, skipReplaceIfEmpty: true, displayDialog: true })"
                 />
               </template>
             </q-field>
@@ -1250,8 +1251,8 @@ async function findRider(opts={ replaceExisting: false, skipReplaceIfEmpty: fals
   loadingState.value.rider = true
   loadingMsg.value = 'Finding a rider'
 
+  let dialog
   try {
-    let dialog
     if (opts?.displayDialog) {
       dialog = $q.dialog({
         title: 'Searching rider',
@@ -1271,6 +1272,18 @@ async function findRider(opts={ replaceExisting: false, skipReplaceIfEmpty: fals
     const riders = await findRiders(excludeIds).catch(() => [])
     loadingState.value.rider = false
     loadingMsg.value = resolveLoadingMsg()
+
+    if (!riders[0]?.id && formData.value?.delivery?.rider?.id && opts?.skipReplaceIfEmpty) {
+      (dialog?.update || $q.dialog)({
+        title: 'Rider search',
+        message: 'No other riders around to replace current one',
+        ok: true,
+        progress: false,
+        persistent: false,
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+      })
+      return
+    }
     formData.value.delivery.rider = riders[0]
     dialog?.hide?.()
     if (riders?.length) return
