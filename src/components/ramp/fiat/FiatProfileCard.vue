@@ -73,12 +73,12 @@
               icon="star"
               icon-half="star_half"
             />
-            <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
+            <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating?.toFixed(1) : 0}} rating)</span>
           </div>
           <div class="text-center sm-font-size q-pt-sm">
               <span>{{ user.trade_count || 0 }} trades</span>&nbsp;&nbsp;
               <span>|</span>&nbsp;&nbsp;
-              <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
+              <span> {{ user.completion_rate ? user.completion_rate?.toFixed(1) : 0 }}% completion</span>
           </div>
         </div>
         <div
@@ -117,7 +117,7 @@
                       color="yellow-9"
                       icon="star"
                     />
-                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating.toFixed(1) : 0}})</span>
+                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating?.toFixed(1) : 0}})</span>
                   </div>
                   <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
                     {{ review.comment }}

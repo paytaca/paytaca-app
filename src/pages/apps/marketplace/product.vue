@@ -145,15 +145,17 @@
               />
             </q-card-section>
           </q-card>
-          <AddonsForm
-            ref="addonsForm"
-            v-if="product?.addons?.length"
-            :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
-            :addons="product?.addons"
-            :currency="currency"
-            v-model="addonsFormData"
-            :debounce="750"
-          />
+          <template v-if="product?.addons?.length">
+            <div class="text-h6">Addons</div>
+            <AddonsForm
+              ref="addonsForm"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
+              :addons="product?.addons"
+              :currency="currency"
+              v-model="addonsFormData"
+              :debounce="750"
+            />
+          </template>
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
