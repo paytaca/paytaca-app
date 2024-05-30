@@ -371,7 +371,7 @@ export default {
     showChat () {
       this.showChatButton = true
     },
-    checkStep () {
+    async checkStep () {
       const vm = this
       vm.openDialog = false
       const status = vm.status.value
@@ -399,7 +399,8 @@ export default {
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
           let nextState = 'tx-confirmation'
-          if (!vm.txid) nextState = 'escrow-bch'
+          const contractBalance = await vm.escrowContract?.getBalance()
+          if (!vm.txid && contractBalance === 0) nextState = 'escrow-bch'
           if (this.order.trade_type === 'BUY') {
             state = vm.order.is_ad_owner ? nextState : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
@@ -638,7 +639,7 @@ export default {
       console.log('generating contract..')
       const vm = this
       const fees = await vm.fetchFees()
-      vm.fetchContract().then(contract => {
+      await vm.fetchContract().then(contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses

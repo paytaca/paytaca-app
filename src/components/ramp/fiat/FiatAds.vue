@@ -76,7 +76,7 @@
                               </span><br>
                               <div class="row q-gutter-md">
                                 <span>{{ listing.trade_count }} trades</span>
-                                <span>{{ listing.completion_rate }}% completion</span>
+                                <span>{{ Number(listing.completion_rate.toFixed(2)) }}% completion</span>
                               </div>
                               <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
                                 {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}

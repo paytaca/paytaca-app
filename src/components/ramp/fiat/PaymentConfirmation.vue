@@ -58,40 +58,38 @@
       </div>
     </div>
     <div class="q-mx-md q-px-sm q-pt-sm">
-      <!-- Buyer -->
-      <div v-if="data?.type === 'buyer'" class="q-pb-xs">
-        <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
-          <div class="text-center sm-font-size q-mx-md q-mb-sm">
-          <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-          <span>Select the payment method(s) you used to pay the seller</span>
-        </div>
-        <div class="full-width">
-          <div v-for="(method, index) in paymentMethods" :key="index">
-            <div class="q-px-sm q-py-xs">
-              <q-card flat bordered :dark="darkMode">
-                <q-expansion-item
-                  class="pt-card text-bow"
-                  :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
-                  :default-opened=true
-                  :label="method.payment_type"
-                  expand-separator >
-                  <q-card>
-                    <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                        <div class="col q-pr-sm q-py-xs">
-                          <div>{{ method.account_name }}</div>
-                          <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
-                            {{ method.account_identifier }}
-                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
-                          </div>
+      <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
+        <div class="text-center sm-font-size q-mx-md q-mb-sm">
+        <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
+        <span v-if="data?.type === 'buyer'">Select the payment method(s) you used to pay the seller</span>
+        <span v-if="data?.type === 'seller'">The buyer selected the following payment methods. Please release the funds if you have received fiat payment.</span>
+      </div>
+      <div class="full-width">
+        <div v-for="(method, index) in paymentMethods" :key="index">
+          <div class="q-px-sm q-py-xs">
+            <q-card flat bordered :dark="darkMode">
+              <q-expansion-item
+                class="pt-card text-bow"
+                :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
+                :default-opened=true
+                :label="method.payment_type"
+                expand-separator >
+                <q-card>
+                  <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                      <div class="col q-pr-sm q-py-xs">
+                        <div>{{ method.account_name }}</div>
+                        <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
+                          {{ method.account_identifier }}
+                          <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
                         </div>
-                        <div>
-                          <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
-                        </div>
-                    </q-card>
+                      </div>
+                      <div>
+                        <q-checkbox v-model="method.selected" :disable="data?.type === 'seller'" @click="selectPaymentMethod(method)" :dark="darkMode"/>
+                      </div>
                   </q-card>
-                </q-expansion-item>
-              </q-card>
-            </div>
+                </q-card>
+              </q-expansion-item>
+            </q-card>
           </div>
         </div>
       </div>
@@ -101,9 +99,9 @@
         <div v-if="data?.type === 'seller'">
           <!-- Errors -->
           <div class="row q-mb-sm" v-if="sendErrors.length > 0">
-            <div class="col">
+            <div class="col bg-red-1 text-red q-pa-lg pp-text" style="overflow-x: auto; max-width: 275px">
               <ul style="margin-left: -40px; list-style: none;">
-                <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
+                <li v-for="(error, index) in sendErrors" :key="index">
                   <q-icon name="error" left/>
                   {{ error }}
                 </li>
@@ -114,10 +112,10 @@
           <div v-if="sendingBch" class="sm-font-size">
             <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
           </div>
-          <div v-else class="row justify-center sm-font-size" style="overflow-wrap: break-word;">
+          <!-- <div v-else class="row justify-center sm-font-size" style="overflow-wrap: break-word;">
             <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
             <span class="col text-left q-ml-sm">Please release the funds if you have received the fiat payment.</span>
-          </div>
+          </div> -->
         </div>
       </div>
       <!-- Appeal Button -->
@@ -339,13 +337,14 @@ export default {
             vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
 
-            if (vm.order.trade_type === 'BUY') {
+            if (vm.data.type === 'buyer') {
               vm.paymentMethods = vm.order.ad.payment_methods.map(method => {
                 return { ...method, selected: false }
               })
             } else {
               vm.paymentMethods = vm.order.payment_methods.map(method => {
-                return { ...method, selected: false }
+                const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
+                return { ...method, selected: selected }
               })
             }
 
