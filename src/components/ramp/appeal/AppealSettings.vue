@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <q-scroll-area style="height: 325px;">
+      <q-scroll-area style="height: 325px;" class="q-mb-md">
         <div class="q-mx-lg q-mb-lg">
           <!-- Name -->
           <div>
@@ -61,7 +61,7 @@
           <div class="q-pt-md">
             <div>Currency</div>
             <q-list dense bordered padding class="rounded-borders">
-              <q-item v-for="(currency, index) in currencies" clickable v-ripple :key="index">
+              <q-item v-for="(currency, index) in currencies" :key="index" :style="separator(darkMode, index)">
                 <q-item-section>
                   {{ currency }}
                 </q-item-section>
@@ -107,6 +107,13 @@ export default {
 
       this.readOnlyState = true
       this.$refs.inputRef.blur()
+    },
+    separator (mode, index) {
+      if (this.currencies.length - 2 < index) {
+        return ''
+      } else {
+        return mode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'
+      }
     }
   }
 }
