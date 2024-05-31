@@ -511,7 +511,7 @@
               </div>
               <q-separator :dark="darkMode"/>
             </div>
-            <q-markup-table class="full-width items-table">
+            <q-markup-table class="full-width items-table pt-card" :class="getDarkModeClass(darkMode)">
               <tr>
                 <th colspan="2" class="full-width">Item</th>
                 <th>Price</th>
@@ -911,7 +911,7 @@ const orderDeadlines = computed(() => {
   return data
 })
 
-const displayBch = ref(true)
+const displayBch = ref(false)
 function toggleAmountsDisplay() {
   if (isNaN(orderBchPrice.value)) {
     displayBch.value = false
@@ -1688,11 +1688,7 @@ async function refreshPage(done=() => {}) {
 </script>
 <style scoped lang="scss">
 ::v-deep(.items-table table) {
-  border-spacing: 4px;
-}
-
-.items-table td {
-  vertical-align: top;
+  border-spacing: 6px 4px;
 }
 
 .items-table .q-table td, .items-table .q-table th {
