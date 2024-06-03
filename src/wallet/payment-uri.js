@@ -358,12 +358,24 @@ export class JSONPaymentProtocol {
   }
 
   get txids() {
+    if (this._data?.payment?.txid) return [this._data?.payment?.txid]
     if (!Array.isArray(this.transactions)) return []
     return this.transactions.map(tx => JSONPaymentProtocol.rawTxToHash(tx))
   }
 
   get totalSendAmountSats() {
     return this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
+  }
+
+  get paymentData() {
+    if (!this._data?.payment) return
+
+    return {
+      memo: this._data?.payment?.memo,
+      txid: this._data?.payment?.txid,
+      paidAt: this._data?.payment?.paidAt ? new Date(this._data?.payment?.paidAt) : null,
+      refundTo: this._data?.payment?.refundTo,
+    }
   }
 
   /**
@@ -786,6 +798,9 @@ export class JSONPaymentProtocol {
       parsedData = response.data
       parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
       parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
+      if (parsedData?.payment?.paid_at) {
+        parsedData.payment.paidAt = parsedData?.payment?.paid_at
+      }
       if (jppSource == JPPSourceTypes.ANYPAY) {
         parsedData.paymentUrl = String(link)
         parsedData.chain = 'BCH'

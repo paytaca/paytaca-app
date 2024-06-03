@@ -53,18 +53,21 @@
     </div>
     <div class="row items-center q-gutter-xs">
       <q-badge
-        v-for="(badge,index) in badges" :key="index"
+        v-for="(badge, index) in badges" :key="index"
         class="q-py-xs q-px-sm"
         rounded
         @click.stop
       >
         <q-icon v-if="badge?.icon" :name="badge?.icon" class="q-mr-xs"/>
-        <span style="max-width:5em" class="ellipsis">
+        <span style="max-width:8em;height:auto;" class="ellipsis">
           {{ badge?.text }}
         </span>
         <q-popup-proxy :breakpoint="0">
-          <div class="q-px-sm q-py-xs text-caption pt-card pt-label" :class="getDarkModeClass(darkMode)">
-            {{ badge?.text }}
+          <div class="q-px-sm q-py-xs pt-card pt-label" style="word-break:break-all;" :class="getDarkModeClass(darkMode)">
+            <div v-if="badge?.text?.length >= 14">
+              {{ badge?.text }}
+            </div>
+            <div class="text-caption">{{ badge?.description }}</div>
           </div>
         </q-popup-proxy>
       </q-badge>
@@ -78,6 +81,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseAttributeToBadge } from 'src/utils/tx-attributes'
 
 const $store = useStore()
 const $t = useI18n().t
@@ -141,47 +145,8 @@ const marketValueData = computed(() => {
 
 const badges = computed(() => {
   if (!Array.isArray(props.transaction?.attributes)) return []
-  const badges = []
-  const icons = {
-    anyhedge: 'img:anyhedge-logo.png',
-    voucher_claim: 'mdi-ticket-confirmation',
-  }
-  const pushBadge = (icon, text, value) => {
-    badges.push({
-      icon,
-      text,
-      data: {
-        address: value
-      }
-    })
-  }
-
-  props.transaction?.attributes.forEach(attribute => {
-    const key = attribute?.key
-    const value = attribute?.value
-    const icon = icons[key]
-    const voucherClaimKey = 'voucher_claim'
-
-    const __key = key.includes(voucherClaimKey) ? voucherClaimKey : key
-
-    
-    switch(__key) {
-      case('anyhedge_funding_tx'):
-        pushBadge(icon, 'AnyHedge funding transaction', value)
-        break
-      case('anyhedge_hedge_funding_utxo'):
-      case('anyhedge_long_funding_utxo'):
-        pushBadge(icon, 'AnyHedge funding UTXO', value)
-        break
-      case('anyhedge_settlement_tx'):
-        pushBadge(icon, 'AnyHedge settlement transaction', value)
-        break
-      case(voucherClaimKey):
-        pushBadge(icon, value, value)
-        break
-    }
-  })
-  return badges
+  return props.transaction?.attributes.map(parseAttributeToBadge)
+    .filter(badge => badge?.custom)
 })
 
 function formatDate (date) {

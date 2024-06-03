@@ -490,13 +490,28 @@
             </div>
           </q-card>
         </div>
-        <div class="q-pa-xs q-space">
+        <div class="q-pa-xs q-space" style="max-width:100%;">
           <q-card class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <div class="q-px-sm">
-              <div class="text-subtitle1">Items</div>
+              <div class="row items-center">
+                <div class="q-space text-subtitle1">Items</div>
+                <q-btn
+                  flat padding="xs sm"
+                  no-caps label="BCH"
+                  :color="displayBch ? undefined : 'grey'"
+                  @click="() => displayBch = true"
+                />
+                <q-separator vertical inset/>
+                <q-btn
+                  flat padding="xs sm"
+                  no-caps :label="orderCurrency || 'Fiat'"
+                  :color="!displayBch ? undefined : 'grey'"
+                  @click="() => displayBch = false"
+                />
+              </div>
               <q-separator :dark="darkMode"/>
             </div>
-            <table class="full-width items-table">
+            <q-markup-table class="full-width items-table pt-card" :class="getDarkModeClass(darkMode)">
               <tr>
                 <th colspan="2" class="full-width">Item</th>
                 <th>Price</th>
@@ -531,9 +546,9 @@
                       </div>
                     </q-btn>
                   </td>
-                  <td class="text-center" style="white-space:nowrap;">{{ orderItem?.displayPrice }} {{ orderCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(orderItem?.displayPrice) }}</td>
                   <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-                  <td class="text-center" style="white-space:nowrap;">{{ round(orderItem?.displayPrice * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(round(orderItem?.displayPrice * orderItem?.quantity, 3)) }}</td>
                 </tr>
                 <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">
                   <td></td>
@@ -541,12 +556,12 @@
                     <div>{{ addon?.label }}</div>
                     <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
                   </td>
-                  <td class="text-center" style="white-space:nowrap;">{{ addon?.markupPrice }} {{ orderCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(addon?.markupPrice) }}</td>
                   <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
-                  <td class="text-center" style="white-space:nowrap;">{{ round(addon?.markupPrice * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(round(addon?.markupPrice * orderItem?.quantity, 3)) }}</td>
                 </tr>
               </template>
-            </table>
+            </q-markup-table>
           </q-card>
         </div>
       </div>
@@ -718,6 +733,7 @@
   </q-pull-to-refresh>
 </template>
 <script setup>
+import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Storefront } from 'src/marketplace/objects'
@@ -827,7 +843,6 @@ function fetchOrder() {
 fetchOrder.debounced = debounce(fetchOrder, 500)
 
 const orderAmounts = computed(() => {
-  const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
   const data = {
     subtotal: { currency: order.value?.markupSubtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
@@ -839,28 +854,30 @@ const orderAmounts = computed(() => {
     change: { currency: parseFloat(order.value.change), bch: 0}
   }
 
-  if(!isNaN(orderBchPrice.value)) {
-    data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
-    data.deliveryFee.bch = parseBch(data.deliveryFee.currency / orderBchPrice.value)
-    data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
-    data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
-    data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
-    data.totalRefunded.bch = parseBch(data.totalRefunded.currency / orderBchPrice.value)
-    data.netPaid.bch = parseBch(data.netPaid.currency / orderBchPrice.value)
-    data.change.bch = parseBch(data.change.currency / orderBchPrice.value)
-  } else {
-    data.subtotal.bch = null
-    data.deliveryFee.bch = null
-    data.total.bch = null
-    data.totalPaid.bch = null
-    data.totalPendingPayment.bch = null
-    data.totalRefunded.bch = null
-    data.netPaid.bch = null
-    data.change.bch = null
-  }
+  data.subtotal.bch = fiatToBch(data.subtotal.currency)
+  data.deliveryFee.bch = fiatToBch(data.deliveryFee.currency)
+  data.total.bch = fiatToBch(data.total.currency)
+  data.totalPaid.bch = fiatToBch(data.totalPaid.currency)
+  data.totalPendingPayment.bch = fiatToBch(data.totalPendingPayment.currency)
+  data.totalRefunded.bch = fiatToBch(data.totalRefunded.currency)
+  data.netPaid.bch = fiatToBch(data.netPaid.currency)
+  data.change.bch = fiatToBch(data.change.currency)
 
   return data
 })
+
+const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
+function fiatToBch(value) {
+  if (Number.isNaN(orderBchPrice.value)) return null
+  return parseBch(value / orderBchPrice.value)
+}
+
+function formatFiatAmount(value) {
+  if (Number.isNaN(parseFloat(value))) return ''
+
+  if (!displayBch.value) return `${value} ${orderCurrency.value}`
+  return `${fiatToBch(value)} BCH`
+}
 
 /**
  * @param {Date} timestamp
@@ -1623,15 +1640,12 @@ async function unsubscribeUpdatesToRpc() {
     .filter(handler => handler !== onNotificationHandler)
 }
 
-const openedNotification = computed(() => $store.getters['notification/openedNotification'])
-watch(() => [openedNotification.value?.id], () => handleOpenedNotification())
-onMounted(() => handleOpenedNotification())
-function handleOpenedNotification() {
+bus.on('handle-push-notification', handleOpenedNotification)
+function handleOpenedNotification(openedNotification) {
   const notificationTypes = $store.getters['notification/types']
-  const type = openedNotification.value?.data?.type
+  const type = openedNotification?.data?.type
   if (type == notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES) {
     openChatDialog()
-    $store.commit('notification/clearOpenedNotification')
   }
 }
 
@@ -1672,12 +1686,13 @@ async function refreshPage(done=() => {}) {
   }
 }
 </script>
-<style scoped>
-table.items-table {
-  border-spacing: 4px;
+<style scoped lang="scss">
+::v-deep(.items-table table) {
+  border-spacing: 6px 4px;
 }
-table.items-table td {
-  vertical-align: top;
+
+.items-table .q-table td, .items-table .q-table th {
+  padding: unset;
 }
 
 .col-qr-code {

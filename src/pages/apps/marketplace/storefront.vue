@@ -299,6 +299,7 @@ import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffec
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
+import { debounce } from 'quasar'
 
 
 defineOptions({
@@ -429,7 +430,9 @@ const deliveryCalculation = ref({
   preparationDuration: 0,
 })
 watch(() => props.storefrontId, () => updateDeliveryCalculation())
-function updateDeliveryCalculation() {
+onActivated(() => updateDeliveryCalculation())
+const updateDeliveryCalculation = debounce(() => {
+  console.log('Updating delivery calculation')
   const params = {
     storefront_id: props.storefrontId,
     delivery_location: [
@@ -448,7 +451,7 @@ function updateDeliveryCalculation() {
       }
       return response
     })
-}
+}, 500)
 
 
 const showReviewsListDialog = ref(false)

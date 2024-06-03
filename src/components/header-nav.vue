@@ -11,7 +11,7 @@
           :to="{ path: backnavpath }"
           class="pt-arrow-left-link"
           :class="{'text-grad': isNotDefaultTheme || darkMode}"
-          :style="{width: $q.platform.is.bex ? '375px' : '94%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+          :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
         >
           <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
               arrow_back
@@ -27,6 +27,9 @@
         >
           {{ title }}
         </p>
+      </div>
+      <div class="col-1">
+        <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>      
       </div>
     </div>
   </div>

@@ -320,6 +320,7 @@
 
 <script>
 import { markRaw } from '@vue/reactivity'
+import { bus } from 'src/wallet/event-bus'
 import { getMnemonic, Wallet } from '../../wallet'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
@@ -427,12 +428,6 @@ export default {
     selectedAsset () {
       this.transactions = []
     },
-    'openedNotification.id': {
-      handler() {
-        if (!this.openedNotification?.id) return
-        this.handleOpenedNotification()
-      }
-    },
     balanceLoaded (val) {
       if (val) {
         this.formatBCHCardBalance(this.denomination)
@@ -458,9 +453,6 @@ export default {
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
-    },
-    openedNotification() {
-      return this.$store.getters['notification/openedNotification']
     },
     isDenominationTabEnabled () {
       return (isNotDefaultTheme(this.theme) &&
@@ -907,22 +899,18 @@ export default {
       }
       this.adjustTransactionsDivHeight()
     },
-    async handleOpenedNotification() {
-      const openedNotification = this.$store.getters['notification/openedNotification']
+    async handleOpenedNotification(openedNotification) {
       const notificationTypes = this.$store.getters['notification/types']
       if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
         const txid = openedNotification?.data?.txid
         const tokenId = openedNotification?.data?.token_id
         this.findAndOpenTransaction({txid, tokenId, chain: 'BCH' })
-        this.$store.commit('notification/clearOpenedNotification')
       } else if (openedNotification?.data?.type === notificationTypes.SBCH_TRANSACTION) {
         const txid = openedNotification?.data?.txid
         const tokenId = openedNotification?.data?.token_address
         const logIndex = openedNotification?.data?.log_index
         this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
-        this.$store.commit('notification/clearOpenedNotification')
       } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
-        this.$store.commit('notification/clearOpenedNotification')
         this.handleRampNotif(openedNotification?.data)
       }
     },
@@ -1060,8 +1048,13 @@ export default {
     })
   },
 
+  unmounted() {
+    bus.off('handle-push-notification', this.handleOpenedNotification)
+  },
+
   async mounted () {
     const vm = this
+    bus.on('handle-push-notification', this.handleOpenedNotification)
 
     if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
       vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
