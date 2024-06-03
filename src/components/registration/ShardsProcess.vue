@@ -16,14 +16,15 @@
   </template>
 
   <template v-else>
+    <h5
+      v-if="!fromWalletInfo"
+      class="q-ma-none text-bow"
+      :class="getDarkModeClass(darkMode)"
+    >
+      {{ $t('ShardsBackupPhase') }}
+    </h5>
+
     <template v-if="isDesktop">
-      <h5
-        v-if="!fromWalletInfo"
-        class="q-ma-none text-bow"
-        :class="getDarkModeClass(darkMode)"
-      >
-        {{ $t('ShardsBackupPhase') }}
-      </h5>
       <p
         :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
         style="margin-top: 10px;"
@@ -73,13 +74,39 @@
     </template>
 
     <template v-else>
-      for mobile yey
+      <p
+        class="text-bow"
+        :class="getDarkModeClass(darkMode)"
+        style="margin-top: 10px;"
+      >
+        description
+      </p>
+      <div class="flex flex-center q-mt-md">
+        <q-btn
+          rounded
+          class="button"
+          :label="'Show First Shard'"
+          @click="openShardDialog(true)"
+        />
+      </div>
+      <div class="flex flex-center q-mt-md">
+        <q-btn
+          rounded
+          class="button"
+          :label="'Show Second Shard'"
+          @click="openShardDialog(false)"
+        />
+      </div>
+      <q-checkbox
+        v-model="enableContinue"
+        label="Agree label"
+      />
     </template>
 
     <q-btn
       v-if="!fromWalletInfo"
       rounded
-      :disable="disableContinue"
+      :disable="!enableContinue"
       :label="$t('Continue')"
       class="q-mt-lg full-width button"
       @click="$emit('proceed-to-next-step')"
@@ -96,6 +123,7 @@ import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-ut
 import { saveShardToWatchtower } from 'src/wallet/shards'
 
 import ProgressLoader from 'src/components/ProgressLoader'
+import ShardScreenshotDialog from 'src/components/registration/ShardScreenshotDialog'
 
 export default {
   name: 'ShardsProcess',
@@ -114,23 +142,21 @@ export default {
   ],
 
   components: {
-    ProgressLoader
+    ProgressLoader,
+    // eslint-disable-next-line vue/no-unused-components
+    ShardScreenshotDialog
   },
 
   data () {
     return {
       shards: [],
       isLoading: true,
-      disableContinue: true
+      enableContinue: false
     }
   },
 
   async mounted () {
     const vm = this
-
-    // 1st shard is for watchtower to keep
-    // 2nd is for user to save to device
-    // 3rd is for user to share to someone or other device for storing
 
     const secret = Buffer.from(vm.mnemonic)
     const shares = sss.split(secret, { shares: 3, threshold: 2 })
@@ -140,7 +166,7 @@ export default {
 
     setTimeout(() => {
       vm.isLoading = false
-    }, 2000)
+    }, 1500)
   },
 
   computed: {
@@ -204,8 +230,19 @@ export default {
       })
 
       if (!vm.fromWalletInfo) {
-        vm.disableContinue = false
+        vm.enableContinue = true
       }
+    },
+    openShardDialog (isFirstShard) {
+      const vm = this
+
+      vm.$q.dialog({
+        component: ShardScreenshotDialog,
+        componentProps: {
+          shardText: vm.shards[isFirstShard ? 1 : 2],
+          isFirstShard
+        }
+      })
     }
   }
 }
