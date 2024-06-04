@@ -4,7 +4,7 @@
       <div>
         <div id="screenshot-qr" class="col q-py-md col-qr-code">
           <p style="color: black; margin-bottom: 0;">
-            {{ isFirstShard ? 'First Shard' : 'Second Shard' }}
+            {{ isFirstShard ? $t('FirstShard') : $t('SecondShard') }}
           </p>
           <p style="color: black">
             {{ isFirstShard ? $t('PersonalQRDescription2') : $t('ForSharingQRDescription2') }}

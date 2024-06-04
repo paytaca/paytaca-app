@@ -43,7 +43,7 @@
             {{ $t('PersonalQRDescription1') }}
           </div>
           <div id="personal-qr" class="flex flex-center q-py-md col-qr-code">
-            <p style="color: black; margin-bottom: 0;">First Shard</p>
+            <p style="color: black; margin-bottom: 0;">{{ $t('FirstShard') }}</p>
             <p style="color: black">{{ $t('PersonalQRDescription2') }}</p>
             <qr-code :text="shards[1]" color="#253933" :size="200" error-level="H" />
           </div>
@@ -57,7 +57,7 @@
             {{ $t('ForSharingQRDescription1') }}
           </div>
           <div id="sharing-qr" class="flex flex-center q-py-md col-qr-code">
-            <p style="color: black; margin-bottom: 0;">Second Shard</p>
+            <p style="color: black; margin-bottom: 0;">{{ $t('SecondShard') }}</p>
             <p style="color: black">{{ $t('ForSharingQRDescription2') }}</p>
             <qr-code :text="shards[2]" color="#253933" :size="200" error-level="H" />
           </div>
@@ -82,10 +82,10 @@
           {{ fromWalletInfo ? $t('ShardsBackupPhaseDescription1') : $t('ShardsBackupPhaseDescription2') }}
         </p>
         <p v-if="!fromWalletInfo">
-          {{ 'To ensure a smooth and successful process, follow the following steps:' }}<br/>
-          1. {{ 'Click on the buttons below to display the shard images.' }}<br/>
-          2. {{ 'Take a screenshot of the displayed image.' }}<br/>
-          3. {{ 'To continue, check the checkbox to confirm that you have saved both screenshots.' }}
+          {{ $t('CreateMobileProcessDescription1') }}:<br/>
+          1. {{ $t('CreateMobileProcessDescription2') }}<br/>
+          2. {{ $t('CreateMobileProcessDescription3') }}<br/>
+          3. {{ $t('CreateMobileProcessDescription4') }}
         </p>
       </div>
 
@@ -102,7 +102,7 @@
             <q-btn
               rounded
               class="button"
-              :label="'Show First Shard'"
+              :label="$t('ShowFirstShard')"
               @click="openShardDialog(true)"
             />
           </div>
@@ -119,7 +119,7 @@
             <q-btn
               rounded
               class="button"
-              :label="'Show Second Shard'"
+              :label="$t('ShowSecondShard')"
               @click="openShardDialog(false)"
             />
           </div>
@@ -130,7 +130,7 @@
         v-model="enableContinue"
         v-if="!fromWalletInfo"
         class="q-mt-md"
-        :label="'I confirm that I already saved the screenshots to my device.'"
+        :label="$t('ConfirmCheckboxText')"
         :disable="enableContinue"
       />
     </template>
