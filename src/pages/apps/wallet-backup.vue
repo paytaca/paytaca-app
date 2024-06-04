@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="'Wallet Backup'" backnavpath="/apps" class="apps-header" />
+    <header-nav :title="$t('WalletBackup')" backnavpath="/apps" class="apps-header" />
 
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
@@ -14,7 +14,7 @@
         </q-list>
       </div>
       <div class="col-12 q-px-lg q-mt-md">
-        <p class="section-title">Seed Phrase Shards</p>
+        <p class="section-title">{{ $t('SeedPhraseShards') }}</p>
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
           <q-item clickable @click="toggleBackupTypeDialog('shard')">
             <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">

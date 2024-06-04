@@ -161,7 +161,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Wallet Backup',
+          name: this.$t('WalletBackup'),
           iconName: 'backup',
           path: '/apps/wallet-backup',
           active: true,

@@ -910,7 +910,9 @@ const additional = [
     ReceiverWarningText3: "before proceeding.",
     GoBack: "Go back",
     Proceed: "Proceed",
-    LegacyAddressWarning: 'You pasted a legacy address. Please make sure that it is a <span class="highlighted-word">BCH deposit address</span>, not a BTC deposit address.'
+    LegacyAddressWarning: 'You pasted a legacy address. Please make sure that it is a <span class="highlighted-word">BCH deposit address</span>, not a BTC deposit address.',
+    WalletBackup: "Wallet Backup",
+    SeedPhraseShards: "Seed Phrase Shards"
   }
 ]
 
