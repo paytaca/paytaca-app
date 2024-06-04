@@ -74,32 +74,64 @@
     </template>
 
     <template v-else>
-      <p
-        class="text-bow"
-        :class="getDarkModeClass(darkMode)"
+      <div
+        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
         style="margin-top: 10px;"
       >
-        description
-      </p>
-      <div class="flex flex-center q-mt-md">
-        <q-btn
-          rounded
-          class="button"
-          :label="'Show First Shard'"
-          @click="openShardDialog(true)"
-        />
+        <p>
+          {{ fromWalletInfo ? $t('ShardsBackupPhaseDescription1') : $t('ShardsBackupPhaseDescription2') }}
+        </p>
+        <p v-if="!fromWalletInfo">
+          {{ 'To ensure a smooth and successful process, follow the following steps:' }}<br/>
+          1. {{ 'Click on the buttons below to display the shard images.' }}<br/>
+          2. {{ 'Take a screenshot of the displayed image.' }}<br/>
+          3. {{ 'To continue, check the checkbox to confirm that you have saved both screenshots.' }}
+        </p>
       </div>
-      <div class="flex flex-center q-mt-md">
-        <q-btn
-          rounded
-          class="button"
-          :label="'Show Second Shard'"
-          @click="openShardDialog(false)"
-        />
+
+      <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
+        <div
+          class="q-pa-sm br-15 pt-card"
+          :class="getDarkModeClass(darkMode)"
+          style="border: 2px solid gray;"
+        >
+          <div class="text-center q-mb-sm">
+            {{ $t('PersonalQRDescription1') }}
+          </div>
+          <div class="flex flex-center q-mt-md q-mb-sm">
+            <q-btn
+              rounded
+              class="button"
+              :label="'Show First Shard'"
+              @click="openShardDialog(true)"
+            />
+          </div>
+        </div>
+        <div
+          class="q-pa-sm q-mt-md br-15 pt-card"
+          :class="getDarkModeClass(darkMode)"
+          style="border: 2px solid gray;"
+        >
+          <div class="text-center q-mb-sm">
+            {{ $t('ForSharingQRDescription1') }}
+          </div>
+          <div class="flex flex-center q-mt-md q-mb-sm">
+            <q-btn
+              rounded
+              class="button"
+              :label="'Show Second Shard'"
+              @click="openShardDialog(false)"
+            />
+          </div>
+        </div>
       </div>
+
       <q-checkbox
         v-model="enableContinue"
-        label="Agree label"
+        v-if="!fromWalletInfo"
+        class="q-mt-md"
+        :label="'I confirm that I already saved the screenshots to my device.'"
+        :disable="enableContinue"
       />
     </template>
 
