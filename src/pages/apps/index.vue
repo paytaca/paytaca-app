@@ -226,6 +226,8 @@ export default {
         // TODO temporary fix for marketplace icon; replace with themed one
         if (app.name === 'Marketplace') {
           app.iconName = 'storefront'
+        } else if (app.name === 'Wallet Backup') {
+          app.iconname = 'backup'
         }
       }
     })
