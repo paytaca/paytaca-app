@@ -292,13 +292,6 @@ export default {
         const iconFileName = app.path.split('/')[2]
         const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
         app.iconName = themedIconLoc
-
-        // TODO temporary fix for marketplace icon; replace with themed one
-        if (app.name === 'Marketplace') {
-          app.iconName = 'storefront'
-        } else if (app.name === 'Wallet Backup') {
-          app.iconname = 'backup'
-        }
       }
     })
 
