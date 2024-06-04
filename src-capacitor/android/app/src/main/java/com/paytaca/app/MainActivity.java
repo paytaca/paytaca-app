@@ -19,10 +19,12 @@ import com.paytaca.app.plugins.DeepLinkHelperPlugin;
 public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
     registerPlugin(GpsServicePlugin.class);
     registerPlugin(PushNotificationSettingsPlugin.class);
     registerPlugin(DeepLinkHelperPlugin.class);
+
+    // CapacitorV3 to V4 upgrade required to move this after registerPlugin()
+    super.onCreate(savedInstanceState);
 
     // Initializes the Bridge
     // Removed to enable auto registration of plugins

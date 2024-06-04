@@ -335,7 +335,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { Plugins } from '@capacitor/core'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
@@ -345,8 +345,6 @@ import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denominatio
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import TransactionList from 'src/components/transactions/TransactionList'
-
-const { SecureStoragePlugin } = Plugins
 
 const ago = require('s-ago')
 
