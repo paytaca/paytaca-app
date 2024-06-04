@@ -4,42 +4,89 @@
             <div class="q-py-sm q-my-lg q-mx-lg q-px-sm">
                 <div v-if="loading" class="row justify-center"><ProgressLoader/></div>
                 <div v-else>
-                    <div class="q-mb-sm text-center">
+                    <div class="q-mb-md text-center text-bold">
                         <span style="font-size: large;">{{ !feedback.id ? 'Rate your Experience' : 'Your Feedback' }}</span>
                     </div>
-                    <div class="q-py-xs text-center">
-                        <q-rating
-                        :readonly="btnLoading || feedback.id ? true : false"
-                        v-model="feedback.rating"
-                        size="3em"
-                        color="yellow-9"
-                        icon="star"
-                        />
+
+                    <div v-if="step === 1">
+                      <div class="text-center">
+                        <span style="font-size: medium;">{{ counterparty.name }}</span><br>
+                        <span style="font-size: small; color: gray;">({{ counterparty.label }})</span>
+                      </div>
+                      <div class="q-py-xs text-center">
+                          <q-rating
+                          :readonly="btnLoading || feedback.id ? true : false"
+                          v-model="feedback.rating"
+                          size="3em"
+                          color="yellow-9"
+                          icon="star"
+                          />
+                      </div>
+                      <div class="q-py-sm q-px-xs">
+                          <q-input
+                          v-if="!feedback.id || feedback.rating > 0 && feedback.comment.length > 0"
+                          v-model="feedback.comment"
+                          :dark="darkMode"
+                          :readonly="btnLoading || feedback.id ? true : false"
+                          placeholder="Add comment here..."
+                          dense
+                          outlined
+                          autogrow
+                          :counter="!feedback.id"
+                          maxlength="200"
+                          />
+                      </div>
                     </div>
-                    <div class="q-py-sm q-px-xs">
-                        <q-input
-                        v-if="!feedback.id || feedback.rating > 0 && feedback.comment.length > 0"
-                        v-model="feedback.comment"
-                        :dark="darkMode"
-                        :readonly="btnLoading || feedback.id ? true : false"
-                        placeholder="Add comment here..."
-                        dense
-                        outlined
-                        autogrow
-                        :counter="!feedback.id"
-                        maxlength="200"
+
+                    <div v-if="step === 2">
+                      <div class="fixed" style="margin-top: -5px;">
+                        <q-btn
+                          rounded
+                          no-caps
+                          icon="arrow_back"
+                          flat
+                          color="blue"
+                          @click="step--"
                         />
+                      </div>
+                      <div class="text-center">
+                        <span style="font-size: medium;">{{ arbiter.name }}</span><br>
+                        <span style="font-size: small; color: gray;">(Arbiter)</span>
+                      </div>
+                      <div class="q-py-xs text-center">
+                        <q-rating
+                          :readonly="btnLoading || arbiterFeedback.id ? true : false"
+                          v-model="arbiterFeedback.rating"
+                          size="3em"
+                          color="yellow-9"
+                          icon="star"
+                          />
+                      </div>
+                      <div class="q-py-sm q-px-xs">
+                          <q-input
+                          v-if="!arbiterFeedback.id || arbiterFeedback.rating > 0 && arbiterFeedback.comment.length > 0"
+                          v-model="arbiterFeedback.comment"
+                          :dark="darkMode"
+                          :readonly="btnLoading || arbiterFeedback.id ? true : false"
+                          placeholder="Add comment here..."
+                          dense
+                          outlined
+                          autogrow
+                          :counter="!arbiterFeedback.id"
+                          maxlength="200"
+                          />
+                      </div>
                     </div>
                     <div class="row q-pt-xs q-px-xs">
                         <q-btn
                         v-if="!feedback.id ? true : false"
                         :disable="btnLoading || feedback.rating === 0"
                         rounded
-                        label='Submit'
+                        :label="step === 1 && appealed ? 'Next' : 'Submit'"
                         class="q-space text-white"
                         color="blue-8"
                         :loading="btnLoading"
-                        @click="sendFeedback"
+                        @click="handleButton"
                         />
                         <!-- <q-btn
                         v-else
@@ -73,15 +120,24 @@ export default {
         rating: 0,
         comment: ''
       },
+      arbiterFeedback: {
+        rating: 0,
+        comment: ''
+      },
       showPostMessage: false,
-      timer: null
+      timer: null,
+      counterparty: this.counterParty,
+      appealed: true,
+      step: 1
     }
   },
   components: {
     ProgressLoader
   },
   props: {
-    orderId: Number
+    orderId: Number,
+    counterParty: Object,
+    arbiter: Object
   },
   mounted () {
     this.fetchFeedback()
@@ -119,6 +175,13 @@ export default {
           }
         })
         .finally(() => { vm.loading = false })
+    },
+    handleButton () {
+      if (this.step === 1 && this.appealed) {
+        this.step++
+      } else {
+        this.sendFeedback()
+      }
     },
     sendFeedback () {
       const vm = this
