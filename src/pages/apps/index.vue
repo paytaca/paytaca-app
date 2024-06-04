@@ -29,6 +29,9 @@
         </div>
       </div>
     </div>
+
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
+    <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
     <footer-menu />
   </div>
 </template>
@@ -37,9 +40,16 @@
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
+import pinDialog from '../../components/pin'
+import biometricWarningAttempts from '../../components/authOption/biometric-warning-attempt.vue'
+import { NativeBiometric } from 'capacitor-native-biometric'
 
 export default {
   name: 'apps',
+  components: {
+    pinDialog,
+    biometricWarningAttempts
+  },
   directives: {
     'on-long-press': vOnLongPress,
   },
@@ -168,7 +178,10 @@ export default {
       filteredApps: [],
       appHeight: null,
       rampAppSelection: false,
-      disableRampSelection: false
+      disableRampSelection: false,
+      pinDialogAction: '',
+      warningAttemptsStatus: 'dismiss',
+      proceedToBackup: false
     }
   },
   computed: {
@@ -193,12 +206,69 @@ export default {
     },
     openApp (app) {
       if (app.active) {
-        this.$router.push(app.path)
+        if (app.name === 'Wallet Backup') {
+          this.executeSecurityChecking()
+        } else {
+          this.$router.push(app.path)
+        }
       }
     },
     onLongPressApp(event, app) {
       event.preventDefault()
       app?.onLongPress?.(event)
+    },
+    executeSecurityChecking () {
+      const vm = this
+
+      if (!vm.proceedToBackup) {
+        setTimeout(() => {
+          if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+            vm.pinDialogAction = 'VERIFY'
+          } else {
+            vm.verifyBiometric()
+          }
+        }, 500)
+      } else {
+        this.$router.push('/apps/wallet-backup')
+      }
+    },
+    verifyBiometric () {
+      // Authenticate using biometrics before logging the user in
+      NativeBiometric.verifyIdentity({
+        reason: 'For ownership verification',
+        title: 'Security Authentication',
+        subtitle: 'Verify your account using fingerprint.',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          this.submitLabel = 'Processing'
+          this.customKeyboardState = 'dismiss'
+          setTimeout(() => {
+            this.toggleMnemonicDisplay()
+          }, 1000)
+        },
+        (error) => {
+          // Failed to authenticate
+          this.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+            this.proceedToBackup = false
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            this.warningAttemptsStatus = 'show'
+          } else {
+            this.verifyBiometric()
+          }
+        })
+    },
+    setwarningAttemptsStatus () {
+      this.verifyBiometric()
+    },
+    toggleMnemonicDisplay (action) {
+      const vm = this
+      vm.pinDialogAction = ''
+      if (action === 'proceed') {
+        vm.$router.push('/apps/wallet-backup')
+      }
     }
   },
   created () {
