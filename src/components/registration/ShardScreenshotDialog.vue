@@ -55,12 +55,14 @@ export default {
   },
 
   mounted () {
+    const vm = this
+
     document.addEventListener('backbutton', () => {
-      this.$refs.dialog.hide()
+      vm.$refs.dialog.hide()
     })
 
-    const vm = this
-    vm.qrSize = vm.$q.screen.width - 100
+    const screenWidth = vm.$q.screen.width
+    vm.qrSize = screenWidth >= 500 ? 400 : screenWidth - 100
   }
 }
 </script>
@@ -72,5 +74,10 @@ export default {
     width: 80vw;
     border: 4px solid #ed5f59;
     background: white;
+  }
+  @media screen and (min-width: 500px) {
+    .col-qr-code {
+      width: 60vw;
+    }
   }
 </style>
