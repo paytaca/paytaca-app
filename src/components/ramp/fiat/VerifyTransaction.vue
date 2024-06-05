@@ -102,6 +102,7 @@ export default {
   },
   watch: {
     txidLoaded () {
+      console.log('txidLoaded:', this.txidLoaded)
       this.checkTransferStatus()
     },
     balanceLoaded () {
@@ -123,6 +124,7 @@ export default {
         this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
       }
       await this.fetchTransactions()
+      console.log('transactionId:', this.transactionId)
     },
     loadContract () {
       this.fetchContract().then(this.fetchContractBalance())
@@ -139,37 +141,13 @@ export default {
           .catch(error => reject(error))
       })
     },
-    fetchTransactions () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        vm.loading = true
-        backend.get('/ramp-p2p/order/contract/transactions', {
-          params: {
-            order_id: vm.data?.orderId
-          },
-          authorize: true
-        })
-          .then(response => {
-            if (!vm.transactionId) {
-              const transactions = response.data
-              const tx = transactions.filter(transaction => transaction.action === vm.data?.action)
-              console.log('tx:', tx)
-            }
-            vm.txidLoaded = true
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-            }
-            reject(error)
-          })
-      })
+    async fetchTransactions () {
+      console.log('fetchTransactions')
+      const utxos = await this.data?.escrow?.getUtxos()
+      if (utxos.length > 0) {
+        this.transactionId = utxos[0]?.txid
+      }
+      this.txidLoaded = true
     },
     fetchContract () {
       return new Promise((resolve, reject) => {

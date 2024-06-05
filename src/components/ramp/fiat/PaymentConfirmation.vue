@@ -62,7 +62,7 @@
         <div class="text-center sm-font-size q-mx-md q-mb-sm">
         <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
         <span v-if="data?.type === 'buyer'">Select the payment method(s) you used to pay the seller</span>
-        <span v-if="data?.type === 'seller'">The buyer selected the following payment methods. Please release the funds if you have received fiat payment.</span>
+        <span v-if="data?.type === 'seller'">The buyer selected the following payment methods.</span>
       </div>
       <div class="full-width">
         <div v-for="(method, index) in paymentMethods" :key="index">
@@ -83,8 +83,8 @@
                           <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
                         </div>
                       </div>
-                      <div>
-                        <q-checkbox v-model="method.selected" :disable="data?.type === 'seller'" @click="selectPaymentMethod(method)" :dark="darkMode"/>
+                      <div v-if="data?.type !== 'seller'">
+                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
                       </div>
                   </q-card>
                 </q-card>
@@ -93,6 +93,12 @@
           </div>
         </div>
       </div>
+    </div>
+    <div
+      v-if="data?.type === 'seller' && !sendingBch"
+      class="row q-mx-md q-px-md q-pt-sm text-center sm-font-size"
+      style="overflow-wrap: break-word;">
+        <span> Please release the funds if you have received fiat payment. </span>
     </div>
     <div class="q-mb-sm">
       <div class="q-mx-md q-px-md">
@@ -110,7 +116,7 @@
           </div>
           <!-- Info messages -->
           <div v-if="sendingBch" class="sm-font-size">
-            <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+            <q-spinner class="q-mr-sm"/>Sending BCH, please do not close the app during this process.
           </div>
           <!-- <div v-else class="row justify-center sm-font-size" style="overflow-wrap: break-word;">
             <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
@@ -236,7 +242,7 @@ export default {
     loadData () {
       const vm = this
       vm.wallet = loadRampWallet()
-      vm.fetchOrderDetail().then(() => {
+      vm.fetchOrderDetail().then((response) => {
         vm.appealCountdown()
         vm.isloaded = true
       })
@@ -247,7 +253,7 @@ export default {
       const vm = this
       if (vm.data?.escrow) {
         vm.data?.escrow.getBalance(vm.data?.contract.address)
-          .then(balance => {
+          .then(async balance => {
             vm.contractBalance = balance
           })
           .catch(error => {
@@ -336,18 +342,32 @@ export default {
           .then(response => {
             vm.order = response.data
             vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-
-            if (vm.data.type === 'buyer') {
-              vm.paymentMethods = vm.order.ad.payment_methods.map(method => {
-                return { ...method, selected: false }
+            // Find the payment methods of seller
+            let orderPaymentTypes = []
+            if (vm.order?.payment_methods_selected?.length > 0) {
+              orderPaymentTypes = vm.order.payment_methods_selected.map(method => {
+                const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
+                return { ...method, selected: selected }
               })
             } else {
-              vm.paymentMethods = vm.order.payment_methods.map(method => {
+              orderPaymentTypes = vm.order.payment_method_opts.map(method => {
                 const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
                 return { ...method, selected: selected }
               })
             }
+            const adPaymentTypes = vm.order.ad.payment_methods.map(method => {
+              return { ...method, selected: false }
+            })
 
+            if (vm.data.type === 'buyer') {
+              if (vm.data?.order?.is_ad_owner) {
+                vm.paymentMethods = orderPaymentTypes
+              } else {
+                vm.paymentMethods = adPaymentTypes
+              }
+            } else {
+              vm.paymentMethods = orderPaymentTypes
+            }
             resolve(response)
           })
           .catch(error => {

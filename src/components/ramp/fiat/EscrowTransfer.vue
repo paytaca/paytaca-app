@@ -56,6 +56,17 @@
         </template>
       </q-input>
 
+      <!-- Display contract balance -->
+      <div class="sm-font-size q-pl-xs q-pb-xs">Contract Balance</div>
+      <q-input
+        class="q-pb-sm"
+        readonly
+        filled
+        dense
+        :dark="darkMode"
+        :loading="escrowBalance === null"
+        v-model:model-value="escrowBalance">
+      </q-input>
       <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
       <q-input
         class="q-pb-xs md-font-size"
@@ -83,7 +94,7 @@
       </div>
       <div v-else>
         <div v-if="sendingBch" class="sm-font-size">
-          <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+          <q-spinner class="q-mr-sm"/>Sending BCH, please do not close the app during this process.
         </div>
         <div v-else class="sm-font-size q-mt-sm">
           <div class="row q-ml-xs">
@@ -143,7 +154,7 @@ export default {
       sendingBch: false,
       dragSlideKey: 0,
       escrowContract: null,
-      escrowBalance: 0,
+      escrowBalance: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -265,11 +276,11 @@ export default {
       vm.sendingBch = true
       try {
         const wallet = await vm.wallet.raw()
-        if (vm.escrowBalance === 0) {
+        const utxos = await vm.escrowContract.getUtxos()
+        if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
           const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
-          vm.escrowBalance = await vm.escrowContract.getBalance()
           console.log('sendBch:', result)
           if (result?.success) {
             vm.txid = result.txid
@@ -281,6 +292,7 @@ export default {
               }
             }
             vm.$store.commit('ramp/saveTxid', txidData)
+            vm.escrowBalance = await vm.escrowContract.getBalance()
             vm.$emit('success', vm.txid)
             if (vm.order?.status?.value === 'CNF') {
               vm.escrowPendingOrder()
@@ -301,6 +313,9 @@ export default {
             vm.dragSlideOn = true
             vm.dragSlideKey++
           }
+        } else {
+          console.error('Contract already funded/multiple UTXOs found when contract only requires 1.')
+          vm.sendErrors.push('Contract already funded/multiple UTXOs found when contract only requires 1')
         }
       } catch (error) {
         vm.sendErrors.push(error)

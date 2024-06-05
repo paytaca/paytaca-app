@@ -429,10 +429,11 @@ export default {
           break
         case 'PD': { // Paid
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
+          const balance = await vm.escrowContract?.getBalance()
           let state = 'standby-view'
           vm.verifyAction = 'RELEASE'
           let nextState = 'tx-confirmation'
-          if (!vm.txid) nextState = 'payment-confirmation'
+          if (!vm.txid || balance > 0) nextState = 'payment-confirmation'
           if (vm.order.trade_type === 'BUY') {
             state = vm.order.is_ad_owner ? nextState : 'standby-view'
             vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
@@ -639,7 +640,7 @@ export default {
       console.log('generating contract..')
       const vm = this
       const fees = await vm.fetchFees()
-      await vm.fetchContract().then(contract => {
+      await vm.fetchContract().then(async contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
