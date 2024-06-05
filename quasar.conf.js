@@ -118,7 +118,7 @@ module.exports = function (/* ctx */) {
               loader: 'babel-loader',
               options: {
                 presets: [
-                  ['@babel/preset-env', { targets: "defaults" }]
+                  ['@babel/preset-env', { targets: "defaults", modules: false }]
                 ],
                 plugins: [
                   '@babel/plugin-transform-optional-chaining',
