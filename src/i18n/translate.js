@@ -515,8 +515,8 @@ const shardsBackupTexts = [{
   ProceedWithShards: "Proceed with Using Shards",
   ProceedWithSeedPhrase: "Proceed with Using Seed Phrase",
   RestoreShardsDescription: "Restore your Paytaca wallet from the QR code of its shards",
-  ScanUploadPersonalQR: "Scan or upload the wallet's personal QR",
-  ScanUploadForSharingQR: "Scan or upload the wallet's for sharing QR",
+  ScanUploadPersonalQR: "Scan or upload the wallet's first shard QR",
+  ScanUploadForSharingQR: "Scan or upload the wallet's second shard QR",
   ClearQR: "Clear QR",
   LoadingShards: "Loading shards",
   CreatingShards: "Creating shards",
@@ -528,7 +528,16 @@ const shardsBackupTexts = [{
   PersonalQRDescription2: "Save this QR code in your device",
   ForSharingQRDescription1: "This QR code needs to be shared to your friend. We highly advise that you share it immediately after saving instead of just storing it in your device.",
   ForSharingQRDescription2: "Share this QR code to a friend",
-  DownloadQRCodeImages: "Download QR Code Images"
+  DownloadQRCodeImages: "Download QR Code Images",
+  FirstShard: "First Shard",
+  SecondShard: "Second Shard",
+  CreateMobileProcessDescription1: "To ensure a smooth and successful process, follow the following steps",
+  CreateMobileProcessDescription2: "Click on the buttons below to display the shard images.",
+  CreateMobileProcessDescription3: "Take a screenshot of the displayed image.",
+  CreateMobileProcessDescription4: "To continue, check the checkbox to confirm that you have saved both screenshots.",
+  ShowFirstShard: "Show First Shard",
+  ShowSecondShard: "Show Second Shard",
+  ConfirmCheckboxText: "I confirm that I already saved the screenshots to my device."
 }]
 
 const additional = [
@@ -901,7 +910,9 @@ const additional = [
     ReceiverWarningText3: "before proceeding.",
     GoBack: "Go back",
     Proceed: "Proceed",
-    LegacyAddressWarning: 'You pasted a legacy address. Please make sure that it is a <span class="highlighted-word">BCH deposit address</span>, not a BTC deposit address.'
+    LegacyAddressWarning: 'You pasted a legacy address. Please make sure that it is a <span class="highlighted-word">BCH deposit address</span>, not a BTC deposit address.',
+    WalletBackup: "Wallet Backup",
+    SeedPhraseShards: "Seed Phrase Shards"
   }
 ]
 
