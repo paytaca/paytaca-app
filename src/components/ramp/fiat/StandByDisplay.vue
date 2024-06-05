@@ -172,6 +172,8 @@
   <FeedbackForm
     v-if="isloaded && hasReview && openReviewForm"
     :order-id="data.order?.id"
+    :counter-party="counterparty"
+    :arbiter="data.order?.arbiter"
     @back="openReviewForm = false"
     @submit="onSubmitFeedback"/>
 </template>
@@ -308,6 +310,24 @@ export default {
         RLS_PN: 'Please wait for the fund release.'
       }
       return labels[this.data?.order?.status.value]
+    },
+    counterparty () {
+      const tradeType = this.data.order?.trade_type
+      let adOwner = null
+      let orderOwner = null
+
+      switch (tradeType) {
+        case 'SELL':
+          adOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          orderOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          break
+        case 'BUY':
+          adOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          orderOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          break
+      }
+
+      return this.data.order?.is_ad_owner ? adOwner : orderOwner
     }
   },
   async mounted () {
