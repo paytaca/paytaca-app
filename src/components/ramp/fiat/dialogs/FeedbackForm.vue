@@ -9,6 +9,18 @@
                     </div>
 
                     <div v-if="step === 1">
+                      <div v-if="arbiterFeedback.id" class="fixed" style="margin-top: -5px; width: 83%;" >
+                        <div class="row justify-end">
+                          <q-btn
+                            rounded
+                            no-caps
+                            icon="arrow_forward"
+                            flat
+                            color="blue"
+                            @click="step++"
+                          />
+                        </div>
+                      </div>
                       <div class="text-center">
                         <span style="font-size: medium;">{{ counterparty.name }}</span><br>
                         <span style="font-size: small; color: gray;">({{ counterparty.label }})</span>
@@ -80,7 +92,7 @@
                     <div class="row q-pt-xs q-px-xs">
                         <q-btn
                         v-if="!feedback.id ? true : false"
-                        :disable="btnLoading || feedback.rating === 0"
+                        :disable="btnLoading || disableButton"
                         rounded
                         :label="step === 1 && appealed ? 'Next' : 'Submit'"
                         class="q-space text-white"
@@ -107,6 +119,7 @@ import { backend } from 'src/wallet/ramp/backend'
 import { bus } from 'src/wallet/event-bus'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { commify } from 'ethers/lib/utils'
 
 export default {
   emits: ['back', 'submit'],
@@ -127,7 +140,7 @@ export default {
       showPostMessage: false,
       timer: null,
       counterparty: this.counterParty,
-      appealed: true,
+      appealed: false,
       step: 1
     }
   },
@@ -139,11 +152,44 @@ export default {
     counterParty: Object,
     arbiter: Object
   },
+  computed: {
+    disableButton () {
+      const vm = this
+      if (vm.appealed) {
+        if (vm.step === 1) {
+          return vm.feedback.rating === 0
+        } else {
+          return vm.arbiterFeedback.rating === 0
+        }
+      } else {
+        return vm.feedback.rating === 0
+      }
+    }
+  },
   mounted () {
+    this.checkAppeal()
     this.fetchFeedback()
   },
   methods: {
     getDarkModeClass,
+    async checkAppeal () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.orderId}/appeal`
+
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.appealed = true
+        })
+        .catch(error => {
+          console.log(error.response)
+
+          if (error.response.status === 400) {
+            if (error.response?.data?.error.includes('no appeal')) {
+              vm.appealed = false
+            }
+          }
+        })
+    },
     async fetchFeedback () {
       const vm = this
       const url = '/ramp-p2p/order/feedback/peer'
@@ -158,11 +204,9 @@ export default {
         authorize: true
       })
         .then(response => {
-          console.log(response.data)
           if (response.data?.feedbacks?.length > 0) {
             vm.feedback = response.data.feedbacks[0]
           }
-          console.log('feedback:', vm.feedback)
         })
         .catch(error => {
           if (error.response) {
@@ -174,7 +218,42 @@ export default {
             console.error(error)
           }
         })
-        .finally(() => { vm.loading = false })
+        .finally(() => {
+          if (!vm.appealed) {
+            vm.loading = false
+          }
+        })
+
+      if (vm.appealed) {
+        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+        const arbiterParams = {
+          limit: 1,
+          page: 1,
+          from_peer: vm.$store.getters['ramp/getUser'].id,
+          order_id: vm.orderId
+        }
+
+        await backend.get(arbiterUrl, {
+          params: arbiterParams,
+          authorize: true
+        })
+          .then(response => {
+            if (response.data?.feedbacks?.length > 0) {
+              vm.arbiterFeedback = response.data.feedbacks[0]
+            }
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+          })
+          .finally(() => { vm.loading = false })
+      }
     },
     handleButton () {
       if (this.step === 1 && this.appealed) {
@@ -196,9 +275,12 @@ export default {
         .then(response => {
           console.log(response.data)
           vm.feedback = response.data
-          vm.$emit('submit', vm.feedback)
-          vm.showPostMessage = true
-          vm.autoClose()
+
+          if (!vm.appealed) {
+            vm.$emit('submit', vm.feedback)
+            vm.showPostMessage = true
+            vm.autoClose()
+          }
         })
         .catch(error => {
           if (error.response) {
@@ -210,7 +292,43 @@ export default {
             console.error(error)
           }
         })
-        .finally(() => { vm.btnLoading = false })
+        .finally(() => {
+          if (!vm.appealed) {
+            vm.btnLoading = false
+          }
+        })
+
+      if (this.appealed) {
+        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+        const arbiterBody = {
+          order_id: vm.orderId,
+          rating: vm.arbiterFeedback.rating,
+          comment: vm.arbiterFeedback.comment
+        }
+
+        backend.post(arbiterUrl, arbiterBody, { authorize: true })
+          .then(response => {
+            console.log(response.data)
+            vm.arbiterFeedback = response.data
+
+            vm.$emit('submit', vm.feedback)
+            vm.showPostMessage = true
+            vm.autoClose()
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              console.error(error)
+            }
+          })
+          .finally(() => {
+            vm.btnLoading = false
+          })
+      }
     },
     autoClose () {
       let distance = 5
