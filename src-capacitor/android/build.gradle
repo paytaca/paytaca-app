@@ -5,7 +5,6 @@ buildscript {
     repositories {
         google()
         mavenCentral()  // Maven Central repository (push-notifications)
-        mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.0.0'
