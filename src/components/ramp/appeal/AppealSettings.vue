@@ -16,45 +16,18 @@
 
       <q-scroll-area style="height: 325px;" class="q-mb-md">
         <div class="q-mx-lg q-mb-lg">
-          <!-- Name -->
-          <div>
-            <div>Name</div>
-            <div>
-              <q-input
-                ref="inputRef"
-                outlined
-                v-model="username"
-                dense
-                :readonly="readOnlyState"
-              >
-              <template v-slot:append>
-                <q-icon v-if="readOnlyState" @click="editName" name="o_edit" color="blue" />
-
-                <q-icon v-if="!readOnlyState" name="close" color="grey"
-                  @click="() => {
-                    readOnlyState=true
-                    $refs.inputRef.blur()
-                  }"/>
-                <q-icon @click="saveName" v-if="!readOnlyState" name="check" color="blue" />
-              </template>
-            </q-input>
-            </div>
-
-          </div>
-          <!-- Status -->
           <div class="q-pt-md">
-            <div>Status <q-icon :class="isActive? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/></div>
             <div>
-              <q-input
+              <q-select
                 outlined
-                v-model="status"
+                v-model="unavailableFor"
+                :options="unavailableDurationOpts"
+                hide-bottom-space
+                :hide-hint="!unavailableHint"
                 dense
-                readonly
-              >
-                <template v-slot:append>
-                  <q-icon size="md" @click="isActive = !isActive" :name="isActive ? 'toggle_on' : 'toggle_off'" :color="isActive ? 'blue' : 'grey'" />
-                </template>
-              </q-input>
+                :label="!unavailableFor ? 'Set as unavailable': 'Set as unavailable for the next'"
+                :hint="unavailableHint">
+              </q-select>
             </div>
           </div>
 
@@ -75,6 +48,8 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import ConfirmationDialog from './ConfirmationDialog.vue'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
   data () {
@@ -84,7 +59,21 @@ export default {
       isActive: true,
       status: 'Active',
       readOnlyState: true,
-      currencies: ['PHP', 'USD', 'CAD']
+      currencies: ['PHP', 'USD', 'CAD'],
+      unavailableFor: null,
+      unavailableDurationOpts: [
+        { label: '1 hour', value: 1 },
+        { label: '3 hours', value: 3 },
+        { label: '16 hours', value: 16 },
+        { label: '24 hours', value: 24 },
+        { label: 'Indefinitely', value: 438000 }
+      ],
+      loading: true
+    }
+  },
+  computed: {
+    unavailableHint () {
+      return !this.unavailableFor ? 'Set yourself as unavailable to oversee transactions for a period of time' : ''
     }
   },
   watch: {
@@ -94,10 +83,76 @@ export default {
       } else {
         this.status = 'Inactive'
       }
+    },
+    unavailableFor (value) {
+      if (this.loading) return
+      this.onSetUnavailable(value)
     }
+  },
+  async mounted () {
+    // console.log('userData:', this.userData)
+    // this.unavailableFor = this.userData.unavailable_until
+    await this.fetchUserData()
+    this.loading = false
+    console.log('unavailableFor:', this.unavailableFor)
   },
   methods: {
     getDarkModeClass,
+    fetchUserData () {
+      return new Promise((resolve, reject) => {
+        backend.get('ramp-p2p/arbiter/detail', { authorize: true })
+          .then((response) => {
+            console.log(response.data)
+            this.unavailableFor = response.data?.unavailable_until
+            const providedTimestamp = new Date(response.data?.unavailable_until).getTime()
+            const currentTimestamp = Date.now()
+            const millisecondsDifference = providedTimestamp - currentTimestamp
+            const hoursDifference = millisecondsDifference / (1000 * 60 * 60)
+            let unavailableFor = `${hoursDifference.toFixed(0)} hour(s)`
+            if (hoursDifference < 1) {
+              const minutesDifference = millisecondsDifference / (1000 * 60)
+              unavailableFor = `${minutesDifference.toFixed(0)} minutes`
+            }
+            this.unavailableFor = unavailableFor
+            resolve(response.data)
+          })
+          .catch((error) => { reject(error) })
+          .finally(() => {
+            if (this.unavailableFor) {
+              this.unavailableDurationOpts.unshift({ label: 'Set as available', value: -24 })
+            }
+          })
+      })
+    },
+    onSetUnavailable (data) {
+      console.log('setUnavailable:', data.label)
+      // this.showConfirmUnavailableDialog = true
+      const message = `You’ll no longer receive new contracts to oversee ${data.label === 'Indefinitely' ? 'indefinitely' : `in the next ${data.label}`}. 
+      However, we recommend continuing to oversee any existing contracts you’re currently handling.`
+      this.$q.dialog({
+        componentProps: {
+          title: 'Are you sure?',
+          message: message
+        },
+        component: ConfirmationDialog
+      }).onOk(() => {
+        this.setUnavailable(data.value)
+      }).onCancel(() => {
+        console.log('back')
+      })
+    },
+    setUnavailable (hours) {
+      const body = {
+        unavailable_hours: hours
+      }
+      backend.patch('ramp-p2p/arbiter/detail', body, { authorize: true })
+        .then((response) => {
+          console.log(response.data)
+        })
+        .catch((error) => {
+          console.error(error?.response)
+        })
+    },
     editName () {
       this.readOnlyState = false
       this.$refs.inputRef.focus()

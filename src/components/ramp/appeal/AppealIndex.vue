@@ -109,11 +109,13 @@
       @update-page-name="updatePageName"
     />
   </div>
+  <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData" v-on:clicked="switchMenu" ref="footer"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
 import AppealProcess from './AppealProcess.vue'
 import AppealSettings from './AppealSettings.vue'
+import FooterMenu from './AppealFooterMenu.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -139,13 +141,19 @@ export default {
       pageNumber: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
       pageName: 'main',
-      notifType: null
+      notifType: null,
+      showFooterMenu: true,
+      currentPage: 'appeals',
+      footerData: {
+        unreadOrdersCount: 0
+      }
     }
   },
   components: {
     AppealProcess,
     HeaderNav,
-    AppealSettings
+    // AppealSettings,
+    FooterMenu
   },
   props: {
     notif: {
@@ -212,6 +220,9 @@ export default {
         // .onDismiss(() => {
         //   this.readOnlyState = false
         // })
+    },
+    switchMenu (data) {
+      this.currentPage = data.name
     },
     updatePageName (name) {
       this.pageName = name
