@@ -13,10 +13,12 @@
   </div>
 </template>
 <script>
+import { nativeFileAPI } from 'src/utils/native-file'
 import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { Camera } from '@capacitor/camera'
 import { useQuasar } from 'quasar'
 import { defineComponent, ref, watch } from 'vue'
+
 
 export default defineComponent({
   name: 'PhotoSelector',
@@ -24,7 +26,7 @@ export default defineComponent({
     'update:modelValue',
   ],
   props: {
-    modelValue: [String, File],
+    modelValue: [String, nativeFileAPI.File],
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
@@ -33,8 +35,8 @@ export default defineComponent({
     watch(() => props.modelValue, () => innerVal.value = props.modelValue)
     watch(innerVal, (newVal, oldVal) => {
       $emit('update:modelValue', innerVal.value)
-      if (oldVal instanceof File) URL.revokeObjectURL(oldVal)
-      if (newVal instanceof File) newVal.objectUrl = URL.createObjectURL(newVal)
+      if (oldVal instanceof nativeFileAPI.File) URL.revokeObjectURL(oldVal)
+      if (newVal instanceof nativeFileAPI.File) newVal.objectUrl = URL.createObjectURL(newVal)
     })
 
     const fileAttachmentField = ref()

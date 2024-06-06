@@ -208,8 +208,6 @@ import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
-const { SecureStoragePlugin } = Plugins
-
 export default {
   data () {
     return {

@@ -224,8 +224,9 @@ class PushNotificationsManager {
   fetchDeviceId() {
     return Device.getId()
       .then(response => {
-        if (!response?.uuid) throw response
-        this.deviceId = response.uuid
+        const deviceId = response?.uuid || response?.identifier
+        if (!deviceId) throw response
+        this.deviceId = deviceId
         return this.deviceId
       })
   }

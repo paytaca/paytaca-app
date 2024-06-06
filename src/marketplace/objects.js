@@ -1,3 +1,4 @@
+import { nativeFileAPI } from "src/utils/native-file"
 import { backend } from "./backend"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
 import { formatOrderStatus, lineItemPropertiesToText, parseOrderStatusColor } from './utils'
@@ -1908,7 +1909,7 @@ export class ChatMessage {
       if (this.encryptedAttachmentFile) return
       const response = await fetch(this.encryptedAttachmentUrl, { headers: { 'Accept': 'image/* application/*' } })
       const blob = await response.blob()
-      this.encryptedAttachmentFile = new File([blob], this.encryptedAttachmentUrl)
+      this.encryptedAttachmentFile = new nativeFileAPI.File([blob], this.encryptedAttachmentUrl)
       return this.encryptedAttachmentFile
     } finally {
       this.$state.fetchingAttachment = false
