@@ -587,9 +587,6 @@ export default {
     deleteWallet () {
       const vm = this
       const currentWalletIndex = this.$store.getters['global/getWalletIndex']
-      console.log('Wallet Index:', currentWalletIndex)
-      const vault = this.$store.state.global.vault
-      console.log(vault)
       this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(function () {
         const vault = vm.$store.state.global.vault
         const undeletedWallets = []
