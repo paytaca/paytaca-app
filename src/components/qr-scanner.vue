@@ -92,6 +92,7 @@ export default {
   methods: {
     stopScan () {
       this.$emit('input', false)
+      this.$emit('update:model-value', false)
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
       this.adjustComponentsClasslist(false)
