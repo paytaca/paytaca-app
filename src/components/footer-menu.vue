@@ -53,7 +53,7 @@
         <br>
         <span @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
       </button>
-      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="getDarkModeClass()" @click="openWalletDialog">
+      <button class="footer-icon-btn q-mr-xs btn-ellipse" :class="getDarkModeClass()">
         <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-wallet.png" size="30px" />
         <q-icon v-else class="default-text-color mb-2" size="30px">
           <svg>

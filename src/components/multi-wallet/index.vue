@@ -1,19 +1,30 @@
 <template>
-  <q-dialog  ref="dialog" position="bottom" full-width seamless>
+  <!-- <q-dialog  ref="dialog" position="bottom" full-width seamless> -->
     <q-card class="br-15 wallet-card" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-h5 q-space q-mt-sm title">
           {{ $t('Wallets') }}
         </div>
-        <q-btn
+        <div
+          clickable
+          class="q-pr-md text-blue-9 create-import-button"
+          :class="{'text-grad': isNotDefaultTheme(theme)}"
+          @click="() => {
+            $router.push('/accounts')
+            hide()
+          }"
+        >
+          {{ $t('CreateOrImportWallet') }}
+        </div>
+        <!-- <q-btn
           flat
           padding="sm"
           icon="close"
           v-close-popup
           class="close-button"
-        />
+        /> -->
       </div>
-      <div class="row no-wrap items-center justify-center q-px-md">
+      <!-- <div class="row no-wrap items-center justify-center q-px-md">
         <div class="text-h5 q-space q-mt-sm"></div>
         <div
           clickable
@@ -26,7 +37,7 @@
         >
           {{ $t('CreateOrImportWallet') }}
         </div>
-      </div>
+      </div> -->
       <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </q-card-section>
@@ -95,7 +106,7 @@
         </q-virtual-scroll>
       </q-card-section>
     </q-card>
-  </q-dialog>
+  <!-- </q-dialog> -->
 </template>
 <script>
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'

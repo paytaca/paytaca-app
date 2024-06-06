@@ -6,11 +6,15 @@
           <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange" />
+
             <div
-              class="row q-pb-xs"
-              :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'"
+              class="row q-pb-xs q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
+              <MultiWalletDropdown />
+            </div>
+
+            <div class="row q-pb-xs" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
@@ -319,10 +323,23 @@
 </template>
 
 <script>
+import axios from 'axios'
+import Watchtower from 'watchtower-cash-js'
+import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
 import { getMnemonic, Wallet } from '../../wallet'
-import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
+import { dragscroll } from 'vue-dragscroll'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { sha256 } from 'js-sha256'
+import { VOffline } from 'v-offline'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
@@ -331,20 +348,9 @@ import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
-import { getWalletByNetwork } from 'src/wallet/chipnet'
-import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
-import { dragscroll } from 'vue-dragscroll'
-import { NativeBiometric } from 'capacitor-native-biometric'
-import { Plugins } from '@capacitor/core'
-import { sha256 } from 'js-sha256'
-import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
-import axios from 'axios'
-import Watchtower from 'watchtower-cash-js'
-import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import TransactionList from 'src/components/transactions/TransactionList'
+import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 
 const { SecureStoragePlugin } = Plugins
 
@@ -365,7 +371,8 @@ export default {
     VOffline,
     connectedDialog,
     PriceChart,
-    AssetFilter
+    AssetFilter,
+    MultiWalletDropdown
   },
   directives: {
     dragscroll
