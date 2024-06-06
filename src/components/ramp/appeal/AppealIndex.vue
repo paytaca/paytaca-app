@@ -7,7 +7,7 @@
     v-if="state === 'appeal-list'"
   >
     <div>
-      <div class="row justify-end">
+      <!-- <div class="row justify-end">
         <div class="q-pr-lg q-mr-md">
           <q-btn
             flat
@@ -18,7 +18,7 @@
             @click="openSettings"
           />
         </div>
-      </div>
+      </div> -->
       <div class="q-mb-sm">
         <div
           class="row br-15 text-center pt-card btn-transaction md-font-size"
@@ -105,14 +105,21 @@
       ref="appealProcess"
       :selectedAppeal="selectedAppeal"
       :notif-type="notifType"
-      @back="this.state = 'appeal-list'"
+      @back="state = 'appeal-list'"
       @update-page-name="updatePageName"
     />
   </div>
-  <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData" v-on:clicked="switchMenu" ref="footer"/>
+
+  <div v-if="state === 'profile'">
+    <AppealProfile/>
+  </div>
+
+  <AppealFooterMenu v-if="showFooterMenu" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
+import AppealFooterMenu from './AppealFooterMenu.vue'
+import AppealProfile from './AppealProfile.vue'
 import AppealProcess from './AppealProcess.vue'
 import AppealSettings from './AppealSettings.vue'
 import FooterMenu from './AppealFooterMenu.vue'
@@ -143,17 +150,15 @@ export default {
       pageName: 'main',
       notifType: null,
       showFooterMenu: true,
-      currentPage: 'appeals',
-      footerData: {
-        unreadOrdersCount: 0
-      }
+      currentPage: 'Appeal'
     }
   },
   components: {
     AppealProcess,
     HeaderNav,
-    // AppealSettings,
-    FooterMenu
+    AppealSettings,
+    AppealFooterMenu,
+    AppealProfile
   },
   props: {
     notif: {
@@ -207,6 +212,13 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    switchMenu (tab) {
+      if (tab.name === 'Appeal') {
+        this.state = 'appeal-list'
+      } else {
+        this.state = 'profile'
+      }
+    },
     openSettings () {
       this.$q.dialog({
         component: AppealSettings
@@ -235,6 +247,7 @@ export default {
         case 'appeal-process':
           this.state = 'appeal-list'
           this.pageName = 'main'
+          this.showFooterMenu = true
           break
         case 'snapshot':
           this.$refs.appealProcess.onBackSnapshot()
@@ -311,6 +324,7 @@ export default {
 
       this.state = 'appeal-process'
       this.pageName = 'appeal-process'
+      this.showFooterMenu = false
     }
   }
 }

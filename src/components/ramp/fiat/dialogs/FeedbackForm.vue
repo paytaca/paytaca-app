@@ -1,116 +1,117 @@
 <template>
     <q-dialog ref="dialog" full-width no-shake v-model="showDialog" position="bottom" @before-hide="$emit('back')">
         <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
-            <div class="q-py-sm q-my-lg q-mx-lg q-px-sm">
-                <div v-if="loading" class="row justify-center"><ProgressLoader/></div>
-                <div v-else>
-                    <div class="q-mb-md text-center text-bold">
-                        <span style="font-size: large;">{{ !feedback.id ? 'Rate your Experience' : 'Your Feedback' }}</span>
-                    </div>
-
-                    <div v-if="step === 1">
-                      <div v-if="arbiterFeedback.id" class="fixed" style="margin-top: -5px; width: 83%;" >
-                        <div class="row justify-end">
-                          <q-btn
-                            rounded
-                            no-caps
-                            icon="arrow_forward"
-                            flat
-                            color="blue"
-                            @click="step++"
-                          />
-                        </div>
-                      </div>
-                      <div class="text-center">
-                        <span style="font-size: medium;">{{ counterparty.name }}</span><br>
-                        <span style="font-size: small; color: gray;">({{ counterparty.label }})</span>
-                      </div>
-                      <div class="q-py-xs text-center">
-                          <q-rating
-                          :readonly="btnLoading || feedback.id ? true : false"
-                          v-model="feedback.rating"
-                          size="3em"
-                          color="yellow-9"
-                          icon="star"
-                          />
-                      </div>
-                      <div class="q-py-sm q-px-xs">
-                          <q-input
-                          v-if="!feedback.id || feedback.rating > 0 && feedback.comment.length > 0"
-                          v-model="feedback.comment"
-                          :dark="darkMode"
-                          :readonly="btnLoading || feedback.id ? true : false"
-                          placeholder="Add comment here..."
-                          dense
-                          outlined
-                          autogrow
-                          :counter="!feedback.id"
-                          maxlength="200"
-                          />
-                      </div>
-                    </div>
-
-                    <div v-if="step === 2">
-                      <div class="fixed" style="margin-top: -5px;">
-                        <q-btn
-                          rounded
-                          no-caps
-                          icon="arrow_back"
-                          flat
-                          color="blue"
-                          @click="step--"
-                        />
-                      </div>
-                      <div class="text-center">
-                        <span style="font-size: medium;">{{ arbiter.name }}</span><br>
-                        <span style="font-size: small; color: gray;">(Arbiter)</span>
-                      </div>
-                      <div class="q-py-xs text-center">
-                        <q-rating
-                          :readonly="btnLoading || arbiterFeedback.id ? true : false"
-                          v-model="arbiterFeedback.rating"
-                          size="3em"
-                          color="yellow-9"
-                          icon="star"
-                          />
-                      </div>
-                      <div class="q-py-sm q-px-xs">
-                          <q-input
-                          v-if="!arbiterFeedback.id || arbiterFeedback.rating > 0 && arbiterFeedback.comment.length > 0"
-                          v-model="arbiterFeedback.comment"
-                          :dark="darkMode"
-                          :readonly="btnLoading || arbiterFeedback.id ? true : false"
-                          placeholder="Add comment here..."
-                          dense
-                          outlined
-                          autogrow
-                          :counter="!arbiterFeedback.id"
-                          maxlength="200"
-                          />
-                      </div>
-                    </div>
-                    <div class="row q-pt-xs q-px-xs">
-                        <q-btn
-                        v-if="!feedback.id ? true : false"
-                        :disable="btnLoading || disableButton"
-                        rounded
-                        :label="step === 1 && appealed ? 'Next' : 'Submit'"
-                        class="q-space text-white"
-                        color="blue-8"
-                        :loading="btnLoading"
-                        @click="handleButton"
-                        />
-                        <!-- <q-btn
-                        v-else
-                        rounded
-                        label='Edit Review'
-                        class="q-space text-white"
-                        color="blue-8"
-                        /> -->
-                    </div>
+          <div class="q-py-sm q-my-lg q-mx-lg q-px-sm" v-if="type === 'peer'">
+            <div v-if="loading" class="row justify-center"><ProgressLoader/></div>
+            <div v-else>
+              <div class="q-mb-md text-center text-bold">
+                <span style="font-size: large;">{{ !feedback.id ? 'Rate your Experience' : 'Your Feedback' }}</span>
+              </div>
+              <div v-if="step === 1">
+                <div v-if="arbiterFeedback.created_at" class="fixed" style="margin-top: -5px; width: 83%;" >
+                  <div class="row justify-end">
+                    <q-btn
+                      rounded
+                      no-caps
+                      icon="arrow_forward"
+                      flat
+                      color="blue"
+                      @click="step++"
+                    />
+                  </div>
                 </div>
-                <div v-if="showPostMessage" class="text-center text-blue md-font-size q-mt-md">Review Posted! {{ timer ? `(${timer})` : '' }}</div>
+                <div class="text-center">
+                  <span style="font-size: medium;">{{ counterparty.name }}</span><br>
+                  <span style="font-size: small; color: gray;">({{ counterparty.label }})</span>
                 </div>
+                <div class="q-py-xs text-center">
+                  <q-rating
+                    :readonly="btnLoading || feedback.id ? true : false"
+                    v-model="feedback.rating"
+                    size="3em"
+                    color="yellow-9"
+                    icon="star"
+                  />
+                </div>
+                <div class="q-py-sm q-px-xs">
+                  <q-input
+                    v-if="!feedback.id || feedback.rating > 0 && feedback.comment.length > 0"
+                    v-model="feedback.comment"
+                    :dark="darkMode"
+                    :readonly="btnLoading || feedback.id ? true : false"
+                    placeholder="Add comment here..."
+                    dense
+                    outlined
+                    autogrow
+                    :counter="!feedback.id"
+                    maxlength="200"
+                  />
+                </div>
+              </div>
+
+              <div v-if="step === 2">
+                <div class="fixed" style="margin-top: -5px;">
+                  <q-btn
+                    rounded
+                    no-caps
+                    icon="arrow_back"
+                    flat
+                    color="blue"
+                    @click="step--"
+                  />
+                </div>
+                <div class="text-center">
+                  <span style="font-size: medium;">{{ arbiter.name }}</span><br>
+                  <span style="font-size: small; color: gray;">(Arbiter)</span>
+                </div>
+                <div class="q-py-xs text-center">
+                  <q-rating
+                    :readonly="btnLoading || arbiterFeedback.created_at ? true : false"
+                    v-model="arbiterFeedback.rating"
+                    size="3em"
+                    color="yellow-9"
+                    icon="star"
+                  />
+                </div>
+                <div class="q-py-sm q-px-xs">
+                  <q-input
+                    v-if="!arbiterFeedback.created_at || arbiterFeedback.rating > 0 && arbiterFeedback.comment.length > 0"
+                    v-model="arbiterFeedback.comment"
+                    :dark="darkMode"
+                    :readonly="btnLoading || arbiterFeedback.created_at ? true : false"
+                    placeholder="Add comment here..."
+                    dense
+                    outlined
+                    autogrow
+                    :counter="!arbiterFeedback.created_at"
+                    maxlength="200"
+                  />
+                </div>
+              </div>
+
+              <div class="row q-pt-xs q-px-xs">
+                <q-btn
+                  v-if="!feedback.id ? true : false"
+                  :disable="btnLoading || disableButton"
+                  rounded
+                  :label="step === 1 && appealed ? 'Next' : 'Submit'"
+                  class="q-space text-white"
+                  color="blue-8"
+                  :loading="btnLoading"
+                  @click="handleButton"
+                />
+                <!-- <q-btn
+                  v-else
+                  rounded
+                  label='Edit Review'
+                  class="q-space text-white"
+                  color="blue-8"
+                /> -->
+              </div>
+            </div>
+
+            <div v-if="showPostMessage" class="text-center text-blue md-font-size q-mt-md">Review Posted! {{ timer ? `(${timer})` : '' }}</div>
+          </div>
         </q-card>
     </q-dialog>
 </template>
@@ -150,7 +151,11 @@ export default {
   props: {
     orderId: Number,
     counterParty: Object,
-    arbiter: Object
+    arbiter: Object,
+    type: {
+      type: String,
+      default: 'peer'
+    }
   },
   computed: {
     disableButton () {
