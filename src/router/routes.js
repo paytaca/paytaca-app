@@ -98,6 +98,7 @@ const routes = [
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
+      { path: 'wallet-backup', component: () => import('src/pages/apps/wallet-backup.vue'), name: 'app-wallet-backup' },
       // { path: 'deposit-coin', component: () => import('src/pages/apps/deposit/index.vue'), name: 'app-deposit-coin'},
       // { path: 'deposit-coin/deposit-info', props: route => route.query, component: () => import('src/pages/apps/deposit/deposit-info.vue'), name: 'deposit-info' },
       {

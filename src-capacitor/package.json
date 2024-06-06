@@ -16,9 +16,7 @@
     "@capacitor/geolocation": "^5.0.0",
     "@capacitor/ios": "^5.0.0",
     "@capacitor/push-notifications": "^5.0.0",
-    "capacitor-native-biometric": "^4.2.2",
-    "cordova-plugin-file": "^8.0.1",
-    "cordova-plugin-file-transfer": "^2.0.0"
+    "capacitor-native-biometric": "^4.2.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^5.0.0"
