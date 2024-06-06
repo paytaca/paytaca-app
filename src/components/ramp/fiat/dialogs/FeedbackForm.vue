@@ -9,7 +9,7 @@
                     </div>
 
                     <div v-if="step === 1">
-                      <div v-if="arbiterFeedback.id" class="fixed" style="margin-top: -5px; width: 83%;" >
+                      <div v-if="arbiterFeedback.created_at" class="fixed" style="margin-top: -5px; width: 83%;" >
                         <div class="row justify-end">
                           <q-btn
                             rounded
@@ -67,7 +67,7 @@
                       </div>
                       <div class="q-py-xs text-center">
                         <q-rating
-                          :readonly="btnLoading || arbiterFeedback.id ? true : false"
+                          :readonly="btnLoading || arbiterFeedback.created_at ? true : false"
                           v-model="arbiterFeedback.rating"
                           size="3em"
                           color="yellow-9"
@@ -76,15 +76,15 @@
                       </div>
                       <div class="q-py-sm q-px-xs">
                           <q-input
-                          v-if="!arbiterFeedback.id || arbiterFeedback.rating > 0 && arbiterFeedback.comment.length > 0"
+                          v-if="!arbiterFeedback.created_at || arbiterFeedback.rating > 0 && arbiterFeedback.comment.length > 0"
                           v-model="arbiterFeedback.comment"
                           :dark="darkMode"
-                          :readonly="btnLoading || arbiterFeedback.id ? true : false"
+                          :readonly="btnLoading || arbiterFeedback.created_at ? true : false"
                           placeholder="Add comment here..."
                           dense
                           outlined
                           autogrow
-                          :counter="!arbiterFeedback.id"
+                          :counter="!arbiterFeedback.created_at"
                           maxlength="200"
                           />
                       </div>
