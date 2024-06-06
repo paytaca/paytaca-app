@@ -245,7 +245,7 @@ export default {
           this.submitLabel = 'Processing'
           this.customKeyboardState = 'dismiss'
           setTimeout(() => {
-            this.toggleMnemonicDisplay()
+            this.toggleMnemonicDisplay('proceed')
           }, 1000)
         },
         (error) => {
