@@ -27,7 +27,10 @@
           {{ $t('CreateOrImportWallet') }}
         </div>
       </div>
-      <q-card-section class="q-pt-sm" v-if="isloading">
+      <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </q-card-section>
+      <q-card-section class="q-pt-sm" v-else>
         <q-virtual-scroll :items="vault">
           <template v-slot="{ item: wallet, index }">
             <template v-if="wallet.deleted !== true">
@@ -103,6 +106,7 @@ import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import renameDialog from './renameDialog.vue'
 import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   data () {
@@ -118,29 +122,39 @@ export default {
   components: {
     renameDialog,
     BasicInfoDialog,
-    LoadingWalletDialog
+    LoadingWalletDialog,
+    ProgressLoader
   },
   methods: {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
     isNotDefaultTheme,
-    processVaultName () {
+    async processVaultName () {
       const vm = this
+      vm.isloading = true
       const tempVault = vm.$store.getters['global/getVault']
 
-      tempVault.forEach(async (wallet, index) => {
-        const walletHash = wallet.wallet.bch.walletHash
-        const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
+      for (let i = 0; i < tempVault.length; i++) {
+        let name = tempVault[i].name
+        if (tempVault[i].name === '') { // from vuex store
+          name = `Personal Wallet #${i + 1}`
+        } else {
+          const walletHash = tempVault[i].wallet.bch.walletHash
+          const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
 
-        let name = wallet.name
-        if (walletName !== '') { // from db
-          name = decryptWalletName(walletName, walletHash)
-        } else if (wallet.name === '') { // from vuex store
-          name = `Personal Wallet #${index + 1}`
+          if (walletName !== '') { // from db
+            name = decryptWalletName(walletName, walletHash)
+          } else {
+            name = `Personal Wallet #${i + 1}`
+          }
         }
-        vm.$store.commit('global/updateWalletName', { index, name })
-      })
+
+        vm.$store.commit('global/updateWalletName', { index: i, name })
+      }
+
+      vm.arrangeVaultData()
+      vm.isloading = false
     },
     switchWallet (index) {
       const vm = this
@@ -197,7 +211,6 @@ export default {
       })
         .onOk(() => {
           this.processVaultName()
-          this.arrangeVaultData()
         })
     },
     getAssetMarketBalance (asset) {
@@ -257,10 +270,7 @@ export default {
     // double checking if vault is empty
     await this.$store.dispatch('global/saveExistingWallet')
     await this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
-
-    vm.processVaultName()
-    vm.arrangeVaultData()
-    vm.isloading = true
+    await vm.processVaultName()
   }
 }
 </script>
