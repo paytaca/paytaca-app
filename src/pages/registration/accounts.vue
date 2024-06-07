@@ -251,6 +251,7 @@
                     @mnemonic-verified="onMnemonicVerified"
                     @open-settings="onOpenSettings"
                     @confirm-skip-verification="confirmSkipVerification"
+                    @change-authentication-phase="onChangeAuthenticationPhase"
                   />
                 </template>
               </template>
