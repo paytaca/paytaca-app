@@ -122,7 +122,6 @@ import AppealFooterMenu from './AppealFooterMenu.vue'
 import AppealProfile from './AppealProfile.vue'
 import AppealProcess from './AppealProcess.vue'
 import AppealSettings from './AppealSettings.vue'
-import FooterMenu from './AppealFooterMenu.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -232,9 +231,6 @@ export default {
         // .onDismiss(() => {
         //   this.readOnlyState = false
         // })
-    },
-    switchMenu (data) {
-      this.currentPage = data.name
     },
     updatePageName (name) {
       this.pageName = name

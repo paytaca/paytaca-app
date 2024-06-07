@@ -14,7 +14,7 @@
         <div class="text-center q-pt-none">
           <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
           <div class="text-weight-bold lg-font-size q-pt-sm">
-            <span id="target-name">Arbiter Name</span>
+            <span id="target-name">{{ arbiter.name }}</span>
             <q-icon
               @click="editNickname = true"
               size="sm"
@@ -32,9 +32,7 @@
             label="Settings"
             color="blue-8"
             class="q-space q-mx-md button"
-            @click="() => {
-              console.log('edit username')
-            }"
+            @click="openSettings"
             icon="settings"
           />
         </div>
@@ -66,13 +64,13 @@
         </button>
       </div>
 
-      <div>
-        <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+      <div v-if="!loadingReviews">
+        <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
           No Reviews Yet
         </div>
         <div v-else class="q-mx-lg q-px-md">
           <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-            <div class="text-weight-bold sm-font-size">{{ userNameView(review.from_peer.name) }}</div>
+            <div class="text-weight-bold sm-font-size">{{ userNameView(review.peer.name) }}</div>
             <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
             <div class="sm-font-text">
               <q-rating
@@ -105,9 +103,20 @@
       </div>
     </div>
   </div>
+
+  <MiscDialogs
+    v-if="editNickname"
+    :type="'editNickname'"
+    v-on:back="editNickname = false"
+    v-on:submit="updateUserName"
+  />
 </template>
 <script>
+import MiscDialogs from '../fiat/dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import AppealSettings from './AppealSettings.vue'
+import { backend } from 'src/wallet/ramp/backend'
+import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -115,22 +124,116 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      isloaded: true,
+      isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
       editNickname: false,
+      arbiter: null,
+
+      reviewsTotalPages: null,
+      reviewsPageNumber: 1,
       loadingReviews: false,
+
       reviewsList: [],
       user: {
         rating: 5
       }
     }
   },
+  computed: {
+    hasMoreReviewsData () {
+      return this.reviewsPageNumber < this.reviewsTotalPages
+    },
+  },
   components: {
-    ProgressLoader
+    ProgressLoader,
+    MiscDialogs
+  },
+  mounted () {
+    this.fetchArbiter()
+    this.fetchFeedback()
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme
+    isNotDefaultTheme,
+    openSettings () {
+      this.$q.dialog({
+        component: AppealSettings
+      })
+        // .onOk(currency => {
+        //   // const index = this.fiatCurrencies.indexOf(currency)
+        //   this.selectedCurrency = currency
+        //   this.updateFiatCurrency()
+        //   this.readOnlyState = false
+        // })
+        // .onDismiss(() => {
+        //   this.readOnlyState = false
+        // })
+    },
+    formattedDate (value) {
+      const relative = true
+      return formatDate(value, relative)
+    },
+    async fetchArbiter () {
+      const vm = this
+      const url = '/ramp-p2p/arbiter/detail'
+
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.arbiter = response.data
+        })
+    },
+    async fetchFeedback () {
+      const vm = this
+      vm.loadingReviews = true
+      const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+      const arbiterParams = {
+        limit: 20,
+        page: vm.reviewsPageNumber,
+        from_peer: vm.$store.getters['ramp/getUser'].id,
+      }
+
+      await backend.get(arbiterUrl, {
+        params: arbiterParams,
+        authorize: true
+      })
+        .then(response => {
+          vm.reviewsList = response.data?.feedbacks
+          vm.reviewsTotalPages = response.data?.total_pages
+        })
+        .catch(error => {
+          console.log(error.response)
+          // if (error.response) {
+          //   console.error(error.response)
+          //   if (error.response.status === 403) {
+          //     bus.emit('session-expired')
+          //   }
+          // } else {
+          //   console.error(error)
+          // }
+        })
+        .finally(() => {
+          vm.loadingReviews = false
+          vm.isloaded = true
+        })
+    },
+    async updateUserName (data) {
+      const vm = this
+
+      const url = '/ramp-p2p/arbiter/detail'
+      const body = {
+        name: data.nickname
+      }
+
+      await backend.patch(url, body, { authorize: true })
+        .then(response => {
+          vm.arbiter = response.data
+        })
+    },
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    }
   }
 }
 </script>
