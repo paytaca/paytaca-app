@@ -58,9 +58,9 @@
         @update-page-name="(val) => {$emit('updatePageName', val)}"
       />
 
-       <div v-if="completedOrder" class="text-center q-pb-sm">
+       <!-- <div v-if="completedOrder" class="text-center q-pb-sm">
         <q-btn padding="none" flat no-caps color="primary"> View my Feedback </q-btn>
-      </div>
+      </div> -->
     </div>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
