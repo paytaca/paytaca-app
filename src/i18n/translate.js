@@ -537,7 +537,11 @@ const shardsBackupTexts = [{
   CreateMobileProcessDescription4: "To continue, check the checkbox to confirm that you have saved both screenshots.",
   ShowFirstShard: "Show First Shard",
   ShowSecondShard: "Show Second Shard",
-  ConfirmCheckboxText: "I confirm that I already saved the screenshots to my device."
+  ConfirmCheckboxText: "I confirm that I already saved the screenshots to my device.",
+  ExtraQRDescription1: "This QR code is an extra one. You can either store it in your device or share it to a friend. In any case you were unable to locate one of the shards, you may use this one as a replacement.",
+  ExtraQRDescription2: "Either store or share this QR code",
+  ExtraShard: "Extra Shard",
+  ShowExtraShard: "Show Extra Shard"
 }]
 
 const additional = [
