@@ -350,7 +350,9 @@ export default {
     steps (val) {
       if (val === 0) {
         this.createWallets()
-        this.authenticationPhase = 'skip'
+        if (!this.importSeedPhrase) {
+          this.authenticationPhase = 'skip'
+        }
       }
     },
     seedPhraseBackup (val) {
