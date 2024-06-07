@@ -152,7 +152,6 @@ import html2canvas from 'html2canvas'
 
 import { toHex } from 'hex-my-bytes'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { saveShardToWatchtower } from 'src/wallet/shards'
 
 import ProgressLoader from 'src/components/ProgressLoader'
 import ShardScreenshotDialog from 'src/components/registration/ShardScreenshotDialog'
@@ -193,8 +192,6 @@ export default {
     const secret = Buffer.from(vm.mnemonic)
     const shares = sss.split(secret, { shares: 3, threshold: 2 })
     vm.shards = shares.map(a => toHex(a))
-
-    await saveShardToWatchtower(vm.shards)
 
     setTimeout(() => {
       vm.isLoading = false
