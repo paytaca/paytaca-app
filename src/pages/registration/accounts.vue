@@ -219,14 +219,7 @@
 
             <div v-else>
               <template v-if="isFinalStep">
-                <template v-if="authenticationPhase === 'options'">
-                  <AuthenticationChooser
-                    :importSeedPhrase="importSeedPhrase"
-                    @change-authentication-phase="onChangeAuthenticationPhase"
-                  />
-                </template>
-
-                <template v-else-if="authenticationPhase === 'shards'">
+                <template v-if="authenticationPhase === 'shards'">
                   <template v-if="seedPhraseBackup">
                     <div class="text-bow" :class="getDarkModeClass(darkMode)">
                       <p class="dim-text" style="margin-top: 10px;">
@@ -249,7 +242,7 @@
                   </template>
                 </template>
 
-                <template v-else-if="authenticationPhase === 'backup-phrase'">
+                <template v-else-if="authenticationPhase === 'skip'">
                   <MnemonicProcessContainer
                     :importSeedPhrase="importSeedPhrase"
                     :isFinalStep="isFinalStep"
@@ -356,6 +349,7 @@ export default {
     steps (val) {
       if (val === 0) {
         this.createWallets()
+        this.authenticationPhase = 'skip'
       }
     },
     seedPhraseBackup (val) {
