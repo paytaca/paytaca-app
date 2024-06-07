@@ -7,6 +7,18 @@
     v-if="state === 'appeal-list'"
   >
     <div>
+      <!-- <div class="row justify-end">
+        <div class="q-pr-lg q-mr-md">
+          <q-btn
+            flat
+            rounded
+            padding="xs"
+            icon="settings"
+            class="button button-text-primary"
+            @click="openSettings"
+          />
+        </div>
+      </div> -->
       <div class="q-mb-sm">
         <div
           class="row br-15 text-center pt-card btn-transaction md-font-size"
@@ -93,14 +105,23 @@
       ref="appealProcess"
       :selectedAppeal="selectedAppeal"
       :notif-type="notifType"
-      @back="this.state = 'appeal-list'"
+      @back="state = 'appeal-list'"
       @update-page-name="updatePageName"
     />
   </div>
+
+  <div v-if="state === 'profile'">
+    <AppealProfile/>
+  </div>
+
+  <AppealFooterMenu v-if="showFooterMenu" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
+import AppealFooterMenu from './AppealFooterMenu.vue'
+import AppealProfile from './AppealProfile.vue'
 import AppealProcess from './AppealProcess.vue'
+import AppealSettings from './AppealSettings.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -126,12 +147,17 @@ export default {
       pageNumber: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
       pageName: 'main',
-      notifType: null
+      notifType: null,
+      showFooterMenu: true,
+      currentPage: 'Appeal'
     }
   },
   components: {
     AppealProcess,
-    HeaderNav
+    HeaderNav,
+    AppealSettings,
+    AppealFooterMenu,
+    AppealProfile
   },
   props: {
     notif: {
@@ -185,6 +211,27 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    switchMenu (tab) {
+      if (tab.name === 'Appeal') {
+        this.state = 'appeal-list'
+      } else {
+        this.state = 'profile'
+      }
+    },
+    openSettings () {
+      this.$q.dialog({
+        component: AppealSettings
+      })
+        // .onOk(currency => {
+        //   // const index = this.fiatCurrencies.indexOf(currency)
+        //   this.selectedCurrency = currency
+        //   this.updateFiatCurrency()
+        //   this.readOnlyState = false
+        // })
+        // .onDismiss(() => {
+        //   this.readOnlyState = false
+        // })
+    },
     updatePageName (name) {
       this.pageName = name
       this.refreshData()
@@ -196,6 +243,7 @@ export default {
         case 'appeal-process':
           this.state = 'appeal-list'
           this.pageName = 'main'
+          this.showFooterMenu = true
           break
         case 'snapshot':
           this.$refs.appealProcess.onBackSnapshot()
@@ -272,6 +320,7 @@ export default {
 
       this.state = 'appeal-process'
       this.pageName = 'appeal-process'
+      this.showFooterMenu = false
     }
   }
 }
@@ -324,5 +373,9 @@ export default {
 }
 .xs-font-size {
   font-size: smaller;
+}
+.buy-add-btn {
+  background-color: rgb(60, 100, 246);
+  color: white;
 }
 </style>

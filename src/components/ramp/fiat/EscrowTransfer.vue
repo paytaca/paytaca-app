@@ -56,6 +56,17 @@
         </template>
       </q-input>
 
+      <!-- Display contract balance -->
+      <div class="sm-font-size q-pl-xs q-pb-xs">Contract Balance</div>
+      <q-input
+        class="q-pb-sm"
+        readonly
+        filled
+        dense
+        :dark="darkMode"
+        :loading="escrowBalance === null"
+        v-model:model-value="escrowBalance">
+      </q-input>
       <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
       <q-input
         class="q-pb-xs md-font-size"
@@ -83,7 +94,7 @@
       </div>
       <div v-else>
         <div v-if="sendingBch" class="sm-font-size">
-          <q-spinner class="q-mr-sm"/>Sending BCH, please wait...
+          <q-spinner class="q-mr-sm"/>Sending BCH, please do not close the app during this process.
         </div>
         <div v-else class="sm-font-size q-mt-sm">
           <div class="row q-ml-xs">
@@ -143,6 +154,7 @@ export default {
       sendingBch: false,
       dragSlideKey: 0,
       escrowContract: null,
+      escrowBalance: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -209,15 +221,27 @@ export default {
     },
     async loadContract () {
       const vm = this
-      await vm.fetchArbiters().then(async () => {
-        if (!vm.contractAddress) {
-          await vm.generateContractAddress()
-          await vm.generateContract()
-        }
-      })
+      await vm.fetchArbiters()
+      // init arbiter and contract address if already existing
+      if (vm.data.arbiter) vm.selectedArbiter = vm.data.arbiter
+      if (vm.data.contractAddress) vm.contractAddress = vm.data.contractAddress
+
+      // if arbiters are available, generate contract address
       if (vm.hasArbiters) {
-        vm.selectedArbiter = vm.data.arbiter
-        vm.contractAddress = vm.data.contractAddress
+        // generate contract address if not existing yet
+        if (!vm.contractAddress) {
+          // generates the contract address
+          await vm.generateContractAddress()
+        }
+      }
+      // generates the contract object
+      await vm.generateContract()
+      // mark contract as pending for verification, if the contract is already funded
+      vm.escrowBalance = await vm.escrowContract.getBalance()
+      if (vm.escrowBalance > 0) {
+        if (vm.order?.status?.value === 'CNF') {
+          vm.escrowPendingOrder()
+        }
       }
     },
     loadData () {
@@ -240,59 +264,65 @@ export default {
       vm.sendErrors = []
       vm.escrowBch()
     },
-    escrowBch () {
+    async escrowBch () {
       const vm = this
       if (!vm.contractAddressMatch(this.contractAddress)) {
-        vm.sendErrors = ['Contract address mismatch']
+        vm.sendErrors.push('Contract address mismatch')
         vm.dragSlideOn = true
         vm.dragSlideKey++
         return
       }
       console.log('Contract address matched. Sending BCH...')
-      return new Promise((resolve, reject) => {
-        vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
-        vm.sendingBch = true
-        this.wallet.raw().then(wallet =>
-          wallet.sendBch(vm.transferAmount, vm.contractAddress).then(result => {
-            console.log('sendBch:', result)
-            if (result.success) {
-              vm.txid = result.txid
-              const txidData = {
-                id: vm.order?.id,
-                txidInfo: {
-                  action: 'ESCROW',
-                  txid: this.txid
-                }
+      vm.sendingBch = true
+      try {
+        const wallet = await vm.wallet.raw()
+        const utxos = await vm.escrowContract.getUtxos()
+        if (vm.escrowBalance === 0 && utxos.length === 0) {
+          vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
+          console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
+          const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
+          console.log('sendBch:', result)
+          if (result?.success) {
+            vm.txid = result.txid
+            const txidData = {
+              id: vm.order?.id,
+              txidInfo: {
+                action: 'ESCROW',
+                txid: this.txid
               }
-              vm.$store.commit('ramp/saveTxid', txidData)
-              vm.$emit('success', vm.txid)
-              vm.sendingBch = false
-              if (vm.order?.status?.value === 'CNF') {
-                vm.escrowPendingOrder()
-              }
-              resolve(result)
-            } else {
-              vm.sendErrors = []
-              if (result.error.indexOf('not enough balance in sender') > -1) {
+            }
+            vm.$store.commit('ramp/saveTxid', txidData)
+            vm.escrowBalance = await vm.escrowContract.getBalance()
+            vm.$emit('success', vm.txid)
+            if (vm.order?.status?.value === 'CNF') {
+              vm.escrowPendingOrder()
+            }
+          } else {
+            vm.sendErrors = []
+            if (result) {
+              if (result?.error?.indexOf('not enough balance in sender') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the send amount and transaction fee')
-              } else if (result.error.indexOf('has insufficient priority') > -1) {
+              } else if (result?.error?.indexOf('has insufficient priority') > -1) {
                 vm.sendErrors.push('Not enough balance to cover the transaction fee')
               } else {
-                vm.sendErrors.push(result.error)
+                vm.sendErrors.push(result?.error)
               }
-              vm.dragSlideOn = true
-              vm.dragSlideKey++
-              reject(result)
+            } else {
+              vm.sendErrors.push('An unexpected error has occurred')
             }
-          })
-        ).catch(error => {
-          vm.sendErrors.push(error)
-          vm.dragSlideOn = true
-          vm.dragSlideKey++
-          vm.sendingBch = false
-          reject(error)
-        })
-      })
+            vm.dragSlideOn = true
+            vm.dragSlideKey++
+          }
+        } else {
+          console.error('Contract already funded/multiple UTXOs found when contract only requires 1.')
+          vm.sendErrors.push('Contract already funded/multiple UTXOs found when contract only requires 1')
+        }
+      } catch (error) {
+        vm.sendErrors.push(error)
+        vm.dragSlideOn = true
+        vm.dragSlideKey++
+      }
+      vm.sendingBch = false
     },
     escrowPendingOrder () {
       return new Promise((resolve, reject) => {
@@ -403,7 +433,6 @@ export default {
       })
     },
     async generateContract () {
-      console.log('generating contract..')
       const vm = this
       const fees = await vm.fetchFees()
       await vm.fetchContract(vm.order.id).then(contract => {
