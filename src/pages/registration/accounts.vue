@@ -147,7 +147,7 @@
       <div
         class="pt-get-started q-mt-sm pt-card-2"
         :class="getDarkModeClass(darkMode, 'registration')"
-        v-if="steps === totalSteps"
+        v-if="isFinalStep"
       >
         <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
@@ -218,7 +218,7 @@
             </div>
 
             <div v-else>
-              <template v-if="steps === totalSteps">
+              <template v-if="isFinalStep">
                 <template v-if="authenticationPhase === 'options'">
                   <AuthenticationChooser
                     :importSeedPhrase="importSeedPhrase"
@@ -250,58 +250,16 @@
                 </template>
 
                 <template v-else-if="authenticationPhase === 'backup-phrase'">
-                  <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
-                  <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-                    {{ $t('MnemonicBackupPhraseDescription1') }}
-                  </p>
-                  <p v-else class="dim-text" style="margin-top: 10px;">
-                    {{ $t('MnemonicBackupPhraseDescription2') }}
-                  </p>
+                  <MnemonicProcessContainer
+                    :importSeedPhrase="importSeedPhrase"
+                    :isFinalStep="isFinalStep"
+                    :mnemonic="mnemonic"
+                    :mnemonicVerified="mnemonicVerified"
+                    @mnemonic-verified="onMnemonicVerified"
+                    @open-settings="onOpenSettings"
+                    @confirm-skip-verification="confirmSkipVerification"
+                  />
                 </template>
-              </template>
-
-              <template v-if="authenticationPhase === 'backup-phrase'">
-                <div class="row" id="mnemonic">
-                  <template v-if="steps === totalSteps">
-                    <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                      <SeedPhraseContainer :mnemonic="mnemonic" />
-                    </div>
-                    <div v-else>
-                      <div>
-                        <q-btn
-                          flat
-                          no-caps
-                          padding="xs sm"
-                          icon="arrow_back"
-                          color="black"
-                          class="button button-text-primary"
-                          :class="getDarkModeClass(darkMode)"
-                          :label="$t('MnemonicBackupPhrase')"
-                          @click="showMnemonicTest = false"
-                        />
-                      </div>
-                      <MnemonicTest
-                        :mnemonic="mnemonic"
-                        @matched="mnemonicVerified = true"
-                        class="q-mb-md"
-                      />
-                    </div>
-                  </template>
-                </div>
-                <div class="row q=mt-md" v-if="steps === totalSteps">
-                  <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
-                  <template v-else>
-                    <template v-if="$q.platform.is.mobile">
-                      <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
-                        {{ $t('SkipVerification') }}
-                      </q-btn>
-                      <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
-                    </template>
-                    <template v-else>
-                      <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
-                    </template>
-                  </template>
-                </div>
               </template>
             </div>
           </div>
@@ -333,16 +291,15 @@ import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
-import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
-import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import ShardsProcess from 'src/components/registration/ShardsProcess'
 import AuthenticationChooser from 'src/components/registration/AuthenticationChooser'
 import ShardsImport from 'src/components/registration/ShardsImport'
+import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
 
 function countWords(str) {
   if (str) {
@@ -364,15 +321,14 @@ export default {
     ProgressLoader,
     pinDialog,
     securityOptionDialog,
-    MnemonicTest,
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
     ThemeSelectorPreview,
-    SeedPhraseContainer,
     ShardsProcess,
     AuthenticationChooser,
-    ShardsImport
+    ShardsImport,
+    MnemonicProcessContainer
   },
   data () {
     return {
@@ -385,7 +341,6 @@ export default {
       steps: -1,
       totalSteps: 9,
       mnemonicVerified: false,
-      showMnemonicTest: false,
       pinDialogAction: '',
       pin: '',
       securityOptionDialogStatus: 'dismiss',
@@ -416,6 +371,9 @@ export default {
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
+    },
+    isFinalStep () {
+      return this.steps === this.totalSteps
     }
   },
   methods: {
@@ -752,6 +710,12 @@ export default {
         label: this.$t(supportedLangsI18n[languageCode])
       }
       this.$store.commit('global/setLanguage', newLocale)
+    },
+    onMnemonicVerified (value) {
+      this.mnemonicVerified = value
+    },
+    onOpenSettings (value) {
+      this.openSettings = value
     }
   },
   async mounted () {
