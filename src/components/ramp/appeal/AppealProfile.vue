@@ -41,14 +41,15 @@
         <div class="row justify-center q-px-sm q-pt-sm">
           <q-rating
             readonly
-            :model-value="user.rating ? user.rating : 0"
-            :v-model="user.rating"
+            :model-value="arbiter.rating ? arbiter.rating : 0"
+            :v-model="arbiter.rating"
             size="1.5em"
             color="yellow-9"
             icon="star"
             icon-half="star_half"
           />
-          <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating?.toFixed(1) : 0}} rating)</span>
+          <!-- <span class="q-mx-sm sm-font-size">({{ arbiter.rating ? arbiter.rating?.toFixed(1) : 0}} rating)</span> -->
+          <span class="q-mx-sm sm-font-size">({{ arbiter.rating }} rating)</span>
         </div>
       </div>
 
@@ -64,43 +65,45 @@
         </button>
       </div>
 
-      <div v-if="!loadingReviews">
-        <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
-          No Reviews Yet
-        </div>
-        <div v-else class="q-mx-lg q-px-md">
-          <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-            <div class="text-weight-bold sm-font-size">{{ userNameView(review.peer.name) }}</div>
-            <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
-            <div class="sm-font-text">
-              <q-rating
-                readonly
-                v-model="review.rating"
-                size="1.5em"
-                color="yellow-9"
-                icon="star"
-              />
-              <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating?.toFixed(1) : 0}})</span>
+      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;">
+        <div v-if="!loadingReviews">
+          <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+            No Reviews Yet
+          </div>
+          <div v-else class="q-mx-lg q-px-md">
+            <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
+              <div class="text-weight-bold sm-font-size">{{ userNameView(review.peer.name) }}</div>
+              <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
+              <div class="sm-font-text">
+                <q-rating
+                  readonly
+                  v-model="review.rating"
+                  size="1.5em"
+                  color="yellow-9"
+                  icon="star"
+                />
+                <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating?.toFixed(1) : 0}})</span>
+              </div>
+              <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
+                {{ review.comment }}
+              </div>
+              <q-separator :dark="darkMode" class="q-mt-md"/>
             </div>
-            <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
-              {{ review.comment }}
+            <div class="row justify-center" v-if="loadingReviews">
+              <q-spinner-dots size="35px"/>
             </div>
-            <q-separator :dark="darkMode" class="q-mt-md"/>
-          </div>
-          <div class="row justify-center" v-if="loadingReviews">
-            <q-spinner-dots size="35px"/>
-          </div>
-          <div class="row" v-else-if="hasMoreReviewsData">
-            <q-btn
-              dense
-              flat
-              class="col text-center text-blue sm-font-size"
-              @click=loadMoreData>
-              view more
-            </q-btn>
+            <div class="row" v-else-if="hasMoreReviewsData">
+              <q-btn
+                dense
+                flat
+                class="col text-center text-blue sm-font-size"
+                @click=loadMoreData>
+                view more
+              </q-btn>
+            </div>
           </div>
         </div>
-      </div>
+      </q-scroll-area>
     </div>
   </div>
 
@@ -115,6 +118,7 @@
 import MiscDialogs from '../fiat/dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AppealSettings from './AppealSettings.vue'
+import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -180,6 +184,7 @@ export default {
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.arbiter = response.data
+          vm.arbiter.rating = Number(vm.arbiter.rating)
         })
     },
     async fetchFeedback () {
@@ -188,8 +193,7 @@ export default {
       const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
       const arbiterParams = {
         limit: 20,
-        page: vm.reviewsPageNumber,
-        from_peer: vm.$store.getters['ramp/getUser'].id,
+        page: vm.reviewsPageNumber
       }
 
       await backend.get(arbiterUrl, {
@@ -197,19 +201,18 @@ export default {
         authorize: true
       })
         .then(response => {
-          vm.reviewsList = response.data?.feedbacks
+          vm.reviewsList = response.data?.feedbacks.reverse()
           vm.reviewsTotalPages = response.data?.total_pages
         })
         .catch(error => {
-          console.log(error.response)
-          // if (error.response) {
-          //   console.error(error.response)
-          //   if (error.response.status === 403) {
-          //     bus.emit('session-expired')
-          //   }
-          // } else {
-          //   console.error(error)
-          // }
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
         })
         .finally(() => {
           vm.loadingReviews = false

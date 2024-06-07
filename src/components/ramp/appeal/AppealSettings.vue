@@ -15,10 +15,10 @@
       </div>
 
       <q-scroll-area style="height: 325px;" class="q-mb-md">
-        <div class="q-mx-lg q-mb-lg text-bow">
+        <div class="q-mx-lg q-mb-lg text-bow" v-if="!loading">
           <div class="row">
             <div class="col-auto">
-              <span>Status: {{ isActive ? 'Active' : 'Inactive' }} </span><q-icon class="q-my-sm q-mx-xs" :color="isActive ? 'green': 'red'" :name="isActive ? 'visibility': 'visibility_off'"/></div>
+              <span>Status: {{ isActive ? 'Active' : 'Inactive' }} </span><q-icon class="q-my-sm q-mx-xs" size="xs" :color="isActive ? 'green': 'red'" :name="isActive ? 'visibility': 'visibility_off'"/></div>
           </div>
           <div class="row">
             <q-select
@@ -64,7 +64,7 @@ export default {
       username: 'Arbiter 1',
       status: 'Active',
       readOnlyState: true,
-      currencies: ['PHP', 'USD', 'CAD'],
+      currencies: null,
       inactiveFor: null,
       inactiveDurationOpts: [
         { label: '1 hour', value: 1 },
@@ -100,6 +100,7 @@ export default {
       return new Promise((resolve, reject) => {
         backend.get('ramp-p2p/arbiter/detail', { authorize: true })
           .then((response) => {
+            this.currencies = response.data?.fiat_currencies
             this.selectedInactiveTime = null
             const providedTimestamp = new Date(response.data?.inactive_until).getTime()
             const currentTimestamp = Date.now()
@@ -142,7 +143,7 @@ export default {
       }).onCancel(() => {})
     },
     onSetInactive (data) {
-      const message = `You will no longer receive new contracts to oversee ${data.label === 'Indefinitely' ? 'indefinitely' : `in the next ${data.label}`}. 
+      const message = `You will no longer receive new contracts to oversee ${data.label === 'Indefinitely' ? 'indefinitely' : `in the next ${data.label}`}.
       However, we recommend continuing to oversee any existing contracts you’re currently handling.`
       this.$q.dialog({
         componentProps: {
