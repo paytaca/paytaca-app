@@ -28,9 +28,6 @@
               :options="inactiveDurationOpts"
               hide-bottom-space
               dense
-              :hide-dropdown-icon="!isActive"
-              :readonly="!isActive"
-              :hide-hint="!isActive"
               :label="inactiveLabel"
               :hint="inactiveHint"
               @update:model-value="onSetInactive">
@@ -82,7 +79,8 @@ export default {
   },
   computed: {
     inactiveLabel () {
-      return this.isActive ? 'Set as inactive' : `Currently inactive ${Number(this.inactiveFor?.value) <= 24 ? 'for' : ''}`
+      const indefinitely = this.inactiveFor?.label?.startsWith('hour') && Number(this.inactiveFor?.value) > 24
+      return this.isActive ? 'Set as inactive' : `Currently inactive ${!indefinitely ? 'for' : ''}`
     },
     inactiveHint () {
       return 'Set yourself as unavailable to oversee transactions for a period of time'
@@ -119,7 +117,7 @@ export default {
               }
             }
             if (inactiveFor.value > 0) {
-              if (inactiveFor.value > 24) {
+              if (inactiveFor.label?.startsWith('hour') && inactiveFor.value > 24) {
                 this.selectedInactiveTime = 'Indefinitely'
               } else {
                 this.selectedInactiveTime = `${inactiveFor.value} ${inactiveFor.affix}`
