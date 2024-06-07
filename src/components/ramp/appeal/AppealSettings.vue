@@ -1,6 +1,6 @@
 <template>
   <q-dialog full-width persistent>
-    <q-card class="br-15">
+    <q-card class="br-15 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between q-pt-md q-pb-md">
         <span class="text-h6 q-pl-lg">Settings</span>
         <div>
@@ -15,20 +15,29 @@
       </div>
 
       <q-scroll-area style="height: 325px;" class="q-mb-md">
-        <div class="q-mx-lg q-mb-lg">
-          <div class="q-pt-md">
-            <div>
-              <q-select
-                outlined
-                v-model="unavailableFor"
-                :options="unavailableDurationOpts"
-                hide-bottom-space
-                :hide-hint="!unavailableHint"
-                dense
-                :label="!unavailableFor ? 'Set as unavailable': 'Set as unavailable for the next'"
-                :hint="unavailableHint">
-              </q-select>
-            </div>
+        <div class="q-mx-lg q-mb-lg text-bow">
+          <div class="row">
+            <div class="col-auto">
+              <span>Status: {{ isActive ? 'Active' : 'Inactive' }} </span><q-icon class="q-my-sm q-mx-xs" :color="isActive ? 'green': 'red'" :name="isActive ? 'visibility': 'visibility_off'"/></div>
+          </div>
+          <div class="row">
+            <q-select
+              class="col"
+              outlined
+              v-model="selectedInactiveTime"
+              :options="inactiveDurationOpts"
+              hide-bottom-space
+              dense
+              :hide-dropdown-icon="!isActive"
+              :readonly="!isActive"
+              :hide-hint="!isActive"
+              :label="inactiveLabel"
+              :hint="inactiveHint"
+              @update:model-value="onSetInactive">
+            </q-select>
+          </div>
+          <div v-if="!isActive" class="row q-mt-sm">
+            <q-btn class="col br-15 q-mx-lg sm-font-size button" dense flat @click="onSetActive()">Set as active</q-btn>
           </div>
 
           <div class="q-pt-md">
@@ -56,45 +65,36 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       username: 'Arbiter 1',
-      isActive: true,
       status: 'Active',
       readOnlyState: true,
       currencies: ['PHP', 'USD', 'CAD'],
-      unavailableFor: null,
-      unavailableDurationOpts: [
+      inactiveFor: null,
+      inactiveDurationOpts: [
         { label: '1 hour', value: 1 },
         { label: '3 hours', value: 3 },
         { label: '16 hours', value: 16 },
         { label: '24 hours', value: 24 },
         { label: 'Indefinitely', value: 438000 }
       ],
-      loading: true
+      loading: true,
+      selectedInactiveTime: null
     }
   },
   computed: {
-    unavailableHint () {
-      return !this.unavailableFor ? 'Set yourself as unavailable to oversee transactions for a period of time' : ''
-    }
-  },
-  watch: {
-    isActive (stat) {
-      if (stat) {
-        this.status = 'Active'
-      } else {
-        this.status = 'Inactive'
-      }
+    inactiveLabel () {
+      return this.isActive ? 'Set as inactive' : `Currently inactive ${Number(this.inactiveFor?.value) <= 24 ? 'for' : ''}`
     },
-    unavailableFor (value) {
-      if (this.loading) return
-      this.onSetUnavailable(value)
+    inactiveHint () {
+      return 'Set yourself as unavailable to oversee transactions for a period of time'
+    },
+    isActive () {
+      return !this.inactiveFor || this.inactiveFor?.value < 0
     }
   },
+  watch: {},
   async mounted () {
-    // console.log('userData:', this.userData)
-    // this.unavailableFor = this.userData.unavailable_until
     await this.fetchUserData()
     this.loading = false
-    console.log('unavailableFor:', this.unavailableFor)
   },
   methods: {
     getDarkModeClass,
@@ -102,32 +102,49 @@ export default {
       return new Promise((resolve, reject) => {
         backend.get('ramp-p2p/arbiter/detail', { authorize: true })
           .then((response) => {
-            console.log(response.data)
-            this.unavailableFor = response.data?.unavailable_until
-            const providedTimestamp = new Date(response.data?.unavailable_until).getTime()
+            this.selectedInactiveTime = null
+            const providedTimestamp = new Date(response.data?.inactive_until).getTime()
             const currentTimestamp = Date.now()
             const millisecondsDifference = providedTimestamp - currentTimestamp
             const hoursDifference = millisecondsDifference / (1000 * 60 * 60)
-            let unavailableFor = `${hoursDifference.toFixed(0)} hour(s)`
+            let inactiveFor = {
+              value: hoursDifference.toFixed(0),
+              affix: 'hour(s)'
+            }
             if (hoursDifference < 1) {
               const minutesDifference = millisecondsDifference / (1000 * 60)
-              unavailableFor = `${minutesDifference.toFixed(0)} minutes`
+              inactiveFor = {
+                value: minutesDifference.toFixed(0),
+                affix: 'minute(s)'
+              }
             }
-            this.unavailableFor = unavailableFor
+            if (inactiveFor.value > 0) {
+              if (inactiveFor.value > 24) {
+                this.selectedInactiveTime = 'Indefinitely'
+              } else {
+                this.selectedInactiveTime = `${inactiveFor.value} ${inactiveFor.affix}`
+              }
+            }
+            this.inactiveFor = inactiveFor
             resolve(response.data)
           })
           .catch((error) => { reject(error) })
-          .finally(() => {
-            if (this.unavailableFor) {
-              this.unavailableDurationOpts.unshift({ label: 'Set as available', value: -24 })
-            }
-          })
       })
     },
-    onSetUnavailable (data) {
-      console.log('setUnavailable:', data.label)
-      // this.showConfirmUnavailableDialog = true
-      const message = `You’ll no longer receive new contracts to oversee ${data.label === 'Indefinitely' ? 'indefinitely' : `in the next ${data.label}`}. 
+    onSetActive () {
+      const message = 'You will start to receive new contracts to oversee again.'
+      this.$q.dialog({
+        componentProps: {
+          title: 'Are you sure?',
+          message: message
+        },
+        component: ConfirmationDialog
+      }).onOk(() => {
+        this.setInactiveHours(-438000)
+      }).onCancel(() => {})
+    },
+    onSetInactive (data) {
+      const message = `You will no longer receive new contracts to oversee ${data.label === 'Indefinitely' ? 'indefinitely' : `in the next ${data.label}`}. 
       However, we recommend continuing to oversee any existing contracts you’re currently handling.`
       this.$q.dialog({
         componentProps: {
@@ -136,22 +153,18 @@ export default {
         },
         component: ConfirmationDialog
       }).onOk(() => {
-        this.setUnavailable(data.value)
-      }).onCancel(() => {
-        console.log('back')
-      })
+        this.setInactiveHours(data.value)
+      }).onCancel(() => {})
     },
-    setUnavailable (hours) {
+    setInactiveHours (hours) {
       const body = {
-        unavailable_hours: hours
+        inactive_hours: hours
       }
       backend.patch('ramp-p2p/arbiter/detail', body, { authorize: true })
-        .then((response) => {
-          console.log(response.data)
+        .then(() => {
+          this.fetchUserData()
         })
-        .catch((error) => {
-          console.error(error?.response)
-        })
+        .catch((error) => { console.error(error?.response) })
     },
     editName () {
       this.readOnlyState = false
