@@ -295,35 +295,38 @@
 
   <!-- Add Nickname -->
   <q-dialog persistent v-model="editNickname">
-    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+    <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-center q-my-sm">Set Nickname</div>
+        <div class="text-h6 text-center q-my-sm">Set Display Name</div>
         <div class="text-center">
           <q-input
             dense
             filled
-            :dark="darkMode"
+            counter
+            autofocus
+            reactive-rules
             v-model="nickname"
-            maxlength="30"
+            :dark="darkMode"
+            :rules="[value => value.length <= 15 || 'Name exceeds max length']"
+            maxlength="15"
           >
             <!-- <template v-slot:append>
               <q-icon size="xs" name="close" @click="nickname = ''"/>&nbsp;
             </template> -->
           </q-input>
         </div>
-        <div v-if="!isNameValid" class="xs-font-size q-pt-sm q-pl-xs text-red-6">Please enter nickname</div>
-        <q-card-actions class="text-center" align="center">
+        <div class="row justify-center q-mt-md">
           <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
           <q-btn
             :disable="!isNameValid"
             flat
             label="Confirm"
-            @click="submitData()"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
+            @click="submitData()"
             v-close-popup
           />
-        </q-card-actions>
+        </div>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -631,7 +634,7 @@ export default {
   },
   computed: {
     isNameValid () {
-      return this.nickname && this.nickname.length > 0
+      return this.nickname?.length > 0 && this.nickname?.length <= 15
     },
     paymentConfirm () {
       if (this.paymentMethod.account_identifier === '' || this.paymentMethod.payment_type === '' || typeof this.paymentTypeRules(this.paymentMethod.account_identifier) === 'string') {
