@@ -441,8 +441,10 @@ export class BchWallet {
 /**
  * decoding a URI standard BIP 0021 used as bitcoin payment links
  * @param {String} uri
+ * @param {Object} opts
+ * @param {Number} opts.networkTimeDiff
  */
-export function decodeBIP0021URI(paymentUri) {
+export function decodeBIP0021URI(paymentUri, opts) {
   const response = {
     address: '',
     amount: undefined,
@@ -471,7 +473,8 @@ export function decodeBIP0021URI(paymentUri) {
     delete searchParams.message
   }
   if (searchParams.expires) {
-    const now = Math.floor(Date.now() / 1000)
+    let now = Math.floor(Date.now() / 1000)
+    if (opts?.networkTimeDiff) now += opts?.networkTimeDiff / 1000
     if (now >= Number(searchParams.expires)) throw new Error('PaymentRequestIsExpired')
   }
 
