@@ -506,11 +506,11 @@ const hongKongSpecific = [
 const shardsBackupTexts = [{
   RestoreExistingWallet: "Restore Existing Wallet",
   WalletRestoredDescription: "Wallet restored successfully. Click on the button to continue.",
-  ChooseBackupPhase: "Choose Backup Phase",
+  ChooseBackupPhase: "Choose Backup Method",
   ChooseBackupPhaseDescription: "Choose the wallet backup method you want to use to proceed to the next phase.",
   ImportShardsDescription: "If you have QR code images of the shards, proceed with using the Shards backup method.",
   ImportSeedPhraseDescription: "If you do not have any QR images, or just want to use the old backup, proceed with using the Seed Phrase backup method.",
-  CreateShardsDescription: "The Shards backup method is recommended for beginners, which is a simple but very secure method. It works by encrypting the seed phrase and splitting it into 3 shards. One is stored securely by us, and the other two are for you to store and share. You can still view the seed phrase and the generated shards later in you wallet info.",
+  CreateShardsDescription: "The Shards backup method is recommended for beginners, which is a simple but very secure method. It works by encrypting the seed phrase and splitting it into shards for you to store and share. You can still view the seed phrase and the generated shards later in the wallet backup page.",
   CreateSeedPhraseDescription: "If you are an advanced user or just want to use the old backup phase, proceed with using the Seed Phrase backup method.",
   ProceedWithShards: "Proceed with Using Shards",
   ProceedWithSeedPhrase: "Proceed with Using Seed Phrase",
@@ -537,7 +537,11 @@ const shardsBackupTexts = [{
   CreateMobileProcessDescription4: "To continue, check the checkbox to confirm that you have saved both screenshots.",
   ShowFirstShard: "Show First Shard",
   ShowSecondShard: "Show Second Shard",
-  ConfirmCheckboxText: "I confirm that I already saved the screenshots to my device."
+  ConfirmCheckboxText: "I confirm that I already saved the screenshots to my device.",
+  ExtraQRDescription1: "This QR code is an extra one. You can either store it in your device or share it to a friend. In any case you were unable to locate one of the shards, you may use this one as a replacement.",
+  ExtraQRDescription2: "Either store or share this QR code",
+  ExtraShard: "Extra Shard",
+  ShowExtraShard: "Show Extra Shard"
 }]
 
 const additional = [
