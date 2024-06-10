@@ -71,12 +71,12 @@
 </template>
 
 <script>
-import MultiWallet from './multi-wallet/index.vue'
+// import MultiWallet from './multi-wallet/index.vue'
 export default {
   name: 'footer-menu',
-  components: {
-    MultiWallet
-  },
+  // components: {
+  //   MultiWallet
+  // },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus']

@@ -5,9 +5,10 @@
     flat
     class="full-width"
     align="between"
-    :label="walletName"
+    :label="walletNameLabel"
+    :auto-close="false"
   >
-    <MultiWallet />
+    <MultiWallet @update-wallet-name="onUpdateWalletName" />
   </q-btn-dropdown>
 </template>
 
@@ -23,7 +24,20 @@ export default {
 
   data () {
     return {
-      walletName: ''
+      walletNameLabel: ''
+    }
+  },
+
+  computed: {
+    walletName () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      return this.$store.getters['global/getVault'][walletIndex].name
+    }
+  },
+
+  methods: {
+    onUpdateWalletName (name) {
+      this.walletNameLabel = name
     }
   },
 
@@ -31,8 +45,8 @@ export default {
     const vm = this
 
     const walletIndex = vm.$store.getters['global/getWalletIndex']
-    const name = vm.$store.getters['global/getVault'][walletIndex].name
-    vm.walletName = name !== '' ? name : `Personal Wallet #${walletIndex + 1}`
+    const name = vm.walletName
+    vm.walletNameLabel = name !== '' ? name : `Personal Wallet #${walletIndex + 1}`
   }
 }
 </script>
