@@ -149,7 +149,7 @@
             <div class="text-h6">Addons</div>
             <AddonsForm
               ref="addonsForm"
-              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating"
+              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || savingActiveCart"
               :addons="product?.addons"
               :currency="currency"
               v-model="addonsFormData"
@@ -159,18 +159,42 @@
           <div v-if="selectedVariant?.id">
             <q-input
               v-if="cartItem"
-              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating || addonsFormError?.length > 0"
+              :disable="disableAddToCart"
               label="Quantity"
               dense outlined
               :dark="darkMode"
               type="number"
-              v-model.number="cartItem.quantity"
-              debounce="750"
-              @update:model-value="() => saveActiveCart()"
-            />
+              v-model.number="cartItemQuantity"
+              @update:model-value="() => saveActiveCartDebounced()"
+            >
+              <template v-slot:prepend>
+                <q-btn
+                  :disable="disableAddToCart"
+                  flat
+                  padding="xs"
+                  icon="remove"
+                  @click="() => {
+                    cartItemQuantity--;
+                    saveActiveCartDebounced();
+                  }"
+                />
+              </template>
+              <template v-slot:append>
+                <q-btn
+                  :disable="disableAddToCart"
+                  flat
+                  padding="xs"
+                  icon="add"
+                  @click="() => {
+                    cartItemQuantity++;
+                    saveActiveCartDebounced();
+                  }"
+                />
+              </template>
+            </q-input>
             <q-btn
               v-else
-              :disable="!available || !activeStorefrontIsActive || cartOptionsHasErrors || activeStorefrontCart?.$state?.updating || addonsFormError?.length > 0"
+              :disable="disableAddToCart"
               no-caps label="Add to cart"
               color="brandblue"
               class="full-width q-mt-md"
@@ -186,7 +210,7 @@
 import { Cart, Collection, Product, Review } from 'src/marketplace/objects'
 import { backend, getCachedBackend } from 'src/marketplace/backend'
 import { roundRating } from 'src/marketplace/utils'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -237,45 +261,6 @@ onActivated(() => {
 })
 const activeStorefront = computed(() => $store.getters['marketplace/activeStorefront'])
 const activeStorefrontIsActive = computed(() => activeStorefront.value?.active)
-
-const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
-const cartItem = computed(() => {
-  return activeStorefrontCart.value?.items?.find(item => item?.variant?.id == selectedVariant.value?.id)
-})
-
-function saveActiveCart() {
-  if (cartOptionsHasErrors.value) return
-  $store.dispatch('marketplace/saveCart', activeStorefrontCart.value)
-}
-
-async function addSelectedVariantToCart() {
-  addonsForm.value?.validate?.()
-  if (addonsFormError.value?.length > 0) return
-  if (cartOptionsHasErrors.value) return
-  const cart = activeStorefrontCart.value?.id ? activeStorefrontCart.value : Cart.parse({
-    storefront_id: product.value?.storefrontId,
-    customer: {
-      ref: await $store.dispatch('marketplace/getCartRef'),
-    },
-    items: [],
-  })
-  if (!cart.items.some(item => item?.variant?.id === selectedVariant.value.id)) {
-    cart.items.push({
-      variant: selectedVariant.value, quantity: 1,
-      properties: {
-        schema: product.value?.cartOptions,
-        data: cartOptionsFormData.value,
-      },
-      addons: addonsFormData.value.map(addonData => {
-        return {
-          addonOptionId: addonData.addonOptionId,
-          inputValue: addonData.inputValue,
-        }
-      })
-    })
-  }
-  $store.dispatch('marketplace/saveCart', cart)
-}
 
 const collection = ref(Collection.parse())
 const fetchingCollection = ref(false)
@@ -330,6 +315,68 @@ const selectedVariant = computed(() => {
 function selectVariantFromProps() {
   const index = product.value.variants.findIndex(variant => variant?.id == props.variantId)
   selectedVariantIndex.value = Math.max(index, 0)
+}
+
+const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
+const cartItem = computed(() => {
+  return activeStorefrontCart.value?.items?.find(item => item?.variant?.id == selectedVariant.value?.id)
+})
+
+const cartItemQuantity = ref(0)
+watch(() => cartItem.value?.quantity, () => cartItemQuantity.value = cartItem.value?.quantity)
+watch(cartItemQuantity, () => {
+  if (!cartItem.value) return
+  cartItem.value.quantity = cartItemQuantity.value
+})
+
+
+const savingActiveCart = ref(false)
+async function saveActiveCart() {
+  if (cartOptionsHasErrors.value) return
+  try {
+    savingActiveCart.value = true
+    await $store.dispatch('marketplace/saveCart', activeStorefrontCart.value)
+  } finally {
+    savingActiveCart.value = false
+  }
+}
+
+const saveActiveCartDebounced = debounce((...args) => saveActiveCart(...args), 750)
+
+const disableAddToCart = computed(() => {
+  return !available.value ||
+        !activeStorefrontIsActive.value ||
+        cartOptionsHasErrors.value ||
+        savingActiveCart.value ||
+        addonsFormError.value?.length > 0
+})
+async function addSelectedVariantToCart() {
+  addonsForm.value?.validate?.()
+  if (addonsFormError.value?.length > 0) return
+  if (cartOptionsHasErrors.value) return
+  const cart = activeStorefrontCart.value?.id ? activeStorefrontCart.value : Cart.parse({
+    storefront_id: product.value?.storefrontId,
+    customer: {
+      ref: await $store.dispatch('marketplace/getCartRef'),
+    },
+    items: [],
+  })
+  if (!cart.items.some(item => item?.variant?.id === selectedVariant.value.id)) {
+    cart.items.push({
+      variant: selectedVariant.value, quantity: 1,
+      properties: {
+        schema: product.value?.cartOptions,
+        data: cartOptionsFormData.value,
+      },
+      addons: addonsFormData.value.map(addonData => {
+        return {
+          addonOptionId: addonData.addonOptionId,
+          inputValue: addonData.inputValue,
+        }
+      })
+    })
+  }
+  $store.dispatch('marketplace/saveCart', cart)
 }
 
 function serializeCartOptionsData(data) {
