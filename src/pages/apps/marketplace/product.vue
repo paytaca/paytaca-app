@@ -38,7 +38,7 @@
           </div>
         </div>
         <q-btn
-          v-else-if="product?.id"
+          v-else-if="product?.id && canReview"
           flat
           no-caps label="Rate product"
           color="grey"
@@ -49,7 +49,7 @@
         <ReviewsListDialog ref="reviewsListDialog" v-model="openReviewsDialog" :product-id="productId">
           <template v-slot:bottom>
             <q-btn
-              v-if="!productReview?.id"
+              v-if="!productReview?.id && canReview"
               no-caps label="Rate product"
               color="brandblue"
               padding="xs sm"
@@ -431,16 +431,15 @@ const openReviewsDialog = ref(false)
 
 watch(() => [props?.productId, customer.value?.id], () => fetchReview())
 const productReview = ref([].map(Review.parse)[0])
+const canReview = ref(false)
 function fetchReview() {
-  return cachedBackend.get(`reviews/`, { params : {
-    product_id: props?.productId || 0,
-    created_by_customer_id: customer.value?.id || 0,
-    limit: 1,
-  }}).then(response => {
-    const review = response?.data?.count
-      ? Review.parse(response?.data?.results?.[0])
+  return cachedBackend.get(`reviews/product/${props?.productId}/customer/${customer.value?.id}/`).then(response => {
+    const review = response?.data?.review
+      ? Review.parse(response?.data?.review)
       : undefined
     productReview.value = review
+
+    canReview.value = response?.data?.can_review
     return response
   })
 }
