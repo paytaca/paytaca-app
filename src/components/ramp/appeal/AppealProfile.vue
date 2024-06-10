@@ -49,7 +49,7 @@
             icon="star"
             icon-half="star_half"
           />
-          <span class="q-mx-sm sm-font-size">({{ arbiter?.rating?.toFixed(1) }} rating)</span>
+          <span class="q-mx-sm sm-font-size">({{ Number(arbiter?.rating).toFixed(1) }} rating)</span>
         </div>
       </div>
 
