@@ -75,7 +75,24 @@
           type="number"
           v-model.number="quantity"
           bottom-slots
-        />
+        >
+          <template v-slot:prepend>
+            <q-btn
+              flat
+              padding="xs"
+              icon="remove"
+              @click="() => quantity > 0 ? quantity-- : null"
+            />
+          </template>
+          <template v-slot:append>
+            <q-btn
+              flat
+              padding="xs"
+              icon="add"
+              @click="() => quantity++"
+            />
+          </template>
+        </q-input>
         <q-btn
           :disable="addonsFormError?.length > 0"
           no-caps
