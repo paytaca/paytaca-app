@@ -66,6 +66,12 @@ const routes = [
         name: 'push-notification-router',
         props: route => route.query,
         component: () => import('src/pages/push-notification-router.vue')
+      },
+      {
+        path: 'qr-reader',
+        name: 'qr-reader',
+        props: route => route.query,
+        component: () => import('pages/qr/qr-reader.vue')
       }
     ]
   },

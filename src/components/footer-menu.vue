@@ -30,7 +30,7 @@
         <span @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'transaction-send-select-asset' }">
+        <router-link :to="{ name: 'qr-reader' }">
           <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-qr.png" size="30px" />
           <q-icon v-else class="default-text-color mb-2" size="30px">
             <svg>
