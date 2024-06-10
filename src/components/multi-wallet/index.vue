@@ -120,28 +120,43 @@ export default {
     async processVaultName () {
       const vm = this
       vm.isloading = true
-      const tempVault = vm.$store.getters['global/getVault']
 
-      for (let i = 0; i < tempVault.length; i++) {
-        let name = tempVault[i].name
-        if (tempVault[i].name === '') { // from vuex store
-          name = `Personal Wallet #${i + 1}`
+      // fallback method for processing default wallet names for empty
+      // wallet names, so that they can be assigned with default names
+      // without waiting for the wallet names from server
+      vm.processDefaultVaultName()
+
+      const tempVault = vm.$store.getters['global/getVault']
+      await tempVault.forEach(async (wallet, index) => {
+        let tempName = wallet.name
+        if (wallet.name === '') { // from vuex store
+          tempName = `Personal Wallet #${index + 1}`
         } else {
-          const walletHash = tempVault[i].wallet.bch.walletHash
+          const walletHash = wallet.wallet.bch.walletHash
           const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
 
           if (walletName !== '') { // from db
-            name = decryptWalletName(walletName, walletHash)
+            tempName = decryptWalletName(walletName, walletHash)
           } else {
-            name = `Personal Wallet #${i + 1}`
+            tempName = `Personal Wallet #${index + 1}`
           }
         }
 
-        vm.$store.commit('global/updateWalletName', { index: i, name })
-      }
+        vm.$store.commit('global/updateWalletName', { index, name: tempName })
+      })
 
       vm.arrangeVaultData()
       vm.isloading = false
+    },
+    processDefaultVaultName () {
+      const vm = this
+      const tempVault = vm.$store.getters['global/getVault']
+
+      tempVault.forEach((wallet, index) => {
+        if (wallet.name === '') {
+          vm.$store.commit('global/updateWalletName', { index, name: `Personal Wallet #${index + 1}` })
+        }
+      })
     },
     switchWallet (index) {
       const vm = this
@@ -150,7 +165,6 @@ export default {
           component: LoadingWalletDialog
         })
         const asset = this.$store.getters['assets/getAllAssets']
-        // const ignoredAssets = this.$store.getters['assets/ignoredAssets']
 
         vm.$store.commit('assets/updateVaultSnapshot', { index: vm.currentIndex, snapshot: asset })
         vm.$store.commit('assets/updatedCurrentAssets', index)
@@ -179,11 +193,7 @@ export default {
       return address.slice(0, 16) + '.....' + address.slice(45)
     },
     isActive (index) {
-      if (index === this.currentIndex) {
-        return true
-      } else {
-        return false
-      }
+      return index === this.currentIndex
     },
     openRenameDialog () {
       this.$q.dialog({
@@ -251,8 +261,11 @@ export default {
     const vm = this
 
     // double checking if vault is empty
-    await this.$store.dispatch('global/saveExistingWallet')
-    await this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash})
+    await vm.$store.dispatch('global/saveExistingWallet')
+    await vm.$store.dispatch('assets/saveExistingAsset', {
+      index: vm.$store.getters['global/getWalletIndex'],
+      walletHash: vm.$store.getters['global/getWallet']('bch')?.walletHash
+    })
     await vm.processVaultName()
   }
 }
