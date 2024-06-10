@@ -350,6 +350,7 @@ import {
   convertToBCH,
   customNumberFormatting
 } from 'src/utils/denomination-utils'
+import { getNetworkTimeDiff } from 'src/utils/time'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
@@ -466,6 +467,7 @@ export default {
         decodedContent: ''
       },
 
+      networkTimeDiff: 0,
       jpp: null,
       disableSending: false,
       bip21Expires: null,
@@ -671,6 +673,12 @@ export default {
     customNumberFormatting,
     getDarkModeClass,
     isNotDefaultTheme,
+    updateNetworkDiff() {
+      return getNetworkTimeDiff().then(result => {
+        if (!result?.timeDifference) return result
+        this.networkTimeDiff = result.timeDifference
+      })
+    },
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
@@ -706,7 +714,7 @@ export default {
 
       let paymentUriData
       try {
-        paymentUriData = parsePaymentUri(content, { chain: this.isSmartBch ? 'smart' : 'main' })
+        paymentUriData = parsePaymentUri(content, { chain: this.isSmartBch ? 'smart' : 'main', networkTimeDiff: this.networkTimeDiff })
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
@@ -1583,6 +1591,7 @@ export default {
 
   mounted () {
     const vm = this
+    vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 
     if (vm.isSmartBch) {
