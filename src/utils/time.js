@@ -22,8 +22,8 @@ export async function getNetworkTimeDiff() {
 // NOTE: change source, ideally watchtower
 export async function getServerTime() {
   const startRequestTime = Date.now()
-  const response = await axios.get(`https://commercehub.paytaca.com/api/time/`)
-//   const response = await axios.get(`https://watchtower.cash/api/status/?timestamp_only=true`)
+//   const response = await axios.get(`https://commercehub.paytaca.com/api/time/`)
+  const response = await axios.get(`https://watchtower.cash/api/status/?timestamp_only=true`)
   const endRequestTime = Date.now()
   const requestDuration = startRequestTime - endRequestTime
 
