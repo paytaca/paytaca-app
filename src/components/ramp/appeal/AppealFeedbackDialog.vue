@@ -9,7 +9,7 @@
           </div>
 
           <!-- Arrow Button -->
-          <div class="fixed" style="margin-top: -5px;">
+          <div class="fixed" style="margin-top: -5px;" v-if="index === 1">
             <q-btn
               rounded
               no-caps
@@ -19,7 +19,7 @@
               @click="index--"
             />
           </div>
-          <div class="fixed" style="margin-top: -5px; width: 83%;" >
+          <div class="fixed" style="margin-top: -5px; width: 83%;" v-if="index === 0 && reviews.length > 1">
             <div class="row justify-end">
               <q-btn
                 rounded
@@ -33,14 +33,14 @@
           </div>
 
           <!-- Feedback Contents -->
-          <!-- <div class="text-center">
-            <span style="font-size: medium;">User Name</span><br>
-            <span style="font-size: small; color: gray;">(Arbiter)</span>
+          <div class="text-center">
+            <span style="font-size: medium;">{{ reviews[index].peer.name }}</span><br>
+            <span style="font-size: small; color: gray;">({{ userLabel(reviews[index].peer.id) }})</span>
           </div>
           <div class="q-py-xs text-center">
             <q-rating
               readonly
-              v-model="arbiterFeedback.rating"
+              v-model="reviews[index].rating"
               size="3em"
               color="yellow-9"
               icon="star"
@@ -48,15 +48,15 @@
           </div>
           <div class="q-py-sm q-px-xs">
             <q-input
-              v-if="!arbiterFeedback.created_at || arbiterFeedback.rating > 0 && arbiterFeedback.comment.length > 0"
-              v-model="arbiterFeedback.comment"
+              v-if="reviews[index].comment.length > 0"
+              v-model="reviews[index].comment"
               :dark="darkMode"
               readonly
               dense
               outlined
               autogrow
             />
-          </div> -->
+          </div>
         </div>
       </div>
     </q-card>
@@ -74,16 +74,63 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       showDialog: true,
       loading: false,
-      index: 1,
-      reviews: ['1']
+      index: 0,
+      reviews: null
     }
+  },
+  props: {
+    order: Object
   },
   components: {
     ProgressLoader
   },
+  mounted () {
+    const vm = this
+    vm.loading = true
+    vm.fetchFeedback()
+  },
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    async fetchFeedback () {
+      const vm = this
+      const url = '/ramp-p2p/order/feedback/arbiter'
+      const params = {
+        limit: 5,
+        page: 1,
+        order_id: vm.order.id
+      }
+
+      await backend.get(url, {
+        params: params,
+        authorize: true
+      })
+        .then(response => {
+          vm.reviews = response.data.feedbacks
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+          }
+        })
+        .finally(() => { vm.loading = false })
+    },
+    userLabel (id) {
+      const vm = this
+      const members = vm.order.members
+
+      for (const type in members) {
+        if (members[type] && type !== 'arbiter') {
+          if (members[type].id === id) {
+            return type.charAt(0).toUpperCase() + type.slice(1)
+          }
+        }
+      }
+    }
   }
 }
 </script>
-

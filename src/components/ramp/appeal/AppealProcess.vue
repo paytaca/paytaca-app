@@ -159,7 +159,10 @@ export default {
     getDarkModeClass,
     openFeedback () {
       this.$q.dialog({
-        component: AppealFeedbackDialog
+        component: AppealFeedbackDialog,
+        componentProps: {
+          order: this.appealDetailData?.order
+        }
       })
     },
     onBackSnapshot () {
