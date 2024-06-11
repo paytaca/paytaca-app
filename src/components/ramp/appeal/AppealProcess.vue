@@ -58,9 +58,9 @@
         @update-page-name="(val) => {$emit('updatePageName', val)}"
       />
 
-       <!-- <div v-if="completedOrder" class="text-center q-pb-sm">
-        <q-btn padding="none" flat no-caps color="primary"> View my Feedback </q-btn>
-      </div> -->
+       <div v-if="completedOrder" class="text-center q-pb-sm">
+        <q-btn padding="none" flat no-caps color="primary" @click="openFeedback"> View my Feedback </q-btn>
+      </div>
     </div>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
@@ -72,6 +72,7 @@ import RampContract from 'src/wallet/ramp/contract'
 import AppealDetail from './AppealDetail.vue'
 import AppealTransfer from './AppealTransfer.vue'
 import TradeInfoCard from '../fiat/TradeInfoCard.vue'
+import AppealFeedbackDialog from './AppealFeedbackDialog.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import ChatDialog from '../fiat/dialogs/ChatDialog.vue'
@@ -156,6 +157,14 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    openFeedback () {
+      this.$q.dialog({
+        component: AppealFeedbackDialog,
+        componentProps: {
+          order: this.appealDetailData?.order
+        }
+      })
+    },
     onBackSnapshot () {
       this.$refs.appealDetail.state = 'form'
     },
