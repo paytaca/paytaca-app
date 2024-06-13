@@ -50,9 +50,7 @@ export class CashNonFungibleToken {
   changeIpfsBaseUrl() {
     const index = IPFS_DOMAINS.indexOf(this.ipfsBaseUrl)
     const newIndex = (index + 1) % IPFS_DOMAINS.length
-    const prevUrl = this.ipfsBaseUrl
     this.ipfsBaseUrl = IPFS_DOMAINS[newIndex]
-    console.log(this, `Url change from '${prevUrl}' to '${this.ipfsBaseUrl}'`)
     return this.ipfsBaseUrl
   }
 
