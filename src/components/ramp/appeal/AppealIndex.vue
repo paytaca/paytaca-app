@@ -4,21 +4,8 @@
   <div class="q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`"
-    v-if="state === 'appeal-list'"
-  >
+    v-if="state === 'appeal-list'">
     <div>
-      <!-- <div class="row justify-end">
-        <div class="q-pr-lg q-mr-md">
-          <q-btn
-            flat
-            rounded
-            padding="xs"
-            icon="settings"
-            class="button button-text-primary"
-            @click="openSettings"
-          />
-        </div>
-      </div> -->
       <div class="q-mb-sm">
         <div
           class="row br-15 text-center pt-card btn-transaction md-font-size"
@@ -77,6 +64,7 @@
                         <div class="col ib-text">
                           <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
                           <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+                          <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
                           <div class="xs-font-size">{{ appeal.owner.name}}</div>
                           <div class="row text-weight-bold" style="font-size: medium;">ORDER #{{ appeal.order.id }}</div>
                           <div class="xs-font-size">
@@ -121,7 +109,6 @@ import HeaderNav from 'src/components/header-nav.vue'
 import AppealFooterMenu from './AppealFooterMenu.vue'
 import AppealProfile from './AppealProfile.vue'
 import AppealProcess from './AppealProcess.vue'
-import AppealSettings from './AppealSettings.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -155,7 +142,6 @@ export default {
   components: {
     AppealProcess,
     HeaderNav,
-    AppealSettings,
     AppealFooterMenu,
     AppealProfile
   },
@@ -174,14 +160,16 @@ export default {
   },
   computed: {
     appeals () {
-      const vm = this
-      switch (vm.statusType) {
+      let data = []
+      switch (this.statusType) {
         case 'PENDING':
-          return vm.pendingAppeals
+          data = this.pendingAppeals
+          break
         case 'RESOLVED':
-          return vm.resolvedAppeals
+          data = this.resolvedAppeals
+          break
       }
-      return []
+      return data
     },
     pendingAppeals () {
       return this.$store.getters['ramp/pendingAppeals']
@@ -217,20 +205,6 @@ export default {
       } else {
         this.state = 'profile'
       }
-    },
-    openSettings () {
-      this.$q.dialog({
-        component: AppealSettings
-      })
-        // .onOk(currency => {
-        //   // const index = this.fiatCurrencies.indexOf(currency)
-        //   this.selectedCurrency = currency
-        //   this.updateFiatCurrency()
-        //   this.readOnlyState = false
-        // })
-        // .onDismiss(() => {
-        //   this.readOnlyState = false
-        // })
     },
     updatePageName (name) {
       this.pageName = name

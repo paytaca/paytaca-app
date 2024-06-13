@@ -148,6 +148,7 @@ export default {
   },
   async mounted () {
     await this.loadData()
+    this.updateOrderReadAt()
     this.setupWebsocket()
     this.isloaded = true
     if (this.notifType === 'new_message') { this.openChat = true}
@@ -184,6 +185,24 @@ export default {
     reloadChildComponents () {
       this.appealDetailKey++
       this.appealTransferKey++
+    },
+    updateOrderReadAt () {
+      const vm = this
+      if (vm.appeal.read_at) return
+      return new Promise((resolve, reject) => {
+        const url = `/ramp-p2p/order/${vm.appeal?.order?.id}/members`
+        backend.patch(url, null, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error?.response)
+            if (error?.response?.status === 403) {
+              bus.emit('session-expired')
+            }
+            reject(error)
+          })
+      })
     },
     fetchAppeal (done) {
       const vm = this
@@ -270,7 +289,6 @@ export default {
         vm.loading = true
         backend.get(`/ramp-p2p/order/${orderId}`, { authorize: true })
           .then(response => {
-            // console.log(response.data)
             vm.amount = response.data?.order?.crypto_amount
             resolve(response.data)
           })
