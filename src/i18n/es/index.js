@@ -227,7 +227,7 @@ export default {
   EnterOneByOne: "Ingrese la frase de semilla uno por uno",
   EnterPin: "Ingrese su PIN",
   Enter_SEP20_ContractAddress: "Ingrese la dirección del contrato de SEP20",
-  Enter_SLP_PointId: "Ingrese la identificación del punto SLP",
+  Enter_SLP_PointId: "Ingrese la ID de punto SLP",
   Enter_SLP_TokenId: "Ingrese SLP Token ID",
   ErrAcceptingCallRequest: "Error a aceptar la solicitud de llamada",
   Error: "Error",

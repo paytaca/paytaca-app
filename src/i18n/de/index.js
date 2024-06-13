@@ -799,7 +799,7 @@ export default {
   WaitingBchTransaction: "Warten auf die Transaktion in Bitcoin Cash",
   WaitingSmartBchTransaction: "Warten auf die Transaktion in Smart BCH",
   Waiting_SEP20_PointSent: "Warten auf den Sendungspunkt der SEP20",
-  Waiting_SEP20_TokenSent: "Warten auf den SEP -Token für September",
+  Waiting_SEP20_TokenSent: "Warten auf den SEP20 -Token",
   Wallet: "Geldbörse",
   WalletBalance: "Brieftaschenbalance",
   WalletBalanceCap: "Brieftaschenbalance",

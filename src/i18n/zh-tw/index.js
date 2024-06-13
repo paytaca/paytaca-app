@@ -737,7 +737,7 @@ export default {
   TransactionDeadline: "交易截止日期",
   TransactionHistory: "交易歷史記錄",
   TransactionId: "事務ID",
-  TransactionSent: "交易發送",
+  TransactionSent: "發送的交易",
   Transactions: "交易",
   Type: "類型",
   UTXOScanComplete: "UTXO掃描完成",
