@@ -16,10 +16,17 @@ function getBcmrBackend() {
   }
 }
 
-export function convertIpfsUrl(url='') {
+
+export const IPFS_DOMAINS = [
+  'https://nftstorage.link/ipfs/',
+  'https://w3s.link/ipfs/',
+  'https://hardbin.com/ipfs',
+  'https://cloudflare-ipfs.com/ipfs/',
+]
+export function convertIpfsUrl(url='', baseURL='https://nftstorage.link/ipfs/') {
   if (typeof url !== 'string') return url
   if (!url.startsWith('ipfs://')) return url
-  return url.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
+  return url.replace('ipfs://', baseURL)
 }
 
 export class CashNonFungibleToken {
@@ -33,6 +40,26 @@ export class CashNonFungibleToken {
       fetchingMetadata: false,
     }
     this.updateData(data)
+    this.ipfsBaseUrl = IPFS_DOMAINS[0]
+  }
+
+  toIpfsUrl(url) {
+    return convertIpfsUrl(url, this.ipfsBaseUrl)
+  }
+
+  changeIpfsBaseUrl() {
+    const index = IPFS_DOMAINS.indexOf(this.ipfsBaseUrl)
+    const newIndex = (index + 1) % IPFS_DOMAINS.length
+    const prevUrl = this.ipfsBaseUrl
+    this.ipfsBaseUrl = IPFS_DOMAINS[newIndex]
+    console.log(this, `Url change from '${prevUrl}' to '${this.ipfsBaseUrl}'`)
+    return this.ipfsBaseUrl
+  }
+
+  get imageUrl() {
+    const imageUrl = this.toIpfsUrl(this.metadata?.type_metadata?.uris?.icon)
+    if (imageUrl) return imageUrl
+    return this.toIpfsUrl(this.metadata?.type_metadata?.uris?.icon)
   }
 
   get parsedGroupMetadata() {
@@ -40,7 +67,7 @@ export class CashNonFungibleToken {
       name: this.metadata?.name,
       description: this.metadata?.description,
       symbol: this.metadata?.symbol,
-      imageUrl: convertIpfsUrl(this.metadata?.uris?.icon)
+      imageUrl: this.imageUrl
     }
   }
 
@@ -52,15 +79,15 @@ export class CashNonFungibleToken {
         return {
           name: data?.name || this?.parsedGroupMetadata?.name,
           description: data?.description || this?.parsedGroupMetadata?.name,
-          imageUrl: convertIpfsUrl(data?.uris?.icon) || this?.parsedGroupMetadata?.imageUrl,
-          imageUrlFull: convertIpfsUrl(data?.uris?.image),
+          imageUrl: this.imageUrl,
+          imageUrlFull: this.toIpfsUrl(data?.uris?.image),
           attributes: data?.extensions?.attributes
         }
       } else {
         return {
           name: data?.name || this?.parsedGroupMetadata?.name,
           description: data?.description || this?.parsedGroupMetadata?.name,
-          imageUrl: convertIpfsUrl(data?.uris?.icon) || this?.parsedGroupMetadata?.imageUrl
+          imageUrl: this.imageUrl,
         }
       }
     }

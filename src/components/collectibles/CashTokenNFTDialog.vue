@@ -18,7 +18,7 @@
         fit="fill"
         width="75"
         :src="imageUrl"
-        @error="() => forceFallbackImage = true"
+        @error="() => onNftImageError()"
       >
         <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
           <q-spinner size="50px"/>
@@ -29,8 +29,8 @@
       <q-tabs
         v-model="tab"
         style="padding: 0 3px;"
-        :active-color="isNotDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-        :indicator-color="isNotDefaultTheme() && 'transparent'"
+        :active-color="isNotDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : undefined"
+        :indicator-color="isNotDefaultTheme() ? undefined : 'transparent'"
       >
         <q-tab
           name="details"
@@ -235,6 +235,15 @@ const imageUrl = computed(() => {
   if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrlFull) return props.nft?.parsedMetadata?.imageUrlFull
   return $store.getters['global/getDefaultAssetLogo']?.(`${props.nft?.category}|${props.nft?.commitment}`)
 })
+
+function onNftImageError() {
+  if (forceFallbackImage.value) return
+  if (!props.nft?.parsedMetadata?.imageUrlFull) {
+    forceFallbackImage.value = true
+    return
+  }
+  props.nft?.parsedMetadata?.changeIpfsBaseUrl?.()
+}
 
 const $copyText = inject('$copyText')
 function copyToClipboard(value, message) {
