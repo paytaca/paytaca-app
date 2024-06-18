@@ -65,8 +65,8 @@
                           <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
                           <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
                           <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
-                          <div class="xs-font-size">{{ appeal.owner.name}}</div>
-                          <div class="row text-weight-bold" style="font-size: medium;">ORDER #{{ appeal.order.id }}</div>
+                          <div class="xs-font-size q-pt-xs">{{ appeal.owner.name}}</div>
+                          <div class="text-weight-bold md-font-size">ORDER #{{ appeal.order.id }}</div>
                           <div class="xs-font-size">
                             <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
                             <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>

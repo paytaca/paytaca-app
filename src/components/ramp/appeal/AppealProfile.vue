@@ -12,7 +12,7 @@
       <div class="q-mb-lg">
         <div class="text-center q-pt-none">
           <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-          <q-btn round flat icon="settings" style="position: fixed; right: 15px; top: 90px;" @click="openSettings=true"></q-btn>
+          <q-btn round flat icon="settings" style="position: fixed; right: 15px;" :style="`top: ${ settingHeight }px;`" @click="openSettings=true"></q-btn>
           <div class="text-weight-bold lg-font-size q-pt-sm">
             <span id="target-name">{{ arbiter?.name }}</span>
             <q-icon
@@ -133,6 +133,7 @@ export default {
       theme: this.$store.getters['global/theme'],
       isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
+      settingHeight: this.$q.platform.is.ios ? 95 : 65,
       editNickname: false,
       arbiter: null,
 

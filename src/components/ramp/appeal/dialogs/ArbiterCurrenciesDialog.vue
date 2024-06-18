@@ -23,7 +23,7 @@
                 <q-item>
                     <q-item-section>
                         <div>
-                            <q-badge outline class="q-mr-sm">{{ currency.symbol }}</q-badge>
+                            <q-badge class="q-mr-sm">{{ currency.symbol }}</q-badge>
                             <span>{{ currency.name }}</span>
                         </div>
                     </q-item-section>
