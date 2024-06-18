@@ -101,8 +101,7 @@
   <div v-if="state === 'profile'">
     <AppealProfile/>
   </div>
-
-  <AppealFooterMenu v-if="showFooterMenu" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
+  <AppealFooterMenu v-if="showFooterMenu" :data="footerData" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -136,7 +135,10 @@ export default {
       pageName: 'main',
       notifType: null,
       showFooterMenu: true,
-      currentPage: 'Appeal'
+      currentPage: 'Appeal',
+      footerData: {
+        unreadOrdersCount: 0
+      }
     }
   },
   components: {
@@ -183,6 +185,9 @@ export default {
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
     }
   },
+  created () {
+    bus.on('update-unread-count', this.updateUnreadCount)
+  },
   async mounted () {
     this.loading = true
     if (Object.keys(this.notif).length > 0) {
@@ -199,6 +204,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updateUnreadCount (count) {
+      this.footerData.unreadOrdersCount = count
+    },
     switchMenu (tab) {
       if (tab.name === 'Appeal') {
         this.state = 'appeal-list'
@@ -218,6 +226,7 @@ export default {
           this.state = 'appeal-list'
           this.pageName = 'main'
           this.showFooterMenu = true
+          this.refreshData()
           break
         case 'snapshot':
           this.$refs.appealProcess.onBackSnapshot()
@@ -235,7 +244,8 @@ export default {
           params: params,
           overwrite: overwrite
         })
-        .then(() => {
+        .then((data) => {
+          vm.footerData.unreadOrdersCount = data.unread_count
           vm.loading = false
         })
         .catch(error => {
