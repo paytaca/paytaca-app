@@ -5,7 +5,7 @@
         <div v-if="loading" class="row justify-center"><ProgressLoader/></div>
         <div v-else>
           <div class="q-mb-md text-center text-bold">
-            <span style="font-size: large;">Your Feedback</span>
+            <span style="font-size: large;">Feedback</span>
           </div>
 
           <!-- Arrow Button -->

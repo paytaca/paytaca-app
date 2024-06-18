@@ -130,6 +130,7 @@ export default {
       theme: this.$store.getters['global/theme'],
       isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
+      settingHeight: this.$q.platform.is.ios ? 95 : 65,
       editNickname: false,
       arbiter: null,
 
