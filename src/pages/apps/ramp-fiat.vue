@@ -109,6 +109,7 @@ export default {
     },
     handleNewAppeal (data) {
       const ongoingAppeals = [...this.$store.getters['ramp/pendingAppeals']]
+      if (ongoingAppeals.length >= 20) return
       ongoingAppeals.push(data.extra.appeal)
       this.$store.commit('ramp/updatePendingAppeals', { overwrite: true, data: { appeals: ongoingAppeals } })
     },
