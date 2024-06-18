@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="showDialog" full-width @before-hide="$emit('back')">
+  <q-dialog v-model="showDialog" full-width persistent @before-hide="$emit('back')">
     <q-card class="br-15 text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between q-pt-md q-pb-md">
         <span class="text-h6 q-pl-lg">Settings</span>
@@ -17,8 +17,12 @@
       <div style="max-height: 325px; overflow: auto" class="q-mb-md">
         <div class="q-mx-lg q-mb-lg text-bow" v-if="!loading">
           <div class="row">
-            <div class="col-auto">
-              <span>Status: {{ isActive ? 'Active' : 'Inactive' }} </span><q-icon class="q-my-sm q-mx-xs" size="xs" :color="isActive ? 'green': 'red'" :name="isActive ? 'visibility': 'visibility_off'"/></div>
+            <span>Status: {{ isActive ? 'Active' : 'Inactive' }} </span>
+            <q-icon
+              class="q-py-xs q-mx-xs"
+              size="1em"
+              :color="isActive ? 'green' : 'grey'"
+              name="circle"/>
           </div>
           <div class="row">
             <q-select
@@ -34,7 +38,7 @@
               @update:model-value="onSetInactive">
             </q-select>
           </div>
-          <div v-if="!isActive" class="row justify-left q-mt-xs">
+          <div v-if="!isActive" class="row justify-end q-mt-xs">
             <q-btn class="br-15 sm-font-size" dense flat @click="onSetActive()">Set as active</q-btn>
           </div>
         </div>
@@ -155,6 +159,7 @@ export default {
         .then(() => {
           this.fetchUserData()
           this.$emit('setInactive')
+          this.$emit('back')
         })
         .catch((error) => { console.error(error?.response) })
     },

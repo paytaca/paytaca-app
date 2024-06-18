@@ -9,60 +9,57 @@
       </div>
     </div>
     <div v-else>
-      <div class="q-mb-lg">
-        <div class="text-center q-pt-none">
-          <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-          <q-btn round flat icon="settings" style="position: fixed; right: 15px; top: 90px;" @click="openSettings=true"></q-btn>
-          <div class="text-weight-bold lg-font-size q-pt-sm">
-            <span id="target-name">{{ arbiter?.name }}</span>
-            <q-icon
-              @click="editNickname = true"
-              size="xs"
-              name='edit_square'
-              class="q-mx-sm button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
+      <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
+        <div class="q-mb-lg">
+          <div class="text-center q-pt-none">
+            <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+            <q-btn round flat icon="settings" style="position: fixed; right: 15px; top: 90px;" @click="openSettings=true"></q-btn>
+            <div class="text-weight-bold lg-font-size q-pt-sm">
+              <span id="target-name">{{ arbiter?.name }}</span>
+              <q-icon
+                class="q-ml-xs"
+                size="1em"
+                :color="inactiveFor?.value <= 0 ? 'green' : 'grey'"
+                name="circle"/>
+              <q-icon
+                @click="editNickname = true"
+                size="xs"
+                name='edit_square'
+                class="q-mx-xs button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+              />
+            </div>
+          </div>
+          <div v-if="inactiveFor?.value > 0" class="row justify-center subtext">
+            <span>Inactive {{ inactiveTime }}</span>
+          </div>
+          <!-- Rating -->
+          <div class="row justify-center q-px-sm">
+            <q-rating
+              readonly
+              :model-value="arbiter?.rating ? Number(arbiter?.rating) : 0"
+              size="1.2em"
+              color="yellow-9"
+              icon="star"
+              icon-half="star_half"
             />
+            <span class="q-mx-sm sm-font-size">({{ Number(arbiter?.rating).toFixed(1) }} rating)</span>
+          </div>
+          <!-- Currencies -->
+          <div v-if="arbiter?.fiat_currencies.length > 0" class="row justify-center q-mt-xs q-mb-sm q-gutter-xs">
+            <q-badge outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
+            <q-badge outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
+          </div>
+          <div v-else class="row justify-center subtext">
+            <span>No currency assigned</span>
           </div>
         </div>
-        <div class="row justify-center q-mt-xs q-mb-sm q-gutter-xs">
-          <q-badge v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
-          <q-badge @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
-        </div>
-        <div class="row justify-center">
-          <div>
-            <q-icon
-              class="q-mx-xs"
-              size="1em"
-              :color="inactiveFor?.value <= 0 ? 'green' : 'grey'"
-              name="circle"/>
-            <span v-if="inactiveFor?.value <= 0">Active</span>
-            <span v-else>Inactive {{ inactiveTime }}</span>
-          </div>
-        </div>
-        <!-- User Stats -->
-        <div class="row justify-center q-px-sm q-pt-sm">
-          <q-rating
-            readonly
-            :model-value="arbiter?.rating ? Number(arbiter?.rating) : 0"
-            size="1.2em"
-            color="yellow-9"
-            icon="star"
-            icon-half="star_half"
-          />
-          <span class="q-mx-sm sm-font-size">({{ Number(arbiter?.rating).toFixed(1) }} rating)</span>
-        </div>
-      </div>
-
+      </q-pull-to-refresh>
       <div
-        class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
+        class="row justify-center q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
         :class="getDarkModeClass(darkMode)"
         :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-        <button
-          class="col-grow br-15 btn-custom fiat-tab q-mt-none ctive-btn"
-          :class="{'dark': darkMode }"
-          >
-            REVIEWS
-        </button>
+        REVIEWS
       </div>
 
       <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;">
@@ -155,7 +152,7 @@ export default {
       return this.reviewsPageNumber < this.reviewsTotalPages
     },
     inactiveTime () {
-      let timeString = `until ${this.inactiveFor?.value} ${this.inactiveFor?.affix}`
+      let timeString = `until ${this.inactiveFor?.value} ${this.inactiveFor?.affix} later`
       if (this.inactiveFor?.affix?.startsWith('hour') && this.inactiveFor?.value > 24) {
         timeString = 'indefinitely'
       }
@@ -175,6 +172,11 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    refreshContent (done) {
+      this.fetchArbiter()
+      this.fetchFeedback()
+      if (done) done()
+    },
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
