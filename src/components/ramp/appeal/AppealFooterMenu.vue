@@ -4,13 +4,13 @@
     :class="getDarkModeClass()"
     :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('Appeal')">
-          <q-icon class="mb-2" :class="isActive('Appeal') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
+      <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('list')">
+          <q-icon class="mb-2" :class="isActive('list') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
           <q-badge v-if="data?.unreadOrdersCount > 0" rounded color="red" floating>{{ data?.unreadOrdersCount }}</q-badge>
         <span>Appeals</span>
       </q-btn>
-      <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('Profile')">
-          <q-icon class="mb-2" :class="isActive('Profile') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
+      <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('profile')">
+          <q-icon class="mb-2" :class="isActive('profile') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
         <span>Profile</span>
       </q-btn>
       <q-btn flat no-caps dense v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
@@ -26,7 +26,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      activeButton: 'Appeal'
+      activeButton: 'list'
     }
   },
   emits: ['clicked'],
@@ -40,22 +40,21 @@ export default {
     }
   },
   mounted () {
-    if (this.tab) this.activeButton = this.tab
+    // if (this.tab) this.activeButton = this.tab
   },
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')
     },
     onSelectMenu (menu) {
-      this.activeButton = menu
-      this.$emit('clicked', { name: menu })
+      // this.activeButton = menu
+      this.$emit('clicked', menu)
     },
     isActive (menu) {
-      if (this.activeButton === menu) {
-        return true
-      } else {
-        return false
-      }
+      // console.log('activeButton:', this.activeButton)
+      // console.log('menu:', menu)
+      // console.log('isActive:', this.activeButton === menu)
+      return this.tab === menu
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`

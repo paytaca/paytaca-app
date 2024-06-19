@@ -59,7 +59,7 @@ export default {
       {
           name: 'P2P Exchange',
           iconName: 'img:ramp_icon_white.png',
-          path: '/apps/ramp/fiat',
+          path: '/apps/exchange',
           iconStyle: 'width:50%',
           active: true, // !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false

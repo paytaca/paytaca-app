@@ -1,62 +1,55 @@
 <template>
-  <!-- <HeaderNav :title="`${user?.is_arbiter ? 'Appeal Ramp' : 'P2P Exchange'}`" backnavpath="/apps"/> -->
-  <q-dialog v-model="show" persistent maximized no-shake transition-show="slide-up">
-    <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
-        <p class="text-h5 text-uppercase text-center q-my-none" :class="{'text-grad': isNotDefaultTheme || darkMode}">
-          {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
-        </p>
-      </div>
-      <div
-      class="q-mb-lg text-bow">
-        <div>
-          <div class="q-px-md q-mb-sm text-h6 login-label">
-            <div class="row justify-center q-mb-sm">
-              {{ register ? "Sign up" : "Login"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
-            </div>
-            <q-input
-              class="row justify-center q-mx-lg q-px-lg"
-              rounded
-              standout
-              dense
-              hide-bottom-space
-              bottom-slots
-              :hide-hint="!hintMessage"
-              :dark="darkMode"
-              :readonly="!register || user?.is_arbiter"
-              :disable="loggingIn"
-              :placeholder="register ? 'Enter nickname' : ''"
-              :loading="loggingIn || (!usernickname && !register) || isLoading"
-              :error="errorMessage !== null"
-              v-model="usernickname">
-              <template v-slot:append>
-                <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
-                <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
-                <q-btn v-if="register && !loggingIn" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="createRampUser" />
-              </template>
-              <template v-slot:hint>
-                <div class="row justify-center text-center">{{ hintMessage }}</div>
-              </template>
-              <template v-slot:error>
-                <div class="row justify-center text-center">{{ errorMessage }}</div>
-              </template>
-            </q-input>
+    <HeaderNav :title="`${user?.is_arbiter ? 'Appeal Ramp' : 'P2P Exchange'}`" backnavpath="/apps"/>
+    <div
+    class="q-mb-lg text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`" style="overflow-y: auto">
+      <div>
+        <div class="q-px-md q-mb-sm text-h6 login-label">
+          <div class="row justify-center q-mb-sm">
+            {{ register ? "Sign up" : "Login"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
           </div>
-          <!-- <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
-            <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
-              <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
-              <span class="text-center q-my-sm q-mx-md">Biometrics</span>
-            </q-btn>
-            <q-btn dense stack class="q-px-lg" :class="hasBiometric ? 'q-mx-sm' : 'q-mx-lg'" :disable="loggingIn  || !usernickname" @click="onLoginClick('pin')">
-              <q-icon class="q-mt-sm" size="50px" name="apps" />
-              <span class="text-center q-my-sm q-mx-md">MPIN</span>
-            </q-btn>
-          </div> -->
+          <q-input
+            class="row justify-center q-mx-lg q-px-lg"
+            rounded
+            standout
+            dense
+            hide-bottom-space
+            bottom-slots
+            :hide-hint="!hintMessage"
+            :dark="darkMode"
+            :readonly="!register || user?.is_arbiter"
+            :disable="loggingIn"
+            :placeholder="register ? 'Enter nickname' : ''"
+            :loading="loggingIn || (!usernickname && !register) || isLoading"
+            :error="errorMessage !== null"
+            v-model="usernickname">
+            <template v-slot:append>
+              <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
+              <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
+              <q-btn v-if="register && !loggingIn" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="createRampUser" />
+            </template>
+            <template v-slot:hint>
+              <div class="row justify-center text-center">{{ hintMessage }}</div>
+            </template>
+            <template v-slot:error>
+              <div class="row justify-center text-center">{{ errorMessage }}</div>
+            </template>
+          </q-input>
         </div>
+        <!-- <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
+          <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
+            <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
+            <span class="text-center q-my-sm q-mx-md">Biometrics</span>
+          </q-btn>
+          <q-btn dense stack class="q-px-lg" :class="hasBiometric ? 'q-mx-sm' : 'q-mx-lg'" :disable="loggingIn  || !usernickname" @click="onLoginClick('pin')">
+            <q-icon class="q-mt-sm" size="50px" name="apps" />
+            <span class="text-center q-my-sm q-mx-md">MPIN</span>
+          </q-btn>
+        </div> -->
       </div>
-    </q-card>
-  </q-dialog>
-</template>
+    </div>
+  </template>
 <script>
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
@@ -69,6 +62,7 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/au
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import HeaderNav from 'src/components/header-nav.vue'
 
 export default {
   data () {
@@ -77,7 +71,6 @@ export default {
       theme: this.$store.getters['global/theme'],
       minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
       apiURL: process.env.WATCHTOWER_BASE_URL,
-      show: true,
       dialog: false,
       user: null,
       usernickname: '',
@@ -97,7 +90,10 @@ export default {
       }
     }
   },
-  emits: ['loggedIn', 'cancel'],
+  components: {
+    HeaderNav
+  },
+  emits: ['loggedIn'],
   props: {
     error: String
   },
@@ -114,9 +110,9 @@ export default {
     this.fetchUser()
     this.rampWallet = loadRampWallet()
   },
-  beforeUnmount () {
-    bus.emit('relogged')
-  },
+  // beforeUnmount () {
+  //   bus.emit('close-general-ws')
+  // },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
@@ -240,8 +236,8 @@ export default {
             address_path: await vm.rampWallet.addressPath()
           }
           if (payload.public_key === vm.user.public_key &&
-              payload.address === vm.user.address &&
-              payload.address_path === vm.user.address_path) {
+                payload.address === vm.user.address &&
+                payload.address_path === vm.user.address_path) {
             console.log('Local wallet keys match server keys')
             resolve(vm.user)
           } else {
@@ -420,16 +416,16 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-  .login-label {
-    margin-top: 30%;
-    font-weight: 400;
-  }
-  .ramp-footer-text {
-    position: fixed;
-    margin-bottom: 25%;
-    width: 100%;
-    font-weight: 300;
-    bottom: 0;
-  }
-</style>
+  <style lang="scss" scoped>
+    .login-label {
+      margin-top: 30%;
+      font-weight: 400;
+    }
+    .ramp-footer-text {
+      position: fixed;
+      margin-bottom: 25%;
+      width: 100%;
+      font-weight: 300;
+      bottom: 0;
+    }
+  </style>

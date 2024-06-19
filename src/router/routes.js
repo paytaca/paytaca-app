@@ -149,11 +149,30 @@ const routes = [
             path: 'profile/',
             name: 'ramp-fiat-profile',
             component: () => import('src/components/ramp/fiat/FiatProfileCard.vue')
+          }
+        ]
+      },
+      {
+        path: 'exchange/',
+        name: 'exchange',
+        component: () => import('src/pages/apps/exchange/index.vue'),
+        children: [
+          {
+            path: 'peer-to-peer/',
+            name: 'exchange-p2p',
+            component: () => import('src/pages/apps/exchange/peer_to_peer/index.vue')
           },
           {
             path: 'appeal/',
-            name: 'ramp-appeal',
-            component: () => import('src/components/ramp/appeal/AppealIndex.vue')
+            name: 'exchange-appeals',
+            component: () => import('src/pages/apps/exchange/appeals/index.vue'),
+            children: [
+              {
+                path: 'detail/:id',
+                name: 'appeal-detail',
+                component: () => import('src/pages/apps/exchange/appeals/index.vue')
+              }
+            ]
           }
         ]
       }

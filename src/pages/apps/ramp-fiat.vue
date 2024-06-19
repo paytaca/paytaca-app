@@ -1,5 +1,6 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
+    <!-- <HeaderNav :title="`${userType === 'arbiter' ? 'Appeal Ramp' : 'P2P Exchange'}`" backnavpath="/apps"/> -->
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
     </div>
@@ -13,10 +14,12 @@
   </div>
 </template>
 <script>
-import AppealIndex from 'src/components/ramp/appeal/AppealIndex.vue'
+import AppealIndex from 'src/pages/apps/exchange/appeals/index.vue'
+// import AppealIndex from 'src/components/ramp/appeal/AppealIndex.vue'
 import FiatIndex from 'src/components/ramp/fiat/FiatIndex.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import HeaderNav from 'src/components/header-nav.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { deleteAuthToken } from 'src/wallet/ramp/auth'
@@ -28,7 +31,8 @@ export default {
     ProgressLoader,
     FiatIndex,
     AppealIndex,
-    RampLogin
+    RampLogin,
+    HeaderNav
   },
   data () {
     return {

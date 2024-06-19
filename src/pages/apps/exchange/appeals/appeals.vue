@@ -1,6 +1,4 @@
 <template>
-  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="`Appeal Ramp`" backnavpath="/apps"/>
   <div class="q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`"
@@ -81,26 +79,9 @@
       </q-list>
     </div>
   </div>
-  <!-- Appeal Process -->
-  <div v-if="state === 'appeal-process'">
-    <AppealProcess
-      ref="appealProcess"
-      :selectedAppeal="selectedAppeal"
-      :notif-type="notifType"
-      @back="state = 'appeal-list'"
-      @update-page-name="updatePageName"
-    />
-  </div>
-  <div v-if="state === 'profile'">
-    <AppealProfile/>
-  </div>
-  <AppealFooterMenu v-if="showFooterMenu" :data="footerData" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
 </template>
 <script>
-import HeaderNav from 'src/components/header-nav.vue'
-import AppealFooterMenu from './AppealFooterMenu.vue'
-import AppealProfile from './AppealProfile.vue'
-import AppealProcess from './AppealProcess.vue'
+import AppealProcess from 'src/components/ramp/appeal/AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -124,21 +105,18 @@ export default {
       loading: false,
       totalPages: null,
       pageNumber: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
       pageName: 'main',
       notifType: null,
       showFooterMenu: true,
-      currentPage: 'list',
+      currentPage: 'Appeal',
       footerData: {
         unreadOrdersCount: 0
       }
     }
   },
+  emits: ['selectAppeal'],
   components: {
-    AppealProcess,
-    HeaderNav,
-    AppealFooterMenu,
-    AppealProfile
+    AppealProcess
   },
   props: {
     notif: {
@@ -154,6 +132,9 @@ export default {
     }
   },
   computed: {
+    minHeight () {
+      return this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125
+    },
     appeals () {
       let data = []
       switch (this.statusType) {
@@ -183,7 +164,7 @@ export default {
   },
   async mounted () {
     this.loading = true
-    if (Object.keys(this.notif).length > 0) {
+    if (this.notif && Object.keys(this.notif).length > 0) {
       this.notifType = this.$route.query.type
       this.selectedAppeal = {
         order: {
@@ -242,9 +223,8 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.error(error)
-          console.error(error.response)
-          if (error.response && error.response.status === 403) {
+          console.error(error?.response)
+          if (error?.response?.status === 403) {
             bus.emit('session-expired')
           }
         })
@@ -294,65 +274,66 @@ export default {
     },
     selectAppeal (index) {
       this.selectedAppeal = this.appeals[index]
-
       this.state = 'appeal-process'
       this.pageName = 'appeal-process'
       this.showFooterMenu = false
+      this.$router.push({ name: 'appeal-detail', params: { id: this.selectedAppeal?.order?.id } })
+      this.$emit('selectAppeal')
     }
   }
 }
 </script>
-<style lang="scss" scoped>
-.btn-transaction {
-  font-size: 16px;
-  background-color: rgb(242, 243, 252);
-  border-radius: 24px;
-  padding: 4px;
-  margin-left: 12%;
-  margin-right: 12%;
-  margin-top: 10px;
-}
-.btn-custom {
-  height: 40px;
-  width: 47%;
-  border-radius: 20px;
-  border: none;
-  color: #4C4F4F;
-  background-color: transparent;
-  outline:0;
-  cursor: pointer;
-  transition: .2s;
-  font-weight: 500;
-}
-.btn-custom:hover {
-  background-color: rgb(242, 243, 252);
-  color: #4C4F4F;
-}
-.btn-custom.active-transaction-btn {
-  background-color: rgb(13,71,161) !important;
-  color: #fff;
-}
-.subtext {
-  opacity: .5;
-}
-.back-btn {
-  background-color: transparent;
-  height: 50px;
-  width: 70px;
-  z-index: 1;
-  left: 10px;
-}
-.md-font-size {
-  font-size: medium;
-}
-.sm-font-size {
-  font-size: small;
-}
-.xs-font-size {
-  font-size: smaller;
-}
-.buy-add-btn {
-  background-color: rgb(60, 100, 246);
-  color: white;
-}
-</style>
+  <style lang="scss" scoped>
+  .btn-transaction {
+    font-size: 16px;
+    background-color: rgb(242, 243, 252);
+    border-radius: 24px;
+    padding: 4px;
+    margin-left: 12%;
+    margin-right: 12%;
+    margin-top: 10px;
+  }
+  .btn-custom {
+    height: 40px;
+    width: 47%;
+    border-radius: 20px;
+    border: none;
+    color: #4C4F4F;
+    background-color: transparent;
+    outline:0;
+    cursor: pointer;
+    transition: .2s;
+    font-weight: 500;
+  }
+  .btn-custom:hover {
+    background-color: rgb(242, 243, 252);
+    color: #4C4F4F;
+  }
+  .btn-custom.active-transaction-btn {
+    background-color: rgb(13,71,161) !important;
+    color: #fff;
+  }
+  .subtext {
+    opacity: .5;
+  }
+  .back-btn {
+    background-color: transparent;
+    height: 50px;
+    width: 70px;
+    z-index: 1;
+    left: 10px;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .sm-font-size {
+    font-size: small;
+  }
+  .xs-font-size {
+    font-size: smaller;
+  }
+  .buy-add-btn {
+    background-color: rgb(60, 100, 246);
+    color: white;
+  }
+  </style>
