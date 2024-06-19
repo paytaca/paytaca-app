@@ -58,19 +58,51 @@
             </template>
           </q-input>
         </div>
-        <div
-            class="row q-px-md q-pt-sm text-center sm-font-size"
-            style="overflow-wrap: break-word;">
-            <div v-if="hasLabel" class="row">
-              <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-              <span class="col text-left q-ml-sm">{{ label }}</span>
+        <!-- Payment methods -->
+        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-mx-md q-px-sm q-pt-sm">
+          <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
+            <div class="text-center sm-font-size q-mx-md q-mb-sm">
+            <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
+            You selected the following payment methods.
+          </div>
+          <div class="full-width">
+            <div v-for="(method, index) in data?.order?.payment_methods_selected" :key="index">
+              <div class="q-px-sm q-py-xs">
+                <q-card flat bordered :dark="darkMode">
+                  <q-expansion-item
+                    class="pt-card text-bow"
+                    :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
+                    :default-opened=true
+                    :label="method.payment_type"
+                    expand-separator >
+                    <q-card>
+                      <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                          <div class="col q-pr-sm q-py-xs">
+                            <div>{{ method.account_name }}</div>
+                            <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
+                              {{ method.account_identifier }}
+                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
+                            </div>
+                          </div>
+                      </q-card>
+                    </q-card>
+                  </q-expansion-item>
+                </q-card>
+              </div>
             </div>
           </div>
+        </div>
+        <!-- Instruction message -->
+        <div
+          class="row q-mx-md q-px-md q-pt-sm text-center sm-font-size"
+          style="overflow-wrap: break-word;">
+          <div v-if="hasLabel" class="row">
+            <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
+            <span class="col text-left q-ml-sm">{{ label }}</span>
+          </div>
+        </div>
+        <!-- Cancel order button -->
         <div v-if="!displayContractInfo" class="q-mt-sm q-px-md q-mb-sm">
-          <!-- <div v-if="instructionMessage" class="row sm-font-size q-mx-sm">
-            <q-icon class="col-auto" size="xs" name="mdi-information-outline" color="blue-6"/>&nbsp;
-            <div class="col">{{ instructionMessage }}</div>
-          </div> -->
           <div class="row q-pt-sm" v-if="type === 'ongoing' && hasCancel">
             <q-btn
               rounded
@@ -80,7 +112,6 @@
               style="background-color: #ed5f59;"
               @click="$emit('cancelOrder')"
             />
-            <!-- @click="$parent.cancellingOrder()" -->
           </div>
         </div>
         <!-- Appeal Button -->
@@ -141,6 +172,8 @@
   <FeedbackForm
     v-if="isloaded && hasReview && openReviewForm"
     :order-id="data.order?.id"
+    :counter-party="counterparty"
+    :arbiter="data.order?.arbiter"
     @back="openReviewForm = false"
     @submit="onSubmitFeedback"/>
 </template>
@@ -277,6 +310,24 @@ export default {
         RLS_PN: 'Please wait for the fund release.'
       }
       return labels[this.data?.order?.status.value]
+    },
+    counterparty () {
+      const tradeType = this.data.order?.trade_type
+      let adOwner = null
+      let orderOwner = null
+
+      switch (tradeType) {
+        case 'SELL':
+          adOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          orderOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          break
+        case 'BUY':
+          adOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          orderOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          break
+      }
+
+      return this.data.order?.is_ad_owner ? adOwner : orderOwner
     }
   },
   async mounted () {

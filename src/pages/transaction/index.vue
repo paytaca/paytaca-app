@@ -326,7 +326,6 @@
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import { Plugins } from '@capacitor/core'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
 import { getMnemonic, Wallet } from '../../wallet'
@@ -334,6 +333,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
@@ -351,8 +351,6 @@ import connectedDialog from '../connect/connectedDialog.vue'
 import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
-
-const { SecureStoragePlugin } = Plugins
 
 const ago = require('s-ago')
 

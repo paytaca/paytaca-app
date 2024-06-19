@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import * as secp from '@noble/secp256k1'
 import { Store } from 'src/store'
+import { nativeFileAPI } from 'src/utils/native-file'
 
 const CHUNK_SIZE = 15
 
@@ -219,7 +220,7 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
 
   const encryptedBytes = Buffer.from(encrypted, 'base64')
   const encryptedBlob = new Blob([encryptedBytes])
-  const newFile = new File([encryptedBlob], file?.name, { type: 'application/octet-stream' })
+  const newFile = new nativeFileAPI.File([encryptedBlob], file?.name, { type: 'application/octet-stream' })
   return { file: newFile, authorPubkey: ourPubkey, pubkeys, iv: Buffer.from(iv).toString('base64') }
 }
 
@@ -275,7 +276,7 @@ export async function decryptImage(opts={ file: null, privkey: '', pubkeys: '', 
       }
       const decryptedData = decryptData(arrayBuffer, key, ivBytes, { inputEncoding: 'binary', outputEncoding: 'binary' })
       const decryptedBlob = new Blob([decryptedData])
-      const decryptedFile = new File([decryptedBlob], file?.name)
+      const decryptedFile = new nativeFileAPI.File([decryptedBlob], file?.name)
       return decryptedFile
     } catch (error) {
       console.error(error)
@@ -304,7 +305,7 @@ export async function compressEncryptedImage(messagePayload) {
   }
   const bytes = Buffer.from(JSON.stringify(serializedPayload))
   const blob = new Blob([bytes])
-  const newFile = new File([blob], file?.name, { type: 'application/octet-stream' })
+  const newFile = new nativeFileAPI.File([blob], file?.name, { type: 'application/octet-stream' })
   return newFile
 }
 
@@ -317,10 +318,10 @@ export async function decompressEncryptedImage(file) {
   const parsedPayload = JSON.parse(payload)
   const encryptedFileBytes = Buffer.from(parsedPayload?.data, 'base64')
   const encryptedFileBlob = new Blob([encryptedFileBytes])
-  const encryptedFile = new File([encryptedFileBlob], file?.name)
+  const encryptedFile = new nativeFileAPI.File([encryptedFileBlob], file?.name)
 
   const response = {
-    file: [].map(() => new File())[0],
+    file: [].map(() => new nativeFileAPI.File())[0],
     authorPubkey: '',
     pubkeys: [].map(String),
   }

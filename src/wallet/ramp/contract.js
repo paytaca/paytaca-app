@@ -63,6 +63,14 @@ export class RampContract {
   }
 
   /**
+   * Returns all UTXOs that can be spent by the contract.
+   * Both confirmed and unconfirmed UTXOs are included.
+   */
+  async getUtxos () {
+    return await this.contract.getUtxos()
+  }
+
+  /**
    * Retrieves the address of the contract.
    * @returns {String} The address of the contract.
    */

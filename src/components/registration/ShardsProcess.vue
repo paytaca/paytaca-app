@@ -42,10 +42,12 @@
           <div class="text-center q-mb-sm">
             {{ $t('PersonalQRDescription1') }}
           </div>
-          <div id="personal-qr" class="flex flex-center q-py-md col-qr-code">
+          <div id="personal-qr" class="col q-py-md col-qr-code">
             <p style="color: black; margin-bottom: 0;">{{ $t('FirstShard') }}</p>
             <p style="color: black">{{ $t('PersonalQRDescription2') }}</p>
-            <qr-code :text="shards[1]" color="#253933" :size="200" error-level="H" />
+            <div class="flex flex-center">
+              <qr-code :text="shards[1]" color="#253933" :size="200" error-level="H" />
+            </div>
           </div>
         </div>
         <div
@@ -56,12 +58,33 @@
           <div class="text-center q-mb-sm">
             {{ $t('ForSharingQRDescription1') }}
           </div>
-          <div id="sharing-qr" class="flex flex-center q-py-md col-qr-code">
+          <div id="sharing-qr" class="col q-py-md col-qr-code">
             <p style="color: black; margin-bottom: 0;">{{ $t('SecondShard') }}</p>
             <p style="color: black">{{ $t('ForSharingQRDescription2') }}</p>
-            <qr-code :text="shards[2]" color="#253933" :size="200" error-level="H" />
+            <div class="flex flex-center">
+              <qr-code :text="shards[2]" color="#253933" :size="200" error-level="H" />
+            </div>
           </div>
         </div>
+
+        <!-- (temporary) show 3rd qr and let user handle storing -->
+        <div
+          class="q-pa-sm q-mt-md br-15 pt-card"
+          :class="getDarkModeClass(darkMode)"
+          style="border: 2px solid gray;"
+        >
+          <div class="text-center q-mb-sm">
+            {{ $t('ExtraQRDescription1') }}
+          </div>
+          <div id="extra-qr" class="col q-py-md col-qr-code">
+            <p style="color: black; margin-bottom: 0;">{{ $t('ExtraShard') }}</p>
+            <p style="color: black">{{ $t('ExtraQRDescription2') }}</p>
+            <div class="flex flex-center">
+              <qr-code :text="shards[0]" color="#253933" :size="200" error-level="H" />
+            </div>
+          </div>
+        </div>
+
         <div class="flex flex-center q-mt-md">
           <q-btn
             rounded
@@ -103,7 +126,7 @@
               rounded
               class="button"
               :label="$t('ShowFirstShard')"
-              @click="openShardDialog(true)"
+              @click="openShardDialog(1)"
             />
           </div>
         </div>
@@ -120,7 +143,26 @@
               rounded
               class="button"
               :label="$t('ShowSecondShard')"
-              @click="openShardDialog(false)"
+              @click="openShardDialog(2)"
+            />
+          </div>
+        </div>
+
+        <!-- (temporary) show 3rd qr and let user handle storing -->
+        <div
+          class="q-pa-sm q-mt-md br-15 pt-card"
+          :class="getDarkModeClass(darkMode)"
+          style="border: 2px solid gray;"
+        >
+          <div class="text-center q-mb-sm">
+            {{ $t('ExtraQRDescription1') }}
+          </div>
+          <div class="flex flex-center q-mt-md q-mb-sm">
+            <q-btn
+              rounded
+              class="button"
+              :label="$t('ShowExtraShard')"
+              @click="openShardDialog(0)"
             />
           </div>
         </div>
@@ -152,7 +194,6 @@ import html2canvas from 'html2canvas'
 
 import { toHex } from 'hex-my-bytes'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { saveShardToWatchtower } from 'src/wallet/shards'
 
 import ProgressLoader from 'src/components/ProgressLoader'
 import ShardScreenshotDialog from 'src/components/registration/ShardScreenshotDialog'
@@ -193,8 +234,6 @@ export default {
     const secret = Buffer.from(vm.mnemonic)
     const shares = sss.split(secret, { shares: 3, threshold: 2 })
     vm.shards = shares.map(a => toHex(a))
-
-    await saveShardToWatchtower(vm.shards)
 
     setTimeout(() => {
       vm.isLoading = false
@@ -258,6 +297,13 @@ export default {
       html2canvas(sharingQrElement).then((canvas) => {
         const image = canvas.toDataURL('image/png')
         const fileName = `qr-second-shard-${vm.walletHash.substring(0, 10)}.png`
+        saveToDesktop(image, fileName)
+      })
+
+      const extraQrElement = document.getElementById('extra-qr')
+      html2canvas(extraQrElement).then((canvas) => {
+        const image = canvas.toDataURL('image/png')
+        const fileName = `qr-extra-shard-${vm.walletHash.substring(0, 10)}.png`
         saveToDesktop(image, fileName, true)
       })
 
@@ -265,14 +311,14 @@ export default {
         vm.enableContinue = true
       }
     },
-    openShardDialog (isFirstShard) {
+    openShardDialog (shardth) {
       const vm = this
 
       vm.$q.dialog({
         component: ShardScreenshotDialog,
         componentProps: {
-          shardText: vm.shards[isFirstShard ? 1 : 2],
-          isFirstShard
+          shardText: vm.shards[shardth],
+          shardth
         }
       })
     }

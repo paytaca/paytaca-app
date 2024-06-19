@@ -1,4 +1,6 @@
 import crypto from 'crypto'
+import { nativeFileAPI } from 'src/utils/native-file'
+
 /**
  * @param {Object} opts
  * @param {File} opts.file
@@ -31,7 +33,7 @@ export async function resizeImage(opts) {
   ctx.drawImage(image, 0, 0, width, height);
   return new Promise(resolve => {
     canvas.toBlob(blob => {
-      const resizedFile = new File([blob], file.name, { type: file.type })
+      const resizedFile = new nativeFileAPI.File([blob], file.name, { type: file.type })
       resolve(resizedFile)
 
       canvas.remove()
@@ -47,7 +49,7 @@ export async function resizeImage(opts) {
  */
 export async function fileToImage(file) {
   return new Promise((resolve, reject) => {
-    const fileReader = new FileReader()
+    const fileReader = new nativeFileAPI.FileReader()
     fileReader.addEventListener('load', () => {
       const image = new Image();
       image.addEventListener('load', () => {
@@ -64,12 +66,12 @@ export async function fileToImage(file) {
 
 /**
  * @param {String} base64 
- * @returns File
+ * @returns {File}
  */
 export function base64ImageToFile(base64) {
   const dataBin = Buffer.from(base64, 'base64')
   const fileHash = crypto.createHash('sha256').update(dataBin).digest().toString('hex')
-  return new File([dataBin], fileHash)
+  return new nativeFileAPI.File([dataBin], fileHash)
 }
 
 export function dataUrlToFile(dataUrl) {
@@ -77,5 +79,5 @@ export function dataUrlToFile(dataUrl) {
   const mime = arr[0].match(/:(.*?);/)[1]
   const dataBin = Buffer.from(arr[arr.length - 1], 'base64')
   const fileHash = crypto.createHash('sha256').update(dataBin).digest().toString('hex')
-  return new File([dataBin], fileHash, {type:mime});
+  return new nativeFileAPI.File([dataBin], fileHash, {type:mime});
 }

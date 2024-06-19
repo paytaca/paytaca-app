@@ -162,7 +162,7 @@ export default {
         },
         {
           name: this.$t('WalletBackup'),
-          iconName: 'backup',
+          iconName: 'img:wallet-backup.png',
           path: '/apps/wallet-backup',
           active: true,
           smartBCHOnly: false
@@ -245,7 +245,7 @@ export default {
           this.submitLabel = 'Processing'
           this.customKeyboardState = 'dismiss'
           setTimeout(() => {
-            this.toggleMnemonicDisplay()
+            this.toggleMnemonicDisplay('proceed')
           }, 1000)
         },
         (error) => {

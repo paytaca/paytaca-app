@@ -439,7 +439,7 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      backend.put('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
+      backend.patch('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {

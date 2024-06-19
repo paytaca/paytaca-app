@@ -14,6 +14,7 @@
         <q-img
           :src="nft?.parsedMetadata?.imageUrl || generateFallbackImage(nft)"
           fit="fill"
+          @error="() => onNftImageError(nft)"
         >
           <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
             <q-spinner size="35px"/>
@@ -33,7 +34,7 @@
         :style="nftDivStyle"
       >
         <q-img :src="null" fit="fill" />
-        <q-card-section v-if="nft?.parsedMetadata?.name || nft?.parsedMetadata?.description" class="q-pa-sm">
+        <q-card-section class="q-pa-sm">
           <div class="text-subtitle1 ellipsis-3-lines">test</div>
         </q-card-section>
       </q-card>
@@ -150,6 +151,11 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
         fetchingNfts.value = false
       })
   }
+}
+
+function onNftImageError(nft=CashNonFungibleToken.parse()) {
+  if (!nft?.parsedMetadata?.imageUrl) return 
+  nft.changeIpfsBaseUrl()
 }
 
 function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
