@@ -2,11 +2,11 @@
   <div
     class="row justify-center fixed-footer"
     :class="getDarkModeClass()"
-    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
-  >
+    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('Appeal')">
           <q-icon class="mb-2" :class="isActive('Appeal') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
+          <q-badge v-if="data?.unreadOrdersCount > 0" rounded color="red" floating>{{ data?.unreadOrdersCount }}</q-badge>
         <span>Appeals</span>
       </q-btn>
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('Profile')">

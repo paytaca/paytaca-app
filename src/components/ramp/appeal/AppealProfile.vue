@@ -2,67 +2,64 @@
   <div
     class="q-mx-md q-mb-lg q-pb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`"
-  >
+    :style="`height: ${minHeight}px;`">
     <div v-if="!isloaded">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
     <div v-else>
-      <div class="q-mb-lg">
-        <div class="text-center q-pt-none">
-          <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-          <div class="text-weight-bold lg-font-size q-pt-sm">
-            <span id="target-name">{{ arbiter.name }}</span>
-            <q-icon
-              @click="editNickname = true"
-              size="sm"
-              name='o_edit'
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
+      <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
+        <div class="q-mb-lg">
+          <div class="text-center q-pt-none">
+            <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+            <q-btn round flat icon="settings" style="position: fixed; right: 15px; top: 90px;" @click="openSettings=true"></q-btn>
+            <div class="text-weight-bold lg-font-size q-pt-sm">
+              <span id="target-name">{{ arbiter?.name }}</span>
+              <q-icon
+                class="q-ml-xs"
+                size="1em"
+                :color="inactiveFor?.value <= 0 ? 'green' : 'grey'"
+                name="circle"/>
+              <q-icon
+                @click="editNickname = true"
+                size="xs"
+                name='edit_square'
+                class="q-mx-xs button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+              />
+            </div>
+          </div>
+          <div v-if="inactiveFor?.value > 0" class="row justify-center subtext">
+            <span>Inactive {{ inactiveTime }}</span>
+          </div>
+          <!-- Rating -->
+          <div class="row justify-center q-px-sm">
+            <q-rating
+              readonly
+              :model-value="arbiter?.rating ? Number(arbiter?.rating) : 0"
+              size="1.2em"
+              color="yellow-9"
+              icon="star"
+              icon-half="star_half"
             />
+            <span class="q-mx-sm sm-font-size">({{ Number(arbiter?.rating).toFixed(1) }} rating)</span>
+          </div>
+          <!-- Currencies -->
+          <div v-if="arbiter?.fiat_currencies.length > 0" class="row justify-center q-mt-xs q-mb-sm q-gutter-xs">
+            <q-badge outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true" color="primary">{{ currency.symbol }}</q-badge>
+            <q-badge outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true" color="primary">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
+          </div>
+          <div v-else class="row justify-center subtext">
+            <span>No currency assigned</span>
           </div>
         </div>
-        <!-- Edit Payment Methods -->
-        <div class="row q-mx-lg q-px-md q-pt-md">
-          <q-btn
-            rounded
-            no-caps
-            label="Settings"
-            color="blue-8"
-            class="q-space q-mx-md button"
-            @click="openSettings"
-            icon="settings"
-          />
-        </div>
-
-        <!-- User Stats -->
-        <div class="row justify-center q-px-sm q-pt-sm">
-          <q-rating
-            readonly
-            :model-value="arbiter.rating ? arbiter.rating : 0"
-            :v-model="arbiter.rating"
-            size="1.5em"
-            color="yellow-9"
-            icon="star"
-            icon-half="star_half"
-          />
-          <!-- <span class="q-mx-sm sm-font-size">({{ arbiter.rating ? arbiter.rating?.toFixed(1) : 0}} rating)</span> -->
-          <span class="q-mx-sm sm-font-size">({{ arbiter.rating }} rating)</span>
-        </div>
-      </div>
-
+      </q-pull-to-refresh>
       <div
-        class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
+        class="row justify-center q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
         :class="getDarkModeClass(darkMode)"
         :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-        <button
-          class="col-grow br-15 btn-custom fiat-tab q-mt-none ctive-btn"
-          :class="{'dark': darkMode }"
-          >
-            REVIEWS
-        </button>
+        REVIEWS
       </div>
 
       <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;">
@@ -72,7 +69,7 @@
           </div>
           <div v-else class="q-mx-lg q-px-md">
             <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-              <div class="text-weight-bold sm-font-size">{{ userNameView(review.peer.name) }}</div>
+              <div class="text-weight-bold sm-font-size">{{ userNameView(review?.peer?.name) }}</div>
               <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
               <div class="sm-font-text">
                 <q-rating
@@ -82,7 +79,7 @@
                   color="yellow-9"
                   icon="star"
                 />
-                <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating?.toFixed(1) : 0}})</span>
+                <span class="q-mx-sm sm-font-size">({{ review?.rating ? review?.rating?.toFixed(1) : 0}})</span>
               </div>
               <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
                 {{ review.comment }}
@@ -106,7 +103,8 @@
       </q-scroll-area>
     </div>
   </div>
-
+  <ArbiterCurrenciesDialog v-if="viewCurrencies" :currencies="arbiter?.fiat_currencies" @back="viewCurrencies=false"/>
+  <AppealSettings v-if="openSettings" @set-inactive="onSetInactive" @back="openSettings=false"/>
   <MiscDialogs
     v-if="editNickname"
     :type="'editNickname'"
@@ -118,10 +116,12 @@
 import MiscDialogs from '../fiat/dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AppealSettings from './AppealSettings.vue'
+import ArbiterCurrenciesDialog from './dialogs/ArbiterCurrenciesDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
-import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { updateChatIdentity } from 'src/wallet/ramp/chat'
 
 export default {
   data () {
@@ -130,6 +130,7 @@ export default {
       theme: this.$store.getters['global/theme'],
       isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
+      settingHeight: this.$q.platform.is.ios ? 95 : 65,
       editNickname: false,
       arbiter: null,
 
@@ -140,17 +141,30 @@ export default {
       reviewsList: [],
       user: {
         rating: 5
-      }
+      },
+      openSettings: false,
+      viewCurrencies: false,
+      inactiveFor: null,
+      currencies: []
     }
   },
   computed: {
     hasMoreReviewsData () {
       return this.reviewsPageNumber < this.reviewsTotalPages
     },
+    inactiveTime () {
+      let timeString = `until ${this.inactiveFor?.value} ${this.inactiveFor?.affix} later`
+      if (this.inactiveFor?.affix?.startsWith('hour') && this.inactiveFor?.value > 24) {
+        timeString = 'indefinitely'
+      }
+      return timeString
+    }
   },
   components: {
     ProgressLoader,
-    MiscDialogs
+    MiscDialogs,
+    AppealSettings,
+    ArbiterCurrenciesDialog
   },
   mounted () {
     this.fetchArbiter()
@@ -159,23 +173,17 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
-    openSettings () {
-      this.$q.dialog({
-        component: AppealSettings
-      })
-        // .onOk(currency => {
-        //   // const index = this.fiatCurrencies.indexOf(currency)
-        //   this.selectedCurrency = currency
-        //   this.updateFiatCurrency()
-        //   this.readOnlyState = false
-        // })
-        // .onDismiss(() => {
-        //   this.readOnlyState = false
-        // })
+    refreshContent (done) {
+      this.fetchArbiter()
+      this.fetchFeedback()
+      if (done) done()
     },
     formattedDate (value) {
       const relative = true
       return formatDate(value, relative)
+    },
+    onSetInactive () {
+      this.fetchArbiter()
     },
     async fetchArbiter () {
       const vm = this
@@ -184,8 +192,30 @@ export default {
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.arbiter = response.data
-          vm.arbiter.rating = Number(vm.arbiter.rating)
+          console.log('vm.arbiter:', vm.arbiter)
+          vm.currencies = vm.arbiter.fiat_currencies.slice(0, 5)
+          vm.arbiter.rating = Number(vm.arbiter?.rating)
+          vm.parseInactiveTime(vm.arbiter.inactive_until)
         })
+    },
+    parseInactiveTime (inactiveUntil) {
+      const providedTimestamp = new Date(inactiveUntil).getTime()
+      const currentTimestamp = Date.now()
+      const millisecondsDifference = providedTimestamp - currentTimestamp
+      const hoursDifference = millisecondsDifference / (1000 * 60 * 60)
+      let inactiveFor = {
+        value: Number(Math.ceil(hoursDifference)),
+        affix: hoursDifference.toFixed(0) > 1 ? 'hours' : 'hour'
+      }
+      if (hoursDifference < 1) {
+        const minutesDifference = millisecondsDifference / (1000 * 60)
+        inactiveFor = {
+          value: Number(minutesDifference.toFixed(0)),
+          affix: minutesDifference.toFixed(0) > 1 ? 'minutes' : 'minute'
+        }
+      }
+      this.inactiveFor = inactiveFor
+      return inactiveFor
     },
     async fetchFeedback () {
       const vm = this
@@ -221,16 +251,18 @@ export default {
     },
     async updateUserName (data) {
       const vm = this
-
       const url = '/ramp-p2p/arbiter/detail'
-      const body = {
-        name: data.nickname
+      try {
+        await updateChatIdentity({ id: vm.arbiter.chat_identity_id, name: data.nickname })
+        await backend.patch(url, { name: data.nickname }, { authorize: true })
+          .then(async response => {
+            vm.arbiter = response.data
+            await vm.$store.dispatch('ramp/fetchUser')
+          })
+      } catch (error) {
+        console.error(error?.response || error)
       }
-
-      await backend.patch(url, body, { authorize: true })
-        .then(response => {
-          vm.arbiter = response.data
-        })
+      this.editNickname = false
     },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name

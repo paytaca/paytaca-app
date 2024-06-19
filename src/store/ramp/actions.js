@@ -315,3 +315,16 @@ export async function migrateStoreOrderFilters (context) {
     context.commit('setStoreOrderFiltersMigrate', false)
   }
 }
+
+export function fetchUser (context) {
+  return new Promise((resolve, reject) => {
+    backend.get('/auth/')
+      .then(response => {
+        context.commit('updateUser', response.data)
+        resolve(response.data)
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
