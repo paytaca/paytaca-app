@@ -1760,6 +1760,46 @@ export class EscrowContract {
   }
 }
 
+export class EscrowArbiter {
+  static parse(data) {
+    return new EscrowArbiter(data)
+  }
+
+  constructor(data) { 
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.pubkey
+   * @param {String} data.cash_address
+   * @param {Number} data.user_id
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.pubkey = data?.pubkey
+    this.cashAddress = data?.cash_address
+    this.userId = data?.user_id
+  }
+
+  async getUser() {
+    if (!this.userId) return Promise.resolve()
+
+    return backend.get(`/users/${this.userId}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.user = User.parse(response?.data)
+        return response
+      })
+  }
+}
+
 
 export class ChatSession {
   static parse(data) {

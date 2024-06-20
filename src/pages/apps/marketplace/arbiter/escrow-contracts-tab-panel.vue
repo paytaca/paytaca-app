@@ -455,11 +455,11 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     dialog?.update?.({ message: 'Creating transaction' })
     let promise
     if(settlementType === 'release') {
-      promise = escrow.release(fundingUtxo, props.keys?.privkey)
+      promise = escrow.release(fundingUtxo, props.keys?.wif)
     } else if (settlementType === 'refund') {
       promise = escrow.version === 'v1'
-        ? escrow.refund(fundingUtxo, props.keys?.privkey)
-        : escrow.fullRefund(fundingUtxo, props.keys?.privkey)
+        ? escrow.refund(fundingUtxo, props.keys?.wif)
+        : escrow.fullRefund(fundingUtxo, props.keys?.wif)
     }
     const transaction = await promise
     dialog?.hide?.()

@@ -6,191 +6,214 @@
     @refresh="refreshPage"
   >
     <HeaderNav title="Marketplace" class="header-nav"/>
-    <div v-if="!keys?.privkey" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-      <q-btn
-        no-caps label="Set arbiter private key"
-        color="brandblue"
-        class="full-width q-my-lg"
-        @click="() => promptSetPrivkey()"
-      />
+
+    <div v-if="!initialized">
+      <div class="text-center">
+        <q-spinner v-if="refreshingPage" size="3rem"/>
+        <div v-else class="text-subtitle1 text-grey q-my-lg">
+          Page did not load swipe up to reload.
+        </div>
+      </div>
     </div>
-    <div v-else class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-      <q-item dense class="q-r-mx-md q-mb-sm">
-        <q-item-section>
-          <q-item-label class="text-caption text-grey top">Arbiter Address</q-item-label>
-          <q-item-label style="word-break: break-all;">{{ keys?.address }}</q-item-label>
-        </q-item-section>
-        <q-item-section avatar>
-          <q-btn-dropdown
-            flat
-            padding="sm"
-            dropdown-icon="settings"
-            @click.stop
-            :content-style="{color: darkMode ? 'white' : 'black'}"
-            :content-class="['pt-card-2 text-bow', getDarkModeClass(darkMode)]"
+    <template v-else>
+      <AuthGateway v-if="!user?.id || !escrowArbiter?.pubkey"/>
+      <div v-else class="q-pa-sm">
+        <q-item dense class="q-mb-sm">
+          <q-item-section>
+            <q-item-label class="text-caption text-grey top">Arbiter Address</q-item-label>
+            <q-item-label style="word-break: break-all;">{{ keys?.address }}</q-item-label>
+          </q-item-section>
+          <q-item-section avatar>
+            <q-btn-dropdown
+              flat
+              padding="sm"
+              dropdown-icon="settings"
+              @click.stop
+              :content-style="{color: darkMode ? 'white' : 'black'}"
+              :content-class="['pt-card-2 text-bow', getDarkModeClass(darkMode)]"
+            >
+              <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.privkey, 'Private key copied to clipboard')">
+                <q-item-section>
+                  <q-item-label>Copy private key</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.pubkey, 'Public key copied to clipboard')">
+                <q-item-section>
+                  <q-item-label>Copy public key</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator/>
+              <q-item clickable v-close-popup @click="() => confirmLogout()">
+                <q-item-section>
+                  <q-item-label>Logout</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-btn-dropdown>
+          </q-item-section>
+        </q-item>
+        <!-- <q-banner v-if="authErrors?.length" class="bg-red text-white q-ma-sm" rounded dense>
+          <template v-slot:avatar>
+            <q-icon name="error"/>
+          </template>
+          <div>Arbiter does not match saved private key in device</div>
+          <div>Arbiter does not match with the logged in user</div>
+        </q-banner> -->
+        <EscrowContractsTabPanel
+          ref="escrowContractPanel"
+          :keys="keys"
+          :arbiter-address="keys?.address"
+          :chat-identity="chatIdentity"
+          @open-chat-dialog="onRequestOpenChatDialog"
+        />
+        <div class="fixed-bottom q-pa-sm">
+          <q-btn
+            rounded
+            icon="chat"
+            padding="md"
+            color="brandblue"
+            @click="() => displayChats = true"
           >
-            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.privkey, 'Private key copied to clipboard')">
-              <q-item-section>
-                <q-item-label>Copy private key</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.pubkey, 'Public key copied to clipboard')">
-              <q-item-section>
-                <q-item-label>Copy public key</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-separator/>
-            <q-item clickable v-close-popup @click="() => promptSetPrivkey()">
-              <q-item-section>
-                <q-item-label>Change address</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-btn-dropdown>
-        </q-item-section>
-      </q-item>
-      <EscrowContractsTabPanel
-        ref="escrowContractPanel"
-        :keys="keys"
-        :arbiter-address="keys?.address"
-        :chat-identity="chatIdentity"
-        @open-chat-dialog="onRequestOpenChatDialog"
-      />
-    </div>
-    <div class="fixed-bottom q-pa-sm">
-      <q-btn
-        rounded
-        icon="chat"
-        padding="md"
-        color="brandblue"
-        @click="() => displayChats = true"
-      >
-        <q-badge v-if="unreadChatSessionCount > 0" color="red" floating>
-          {{ unreadChatSessionCount }}
-        </q-badge>
-      </q-btn>
-    </div>
-    <ChatWidget
-      ref="chatWidget"
-      v-model="displayChats"
-      :chat-identity="chatIdentity" :custom-backend="chatBackend"
-      @open-order-escrow-contracts="filterOrderEscrowContracts"
-      @hide="() => updateUnreadChatSessionCount()"
-    />
-  </q-pull-to-refresh>
+            <q-badge v-if="unreadChatSessionCount > 0" color="red" floating>
+              {{ unreadChatSessionCount }}
+            </q-badge>
+          </q-btn>
+        </div>
+        <ChatWidget
+          ref="chatWidget"
+          v-model="displayChats"
+          :chat-identity="chatIdentity" :custom-backend="arbiterBackend"
+          @open-order-escrow-contracts="filterOrderEscrowContracts"
+          @hide="() => updateUnreadChatSessionCount()"
+        />
+      </div>
+    </template>
+  </q-pull-to-refresh>  
 </template>
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { backend } from "src/marketplace/backend";
-import { ChatIdentity } from "src/marketplace/objects";
-import { getWifAddress, getWifPubkey } from "src/marketplace/arbiter";
-import { createBackend } from "src/marketplace/chat/backend";
-import { generateKeypair, getDeviceId } from "src/marketplace/chat/keys";
-import { convertCashAddress } from "src/wallet/chipnet";
-import { loadWallet } from "src/wallet";
-import { RpcWebSocketClient } from 'rpc-websocket-client';
-import BCHJS from "@psf/bch-js"
-import { SecureStoragePlugin } from "capacitor-secure-storage-plugin";
+import { ChatIdentity, EscrowArbiter, User } from "src/marketplace/objects";
+import { getDeviceId } from "src/marketplace/chat/keys";
+import { arbiterBackend, getArbiterKeys, getArbiterWifData, parseWif, setArbiterKeys } from "src/marketplace/arbiter";
+import { bus } from "src/wallet/event-bus";
 import { debounce, useQuasar } from "quasar";
+import { useRouter } from "vue-router";
 import { useStore } from "vuex";
-import { computed, inject, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
+import { computed, inject, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from "vue";
 import HeaderNav from "src/components/header-nav.vue";
+import AuthGateway from "./auth-gateway.vue";
 import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
 import ChatWidget from "./chat-widget.vue";
-
-const STORAGE_KEY = 'marketplace-arbiter-wif'
-const bchjs = new BCHJS()
+import { RpcWebSocketClient } from "rpc-websocket-client";
+import { marketplacePushNotificationsManager } from "src/marketplace/push-notifications";
 
 const $copyText = inject('$copyText')
+const $router = useRouter()
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
 
+const refreshingPage = ref(false)
 const initialized = ref(false)
 onMounted(() => refreshPage())
-onActivated(() => initialized.value ? refreshPage() : null)
 
-const isChipnet = computed(() => $store.getters['global/isChipnet'])
-watch(isChipnet, () => setPrivkey(keys.value?.privkey))
-
-const keys = ref(Object.freeze({
-  privkey: '', pubkey: '', address: '',
-  chat: { privkey: '' , pubkey: '' },
-}))
-
-function setPrivkey(privkey) {
-  const pubkey = getWifPubkey(privkey)
-  const address = convertCashAddress(getWifAddress(privkey), isChipnet.value, false)
-  const chat = generateKeypair({ seed: privkey })
-  keys.value = Object.freeze({ privkey, pubkey, address, chat })
-  SecureStoragePlugin.set({ key: STORAGE_KEY, value: privkey })
+const keys = ref([].map(parseWif)[0])
+async function updateKeys() {
+  keys.value = Object.freeze(await getArbiterWifData())
 }
 
-async function getLastPrivkey() {
-  const response = await SecureStoragePlugin.get({ key: STORAGE_KEY })
-  return response?.value
-}
-
-async function getWalletPrivkeyAt(index) {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  return await wallet.BCH.getPrivateKey(`0/${index}`)
-}
-
-function promptSetPrivkey() {
-  $q.dialog({
-    title: 'Update Session',
-    message: 'Input wallet index or WIF',
-    prompt: { type: 'text' },
-    color: 'brandblue',
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-  }).onOk(async (value) => {
-    const index = parseInt(value)
-    const wif = Number.isFinite(index)
-      ? (await getWalletPrivkeyAt(index))
-      : value
-    setPrivkey(wif)
-  })
-}
-
-const chatBackend = ref(backend)
-watchEffect(() => {
-  if (!keys.value.privkey || !chatIdentity.value?.ref) {
-    chatBackend.value = backend
-    return 
+const escrowArbiter = ref(EscrowArbiter.parse())
+async function fetchEscrowArbiter() {
+  if (!keys?.value) {
+    escrowArbiter.value = EscrowArbiter.parse()
+    return
   }
-  chatBackend.value = createBackend({ chatIdentityRef: chatIdentity.value.ref, privkey: keys.value.privkey })
-})
 
-const chatIdentity = ref([].map(ChatIdentity.parse)[0])
-watch(() => [keys.value?.pubkey], () => getOrCreateChatIdentity())
-function getOrCreateChatIdentity() {
-  const pubkey = keys.value?.pubkey
-  backend.get(`chat/identities/`, { params: { verifying_pubkey: pubkey || '' }})
+  return arbiterBackend.get(`connecta/escrow-arbiters/${keys.value.pubkey}/`)
     .then(response => {
-      const chatIdentityData = response?.data?.results?.find(chatIdentityData => chatIdentityData?.verifying_pubkey === pubkey)
-      if (!chatIdentityData?.id) return registerChatIdentity()
-      chatIdentity.value = ChatIdentity.parse(chatIdentityData)
-      return chatIdentity.value
+      escrowArbiter.value = EscrowArbiter.parse(response.data)
+      return response
     })
 }
 
-async function registerChatIdentity() {
-  const chatIdentityRef = `marketplace-arbiter|${keys.value.pubkey}`
+const user = ref(User.parse())
+async function fetchUser() {
+  return arbiterBackend.get(`users/me/`)
+    .then(response => {
+      user.value = User.parse(response?.data)
+      return response
+    })
+    .catch(error => {
+      if (error?.response?.status === 403) user.value = User.parse()
+      if (error?.response?.status === 401) user.value = User.parse()
+      return Promise.reject(error)
+    })
+}
+
+const chatIdentity = ref(ChatIdentity.parse())
+async function updateChatIdentity() {
   const data = {
-    ref: chatIdentityRef,
-    name: keys.value.pubkey.substring(0, 8),
-    verifying_pubkey: keys.value.pubkey,
-    signature: bchjs.BitcoinCash.signMessageWithPrivKey(
-      keys.value.privkey,
-      Buffer.from(chatIdentityRef).toString('hex'),
-    ),
     pubkey: { pubkey: keys.value.chat.pubkey, device_id: await getDeviceId() }
   }
-  return backend.post(`chat/identities/`, data, { skipSigning: true })
+
+  return arbiterBackend.post(`chat/identities/`, data)
     .then(response => {
       chatIdentity.value = ChatIdentity.parse(response?.data)
-      return chatIdentity.value
+      return response
     })
 }
+
+function confirmLogout() {
+  $q.dialog({
+    title: 'Logout',
+    message: `This will the delete arbiter's private key stored in device. Are you sure?`,
+    color: 'brandblue',
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
+    ok: { color: 'red', noCaps: true, label: 'Logout' },
+    cancel: { color: 'grey', noCaps: true, label: 'Cancel', flat: true },
+  })
+    .onOk(() => setArbiterKeys())
+}
+
+const AUTH_ERROR_CODES = Object.freeze({
+  PUBKEY_MISMATCH: 'pubkey-mismatch',
+  USER_MISMATCH: 'user-mismatch',
+})
+const authErrors = computed(() => {
+  if (!escrowArbiter.value?.pubkey || !user.value?.id) return false
+  const errors = []
+  if (keys.value?.pubkey && keys.value?.pubkey !== escrowArbiter.value?.pubkey) errors.push(AUTH_ERROR_CODES.PUBKEY_MISMATCH)
+  if (user.value?.id && user.value?.id !== escrowArbiter.value?.userId) errors.push(AUTH_ERROR_CODES.USER_MISMATCH)
+  return errors
+})
+
+function promptAuthErrors() {
+  if (!authErrors.value?.length) return
+  $q.dialog({
+    title: 'Session error',
+    message: `Logged in session does not match with arbiter's keys stored in device`,
+    color: 'brandblue',
+    persistent: true,
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
+    ok: { color: 'red', noCaps: true, label: 'Clear session' },
+    cancel: { color: 'grey', noCaps: true, label: 'Go back' },
+  })
+    .onOk(() => setArbiterKeys())
+    .onCancel(() => $router.replace({ path: '/apps' }))
+}
+
+function onArbiterKeysUpdate() {
+  return refreshPage()
+}
+onMounted(() => {
+  bus.on('arbiter-keys-updated', onArbiterKeysUpdate)
+  bus.on('arbiter-keys-removed', onArbiterKeysUpdate)
+})
+onUnmounted(() => {
+  bus.off('arbiter-keys-updated', onArbiterKeysUpdate)
+  bus.off('arbiter-keys-removed', onArbiterKeysUpdate)
+})
+/** ------------------------------------------------------------------ */
+/** ------------------------------------------------------------------ */
 
 onActivated(() => connectRpcClient())
 onDeactivated(() => disconnectRpcClient())
@@ -238,7 +261,7 @@ rpcClient.onOpen(() => {
   subscribeRpcEvents()
 })
 async function connectRpcClient() {
-  const backendUrl = new URL(chatBackend.value.defaults.baseURL)
+  const backendUrl = new URL(arbiterBackend.defaults.baseURL)
   const host = backendUrl.host
   const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
   const url = `${scheme}://${host}/ws/chat/rpc/`
@@ -271,10 +294,10 @@ async function subscribeRpcEvents() {
     console.log('Not subscribing chat updates without chat identity id')
   }
 
-  if (keys.value.address) {
+  if (keys.value?.address) {
     promises.push(
       rpcClient.call('subscribe', [rpcEventNames.escrowFunding, { arbiter_address: keys.value?.address }]),
-      rpcClient.call('subscribe', [rpcEventNames.escrowSettlement, { chat_identity_id: keys.value?.address }]),
+      rpcClient.call('subscribe', [rpcEventNames.escrowSettlement, { arbiter_address: keys.value?.address }]),
     )
   } else {
     console.log('Not subscribing escrow updates without arbiter address')
@@ -283,6 +306,8 @@ async function subscribeRpcEvents() {
   await Promise.all(promises)
 }
 
+/** ------------------------------------------------------------------ */
+/** ------------------------------------------------------------------ */
 
 const displayChats = ref(false)
 const chatWidget = ref()
@@ -326,7 +351,7 @@ const updateUnreadChatSessionCount = debounce(() => {
     chat_identity_id: chatIdentity.value?.id || 0,
   }
 
-  return chatBackend.value.get(`chat/members/full_info/`, { params })
+  return arbiterBackend.value.get(`chat/members/full_info/`, { params })
     .then(response => {
       unreadChatSessionCount.value = response?.data?.count
       return response
@@ -334,13 +359,17 @@ const updateUnreadChatSessionCount = debounce(() => {
 }, 2500)
 
 
-async function refreshPage(done=() => {}) {
+async function refreshPage(done= () => {}) {
   try {
-    const privkey = await getLastPrivkey()
-    if (privkey) setPrivkey(privkey)
-    setTimeout(() => refreshEscrowContractPanel(), 100)
+    refreshingPage.value = true
+    await Promise.all([
+      updateKeys().then(() => fetchEscrowArbiter()),
+      fetchUser().then(() => updateChatIdentity()),
+    ])
+    promptAuthErrors()
   } finally {
-    initialized.value =true
+    initialized.value = true
+    refreshingPage.value = false
     done()
   }
 }
