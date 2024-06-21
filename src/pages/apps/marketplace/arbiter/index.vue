@@ -19,9 +19,15 @@
       <AuthGateway v-if="!user?.id || !escrowArbiter?.pubkey"/>
       <div v-else class="q-pa-sm">
         <q-item dense class="q-mb-sm">
+          <q-item-section side>
+            <div class="user-icon" role="button" @click="() => updateUserProfile()">
+              <q-img :src="userImage" style="width:100%;border-radius: 999px;" ratio="1" />
+            </div>
+          </q-item-section>
           <q-item-section>
+            <q-item-label class="text-body1">{{ user?.fullName }}</q-item-label>
             <q-item-label class="text-caption text-grey top">Arbiter Address</q-item-label>
-            <q-item-label style="word-break: break-all;">{{ keys?.address }}</q-item-label>
+            <q-item-label class="text-caption" style="word-break: break-all;">{{ keys?.address }}</q-item-label>
           </q-item-section>
           <q-item-section avatar>
             <q-btn-dropdown
@@ -94,7 +100,9 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { ChatIdentity, EscrowArbiter, User } from "src/marketplace/objects";
 import { getDeviceId } from "src/marketplace/chat/keys";
 import { arbiterBackend, getArbiterKeys, getArbiterWifData, parseWif, setArbiterKeys } from "src/marketplace/arbiter";
+import { marketplacePushNotificationsManager } from "src/marketplace/push-notifications";
 import { bus } from "src/wallet/event-bus";
+import { RpcWebSocketClient } from "rpc-websocket-client";
 import { debounce, useQuasar } from "quasar";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
@@ -103,8 +111,9 @@ import HeaderNav from "src/components/header-nav.vue";
 import AuthGateway from "./auth-gateway.vue";
 import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
 import ChatWidget from "./chat-widget.vue";
-import { RpcWebSocketClient } from "rpc-websocket-client";
-import { marketplacePushNotificationsManager } from "src/marketplace/push-notifications";
+import ArbiterProfileFormDialog from "src/components/marketplace/arbiter/ArbiterProfileFormDialog.vue";
+
+import blankUserImg from 'src/assets/blank_user_image.webp'
 
 const $copyText = inject('$copyText')
 const $router = useRouter()
@@ -146,6 +155,27 @@ async function fetchUser() {
       if (error?.response?.status === 403) user.value = User.parse()
       if (error?.response?.status === 401) user.value = User.parse()
       return Promise.reject(error)
+    })
+}
+const userImage = computed(() => {
+  if (user.value?.profilePictureUrl) return user.value?.profilePictureUrl
+
+  if (user.value?.firstName || user.value?.lastName) {
+    const fullName = `${user.value?.firstName} ${user.value?.lastName}`
+    return `https://api.dicebear.com/5.x/initials/svg?seed=${fullName}`
+  }
+  return blankUserImg
+})
+function updateUserProfile() {
+  $q.dialog({
+    component: ArbiterProfileFormDialog,
+    componentProps: {
+      user: user.value,
+    }
+  })
+    .onOk(data => {
+      if (data instanceof User) user.value = data
+      else fetchUser()
     })
 }
 
@@ -384,3 +414,10 @@ function copyToClipboard(value, message) {
   })
 }
 </script>
+<style scoped lang="scss">
+.user-icon {
+  height: 35px;
+  width: 35px;
+  overflow:hidden;
+}
+</style>
