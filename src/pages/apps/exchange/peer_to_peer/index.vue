@@ -100,6 +100,7 @@ export default {
       console.log('refreshChildren')
     },
     handleSessionEvent () {
+      console.log('handleSessionEvent')
       this.showLogin = true
     },
     fetchUser () {

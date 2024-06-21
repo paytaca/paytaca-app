@@ -165,12 +165,31 @@ const routes = [
               {
                 path: 'store/',
                 name: 'p2p-store',
-                component: () => import('src/pages/apps/exchange/peer_to_peer/store.vue')
+                component: () => import('src/pages/apps/exchange/peer_to_peer/store.vue'),
+                children: [
+                  {
+                    path: 'form/:ad',
+                    name: 'p2p-store-form',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/order-form.vue')
+                  }
+                ]
               },
               {
                 path: 'ads/',
                 name: 'p2p-ads',
-                component: () => import('src/pages/apps/exchange/peer_to_peer/ads.vue')
+                component: () => import('src/pages/apps/exchange/peer_to_peer/ads.vue'),
+                children: [
+                  {
+                    path: 'form/:ad/edit',
+                    name: 'p2p-ads-edit-form',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/ad-form.vue')
+                  },
+                  {
+                    path: 'form/create',
+                    name: 'p2p-ads-create-form',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/ad-form.vue')
+                  }
+                ]
               },
               {
                 path: 'orders/',

@@ -1,274 +1,280 @@
 <template>
-    <div
-      v-if="step === 1"
-      class="text-bow"
-      :class="getDarkModeClass(darkMode)">
-      <div v-if="step === 1">
-        <div
-          class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
-          :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
-          :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-          <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
-          <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
+  <div
+    v-if="step === 1"
+    class="text-bow"
+    :class="getDarkModeClass(darkMode)">
+    <div v-if="step === 1">
+      <div
+        class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
+        :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
+        :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+        <span v-if="adsState === 'create'">POST {{ transactionType?.toUpperCase() }} AD</span>
+        <span v-if="adsState === 'edit'">EDIT {{ transactionType?.toUpperCase() }} AD</span>
+      </div>
+      <!-- Price Settings -->
+      <div v-if="loading">
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader/>
         </div>
-        <!-- Price Settings -->
-        <div v-if="loading">
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader/>
-          </div>
-        </div>
-        <div class="q-pt-sm" v-else>
-          <q-scroll-area :style="`height: ${minHeight}px`" style="overflow-y:auto;">
-            <div class="q-px-lg">
-              <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
-                <span>Price Setting</span>&nbsp;
-              </div>
-              <div class="text-center q-mx-md">
-                <q-btn-toggle
+      </div>
+      <div class="q-pt-sm" v-else>
+        <q-scroll-area :style="`height: ${minHeight}px`" style="overflow-y:auto;">
+          <div class="q-px-lg">
+            <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
+              <span>Price Setting</span>&nbsp;
+            </div>
+            <div class="text-center q-mx-md">
+              <q-btn-toggle
+                dense
+                v-model="adData.priceType"
+                spread
+                class="br-15"
+                :style="transactionType === 'BUY' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
+                no-caps
+                unelevated
+                :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                :options="[
+                  {label: 'Fixed', value: 'FIXED'},
+                  {label: 'Floating', value: 'FLOATING'}
+                ]">
+              </q-btn-toggle>
+            </div>
+            <div class="row q-py-sm q-gutter-sm q-px-md sm-font-size">
+              <div class="col-4">
+                <div class="q-pl-sm q-pb-xs">Fiat Currency</div>
+                <q-input
                   dense
-                  v-model="adData.priceType"
-                  spread
-                  class="br-15"
-                  :style="transactionType === 'BUY' ? 'border: 1px solid #2196F3' : 'border: 1px solid #ed5f59'"
-                  no-caps
-                  unelevated
-                  :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                  :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                  :options="[
-                    {label: 'Fixed', value: 'FIXED'},
-                    {label: 'Floating', value: 'FLOATING'}
-                  ]">
-                </q-btn-toggle>
+                  rounded
+                  :disable="readOnlyState"
+                  outlined
+                  :dark="darkMode"
+                  v-model="selectedCurrency.symbol"
+                  @click="showCurrencySelect"
+                >
+                  <template v-slot:append>
+                    <q-icon size="sm" name='mdi-menu-down' @click="showCurrencySelect"/>
+                  </template>
+                </q-input>
               </div>
-              <div class="row q-py-sm q-gutter-sm q-px-md sm-font-size">
-                <div class="col-4">
-                  <div class="q-pl-sm q-pb-xs">Fiat Currency</div>
+              <div class="col">
+                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price' }}</div>
+                <q-input
+                  dense
+                  rounded
+                  outlined
+                  hide-bottom-space
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                  :dark="darkMode"
+                  type="number"
+                  :rules="numberValidation"
+                  @blur="updatePriceValue(adData.priceType)"
+                  v-model="priceValue">
+                  <template v-slot:prepend>
+                    <q-icon name="remove" @click="decPriceValue()"/>
+                  </template>
+                  <template v-slot:append>
+                    <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
+                    <q-icon name="add" @click="incPriceValue()" />
+                  </template>
+                  <template v-slot:hint>
+                    <div class="text-right">{{ hints.priceValue }}</div>
+                  </template>
+                </q-input>
+              </div>
+            </div>
+            <div class="q-mx-lg sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
+              <div class="row justify-between">
+                <span class="col text-left">Your Price</span>
+                <span class="col text-right">Current Market Price</span>
+              </div>
+              <div class="row justify-between">
+                <span class="col text-left text-weight-bold md-font-size">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(priceAmount).replace(/[^\d.,-]/g, '') }}</span>
+                <span class="col text-right md-font-size" style="float: right;">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(marketPrice).replace(/[^\d.,-]/g, '') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trade Quantity -->
+          <div class="q-mx-lg q-mt-md">
+            <div class="q-mt-sm q-px-md">
+              <div class="q-pb-xs q-pl-sm">
+                <span class="text-weight-bold">Trade Quantity</span>&nbsp;
+              </div>
+              <q-input
+                ref="tradeAmountRef"
+                dense
+                outlined
+                rounded
+                hide-bottom-space
+                type="number"
+                :hint="hints.tradeAmount"
+                :dark="darkMode"
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                :rules="[tradeAmountValidation]"
+                v-model="adData.tradeAmount"
+                @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
+                <template v-slot:prepend>
+                  <span class="text-weight-bold sm-font-size">
+                    {{ setTradeQuantityInFiat?  selectedCurrency.symbol : 'BCH'}}
+                  </span>
+                </template>
+              </q-input>
+            </div>
+            <q-checkbox size="sm" v-model="setTradeQuantityInFiat" class="q-mx-md sm-font-size" color="blue-8">Set quantity in fiat </q-checkbox>
+            <div class="q-px-md q-mt-sm">
+              <div class="q-pb-xs q-pl-sm text-weight-bold">
+                <span>Trade Limit</span>&nbsp;
+              </div>
+              <div class="row">
+                <div class="col">
+                  <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
                   <q-input
+                    ref="tradeFloorRef"
                     dense
-                    rounded
-                    :disable="readOnlyState"
                     outlined
+                    rounded=""
+                    type="number"
+                    hide-bottom-space
+                    :hint="hints.minAmount"
                     :dark="darkMode"
-                    v-model="selectedCurrency.symbol"
-                    @click="showCurrencySelect"
-                  >
+                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                    :rules="[tradeLimitValidation]"
+                    v-model="adData.tradeFloor"
+                    @blur="$refs.tradeCeilingRef.validate(); $refs.tradeAmountRef.validate()">
                     <template v-slot:append>
-                      <q-icon size="sm" name='mdi-menu-down' @click="showCurrencySelect"/>
+                      <span class="sm-font-size">{{ setTradeLimitsInFiat?  selectedCurrency.symbol : 'BCH'}}</span>
                     </template>
                   </q-input>
+                </div>
+                <div class="col-1 text-center">
+                  <q-icon class="q-pt-md q-mt-lg" name="remove"/>
                 </div>
                 <div class="col">
-                  <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price' }}</div>
+                  <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
                   <q-input
+                    ref="tradeCeilingRef"
                     dense
-                    rounded
                     outlined
+                    rounded
                     hide-bottom-space
-                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    :dark="darkMode"
                     type="number"
-                    :rules="numberValidation"
-                    @blur="updatePriceValue(adData.priceType)"
-                    v-model="priceValue">
-                    <template v-slot:prepend>
-                      <q-icon name="remove" @click="decPriceValue()"/>
-                    </template>
+                    :dark="darkMode"
+                    :hint="hints.maxAmount"
+                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                    :rules="[tradeLimitValidation]"
+                    v-model="adData.tradeCeiling"
+                    @blur="$refs.tradeFloorRef.validate(); $refs.tradeAmountRef.validate()">
                     <template v-slot:append>
-                      <q-icon v-if="adData.priceType === 'FLOATING'" size="xs" name="percent" />
-                      <q-icon name="add" @click="incPriceValue()" />
-                    </template>
-                    <template v-slot:hint>
-                      <div class="text-right">{{ hints.priceValue }}</div>
+                      <span class="sm-font-size">{{ setTradeLimitsInFiat?  selectedCurrency.symbol : 'BCH'}}</span>
                     </template>
                   </q-input>
-                </div>
-              </div>
-              <div class="q-mx-lg sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
-                <div class="row justify-between">
-                  <span class="col text-left">Your Price</span>
-                  <span class="col text-right">Current Market Price</span>
-                </div>
-                <div class="row justify-between">
-                  <span class="col text-left text-weight-bold md-font-size">{{ formattedCurrency(priceAmount) }}</span>
-                  <span class="col text-right md-font-size" style="float: right;">{{ formattedCurrency(marketPrice) }}</span>
                 </div>
               </div>
             </div>
+            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8"> Set limits in fiat </q-checkbox>
+          </div>
 
-            <!-- Trade Quantity -->
-            <div class="q-mx-lg q-mt-md">
-              <div class="q-mt-sm q-px-md">
-                <div class="q-pb-xs q-pl-sm">
-                  <span class="text-weight-bold">Trade Quantity</span>&nbsp;
-                </div>
-                <q-input
-                  ref="tradeAmountRef"
+          <!-- Appeal Cooldown -->
+          <div class="q-mx-lg">
+            <div class="q-px-lg">
+              <div class="q-pt-md">Set orders appealable after</div>
+            </div>
+            <div class="q-mx-md q-pt-sm">
+              <q-select
                   dense
                   outlined
                   rounded
                   hide-bottom-space
-                  :hint="hints.tradeAmount"
+                  :hint="hints.appealCooldown"
+                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                   :dark="darkMode"
-                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                  type="number"
-                  :rules="tradeAmountValidation"
-                  v-model="adData.tradeAmount"
-                  @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
-                  <template v-slot:prepend>
-                    <span class="text-weight-bold sm-font-size">
-                      BCH
-                    </span>
-                  </template>
-                </q-input>
-              </div>
-              <div class="q-px-md q-mt-sm">
-                <div class="q-pb-xs q-pl-sm text-weight-bold">
-                  <span>Trade Limit</span>&nbsp;
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
-                    <q-input
-                      ref="tradeFloorRef"
-                      dense
-                      outlined
-                      rounded=""
-                      type="number"
-                      hide-bottom-space
-                      :hint="hints.minAmount"
-                      :dark="darkMode"
-                      :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                      :rules="tradeLimitValidation"
-                      v-model="adData.tradeFloor"
-                      @blur="$refs.tradeCeilingRef.validate(); $refs.tradeAmountRef.validate()">
-                      <template v-slot:append>
-                        <span class="sm-font-size">{{ adData.cryptoCurrency.symbol  }}</span>
-                      </template>
-                    </q-input>
-                  </div>
-                  <div class="col-1 text-center">
-                    <q-icon class="q-pt-md q-mt-lg" name="remove"/>
-                  </div>
-                  <div class="col">
-                    <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
-                    <q-input
-                      ref="tradeCeilingRef"
-                      dense
-                      outlined
-                      rounded
-                      hide-bottom-space
-                      type="number"
-                      :dark="darkMode"
-                      :hint="hints.maxAmount"
-                      :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                      :rules="tradeLimitValidation"
-                      v-model="adData.tradeCeiling"
-                      @blur="$refs.tradeFloorRef.validate(); $refs.tradeAmountRef.validate()">
-                      <template v-slot:append>
-                        <span class="sm-font-size">{{ adData.cryptoCurrency.symbol }}</span>
-                      </template>
-                    </q-input>
-                  </div>
-                </div>
-              </div>
+                  v-model="appealCooldown"
+                  :options="cdSelection"
+                  @update:modelValue="updateAppealCooldown()">
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section>
+                      <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ scope.opt.label }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
-
-            <!-- Appeal Cooldown -->
-            <div class="q-mx-lg">
-              <div class="q-px-lg">
-                <div class="q-pt-md">Set orders appealable after</div>
-              </div>
-              <div class="q-mx-md q-pt-sm">
-                <q-select
-                    dense
-                    outlined
-                    rounded
-                    hide-bottom-space
-                    :hint="hints.appealCooldown"
-                    :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                    :dark="darkMode"
-                    v-model="appealCooldown"
-                    :options="cdSelection"
-                    @update:modelValue="updateAppealCooldown()">
-                  <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
-                      <q-item-section>
-                        <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                          {{ scope.opt.label }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                </q-select>
-              </div>
-              <div class="q-mx-md">
-                <q-checkbox
-                  :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                  v-model="adData.isPublic"
-                  label="Public"
-                />
-              </div>
-            </div>
-            <div class="row q-mx-lg q-px-md q-mt-xs q-mb-md">
-              <q-btn
-                :disable="checkPostData()"
-                rounded
-                no-caps
-                label="Next"
+            <div class="q-mx-md">
+              <q-checkbox
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
-                class="q-space"
-                @click="checkSubmitOption()"
+                v-model="adData.isPublic"
+                label="Public"
               />
             </div>
-          </q-scroll-area>
-        </div>
+            <!-- Warning message for when no currency arbiter is available for ad -->
+            <div v-if="!hasArbiters" class="warning-box q-mx-lg q-mb-md q-mt-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+              There’s currently no arbiter assigned for the currency ({{ this.adData.fiatCurrency?.symbol }}). Orders cannot be placed for this ad until an arbiter is assigned.
+            </div>
+          </div>
+          <div class="row q-mx-lg q-px-md q-mt-xs q-mb-md">
+            <q-btn
+              :disable="checkPostData()"
+              rounded
+              no-caps
+              label="Next"
+              :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+              class="q-space"
+              @click="checkSubmitOption()"
+            />
+          </div>
+        </q-scroll-area>
       </div>
-      <div v-if="step > 3">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-        </div>
+    </div>
+    <div v-if="step > 3">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
-    <div v-if="step === 2">
-      <AddPaymentMethods
-        :type="'Ads'"
-        :confirm-label="'Next'"
-        :currency="adData.fiatCurrency.symbol"
-        :currentPaymentMethods="adData.paymentMethods"
-        v-on:submit="appendPaymentMethods"
-        @back="step--"
-      />
-    </div>
-    <div v-if="step === 3">
-      <DisplayConfirmation
-        :post-data="adData"
-        :ptl="appealCooldown"
-        :transaction-type="transactionType"
-        v-on:back="step--"
-        @submit="onSubmit()"
-      />
-    </div>
-    <div v-if="openDialog" >
-      <MiscDialogs
-        :type="'instructionDialog'"
-        :title=title
-        :text=text
-        v-on:back="openDialog = false"
-      />
-    </div>
-  </template>
+  </div>
+  <div v-if="step === 2">
+    <AddPaymentMethods
+      :type="'Ads'"
+      :confirm-label="'Next'"
+      :currency="adData.fiatCurrency.symbol"
+      :currentPaymentMethods="adData.paymentMethods"
+      v-on:submit="appendPaymentMethods"
+      @back="step--"
+    />
+  </div>
+  <div v-if="step === 3">
+    <DisplayConfirmation
+      :post-data="confirmationData"
+      :ptl="appealCooldown"
+      :transaction-type="transactionType"
+      v-on:back="step--"
+      @submit="onSubmit()"
+    />
+  </div>
+  <div v-if="openDialog" >
+    <MiscDialogs
+      :type="'instructionDialog'"
+      :title=title
+      :text=text
+      v-on:back="openDialog = false"
+    />
+  </div>
+</template>
 <script>
+import { ref } from 'vue'
+import { debounce } from 'quasar'
+import { bus } from 'src/wallet/event-bus.js'
+import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import DisplayConfirmation from 'src/components/ramp/fiat/DisplayConfirmation.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { debounce } from 'quasar'
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
-import { bus } from 'src/wallet/event-bus.js'
-import { ref } from 'vue'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 
 export default {
   setup () {
@@ -292,7 +298,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      loading: false,
+      loading: true,
       openDialog: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
@@ -347,17 +353,6 @@ export default {
         (val) => !!val || 'This is required',
         (val) => val > 0 || 'Cannot be zero'
       ],
-      tradeLimitValidation: [
-        (val) => !!val || 'This is required',
-        (val) => val > 0 || 'Cannot be zero',
-        (val) => Number(val) <= Number(this.adData.tradeAmount) || 'Cannot exceed trade quantity',
-        () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || 'Invalid range'
-      ],
-      tradeAmountValidation: [
-        (val) => !!val || 'This is required',
-        (val) => val > 0 || 'Cannot be zero',
-        (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
-      ],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       instruction: { // temp
         'price-setting': {
@@ -375,43 +370,85 @@ export default {
       },
       title: '',
       text: '',
-      readOnlyState: false
+      readOnlyState: false,
+      setTradeQuantityInFiat: false,
+      setTradeLimitsInFiat: false,
+      arbiterOptions: [],
+      transactionType: null
     }
   },
   props: {
-    transactionType: String,
+    // transactionType: String,
     adsState: String,
     selectedAdId: Number
   },
-  created () {
-    bus.emit('hide-menu')
-  },
   computed: {
+    hasArbiters () {
+      return this.arbiterOptions.length > 0
+    },
     hints () {
       return {
         priceValue: this.adData.priceType === 'FLOATING' ? `Price is ${this.priceValue}% of market price` : 'Fixed prices do not change',
-        tradeAmount: `The total amount of BCH you want to ${this.transactionType.toLocaleLowerCase()}`,
+        tradeAmount: `The total amount of BCH you want to ${this.transactionType?.toLocaleLowerCase()}`,
         minAmount: 'The min amount per transaction',
         maxAmount: 'The max amount per transaction',
         appealCooldown: 'The waiting period before counterparties can submit dispute appeals'
       }
+    },
+    confirmationData () {
+      const vm = this
+      const data = { ...vm.adData }
+      data.isTradeAmountFiat = this.setTradeQuantityInFiat
+      data.isTradeLimitsFiat = this.setTradeLimitsInFiat
+      console.log('confirmationData:', data)
+      return data
     }
   },
-  async mounted () {
-    const vm = this
-    vm.loading = true
-    vm.fetchAd()
-    await vm.getInitialMarketPrice()
-    vm.updatePriceValue(vm.adData.priceType)
-    vm.loading = false
-    vm.setupWebsocket()
-    vm.adData.tradeType = vm.transactionType.toUpperCase()
-    await vm.getFiatCurrencies()
-  },
-  beforeUnmount () {
-    this.closeWSConnection()
-  },
   watch: {
+    setTradeQuantityInFiat (value) {
+      console.log('setTradeQuantityInFiat:', value)
+      if (this.loading) return
+      if (value) {
+        let amount = this.adData.tradeAmount * this.marketPrice
+        if (amount % 1 !== 0) {
+          amount = amount.toFixed(2)
+        }
+        this.adData.tradeAmount = amount
+      } else {
+        let amount = this.adData.tradeAmount / this.marketPrice
+        if (amount % 1 !== 0) {
+          amount = amount.toFixed(8)
+        }
+        this.adData.tradeAmount = amount
+      }
+      console.log('tradeAmount__:', this.adData.tradeAmount)
+    },
+    setTradeLimitsInFiat (value) {
+      if (this.loading) return
+      if (value) {
+        let floor = this.adData.tradeFloor * this.marketPrice
+        let ceiling = this.adData.tradeCeiling * this.marketPrice
+        if (floor % 1 !== 0) {
+          floor = floor.toFixed(2)
+        }
+        if (ceiling % 1 !== 0) {
+          ceiling = ceiling.toFixed(2)
+        }
+        this.adData.tradeFloor = floor
+        this.adData.tradeCeiling = ceiling
+      } else {
+        let floor = this.adData.tradeFloor / this.marketPrice
+        let ceiling = this.adData.tradeCeiling / this.marketPrice
+        if (floor % 1 !== 0) {
+          floor = floor.toFixed(8)
+        }
+        if (ceiling % 1 !== 0) {
+          ceiling = ceiling.toFixed(8)
+        }
+        this.adData.tradeFloor = floor
+        this.adData.tradeCeiling = ceiling
+      }
+    },
     step (value) {
       this.$emit('updatePageName', `ad-form-${value}`)
     },
@@ -424,6 +461,7 @@ export default {
     'adData.fiatCurrency' () {
       this.adData.fixedPrice = 0
       this.getInitialMarketPrice()
+      this.fetchArbiters()
     },
     'adData.priceType' (value) {
       const vm = this
@@ -448,9 +486,60 @@ export default {
       }
     }
   },
+  created () {
+    bus.emit('hide-menu')
+  },
+  async mounted () {
+    this.loadFormData()
+  },
+  beforeUnmount () {
+    this.closeWSConnection()
+  },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    async loadFormData () {
+      // determine if form is edit or create
+      console.log('loadFormData:', this.$route.name)
+      if (this.$route.name === 'p2p-ads-edit-form') {
+        await this.fetchAd(this.$route.params?.ad)
+        this.transactionType = this.adData?.tradeType?.toUpperCase()
+      }
+      if (this.$route.name === 'p2p-ads-create-form') {
+        this.transactionType = this.$route.query?.type
+      }
+      console.log('____transactionType:', this.transactionType)
+
+      await this.fetchArbiters()
+      await this.getFiatCurrencies()
+      this.getInitialMarketPrice()
+      this.updatePriceValue(this.adData.priceType)
+      this.setupWebsocket()
+      // this.adData.tradeType = this.transactionType?.toUpperCase()
+      this.loading = false
+    },
+    tradeAmountValidation (val) {
+      if (!val) return 'This is required'
+      if (val <= 0) return 'Cannot be zero'
+      let tradeFloor = Number(this.adData.tradeFloor)
+      if (this.setTradeLimitsInFiat) tradeFloor = (tradeFloor / this.marketPrice).toFixed(8)
+      let tradeAmount = Number(val)
+      if (this.setTradeQuantityInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
+      if (tradeFloor > tradeAmount) return 'Cannot be less than min trade limit'
+    },
+    tradeLimitValidation (val) {
+      if (!val) return 'This is required'
+      if (val <= 0) return 'Cannot be zero'
+      if (Number(this.adData.tradeFloor) > Number(this.adData.tradeCeiling)) return 'Invalid range'
+
+      let tradeAmount = Number(this.adData.tradeAmount)
+      if (this.setTradeQuantityInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
+      let tradeLimit = Number(val)
+      if (this.setTradeLimitsInFiat) tradeLimit = (tradeLimit / this.marketPrice).toFixed(8)
+      if (tradeLimit > tradeAmount) return 'Cannot exceed trade quantity'
+
+      return true
+    },
     showCurrencySelect () {
       this.readOnlyState = true
       this.$q.dialog({
@@ -476,11 +565,13 @@ export default {
 
       this.openDialog = true
     },
-    fetchAd () {
+    async fetchAd (id) {
       const vm = this
-      if (!vm.selectedAdId) return
-      backend.get(`/ramp-p2p/ad/${vm.selectedAdId}`, { authorize: true })
+      // const selectedAdId = this.$route.params?.ad
+      if (!id) return
+      await backend.get(`/ramp-p2p/ad/${id}`, { authorize: true })
         .then(response => {
+          console.log('response:', response)
           const data = response.data
           vm.adData.tradeType = data.trade_type
           vm.adData.priceType = data.price_type
@@ -489,12 +580,35 @@ export default {
           vm.adData.fiatCurrency = data.fiat_currency
           vm.adData.tradeAmount = parseFloat(data.trade_amount)
           vm.adData.tradeFloor = parseFloat(data.trade_floor)
-          vm.adData.tradeCeiling = parseFloat(data.trade_ceiling) ? parseFloat(data.trade_ceiling) : parseFloat(data.trade_amount)
+          // vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
+          // if trade amount is lesser than trade_ceiling, set trade_amount as trade_ceiling
+          let tradeAmount = parseFloat(data.trade_amount)
+          let tradeCeiling = parseFloat(data.trade_ceiling)
+
+          if (data.trade_limits_in_fiat) {
+            // if trade_limits in fiat and trade_amount in BCH
+            // convert trade_amount to fiat
+            if (!data.trade_amount_in_fiat) {
+              tradeAmount = tradeAmount * vm.marketPrice
+            }
+            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+          } else {
+            // If trade_limits in BCH and trade_amount in fiat:
+            // convert trade amount to BCH
+            if (data.trade_amount_in_fiat) {
+              tradeAmount = tradeAmount / vm.marketPrice
+            }
+            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+          }
+
+          vm.adData.tradeCeiling = tradeCeiling
           vm.adData.paymentMethods = data.payment_methods
           vm.adData.isPublic = data.is_public
           vm.appealCooldown = getAppealCooldown(data.appeal_cooldown)
           vm.adData.appealCooldown = vm.appealCooldown
           vm.selectedCurrency = data.fiat_currency
+          vm.setTradeLimitsInFiat = data.trade_limits_in_fiat
+          vm.setTradeQuantityInFiat = data.trade_amount_in_fiat
 
           // price
           if (vm.adData.priceType === 'FLOATING') {
@@ -504,9 +618,9 @@ export default {
           }
 
           // check tradeCeiling & tradeAmount
-          if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
-            vm.adData.tradeCeiling = vm.adData.tradeAmount
-          }
+          // if (vm.adData.tradeCeiling > vm.adData.tradeAmount) {
+          //   vm.adData.tradeCeiling = vm.adData.tradeAmount
+          // }
         })
         .catch(error => {
           vm.swipeStatus = false
@@ -534,7 +648,8 @@ export default {
       const vm = this
       return new Promise((resolve, reject) => {
         const body = vm.transformPostData(false)
-        backend.put(`/ramp-p2p/ad/${vm.selectedAdId}`, body, { authorize: true })
+        const selectedAdId = vm.$route.params?.ad
+        backend.put(`/ramp-p2p/ad/${selectedAdId}`, body, { authorize: true })
           .then(response => {
             vm.swipeStatus = true
             vm.$emit('submit')
@@ -543,6 +658,23 @@ export default {
           .catch(error => {
             vm.handleRequestError(error)
             vm.swipeStatus = false
+            reject(error)
+          })
+      })
+    },
+    fetchArbiters () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        backend.get('ramp-p2p/arbiter', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
+          .then(response => {
+            vm.arbiterOptions = response.data
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error.response)
+            if (error.response && error.response.status === 403) {
+              bus.emit('session-expired')
+            }
             reject(error)
           })
       })
@@ -641,6 +773,18 @@ export default {
       const defaultCrypto = 'BCH'
       const data = vm.adData
       const idList = data.paymentMethods.map(obj => obj.id)
+      // let tradeAmount = parseFloat(data.tradeAmount)
+      // if (vm.setTradeQuantityInFiat) {
+      //   tradeAmount = (tradeAmount / vm.marketPrice).toFixed(8)
+      // }
+      // let tradeFloor = parseFloat(data.tradeFloor)
+      // if (vm.setTradeLimitsInFiat) {
+      //   tradeFloor = (tradeFloor / vm.marketPrice).toFixed(8)
+      // }
+      // let tradeCeiling = parseFloat(data.tradeCeiling)
+      // if (vm.setTradeLimitsInFiat) {
+      //   tradeCeiling = (tradeCeiling / vm.marketPrice).toFixed(8)
+      // }
       return {
         trade_type: data.tradeType,
         price_type: data.priceType,
@@ -651,6 +795,8 @@ export default {
         trade_floor: parseFloat(data.tradeFloor),
         trade_ceiling: parseFloat(data.tradeCeiling),
         trade_amount: parseFloat(data.tradeAmount),
+        trade_limits_in_fiat: this.setTradeLimitsInFiat,
+        trade_amount_in_fiat: this.setTradeQuantityInFiat,
         appeal_cooldown_choice: data.appealCooldown.value,
         payment_methods: idList,
         is_public: data.isPublic
@@ -736,10 +882,10 @@ export default {
     checkPostData () {
       const vm = this
       if (!vm.isAmountValid(vm.priceAmount) ||
-            !vm.isAmountValid(vm.adData.tradeAmount) ||
-            !vm.isAmountValid(vm.adData.tradeCeiling) ||
-            !vm.isAmountValid(vm.adData.tradeFloor) ||
-            !vm.tradeLimitsValid()) {
+          !vm.isAmountValid(vm.adData.tradeAmount) ||
+          !vm.isAmountValid(vm.adData.tradeCeiling) ||
+          !vm.isAmountValid(vm.adData.tradeFloor) ||
+          !vm.tradeLimitsValid()) {
         return true
       } else {
         return false
@@ -747,9 +893,14 @@ export default {
     },
     tradeLimitsValid () {
       const vm = this
-      const floor = vm.adData?.tradeFloor
-      const ceiling = vm.adData?.tradeCeiling
-      const quantity = vm.adData?.tradeAmount
+      let floor = vm.adData?.tradeFloor
+      let ceiling = vm.adData?.tradeCeiling
+      if (vm.setTradeLimitsInFiat) {
+        floor = (floor / vm.marketPrice).toFixed(8)
+        ceiling = (ceiling / vm.marketPrice).toFixed(8)
+      }
+      let quantity = vm.adData?.tradeAmount
+      if (vm.setTradeQuantityInFiat) quantity = (quantity / vm.marketPrice).toFixed(8)
       return floor > 0 && floor <= ceiling && ceiling <= quantity
     },
     isAmountValid (value) {
@@ -800,19 +951,33 @@ export default {
   }
 }
 </script>
-  <style lang="scss" scoped>
-  .buy-color {
-    color: rgb(60, 100, 246);
-  }
-  .sell-color {
-    color: #ed5f59;
-  }
+<style lang="scss" scoped>
+.buy-color {
+  color: rgb(60, 100, 246);
+}
+.sell-color {
+  color: #ed5f59;
+}
 
-  .sm-font-size {
-    font-size: small;
-  }
+.sm-font-size {
+  font-size: small;
+}
 
-  .md-font-size {
-    font-size: medium;
-  }
-  </style>
+.md-font-size {
+  font-size: medium;
+}
+
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #fff9c4; /* Light yellow background */
+  border: 1px solid #fbc02d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fbc02d; /* Border color */
+}
+</style>

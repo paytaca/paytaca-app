@@ -1,178 +1,11 @@
 <template>
-    <!-- back button -->
-    <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
     <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
-
-    <div
-      v-if="state === 'selection'"
-      class="q-mx-md q-mx-none q-mb-lg text-bow"
-      :class="getDarkModeClass(darkMode)"
-      :style="`height: ${minHeight}px;`">
-      <div class="q-mb-lg q-pb-lg q-pt-xs">
-        <div class="row justify-start items-center q-mx-none">
-          <div
-            class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
-            :class="getDarkModeClass(darkMode)"
-            :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-            <button
-              class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
-              @click="transactionType='BUY'">
-              Buy Ads
-            </button>
-            <button
-              class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
-              @click="transactionType='SELL'">
-              Sell Ads
-            </button>
-          </div>
-          <div class="col">
-            <q-btn
-              rounded
-              no-caps
-              padding="sm"
-              icon="add"
-              :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
-              @click="() => {
-                state = 'create'
-                pageName = 'ad-form-1'
-              }"
-            />
-          </div>
-        </div>
-        <!-- </q-pull-to-refresh> -->
-        <div class="q-mt-md q-mx-md">
-          <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-            <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
-              <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-              <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
-            </div>
-            <div v-else>
-              <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
-                <q-pull-to-refresh :scroll-target="scrollTargetRef" @refresh="refreshData">
-                  <q-infinite-scroll
-                    ref="infiniteScroll"
-                    :items="listings"
-                    @load="loadMoreData"
-                    :offset="0"
-                    :scroll-target="scrollTargetRef">
-                    <template v-slot:loading>
-                      <div class="row justify-center q-my-md" v-if="hasMoreData">
-                        <q-spinner-dots color="primary" size="40px" />
-                      </div>
-                    </template>
-                    <div v-for="(listing, index) in listings" :key="index">
-                      <q-item>
-                        <q-item-section>
-                          <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                            <div class="row">
-                              <div class="col ib-text">
-                                <span
-                                  class="q-mb-none text-uppercase pt-label"
-                                  :class="getDarkModeClass(darkMode)"
-                                  style="font-size: 13px;">
-                                  {{ listing.price_type }}
-                                </span><br>
-                                <div class="row q-gutter-md">
-                                  <span>{{ listing.trade_count }} trades</span>
-                                  <span>{{ Number(listing.completion_rate.toFixed(2)) }}% completion</span>
-                                </div>
-                                <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
-                                  {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
-                                </span>
-                                <span class="sm-font-size">/BCH</span>
-                                <div class="sm-font-size row q-gutter-md">
-                                  <span>Quantity</span>
-                                  <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
-                                </div>
-                                <div class="sm-font-size row q-gutter-md">
-                                  <span>Limits</span>
-                                  <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
-                                </div>
-                                <div class="sm-font-size">
-                                  <span>Appealable in </span>
-                                  <span class="text-weight-bold">{{ appealCooldown(listing.appeal_cooldown).label }}</span>
-                                </div>
-                              </div>
-                              <div class="text-right">
-                                <div class="row q-gutter-xs justify-end">
-                                  <q-btn
-                                    outline
-                                    rounded
-                                    padding="sm"
-                                    icon="edit"
-                                    size="sm"
-                                    color="button"
-                                    @click="onEditAd(listing.id)"
-                                  />
-                                  <q-btn
-                                    outline
-                                    rounded
-                                    padding="sm"
-                                    size="sm"
-                                    icon="delete"
-                                    color="button"
-                                    @click="onDeleteAd(listing.id)"
-                                  />
-                                </div>
-                                <div class="row justify-end q-mt-sm">
-                                  <q-btn
-                                    outline
-                                    rounded
-                                    disable
-                                    padding="xs sm"
-                                    size="sm"
-                                    class="q-ml-xs text-weight-bold"
-                                    :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
-                                    :icon="listing.is_public ? 'visibility' : 'visibility_off'">
-                                    <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
-                                  </q-btn>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="q-gutter-sm q-pt-xs">
-                              <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method.payment_type.name" />
-                            </div>
-                          </div>
-                        </q-item-section>
-                      </q-item>
-                    </div>
-                  </q-infinite-scroll>
-                </q-pull-to-refresh>
-              </q-list>
-            </div>
-          <!-- </q-pull-to-refresh> -->
-        </div>
-      </div>
-      <q-inner-loading :showing="loading">
-        <ProgressLoader/>
-      </q-inner-loading>
+    <div v-if="$route.name === 'p2p-ads'">
+      <AdListings />
     </div>
-    <FiatAdsForm
-      ref="fiatAdsForm"
-      v-if="state !== 'selection'"
-      @back="onFormBack()"
-      @submit="onSubmit()"
-      :adsState="state"
-      :transactionType="transactionType"
-      :selectedAdId="selectedAdId"
-      @update-page-name="(val) => {
-          pageName = val
-        }"
-    />
-    <FiatAdsDialogs
-      v-if="openDialog === true"
-      :type="dialogName"
-      v-on:back="onDialogBack"
-      v-on:selected-option="receiveDialogOption"
-    />
-    <MiscDialogs
-      v-if="openMiscDialog"
-      :type="dialogName"
-      @back="openMiscDialog = false"
-      @submit="receiveFilter"
-    />
+    <div v-else>
+      <router-view :key="$route.path"></router-view>
+    </div>
   </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -180,6 +13,7 @@ import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from 'src/components/ramp/fiat/dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from 'src/components/ramp/fiat/FiatAdsForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import AdListings from 'src/components/ramp/fiat/AdListings.vue'
 import { formatCurrency, formatDate, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
@@ -200,7 +34,8 @@ export default {
     FiatAdsDialogs,
     MiscDialogs,
     ProgressLoader,
-    HeaderNav
+    HeaderNav,
+    AdListings
   },
   data () {
     return {
