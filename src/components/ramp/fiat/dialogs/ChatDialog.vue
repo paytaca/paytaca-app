@@ -490,22 +490,25 @@ export default {
     },
     async onNewMessage (messageData) {
       const vm = this
-      return new Promise((resolve, reject) => {
-        const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
-        resolve(decMes)
-      })
-        .then(item => {
-          const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
-          item.chatIdentity.is_user = item.chatIdentity.ref === ref
-          this.convo.messages.push(item)
-          this.offset++
-          this.totalMessages++
+
+      if (vm.convo.messages[this.convo.messages.length - 1].id !== messageData.id) {
+        return new Promise((resolve, reject) => {
+          const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
+          resolve(decMes)
         })
-        .finally(async () => {
-          await updateLastRead(vm.chatRef, vm.convo.messages)
-          bus.emit('last-read-update')
-          vm.resetScroll()
-        })
+          .then(item => {
+            const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+            item.chatIdentity.is_user = item.chatIdentity.ref === ref
+            this.convo.messages.push(item)
+            this.offset++
+            this.totalMessages++
+          })
+          .finally(async () => {
+            await updateLastRead(vm.chatRef, vm.convo.messages)
+            bus.emit('last-read-update')
+            vm.resetScroll()
+          })
+      }
     },
     async loadKeyPair () {
       this.keypair = await getKeypair().catch(console.error)

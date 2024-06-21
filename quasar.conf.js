@@ -114,6 +114,7 @@ module.exports = function (/* ctx */) {
           cfg?.module?.rules?.push?.({
             test: /\.(?:js|mjs|cjs|vue)$/,
             enforce: 'post',
+            exclude: /node_modules/,
             use: {
               loader: 'babel-loader',
               options: {

@@ -4,10 +4,16 @@
       <div>
         <div id="screenshot-qr" class="col q-py-md col-qr-code">
           <p style="color: black; margin-bottom: 0;">
-            {{ isFirstShard ? $t('FirstShard') : $t('SecondShard') }}
+            {{ shardth === 1 ? $t('FirstShard') : shardth === 2 ? $t('SecondShard') : $t('ExtraShard') }}
           </p>
           <p style="color: black">
-            {{ isFirstShard ? $t('PersonalQRDescription2') : $t('ForSharingQRDescription2') }}
+            {{
+              shardth === 1
+                ? $t('PersonalQRDescription2')
+                : shardth === 2
+                  ? $t('ForSharingQRDescription2')
+                  : $t('ExtraQRDescription2')
+            }}
           </p>
           <div class="flex flex-center">
             <qr-code :text="shardText" color="#253933" :size="qrSize" error-level="H" />
@@ -35,7 +41,7 @@ export default {
 
   props: {
     shardText: String,
-    isFirstShard: Boolean
+    shardth: Number
   },
 
   data () {
