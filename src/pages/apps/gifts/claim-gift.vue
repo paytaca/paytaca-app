@@ -70,7 +70,11 @@ export default {
     },
     giftCodeHash: String,
     claimShare: String,
-    localShare: String
+    localShare: String,
+    code: {
+      type: String,
+      default: ''
+    }
   },
   components: {
     HeaderNav,
@@ -169,8 +173,9 @@ export default {
       this.claimGift(null)
     }
   },
-  mounted () {
+  async mounted () {
     const vm = this
+
     const divHeight = screen.availHeight - 120
     vm.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
 
@@ -178,7 +183,7 @@ export default {
       vm.action = vm.actionProp
     }
 
-    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+    await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       vm.wallet = markRaw(new Wallet(mnemonic))
       if (vm.action === 'Recover') {
         vm.claimGift(vm.giftCodeHash)
@@ -187,6 +192,12 @@ export default {
         vm.claimGift(null)
       }
     })
+
+    // check if code has value from qr scanner redirection
+    if (vm.code !== '') {
+      vm.scannedShare = vm.code.split('=')[1]
+      vm.claimGift(null)
+    }
   }
 }
 </script>

@@ -9,7 +9,7 @@
     <template v-else>
       <qrcode-stream
         :camera="frontCamera ? 'front': 'auto'"
-        @detect="onScannerDecode"
+        @detect="onQRDecode"
         @init="onScannerInit"
         class="fixed-full qr-stream"
       />
@@ -117,10 +117,30 @@ export default {
     },
     // MOBILE
 
-    onScannerDecode (content) {
-      // const vm = this
+    onQRDecode (content) {
+      const vm = this
+      const value = content[0].rawValue
 
-      console.log(content[0].rawValue)
+      // add redirection loading
+
+      if (value.includes('gifts.paytaca.com')) {
+        // redirect to gifts page
+        vm.$router.push({
+          name: 'claim-gift',
+          query: { code: value }
+        })
+      } else if (value.includes('bitcoincash:zq')) {
+        // redirect to send page (cashtoken)
+      } else if (value.includes('bitcoincash:qq')) {
+        // redirect to send page (bch)
+      } else {
+        vm.$q.notify({
+          message: 'Unable to identify QR code.',
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
+        })
+      }
     }
   }
 }
