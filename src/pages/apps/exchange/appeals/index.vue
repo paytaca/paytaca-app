@@ -22,6 +22,8 @@ import AppealFooterMenu from 'src/components/ramp/appeal/AppealFooterMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { loadRampWallet } from 'src/wallet/ramp/wallet'
 
 export default {
   components: {
@@ -35,6 +37,7 @@ export default {
   data () {
     return {
       state: 'list',
+      websocket: null,
       showFooterMenu: true,
       footerData: {
         unreadOrdersCount: 0
@@ -53,44 +56,6 @@ export default {
         vm.previousRoute = '/apps'
       }
     })
-  },
-  created () {
-    bus.on('session-expired', this.handleSessionEvent)
-    bus.on('relogged', this.refreshChildren)
-    bus.on('show-footer-menu', this.onShowFooterMenu)
-  },
-  mounted () {
-    if (this.$route.name === 'appeal-detail') {
-      this.showFooterMenu = false
-    }
-    if (this.$route.query.tab === 'profile') {
-      this.state = 'profile'
-    } else {
-      this.state = 'list'
-    }
-  },
-  methods: {
-    onShowFooterMenu (show) {
-      this.showFooterMenu = show
-    },
-    handleSessionEvent () {
-      this.showLogin = true
-    },
-    refreshChildren () {
-      this.appealListKey++
-      this.appealDetailKey++
-      this.appealProfileKey++
-    },
-    async switchMenu (tab) {
-      await this.$router.replace({ ...this.$route.query, query: { tab: tab === 'list' ? 'pending' : 'profile' } })
-      this.state = tab
-    },
-    onSelectAppeal () {
-      this.showFooterMenu = false
-    },
-    onLoggedIn () {
-      this.showLogin = false
-    }
   },
   beforeRouteLeave (to, from, next) {
     switch (from.name) {
@@ -111,6 +76,93 @@ export default {
         } else {
           next()
         }
+        break
+      default:
+        next()
+    }
+  },
+  created () {
+    bus.on('session-expired', this.handleSessionEvent)
+    bus.on('relogged', this.refreshChildren)
+    bus.on('show-footer-menu', this.onShowFooterMenu)
+  },
+  mounted () {
+    this.loadRouting()
+    this.setupWebsocket(40, 1000)
+  },
+  methods: {
+    loadRouting () {
+      // hide footer menu if viewing appeal detail from $route
+      if (this.$route.name === 'appeal-detail') {
+        this.showFooterMenu = false
+      }
+      // set state based on $route query
+      if (this.$route.query.tab === 'profile') {
+        this.state = 'profile'
+      } else {
+        this.state = 'list'
+      }
+    },
+    onShowFooterMenu (show) {
+      this.showFooterMenu = show
+    },
+    handleSessionEvent () {
+      this.showLogin = true
+    },
+    refreshChildren () {
+      this.appealListKey++
+      this.appealDetailKey++
+      this.appealProfileKey++
+    },
+    async switchMenu (tab) {
+      await this.$router.replace({ ...this.$route.query, query: { tab: tab === 'list' ? 'pending' : 'profile' } })
+      this.state = tab
+    },
+    onSelectAppeal () {
+      this.showFooterMenu = false
+    },
+    onLoggedIn () {
+      this.showLogin = false
+    },
+    updateUnreadCount (count) {
+      this.footerData.unreadAppealsCount = count
+    },
+    handleNewAppeal (data) {
+      const ongoingAppeals = [...this.$store.getters['ramp/pendingAppeals']]
+      if (ongoingAppeals.length >= 20) return
+      ongoingAppeals.push(data.extra.appeal)
+      this.$store.commit('ramp/updatePendingAppeals', { overwrite: true, data: { appeals: ongoingAppeals } })
+    },
+    setupWebsocket (retries, delayDuration) {
+      const wsUrl = `${getBackendWsUrl()}general/${loadRampWallet().walletHash}/`
+      this.websocket = new WebSocket(wsUrl)
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established to ' + wsUrl)
+      }
+      this.websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        this.updateUnreadCount(data.extra.unread_count)
+        if (data.type === 'NEW_APPEAL') {
+          this.handleNewAppeal(data)
+        }
+      }
+      this.websocket.onclose = () => {
+        console.log('General WebSocket connection closed.')
+        if (this.reconnectWebsocket && retries > 0) {
+          console.log(`General Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
+          return this.delay(delayDuration)
+            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
+        }
+      }
+    },
+    closeWSConnection () {
+      this.reconnectWebsocket = false
+      if (this.websocket) {
+        this.websocket.close()
+      }
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     }
   }
 }

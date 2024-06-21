@@ -96,14 +96,12 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       statusType: null,
-      // state: 'list',
       selectedAppeal: null,
       loading: false,
       totalPages: null,
       pageNumber: null,
       pageName: 'main',
       notifType: null,
-      // showFooterMenu: true,
       currentPage: 'Appeal',
       footerData: {
         unreadOrdersCount: 0
@@ -123,7 +121,6 @@ export default {
   },
   watch: {
     statusType (value) {
-      console.log('statusType:', value)
       this.$router.replace({ query: { ...this.$route.query, tab: value } })
       this.resetAndScrollToTop()
       this.refreshData()
@@ -158,7 +155,6 @@ export default {
     }
   },
   created () {
-    bus.on('update-unread-count', this.updateUnreadCount)
     bus.emit('show-footer-menu', true)
   },
   async mounted () {
@@ -183,13 +179,6 @@ export default {
     updateUnreadCount (count) {
       this.footerData.unreadOrdersCount = count
     },
-    // switchMenu (tab) {
-    //   if (tab.name === 'Appeal') {
-    //     this.state = 'list'
-    //   } else {
-    //     this.state = 'profile'
-    //   }
-    // },
     async fetchAppeals (overwrite = false) {
       const vm = this
       vm.loading = true
@@ -214,13 +203,14 @@ export default {
     async loadMoreData (_, done) {
       const vm = this
       if (!vm.hasMoreData) {
-        done(true)
+        done()
         return
       }
       vm.updatePaginationValues()
       if (vm.pageNumber < vm.totalPages) {
-        vm.fetchAppeals().then(done()).catch(done())
+        await vm.fetchAppeals()
       }
+      done()
     },
     async refreshData (done) {
       this.loading = true
