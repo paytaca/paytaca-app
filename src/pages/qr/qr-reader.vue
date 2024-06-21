@@ -63,14 +63,17 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import { QrcodeStream } from 'vue-qrcode-reader'
-import HeaderNav from '../../components/header-nav'
+import HeaderNav from 'src/components/header-nav'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 
 export default {
   name: 'QRReader',
 
   components: {
     HeaderNav,
-    QrcodeStream
+    QrcodeStream,
+    // eslint-disable-next-line vue/no-unused-components
+    LoadingWalletDialog
   },
 
   data () {
@@ -121,7 +124,16 @@ export default {
       const vm = this
       const value = content[0].rawValue
 
-      // add redirection loading
+      const loadingDialog = this.$q.dialog({
+        component: LoadingWalletDialog,
+        componentProps: {
+          loadingText: 'Redirecting...'
+        }
+      })
+
+      setTimeout(() => {
+        loadingDialog.hide()
+      }, 700)
 
       if (value.includes('gifts.paytaca.com')) {
         // redirect to gifts page
