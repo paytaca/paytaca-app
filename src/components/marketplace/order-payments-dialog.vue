@@ -3,7 +3,7 @@
     <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Payments</div>
+          <div class="text-h5 q-space">{{ $t('Payments') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <slot name="before"></slot>
@@ -37,7 +37,7 @@
                       @click="() => displayPaymentEscrowContract(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>View escrow</q-item-label>
+                        <q-item-label>{{ $t('ViewEscrow') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -48,7 +48,7 @@
           </q-item>
         </q-list>
         <div v-else class="text-center text-grey q-my-md">
-          No payments
+          {{ $t('NoPayments') }}
         </div>
       </q-card-section>
 

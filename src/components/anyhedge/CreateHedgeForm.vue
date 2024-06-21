@@ -199,7 +199,7 @@
       :disable="loading"
       reactive-rules
       :rules="[
-        val => val >= 0 || 'Invalid duration',
+        val => val >= 0 || $t('InvalidDuration'),
         (val, units, formatValue) =>
           val >= createHedgeFormConstraints.minimumDuration
             || `${$t(

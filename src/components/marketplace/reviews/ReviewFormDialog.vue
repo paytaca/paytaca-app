@@ -21,7 +21,8 @@
         <div v-if="review?.id && review?.createdByCustomer?.id === customer?.id" class="row items-center justify-end">
           <q-btn
             flat
-            no-caps label="Delete my review"
+            no-caps
+            :label="$t('DeleteMyReview')"
             color="red" padding="xs sm"
             class="text-underline q-r-mr-md"
             @click="() => deleteReview()"
@@ -55,7 +56,7 @@
               outlined
               :disable="loading"
               autogrow
-              label="Message"
+              :label="$t('Message')"
               v-model="formData.text"
               type="textarea"
               input-style="min-height:4rem;"
@@ -107,7 +108,8 @@
           <q-btn
             :disable="loading"
             :loading="loading"
-            no-caps label="Submit"
+            no-caps
+            :label="$t('Submit')"
             color="brandblue"
             class="full-width q-mt-sm"
             type="submit"
@@ -117,7 +119,8 @@
             outline
             :disable="loading"
             :loading="loading"
-            no-caps label="Cancel"
+            no-caps
+            :label="$t('Cancel')"
             color="grey"
             class="full-width q-mt-sm"
             v-close-popup
@@ -137,6 +140,9 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import PhotoSelector from 'src/components/marketplace/PhotoSelector.vue'
+import { useI18n } from "vue-i18n"
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'ReviewFormDialog',
@@ -154,7 +160,7 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
-    title: { type: String, default: 'Review' },
+    title: { type: String, default: t('Review') },
     review: Review,
     orderId: [Number, String],
     productId: [Number, String],
@@ -274,7 +280,7 @@ export default defineComponent({
             if (data?.detail) formErrors.value.detail = [data?.detail]
           }
           if (!formErrors.value.detail?.length) formErrors.value.detail = [
-            'Unable to create review'
+            t('UnableToCreateReview')
           ]
         })
         .finally(() => {
@@ -285,17 +291,17 @@ export default defineComponent({
     function deleteReview() {
       if (!props.review?.id) return
       $q.dialog({
-        title: 'Delete review',
-        message: 'Are you sure?',
+        title: t('DeleteReview'),
+        message: t('AreYouSure'),
         color: 'brandblue',
-        cancel: { noCaps: true, label: 'Cancel', flat: true, color: 'grey' },
-        ok: { noCaps: true, label: 'Delete', flat: true, color: 'red' },
+        cancel: { noCaps: true, label: t('Cancel'), flat: true, color: 'grey' },
+        ok: { noCaps: true, label: t('Delete'), flat: true, color: 'red' },
         class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
         .onOk(() => {
           const dialog = $q.dialog({
-            title: 'Delete review',
-            message: 'Deleting review',
+            title: t('DeleteReview'),
+            message: t('DeletingReview'),
             persistent: true, progress: true,
             ok: false,
             color:'brandblue',
@@ -311,9 +317,9 @@ export default defineComponent({
             })
             .catch(error => {
               let msg
-              if (error?.response?.status == 404) msg = 'Not found'
-              if (error?.response?.status == 403) msg = 'No permissions'
-              dialog.update({ message: msg || 'Encountered error' })
+              if (error?.response?.status == 404) msg = t('NotFound')
+              if (error?.response?.status == 403) msg = t('NoPermissions')
+              dialog.update({ message: msg || t('EncounteredError') })
               return Promise.reject(error)
             })
             .finally(() => {

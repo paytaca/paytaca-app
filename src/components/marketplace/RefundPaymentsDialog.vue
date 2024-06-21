@@ -3,7 +3,7 @@
     <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Payments</div>
+          <div class="text-h5 q-space">{{ $t('Payments') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-list separator :dark="darkMode" class="q-mb-sm">
@@ -35,7 +35,8 @@
                   <q-btn
                     :loading="loadingPaymentsMap[payment?.id]"
                     :disable="loadingPaymentsMap[payment?.id]"
-                    no-caps label="Refund"
+                    no-caps
+                    :label="$t('Refund')"
                     class="button"
                     padding="2px md"
                     @click="() => refundPayment(payment)"
@@ -52,12 +53,13 @@
           <q-separator :dark="darkMode" spaced/>
           <div class="row items-center">
             <div>
-              <div class="text-caption top">Total Refundable:</div>
+              <div class="text-caption top">{{ $t('TotalRefundable') }}:</div>
               <div class="text-subtitle1">{{ totalRefundable?.amount }} {{ totalRefundable?.currency?.symbol }}</div>
             </div>
             <q-space/>
             <q-btn
-              no-caps label="Refund all"
+              no-caps
+              :label="$t('RefundAll')"
               class="button"
               @click="() => refundPayments()"
             />
@@ -75,6 +77,7 @@ import { useDialogPluginComponent } from 'quasar';
 import { useStore } from 'vuex';
 import { capitalize, computed, onMounted, ref, watch } from 'vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from "vue-i18n"
 
 const props = defineProps({
   modelValue: Boolean,
@@ -96,6 +99,7 @@ const $emit = defineEmits([
 ])
 
 const $store = useStore()
+const { t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -177,7 +181,7 @@ function refundPayment(payment=Payment.parse(), opts={ emitRefunded: true }) {
       if (!errorMessage && typeof error?.message === 'string' && error?.message?.length < 200) {
         errorMessage = error?.message
       }
-      if (!errorMessage) errorMessage = 'Unknown error'
+      if (!errorMessage) errorMessage = t('UnknownError')
       paymentsRefundErrorMap.value[paymentId] = errorMessage
       return Promise.reject(error)
     })
@@ -188,16 +192,16 @@ function refundPayment(payment=Payment.parse(), opts={ emitRefunded: true }) {
 }
 
 function isNotRefundable(payment=Payment.parse()) {
-  if (!payment?.escrowContractAddress) return 'Payment is not escrow'
+  if (!payment?.escrowContractAddress) return t('PaymentErrMsg1')
   switch(payment?.status) {
     case('sent'):
       return false
     case('pending'):
-      return 'No payment sent yet'
+      return t('PaymentErrMsg2')
     case('received'):
-      return 'Payment is already completed'
+      return t('PaymentErrMsg3')
     case('voided'):
-      return 'Payment is already refunded'
+      return t('PaymentErrMsg4')
     default:
       return false
   }
@@ -209,3 +213,4 @@ defineExpose({
   refundPayment,
 })
 </script>
+s

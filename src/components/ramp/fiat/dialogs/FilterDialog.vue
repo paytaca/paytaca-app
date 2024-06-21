@@ -2,13 +2,13 @@
     <!-- Filter orders -->
     <q-dialog v-model="filterOrder" @before-hide="$emit('back')">
       <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
-        <div class="q-mt-lg text-center text-weight-bold lg-font-size">Filter and Sort Orders</div>
+        <div class="q-mt-lg text-center text-weight-bold lg-font-size">{{ $t('FilterAndSortOrders') }}</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
         <q-scroll-area :style="`height: ${$q.screen.height - 300}px`">
           <div class="q-px-lg q-mx-sm">
             <!-- Sort by -->
             <div v-if="orderFilters.sort_by" class="q-pt-md">
-              <div class="sm-font-size text-weight-bold">Sort By Date</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('SortByDate') }}</div>
               <div class="q-pt-xs q-gutter-sm">
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'created_at'" @click="orderFilters.sort_by = 'created_at'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Created</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_by !== 'last_modified_at'" @click="orderFilters.sort_by = 'last_modified_at'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Last updated</q-badge>
@@ -16,7 +16,7 @@
             </div>
             <!-- Sort type -->
             <div v-if="orderFilters.sort_type" class="q-pt-md">
-              <div class="sm-font-size text-weight-bold">Sort Type</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('SortType') }}</div>
               <div class="q-pt-xs q-gutter-sm">
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Oldest First</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Newest First</q-badge>
@@ -24,17 +24,17 @@
             </div>
             <!-- Trade type -->
             <div class="q-pt-md">
-              <div class="sm-font-size text-weight-bold">Trade Type</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('TradeType') }}</div>
               <div v-if="showTradeTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-pt-xs q-gutter-sm">
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('trade-type')" @click="orderSetAllSelected('trade-type')">Default: All</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('trade-type')" @click="orderSetAllSelected('trade-type')">{{ $t('DefaultAll') }}</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="setOrderFilter('trade-type-buy', !orderFilters.trade_type?.buy)">Buy</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="setOrderFilter('trade-type-sell', !orderFilters.trade_type?.sell)">Sell</q-badge>
               </div>
             </div>
             <!-- Order status -->
             <div v-if="orderFilters.status" class="q-pt-md">
-              <div class="sm-font-size text-weight-bold">Status</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('Status') }}</div>
               <div v-if="showStatusHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-gutter-sm q-pt-sm">
                 <q-badge
@@ -43,7 +43,7 @@
                   class="q-pa-sm"
                   :outline="!orderAllSelected('status')"
                   @click="orderSetAllSelected('status')">
-                  Default: All
+                  {{ $t('DefaultAll') }}
                 </q-badge>
                 <q-badge
                   v-for="(status, index) in statuses"
@@ -58,7 +58,7 @@
               </div>
             </div>
             <div v-if="type !== 'filterCompletedOrder'" class="q-pt-md">
-              <div class="sm-font-size text-weight-bold">Appealable Status</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('AppealableStatus') }}</div>
               <div v-if="showAppealableStatusHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-gutter-sm q-mt-xs">
                 <q-badge
@@ -67,7 +67,7 @@
                   class="q-pa-sm"
                   :outline="!orderAllSelected('apl-status')"
                   @click="orderSetAllSelected('apl-status')">
-                  Default: All
+                  {{ $t('DefaultAll') }}
                 </q-badge>
                 <q-badge
                   class="q-pa-sm"
@@ -75,7 +75,7 @@
                   rounded
                   :outline="!orderFilters.appealable"
                   @click="setOrderFilter('appealable', !orderFilters.appealable)">
-                  Appealable
+                  {{ $t('Appealable') }}
                 </q-badge>
                 <q-badge
                   class="q-pa-sm"
@@ -83,13 +83,13 @@
                   rounded
                   :outline="!orderFilters.not_appealable"
                   @click="setOrderFilter('not-appealable', !orderFilters.not_appealable)">
-                  Not Appealable
+                  {{ $t('NotAppealable') }}
                 </q-badge>
               </div>
             </div>
             <!-- Order payment types -->
             <div v-if="orderFilters.payment_types" class="q-pt-md">
-              <div class="sm-font-size text-weight-bold">Payment Type</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('PaymentType') }}</div>
               <div v-if="showPaymentTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-gutter-sm q-pt-sm">
                 <q-badge
@@ -98,7 +98,7 @@
                   rounded
                   :outline="!orderAllSelected('payment-type')"
                   @click="orderSetAllSelected('payment-type')">
-                  Default: All
+                  {{ $t('DefaultAll') }}
                 </q-badge>
                 <q-badge
                   class="q-pa-sm"
@@ -114,7 +114,7 @@
             </div>
             <!-- Appealable cooldowns-->
             <div v-if="orderFilters.time_limits" class="q-pt-md">
-              <div class="sm-font-size text-weight-bold">Appealable Time</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('AppealableTime') }}</div>
               <div v-if="showTimeLimitHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-gutter-sm q-pt-sm">
                 <q-badge
@@ -123,7 +123,7 @@
                   rounded
                   :outline="!orderAllSelected('time-limit')"
                   @click="orderSetAllSelected('time-limit')">
-                  Default: All
+                  {{ $t('DefaultAll') }}
                 </q-badge>
                 <q-badge
                   class="q-pa-sm"
@@ -139,12 +139,12 @@
             </div>
             <!-- Ownership -->
             <div class="q-pt-lg">
-              <div class="sm-font-size text-weight-bold">Ownership</div>
+              <div class="sm-font-size text-weight-bold">{{ $t('Ownership') }}</div>
               <div v-if="showOwnershipHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-pt-xs q-gutter-sm">
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('ownership')" @click="orderSetAllSelected('ownership')">Default: All</q-badge>
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">Created by me</q-badge>
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">Created by counterparty</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('ownership')" @click="orderSetAllSelected('ownership')">{{ $t('DefaultAll') }}</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">{{ $t('CreatedByMe') }}</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">{{ $t('CreatedByCounterparty') }}</q-badge>
               </div>
             </div>
           </div>
@@ -154,7 +154,7 @@
             <q-btn
               rounded
               no-caps
-              label='Reset'
+              :label="$t('Reset')"
               class="col-grow button button-icon"
               :class="getDarkModeClass(darkMode)"
               outline
@@ -163,7 +163,7 @@
             <q-btn
               rounded
               no-caps
-              label='Filter'
+              :label="$t('Filter')"
               class="col-grow button"
               @click="submitData()"
               v-close-popup
@@ -179,12 +179,13 @@
         <!-- <div class="q-mt-md q-pl-md">
           <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
         </div> -->
+        <!--TODO:-->
         <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter {{ type === 'filterSellAd' ? 'Sell' : 'Buy' }} Ads</div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
         <div class="q-px-lg q-mx-sm">
           <div class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Price Type</div>
+            <div class="sm-font-size text-weight-bold">{{ $t('PriceType') }}</div>
             <div v-if="showPriceTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
@@ -193,7 +194,7 @@
                 class="q-pa-sm"
                 :outline="!storeAllSelected('price-type')"
                 @click="storeSetAllSelected('price-type')">
-                Default: All
+                {{ $t('DefaultAll') }}
               </q-badge>
               <q-badge
                 rounded
@@ -201,7 +202,7 @@
                 class="q-pa-sm"
                 :outline="!storeFilters?.price_type?.fixed"
                 @click="setStoreFilter('price-fixed')">
-                Fixed
+                {{ $t('Fixed') }}
               </q-badge>
               <q-badge
                 rounded
@@ -209,14 +210,14 @@
                 class="q-pa-sm"
                 :outline="!storeFilters?.price_type?.floating"
                 @click="setStoreFilter('price-floating')">
-                Floating
+                {{ $t('Floating') }}
               </q-badge>
             </div>
           </div>
 
           <!-- Ad Payment Type -->
           <div class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Payment Type</div>
+            <div class="sm-font-size text-weight-bold">{{ $t('PaymentType') }}</div>
             <div v-if="showPaymentTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
@@ -225,7 +226,7 @@
                 rounded
                 :outline="!storeAllSelected('payment-type')"
                 @click="storeSetAllSelected('payment-type')">
-                Default: All
+                {{ $t('DefaultAll') }}
               </q-badge>
               <q-badge
                 class="q-pa-sm"
@@ -242,7 +243,7 @@
 
           <!-- Ad Appealable Time -->
           <div class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Appealable Time</div>
+            <div class="sm-font-size text-weight-bold">{{ $t('AppealableTime') }}</div>
             <div v-if="showTimeLimitHint" class="xs-font-size subtext">{{ hintMessage }}</div>
             <div class="q-gutter-sm q-pt-sm">
               <q-badge
@@ -251,7 +252,7 @@
                 rounded
                 :outline="!storeAllSelected('time-limit')"
                 @click="storeSetAllSelected('time-limit')">
-                Default: All
+                {{ $t('DefaultAll') }}
               </q-badge>
               <q-badge
                 class="q-pa-sm"
@@ -267,10 +268,10 @@
           </div>
 
           <div class="q-pt-md">
-            <div class="sm-font-size text-weight-bold">Price Order</div>
+            <div class="sm-font-size text-weight-bold">{{ $t('PriceOrder') }}</div>
             <div class="q-pt-xs q-gutter-sm">
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'ascending'" @click="storeFilters.sort_type = 'ascending'">{{ type === 'filterSellAd' ? 'Default: ' : '' }} Ascending</q-badge>
-              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'descending'" @click="storeFilters.sort_type = 'descending'">{{ type === 'filterBuyAd' ? 'Default: ' : '' }} Descending</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'ascending'" @click="storeFilters.sort_type = 'ascending'">{{ type === 'filterSellAd' ? `${$t('Default')}: ` : '' }}  {{ $t('Ascending') }}</q-badge>
+              <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'descending'" @click="storeFilters.sort_type = 'descending'">{{ type === 'filterBuyAd' ? `${$t('Default')}: ` : '' }}  {{ $t('Descending') }}</q-badge>
             </div>
           </div>
 
@@ -279,7 +280,7 @@
               <q-btn
                 rounded
                 no-caps
-                label='Reset'
+                :label="$t('Reset')"
                 class="col-grow text-white"
                 color="blue-6"
                 outline
@@ -288,7 +289,7 @@
               <q-btn
                 rounded
                 no-caps
-                label='Filter'
+                :label="$t('Filter')"
                 class="col-grow text-white"
                 color="blue-6"
                 @click="submitData()"
@@ -345,20 +346,20 @@ export default {
         }
       },
       ongoingStatuses: [
-        { value: 'SBM', label: 'Submitted' },
-        { value: 'CNF', label: 'Confirmed' },
-        { value: 'ESCRW_PN', label: 'Escrow Pending' },
-        { value: 'ESCRW', label: 'Escrowed' },
-        { value: 'PD_PN', label: 'Paid Pending' },
-        { value: 'PD', label: 'Paid' },
-        { value: 'APL', label: 'Appealed' },
-        { value: 'RLS_PN', label: 'Release Pending' },
-        { value: 'RFN_PN', label: 'Refund Pending' }
+        { value: 'SBM', label: this.$t('Submitted') },
+        { value: 'CNF', label: this.$t('Confirmed') },
+        { value: 'ESCRW_PN', label: this.$t('EscrowPending') },
+        { value: 'ESCRW', label: this.$t('Escrowed') },
+        { value: 'PD_PN', label: this.$t('PaidPending') },
+        { value: 'PD', label: this.$t('Paid') },
+        { value: 'APL', label: this.$t('Appealed') },
+        { value: 'RLS_PN', label: this.$t('ReleasePending') },
+        { value: 'RFN_PN', label: this.$t('RefundPending') }
       ],
       completedStatuses: [
-        { value: 'CNCL', label: 'Canceled' },
-        { value: 'RLS', label: 'Released' },
-        { value: 'RFN', label: 'Refunded' }
+        { value: 'CNCL', label: this.$t('Canceled') },
+        { value: 'RLS', label: this.$t('Released') },
+        { value: 'RFN', label: this.$t('Refunded') }
       ],
 
       showPriceTypeHint: false,
@@ -368,7 +369,7 @@ export default {
       showTradeTypeHint: false,
       showOwnershipHint: false,
       showAppealableStatusHint: false,
-      hintMessage: 'At least one selected option is required'
+      hintMessage: this.$t('SelectedAdFilterOptionHint')
     }
   },
   emits: ['back', 'submit'],

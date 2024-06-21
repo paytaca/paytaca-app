@@ -3,7 +3,7 @@
     <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pb-none">
         <div class="row items-center no-wrap q-pb-sm">
-          <div class="text-h5 q-space">Marketplace</div>
+          <div class="text-h5 q-space">{{ $t('Marketplace') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
       </q-card-section>
@@ -12,7 +12,7 @@
           <q-icon name="storefront" size="2.25em"/>
         </q-item-section>
         <q-item-section>
-          <q-item-section>Go to marketplace app</q-item-section>
+          <q-item-section>{{ $t('GoToMarketplaceApp') }}</q-item-section>
         </q-item-section>
       </q-item>
       <q-item clickable v-ripple :to="{ name: 'app-marketplace-arbiter' }">
@@ -20,7 +20,7 @@
           <q-icon name="balance" size="2.25em"/>
         </q-item-section>
         <q-item-section>
-          <q-item-section>Open arbiter interface</q-item-section>
+          <q-item-section>{{ $t('OpenArbiterInterface') }}</q-item-section>
         </q-item-section>
       </q-item>
       <div class="q-py-sm"></div>

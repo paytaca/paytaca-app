@@ -3,7 +3,7 @@
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Escrow</div>
+          <div class="text-h5 q-space">{{ $t('Escrow') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <q-tab-panels v-model="tab" style="background: none;" animated>
@@ -17,21 +17,22 @@
                 padding="xs none"
               >
                 <template v-if="escrowContract?.isSettled">
-                  {{ escrowContract?.settlementType == 'released' ? 'Payment released' : 'Payment refunded' }}
+                  {{ escrowContract?.settlementType == 'released' ? $t('PaymentReleased') : $t('PaymentRefunded') }}
                   <q-icon :name="escrowContract?.settlementType == 'released' ? 'check_circle' : 'mdi-cash-refund'" class="q-ml-xs"/>
                 </template>
                 <template v-else-if="escrowContract?.isFunded">
-                  Payment received by escrow
+                  {{ $t('PaymentReceivedByEscrow') }}
                   <q-icon name="credit_score" class="q-ml-xs"/>
                 </template>
 
                 <q-menu class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
                   <template v-if="escrowContract?.settlementTxid">
-                    <div class="text-caption top">Settlement transaction:</div>
+                    <div class="text-caption top">{{ $t('SettlementTransaction') }}:</div>
                     <div class="ellipsis">{{ escrowContract?.settlementTxid }}</div>
                     <q-btn
                       flat padding="none"
-                      no-caps label="View transaction"
+                      no-caps
+                      :label="$t('ViewTransaction')"
                       :href="escrowContract?.settlementTxLink"
                       target="_blank"
                       class="text-underline button button-text-primary"
@@ -43,11 +44,12 @@
                     spaced
                   />
                   <template v-if="escrowContract?.fundingTxid">
-                    <div class="text-caption top">Payment transaction:</div>
+                    <div class="text-caption top">{{ $t('PaymentTransaction') }}:</div>
                     <div class="ellipsis">{{ escrowContract?.fundingTxid }}</div>
                     <q-btn
                       flat padding="none"
-                      no-caps label="View transaction"
+                      no-caps
+                      :label="$t('ViewTransaction')"
                       :href="escrowContract?.fundingTxLink"
                       target="_blank"
                       class="text-underline button button-text-primary"
@@ -63,7 +65,7 @@
                 style="position:relative;" v-ripple
                 @click="copyToClipboard(escrowContract?.address)"
               >
-                <div class="text-caption text-grey top">Address</div>
+                <div class="text-caption text-grey top">{{ $t('Address') }}</div>
                 <div style="word-break: break-all;">
                   {{ escrowContract?.address }}
                   <q-icon name="content_copy"/>
@@ -86,7 +88,7 @@
               style="position:relative;" v-ripple
               @click="copyToClipboard(escrowContract?.sellerAddress)"
             >
-              <div class="text-caption text-grey top">Recipient</div>
+              <div class="text-caption text-grey top">{{ $t('Recipient') }}</div>
               <div style="word-break: break-all;">
                 {{ escrowContract?.sellerAddress }}
                 <q-icon name="content_copy"/>
@@ -98,51 +100,51 @@
               style="position:relative;" v-ripple
               @click="copyToClipboard(escrowContract?.deliveryServiceAddress)"
             >
-              <div class="text-caption text-grey top">Delivery fee receipient</div>
+              <div class="text-caption text-grey top">{{ $t('DeliveryFeeRecipient') }}</div>
               <div v-if="escrowContract?.deliveryFeeKeyNft?.currentAddress" style="word-break: break-all;">
                 {{ escrowContract?.deliveryFeeKeyNft?.currentAddress }}
                 <q-icon name="content_copy"/>
               </div>
               <div v-else class="text-grey">
-                None
+                {{ $t('None') }}
               </div>
             </div>
 
             <q-separator :dark="darkMode" spaced/>
             <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
               <div class="row items-start">
-                <div class="text-grey q-space">Amount</div>
+                <div class="text-grey q-space">{{ $t('Amount') }}</div>
                 <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
                 <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
               </div>
               <div class="q-pl-sm">
                 <div class="row items-start">
-                  <div class="text-grey q-space">Delivery fee</div>
+                  <div class="text-grey q-space">{{ $t('DeliveryFee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
-                  <div class="text-grey q-space">Service fee</div>
+                  <div class="text-grey q-space">{{ $t('ServiceFee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
-                  <div class="text-grey q-space">Arbitration fee</div>
+                  <div class="text-grey q-space">{{ $t('ArbitrationFee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
-                  <div class="text-grey q-space">Network fee</div>
+                  <div class="text-grey q-space">{{ $t('NetworkFee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
                 </div>
               </div>
 
               <div class="row items-start">
-                <div class="text-grey q-space">Total</div>
+                <div class="text-grey q-space">{{ $t('Total') }}</div>
                 <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
                 <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
               </div>
@@ -158,7 +160,7 @@
                 :class="getDarkModeClass(darkMode)"
                 @click="() => tab = 'details'"
               />
-              <div class="q-space text-h5">Scan to pay</div>
+              <div class="q-space text-h5">{{ $t('ScanToPay') }}</div>
             </div>
             <div class="row items-center justify-center">
               <div class="col-qr-code">
@@ -178,7 +180,7 @@
               <q-btn
                 rounded
                 no-caps
-                label="Send payment"
+                :label="$t('SendPayment')"
                 class="button"
                 :to="{ name: 'transaction-send', query: { paymentUrl: qrCodeData, network: 'BCH', assetId: 'bch' }}"
               />
@@ -195,6 +197,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from "vue-i18n"
 
 export default defineComponent({
   name: 'EscrowContractDialog',
@@ -212,6 +215,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -262,7 +266,7 @@ export default defineComponent({
       this.$copyText(value)
         .then(() => {
           $q.notify({
-            message: message || 'Copied to clipboard',
+            message: message || t('CopiedToClipboard'),
             timeout: 800,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'

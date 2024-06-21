@@ -8,7 +8,7 @@
     @change="onChange"
   />
   <div v-else class="text-grey text-center text-subtitle1 q-py-lg">
-    No fields
+    {{ $t('NoFields') }}
   </div>
 </template>
 <script>

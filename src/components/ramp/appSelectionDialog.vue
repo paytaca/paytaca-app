@@ -5,7 +5,7 @@
       :class="getDarkModeClass(darkMode)"
       :style="$q.platform.is.mobile ? 'min-width: 100%' : 'min-width: 30%'">
       <!-- <q-btn flat padding="md" icon="close" @click="$emit('back')"/> -->
-      <div class="text-center text-weight-bold text-h6 q-my-md">Select Ramp App</div>
+      <div class="text-center text-weight-bold text-h6 q-my-md">{{ $t('SelectRampApp') }}</div>
       <div class="row no-wrap text-subtitle1 text-center q-pt-sm q-mb-lg">
         <div class="col-6 q-pa-xs">
           <div
@@ -16,7 +16,7 @@
           >
             <q-icon class="app-icon" color="white" size="50px" name="currency_bitcoin" />
           </div>
-          <p class="q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">Crypto</p>
+          <p class="q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ $t('Crypto') }}</p>
         </div>
 
         <div class="col-6 q-pa-xs">
@@ -28,7 +28,7 @@
           >
             <q-icon class="app-icon" color="white" size="50px" name="attach_money" />
           </div>
-          <p class="q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">Fiat</p>
+          <p class="q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ $t('Fiat') }}</p>
         </div>
 
         <!-- <div class="col column items-center">

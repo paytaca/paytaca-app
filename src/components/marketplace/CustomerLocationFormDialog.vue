@@ -10,12 +10,12 @@
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">
-            {{ locationObj?.id ? 'Update address' : 'New address' }}
+            {{ locationObj?.id ? $t('UpdateAddress') : $t('NewAddress') }}
           </div>
           <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <q-form ref="form" @submit="() => saveLocation()">
-          <div class="text-subtitle1">Name</div>
+          <div class="text-subtitle1">{{ $t('Name') }}</div>
           <q-input
             outlined
             dense
@@ -29,13 +29,13 @@
 
           <q-separator :dark="darkMode" spaced/>
 
-          <div class="text-subtitle1">Address</div>
+          <div class="text-subtitle1">{{ $t('Address') }}</div>
           <q-input
             outlined
             dense
             :disable="loading"
             :dark="darkMode"
-            label="Address"
+            :label="$t('Address')"
             v-model="formData.address1"
             :error="Boolean(formErrors?.address1)"
             :error-message="formErrors?.address1"
@@ -46,13 +46,13 @@
               dense
               :disable="loading"
               :dark="darkMode"
-              label="Street"
+              :label="$t('Street')"
               v-model="formData.street"
               class="col-12 col-sm-6"
               :error="Boolean(formErrors?.street)"
               :error-message="formErrors?.street"
               :rules="[
-                val => Boolean(val) || 'Required',
+                val => Boolean(val) || $t('Required'),
               ]"
             />
             <q-input
@@ -60,13 +60,13 @@
               dense
               :disable="loading"
               :dark="darkMode"
-              label="City"
+              :label="$t('City')"
               v-model="formData.city"
               class="col-12 col-sm-6"
               :error="Boolean(formErrors?.city)"
               :error-message="formErrors?.city"
               :rules="[
-                val => Boolean(val) || 'Required',
+                val => Boolean(val) || $t('Required'),
               ]"
             />
           </div>
@@ -76,7 +76,7 @@
               dense
               :disable="loading"
               :dark="darkMode"
-              label="State / Province"
+              :label="$t('StateProvince')"
               v-model="formData.state"
               class="col-12 col-sm-6"
               :error="Boolean(formErrors?.state)"
@@ -88,7 +88,7 @@
                 dense
                 :disable="loading"
                 :dark="darkMode"
-                label="Country"
+                :label="$t('Country')"
                 clearable
                 use-input
                 fill-input
@@ -101,7 +101,7 @@
                 :error="Boolean(formErrors?.country)"
                 :error-message="formErrors?.country"
                 :rules="[
-                  val => Boolean(val) || 'Required',
+                  val => Boolean(val) || $t('Required'),
                 ]"
               />
             </CountriesFieldWrapper>
@@ -113,7 +113,7 @@
             :color="darkMode ? 'white' : 'black'"
             :model-value="validCoordinates"
             :rules="[
-              value => value || 'Input location',
+              value => value || $t('InputLocation'),
             ]"
           >
             <div class="row items-center q-gutter-x-sm q-mt-sm full-width">
@@ -129,7 +129,7 @@
                   {{ formData.longitude }}, {{ formData.latitude }}
                 </template>
                 <template v-else>
-                  Pin location
+                  {{ $t('PinLocation') }}
                 </template>
               </q-btn>
               <q-btn
@@ -151,7 +151,7 @@
               :disable="loading"
               :loading="loading"
               no-caps
-              :label="locationObj?.id ? 'Update' : 'Save'"
+              :label="locationObj?.id ? $t('Update') : $t('Save')"
               class="full-width button"
               type="submit"
             />
@@ -171,6 +171,7 @@ import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import CountriesFieldWrapper from 'src/components/marketplace/countries-field-wrapper.vue'
+import { useI18n } from "vue-i18n"
 
 export default defineComponent({
   name: 'CustomerlocationFormDialog',
@@ -190,6 +191,7 @@ export default defineComponent({
     openPinOnShow: Boolean,
   },
   setup(props, { emit: $emit }) {
+    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -263,8 +265,8 @@ export default defineComponent({
           formData.value.longitude = coordinates.lng
           formData.value.latitude = coordinates.lat
           $q.dialog({
-            title: 'Resolve address',
-            message: 'Auto fill field from pin location?',
+            title: t('ResolveAddress'),
+            message: t('AutoFillFieldFromPinLocation'),
             ok: { class: 'button' },
             cancel: { flat: true, color: 'grey' },
             class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
@@ -365,7 +367,7 @@ export default defineComponent({
             if (data?.detail) formErrors.value.detail = [data?.detail]
           }
           if (!formErrors.value.detail?.length) formErrors.value.detail = [
-            locationId ? 'Unable to update address' : 'Unable to add address'
+            locationId ? t('UnableToUpdateAddress') : t('UnableToAddAddress')
           ]
         })
         .finally(() => {

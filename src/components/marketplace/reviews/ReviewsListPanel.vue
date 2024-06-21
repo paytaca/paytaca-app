@@ -21,7 +21,7 @@
         color="brandblue"
       />
       <div v-if="review?.text">{{ review?.text }}</div>
-      <div v-else class="text-grey"><i>No message</i></div>
+      <div v-else class="text-grey"><i>{{ $t('NoMessage') }}</i></div>
       <div class="row items-center no-wrap q-gutter-x-md" style="overflow:auto;">
         <q-img
           v-for="imageUrl in review?.imagesUrls" :key="imageUrl"

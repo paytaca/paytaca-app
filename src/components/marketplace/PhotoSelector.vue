@@ -108,7 +108,8 @@ export default defineComponent({
           }
           if (errorMsg?.length < 250) return Promise.reject(error)
           $q.dialog({
-            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
+            title: 'Select photo',
+            message: errorMsg || 'Unknown error occurred',
             color: 'brandblue',
             class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
           })

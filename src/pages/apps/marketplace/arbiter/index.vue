@@ -5,10 +5,11 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" class="header-nav"/>
+    <HeaderNav :title="$t('Marketplace')" class="header-nav"/>
     <div v-if="!keys?.privkey" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <q-btn
-        no-caps label="Set arbiter private key"
+        no-caps
+        :label="$t('SetArbiterPrivateKey')"
         color="brandblue"
         class="full-width q-my-lg"
         @click="() => promptSetPrivkey()"
@@ -17,7 +18,7 @@
     <div v-else class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <q-item dense class="q-r-mx-md q-mb-sm">
         <q-item-section>
-          <q-item-label class="text-caption text-grey top">Arbiter Address</q-item-label>
+          <q-item-label class="text-caption text-grey top">{{ $t('ArbiterAddress') }}</q-item-label>
           <q-item-label style="word-break: break-all;">{{ keys?.address }}</q-item-label>
         </q-item-section>
         <q-item-section avatar>
@@ -29,20 +30,20 @@
             :content-style="{color: darkMode ? 'white' : 'black'}"
             :content-class="['pt-card-2 text-bow', getDarkModeClass(darkMode)]"
           >
-            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.privkey, 'Private key copied to clipboard')">
+            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.privkey, t('PrivateKeyCopiedToClipboard'))">
               <q-item-section>
-                <q-item-label>Copy private key</q-item-label>
+                <q-item-label>{{ $t('CopyPrivateKey') }}</q-item-label>
               </q-item-section>
             </q-item>
-            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.pubkey, 'Public key copied to clipboard')">
+            <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.pubkey, t('PublicKeyCopiedToClipboard'))">
               <q-item-section>
-                <q-item-label>Copy public key</q-item-label>
+                <q-item-label>{{ $t('CopyPublicKey') }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-separator/>
             <q-item clickable v-close-popup @click="() => promptSetPrivkey()">
               <q-item-section>
-                <q-item-label>Change address</q-item-label>
+                <q-item-label>{{ $t('ChangeAddress') }}</q-item-label>
               </q-item-section>
             </q-item>
           </q-btn-dropdown>
@@ -96,10 +97,12 @@ import { computed, inject, onActivated, onDeactivated, onMounted, onUnmounted, r
 import HeaderNav from "src/components/header-nav.vue";
 import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
 import ChatWidget from "./chat-widget.vue";
+import { useI18n } from "vue-i18n"
 
 const STORAGE_KEY = 'marketplace-arbiter-wif'
 const bchjs = new BCHJS()
 
+const { t } = useI18n()
 const $copyText = inject('$copyText')
 const $q = useQuasar()
 const $store = useStore()
@@ -137,8 +140,8 @@ async function getWalletPrivkeyAt(index) {
 
 function promptSetPrivkey() {
   $q.dialog({
-    title: 'Update Session',
-    message: 'Input wallet index or WIF',
+    title: t('UpdateSession'),
+    message: t('UpdateSessionMsg'),
     prompt: { type: 'text' },
     color: 'brandblue',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`

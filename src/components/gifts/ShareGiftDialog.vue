@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card :class="darkMode ? 'pt-card-3' : 'text-black'">
       <q-card-section>
-        <div class="text-h5 q-mb-md">Share Gift</div>
+        <div class="text-h5 q-mb-md">{{ $t('ShareGift') }}</div>
         <ShareGiftPanel :qr-share="qrCodeContents" :amount="gift?.amount"/>
       </q-card-section>
     </q-card>

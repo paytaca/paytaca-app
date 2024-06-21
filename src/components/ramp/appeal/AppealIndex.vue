@@ -15,14 +15,16 @@
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
             :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'PENDING'}"
-            @click="statusType='PENDING'">
-            Pending
+            @click="statusType='PENDING'"
+          >
+            {{ $t('Pending') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
             :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}"
-            @click="statusType='RESOLVED'">
-            Resolved
+            @click="statusType='RESOLVED'"
+          >
+            {{ $t('Resolved') }}
           </button>
         </div>
       </q-pull-to-refresh>
@@ -39,7 +41,7 @@
         <!-- Empty list display -->
         <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
         </div>
         <!-- List -->
         <div v-else>
@@ -61,11 +63,13 @@
                       <div class="col ib-text">
                         <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
                         <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+                          <!--TODO:-->
                         <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
                         <div class="xs-font-size">{{ appeal.owner.name}}</div>
                         <div class="row text-weight-bold" style="font-size: medium;">ORDER #{{ appeal.order.id }}</div>
                         <div class="xs-font-size">
                           <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
+                            <!--TODO:-->
                           <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
                         </div>
                         <div v-for="(reason, index) in appeal.reasons" :key="index">

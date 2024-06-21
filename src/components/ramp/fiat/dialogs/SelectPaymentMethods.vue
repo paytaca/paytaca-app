@@ -3,9 +3,9 @@
     <q-dialog v-model="showDialog" @before-hide="$emit('back')">
         <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
         <q-card-section class="q-mx-sm">
-          <div class="text-weight-bold text-center lg-font-size">Select Payment Methods</div>
-          <div v-if="hasAlienPaymentsSelected" style="color:red" class="text-center q-mx-md sm-font-size">Please unselect unsupported payment methods</div>
-          <div v-else class="subtext text-center" style="font-size: 13px;">Select only up to 5 methods</div>
+          <div class="text-weight-bold text-center lg-font-size">{{ $t('SelectPaymentMethods') }}</div>
+          <div v-if="hasAlienPaymentsSelected" style="color:red" class="text-center q-mx-md sm-font-size">{{ $t('PleaseUnselectUnsupportedPaymentMethods') }}</div>
+          <div v-else class="subtext text-center" style="font-size: 13px;">{{ $t('SelectOnlyUpTo5methods') }}</div>
         </q-card-section>
         <q-card-section v-if="paymentMethodOpts.length > 0" class="text-left q-pt-sm q-mx-xs">
           <q-list style="max-height:60vh; overflow:auto;">
@@ -29,6 +29,7 @@
                       </div>
                       <q-checkbox v-model:model-value="option.selected" @update:model-value="updateSelectedPaymentMethods(option)" :color="option.alien ? 'red': 'cyan'" keep-color/>
                   </div>
+                  <!--TODO:-->
                   <div v-if="option.alien" class="subtext xs-font-size text-weight-bold" style="color:red">
                     {{ currency }} does not support this payment type
                   </div>
@@ -43,6 +44,7 @@
           <q-btn v-if="paymentTypeOpts.length > 0" outline rounded label='Add new' class="button button-icon q-mr-sm" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
           <q-btn rounded class="button q-ml-sm" @click="submitUpdatedPaymentMethods()" :disable="hasAlienPaymentsSelected" v-close-popup>
             <template v-slot:default>
+              <!--TODO:-->
                 Select {{ selectedPaymentMethods.length }}
             </template>
           </q-btn>
