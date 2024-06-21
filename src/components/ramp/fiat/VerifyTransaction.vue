@@ -40,7 +40,7 @@
         dense
         :readonly="disableTxidInput"
         :dark="darkMode"
-        :loading="!transactionId"
+        :loading="!txidLoaded && !transactionId"
         v-model="transactionId"
         @click="copyToClipboard(transactionId)">
         <template v-slot:append>
@@ -51,11 +51,8 @@
             @click="disableTxidInput = false"/>
         </template>
       </q-input>
-      <div v-if="errorMessage" class="q-mx-sm q-my-sm">
-        <q-card flat class="col q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-            <q-icon name="error" left/>
-            {{ $t('Error') }}: {{ errorMessage }}
-        </q-card>
+      <div v-if="errorMessage" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+        <q-icon name="error" size="1.2em" class="q-pr-xs"/>{{ errorMessage }}
       </div>
       <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm q-pt-md">
         <q-btn
@@ -105,6 +102,7 @@ export default {
   },
   watch: {
     txidLoaded () {
+      console.log('txidLoaded:', this.txidLoaded)
       this.checkTransferStatus()
     },
     balanceLoaded () {
@@ -121,11 +119,12 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    loadTransactionId () {
+    async loadTransactionId () {
       if (!this.transactionId) {
         this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
       }
-      this.fetchTransactions()
+      await this.fetchTransactions()
+      console.log('transactionId:', this.transactionId)
     },
     loadContract () {
       this.fetchContract().then(this.fetchContractBalance())
@@ -142,33 +141,13 @@ export default {
           .catch(error => reject(error))
       })
     },
-    fetchTransactions () {
-      const vm = this
-      vm.loading = true
-      backend.get('/ramp-p2p/order/contract/transactions', {
-        params: {
-          order_id: vm.data?.orderId
-        },
-        authorize: true
-      })
-        .then(response => {
-          if (!vm.transactionId) {
-            const transactions = response.data
-            const tx = transactions.filter(transaction => transaction.action === vm.data?.action)
-            console.log('tx:', tx)
-          }
-          vm.txidLoaded = true
-        })
-        .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-          }
-        })
+    async fetchTransactions () {
+      console.log('fetchTransactions')
+      const utxos = await this.data?.escrow?.getUtxos()
+      if (utxos.length > 0) {
+        this.transactionId = utxos[0]?.txid
+      }
+      this.txidLoaded = true
     },
     fetchContract () {
       return new Promise((resolve, reject) => {
@@ -223,14 +202,12 @@ export default {
       backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow`, body, { authorize: true })
         .then(response => console.log(response.data))
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            vm.errorMessage = error.response.data.error
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
+          console.error(error.response)
+          if (error.response?.data?.error === 'txid is required') {
+            vm.errorMessage = 'Transaction ID is required for verification'
+          }
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
           }
           vm.hideBtn = false
           vm.disableBtn = false
@@ -285,6 +262,7 @@ export default {
       }
     },
     copyToClipboard (value) {
+      if (!value) return
       this.$copyText(value)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
@@ -342,5 +320,18 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.warning-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.warning-box-light {
+  background-color: #ffc4c4; /* Light red background */
+  border: 1px solid #fb672d; /* Border color */
+}
+.warning-box-dark {
+  background-color: #333; /* Dark mode background color */
+  color: #fff; /* Text color for dark mode */
+  border: 1px solid #fb672d; /* Border color */
 }
 </style>

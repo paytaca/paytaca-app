@@ -38,6 +38,7 @@
             @success="onEscrowSuccess"
             @back="onBack"
             @refresh="generateContract"
+            @updateArbiterStatus="onUpdateArbiterStatus"
           />
           <VerifyTransaction
             v-if="state === 'tx-confirmation'"
@@ -158,7 +159,8 @@ export default {
       peerInfo: {},
       hasUnread: false,
       chatRef: '',
-      hideTradeInfo: false
+      hideTradeInfo: false,
+      hasArbiters: true
     }
   },
   components: {
@@ -194,7 +196,7 @@ export default {
   computed: {
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 380 : this.$q.screen.height - 350
-      if (this.state === 'escrow-bch' || this.state === 'payment-confirmation') {
+      if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
       }
       return height + 200
@@ -221,7 +223,7 @@ export default {
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
         fees: this.fees,
-        escrow: this.escrowContract,
+        // escrow: this.escrowContract,
         wsConnected: !this.reconnectingWebSocket
       }
     },
@@ -351,6 +353,9 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    onUpdateArbiterStatus (hasArbiters) {
+      this.hasArbiters = hasArbiters
+    },
     reloadChildComponents () {
       this.standByDisplayKey++
       this.escrowTransferKey++
@@ -370,7 +375,7 @@ export default {
     showChat () {
       this.showChatButton = true
     },
-    checkStep () {
+    async checkStep () {
       const vm = this
       vm.openDialog = false
       const status = vm.status.value
@@ -398,7 +403,8 @@ export default {
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
           let nextState = 'tx-confirmation'
-          if (!vm.txid) nextState = 'escrow-bch'
+          const contractBalance = await vm.escrowContract?.getBalance()
+          if (!vm.txid && contractBalance === 0) nextState = 'escrow-bch'
           if (this.order.trade_type === 'BUY') {
             state = vm.order.is_ad_owner ? nextState : 'standby-view'
           } else if (this.order.trade_type === 'SELL') {
@@ -427,10 +433,11 @@ export default {
           break
         case 'PD': { // Paid
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
+          const balance = await vm.escrowContract?.getBalance()
           let state = 'standby-view'
           vm.verifyAction = 'RELEASE'
           let nextState = 'tx-confirmation'
-          if (!vm.txid) nextState = 'payment-confirmation'
+          if (!vm.txid || balance > 0) nextState = 'payment-confirmation'
           if (vm.order.trade_type === 'BUY') {
             state = vm.order.is_ad_owner ? nextState : 'standby-view'
             vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
@@ -637,7 +644,7 @@ export default {
       console.log('generating contract..')
       const vm = this
       const fees = await vm.fetchFees()
-      vm.fetchContract().then(contract => {
+      await vm.fetchContract().then(async contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses

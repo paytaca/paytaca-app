@@ -28,10 +28,10 @@
               <div class="row justify-between no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
                 <span>Price</span>
                 <span v-if="marketPrice && adData.priceType === 'FLOATING'" class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(((marketPrice * adData.floatingPrice) / 100), postData.fiatCurrency.symbol) }}
+                  {{ formatCurrency(((marketPrice * adData.floatingPrice) / 100), postData.fiatCurrency.symbol) }}
                 </span>
                 <span v-if="adData.priceType === 'FIXED'" class="text-nowrap q-ml-xs">
-                  {{ formattedCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) }}
+                  {{ formatCurrency(adData.fixedPrice, postData.fiatCurrency.symbol) }}
                 </span>
               </div>
             </div>
@@ -42,15 +42,19 @@
             <div class="q-mx-sm">
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Quantity</span>
-                <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} BCH</span>
+                <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} {{ adData.isTradeAmountFiat ? adData.fiatCurrency.symbol : adData.cryptoCurrency.symbol }}</span>
               </div>
+              <!-- <div class="row justify-between no-wrap q-mx-lg">
+                <q-space/>
+                <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) * $parent.marketPrice }} BCH</span>
+              </div> -->
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Minimum</span>
-                <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeFloor) }} BCH </span>
+                <span class="text-nowrap q-ml-xs">{{ formatCurrency(adData.tradeFloor, tradeLimitsCurrency(adData)) }} {{ tradeLimitsCurrency(adData) }} </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Maximum</span>
-                <span class="text-nowrap q-ml-xs">{{ formattedCurrency(adData.tradeCeiling) }} BCH </span>
+                <span class="text-nowrap q-ml-xs">{{ formatCurrency(adData.tradeCeiling, tradeLimitsCurrency(adData)) }} {{ tradeLimitsCurrency(adData) }} </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Appealable after</span>
@@ -113,12 +117,10 @@
             <q-list bordered class="q-mx-lg" :dark="darkMode">
               <div
                 v-for="(method, index) in paymentMethods"
-                :key="index"
-              >
+                :key="index">
                 <q-expansion-item
                   group="somegroup"
-                  :label="method.payment_type.name.toUpperCase()"
-                >
+                  :label="method.payment_type.name.toUpperCase()">
                   <!-- ^ higlight header-class payment method on seller/buyer list -->
                   <q-card flat class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                     <q-card-section>
@@ -198,13 +200,15 @@ export default {
   async mounted () {
     const vm = this
     vm.adData = vm.postData
+    console.log('adData:', vm.adData)
     vm.fetchMarketPrice()
     vm.isLoaded = true
   },
   methods: {
     getDarkModeClass,
-    formattedCurrency (value, currency) {
-      return formatCurrency(value, currency)
+    formatCurrency,
+    tradeLimitsCurrency (ad) {
+      return (ad.isTradeLimitsFiat ? ad.fiatCurrency.symbol : ad.cryptoCurrency.symbol)
     },
     checkMatchingPaymentMethod (userPM, adMethodList) {
       adMethodList = adMethodList.map(p => p.payment_type)

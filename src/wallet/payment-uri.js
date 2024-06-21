@@ -164,6 +164,7 @@ function resolvePaymentUriAssetParam(paramValue='') {
  * 
  * @param {String} content 
  * @param {Object} opts
+ * @param {Number} opts.networkTimeDiff For checking urls with expiry, this value will be used to adjust the local time if it is off by the number of milliseconds
  * @param {'main' | 'smart'} opts.chain
  */
 export function parsePaymentUri(content, opts) {
@@ -186,7 +187,7 @@ export function parsePaymentUri(content, opts) {
 
   let bip0021Decoded, bip0021DecodeError 
   if (opts?.chain === 'main') {
-    try { bip0021Decoded = decodeBIP0021URI(content) } catch(err) { bip0021DecodeError = err }
+    try { bip0021Decoded = decodeBIP0021URI(content, opts) } catch(err) { bip0021DecodeError = err }
   }
   let eip681Decoded, eip681DecodeError
   if (opts?.chain === 'smart') {
@@ -298,18 +299,23 @@ export class JSONPaymentProtocol {
    * @param {String} data.memo
    * @param {String} data.paymentUrl
    * @param {String} data.paymentId
+   * @param {Object} opts
+   * @param {Number} opts.networkTimeDiff
    */
-  constructor(data) {
+  constructor(data, opts) {
     this._data = data
     this.transactions = []
 
     if (this.parsed.paymentUrl) {
       this.source = JPPSourceTypes.resolve(this.parsed.paymentUrl)
     }
+    this.opts = opts
   }
 
   get expired() {
-    return Date.now() > this.parsed.expires
+    let now = Date.now() 
+    if (opts?.networkTimeDiff) now += opts?.networkTimeDiff
+    return now > this.parsed.expires
   }
 
   get parsed() {
@@ -358,12 +364,24 @@ export class JSONPaymentProtocol {
   }
 
   get txids() {
+    if (this._data?.payment?.txid) return [this._data?.payment?.txid]
     if (!Array.isArray(this.transactions)) return []
     return this.transactions.map(tx => JSONPaymentProtocol.rawTxToHash(tx))
   }
 
   get totalSendAmountSats() {
     return this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
+  }
+
+  get paymentData() {
+    if (!this._data?.payment) return
+
+    return {
+      memo: this._data?.payment?.memo,
+      txid: this._data?.payment?.txid,
+      paidAt: this._data?.payment?.paidAt ? new Date(this._data?.payment?.paidAt) : null,
+      refundTo: this._data?.payment?.refundTo,
+    }
   }
 
   /**
@@ -723,6 +741,7 @@ export class JSONPaymentProtocol {
    * @param {String} paymentUri 
    * @param {Object} opts
    * @param {Boolean} opts.verify
+   * @param {Number} opts.networkTimeDiff
    */
   static async fetch(paymentUri, opts) {
     let link = new URL(paymentUri)
@@ -786,6 +805,9 @@ export class JSONPaymentProtocol {
       parsedData = response.data
       parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
       parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
+      if (parsedData?.payment?.paid_at) {
+        parsedData.payment.paidAt = parsedData?.payment?.paid_at
+      }
       if (jppSource == JPPSourceTypes.ANYPAY) {
         parsedData.paymentUrl = String(link)
         parsedData.chain = 'BCH'
@@ -798,7 +820,7 @@ export class JSONPaymentProtocol {
         parsedData.currency = parsedData.currency || 'BCH'
       }
     }
-    return new JSONPaymentProtocol(parsedData)
+    return new JSONPaymentProtocol(parsedData, opts)
   }
 
 

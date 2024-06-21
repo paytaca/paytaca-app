@@ -7,7 +7,7 @@ import { chatBackend } from './backend'
 export async function updateChatIdentityId (userType, id) {
   return new Promise((resolve, reject) => {
     const payload = { chat_identity_id: id }
-    backend.put(`/ramp-p2p/${userType}/detail`, payload, { authorize: true })
+    backend.patch(`/ramp-p2p/${userType}/detail`, payload, { authorize: true })
       .then(response => {
         console.log('Updated chat identity id:', response.data)
         resolve(response)

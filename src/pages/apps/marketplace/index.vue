@@ -5,7 +5,11 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Marketplace')" backnavpath="/apps" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" backnavpath="/apps" class="header-nav">
+      <template v-slot:top-right-menu>
+        <MarketplaceHeaderMenu/>
+      </template>
+    </HeaderNav>
 
     <div class="q-mx-sm q-pt-md">
       <SessionLocationWidget ref="sessionLocationWidget" />
@@ -97,7 +101,7 @@
                 <div>
                   {{ storefront?.location?.formattedCityAddress }}
                   <span v-if="storefront?.distance" class="text-grey">
-                    (~{{ Math.round(storefront?.distance) / 1000 }} km)
+                    (~{{ round(storefront?.distance/1000, 2) }} km)
                   </span>
                 </div>
               </div>
@@ -195,7 +199,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
-import { formatDateRelative, formatTimestampToText, getISOWithTimezone, roundRating } from 'src/marketplace/utils'
+import { formatDateRelative, formatTimestampToText, getISOWithTimezone, round, roundRating } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -203,6 +207,7 @@ import { computed, ref, onMounted, watch, onActivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
+import MarketplaceHeaderMenu from 'src/components/marketplace/MarketplaceHeaderMenu.vue'
 
 
 const $q = useQuasar()

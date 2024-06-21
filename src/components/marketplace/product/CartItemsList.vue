@@ -194,4 +194,8 @@ export default defineComponent({
   border-radius: 4px;
   padding: map-get($space-xs, 'y') map-get($space-xs, 'x');
 }
+
+body.body--light .quantity-input {
+  color: black;
+}
 </style>

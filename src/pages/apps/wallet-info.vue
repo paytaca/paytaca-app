@@ -228,16 +228,6 @@
           </q-item>
         </q-list>
       </div>
-      <div class="col-12 q-px-lg q-mt-md">
-        <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
-        <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
-          <q-item clickable @click="executeSecurityChecking">
-            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-              <q-item-label class="text-center">{{ $t('ClickToReveal') }}</q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </div>
       <div class="col-12 q-px-lg q-mt-md q-mb-lg">
         <p class="section-title">{{ $t('WalletDeletion') }}</p>
         <q-btn color="red" style="width: 100%;" @click="showDeleteDialog()" :disable="disableDeleteButton">
@@ -245,18 +235,12 @@
         </q-btn>
       </div>
     </div>
-    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
-    <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
   </div>
 </template>
 
 <script>
 import HeaderNav from '../../components/header-nav'
-import pinDialog from '../../components/pin'
-import biometricWarningAttmepts from '../../components/authOption/biometric-warning-attempt.vue'
-import SeedPhraseDialog from 'src/components/wallet-info/SeedPhraseDialog'
 import { getMnemonic, Wallet } from '../../wallet'
-import { NativeBiometric } from 'capacitor-native-biometric'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
@@ -265,19 +249,11 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'app-wallet-info',
   components: {
-    HeaderNav,
-    pinDialog,
-    biometricWarningAttmepts,
-    // eslint-disable-next-line vue/no-unused-components
-    SeedPhraseDialog
+    HeaderNav
   },
   data () {
     return {
-      mnemonic: '',
-      showMnemonic: false,
       sbchLnsName: '',
-      pinDialogAction: '',
-      warningAttemptsStatus: 'dismiss',
 
       wallet: null,
       scanningBchUtxos: false,
@@ -343,27 +319,6 @@ export default {
         return true
       }
       return false
-    },
-    mnemonicDisplay() {
-      if (this.showMnemonic) {
-        return this.mnemonic
-      } else {
-        const wordList = [
-          'church',
-          'zebra',
-          'tunnel',
-          'cactus',
-          'brake',
-          'juggle',
-          'truffle',
-          'vortex',
-          'glimmer',
-          'grind',
-          'silver',
-          'patience'
-        ]
-        return wordList.join(' ')
-      }
     }
   },
   methods: {
@@ -574,52 +529,6 @@ export default {
           this.scanningSlpAddresses = false
         })
     },
-    executeSecurityChecking () {
-      const vm = this
-      if (vm.showMnemonic === false) {
-        setTimeout(() => {
-          if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-            vm.pinDialogAction = 'VERIFY'
-          } else {
-            vm.verifyBiometric()
-          }
-        }, 500)
-      } else {
-        vm.toggleMnemonicDisplay('proceed')
-      }
-    },
-    verifyBiometric () {
-      // Authenticate using biometrics before logging the user in
-      NativeBiometric.verifyIdentity({
-        reason: 'For ownership verification',
-        title: 'Security Authentication',
-        subtitle: 'Verify your account using fingerprint.',
-        description: ''
-      })
-        .then(() => {
-          // Authentication successful
-          this.submitLabel = 'Processing'
-          this.customKeyboardState = 'dismiss'
-          setTimeout(() => {
-            this.toggleMnemonicDisplay()
-          }, 1000)
-        },
-        (error) => {
-          // Failed to authenticate
-          this.warningAttemptsStatus = 'dismiss'
-          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
-            this.showMnemonic = false
-          } else if (error.message.includes('Too many attempts. Try again later.')) {
-            this.warningAttemptsStatus = 'show'
-          } else {
-            this.verifyBiometric()
-          }
-        }
-        )
-    },
-    setwarningAttemptsStatus () {
-      this.verifyBiometric()
-    },
     updateSbchLnsName () {
       const { lastAddress: address } = this.getWallet('sbch')
       if (!address) return
@@ -644,19 +553,6 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
-    },
-    toggleMnemonicDisplay (action) {
-      this.pinDialogAction = ''
-      if (action === 'proceed') {
-        this.showMnemonic = !this.showMnemonic
-      } else if (action === undefined) {
-        this.$q.dialog({
-          component: SeedPhraseDialog,
-          componentProps: { mnemonic: this.mnemonic }
-        }).onDismiss(() => {
-          this.toggleMnemonicDisplay('proceed')
-        })
-      }
     },
     showDeleteDialog () {
       const vm = this
@@ -718,12 +614,6 @@ export default {
   mounted () {
     this.loadWallet().then(() => this.updateUtxoScanTasksStatus())
     this.updateSbchLnsName()
-  },
-  created () {
-    const vm = this
-    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      vm.mnemonic = mnemonic
-    })
   }
 }
 </script>

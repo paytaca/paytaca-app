@@ -98,8 +98,7 @@ import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../../wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { sha256 } from 'js-sha256'
-
-const { SecureStoragePlugin } = Plugins
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
 export default {
   /**

@@ -127,8 +127,8 @@
           <!--TODO:-->
           <q-spinner class="q-mr-xs"/>{{ selectedAction === 'release' ? 'Releasing' : 'Refunding'}} BCH, please wait.
         </div>
-        <div v-if="sendError" class="q-mx-lg q-px-lg q-my-sm">
-          <q-card flat class="col q-pa-md pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">
+        <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto; max-width: 300px">
+          <q-card flat class="row pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">
             <q-icon name="error" left/>
             {{ sendError }}
           </q-card>

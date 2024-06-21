@@ -54,8 +54,10 @@ async function handleOpenedNotification() {
   }
 
   loadingMsg.value = 'Redirecting ...'
-  if (route) $router.replace(route)
-  else $router.replace('/')
+  if (route) await $router.replace(route)
+  else await $router.replace('/')
+
+  $store.dispatch('notification/emitOpenedNotification')
 }
 
 onMounted(async () => {

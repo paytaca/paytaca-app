@@ -38,7 +38,7 @@
                     rounded
                     class="full-width bg-blue-9 text-white button"
                     @click="() => { importSeedPhrase = true }"
-                    :label="$t('RestoreFromSeedPhrase')"
+                    :label="$t('RestoreExistingWallet')"
                   />
                 </div>
               </div>
@@ -77,63 +77,77 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
     </div>
     <div
-      class="row pt-wallet q-mt-sm pt-card-2"
+      class="pt-wallet q-mt-sm pt-card-2"
       :class="getDarkModeClass(darkMode, 'registration')"
       v-if="importSeedPhrase && mnemonic.length === 0"
     >
-      <div class="col-12 q-px-lg">
-        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
-          <div class="q-py-lg">
-            <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
-              {{ $t('RestoreWalletDescription') }}
-            </p>
-            <template v-if="useTextArea">
-              <div class="row justify-start q-mb-sm">
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon="arrow_back"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('EnterOneByOne')"
-                  @click="useTextArea = false, seedPhraseBackup = ''"
-                />
-              </div>
-              <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
-            </template>
-            <template v-else>
-              <div class="row justify-end q-mb-xs">
-                <q-btn
-                  flat
-                  no-caps
-                  padding="xs sm"
-                  icon-right="arrow_forward"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('PasteSeedPhrase')"
-                  @click="useTextArea = true, seedPhraseBackup = ''"
-                />
-              </div>
-              <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
-            </template>
-            <q-btn
-              rounded
-              class="full-width q-mt-md button"
-              @click="initCreateWallet()"
-              :disable="!validateSeedPhrase()"
-              :label="$t('RestoreWallet')"
-            />
+      <template v-if="authenticationPhase === 'options'">
+        <div>
+          <AuthenticationChooser
+            :importSeedPhrase="importSeedPhrase"
+            @change-authentication-phase="onChangeAuthenticationPhase"
+          />
+        </div>
+      </template>
+
+      <template v-else-if="authenticationPhase === 'shards'">
+        <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="initCreateWallet" />
+      </template>
+      <template v-else-if="authenticationPhase === 'backup-phrase'">
+        <div class="col-12 q-px-lg">
+          <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+            <div class="q-py-lg">
+              <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
+                {{ $t('RestoreWalletDescription') }}
+              </p>
+              <template v-if="useTextArea">
+                <div class="row justify-start q-mb-sm">
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon="arrow_back"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('EnterOneByOne')"
+                    @click="useTextArea = false, seedPhraseBackup = ''"
+                  />
+                </div>
+                <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+              </template>
+              <template v-else>
+                <div class="row justify-end q-mb-xs">
+                  <q-btn
+                    flat
+                    no-caps
+                    padding="xs sm"
+                    icon-right="arrow_forward"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('PasteSeedPhrase')"
+                    @click="useTextArea = true, seedPhraseBackup = ''"
+                  />
+                </div>
+                <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
+              </template>
+              <q-btn
+                rounded
+                class="full-width q-mt-md button"
+                @click="initCreateWallet()"
+                :disable="!validateSeedPhrase()"
+                :label="$t('RestoreWallet')"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <div class="row" v-if="mnemonic.length > 0">
       <div
         class="pt-get-started q-mt-sm pt-card-2"
         :class="getDarkModeClass(darkMode, 'registration')"
-        v-if="steps === totalSteps"
+        v-if="isFinalStep"
       >
         <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
@@ -201,61 +215,46 @@
               <ThemeSelectorPreview
                 :choosePreferedSecurity="choosePreferedSecurity"
               />
-                <!-- <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/> -->
             </div>
 
             <div v-else>
-              <template v-if="steps === totalSteps">
-                <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
-                <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription1') }}
-                </p>
-                <p v-else class="dim-text" style="margin-top: 10px;">
-                  {{ $t('MnemonicBackupPhraseDescription2') }}
-                </p>
-              </template>
-
-              <div class="row" id="mnemonic">
-                <template v-if="steps === totalSteps">
-                  <div v-if="mnemonicVerified || !showMnemonicTest" class="col q-mb-sm text-caption">
-                    <SeedPhraseContainer :mnemonic="mnemonic" />
-                  </div>
-                  <div v-else>
-                    <div>
-                      <q-btn
-                        flat
-                        no-caps
-                        padding="xs sm"
-                        icon="arrow_back"
-                        color="black"
-                        class="button button-text-primary"
-                        :class="getDarkModeClass(darkMode)"
-                        :label="$t('MnemonicBackupPhrase')"
-                        @click="showMnemonicTest = false"
-                      />
+              <template v-if="isFinalStep">
+                <template v-if="authenticationPhase === 'shards'">
+                  <template v-if="seedPhraseBackup">
+                    <div class="text-bow" :class="getDarkModeClass(darkMode)">
+                      <p class="dim-text" style="margin-top: 10px;">
+                        {{ $t('WalletRestoredDescription') }}
+                      </p>
                     </div>
-                    <MnemonicTest
-                      :mnemonic="mnemonic"
-                      @matched="mnemonicVerified = true"
-                      class="q-mb-md"
+                    <q-btn
+                      rounded
+                      :label="$t('Continue')"
+                      class="q-mt-lg full-width button"
+                      @click="onProceedToNextStep"
                     />
-                  </div>
-                </template>
-              </div>
-              <div class="row q=mt-md" v-if="steps === totalSteps">
-                <q-btn v-if="mnemonicVerified" class="full-width button" @click="openSettings = true" :label="$t('Continue')" rounded />
-                <template v-else>
-                  <template v-if="$q.platform.is.mobile">
-                    <q-btn v-if="showMnemonicTest" class="full-width bg-blue-9 q-mt-md" @click="confirmSkipVerification" no-caps rounded>
-                      {{ $t('SkipVerification') }}
-                    </q-btn>
-                    <q-btn v-else rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
                   </template>
                   <template v-else>
-                    <q-btn rounded :label="$t('Continue')" class="full-width bg-blue-9 text-white" @click="showMnemonicTest = true"/>
+                    <ShardsProcess
+                      :mnemonic="mnemonic"
+                      :walletHash="newWalletHash"
+                      @proceed-to-next-step="onProceedToNextStep()"
+                    />
                   </template>
                 </template>
-              </div>
+
+                <template v-else-if="authenticationPhase === 'skip'">
+                  <MnemonicProcessContainer
+                    :importSeedPhrase="importSeedPhrase"
+                    :isFinalStep="isFinalStep"
+                    :mnemonic="mnemonic"
+                    :mnemonicVerified="mnemonicVerified"
+                    @mnemonic-verified="onMnemonicVerified"
+                    @open-settings="onOpenSettings"
+                    @confirm-skip-verification="confirmSkipVerification"
+                    @change-authentication-phase="onChangeAuthenticationPhase"
+                  />
+                </template>
+              </template>
             </div>
           </div>
         </div>
@@ -286,13 +285,15 @@ import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
-import MnemonicTest from 'src/components/MnemonicTest.vue'
 import securityOptionDialog from '../../components/authOption'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import ThemeSelectorPreview from 'src/components/registration/ThemeSelectorPreview'
-import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+import ShardsProcess from 'src/components/registration/ShardsProcess'
+import AuthenticationChooser from 'src/components/registration/AuthenticationChooser'
+import ShardsImport from 'src/components/registration/ShardsImport'
+import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
 
 function countWords(str) {
   if (str) {
@@ -314,12 +315,14 @@ export default {
     ProgressLoader,
     pinDialog,
     securityOptionDialog,
-    MnemonicTest,
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
     ThemeSelectorPreview,
-    SeedPhraseContainer
+    ShardsProcess,
+    AuthenticationChooser,
+    ShardsImport,
+    MnemonicProcessContainer
   },
   data () {
     return {
@@ -328,23 +331,28 @@ export default {
       importSeedPhrase: false,
       seedPhraseBackup: null,
       mnemonic: '',
+      newWalletHash: '',
       steps: -1,
       totalSteps: 9,
       mnemonicVerified: false,
-      showMnemonicTest: false,
       pinDialogAction: '',
       pin: '',
       securityOptionDialogStatus: 'dismiss',
       walletIndex: 0,
       currencySelectorRerender: false,
       openThemeSelector: false,
-      useTextArea: false
+      useTextArea: false,
+      authenticationPhase: 'options',
+      skipToBackupPhrase: false
     }
   },
   watch: {
     steps (val) {
       if (val === 0) {
         this.createWallets()
+        if (!this.importSeedPhrase) {
+          this.authenticationPhase = 'skip'
+        }
       }
     },
     seedPhraseBackup (val) {
@@ -360,6 +368,9 @@ export default {
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
+    },
+    isFinalStep () {
+      return this.steps === this.totalSteps
     }
   },
   methods: {
@@ -484,7 +495,7 @@ export default {
           } catch(error) { console.error(error) }
         })
 
-        bchWallet.getXPubKey().then(function (xpub) {
+        await bchWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
             type: 'bch',
@@ -497,7 +508,7 @@ export default {
       for (const slpWallet of slpWallets) {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
-        slpWallet.getNewAddressSet(0).then(function (addresses) {
+        await slpWallet.getNewAddressSet(0).then(function (addresses) {
           vm.$store.commit('global/updateWallet', {
             isChipnet,
             type: 'slp',
@@ -510,7 +521,7 @@ export default {
           vm.steps += 1
         })
 
-        slpWallet.getXPubKey().then(function (xpub) {
+        await slpWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
             type: 'slp',
@@ -520,7 +531,7 @@ export default {
         })
       }
 
-      wallet.sBCH.subscribeWallet().then(function () {
+      await wallet.sBCH.subscribeWallet().then(function () {
         vm.$store.commit('global/updateWallet', {
           type: 'sbch',
           derivationPath: wallet.sBCH.derivationPath,
@@ -537,6 +548,7 @@ export default {
         wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes)
+      this.newWalletHash = wallet.BCH.walletHash
     },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
@@ -617,10 +629,93 @@ export default {
           message: 'Enable push notifications to receive updates from the app',
         }).catch(console.log)
       }
+    },
+    onChangeAuthenticationPhase (isShard) {
+      this.authenticationPhase = isShard ? 'shards' : 'backup-phrase'
+    },
+    onProceedToNextStep () {
+      this.steps = this.totalSteps
+      this.authenticationPhase = 'options'
+      this.openSettings = true
+    },
+    onValidatedQrs (seedPhrase) {
+      this.seedPhraseBackup = seedPhrase
+    },
+    async getIPGeolocationPreferences() {
+      const result = {
+        country: {
+          name: 'United States',
+          code: 'US'
+        },
+        currency: {
+          symbol: 'USD',
+          name: 'United States Dollar'
+        },
+        langs: ['en-us'],
+      }
+
+      const apiKey = process.env.IPGEO_API_KEY
+      const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`
+      const response = await this.$axios.get(url)?.catch(console.error)
+
+      if (response?.data?.country_name) {
+        result.country = {
+          name: response.data?.country_name,
+          code: response.data?.country_code2
+        }
+      }
+
+      if (response.data?.currency.code) {
+        result.country = {
+          symbol: response.data?.currency.code,
+          name: response.data?.currency?.name
+        }
+      }
+
+      if (typeof response.data?.languages === 'string' && response.data?.languages) {
+        result.langs = response.data?.languages?.toLowerCase().split(',')
+      }
+      return result
+    },
+    resolveDeviceLangCode() {
+      // Getting language code from device seems to be crashing in iOS 17.x
+      // we just default to english for iOS for now
+      if (this.$q.platform.is.ios) return 'en-us'
+      return Device.getLanguageCode()
+        .then(result => {
+          const code = result.value.toLowerCase()
+
+          /**
+          *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
+          *  Since Device.getLanguageCode() returns a two-char language code,
+          *  we set chinese default to "zh-cn" (Chinese - Simplified)
+          */
+          if (code === 'zh') return `zh-cn`
+ 
+          return code
+        })
+        .catch(error => {
+          console.error(error)
+          return 'en-us'
+        })
+    },
+    setLanguage(languageCode) {
+      if (!supportedLangsI18n[languageCode]) return
+      this.$i18n.locale = languageCode
+      const newLocale = {
+        value: languageCode,
+        label: this.$t(supportedLangsI18n[languageCode])
+      }
+      this.$store.commit('global/setLanguage', newLocale)
+    },
+    onMnemonicVerified (value) {
+      this.mnemonicVerified = value
+    },
+    onOpenSettings (value) {
+      this.openSettings = value
     }
   },
   async mounted () {
-
     if (this.recreate) {
       this.mnemonic = await getMnemonic(0) || ''
       if (this.mnemonic.split(" ").length === 12) {
@@ -636,147 +731,61 @@ export default {
       this.walletIndex = 0
     }
 
-    const vm = this
-    await vm.$store.dispatch('market/updateSupportedCurrencies', {})
-    // auto-detect country
-    let countryFromIP = {
-      name: 'United States',
-      code: 'US'
-    }
-    let currencyFromIP = {
-      symbol: 'USD',
-      name: 'United States Dollar'
-    }
-    let langsFromIP = 'en-us'
-    const apiKey = process.env.IPGEO_API_KEY
-    const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`
-    await this.$axios
-      .get(url)
-      .then(response => {
-        if (response.data?.country_name) {
-          countryFromIP = {
-            name: response.data?.country_name,
-            code: response.data?.country_code2
-          }
-        }
-        if (response.data?.currency.code) {
-          currencyFromIP = {
-            symbol: response.data?.currency.code,
-            name: response.data?.currency?.name
-          }
-        }
-        if (response.data?.languages) {
-          langsFromIP = response.data?.languages?.toLowerCase().split(',')
-        }
-      })
-      .catch((error) => {
-        console.error(error)
-        // use default values
-        countryFromIP = {
-          name: 'United States',
-          code: 'US'
-        }
-        currencyFromIP = {
-          symbol: 'USD',
-          name: 'United States Dollar'
-        }
-        langsFromIP = ['en-us']
-      })
+    await this.$store.dispatch('market/updateSupportedCurrencies', {})
 
+    // auto-detect country
+    const ipGeoPreferences = await this.getIPGeolocationPreferences()
+
+    const vm = this
     setTimeout(function () {
       // set country
-      vm.$store.commit('global/setCountry', countryFromIP)
+      vm.$store.commit('global/setCountry', ipGeoPreferences.country)
 
       // set currency
       const currencyOptions = vm.$store.getters['market/currencyOptions']
-      const currency = currencyOptions.filter(o => o.symbol === currencyFromIP.symbol)
-
-      if (currency.length > 0) {
-        vm.$store.commit('market/updateSelectedCurrency', currency[0])
+      const currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
+      if (currency?.symbol) {
+        vm.$store.commit('market/updateSelectedCurrency', currency)
       }
     }, 1000)
 
     // set language
+    const defaultLang = 'en-us'
     const eng = ['en-us', 'en-uk', 'en-gb', 'en']
-    const supportedLangs = [
-      { value: 'en-us', label: this.$t('English') },
-      { value: 'zh-cn', label: this.$t('ChineseSimplified') },
-      { value: 'zh-tw', label: this.$t('ChineseTraditional') },
-      { value: 'de', label: this.$t('German') },
-      { value: 'ha', label: this.$t('Hausa') },
-      { value: 'pt', label: this.$t('Portuguese') },
-      { value: 'pt-br', label: this.$t('BrazilianPortuguese') },
-      { value: 'es', label: this.$t('Spanish') },
-      { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
-    ]
-    const supportedLangsValue = supportedLangs.map(a => a.value)
-    let ipFinalLang = 'en-us'
-
-    supportedLangsValue.forEach(lang => {
-      if (langsFromIP.includes(lang) && ipFinalLang === 'en-us') {
-        ipFinalLang = lang
-      }
-    })
-
-    this.$i18n.locale = ipFinalLang
-    const newLocale = { value: ipFinalLang, label: this.$t(supportedLangsI18n[ipFinalLang]) }
-    this.$store.commit('global/setLanguage', newLocale)
+    const supportedLangCodes = Object.getOwnPropertyNames(supportedLangsI18n) // string[]
+    const supportedIpGeoLangs = supportedLangCodes.filter(lang => ipGeoPreferences.langs?.includes?.(lang))
+      .filter(lang => lang !== defaultLang)
+      // previous implementation dont want en-us if there are other languages, so we filter it out
+    const ipGeoLang = supportedIpGeoLangs[0] || defaultLang
 
     this.currencySelectorRerender = true
 
-    vm.$axios.get('https://watchtower.cash/api/status/', { timeout: 30000 }).then(response => {
+    if (this.$store.getters['global/isVaultEmpty']) {
+      let finalLang = ''
+
+      // Adjust paytaca language according to phone's language (if supported by paytaca)
+      const deviceLang = await this.resolveDeviceLangCode()
+
+      if (supportedLangCodes.includes(deviceLang) && !eng.includes(deviceLang)) {
+        finalLang = deviceLang
+      } else if (supportedLangCodes.includes(ipGeoLang) && !eng.includes(ipGeoLang)) {
+        finalLang = ipGeoLang
+      } else {
+        // defaults to english if device lang is unsupported by app
+        finalLang = defaultLang
+      }
+
+      console.log({ finalLang, deviceLang, ipGeoLang })
+      this.setLanguage(finalLang)
+    }
+
+    this.$axios.get('https://watchtower.cash/api/status/', { timeout: 30000 }).then(response => {
       if (response.status !== 200) return Promise.reject()
       if (response.data.status !== 'up') return Promise.reject()
-      vm.serverOnline = true
-    }).catch(function () {
-      vm.serverOnline = false
+      this.serverOnline = true
+    }).catch(() => {
+      this.serverOnline = false
     })
-
-    if (!this.$store.getters['global/isVaultEmpty']) {
-      return
-    }
-
-    let finalLang = ''
-
-    // Adjust paytaca language according to phone's language (if supported by paytaca)
-    let deviceLang = null
-    if (this.$q.platform.is.ios) {
-      // Getting language code from device seems to be crashing in iOS 17.x
-      // we just default to english for iOS for now
-      deviceLang = supportedLangs[0]
-    } else {
-      try {
-        deviceLang = await Device.getLanguageCode()
-        deviceLang = deviceLang.value.toLowerCase()
-
-        /**
-        *  https://capacitorjs.com/docs/apis/device#getlanguagecoderesult
-        *  Since Device.getLanguageCode() returns a two-char language code,
-        *  we set chinese default to "zh-cn" (Chinese - Simplified)
-        */
-        if (deviceLang === 'zh') {
-          deviceLang = 'zh-cn'
-        }
-      } catch (error) {
-        deviceLang = supportedLangs[0]
-        console.error(error)
-      }
-    }
-
-    // defaults to english if device lang is unsupported by app
-    if (eng.includes(deviceLang) || !this.$i18n.availableLocales.includes(deviceLang)) {
-      finalLang = supportedLangs[0]
-    } else {
-      finalLang = supportedLangs.filter(o => {
-        return {
-          value: o.value,
-          label: this.$t(o.label)
-        }
-      })
-    }
-
-    this.$i18n.locale = finalLang.value
-    this.$store.commit('global/setLanguage', this.$t(finalLang.label))
   }
 }
 </script>

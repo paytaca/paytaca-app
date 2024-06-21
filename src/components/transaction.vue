@@ -4,11 +4,11 @@
       <q-card
         ref="card"
         v-if="transaction && transaction.asset"
-        style="padding: 20px 10px 5px 0;"
+        style="padding: 20px 10px 5px 0; max-height:85vh;"
         class="br-15 pt-card text-bow"
         :class="getDarkModeClass(darkMode)"
       >
-        <div class="close-button-container">
+        <div class="close-button-container row items-center justify-end">
           <q-btn icon="close" flat round dense v-close-popup class="close-button" />
         </div>
         <div class="text-h6 text-uppercase text-center">
@@ -200,7 +200,7 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
-            <q-item v-if="anyhedgeContracts?.length">
+            <!-- <q-item v-if="anyhedgeContracts?.length">
               <q-item-section>
                 <q-item-label class="text-gray" caption>AnyHedge</q-item-label>
                 <q-item-label v-for="(contractInfo, index) in anyhedgeContracts" :key="index">
@@ -227,7 +227,7 @@
                   </div>
                 </q-item-label>
               </q-item-section>
-            </q-item>
+            </q-item> -->
             <q-item clickable>
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
@@ -255,6 +255,111 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
+            <template v-if="attributeDetails?.length">
+              <q-separator spaced/>
+              <div class="q-px-md row items-center">
+                <div class="text-subtitle1 q-space">Transaction metadata</div>
+                <q-btn flat icon="more_vert" padding="sm" round class="q-r-mr-md">
+                  <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                    <q-item
+                      :active="displayRawAttributes"
+                      clickable v-close-popup
+                      @click="() => displayRawAttributes = true"
+                    >
+                      <q-item-section>
+                        <q-item-label>Display raw data</q-item-label>    
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      :active="!displayRawAttributes"
+                      clickable v-close-popup
+                      @click="() => displayRawAttributes = false"
+                    >
+                      <q-item-section>
+                        <q-item-label>Display refined data</q-item-label>    
+                      </q-item-section>
+                    </q-item>
+                  </q-menu>
+                </q-btn>
+              </div>
+            </template>
+            <q-slide-transition>
+              <div>
+                <div v-if="!displayRawAttributes" v-for="(group, index) in attributeDetails" class="q-my-sm"> 
+                  <div class="q-px-md text-subtitle1">{{group?.name}}</div>
+                  <!-- <q-separator inset/> -->
+                  <q-item
+                    v-for="(attributeDetails, index2) in group?.items" :key="`${index}-${index2}`"
+                  >
+                    <q-item-section>
+                      <q-item-label class="text-grey row items-center">
+                        <div>{{ attributeDetails?.label }}</div>
+                        <template v-if="attributeDetails?.tooltip">
+                          <q-icon name="description" size="1.25em" class="q-ml-xs"/>
+                          <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                            {{ attributeDetails?.tooltip }}
+                          </q-menu>
+                        </template>
+                      </q-item-label>
+                      <q-item-label>
+                        <div class="row items-start no-wrap">
+                          <div class="q-space q-my-xs" style="word-break:break-all">
+                            {{ attributeDetails?.text }}
+                          </div>
+                          <div
+                            v-for="(action, index3) in attributeDetails?.actions" :key="`${index}-${index2}-${index3}`"
+                            class="row items-center"
+                          >
+                            <q-btn
+                              flat :icon="action?.icon"
+                              size="sm" padding="xs sm"
+                              @click.stop="() => handleAttributeAction(action)"
+                            />
+                            <q-separator
+                              v-if="index3 < attributeDetails?.actions?.length - 1"
+                              vertical
+                              :dark="darkMode"
+                            />
+                          </div>
+                        </div>
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </div>
+              </div>
+            </q-slide-transition>
+            <q-slide-transition>
+              <div v-if="displayRawAttributes">
+                <q-item v-for="(attribute, index) in transaction?.attributes" :key="index">
+                  <q-item-section side top>
+                    <q-item-label caption class="text-grey">
+                      #{{index+1}}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label caption class="text-grey row items-center">
+                      <div>{{ attribute?.key }}</div>
+                      <template v-if="attribute?.description">
+                        <q-icon size="1.25em" name="description" class="q-ml-xs"/>
+                        <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                          {{ attribute?.description }}
+                        </q-menu>
+                      </template>
+                    </q-item-label>
+                    <q-item-label style="word-break:break-all;">
+                      {{ attribute?.value }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side top>
+                    <q-btn
+                      flat icon="content_copy"
+                      size="sm" padding="xs sm"
+                      @click="() => copyToClipboard(JSON.stringify(attribute))"
+                    />
+                  </q-item-section>
+                </q-item>
+              </div>
+            </q-slide-transition>
           </q-list>
         </q-card-section>
       </q-card>
@@ -267,9 +372,12 @@ import TokenTypeBadge from './TokenTypeBadge'
 import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
+import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseAttributesToGroups } from 'src/utils/tx-attributes'
+import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 
 export default {
   name: 'transaction',
@@ -290,6 +398,7 @@ export default {
         outgoing: this.$t('Sent')
       },
       transaction: {},
+      displayRawAttributes: false,
       denomination: this.$store.getters['global/denomination']
     }
   },
@@ -374,6 +483,10 @@ export default {
         })
         .filter(Boolean)
       return contracts
+    },
+    attributeDetails() {
+      if (!Array.isArray(this.transaction?.attributes)) return []
+      return parseAttributesToGroups({attributes: this.transaction?.attributes})
     }
   },
   methods: {
@@ -452,6 +565,31 @@ export default {
           dialog.update({ message: 'Unable to fetch contract data' })
         })
     },
+    displayJppInvoice(uuid) {
+      const dialog = this.$q.dialog({
+        title: 'Invoice',
+        message: 'Fetching data',
+        ok: false,
+        seamless: true,
+        progress: true,
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      })
+      return JSONPaymentProtocol.fetch(`https://watchtower.cash/api/jpp/invoices/${uuid}/`)
+        .then(response => {
+          dialog.hide()
+          this.$q.dialog({
+            component: JppDetailDialog,
+            componentProps: {
+              jpp: response,
+            },
+          })
+          return response
+        })
+        .catch(error => {
+          console.error(error)
+          dialog.update({ message: 'Unable to fetch data' })
+        })
+    },
     computeYield () {
       const fiatAmount = this.transactionAmountMarketValue
       const currentFiatPrice = this.transaction.amount * this.marketAssetPrice
@@ -459,6 +597,19 @@ export default {
       return Number(currentYield.toFixed(2)) === 0.00 || Number(currentYield.toFixed(2)) === 0
         ? Math.abs(currentYield)
         : currentYield
+    },
+    /**
+     * @param {{type: String, args?: any[]}} action
+     */
+    handleAttributeAction(action) {
+      const args = Array.isArray(action?.args) ? action?.args : []
+      if (action?.type === 'copy_to_clipboard') {
+        return this.copyToClipboard(...args)
+      } else if (action?.type === 'open_anyhedge_contract') {
+        return this.displayAnyhedgeContract(...args)
+      } else if (action?.type === 'open_jpp_invoice') {
+        return this.displayJppInvoice(...args)
+      }
     }
   },
   mounted () {
@@ -471,9 +622,9 @@ export default {
 
 <style lang="scss" scoped>
   .close-button-container {
-    right: 10px;
-    top: 10px;
-    position: absolute;
+    right: 0;
+    top: 0;
+    position: sticky;
     z-index: 100;
   }
   .record-type-icon {

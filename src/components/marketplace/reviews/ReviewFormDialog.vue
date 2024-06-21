@@ -131,6 +131,7 @@
   </q-dialog>
 </template>
 <script>
+import { nativeFileAPI } from 'src/utils/native-file'
 import { backend } from 'src/marketplace/backend'
 import { Review } from 'src/marketplace/objects'
 import { errorParser } from 'src/marketplace/utils'
@@ -184,7 +185,7 @@ export default defineComponent({
     const formData = ref({
       rating: 0,
       text: '',
-      images: [].map(el => el ? new File() : String(el)),
+      images: [].map(el => el ? new nativeFileAPI.File() : String(el)),
       // images: [
       //   'https://picsum.photos/200/300',
       //   'https://picsum.photos/400/300',
@@ -218,7 +219,7 @@ export default defineComponent({
 
     function serializeFormData() {
       const RATING_MUTIPLIER = 100 / 5 // backend has 0-100 scoring while form has 0-5
-      const hasFile = formData.value.images.some(val => val instanceof File)
+      const hasFile = formData.value.images.some(val => val instanceof nativeFileAPI.File)
       if (hasFile) {
         const data = new FormData()
         if (props.productId) data.set('product_id', props.productId)
@@ -227,7 +228,7 @@ export default defineComponent({
         data.set('rating', formData.value.rating * RATING_MUTIPLIER) 
         data.set('text', formData.value.text)
 
-        const files = formData.value.images.filter(val => val instanceof File)
+        const files = formData.value.images.filter(val => val instanceof nativeFileAPI.File)
         const imageUrls = formData.value.images.filter(val => typeof val === 'string')
         files.forEach((file, index) => data.set(`upload_images[${index}]`, file))
         if (imageUrls?.length) {

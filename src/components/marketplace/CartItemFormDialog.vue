@@ -59,13 +59,15 @@
           {{ $t('LoadingAddonOptions') }}
           <q-spinner/>
         </div>
-        <AddonsForm
-          ref="addonsForm"
-          v-if="addonOptions?.length"
-          :addons="addonOptions"
-          :currency="currency"
-          v-model="addonsFormData"
-        />
+        <template v-if="addonOptions?.length">
+          <div class="text-h6">Addons</div>
+          <AddonsForm
+            ref="addonsForm"
+            :addons="addonOptions"
+            :currency="currency"
+            v-model="addonsFormData"
+          />
+        </template>
         <q-input
           :label="$t('Quantity')"
           dense outlined
@@ -73,7 +75,24 @@
           type="number"
           v-model.number="quantity"
           bottom-slots
-        />
+        >
+          <template v-slot:prepend>
+            <q-btn
+              flat
+              padding="xs"
+              icon="remove"
+              @click="() => quantity > 0 ? quantity-- : null"
+            />
+          </template>
+          <template v-slot:append>
+            <q-btn
+              flat
+              padding="xs"
+              icon="add"
+              @click="() => quantity++"
+            />
+          </template>
+        </q-input>
         <q-btn
           :disable="addonsFormError?.length > 0"
           no-caps

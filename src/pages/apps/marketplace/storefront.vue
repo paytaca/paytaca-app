@@ -289,20 +289,18 @@
 </template>
 <script setup>
 import noImage from 'src/assets/no-image.svg'
-import { backend } from 'src/marketplace/backend'
+import { backend, cachedBackend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
 import { formatDateRelative, formatDuration, roundRating, round } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { setupCache } from 'axios-cache-interceptor'
-import axios from 'axios'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffect } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
+import { debounce } from 'quasar'
 
-const cachedBackend = setupCache(axios.create({...backend.defaults}), { ttl: 30 * 1000 })
 
 defineOptions({
   directives: {
@@ -432,12 +430,14 @@ const deliveryCalculation = ref({
   preparationDuration: 0,
 })
 watch(() => props.storefrontId, () => updateDeliveryCalculation())
-function updateDeliveryCalculation() {
+onActivated(() => updateDeliveryCalculation())
+const updateDeliveryCalculation = debounce(() => {
+  console.log('Updating delivery calculation')
   const params = {
     storefront_id: props.storefrontId,
     delivery_location: [
-      customerCoordinates.value?.latitude,
-      customerCoordinates.value?.longitude,
+      round(customerCoordinates.value?.latitude, 6),
+      round(customerCoordinates.value?.longitude, 6),
     ].join(','),
   }
   return cachedBackend.get(`connecta-express/calculate_delivery/`, { params, cache: { ttle: 300 * 1000 } })
@@ -451,7 +451,7 @@ function updateDeliveryCalculation() {
       }
       return response
     })
-}
+}, 500)
 
 
 const showReviewsListDialog = ref(false)

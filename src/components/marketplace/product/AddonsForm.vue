@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-for="addon in addons" :key="addon?.id" class="q-mb-md">
-      <div class="row items-center">
+      <div v-if="addon?.hasOptions" class="row items-center">
         <div class="text-body1 q-space">
           {{ addon?.label }}
           <template v-if="addon?.isRequired">*</template>
@@ -24,7 +24,7 @@
       </q-slide-transition>
       <div
         v-for="option in addon?.options" :key="`${addon?.id}-${option?.id}`"
-        class="q-pl-sm q-mb-xs"
+        :class="['q-mb-xs', addon?.hasOptions ? 'q-pl-md' : '']"
       >
         <q-checkbox
           :disable="disable"
@@ -34,8 +34,12 @@
           class="full-width"
         >
           <div class="row items-center">
-            <div v-if="option?.label" class="q-space text-body1">{{ option?.label }}</div>
-            <div v-else class="q-space text-grey"> --- </div>
+            <div v-if="option?.label" class="q-space text-body2">{{ option?.label }}</div>
+            <div v-else-if="!addon?.hasOptions" class="q-space text-body1">
+              {{ addon?.singleOptionLabel }}
+              <template v-if="addon?.isRequired">*</template>
+            </div>
+            <div v-else class="q-space text-grey text-body2"> --- </div>
             <div>{{ option?.markupPrice }} {{ currency }}</div>
           </div>
         </q-checkbox>
@@ -97,7 +101,6 @@ export default defineComponent({
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-    window.t = () => $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
 
     const innerVal = ref([].map(_parseAddonData))

@@ -1,18 +1,17 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
   <HeaderNav :title="`Appeal Ramp`" backnavpath="/apps"/>
+
   <div class="q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`"
-    v-if="state === 'appeal-list'"
-  >
+    v-if="state === 'appeal-list'">
     <div>
-      <div class="q-mb-sm">
+      <q-pull-to-refresh @refresh="refreshData">
         <div
-          class="row br-15 text-center pt-card btn-transaction md-font-size"
+          class="row br-15 q-mb-sm text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
-        >
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
             :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'PENDING'}"
@@ -28,82 +27,84 @@
             {{ $t('Resolved') }}
           </button>
         </div>
-      </div>
-      <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
-        <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 80}px`" style="overflow:auto;">
-          <!-- Loading icon -->
-          <div class="row justify-center">
-            <q-spinner-dots
-              v-if="loading"
-              class="q-pb-sm"
-              color="primary"
-              size="3em"
-            />
-          </div>
-          <!-- Empty list display -->
-          <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
-            <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
-          </div>
-          <!-- List -->
-          <div v-else>
-              <q-infinite-scroll
-                ref="infiniteScroll"
-                :items="appeals"
-                @load="loadMoreData"
-                :offset="0"
-                :scroll-target="scrollTargetRef">
-                <template v-slot:loading>
-                  <div class="row justify-center q-my-md" v-if="hasMoreData">
-                    <q-spinner-dots color="primary" size="40px" />
-                  </div>
-                </template>
-                <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
-                  <q-item clickable @click="selectAppeal(index)">
-                    <q-item-section class="q-py-sm">
-                      <div class="row q-mx-md">
-                        <div class="col ib-text">
-                          <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
-                          <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+      </q-pull-to-refresh>
+      <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 105}px`" style="overflow:auto;">
+        <!-- Loading icon -->
+        <div class="row justify-center">
+          <q-spinner-dots
+            v-if="loading"
+            class="q-pb-sm"
+            color="primary"
+            size="3em"
+          />
+        </div>
+        <!-- Empty list display -->
+        <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
+          <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
+        </div>
+        <!-- List -->
+        <div v-else>
+            <q-infinite-scroll
+              ref="infiniteScroll"
+              :items="appeals"
+              @load="loadMoreData"
+              :offset="0"
+              :scroll-target="scrollTargetRef">
+              <template v-slot:loading>
+                <div class="row justify-center q-my-md" v-if="hasMoreData">
+                  <q-spinner-dots color="primary" size="40px" />
+                </div>
+              </template>
+              <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
+                <q-item clickable @click="selectAppeal(index)">
+                  <q-item-section class="q-py-sm">
+                    <div class="row q-mx-md">
+                      <div class="col ib-text">
+                        <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                        <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
                           <!--TODO:-->
-                          <div class="xs-font-size">ORDER #{{ appeal.order.id }}</div>
-                          <div class="row text-weight-bold" style="font-size: medium;">
-                            {{ appeal.owner.name}}
-                          </div>
-                          <div class="sm-font-size">
-                            <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
+                        <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
+                        <div class="xs-font-size">{{ appeal.owner.name}}</div>
+                        <div class="row text-weight-bold" style="font-size: medium;">ORDER #{{ appeal.order.id }}</div>
+                        <div class="xs-font-size">
+                          <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
                             <!--TODO:-->
-                            <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
-                          </div>
-                          <div v-for="(reason, index) in appeal.reasons" :key="index">
-                            <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
-                          </div>
+                          <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
+                        </div>
+                        <div v-for="(reason, index) in appeal.reasons" :key="index">
+                          <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
                         </div>
                       </div>
-                    </q-item-section>
-                  </q-item>
-                  <q-separator class="q-mx-lg" :dark="darkMode"/>
-                </div>
-              </q-infinite-scroll>
-          </div>
-        </q-list>
-      </q-pull-to-refresh>
+                    </div>
+                  </q-item-section>
+                </q-item>
+                <q-separator class="q-mx-lg" :dark="darkMode"/>
+              </div>
+            </q-infinite-scroll>
+        </div>
+      </q-list>
     </div>
   </div>
-
   <!-- Appeal Process -->
   <div v-if="state === 'appeal-process'">
     <AppealProcess
       ref="appealProcess"
       :selectedAppeal="selectedAppeal"
       :notif-type="notifType"
-      @back="this.state = 'appeal-list'"
+      @back="state = 'appeal-list'"
       @update-page-name="updatePageName"
     />
   </div>
+  <div v-if="state === 'profile'">
+    <AppealProfile/>
+  </div>
+  <AppealFooterMenu v-if="showFooterMenu" :data="footerData" :tab="currentPage" v-on:clicked="switchMenu" ref="footer"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
+import AppealFooterMenu from './AppealFooterMenu.vue'
+import AppealProfile from './AppealProfile.vue'
 import AppealProcess from './AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
@@ -130,12 +131,19 @@ export default {
       pageNumber: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 125,
       pageName: 'main',
-      notifType: null
+      notifType: null,
+      showFooterMenu: true,
+      currentPage: 'Appeal',
+      footerData: {
+        unreadOrdersCount: 0
+      }
     }
   },
   components: {
     AppealProcess,
-    HeaderNav
+    HeaderNav,
+    AppealFooterMenu,
+    AppealProfile
   },
   props: {
     notif: {
@@ -152,14 +160,16 @@ export default {
   },
   computed: {
     appeals () {
-      const vm = this
-      switch (vm.statusType) {
+      let data = []
+      switch (this.statusType) {
         case 'PENDING':
-          return vm.pendingAppeals
+          data = this.pendingAppeals
+          break
         case 'RESOLVED':
-          return vm.resolvedAppeals
+          data = this.resolvedAppeals
+          break
       }
-      return []
+      return data
     },
     pendingAppeals () {
       return this.$store.getters['ramp/pendingAppeals']
@@ -172,6 +182,9 @@ export default {
       vm.updatePaginationValues()
       return (vm.pageNumber < vm.totalPages || (!vm.pageNumber && !vm.totalPages))
     }
+  },
+  created () {
+    bus.on('update-unread-count', this.updateUnreadCount)
   },
   async mounted () {
     this.loading = true
@@ -189,6 +202,16 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updateUnreadCount (count) {
+      this.footerData.unreadOrdersCount = count
+    },
+    switchMenu (tab) {
+      if (tab.name === 'Appeal') {
+        this.state = 'appeal-list'
+      } else {
+        this.state = 'profile'
+      }
+    },
     updatePageName (name) {
       this.pageName = name
       this.refreshData()
@@ -200,6 +223,8 @@ export default {
         case 'appeal-process':
           this.state = 'appeal-list'
           this.pageName = 'main'
+          this.showFooterMenu = true
+          this.refreshData()
           break
         case 'snapshot':
           this.$refs.appealProcess.onBackSnapshot()
@@ -217,7 +242,8 @@ export default {
           params: params,
           overwrite: overwrite
         })
-        .then(() => {
+        .then((data) => {
+          vm.footerData.unreadOrdersCount = data.unread_count
           vm.loading = false
         })
         .catch(error => {
@@ -276,6 +302,7 @@ export default {
 
       this.state = 'appeal-process'
       this.pageName = 'appeal-process'
+      this.showFooterMenu = false
     }
   }
 }
@@ -328,5 +355,9 @@ export default {
 }
 .xs-font-size {
   font-size: smaller;
+}
+.buy-add-btn {
+  background-color: rgb(60, 100, 246);
+  color: white;
 }
 </style>

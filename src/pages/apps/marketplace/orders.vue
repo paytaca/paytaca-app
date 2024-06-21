@@ -146,7 +146,12 @@ async function fetchOrders(opts={limit: 0, offset: 0 }) {
         if (!order?.storefrontId) return
         order.storefront = $store.getters['marketplace/storefronts']
           .find(storefront => storefront?.id == order?.storefrontId)
-        if (!order.storefront) order.fetchStorefront()
+
+        if (order.storefront) return
+
+        order.fetchStorefront()?.then(() => {
+          $store.commit('marketplace/cacheStorefront', order.storefront?.raw)
+        })
       })
       ordersPagination.value.count = response?.data?.count
       ordersPagination.value.limit = response?.data?.limit

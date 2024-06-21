@@ -17,7 +17,7 @@
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
             <div class="text-weight-bold lg-font-size q-pt-sm">
-              {{ user.name }}
+              <span id="target-name">{{ user.name }}</span>
               <q-icon
                 @click="editNickname = true"
                 v-if="user?.self"
@@ -74,12 +74,12 @@
               icon-half="star_half"
             />
             <!--TODO:-->
-            <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
+            <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating?.toFixed(1) : 0}} rating)</span>
           </div>
           <div class="text-center sm-font-size q-pt-sm">
               <span>{{ user.trade_count || 0 }} trades</span>&nbsp;&nbsp;
               <span>|</span>&nbsp;&nbsp;
-              <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
+              <span> {{ user.completion_rate ? user.completion_rate?.toFixed(1) : 0 }}% completion</span>
           </div>
         </div>
         <div
@@ -108,7 +108,7 @@
             </div>
             <div v-else class="q-mx-lg q-px-md">
                 <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-                  <div class="text-weight-bold sm-font-size">{{  review.from_peer.name }}</div>
+                  <div class="text-weight-bold sm-font-size">{{ userNameView(review.from_peer.name) }}</div>
                   <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
                   <div class="sm-font-text">
                     <q-rating
@@ -118,7 +118,7 @@
                       color="yellow-9"
                       icon="star"
                     />
-                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating.toFixed(1) : 0}})</span>
+                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating?.toFixed(1) : 0}})</span>
                   </div>
                   <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
                     {{ review.comment }}
@@ -301,6 +301,11 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    userNameView (name) {
+      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+
+      return limitedView
+    },
     onBackPM () {
       this.$refs.addPaymentMethods.onBack()
     },
@@ -437,7 +442,7 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      backend.put('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
+      backend.patch('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
