@@ -172,6 +172,11 @@ const routes = [
                 name: 'appeal-detail',
                 component: () => import('src/pages/apps/exchange/appeals/index.vue')
               }
+              // {
+              //   path: 'profile/',
+              //   name: 'appeal-profile',
+              //   component: () => import('src/pages/apps/exchange/appeals/profile.vue')
+              // }
             ]
           }
         ]

@@ -1,8 +1,5 @@
 <template>
-  <div class="q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`"
-    v-if="state === 'appeal-list'">
+  <div class="q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
     <div>
       <q-pull-to-refresh @refresh="refreshData">
         <div
@@ -11,14 +8,14 @@
           :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'PENDING'}"
-            @click="statusType='PENDING'">
+            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'pending'}"
+            @click="statusType='pending'">
             Pending
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}"
-            @click="statusType='RESOLVED'">
+            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'resolved'}"
+            @click="statusType='resolved'">
             Resolved
           </button>
         </div>
@@ -56,14 +53,14 @@
                   <q-item-section class="q-py-sm">
                     <div class="row q-mx-md">
                       <div class="col ib-text">
-                        <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
-                        <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+                        <q-badge v-if="statusType === 'pending'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                        <q-badge v-if="statusType === 'resolved'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
                         <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
                         <div class="xs-font-size">{{ appeal.owner.name}}</div>
                         <div class="row text-weight-bold" style="font-size: medium;">ORDER #{{ appeal.order.id }}</div>
                         <div class="xs-font-size">
-                          <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
-                          <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
+                          <div v-if="statusType === 'pending'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
+                          <div v-if="statusType === 'resolved'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
                         </div>
                         <div v-for="(reason, index) in appeal.reasons" :key="index">
                           <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
@@ -81,7 +78,6 @@
   </div>
 </template>
 <script>
-import AppealProcess from 'src/components/ramp/appeal/AppealProcess.vue'
 import { formatDate } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -99,15 +95,15 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      statusType: 'PENDING',
-      state: 'appeal-list',
+      statusType: null,
+      // state: 'list',
       selectedAppeal: null,
       loading: false,
       totalPages: null,
       pageNumber: null,
       pageName: 'main',
       notifType: null,
-      showFooterMenu: true,
+      // showFooterMenu: true,
       currentPage: 'Appeal',
       footerData: {
         unreadOrdersCount: 0
@@ -115,20 +111,22 @@ export default {
     }
   },
   emits: ['selectAppeal'],
-  components: {
-    AppealProcess
-  },
   props: {
     notif: {
       type: Object,
       default: null
+    },
+    tab: {
+      type: String,
+      default: 'pending'
     }
   },
   watch: {
-    statusType () {
-      const vm = this
-      vm.resetAndScrollToTop()
-      vm.refreshData()
+    statusType (value) {
+      console.log('statusType:', value)
+      this.$router.replace({ query: { ...this.$route.query, tab: value } })
+      this.resetAndScrollToTop()
+      this.refreshData()
     }
   },
   computed: {
@@ -138,10 +136,10 @@ export default {
     appeals () {
       let data = []
       switch (this.statusType) {
-        case 'PENDING':
+        case 'pending':
           data = this.pendingAppeals
           break
-        case 'RESOLVED':
+        case 'resolved':
           data = this.resolvedAppeals
           break
       }
@@ -161,60 +159,44 @@ export default {
   },
   created () {
     bus.on('update-unread-count', this.updateUnreadCount)
+    bus.emit('show-footer-menu', true)
   },
   async mounted () {
     this.loading = true
-    if (this.notif && Object.keys(this.notif).length > 0) {
-      this.notifType = this.$route.query.type
-      this.selectedAppeal = {
-        order: {
-          id: this.notif.order_id
-        }
-      }
-      this.state = 'appeal-process'
-    } else {
-      this.resetAndRefetchListings()
-    }
+    this.loadState()
   },
   methods: {
     getDarkModeClass,
+    loadState () {
+      this.statusType = this.tab
+      // if (this.notif && Object.keys(this.notif).length > 0) {
+      //   this.notifType = this.$route.query.type
+      //   this.selectedAppeal = {
+      //     order: {
+      //       id: this.notif.order_id
+      //     }
+      //   }
+      //   this.state = 'appeal-process'
+      // }
+      this.resetAndRefetchListings()
+    },
     updateUnreadCount (count) {
       this.footerData.unreadOrdersCount = count
     },
-    switchMenu (tab) {
-      if (tab.name === 'Appeal') {
-        this.state = 'appeal-list'
-      } else {
-        this.state = 'profile'
-      }
-    },
-    updatePageName (name) {
-      this.pageName = name
-      this.refreshData()
-    },
-    customBack () {
-      const vm = this
-      switch (vm.pageName) {
-        case 'appeal-transfer':
-        case 'appeal-process':
-          this.state = 'appeal-list'
-          this.pageName = 'main'
-          this.showFooterMenu = true
-          this.refreshData()
-          break
-        case 'snapshot':
-          this.$refs.appealProcess.onBackSnapshot()
-          this.pageName = 'appeal-process'
-          break
-      }
-    },
+    // switchMenu (tab) {
+    //   if (tab.name === 'Appeal') {
+    //     this.state = 'list'
+    //   } else {
+    //     this.state = 'profile'
+    //   }
+    // },
     async fetchAppeals (overwrite = false) {
       const vm = this
       vm.loading = true
-      const params = { state: vm.statusType }
+      const params = { state: vm.statusType.toUpperCase() }
       await vm.$store.dispatch('ramp/fetchAppeals',
         {
-          appealState: vm.statusType,
+          appealState: vm.statusType.toUpperCase(),
           params: params,
           overwrite: overwrite
         })
@@ -272,13 +254,10 @@ export default {
       const relative = true
       return formatDate(value, relative)
     },
-    selectAppeal (index) {
+    async selectAppeal (index) {
       this.selectedAppeal = this.appeals[index]
-      this.state = 'appeal-process'
-      this.pageName = 'appeal-process'
-      this.showFooterMenu = false
-      this.$router.push({ name: 'appeal-detail', params: { id: this.selectedAppeal?.order?.id } })
-      this.$emit('selectAppeal')
+      await this.$router.push({ name: 'appeal-detail', params: { id: this.selectedAppeal?.order?.id } })
+      bus.emit('show-footer-menu', false)
     }
   }
 }

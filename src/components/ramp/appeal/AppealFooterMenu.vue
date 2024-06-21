@@ -39,21 +39,14 @@ export default {
       return this.$store.getters['global/theme'] !== 'default'
     }
   },
-  mounted () {
-    // if (this.tab) this.activeButton = this.tab
-  },
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')
     },
     onSelectMenu (menu) {
-      // this.activeButton = menu
       this.$emit('clicked', menu)
     },
     isActive (menu) {
-      // console.log('activeButton:', this.activeButton)
-      // console.log('menu:', menu)
-      // console.log('isActive:', this.activeButton === menu)
       return this.tab === menu
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {

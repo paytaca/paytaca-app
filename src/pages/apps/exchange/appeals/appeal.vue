@@ -4,19 +4,19 @@
     :class="getDarkModeClass(darkMode)">
     <div class="text-center q-pb-sm">
       <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
-      <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
+      <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">APPEAL</div>
       <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
     </div>
-    <div class="q-mx-sm q-mb-sm">
-      <TradeInfoCard
-        :order="appealDetailData.order"
-        :ad="appealDetailData.ad_snapshot"
-        type="appeal"
-        @view-ad="showAdSnapshot=true"
-        @view-peer="onViewPeer"
-        @view-reviews="showReviews=true"/>
-    </div>
     <div :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
+      <div class="q-mx-sm q-mb-sm">
+        <TradeInfoCard
+          :order="appealDetailData.order"
+          :ad="appealDetailData.ad_snapshot"
+          type="appeal"
+          @view-ad="showAdSnapshot=true"
+          @view-peer="onViewPeer"
+          @view-reviews="showReviews=true"/>
+      </div>
       <div class="q-mx-sm">
         <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
           <q-card-section>
@@ -76,6 +76,7 @@ import AppealFeedbackDialog from 'src/components/ramp/appeal/AppealFeedbackDialo
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import ChatDialog from 'src/components/ramp/fiat/dialogs/ChatDialog.vue'
+import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -83,6 +84,15 @@ import { fetchChatMembers } from 'src/wallet/ramp/chat'
 import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
 
 export default {
+  components: {
+    AppealDetail,
+    AppealTransfer,
+    TradeInfoCard,
+    UserProfileDialog,
+    AdSnapshotDialog,
+    ChatDialog,
+    HeaderNav
+  },
   data () {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
@@ -111,29 +121,21 @@ export default {
       showAdSnapshot: false,
       showPeerProfile: false,
       peerInfo: {},
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 120 : this.$q.screen.height - 85
+      previousRoute: null
     }
   },
   props: {
-    selectedAppeal: Object,
-    initWallet: Object,
-    notifType: {
-      type: String,
-      default: ''
-    }
+    // orderId: String
+    // initWallet: Object,
+    // notifType: {
+    //   type: String,
+    //   default: ''
+    // }
   },
   emits: ['back', 'updatePageName'],
-  components: {
-    AppealDetail,
-    AppealTransfer,
-    TradeInfoCard,
-    UserProfileDialog,
-    AdSnapshotDialog,
-    ChatDialog
-  },
   computed: {
     scrollHeight () {
-      let height = this.$q.platform.is.ios ? this.$q.screen.height - 360 : this.$q.screen.height - 330
+      let height = this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 140
       if (this.state === 'form') {
         height = height - 90
       }
@@ -145,6 +147,8 @@ export default {
   },
   created () {
     bus.on('last-read-update', this.onLastReadUpdate)
+    this.previousRoute = this.$route
+    console.log('this.previousRoute:', this.$route)
   },
   async mounted () {
     await this.loadData()
@@ -158,6 +162,12 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onBack () {
+      console.log('previousRoute:', this.previousRoute)
+      console.log('fullpath:', this.previousRoute.fullPath)
+      // this.$router.push({ fullpath: this.previousRoute.fullpath })
+      this.$emit('back')
+    },
     openFeedback () {
       this.$q.dialog({
         component: AppealFeedbackDialog,
@@ -176,7 +186,8 @@ export default {
       this.loadData()
     },
     async loadData () {
-      await this.fetchAppeal(this.$route.params.id)
+      const orderId = this.$route.params.id
+      await this.fetchAppeal(orderId)
       this.generateContract()
       this.reloadChildComponents()
       this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
