@@ -193,7 +193,7 @@ export default {
       }
     })
 
-    // check if code has value from qr scanner redirection
+    // check if code is not empty (from qr reader redirection)
     if (vm.code !== '') {
       vm.scannedShare = vm.code.split('=')[1]
       vm.claimGift(null)

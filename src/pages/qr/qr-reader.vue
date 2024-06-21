@@ -120,6 +120,7 @@ export default {
     onQRDecode (content) {
       const vm = this
       const value = content[0].rawValue
+      console.log(value)
 
       // add redirection loading
 
@@ -129,10 +130,12 @@ export default {
           name: 'claim-gift',
           query: { code: value }
         })
-      } else if (value.includes('bitcoincash:zq')) {
-        // redirect to send page (cashtoken)
-      } else if (value.includes('bitcoincash:qq')) {
-        // redirect to send page (bch)
+      } else if (value.includes('bitcoincash:zq') || value.includes('bitcoincash:qq')) {
+        // redirect to send page
+        vm.$router.push({
+          name: 'transaction-send-select-asset',
+          query: { address: value }
+        })
       } else {
         vm.$q.notify({
           message: 'Unable to identify QR code.',

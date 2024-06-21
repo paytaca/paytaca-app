@@ -1627,6 +1627,11 @@ export default {
     }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+
+    // check query if address is not empty (from qr reader redirection)
+    if (vm.$route.query.address !== '') {
+      vm.onScannerDecode(vm.$route.query.address)
+    }
   },
 
   unmounted () {

@@ -98,6 +98,12 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
+  props: {
+    address: {
+      type: String,
+      default: ''
+    }
+  },
   components: {
     HeaderNav,
     AssetFilter,
@@ -183,10 +189,11 @@ export default {
       this.selectedNetwork = newNetwork
     },
     redirectToSend (asset) {
-      let query = {
+      const query = {
         assetId: asset.id,
         tokenType: 1,
-        network: this.selectedNetwork
+        network: this.selectedNetwork,
+        address: this.address
       }
       this.$router.push({
         name: 'transaction-send',
@@ -210,6 +217,16 @@ export default {
         await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
       })
     })
+
+    // check if address is not empty (from qr reader redirection)
+    if (vm.address !== '') {
+      if (vm.address.includes('bitcoincash:zq')) {
+        // cashtoken
+      } else if (vm.address.includes('bitcoincash:qq')) {
+        // bch
+        vm.redirectToSend(assets[0])
+      }
+    }
   }
 }
 </script>

@@ -25,6 +25,7 @@ const routes = [
       {
         path: 'send/select-asset',
         name: 'transaction-send-select-asset',
+        props: route => route.query,
         component: () => import('pages/transaction/select-asset-send.vue')
       },
       {
