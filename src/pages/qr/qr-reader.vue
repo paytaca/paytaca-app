@@ -9,6 +9,7 @@
     <template v-else>
       <qrcode-stream
         :camera="frontCamera ? 'front': 'auto'"
+        :paused="paused"
         @detect="onQRDecode"
         @init="onScannerInit"
         class="fixed-full qr-stream"
@@ -78,7 +79,7 @@ export default {
 
   data () {
     return {
-      showQrScanner: true,
+      paused: false,
       error: '',
       frontCamera: false
     }
@@ -120,29 +121,32 @@ export default {
     },
     // MOBILE
 
-    onQRDecode (content) {
+    async onQRDecode (content) {
       const vm = this
       const value = content[0].rawValue
 
-      const loadingDialog = this.$q.dialog({
-        component: LoadingWalletDialog,
-        componentProps: {
-          loadingText: 'Redirecting...'
-        }
+      vm.paused = true
+      // quick timeout to allow qrcode stream cache to reset after pausing
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 250)
       })
-
-      setTimeout(() => {
-        loadingDialog.hide()
-      }, 700)
 
       if (value.includes('gifts.paytaca.com')) {
         // redirect to gifts page
+        const loadingDialog = vm.loadingDialog()
+        setTimeout(() => {
+          loadingDialog.hide()
+        }, 700)
         vm.$router.push({
           name: 'claim-gift',
           query: { code: value }
         })
       } else if (value.includes('bitcoincash:')) {
         // redirect to send page
+        const loadingDialog = vm.loadingDialog()
+        setTimeout(() => {
+          loadingDialog.hide()
+        }, 700)
         vm.$router.push({
           name: 'transaction-send-select-asset',
           query: { address: value }
@@ -154,8 +158,18 @@ export default {
           color: 'red-9',
           icon: 'mdi-qrcode-remove'
         })
-        // add logic to reset scanning
       }
+
+      vm.paused = false
+    },
+
+    loadingDialog () {
+      return this.$q.dialog({
+        component: LoadingWalletDialog,
+        componentProps: {
+          loadingText: 'Redirecting...'
+        }
+      })
     }
   }
 }
