@@ -81,29 +81,29 @@
                         <q-item class="q-py-none" v-for="(ad, index) in adsList" :key="index" clickable @click="selectAd(ad)">
                         <q-item-section>
                             <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                            <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
-                            <div class="sm-font-size q-mr-sm">
-                              <!--TODO:-->
-                            <span
-                                class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                                :class="getDarkModeClass(darkMode)">
-                                {{ ad?.fiat_currency?.symbol }} {{ formatCurrency(ad.price, ad?.fiat_currency?.symbol) }}
-                            </span>
-                            <span class="sm-font-size">/BCH</span><br>
-                            <div class="sm-font-size">
-                                <div class="row">
-                                <span class="col-3">{{ $t('Quantity') }}</span>
-                                <span class="col">{{ formatCurrency(ad.trade_amount, tradeAmountCurrency(ad)) }} {{  tradeAmountCurrency(ad) }}</span>
-                                </div>
-                                <div class="row">
-                                <span class="col-3">{{ $t('Limit') }}</span>
-                                <span class="col"> {{ formatCurrency(ad.trade_floor, tradeLimitsCurrency(ad)) }} - {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}</span>
-                                </div>
-                            </div>
-                            <div class="row sm-font-size q-gutter-md">
-                              <!--TODO:-->
-                                <span>Appealable in {{ appealCooldown(ad.appeal_cooldown).label }}</span>                                <span></span>
-                            </div>
+                              <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
+                              <!-- <div class="sm-font-size q-mr-sm"> -->
+                                <!--TODO:-->
+                              <span
+                                  class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                                  :class="getDarkModeClass(darkMode)">
+                                  {{ ad?.fiat_currency?.symbol }} {{ formatCurrency(ad.price, ad?.fiat_currency?.symbol) }}
+                              </span>
+                              <span class="sm-font-size">/BCH</span><br>
+                              <div class="sm-font-size">
+                                  <div class="row">
+                                  <span class="col-3">{{ $t('Quantity') }}</span>
+                                  <span class="col">{{ formatCurrency(ad.trade_amount, tradeAmountCurrency(ad)) }} {{  tradeAmountCurrency(ad) }}</span>
+                                  </div>
+                                  <div class="row">
+                                  <span class="col-3">{{ $t('Limit') }}</span>
+                                  <span class="col"> {{ formatCurrency(ad.trade_floor, tradeLimitsCurrency(ad)) }} - {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}</span>
+                                  </div>
+                              </div>
+                              <div class="row sm-font-size q-gutter-md">
+                                <!--TODO:-->
+                                  <span>Appealable in {{ appealCooldown(ad.appeal_cooldown).label }}</span>                                <span></span>
+                              </div>
                             </div>
                         </q-item-section>
                         </q-item>

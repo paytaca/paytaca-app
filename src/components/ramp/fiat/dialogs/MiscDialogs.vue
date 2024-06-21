@@ -15,8 +15,7 @@
         <q-btn
           flat
           :label="$t('Confirm')"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
+          :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
           @click="submitData()"
           v-close-popup
         />
@@ -323,9 +322,7 @@
             flat
             :label="$t('Confirm')"
             @click="submitData()"
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            @click="submitData()"
+            :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
             v-close-popup
           />
         </div>

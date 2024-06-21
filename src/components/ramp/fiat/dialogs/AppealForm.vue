@@ -62,7 +62,7 @@
             <q-btn class="md-font-size" flat :label="$t('Cancel')" color="red" @click="$emit('back')" v-close-popup />
             <q-btn
               flat
-              :label="{{ $t('Submit') }}"
+              :label="$t('Submit')"
               class="md-font-size"
               :disable="!selectedAppealType || selectedReasons.length === 0"
               @click="submitAppeal()"
