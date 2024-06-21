@@ -1,48 +1,49 @@
 <template>
-    <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
-      <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </div>
-      <div v-else-if="!loggedIn">
-        <login @loggedIn="loggedInAs" :error="errorMessage"/>
-      </div>
-      <div v-else>
-        <Hub v-if="userType === 'peer'" :notif="$route.query"/>
-        <AppealIndex v-if="userType === 'arbiter'" :notif="$route.query"/>
-      </div>
-    </div>
-  </template>
+  <div v-if="isLoading" class="row justify-center q-py-lg" style="margin-top: 50%">
+    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+  </div>
+  <div v-else>
+    <router-view :key="$route.path"></router-view>
+    <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
+  </div>
+  <RampLogin v-if="showLogin" @logged-in="showLogin = false"/>
+</template>
 <script>
-import AppealIndex from 'src/components/ramp/appeal/AppealIndex.vue'
-import Hub from './hub.vue'
-import login from './login.vue'
+import FooterMenu from 'src/components/ramp/fiat/footerMenu.vue'
+import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
-import { deleteAuthToken } from 'src/wallet/ramp/auth'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
-import { getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { backend } from 'src/wallet/ramp/backend'
 
 export default {
-  components: {
-    ProgressLoader,
-    AppealIndex,
-    login,
-    Hub
-  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      error: false,
-      pageName: 'ramp-fiat-store',
-      loggedIn: false,
-      userType: null,
-      errorMessage: null,
-      isloaded: false,
-      reconnectWebsocket: true,
       theme: this.$store.getters['global/theme'],
-      websocket: null
+      websocket: null,
+      network: 'BCH',
+      menu: 'store',
+      isLoading: true,
+      rampWalllet: null,
+      proceed: false,
+      createUser: false,
+      initStatusType: 'ONGOING',
+      hasAccount: false,
+      userType: null,
+      showFooterMenu: true,
+      currentPage: 'FiatStore',
+      footerData: {
+        unreadOrdersCount: 0
+      },
+      showLogin: false,
+      previousRoute: null
     }
+  },
+  components: {
+    FooterMenu,
+    RampLogin,
+    ProgressLoader
   },
   props: {
     notif: {
@@ -50,109 +51,77 @@ export default {
       default: null
     }
   },
-  computed: {
-    appTitle () {
-      if (this.userType === 'arbiter') return 'appeal'
-      return 'fiat'
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path
+      if (from.name === 'exchange') {
+        vm.previousRoute = '/apps'
+      }
+    })
+  },
+  beforeRouteLeave (to, from, next) {
+    switch (from.name) {
+      case 'p2p-store':
+      case 'p2p-ads':
+      case 'p2p-orders':
+      case 'p2p-profile':
+        if (to.name === 'exchange') {
+          next('/apps')
+        } else {
+          next()
+        }
+        break
+      default:
+        next()
     }
   },
   created () {
-    bus.on('session-expired', this.handleSessionEvent)
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
-    bus.on('switch-menu', this.switchMenu)
     bus.on('update-unread-count', this.updateUnreadCount)
+    bus.on('session-expired', this.handleSessionEvent)
+    bus.on('relogged', this.refreshChildren)
   },
   async mounted () {
-    this.rampWallet = loadRampWallet()
-    this.setupWebsocket(20, 1000)
-    this.isloaded = true
+    this.isLoading = false
+    // if (Object.keys(this.notif).length > 0) {
+    //   this.menu = 'orders'
+    //   this.currentPage = 'FiatOrders'
+    // }
+    this.fetchUser()
   },
-  beforeUnmount () {
-    this.closeWSConnection()
+  async beforeUnmount () {
+    this.$store.commit('ramp/resetPaymentTypes')
   },
   methods: {
     isNotDefaultTheme,
-    getDarkModeClass,
-    handleSessionEvent (_data) {
-      this.loggedIn = false
-      this.errorMessage = 'Session expired'
-      deleteAuthToken()
+    refreshChildren () {
+      // TODO: refreshChildren
+      console.log('refreshChildren')
     },
-    loggedInAs (userType) {
-      this.loggedIn = true
-      this.userType = userType
+    handleSessionEvent () {
+      this.showLogin = true
     },
-    setupWebsocket (retries, delayDuration) {
-      const wsUrl = `${getBackendWsUrl()}general/${this.rampWallet.walletHash}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        bus.emit('update-unread-count', data.extra.unread_count)
-        if (data.type === 'NEW_ORDER') {
-          const currency = this.$store.getters['ramp/ordersCurrency']
-          const filters = this.$store.getters['ramp/ongoingOrderFilters'](currency || 'All')
-          // filter the new order
-          let filterCheck = false
-          const order = data.extra.order
-          if ((currency === 'All' || order.ad.fiat_currency.symbol === currency) &&
-                filters.not_appealable && filters.ownership.notOwned && !filters.queryname) {
-            filterCheck = true
-          }
-          let tradeTypeCheck = false
-          if ((order.trade_type === 'BUY' && filters.trade_type.buy) || (order.trade_type === 'SELL' && filters.trade_type.sell)) {
-            tradeTypeCheck = true
-          }
-          const statusCheck = filters.status.includes(order.status.value)
-          const timeLimitCheck = filters.time_limits.includes(Number(order.ad.appeal_cooldown))
-
-          let addToList = false
-          if (filterCheck && tradeTypeCheck && statusCheck && timeLimitCheck) {
-            addToList = true
-          }
-          // NB: this does not filter by payment types
-
-          if (addToList) {
-            const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
-            if (filters.sort_type === 'descending') {
-              ongoingOrders.unshift(data.extra.order)
-            } else {
-              ongoingOrders.push(data.extra.order)
-            }
-            this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
-          }
-        }
-      }
-      this.websocket.onclose = () => {
-        console.log('General WebSocket connection closed.')
-        if (this.reconnectWebsocket && retries > 0) {
-          console.log(`General Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
-        }
+    fetchUser () {
+      backend.get('ramp-p2p/user').then(response => {
+        this.updateUnreadCount(response?.data?.user?.unread_orders_count)
+      })
+    },
+    hideMenu () {
+      this.showFooterMenu = false
+    },
+    showMenu (tab) {
+      if (tab) this.menu = tab
+      this.showFooterMenu = true
+    },
+    processDialog () {
+      if (!this.proceed && !this.createUser) {
+        this.$router.go(-2)
       }
     },
-    closeWSConnection () {
-      this.reconnectWebsocket = false
-      if (this.websocket) {
-        this.websocket.close()
-      }
-    },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
+    updateUnreadCount (count) {
+      this.footerData.unreadOrdersCount = count
     }
   }
 }
 </script>
-  <style lang="scss" scoped>
-  .pt-internet-required {
-    text-align: center;
-    width: 100%;
-    font-size: 24px;
-    padding: 30px;
-    color: gray;
-  }
-  </style>

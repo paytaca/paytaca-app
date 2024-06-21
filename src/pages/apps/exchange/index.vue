@@ -54,7 +54,7 @@ export default {
       if (this.user?.is_arbiter) {
         this.$router.push({ name: 'exchange-appeals' })
       } else {
-        this.$router.push({ name: 'exchange-p2p' })
+        this.$router.push({ name: 'p2p-store' })
       }
     }
   }

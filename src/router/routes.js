@@ -160,7 +160,29 @@ const routes = [
           {
             path: 'peer-to-peer/',
             name: 'exchange-p2p',
-            component: () => import('src/pages/apps/exchange/peer_to_peer/index.vue')
+            component: () => import('src/pages/apps/exchange/peer_to_peer/index.vue'),
+            children: [
+              {
+                path: 'store/',
+                name: 'p2p-store',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/store.vue')
+              },
+              {
+                path: 'ads/',
+                name: 'p2p-ads',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/ads.vue')
+              },
+              {
+                path: 'orders/',
+                name: 'p2p-orders',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/orders.vue')
+              },
+              {
+                path: 'profile/',
+                name: 'p2p-profile',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/profile.vue')
+              }
+            ]
           },
           {
             path: 'appeal/',
@@ -172,11 +194,6 @@ const routes = [
                 name: 'appeal-detail',
                 component: () => import('src/pages/apps/exchange/appeals/index.vue')
               }
-              // {
-              //   path: 'profile/',
-              //   name: 'appeal-profile',
-              //   component: () => import('src/pages/apps/exchange/appeals/profile.vue')
-              // }
             ]
           }
         ]

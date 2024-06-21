@@ -56,15 +56,36 @@ export default {
     expandBex () {
       this.$q.bex.send('ui.expand')
     },
-    onSelectMenu (menu) {
-      this.activeButton = menu
+    async onSelectMenu (menu) {
+      // this.activeButton = menu
+      let pageName = null
+      switch (menu) {
+        case 'FiatStore':
+          pageName = 'p2p-store'
+          break
+        case 'FiatAds':
+          pageName = 'p2p-ads'
+          break
+        case 'FiatOrders':
+          pageName = 'p2p-orders'
+          break
+        case 'FiatProfileCard':
+          pageName = 'p2p-profile'
+          break
+      }
+      await this.$router.replace({ name: pageName })
       this.$emit('clicked', { name: menu })
     },
     isActive (menu) {
-      if (this.activeButton === menu) {
-        return true
-      } else {
-        return false
+      switch (menu) {
+        case 'FiatStore':
+          return this.$route.name === 'p2p-store'
+        case 'FiatAds':
+          return this.$route.name === 'p2p-ads'
+        case 'FiatOrders':
+          return this.$route.name === 'p2p-orders'
+        case 'FiatProfileCard':
+          return this.$route.name === 'p2p-profile'
       }
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
