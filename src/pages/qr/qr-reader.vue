@@ -120,7 +120,6 @@ export default {
     onQRDecode (content) {
       const vm = this
       const value = content[0].rawValue
-      console.log(value)
 
       // add redirection loading
 

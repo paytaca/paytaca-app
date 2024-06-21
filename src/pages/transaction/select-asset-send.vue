@@ -163,7 +163,7 @@ export default {
       }
 
       const vm = this
-      return this.$store.getters['assets/getAssets'].filter(function (item) {
+      const assets = this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item?.id === 'bch'
           const tokenType = item?.id?.split?.('/')?.[0]
@@ -173,6 +173,12 @@ export default {
           return tokenType === 'slp' || isBch
         }
       })
+
+      if (vm.address !== '' && vm.address.includes('bitcoincash:zq')) {
+        return assets.splice(1)
+      }
+      
+      return assets
     }
   },
   methods: {
@@ -220,9 +226,7 @@ export default {
 
     // check if address is not empty (from qr reader redirection)
     if (vm.address !== '') {
-      if (vm.address.includes('bitcoincash:zq')) {
-        // cashtoken
-      } else if (vm.address.includes('bitcoincash:qq') || vm.address.includes('bitcoincash:?')) {
+      if (vm.address.includes('bitcoincash:qq') || vm.address.includes('bitcoincash:?')) {
         // bch
         vm.redirectToSend(assets[0])
       }
