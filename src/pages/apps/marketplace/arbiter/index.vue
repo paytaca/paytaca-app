@@ -390,6 +390,7 @@ const updateUnreadChatSessionCount = debounce(() => {
 
 
 async function refreshPage(done= () => {}) {
+  let error
   try {
     refreshingPage.value = true
     await Promise.all([
@@ -397,10 +398,13 @@ async function refreshPage(done= () => {}) {
       fetchUser().then(() => updateChatIdentity()),
     ])
     promptAuthErrors()
+  } catch (_error) {
+    error = _error
   } finally {
-    initialized.value = true
+    done?.()
     refreshingPage.value = false
-    done()
+    if (error && !initialized.value) throw error
+    initialized.value = true
   }
 }
 
