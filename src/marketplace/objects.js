@@ -472,7 +472,7 @@ export class Product {
   availableAtStorefrontText(storefrontId) {
     const available = this.availableAtStorefront(storefrontId)
     if (typeof available !== 'boolean') return 
-    return available ? 'Avaialble' : 'Unavailable'
+    return available ? 'Available' : 'Unavailable'
   }
 
   addStorefrontProductData(data) {

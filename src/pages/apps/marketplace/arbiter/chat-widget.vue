@@ -9,7 +9,7 @@
       <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section class="q-pb-none">
           <div class="row items-center no-wrap">
-            <div class="text-h6">Chats</div>
+            <div class="text-h6">{{ $t('Chats') }}</div>
             <q-space/>
             <q-btn
               icon="close"
@@ -21,7 +21,7 @@
         </q-card-section>
         <div class="row items-center justify-end q-my-xs">
           <q-checkbox
-            label="Unread"
+            :label="$t('Unread')"
             v-model="filterOpts.hasUnread"
             class="q-ml-sm"
           />
@@ -43,7 +43,7 @@
         </div>
         <q-list separator class="q-mb-md" style="max-height:calc(75vh - 6rem);overflow:auto;">
           <q-item-label v-if="!chatMembers?.length" header class="text-center">
-            No data
+            {{ $t('NoData') }}
           </q-item-label>
           <q-item
             v-for="chatMember in chatMembers" :key="chatMember?.id"
@@ -71,7 +71,7 @@
               <q-list separator>
                 <q-item clickable v-close-popup @click="() => openChatDialog(chatMember?.chatSession)">
                   <q-item-section>
-                    <q-item-label>Open chat</q-item-label>
+                    <q-item-label>{{ $t('OpenChat') }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item
@@ -80,7 +80,7 @@
                   @click="() => $emit('open-order-escrow-contracts', chatMember?.chatSession?.orderId)"
                 >
                   <q-item-section>
-                    <q-item-label>View ecrow contracts</q-item-label>
+                    <q-item-label>{{ $t('ViewEscrowContracts') }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>

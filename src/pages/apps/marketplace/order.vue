@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" class="header-nav" />
 
     <div v-if="!initialized" class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="q-px-sm text-h5 q-space">Order</div>
@@ -53,7 +53,7 @@
               >
                 <q-item-section>
                   <q-item-label>
-                    Cancel order
+                    {{ $t('CancelOrder') }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -175,7 +175,7 @@
       <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
         <div>
           <div class="text-subtitle1">
-            Order dispute
+            {{ $t('OrderDispute') }}
           </div>
           <div class="text-caption text-grey">Order is currently in dispute</div>
         </div>

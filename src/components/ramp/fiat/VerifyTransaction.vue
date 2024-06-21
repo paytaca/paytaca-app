@@ -3,7 +3,7 @@
     class="q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-lg">
-      <div class="sm-font-size q-pb-xs q-ml-xs">Arbiter</div>
+      <div class="sm-font-size q-pb-xs q-ml-xs">{{ $t('Arbiter') }}</div>
       <q-input
         class="q-pb-xs md-font-size"
         readonly
@@ -13,7 +13,7 @@
         :label="data?.arbiter?.address"
         v-model="data.arbiter.name">
       </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
+      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractAddress') }}</div>
       <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
         <template v-slot:append>
           <div v-if="contract.address" @click="copyToClipboard(contract.address)">
@@ -21,7 +21,7 @@
           </div>
         </template>
       </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
       <q-input
         class="q-pb-xs md-font-size"
         readonly
@@ -34,7 +34,7 @@
           <span>BCH</span>
         </template>
       </q-input>
-      <div class="sm-font-size q-pl-sm q-py-xs">Transaction ID</div>
+      <div class="sm-font-size q-pl-sm q-py-xs">{{ $t('TransactionId') }}</div>
       <q-input
         filled
         dense
@@ -54,7 +54,7 @@
       <div v-if="errorMessage" class="q-mx-sm q-my-sm">
         <q-card flat class="col q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             <q-icon name="error" left/>
-            Error: {{ errorMessage }}
+            {{ $t('Error') }}: {{ errorMessage }}
         </q-card>
       </div>
       <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm q-pt-md">
@@ -62,13 +62,13 @@
           rounded
           :loading="loading"
           :disable="disableBtn || !data?.wsConnected"
-          label="Retry"
+          :label="$t('Retry')"
           class="col q-mx-lg button"
           @click="submitAction">
         </q-btn>
       </div>
       <div class="q-my-sm" v-if="state === 'verifying' && hideBtn">
-        <q-spinner class="q-mr-sm"/>Verifying, please wait...
+        <q-spinner class="q-mr-sm"/>{{ $t('VerifyingPleaseWait') }}
       </div>
     </div>
   </div>

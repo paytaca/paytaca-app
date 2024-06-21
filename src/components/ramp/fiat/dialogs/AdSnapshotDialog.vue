@@ -7,42 +7,44 @@
         </div>
       </div>
       <div v-else>
-        <div class="text-center text-weight-bold text-uppercase lg-font-size q-mt-md">Ad Snapshot</div>
-        <div class="text-center sm-font-size subtext">Ad Reference ID: {{ snapshot?.ad }}</div>
+        <div class="text-center text-weight-bold text-uppercase lg-font-size q-mt-md">{{ $t('AdSnapshot') }}</div>
+        <div class="text-center sm-font-size subtext">{{ $t('AdReferenceID') }}: {{ snapshot?.ad }}</div>
         <q-separator class="q-my-sm" :dark="darkMode"/>
         <div class="sm-font-size q-px-md q-py-sm q-mb-lg">
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Price Type</span>
+            <span>{{ $t('PriceType') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ snapshot?.price_type }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>{{ snapshot?.price_type === 'FIXED' ? 'Fixed' : 'Floating' }} Price</span>
+            <!--TODO:-->
+            <span>{{ snapshot?.price_type === 'FIXED' ? $t('Fixed') : $t('Floating') }} Price</span>
             <span class="text-nowrap q-ml-xs">
               {{ snapshot?.price_type === 'FIXED' ? formattedCurrency(snapshot?.fixed_price, snapshot?.fiat_currency?.symbol) : Number(snapshot?.floating_price) }}{{ snapshot?.price_type === 'FLOATING' ? '%': '' }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Price</span>
+            <span>{{ $t('Price') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ snapshot?.fiat_currency?.symbol }} {{ formattedCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Trade Limit</span>
+            <span>{{ $t('TradeLimit') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ formattedCurrency(snapshot?.trade_floor) }} - {{ formattedCurrency(snapshot?.trade_ceiling) }} BCH
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Apppealable after</span>
+            <!--TODO:-->
+            <span>{{ $t('ApppealableAfter') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ appealCooldown(snapshot?.appeal_cooldown_choice).label }}
             </span>
           </div>
           <div class="q-px-sm q-pb-sm" v-if="snapshot?.payment_types?.length > 0">
-            <div class="sm-font-size q-px-md">Payment Types</div>
+            <div class="sm-font-size q-px-md">{{ $t('PaymentTypes') }}</div>
             <div class="q-px-md q-gutter-sm q-pt-xs">
               <q-badge v-for="method, index in snapshot?.payment_types" :key="index" rounded outline :color="snapshot?.trade_type === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
                 {{ method }}

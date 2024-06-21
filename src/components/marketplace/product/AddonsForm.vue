@@ -7,6 +7,7 @@
           <template v-if="addon?.isRequired">*</template>
         </div>
         <div class="text-grey">
+          <!--TODO:-->
           Select {{ addon?.minOpts }}
           <template v-if="addon?.minOpts != addon?.maxOpts">
             to {{ addon?.maxOpts }}
@@ -45,7 +46,7 @@
           <input
             v-if="innerVal.find(data => data?.addonOptionId == option?.id)"
             dense
-            placeholder="Input details"
+            :placeholder="$t('InputDetails')"
             class="option-input full-width q-mb-xs"
             :value="innerVal.find(data => data?.addonOptionId == option?.id).inputValue"
             @input="event => {

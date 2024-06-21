@@ -12,7 +12,7 @@
           class="text-bow text-weight-medium"
           style="font-size: 25px;"
           :class="getDarkModeClass(darkMode)">
-          Chat
+          {{ $t('Chat') }}
         </div>
         <div
           v-if="chatMembers?.length > 0"
@@ -21,7 +21,10 @@
           :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
         >
           <span v-for="(member, index) in chatMembers" :key="index">
-            <span>{{ member.name }}</span><span v-if="member.is_user"> (You)</span><span v-if="member.is_arbiter"> (Arbiter)</span>{{ index < chatMembers.length-1 ? ', ' : ''}}
+            <span>{{ member.name }}</span>
+            <span v-if="member.is_user"> ({{ $t('You') }})</span>
+            <span v-if="member.is_arbiter"> ({{ $t('Arbiter') }})</span>
+            {{ index < chatMembers.length-1 ? ', ' : ''}}
           </span>
         </div>
       </div>
@@ -99,7 +102,7 @@
                             // }
                           }"
                         >
-                          Attachment encrypted
+                          {{ $t('AttachmentEncrypted') }}
                           <q-spinner v-if="message?.$state?.decryptingAttachment"/>
                         </div>
                       </div>
@@ -141,7 +144,7 @@
                                   })
                             }"
                           >
-                            Attachment encrypted
+                            {{ $t('AttachmentEncrypted') }}
                             <q-spinner v-if="message?.$state?.decryptingAttachment"/>
                           </div>
                         </div>
@@ -205,7 +208,7 @@
         outlined
         dense
         v-model="message"
-        placeholder="Enter message..."
+        :placeholder="$t('EnterMessage')"
         @update:modelValue="function(){
             typingMessage()
           }"
@@ -222,7 +225,9 @@
       </q-input>
       <q-icon :color="darkMode ? 'grey-3' : 'primary'" size="lg" name='sym_o_send' @click="sendMessage(true)"/>&nbsp;
     </div>
-    <div v-else class="row q-pt-lg q-px-sm text-bow justify-center" :class="getDarkModeClass(darkMode)">The chat session has ended</div>
+    <div v-else class="row q-pt-lg q-px-sm text-bow justify-center" :class="getDarkModeClass(darkMode)">
+      {{ $t('ChatSessionEnded') }}
+    </div>
     <q-file
       v-show="false"
       ref="fileAttachmentField"

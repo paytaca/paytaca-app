@@ -361,7 +361,7 @@
         zIndex: 1500,
       }"
       @swiped="onSliderSwipe()"
-      text="Swipe To Confirm"
+      :text="$t('SwipeToConfirmLower')"
     /> -->
       <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
         <q-slide-item left-color="blue" @left="onSliderSwipe()" style="background-color: transparent; border-radius: 40px;">

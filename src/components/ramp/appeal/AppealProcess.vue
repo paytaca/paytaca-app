@@ -5,6 +5,7 @@
     <div class="text-center q-pb-sm">
       <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
       <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
+      <!--TODO:-->
       <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
     </div>
     <div class="q-mx-sm q-mb-sm">
@@ -22,7 +23,7 @@
           <q-card-section>
             <div class="row justify-end no-wrap">
               <div class="col-9 q-mr-lg">
-                <div class="text-weight-bold md-font-size">Appeal reasons</div>
+                <div class="text-weight-bold md-font-size">{{ $t('AppealReasons') }}</div>
                 <q-badge v-for="(reason, index) in appeal.reasons" class="row q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
               </div>
               <q-space/>

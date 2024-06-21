@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card class="q-dialog-plugin pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 q-space q-mt-sm"> Received </div>
+        <div class="text-h5 q-space q-mt-sm"> {{ $t('Received') }} </div>
         <q-btn
           flat
           padding="sm"
@@ -24,7 +24,7 @@
           </div>
         </div>
 
-        <div class="text-grey" style="margin-bottom:-0.5em;">Transaction ID</div>
+        <div class="text-grey" style="margin-bottom:-0.5em;">{{ $t('TransactionId') }}</div>
         <div class="row items-center no-wrap text-subtitle1">
           <div class="ellipsis">{{txid}}</div>
           <div class="row no-wrap">
@@ -33,7 +33,7 @@
               padding="xs"
               icon="content_copy"
               class="button"
-              @click="copyText(txid, 'Transaction ID copied')"
+              @click="copyText(txid, $t('TransactionIdCopied'))"
             />
             <q-btn
               rounded
@@ -49,7 +49,7 @@
         <div class="q-mt-sm">
           <q-btn
             no-caps
-            label="Okay"
+            :label="$t('Okay')"
             class="full-width button"
             @click="onOk()"
           />
@@ -63,6 +63,7 @@ import { computed, defineComponent } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from "vue-i18n"
 
 export default defineComponent({
   name: 'ReceiveUpdateDialog',
@@ -86,7 +87,7 @@ export default defineComponent({
       this.$copyText(value)
         .then(() => {
           this.$q.notify({
-            message: message || 'Copied to clipboard',
+            message: message || this.$t('CopiedToClipboard'),
             timeout: 800,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'
@@ -96,6 +97,7 @@ export default defineComponent({
     }
   },
   setup(props) {
+    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -111,8 +113,8 @@ export default defineComponent({
       const allowedErrorAmount = 1000 / 10 ** 8
       if (errorAmount > allowedErrorAmount ) {
         $q.dialog({
-          title: 'Amount does not match',
-          message: 'Amount does not match with expected amount. Continue?',
+          title: t('AmountDoesntMatchTitle'),
+          message: t('AmountDoesntMatchMsg'),
           ok: { color: 'brandblue' },
           cancel: true,
         }).onOk(() => onDialogOK())

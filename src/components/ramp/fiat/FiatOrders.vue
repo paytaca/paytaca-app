@@ -29,7 +29,7 @@
       </div>
     </div>
     <div v-else class="q-px-lg q-mx-xs">
-      <q-input ref="inputRef" v-model="query_name" placeholder="Search User..." dense @blur="searchState('blur')">
+      <q-input ref="inputRef" v-model="query_name" :placeholder="$t('SearchUser')" dense @blur="searchState('blur')">
         <template v-slot:append>
           <q-icon name="close"
             @click="() => {
@@ -54,20 +54,20 @@
         class="col-grow br-15 btn-custom fiat-tab q-mt-none"
         :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
         @click="statusType='ONGOING'">
-        Ongoing
+        {{ $t('Ongoing') }}
       </button>
       <button
         class="col-grow br-15 btn-custom fiat-tab q-mt-none"
         :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
         @click="statusType='COMPLETED'">
-        Completed
+        {{ $t('Completed') }}
       </button>
     </div>
     <div class="q-mt-sm">
       <!-- <q-pull-to-refresh @refresh="refreshData"> -->
         <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
         </div>
         <div v-else class="q-mb-none">
           <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
@@ -89,6 +89,7 @@
                       <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                         <div class="row q-mx-md">
                           <div class="col ib-text">
+                            <!--TODO:-->
                             <div
                               class="q-mb-none pt-label sm-font-size"
                               :class="getDarkModeClass(darkMode)">
@@ -119,7 +120,7 @@
                             <div
                               v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
                               class="text-weight-bold subtext sm-font-size text-blue">
-                              Appealable
+                              {{ $t('Appealable') }}
                             </div>
                             <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
                               <q-rating
@@ -218,7 +219,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: { symbol: 'All' },
+      selectedCurrency: { symbol: this.$t('All') },
       selectedOrder: null,
       selectedUser: null,
       statusType: 'ONGOING',
@@ -392,7 +393,7 @@ export default {
     selectCurrency (index) {
       if (index === 0) {
         this.isAllCurrencies = true
-        this.selectedCurrency = { symbol: 'All' }
+        this.selectedCurrency = { symbol: this.$t('All') }
       } else {
         this.selectedCurrency = this.fiatCurrencies[index]
         this.isAllCurrencies = false
@@ -403,7 +404,7 @@ export default {
       backend.get('/ramp-p2p/currency/fiat', { authorize: true })
         .then(response => {
           vm.fiatCurrencies = response.data
-          vm.fiatCurrencies.unshift('All')
+          vm.fiatCurrencies.unshift(vm.$t('All'))
         })
         .catch(error => {
           console.error(error)
@@ -419,7 +420,7 @@ export default {
       const vm = this
       const params = vm.filters
       params.query_name = vm.query_name
-      params.currency = vm.selectedCurrency?.symbol !== 'All' ? vm.selectedCurrency?.symbol : null
+      params.currency = vm.selectedCurrency?.symbol !==  vm.$t('All') ? vm.selectedCurrency?.symbol : null
       vm.loading = true
       vm.$store.dispatch('ramp/fetchOrders',
         {
@@ -456,8 +457,8 @@ export default {
       const vm = this
       const getterName = vm.statusType === 'ONGOING' ? 'ramp/ongoingOrderFilters' : 'ramp/completedOrderFilters'
       const currency = this.selectedCurrency?.symbol
-      vm.$store.commit('ramp/setOrdersCurrency', currency || 'All')
-      const filters = vm.$store.getters[getterName](currency || 'All')
+      vm.$store.commit('ramp/setOrdersCurrency', currency || vm.$t('All'))
+      const filters = vm.$store.getters[getterName](currency || vm.$t('All'))
       if (filters) vm.filters = JSON.parse(JSON.stringify(filters))
     },
     loadMoreData (_, done) {

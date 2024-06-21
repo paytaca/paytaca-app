@@ -3,7 +3,7 @@
     <q-card :class="darkMode ? 'text-white pt-card-3' : 'text-black'">
       <q-card-section>
         <div class="row items-center no-wrap">
-          <div class="text-h6">Settlement Transaction</div>
+          <div class="text-h6">{{ $t('SettlementTransaction') }}</div>
           <q-space/>
           <q-btn v-close-popup flat icon="close" class="q-r-mr-sm"/>
         </div>

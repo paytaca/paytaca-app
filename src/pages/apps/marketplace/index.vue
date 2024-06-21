@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" backnavpath="/apps" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" backnavpath="/apps" class="header-nav" />
 
     <div class="q-mx-sm q-pt-md">
       <SessionLocationWidget ref="sessionLocationWidget" />

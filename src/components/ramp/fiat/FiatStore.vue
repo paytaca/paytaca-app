@@ -1,7 +1,7 @@
 <template>
   <!-- back button -->
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
+  <HeaderNav :title="$t('P2PExchange')" backnavpath="/apps"/>
   <div
     :class="getDarkModeClass(darkMode)"
     class="q-mx-md q-mb-lg text-bow"
@@ -12,7 +12,7 @@
         <!-- currency dialog -->
         <div class="col-auto">
           <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
-            <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+            <span v-if="isAllCurrencies">{{ $t('All') }}</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
           </div>
         </div>
         <q-space />
@@ -32,7 +32,7 @@
         </div>
       </div>
       <div v-else class="q-px-lg q-mx-xs">
-        <q-input ref="inputRef" v-model="query_name" placeholder="Search User..." dense @blur="searchState('blur')">
+        <q-input ref="inputRef" v-model="query_name" :placeholder="$t('SearchUser')" dense @blur="searchState('blur')">
           <template v-slot:append>
             <q-icon name="close"
               @click="() => {
@@ -58,19 +58,19 @@
           class="col br-15 btn-custom fiat-tab q-mt-none"
           :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"
           @click="transactionType='SELL'">
-          Buy BCH
+          {{ $t('BuyBCH') }}
         </button>
         <button
           class="col br-15 btn-custom fiat-tab q-mt-none"
           :class="[{'dark': darkMode}, {'active-sell-btn': transactionType == 'BUY'}]"
           @click="transactionType='BUY'">
-          Sell BCH
+          {{ $t('SellBCH') }}
         </button>
       </div>
       <div class="q-mt-sm">
         <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
         </div>
         <div v-else>
           <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
@@ -113,6 +113,7 @@
                             <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
                           </div>
                           <div class="sm-font-size">
+                            <!--TODO:-->
                             <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
                             <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
                           </div>
@@ -124,7 +125,7 @@
                           <span class="sm-font-size">/BCH</span><br>
                           <div class="sm-font-size">
                             <div class="row">
-                              <span class="col-3">Quantity</span>
+                              <span class="col-3">{{ $t('Quantity') }}</span>
                               <span class="col">{{ formattedCurrency(listing.trade_amount) }} BCH</span>
                             </div>
                             <div class="row">

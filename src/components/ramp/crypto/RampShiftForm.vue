@@ -109,7 +109,7 @@
     <q-item class="q-mx-md q-pt-lg" v-show="!isToBCH">
       <q-item-section class="justify-center">
         <div class="q-pb-sm q-pl-sm">
-          Receiving Address
+          {{ $t('ReceivingAddress') }}
         </div>
         <q-input
           dense

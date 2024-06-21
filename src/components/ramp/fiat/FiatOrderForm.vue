@@ -24,24 +24,25 @@
           <!-- Ad Info -->
           <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Price Type</span>
+              <span>{{ $t('PriceType') }}</span>
               <span class="text-nowrap q-ml-xs">
                 {{ ad.price_type }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Min Trade Limit</span>
+              <span>{{ $t('MinTradeLimit') }}</span>
               <span class="text-nowrap q-ml-xs">
                 {{ parseFloat(ad.trade_floor) }} {{ ad?.crypto_currency?.symbol }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Max Trade Limit</span>
+              <span>{{ $t('MaxTradeLimit') }}</span>
               <span class="text-nowrap q-ml-xs">
                 {{ parseFloat(ad.trade_amount) }} {{ ad?.crypto_currency?.symbol }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
+              <!--TODO:-->
               <span>Appealable after</span>
               <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }}</span>
             </div>
@@ -56,7 +57,7 @@
               dense
               type="text"
               inputmode="none"
-              label="Amount"
+              :label="$t('Amount')"
               :dark="darkMode"
               :rules="[isValidInputAmount]"
               v-model="amount"
@@ -82,18 +83,19 @@
                   flat
                   dense
                   :class="getDarkModeClass(darkMode)"
-                  label="MIN"
+                  :label="$t('MIN')"
                   @click="updateInput(max=false, min=true)"/>
                 <q-btn
                   class="sm-font-size button button-text-primary"
                   padding="none"
                   flat
                   :class="getDarkModeClass(darkMode)"
-                  label="MAX"
+                  :label="$t('MAX')"
                   @click="updateInput(max=true, min=false)"/>
               </div>
             </div>
             <div class="q-pl-sm">
+              <!--TODO:-->
               <q-btn
                 class="sm-font-size button button-text-primary"
                 padding="none"
@@ -107,7 +109,7 @@
             <div v-if="ad.trade_type === 'BUY'">
               <q-separator :dark="darkMode" class="q-mt-sm"/>
               <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
-                <span>Balance</span>
+                <span>{{ $t('Balance') }}</span>
                 <span class="text-nowrap q-ml-xs">
                   {{ balance }} BCH
                 </span>
@@ -121,7 +123,7 @@
               :disabled="!isValidInputAmount(amount)"
               rounded
               no-caps
-              :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
+              :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
               @click="submit()">
@@ -133,7 +135,7 @@
             <q-btn
               rounded
               no-caps
-              label="Edit Ad"
+              :label="$t('EditAd')"
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
               @click="() => {
@@ -418,7 +420,7 @@ export default {
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'
       this.openDialog = true
-      this.title = 'Confirm Order?'
+      this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
       const vm = this
@@ -527,17 +529,17 @@ export default {
       }
       if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
         valid = false
-        this.amountError = 'Amount must be greater than minimum trade limit'
+        this.amountError = this.$t('FiatOrderAmountErrMsg1')
       }
       if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
         parsedValue.toFixed(decCount[1])
         valid = false
-        this.amountError = 'Amount must be lesser than the maximum trade limit'
+        this.amountError = this.$t('FiatOrderAmountErrMsg2')
       }
       if (this.ad.trade_type === 'BUY') {
         if (this.balanceExceeded) {
           valid = false
-          this.amountError = 'Amount should not exceed your balance'
+          this.amountError = this.$t('FiatOrderAmountErrMsg3')
         }
       }
       if (valid) {

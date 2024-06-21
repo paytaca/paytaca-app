@@ -1,6 +1,6 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
-  <HeaderNav v-if="pageName" :title="`P2P Exchange`" backnavpath="/apps"/>
+  <HeaderNav v-if="pageName" :title="$t('P2PExchange')" backnavpath="/apps"/>
   <div
     v-if="!selectedListing && state === 'initial'"
     class="q-mx-md q-mb-lg q-pb-lg text-bow"
@@ -33,7 +33,7 @@
             <q-btn
               rounded
               no-caps
-              label="Edit Payment Methods"
+              :label="$t('EditPaymentMethods')"
               color="blue-8"
               class="q-space q-mx-md button"
               @click="() => {
@@ -73,6 +73,7 @@
               icon="star"
               icon-half="star_half"
             />
+            <!--TODO:-->
             <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating.toFixed(1) : 0}} rating)</span>
           </div>
           <div class="text-center sm-font-size q-pt-sm">
@@ -89,21 +90,21 @@
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}"
             @click="activeTab = 'reviews'">
-            REVIEWS
+            {{ $t('REVIEWS') }}
           </button>
           <button
             v-if="!user?.self"
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}"
             @click="activeTab = 'ads'">
-            ADS
+            {{ $t('ADS') }}
           </button>
         </div>
         <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
-              No Reviews Yet
+              {{ $t('NoReviewsYet') }}
             </div>
             <div v-else class="q-mx-lg q-px-md">
                 <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
@@ -133,7 +134,7 @@
                     flat
                     class="col text-center text-blue sm-font-size"
                     @click=loadMoreData>
-                    view more
+                    {{ $t('viewmore') }}
                   </q-btn>
                 </div>
             </div>
@@ -141,7 +142,7 @@
           <!-- Ads tab -->
           <div v-if="activeTab === 'ads'">
             <div v-if="!loadingAds && adsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
-              No Ads Yet
+              {{ $t('NoAdsYet') }}
             </div>
             <div v-else class="q-mx-lg">
               <q-item class="q-py-none" v-for="(ad, index) in adsList" :key="index" clickable @click="selectAd(ad)">
@@ -149,6 +150,7 @@
                   <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
                     <div class="sm-font-size q-mr-sm">
+                      <!--TODO:-->
                       <span class="q-mr-sm">{{ ad.trade_count }} trades </span>
                       <span class="q-ml-sm">{{ formatCompletionRate(ad.completion_rate) }}% completion</span><br>
                     </div>
@@ -160,15 +162,16 @@
                     <span class="sm-font-size">/BCH</span><br>
                     <div class="sm-font-size">
                       <div class="row">
-                        <span class="col-3">Quantity</span>
+                        <span class="col-3">{{ $t('Quantity') }}</span>
                         <span class="col">{{ formattedCurrency(ad.trade_amount, false) }} BCH</span>
                       </div>
                       <div class="row">
-                        <span class="col-3">Limit</span>
+                        <span class="col-3">{{ $t('Limit') }}</span>
                         <span class="col"> {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency?.symbol }}  - {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency?.symbol }}</span>
                       </div>
                     </div>
                     <div class="row sm-font-size q-gutter-md">
+                      <!--TODO:-->
                       <span>Appealable in </span>
                       <span>{{ appealCooldown(ad.appeal_cooldown).label }}</span>
                     </div>
@@ -184,7 +187,7 @@
                   flat
                   class="col text-center text-blue sm-font-size"
                   @click=loadMoreData>
-                  view more
+                  {{ $t('viewmore') }}
                 </q-btn>
               </div>
             </div>

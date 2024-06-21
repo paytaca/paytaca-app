@@ -17,7 +17,7 @@
           outlined
           rounded
           v-model="searchText"
-          placeholder="Select Currency"
+          :placeholder="$t('SelectCurrency')"
         >
           <template v-slot:append>
             <q-icon name="search" color="grey-5" />
@@ -29,7 +29,7 @@
           <template v-slot="{ item: currency, index }">
             <q-item clickable @click="onOKClick(currency)">
               <q-item-section v-if="typeof currency === 'string'">
-                All Currencies
+                {{ $t('AllCurrencies') }}
               </q-item-section>
               <q-item-section v-else>
                 <div>

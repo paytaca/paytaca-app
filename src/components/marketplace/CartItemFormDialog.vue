@@ -14,7 +14,7 @@
       style="max-height:60vh !important;"
     >
       <div class="row items-center no-wrap dialog-content-header">
-        <div class="text-h6">Cart Item</div>
+        <div class="text-h6">{{ $t('CartItem') }}</div>
         <q-space/>
         <q-btn v-close-popup flat icon="close" class="q-r-mr-sm"/>
       </div>
@@ -24,7 +24,7 @@
           <q-btn
             dense
             flat no-caps
-            label="Go to product page"
+            :label="$t('GoToProductPage')"
             class="text-underline"
             :to="{
               name: 'app-marketplace-product',
@@ -47,7 +47,7 @@
         <div class="text-subtitle1 text-center">{{ cartItem?.variant?.markupPrice }} {{ currency }}</div>
         <q-card v-if="cartOptions?.length" class="q-my-sm pt-card" :class="darkMode ? 'dark' : ''">
           <q-card-section class="q-pb-xs">
-            <div class="text-subtitle1">Options</div>
+            <div class="text-subtitle1">{{ $t('Options') }}</div>
             <JSONFormPreview
               v-model="cartOptionsFormData"
               v-model:formDataErrors="cartOptionsFormErrors"
@@ -56,7 +56,7 @@
           </q-card-section>
         </q-card>
         <div v-if="fetchingAddons" class="text-center text-body1 q-pa-md text-grey">
-          Loading addon options
+          {{ $t('LoadingAddonOptions') }}
           <q-spinner/>
         </div>
         <AddonsForm
@@ -67,7 +67,7 @@
           v-model="addonsFormData"
         />
         <q-input
-          label="Quantity"
+          :label="$t('Quantity')"
           dense outlined
           :dark="darkMode"
           type="number"
@@ -77,7 +77,7 @@
         <q-btn
           :disable="addonsFormError?.length > 0"
           no-caps
-          label="OK"
+          :label="$t('OK')"
           color="brandblue"
           class="full-width"
           @click="() => submit()"
