@@ -130,7 +130,7 @@ export default {
           name: 'claim-gift',
           query: { code: value }
         })
-      } else if (value.includes('bitcoincash:zq') || value.includes('bitcoincash:qq')) {
+      } else if (value.includes('bitcoincash:')) {
         // redirect to send page
         vm.$router.push({
           name: 'transaction-send-select-asset',
@@ -143,6 +143,7 @@ export default {
           color: 'red-9',
           icon: 'mdi-qrcode-remove'
         })
+        // add logic to reset scanning
       }
     }
   }

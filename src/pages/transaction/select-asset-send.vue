@@ -222,7 +222,7 @@ export default {
     if (vm.address !== '') {
       if (vm.address.includes('bitcoincash:zq')) {
         // cashtoken
-      } else if (vm.address.includes('bitcoincash:qq')) {
+      } else if (vm.address.includes('bitcoincash:qq') || vm.address.includes('bitcoincash:?')) {
         // bch
         vm.redirectToSend(assets[0])
       }
