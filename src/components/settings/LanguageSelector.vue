@@ -92,7 +92,6 @@ export default {
       set (lang) {
         console.log('LANG:', lang)
         this.$i18n.locale = lang.value
-        // const newLocale = { value: lang.value, label: supportedLangs[lang.value] }
         this.$store.commit('global/setLanguage', lang.value)
       }
     }
