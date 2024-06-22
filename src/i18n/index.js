@@ -31,7 +31,7 @@ import ko from './ko'
  * 
  * 
  */
-const supportedLangs = {
+export const supportedLangs = {
   af: 'Afrikaans',
   // sq: 'Albanian',
   // ar: 'Arabic',
@@ -155,5 +155,5 @@ export default {
   ja,
   ko,
   fr,
-  tl,
+  tl
 }
