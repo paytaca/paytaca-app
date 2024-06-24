@@ -159,7 +159,7 @@ export default {
       const vm = this
 
       if (value) {
-        vm.addData(value)
+        vm.addData(value[0].rawValue)
       } else {
         vm.$q.notify({
           message: 'No QR code found in the uploaded image.',

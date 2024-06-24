@@ -27,7 +27,7 @@ export default {
         const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] })
         await barcodeDetector.detect(file).then((detectedCode) => {
           if (detectedCode.length > 0) {
-            vm.$emit('detect-upload', detectedCode[0].rawValue)
+            vm.$emit('detect-upload', detectedCode)
           } else {
             vm.$emit('detect-upload', null)
           }

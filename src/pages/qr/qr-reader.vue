@@ -2,6 +2,8 @@
   <div id="qr-reader-body" :class="getDarkModeClass(darkMode)">
     <header-nav :title="'QR Reader'" backnavpath="/" />
 
+    <QRUploader ref="qr-upload" @detect-upload="onQRDecode" />
+
     <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
       <q-icon name="error" left/>
       {{ error }}
@@ -51,6 +53,7 @@
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="upload"
+          @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
         />
         <span class="q-mt-sm">Upload QR</span>
       </div>
@@ -66,6 +69,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import HeaderNav from 'src/components/header-nav'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
+import QRUploader from 'src/components/QRUploader'
 
 export default {
   name: 'QRReader',
@@ -74,7 +78,8 @@ export default {
     HeaderNav,
     QrcodeStream,
     // eslint-disable-next-line vue/no-unused-components
-    LoadingWalletDialog
+    LoadingWalletDialog,
+    QRUploader
   },
 
   data () {
@@ -120,37 +125,50 @@ export default {
         })
     },
     // MOBILE
+    // TODO
 
     async onQRDecode (content) {
       const vm = this
-      const value = content[0].rawValue
 
-      vm.paused = true
-      // quick timeout to allow qrcode stream cache to reset after pausing
-      await new Promise((resolve) => {
-        window.setTimeout(resolve, 250)
-      })
+      if (content) {
+        const value = content[0].rawValue
 
-      if (value.includes('gifts.paytaca.com')) {
-        // redirect to gifts page
-        const loadingDialog = vm.loadingDialog()
-        setTimeout(() => {
-          loadingDialog.hide()
-        }, 700)
-        vm.$router.push({
-          name: 'claim-gift',
-          query: { code: value }
+        vm.paused = true
+        // quick timeout to allow qrcode stream cache to reset after pausing
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, 250)
         })
-      } else if (value.includes('bitcoincash:')) {
-        // redirect to send page
-        const loadingDialog = vm.loadingDialog()
-        setTimeout(() => {
-          loadingDialog.hide()
-        }, 700)
-        vm.$router.push({
-          name: 'transaction-send-select-asset',
-          query: { address: value }
-        })
+
+        if (value.includes('gifts.paytaca.com')) {
+          // redirect to gifts page
+          const loadingDialog = vm.loadingDialog()
+          setTimeout(() => {
+            loadingDialog.hide()
+          }, 700)
+          vm.$router.push({
+            name: 'claim-gift',
+            query: { code: value }
+          })
+        } else if (value.includes('bitcoincash:')) {
+          // redirect to send page
+          const loadingDialog = vm.loadingDialog()
+          setTimeout(() => {
+            loadingDialog.hide()
+          }, 700)
+          vm.$router.push({
+            name: 'transaction-send-select-asset',
+            query: { address: value }
+          })
+        } else {
+          vm.$q.notify({
+            message: 'Unable to identify QR code.',
+            timeout: 800,
+            color: 'red-9',
+            icon: 'mdi-qrcode-remove'
+          })
+        }
+
+        vm.paused = false
       } else {
         vm.$q.notify({
           message: 'Unable to identify QR code.',
@@ -159,8 +177,6 @@ export default {
           icon: 'mdi-qrcode-remove'
         })
       }
-
-      vm.paused = false
     },
 
     loadingDialog () {
