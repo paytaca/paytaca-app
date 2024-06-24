@@ -54,12 +54,11 @@
 </template>
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { generateKeypair } from "src/marketplace/chat/keys";
-import { arbiterBackend, ecdsaSign, parseWif, setArbiterKeys } from "src/marketplace/arbiter";
+import { User } from "src/marketplace/objects";
+import { arbiterBackend, getAuthKey } from "src/marketplace/arbiter";
 import { cachedBackend } from "src/marketplace/backend";
 import { useStore } from "vuex";
 import { computed, ref } from "vue";
-import { EscrowArbiter } from "src/marketplace/objects";
 
 const $emit = defineEmits([
   'login',
@@ -92,62 +91,47 @@ async function login() {
 
 const lastNonce = ref({ pubkey: '', nonce: '', expiresAt: 0 })
 async function loginProcess() {
-  const { wif, pubkey, address, chat } = parseWif(loginInput.value)
-
-  if (lastNonce.value.pubkey != pubkey || lastNonce.value.expiresAt + 5000 < Date.now()) {
-    loginStatus.value = 'Generating authentication challenge'
-    const authChallengeResponse = await arbiterBackend.post(
-      `connecta/escrow-arbiters/auth_token/`,
-      { type: 'nonce', pubkey: pubkey },
-    ).catch(error => {
-      loginError.value = 'Unable to fetch authentication challenge'
-      if (error?.response?.data?.detail?.indexOf?.('No matching arbiter found')) {
-        loginError.value = 'No arbiter found with the provided key'
-      }
+  const authKeyResp = await getAuthKey({
+    wif: loginInput.value, 
+    saveAuthToken: true,
+    onUpdateStep: step => {
+      if (step === 'nonce') loginStatus.value = 'Generating authentication challenge'
+      if (step === 'sign') loginStatus.value = 'Signing authentication challenge'
+      if (step === 'authtoken') loginStatus.value = 'Sending authentication challenge'
+      if (step === 'store') loginStatus.value = 'Saving authentication credentials'
+    }
+  }).catch(error => {
+    let errorMessage = 'Unknwon error occurred'
+    if (error.name !== 'ArbiterAuthError') {
+      dialog.update({ message: errorMessage })
       return Promise.reject(error)
-    })
-    const nonce = authChallengeResponse.data?.nonce
-    const expiresAt = new Date(authChallengeResponse.data?.expires_at).getTime()
-    lastNonce.value = { pubkey: pubkey, nonce: nonce, expiresAt: expiresAt }
-  }
+    }
 
-  loginStatus.value = 'Signing authentication challenge'
-  let signature
-  try {
-    signature = ecdsaSign(wif, lastNonce.value.nonce)
-  } catch(error) {
-    loginError.value = 'Error in signing'
-    return Promise.reject(error)
-  }
-
-  loginStatus.value = 'Sending authentication challenge'
-  const authResponse = await arbiterBackend.post(
-    `connecta/escrow-arbiters/auth_token/`,
-    { type: 'authtoken', nonce: lastNonce.value.nonce, pubkey: pubkey, signature: signature },
-  ).catch(error => {
-    loginError.value = 'Error in fetching auth token'
+    const msg = error?.message
+    if (msg == 'NoMatchingArbiterFound') {
+      errorMessage = 'No arbiter found with the provided key'
+    } else if (msg === 'FetchChallengeFailed') {
+      errorMessage = 'Unable to fetch authentication challenge'
+    } else if (msg === 'AuthChallengeSignError') {
+      errorMessage = 'Error in signing'
+    } else if (msg === 'IncorrectArbiterData') {
+      errorMessage = 'Error in fetching auth token'
+    } else if (msg === 'SaveAuthKeyError') {
+      errorMessage = 'Error in saving keys'
+    }
+    dialog.update({ message: errorMessage })
     return Promise.reject(error)
   })
 
-  const authToken = authResponse.data.auth_token
-  const escrowArbiter = EscrowArbiter.parse(authResponse.data?.arbiter)
-  if (!escrowArbiter.pubkey === pubkey) {
-    loginError.value = 'Found incorrect arbiter data'
-    return 
-  }
-
-  loginStatus.value = 'Saving authentication credentials'
-  const storeResponse = await setArbiterKeys(wif, authToken)
-  if (!storeResponse.success) {
-    console.error(storeResponse)
-    loginError.value = storeResponse?.error || 'Error in saving keys'
-    return
-  }
-
-  $emit('login', { escrowArbiter })
-  return {
-    wif, pubkey, address, chat,
-    escrowArbiter,
-  }
+  const fetchUserResp = await arbiterBackend.get(`users/me/`).catch(console.error)
+  const user = User.parse(fetchUserResp?.data)
+  const result = Object.assign({}, authKeyResp, { user })
+  $emit('login', result)
+  return result
 }
+
+defineExpose({
+  loginInput,
+  login,
+})
 </script>

@@ -16,7 +16,7 @@
       </div>
     </div>
     <template v-else>
-      <AuthGateway v-if="!user?.id || !escrowArbiter?.pubkey"/>
+      <AuthGateway v-if="!user?.id || !escrowArbiter?.pubkey" @login="onLogin"/>
       <div v-else class="q-pa-sm">
         <q-item dense class="q-mb-sm">
           <q-item-section side>
@@ -38,7 +38,7 @@
               :content-style="{color: darkMode ? 'white' : 'black'}"
               :content-class="['pt-card-2 text-bow', getDarkModeClass(darkMode)]"
             >
-              <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.privkey, 'Private key copied to clipboard')">
+              <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.wif, 'Private key copied to clipboard')">
                 <q-item-section>
                   <q-item-label>Copy private key</q-item-label>
                 </q-item-section>
@@ -99,7 +99,7 @@
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { ChatIdentity, EscrowArbiter, User } from "src/marketplace/objects";
 import { getDeviceId } from "src/marketplace/chat/keys";
-import { arbiterBackend, getArbiterKeys, getArbiterWifData, parseWif, setArbiterKeys } from "src/marketplace/arbiter";
+import { arbiterBackend, getArbiterKeys, getArbiterWifData, getAuthKey, parseWif, setArbiterKeys } from "src/marketplace/arbiter";
 import { marketplacePushNotificationsManager } from "src/marketplace/push-notifications";
 import { bus } from "src/wallet/event-bus";
 import { RpcWebSocketClient } from "rpc-websocket-client";
@@ -124,6 +124,11 @@ const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
 const refreshingPage = ref(false)
 const initialized = ref(false)
 onMounted(() => refreshPage())
+function resetPage() {
+  user.value = User.parse()
+  escrowArbiter.value = EscrowArbiter.parse()
+  initialized.value = false
+}
 
 const keys = ref([].map(parseWif)[0])
 async function updateKeys() {
@@ -201,7 +206,18 @@ function confirmLogout() {
     ok: { color: 'red', noCaps: true, label: 'Logout' },
     cancel: { color: 'grey', noCaps: true, label: 'Cancel', flat: true },
   })
-    .onOk(() => setArbiterKeys())
+    .onOk(() => logOut())
+}
+
+async function logOut() {
+  try{
+    $q.loading.show({ group: 'logout' })
+    await arbiterBackend.post(`users/revoke_token/`).catch(console.error)
+      .then(() => $q.loading.hide('logout'))
+    setArbiterKeys()
+  } finally {
+    $q.loading.hide('logout')
+  }
 }
 
 const AUTH_ERROR_CODES = Object.freeze({
@@ -242,6 +258,78 @@ onUnmounted(() => {
   bus.off('arbiter-keys-updated', onArbiterKeysUpdate)
   bus.off('arbiter-keys-removed', onArbiterKeysUpdate)
 })
+
+/**
+ * @param {Object} data
+ * @param {String} data.wif
+ * @param {User} data.user
+ * @param {EscrowArbiter} data.escrowArbiter
+ */
+async function onLogin(data) {
+  await updateKeys()
+  if (keys.value.pubkey !== data?.escrowArbiter?.pubkey) return
+
+  escrowArbiter.value = data?.escrowArbiter
+  user.value = data?.user
+}
+
+async function reLogin() {
+  const wif = keys.value?.wif
+  if (!wif) return
+  const dialog = $q.dialog({
+    title: 'Log In',
+    message: 'Refreshing authentication',
+    progress: true, 
+    persistent: true,
+    ok: false,
+    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
+    color: 'brandblue',
+  })
+  const onUpdateStep = (step='') => {
+    let msg
+    if (step === 'nonce') msg = 'Generating authentication challenge'
+    if (step === 'sign') msg = 'Signing authentication challenge'
+    if (step === 'authtoken') msg = 'Sending authentication challenge'
+    if (step === 'store') msg = 'Saving authentication credentials'
+
+    dialog.update({ message: msg || 'Refreshing authentication' })
+  }
+
+  return getAuthKey({ wif, saveAuthToken: true, onUpdateStep })
+    .then(response => {
+      resetPage()
+      dialog.hide()
+      return response
+    })
+    .catch(error => {
+      let errorMessage = 'Unknwon error occurred'
+      if (error.name !== 'ArbiterAuthError') {
+        dialog.update({ message: errorMessage })
+        return Promise.reject(error)
+      }
+
+      const msg = error?.message
+      if (msg == 'NoMatchingArbiterFound') {
+        errorMessage = 'No arbiter found with the provided key'
+      } else if (msg === 'FetchChallengeFailed') {
+        errorMessage = 'Unable to fetch authentication challenge'
+      } else if (msg === 'AuthChallengeSignError') {
+        errorMessage = 'Error in signing'
+      } else if (msg === 'IncorrectArbiterData') {
+        errorMessage = 'Error in fetching auth token'
+      } else if (msg === 'SaveAuthKeyError') {
+        errorMessage = 'Error in saving keys'
+      }
+      dialog.update({ message: errorMessage })
+      return Promise.reject(error)
+    })
+    .finally(() => {
+      dialog.update({
+        progress: false, persistent: false, ok: true,
+      })
+    })
+}
+
 /** ------------------------------------------------------------------ */
 /** ------------------------------------------------------------------ */
 
@@ -395,7 +483,11 @@ async function refreshPage(done= () => {}) {
     refreshingPage.value = true
     await Promise.all([
       updateKeys().then(() => fetchEscrowArbiter()),
-      fetchUser().then(() => updateChatIdentity()),
+      fetchUser().then(() => updateChatIdentity())
+        .catch(error => {
+          if (error?.response?.status === 401) return reLogin().then(() => {})
+          return Promise.reject(error)
+        }),
     ])
     promptAuthErrors()
   } catch (_error) {

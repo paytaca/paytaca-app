@@ -4,6 +4,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { bus } from 'src/wallet/event-bus';
 import { backend } from './backend';
 import { generateKeypair } from './chat/keys';
+import { EscrowArbiter } from './objects';
 
 const bchjs = new BCHJS()
 
@@ -40,9 +41,85 @@ arbiterBackend.interceptors.request.use(async (config) => {
     token = getAuthTokenResp.authToken
   }
 
-  if (token) config.headers['Authorization'] = `Bearer ${token}`
+  if (token && !config.excludeAuth) config.headers['Authorization'] = `Bearer ${token}`
   return config
 })
+
+
+export async function getAuthKey(opts ={ wif: '', nonce: '', saveAuthToken: false, onUpdateStep: (step='') => {} }) {
+  const { wif, pubkey, address, chat } = parseWif(opts?.wif)
+  let nonce = opts?.nonce
+  if (!nonce) {
+    opts?.onUpdateStep?.('nonce')
+    const authChallengeResponse = await arbiterBackend.post(
+      `connecta/escrow-arbiters/auth_token/`,
+      { type: 'nonce', pubkey },
+      { excludeAuth: true },
+    ).catch(error => {
+      console.error(error)
+
+      const err = new Error()
+      err.name = 'ArbiterAuthError'
+      if (error?.response?.data?.detail?.indexOf?.('No matching arbiter found')) {
+        err.message = 'NoMatchingArbiterFound'
+      } else {
+        err.message = 'FetchChallengeFailed'
+      }
+      return Promise.reject(err)
+    })
+    nonce = authChallengeResponse.data?.nonce
+  }
+
+  opts?.onUpdateStep?.('sign')
+  let signature
+  try {
+    signature = ecdsaSign(wif, nonce)
+  } catch(error) {
+    console.error(error)
+    const err = new Error('AuthChallengeSignError')
+    err.name = 'ArbiterAuthError'
+    throw err
+  }
+
+  opts?.onUpdateStep?.('authtoken')
+  const authResponse = await arbiterBackend.post(
+    `connecta/escrow-arbiters/auth_token/`,
+    { type: 'authtoken', nonce, pubkey, signature },
+    { excludeAuth: true },
+  ).catch(error => {
+    console.error(error)
+    const err = new Error('AuthTokenError')
+    err.name = 'ArbiterAuthError'
+    throw error
+  })
+
+  const authToken = authResponse.data.auth_token
+  const escrowArbiter = EscrowArbiter.parse(authResponse.data?.arbiter)
+  if (!escrowArbiter.pubkey === pubkey) {
+    console.error(error)
+    const err = new Error('IncorrectArbiterData')
+    err.name = 'ArbiterAuthError'
+    throw err
+  }
+
+  if (opts?.saveAuthToken) {
+    opts?.onUpdateStep?.('store')
+    await setArbiterKeys(wif, authToken)
+    const storeResponse = await setArbiterKeys(wif, authToken)
+    if (!storeResponse.success) {
+      console.error(storeResponse)
+      const err = new Error('SaveAuthKeyError')
+      err.name = 'ArbiterAuthError'
+      throw err
+    }
+  }
+
+  return {
+    wif, pubkey, address, chat,
+    authToken,
+    escrowArbiter,
+  }
+}
 
 const AUTH_TOKEN_STORAGE_KEY = 'marketplace-arbiter-key'
 export async function getArbiterKeys() {
@@ -75,7 +152,6 @@ export async function setArbiterKeys(wif, authToken) {
     return { success: false, error: error }
   }
 }
-window.f = (...args) => setArbiterKeys(...args) 
 
 export async function getArbiterWifData() {
   const { wif } = await getArbiterKeys()
