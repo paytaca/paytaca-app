@@ -325,7 +325,6 @@
             @click="submitData()"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
-            @click="submitData()"
             v-close-popup
           />
         </div>
