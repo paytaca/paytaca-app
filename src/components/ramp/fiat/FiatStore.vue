@@ -73,14 +73,13 @@
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
         </div>
         <div v-else>
-          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
+          <q-list :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+            <q-pull-to-refresh @refresh="refreshData">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"
                 @load="loadMoreData"
-                :offset="0"
-                :scroll-target="scrollTargetRef">
+                :offset="0">
                 <template v-slot:loading>
                   <div class="row justify-center q-my-md" v-if="hasMoreData">
                     <q-spinner-dots color="primary" size="40px" />
@@ -96,7 +95,7 @@
                               :class="{'pt-label dark': darkMode}"
                               class="md-font-size">
                               <!-- @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)"> -->
-                              {{ userNameView(listing.owner.name) }}
+                              {{ userNameView(listing.owner?.name) }}
                             </span>
                             <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
                           </div>
@@ -138,7 +137,7 @@
                       <div class="q-gutter-sm q-pt-xs">
                         <q-badge v-for="method in listing.payment_methods" :key="method.id"
                         rounded outline :color="transactionType === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
-                        {{ method.payment_type.name }}
+                        {{ method }}
                         </q-badge>
                       </div>
                     </div>
@@ -289,7 +288,7 @@ export default {
       return (this.pageNumber < this.totalPages)
     },
     isOwner () {
-      return this.selectedUser.name === this.$store.getters['ramp/getUser'].name
+      return this.selectedUser?.name === this.$store.getters['ramp/getUser']?.name
     }
   },
   created () {

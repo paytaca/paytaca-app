@@ -70,14 +70,13 @@
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
         </div>
         <div v-else class="q-mb-none">
-          <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
+          <q-list :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+            <q-pull-to-refresh @refresh="refreshData">
               <q-infinite-scroll
                 ref="infiniteScroll"
                 :items="listings"
                 @load="loadMoreData"
-                :offset="0"
-                :scroll-target="scrollTargetRef">
+                :offset="0">
                 <template v-slot:loading>
                   <div class="row justify-center q-my-md" v-if="hasMoreData">
                     <q-spinner-dots color="primary" size="40px" />
