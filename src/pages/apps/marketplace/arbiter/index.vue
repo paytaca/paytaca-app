@@ -424,6 +424,15 @@ async function subscribeRpcEvents() {
   await Promise.all(promises)
 }
 
+
+watch(() => user.value?.id, (newVal, prevVal) => {
+  if (newVal === prevVal) return
+  if (!newVal) return
+
+  // excluding multiWalletIndex param since auth doesnt rely on current wallet used
+  return marketplacePushNotificationsManager.subscribe({userId: user.value?.id })
+})
+
 /** ------------------------------------------------------------------ */
 /** ------------------------------------------------------------------ */
 
@@ -469,7 +478,7 @@ const updateUnreadChatSessionCount = debounce(() => {
     chat_identity_id: chatIdentity.value?.id || 0,
   }
 
-  return arbiterBackend.value.get(`chat/members/full_info/`, { params })
+  return arbiterBackend.get(`chat/members/full_info/`, { params })
     .then(response => {
       unreadChatSessionCount.value = response?.data?.count
       return response
@@ -489,6 +498,7 @@ async function refreshPage(done= () => {}) {
           return Promise.reject(error)
         }),
     ])
+    setTimeout(() => refreshEscrowContractPanel(), 100)
     promptAuthErrors()
   } catch (_error) {
     error = _error
