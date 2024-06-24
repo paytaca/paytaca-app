@@ -294,6 +294,7 @@ import ShardsProcess from 'src/components/registration/ShardsProcess'
 import AuthenticationChooser from 'src/components/registration/AuthenticationChooser'
 import ShardsImport from 'src/components/registration/ShardsImport'
 import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
+import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 
 function countWords(str) {
   if (str) {
@@ -322,7 +323,8 @@ export default {
     ShardsProcess,
     AuthenticationChooser,
     ShardsImport,
-    MnemonicProcessContainer
+    MnemonicProcessContainer,
+    SeedPhraseContainer
   },
   data () {
     return {
