@@ -336,7 +336,7 @@ import HeaderNav from '../../components/header-nav'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import QrScanner from '../../components/qr-scanner.vue'
-import { VOffline } from 'v-offline'
+// import { VOffline } from 'v-offline'
 import {
   convertCashAddress,
   isValidTokenAddress,
@@ -371,7 +371,7 @@ export default {
     HeaderNav,
     customKeyboard,
     QrScanner,
-    VOffline,
+    // VOffline,
     DenominatorTextDropdown,
     SendPageForm
   },

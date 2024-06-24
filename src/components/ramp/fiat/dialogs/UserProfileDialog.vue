@@ -82,7 +82,6 @@
                         <q-item-section>
                             <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                             <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
-                            <div class="sm-font-size q-mr-sm">
                               <!--TODO:-->
                             <span
                                 class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
