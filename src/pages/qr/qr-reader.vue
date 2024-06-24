@@ -43,6 +43,7 @@
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="add"
+          @click="$router.push({ name: 'generate-qr' })"
         />
         <span class="q-mt-sm">Generate QR</span>
       </div>

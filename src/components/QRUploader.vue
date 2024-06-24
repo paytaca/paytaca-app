@@ -19,6 +19,12 @@ export default {
     'detect-upload'
   ],
 
+  data () {
+    return {
+      fileModel: null
+    }
+  },
+
   methods: {
     async onUploadDetect (file) {
       const vm = this
