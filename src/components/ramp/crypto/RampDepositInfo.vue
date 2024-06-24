@@ -7,6 +7,7 @@
     <div v-if="!sendBCH">
       <div v-if="!shiftExpired">
         <div class="text-center justify-center text-h6">
+          <!--TODO:-->
           Please send exactly <br><b style="letter-spacing: 1px;">{{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }} ({{ getNetwork(shiftInfo) }})</b> to...
         </div>
 
@@ -36,21 +37,22 @@
           {{ countDown }}
         </div>
         <div class="text-center q-pt-md">
-          <span style="font-size:13px;">Send amount before the timer ends...</span>
+          <span style="font-size:13px;">{{ $t('SendBeforeTimerEnds') }}</span>
         </div>
       </div>
       <div class="text-center" v-if="shiftExpired">
         <div class="q-pt-md text-h2 text-red-5 q-py-lg">
-          Expired
+          {{ $t('Expired') }}
         </div>
         <div class="q-pt-lg">
-          <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
+          <q-btn color="blue-9" :label="$t('TryAgain')" @click="$emit('retry')"></q-btn>
         </div>
       </div>
     </div>
     <div v-if="sendBCH">
       <div v-if="processing">
         <div class="text-center text-h5 q-px-lg send-bch-messages">
+          <!--TODO:-->
           Sending <b>{{ shiftInfo.shift_info.deposit.amount }}</b> BCH to <b>{{ shiftInfo.shift_info.settle.address }}</b>
         </div>
         <div class="row justify-center q-py-lg">
@@ -59,18 +61,19 @@
       </div>
       <div v-if="!sendFailed && !processing">
         <div class="text-center text-h5 q-px-lg send-bch-messages">
+          <!--TODO:-->
           <b>{{ shiftInfo.shift_info.deposit.amount }} BCH</b> Sent!
         </div>
         <div class="q-pt-lg text-center">
-          <q-btn color="blue-9" label="Back" @click="$emit('done')"></q-btn>
+          <q-btn color="blue-9" :label="$t('Back')" @click="$emit('done')"></q-btn>
         </div>
       </div>
       <div v-if="sendFailed && !processing">
         <div class="text-center text-h5 q-px-lg send-bch-messages">
-          Sorry, failed to send BCH...
+          {{ $t('SorryFailedToSendBch') }}
         </div>
         <div class="q-pt-lg text-center">
-          <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
+          <q-btn color="blue-9" :label="$t('TryAgain')" @click="$emit('retry')"></q-btn>
         </div>
       </div>
     </div>
@@ -171,7 +174,7 @@ export default {
 
         if (distance < 0) {
           clearInterval(x)
-          vm.countDown = 'Expired'
+          vm.countDown = this.$t('Expired')
           vm.shiftExpired = true
         }
       }, 1000)

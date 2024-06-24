@@ -8,15 +8,15 @@
         <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
           <div class="q-pt-sm q-mx-md">
             <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
-              <span>Price Setting</span>
+              <span>{{ $t('PriceSetting') }}</span>
             </div>
             <div class="q-mx-sm">
               <div class="row justify-between no-wrap q-mx-lg">
-                <span>Fiat Currency</span>
+                <span>{{ $t('FiatCurrency') }}</span>
                 <span class="text-nowrap q-ml-xs">{{ adData.fiatCurrency.symbol }}</span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
-                <span>Price Type</span>
+                <span>{{ $t('PriceType') }}</span>
                 <span class="text-nowrap q-ml-xs">{{ adData.priceType === 'FIXED' ? 'Fixed' : 'Floating' }}</span>
               </div>
               <div v-if="adData.priceType === 'FLOATING'" class="row justify-between no-wrap q-mx-lg">
@@ -148,7 +148,7 @@
         }"
         @ok="$emit('submit')"
         @cancel="showDragSlide=true; dragSlideKey++"
-        text="Swipe To Confirm"
+        :text="$t('SwipeToConfirmLower')"
       />
     </div>
   </div>

@@ -3,12 +3,12 @@
   <q-dialog v-model="deleteAd" @before-hide="$emit('back')">
     <q-card class="br-15 pt-card-2 text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-center">Delete this Ad?</div>
-        <div class="text-center">This action cannot be undone and will not delete related orders.</div>
+        <div class="text-h6 text-center">{{ $t('DeleteThisAd') }}</div>
+        <div class="text-center">{{ $t('DeleteAdWarning') }}</div>
       </q-card-section>
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')"  v-close-popup />
-        <q-btn flat label="Confirm" class="button button-text-primary" @click="selected('confirm')" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')"  v-close-popup />
+        <q-btn flat :label="$t('Confirm')" class="button button-text-primary" @click="selected('confirm')" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -18,12 +18,12 @@
     <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">
-          <span class="q-pr-sm">Ad Deleted</span>
+          <span class="q-pr-sm">{{ $t('AdDeleted') }}</span>
           <q-icon flat name="task_alt"></q-icon>
         </div>
       </q-card-section>
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Ok" class="button" @click="$emit('back')" v-close-popup />
+        <q-btn flat :label="$t('OK')" class="button" @click="$emit('back')" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>

@@ -18,10 +18,10 @@
       <div v-if="isloaded">
         <div class="lg-font-size">
           <div v-if="reviewList.length !== 0"  class="text-center q-pb-md xm-font-size text-weight-bold">
-            Reviews
+            {{ $t('Reviews') }}
           </div>
           <div v-else class="text-center text-weight-bold xm-font-size">
-            No Reviews Yet
+            {{ $t('NoReviewsYet') }}
           </div>
         </div>
         <!-- <q-pull-to-refresh @refresh="refreshReviews"> -->

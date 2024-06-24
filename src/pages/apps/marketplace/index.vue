@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" backnavpath="/apps" class="header-nav">
+    <HeaderNav :title="$t('Marketplace')" backnavpath="/apps" class="header-nav">
       <template v-slot:top-right-menu>
         <MarketplaceHeaderMenu/>
       </template>

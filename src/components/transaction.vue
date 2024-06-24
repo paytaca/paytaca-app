@@ -478,7 +478,7 @@ export default {
             case('anyhedge_long_funding_utxo'):
               return { label: 'Long funding UTXO', address: attribute?.value }
             case('anyhedge_settlement_tx'):
-              return { label: 'Settlement transaction', address: attribute?.value }
+              return { label: this.$t('SettlementTransaction'), address: attribute?.value }
           }
         })
         .filter(Boolean)

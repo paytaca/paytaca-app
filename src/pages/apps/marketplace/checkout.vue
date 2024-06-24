@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" class="header-nav" />
 
     <div v-if="!initialized" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div v-if="fetchingCheckout || loading" class="row justify-center items-center">
@@ -327,7 +327,7 @@
                       {{ formData.delivery.address.longitude }}, {{ formData.delivery.address.latitude }}
                     </template>
                     <template v-else>
-                      Pin location
+                      {{ $t('PinLocation') }}
                     </template>
                   </q-btn>
                   <q-btn
@@ -492,7 +492,8 @@
             />
             <q-btn
               :disable="loadingState.creatingPayment"
-              no-caps label="Scan to pay"
+              no-caps
+              :label="$t('ScanToPay')"
               icon="mdi-qrcode-scan"
               class="full-width q-my-sm button"
               @click="() => bchPaymentState.tab = 'qrcode'"
@@ -548,7 +549,7 @@
             <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
               <q-card-section>
                 <div class="row items-center no-wrap">
-                  <div class="text-h6">Scan to pay</div>
+                  <div class="text-h6">{{ $t('ScanToPay') }}</div>
                   <q-space/>
                   <q-btn flat icon="close" v-close-popup class="q-r-mr-sm close-button" />
                 </div>

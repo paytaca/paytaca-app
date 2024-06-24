@@ -94,7 +94,7 @@
       </div>
       <div v-else>
         <div v-if="sendingBch" class="sm-font-size">
-          <q-spinner class="q-mr-sm"/>Sending BCH, please do not close the app during this process.
+          <q-spinner class="q-mr-sm"/>{{ $t('SendingBchPleaseWait') }}
         </div>
         <div v-else class="sm-font-size q-mt-sm">
           <div class="row q-ml-xs">

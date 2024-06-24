@@ -5,7 +5,7 @@
         <div v-if="isAppealed">
           <q-card class="q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
             <q-card-section>
-              <div class="text-weight-bold md-font-size">Appeal reasons</div>
+              <div class="text-weight-bold md-font-size">{{ $t('AppealReasons') }}</div>
               <div v-if="appeal">
                 <q-badge
                   v-for="reason in appeal.reasons"
@@ -20,7 +20,7 @@
           </q-card>
         </div>
         <div v-if="displayContractInfo" class="q-mt-sm q-mx-sm">
-          <div class="sm-font-size q-pb-xs q-ml-xs">Arbiter</div>
+          <div class="sm-font-size q-pb-xs q-ml-xs">{{ $t('Arbiter') }}</div>
           <q-input
             class="q-pb-xs md-font-size"
             readonly
@@ -30,7 +30,7 @@
             :label="data?.arbiter?.address"
             v-model="arbiterName">
           </q-input>
-          <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
+          <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractAddress') }}</div>
           <q-input
             class="q-pb-xs md-font-size"
             readonly
@@ -44,7 +44,7 @@
               </div>
             </template>
           </q-input>
-          <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+          <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
           <q-input
             class="q-pb-xs md-font-size"
             readonly
@@ -107,7 +107,7 @@
             <q-btn
               rounded
               no-caps
-              label='Cancel Order'
+              :label="$t('CancelOrder')"
               class="q-space text-white"
               style="background-color: #ed5f59;"
               @click="$emit('cancelOrder')"
@@ -130,7 +130,7 @@
         </div>
         <!-- Feedback -->
         <div class="q-pt-none q-mx-md md-font-size text-center" v-if="hasReview">
-          <q-btn no-caps flat color="primary" @click="openReviewForm = true">{{ feedback ? 'View my Feedback' : 'Submit Feedback' }}</q-btn>
+          <q-btn no-caps flat color="primary" @click="openReviewForm = true">{{ feedback ? $t('ViewMyFeedback') : $t('SubmitFeedback') }}</q-btn>
         </div>
       </div>
     </div>
@@ -153,7 +153,7 @@
       <div class="row q-pt-xs q-mb-lg q-pb-lg q-mx-md" v-if="forRelease">
         <q-btn
           rounded
-          label='Release Crypto'
+          :label="$t('ReleaseCrypto')"
           class="q-space text-white"
           color="blue-6"
           @click="$parent.releasingCrypto()"
@@ -234,8 +234,9 @@ export default {
     //   }
     // },
     appealBtnLabel () {
+      // TODO:
       if (this.appealCountdown) return `Appealable in ${this.appealCountdown}`
-      return 'Submit an appeal'
+      return this.$t('SubmitAnAppeal')
     },
     showAppealBtn () {
       const stat = ['ESCRW', 'PD_PN', 'PD']
@@ -301,13 +302,13 @@ export default {
     },
     label () {
       const labels = {
-        SBM: 'Please wait for counterparty to confirm your order. This order will automatically be cancelled if not confirmed within 24 hours.',
-        CNF: 'Please wait for the Seller to Escrow the funds.',
-        ESCRW_PN: 'Please wait for the seller to Escrow the funds.',
-        ESCRW: 'Please wait for the buyer to send and confirm their fiat payment.',
-        PD_PN: 'Please wait for the seller to release the funds.',
-        PD: 'Please wait for the fund release.',
-        RLS_PN: 'Please wait for the fund release.'
+        SBM: this.$t('StandByDisplayLabelSbm'),
+        CNF: this.$t('StandByDisplayLabelCnf'),
+        ESCRW_PN: this.$t('StandByDisplayLabelEscrwPn'),
+        ESCRW: this.$t('StandByDisplayLabelEscrw'),
+        PD_PN: this.$t('StandByDisplayLabelPdPn'),
+        PD: this.$t('StandByDisplayLabelPd'),
+        RLS_PN: this.$t('StandByDisplayLabelRlsPn')
       }
       return labels[this.data?.order?.status.value]
     },

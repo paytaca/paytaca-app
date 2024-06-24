@@ -4,7 +4,7 @@
       <q-card-section>
         <div class="row items-center">
           <div class="text-h6 q-space">
-            Reviews
+            {{ $t('Reviews') }}
             <template v-if="reviewsPagination?.count">
               ({{ reviewsPagination?.count }})
             </template>

@@ -24,24 +24,25 @@
           <!-- Ad Info -->
           <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Price Type</span>
+              <span>{{ $t('PriceType') }}</span>
               <span class="text-nowrap q-ml-xs">
                 {{ ad.price_type }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Min Trade Limit</span>
+              <span>{{ $t('MinTradeLimit') }}</span>
               <span class="text-nowrap q-ml-xs">
                 {{ formatCurrency(ad?.trade_floor, tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <span>Max Trade Limit</span>
+              <span>{{ $t('MaxTradeLimit') }}</span>
               <span class="text-nowrap q-ml-xs">
                 {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
+              <!--TODO:-->
               <span>Appealable after</span>
               <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }}</span>
             </div>
@@ -56,7 +57,7 @@
               dense
               type="text"
               inputmode="none"
-              label="Amount"
+              :label="$t('Amount')"
               :disable="!hasArbiters"
               :dark="darkMode"
               :rules="[isValidInputAmount]"
@@ -84,7 +85,7 @@
                   dense
                   :disable="!hasArbiters"
                   :class="getDarkModeClass(darkMode)"
-                  label="MIN"
+                  :label="$t('MIN')"
                   @click="updateInput(max=false, min=true)"/>
                 <q-btn
                   class="sm-font-size button button-text-primary"
@@ -92,11 +93,12 @@
                   flat
                   :disable="!hasArbiters"
                   :class="getDarkModeClass(darkMode)"
-                  label="MAX"
+                  :label="$t('MAX')"
                   @click="updateInput(max=true, min=false)"/>
               </div>
             </div>
             <div class="q-pl-sm">
+              <!--TODO:-->
               <q-btn
                 class="sm-font-size button button-text-primary"
                 padding="none"
@@ -111,7 +113,7 @@
             <div v-if="ad.trade_type === 'BUY'">
               <q-separator :dark="darkMode" class="q-mt-sm"/>
               <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
-                <span>Balance</span>
+                <span>{{ $t('Balance') }}</span>
                 <span class="text-nowrap q-ml-xs">
                   {{ balance }} BCH
                 </span>
@@ -125,7 +127,7 @@
               :disabled="!isValidInputAmount(amount) || !hasArbiters"
               rounded
               no-caps
-              :label="ad.trade_type === 'SELL' ? 'BUY' : 'SELL'"
+              :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
               @click="submit()">
@@ -142,7 +144,7 @@
             <q-btn
               rounded
               no-caps
-              label="Edit Ad"
+              :label="$t('EditAd')"
               :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
               class="q-space"
               @click="() => {
@@ -440,7 +442,7 @@ export default {
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'
       this.openDialog = true
-      this.title = 'Confirm Order?'
+      this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
       await backend.get(`/ramp-p2p/ad/${this.adId}`, { authorize: true })
@@ -564,6 +566,15 @@ export default {
         valid = false
         this.amountError = 'Amount cannot be none or undefined'
       }
+      if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
+        valid = false
+        this.amountError = this.$t('FiatOrderAmountErrMsg1')
+      }
+      if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
+        parsedValue.toFixed(decCount[1])
+        valid = false
+        this.amountError = this.$t('FiatOrderAmountErrMsg2')
+      }
       // if trade limits in fiat, check if amount in fiat is less than tradeFloor
       // if trade limits not in fiat, check if amount in bch is less than tradeFloor
       if (this.ad.trade_limits_in_fiat) {
@@ -603,7 +614,7 @@ export default {
       if (this.ad.trade_type === 'BUY') {
         if (this.balanceExceeded) {
           valid = false
-          this.amountError = 'Amount should not exceed your balance'
+          this.amountError = this.$t('FiatOrderAmountErrMsg3')
         }
       }
       if (valid) {

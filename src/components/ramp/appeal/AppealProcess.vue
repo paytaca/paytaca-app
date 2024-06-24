@@ -5,6 +5,7 @@
     <div class="text-center q-pb-sm">
       <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
       <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
+      <!--TODO:-->
       <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
     </div>
     <div class="q-mx-sm q-mb-sm">
@@ -22,7 +23,7 @@
           <q-card-section>
             <div class="row justify-end no-wrap">
               <div class="col-9 q-mr-lg">
-                <div class="text-weight-bold md-font-size">Appeal reasons</div>
+                <div class="text-weight-bold md-font-size">{{ $t('AppealReasons') }}</div>
                 <q-badge v-for="(reason, index) in appeal.reasons" class="row q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
               </div>
               <q-space/>
@@ -58,9 +59,9 @@
         @update-page-name="(val) => {$emit('updatePageName', val)}"
       />
 
-       <!-- <div v-if="completedOrder" class="text-center q-pb-sm">
-        <q-btn padding="none" flat no-caps color="primary"> View my Feedback </q-btn>
-      </div> -->
+       <div v-if="completedOrder" class="text-center q-pb-sm">
+        <q-btn padding="none" flat no-caps color="primary" @click="openFeedback"> View my Feedback </q-btn>
+      </div>
     </div>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
@@ -72,6 +73,7 @@ import RampContract from 'src/wallet/ramp/contract'
 import AppealDetail from './AppealDetail.vue'
 import AppealTransfer from './AppealTransfer.vue'
 import TradeInfoCard from '../fiat/TradeInfoCard.vue'
+import AppealFeedbackDialog from './AppealFeedbackDialog.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import ChatDialog from '../fiat/dialogs/ChatDialog.vue'
@@ -147,6 +149,7 @@ export default {
   },
   async mounted () {
     await this.loadData()
+    this.updateOrderReadAt()
     this.setupWebsocket()
     this.isloaded = true
     if (this.notifType === 'new_message') { this.openChat = true}
@@ -156,6 +159,14 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    openFeedback () {
+      this.$q.dialog({
+        component: AppealFeedbackDialog,
+        componentProps: {
+          order: this.appealDetailData?.order
+        }
+      })
+    },
     onBackSnapshot () {
       this.$refs.appealDetail.state = 'form'
     },
@@ -175,6 +186,24 @@ export default {
     reloadChildComponents () {
       this.appealDetailKey++
       this.appealTransferKey++
+    },
+    updateOrderReadAt () {
+      const vm = this
+      if (vm.appeal.read_at) return
+      return new Promise((resolve, reject) => {
+        const url = `/ramp-p2p/order/${vm.appeal?.order?.id}/members`
+        backend.patch(url, null, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            console.error(error?.response)
+            if (error?.response?.status === 403) {
+              bus.emit('session-expired')
+            }
+            reject(error)
+          })
+      })
     },
     fetchAppeal (done) {
       const vm = this
@@ -261,7 +290,6 @@ export default {
         vm.loading = true
         backend.get(`/ramp-p2p/order/${orderId}`, { authorize: true })
           .then(response => {
-            // console.log(response.data)
             vm.amount = response.data?.order?.crypto_amount
             resolve(response.data)
           })

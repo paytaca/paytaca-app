@@ -46,7 +46,7 @@
         <!-- <q-pull-to-refresh @refresh="refreshData"> -->
           <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-            <p :class="{ 'text-black': !darkMode }">No Ads to display</p>
+            <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
           </div>
           <div v-else>
             <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
@@ -83,14 +83,15 @@
                               </span>
                               <span class="sm-font-size">/BCH</span>
                               <div class="sm-font-size row q-gutter-md">
-                                <span>Quantity</span>
+                                <span>{{ $t('Quantity') }}</span>
                                 <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
                               </div>
                               <div class="sm-font-size row q-gutter-md">
-                                <span>Limits</span>
+                                <span>{{ $t('Limits') }}</span>
                                 <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                               </div>
                               <div class="sm-font-size">
+                                <!--TODO:-->
                                 <span>Appealable in </span>
                                 <span class="text-weight-bold">{{ appealCooldown(listing.appeal_cooldown).label }}</span>
                               </div>

@@ -1,6 +1,6 @@
 <template>
-  <q-dialog full-width persistent>
-    <q-card class="br-15 text-bow" :class="getDarkModeClass(darkMode)">
+  <q-dialog v-model="showDialog" full-width persistent @before-hide="$emit('back')">
+    <q-card class="br-15 text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between q-pt-md q-pb-md">
         <span class="text-h6 q-pl-lg">Settings</span>
         <div>
@@ -14,11 +14,15 @@
         </div>
       </div>
 
-      <q-scroll-area style="height: 325px;" class="q-mb-md">
+      <div style="max-height: 325px; overflow: auto" class="q-mb-md">
         <div class="q-mx-lg q-mb-lg text-bow" v-if="!loading">
           <div class="row">
-            <div class="col-auto">
-              <span>Status: {{ isActive ? 'Active' : 'Inactive' }} </span><q-icon class="q-my-sm q-mx-xs" size="xs" :color="isActive ? 'green': 'red'" :name="isActive ? 'visibility': 'visibility_off'"/></div>
+            <span>Status: {{ isActive ? 'Active' : 'Inactive' }} </span>
+            <q-icon
+              class="q-py-xs q-mx-xs"
+              size="1em"
+              :color="isActive ? 'green' : 'grey'"
+              name="circle"/>
           </div>
           <div class="row">
             <q-select
@@ -30,25 +34,15 @@
               dense
               :label="inactiveLabel"
               :hint="inactiveHint"
+              :hide-hint="!isActive"
               @update:model-value="onSetInactive">
             </q-select>
           </div>
-          <div v-if="!isActive" class="row q-mt-sm">
-            <q-btn class="col br-15 q-mx-lg sm-font-size button" dense flat @click="onSetActive()">Set as active</q-btn>
-          </div>
-
-          <div class="q-pt-md">
-            <div>Currency</div>
-            <q-list dense bordered padding class="rounded-borders">
-              <q-item v-for="(currency, index) in currencies" :key="index" :style="separator(darkMode, index)">
-                <q-item-section>
-                  {{ currency }}
-                </q-item-section>
-              </q-item>
-            </q-list>
+          <div v-if="!isActive" class="row justify-end q-mt-xs">
+            <q-btn class="br-15 sm-font-size" dense flat @click="onSetActive()">Set as active</q-btn>
           </div>
         </div>
-      </q-scroll-area>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -74,12 +68,14 @@ export default {
         { label: 'Indefinitely', value: 438000 }
       ],
       loading: true,
-      selectedInactiveTime: null
+      selectedInactiveTime: null,
+      showDialog: true
     }
   },
+  emits: ['setInactive', 'back'],
   computed: {
     inactiveLabel () {
-      const indefinitely = this.inactiveFor?.label?.startsWith('hour') && Number(this.inactiveFor?.value) > 24
+      const indefinitely = this.inactiveFor?.affix?.startsWith('hour') && Number(this.inactiveFor?.value) > 24
       return this.isActive ? 'Set as inactive' : `Currently inactive ${!indefinitely ? 'for' : ''}`
     },
     inactiveHint () {
@@ -107,18 +103,18 @@ export default {
             const millisecondsDifference = providedTimestamp - currentTimestamp
             const hoursDifference = millisecondsDifference / (1000 * 60 * 60)
             let inactiveFor = {
-              value: hoursDifference.toFixed(0),
-              affix: 'hour(s)'
+              value: Number(Math.ceil(hoursDifference)),
+              affix: hoursDifference.toFixed(0) > 1 ? 'hours' : 'hour'
             }
             if (hoursDifference < 1) {
               const minutesDifference = millisecondsDifference / (1000 * 60)
               inactiveFor = {
-                value: minutesDifference.toFixed(0),
-                affix: 'minute(s)'
+                value: Number(minutesDifference.toFixed(0)),
+                affix: minutesDifference.toFixed(0) > 1 ? 'minutes' : 'minute'
               }
             }
             if (inactiveFor.value > 0) {
-              if (inactiveFor.label?.startsWith('hour') && inactiveFor.value > 24) {
+              if (inactiveFor.affix?.startsWith('hour') && inactiveFor.value > 24) {
                 this.selectedInactiveTime = 'Indefinitely'
               } else {
                 this.selectedInactiveTime = `${inactiveFor.value} ${inactiveFor.affix}`
@@ -162,6 +158,8 @@ export default {
       backend.patch('ramp-p2p/arbiter/detail', body, { authorize: true })
         .then(() => {
           this.fetchUserData()
+          this.$emit('setInactive')
+          this.$emit('back')
         })
         .catch((error) => { console.error(error?.response) })
     },

@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-px-sm">
@@ -75,7 +75,7 @@
                 <div v-if="deliveryCalculation?.preparationDuration">
                   {{ formatDuration(deliveryCalculation?.preparationDuration, { roundDecimals: 0 }) }}
                 </div>
-                <div v-else class="text-grey"><i>No data</i></div>
+                <div v-else class="text-grey"><i>{{ $t('NoData') }}</i></div>
               </div>
             </div>
           </q-menu>
@@ -266,7 +266,7 @@
                     color="grey" text-color="white"
                     class="q-ma-none"
                   >
-                    Unavailable
+                  {{ $t('Unavailable') }}
                   </q-chip>
                 </div>
                 <div>
@@ -281,7 +281,7 @@
           </div>
         </template>
         <div v-else-if="initialized" class="text-grey text-center col-12">
-          No products
+          {{ $t('NoProducts') }}
         </div>
       </div>
     </div>

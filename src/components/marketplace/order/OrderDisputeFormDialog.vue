@@ -6,12 +6,12 @@
     >
       <q-card-section>
         <div class="row items-center no-wrap">
-          <div class="text-h6">Order Dispute</div>
+          <div class="text-h6">{{ $t('OrderDispute') }}</div>
           <q-space/>
           <q-btn v-close-popup flat icon="close" class="q-r-mr-sm"/>
         </div>
-        <div v-if="innerReadonly" class="text-subtitle1">Issues</div>
-        <div v-else class="text-subtitle1">List reason/s</div>
+        <div v-if="innerReadonly" class="text-subtitle1">{{ $t('Issues') }}</div>
+        <div v-else class="text-subtitle1">{{ $t('ListOfReasons') }}</div>
         <TransitionGroup name="slide-group" tag="div" style="overflow:hidden;">
           <div
             v-for="(reason, index) in formData.reasons" :key="reason"
@@ -40,7 +40,7 @@
               :options="filteredReasonOptions"
               behavior="menu"
               :popup-content-class="darkMode ? '': 'text-black'"
-              placeholder="Issue"
+              :placeholder="$t('Issue')"
               bottom-slots
               @new-value="(inputValue, done) => done(inputValue, 'add-unique')"
               @update:model-value="val => appendReason(val)"
@@ -48,7 +48,7 @@
             />
             <q-btn
               no-caps
-              :label="orderDispute?.id ? 'Update dispute': 'Dispute'"
+              :label="orderDispute?.id ? $t('UpdateDispute'): $t('Dispute')"
               class="button full-width"
               @click="() => submit()"
             />
@@ -58,7 +58,7 @@
           <q-btn
             outline
             no-caps
-            label="Edit"
+            :label="$t('Edit')"
             color="brandblue"
             class="full-width"
             @click="() => innerReadonly = false"
@@ -72,7 +72,7 @@
           <div class="row items-center justify-between">
             <q-icon name="check_circle" :size="resolveActionText ? '2.5em' : '1.2em'"/>
             <div>
-              Resolved
+              {{ $t('Resolved') }}
               <div v-if="resolveActionText" class="text-caption bottom text-grey-4">
                 {{ resolveActionText }}
               </div>
@@ -92,7 +92,7 @@ import { formatDateRelative } from 'src/marketplace/utils';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, onMounted, ref, watch } from 'vue';
-
+import { useI18n } from "vue-i18n"
 
 getDarkModeClass
 const $emit = defineEmits([
@@ -108,6 +108,7 @@ const props = defineProps({
   orderDispute: [Object, OrderDispute],
 })
 
+const { t } = useI18n()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -122,15 +123,15 @@ watch(innerReadonly, () => $emit('update:readonly', innerReadonly.value))
 
 const resolveActionText = computed(() => {
   const resolveAction = props.orderDispute?.resolveAction
-  if (resolveAction == OrderDispute.resolveActions.cancelOrder) return 'Order cancelled'
-  if (resolveAction == OrderDispute.resolveActions.completeOrder) return 'Order completed'
+  if (resolveAction == OrderDispute.resolveActions.cancelOrder) return t('OrderCancelled')
+  if (resolveAction == OrderDispute.resolveActions.completeOrder) return t('OrderCompleted')
   return ''
 })
 
 const reasonOptions = [
-  'Defective or Damaged Goods',
-  'Non-Delivery or Late Delivery',
-  'Inaccurate Product Descriptions',
+  t('OrderReasonOptions1'),
+  t('OrderReasonOptions2'),
+  t('OrderReasonOptions3'),
 ]
 
 const filteredReasonOptions = ref([...reasonOptions])

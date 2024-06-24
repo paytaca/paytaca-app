@@ -7,12 +7,12 @@
         </div>
       </div>
       <div v-else>
-        <div class="text-center text-weight-bold text-uppercase lg-font-size q-mt-md">Ad Snapshot</div>
-        <div class="text-center sm-font-size subtext">Ad Reference ID: {{ snapshot?.ad }}</div>
+        <div class="text-center text-weight-bold text-uppercase lg-font-size q-mt-md">{{ $t('AdSnapshot') }}</div>
+        <div class="text-center sm-font-size subtext">{{ $t('AdReferenceID') }}: {{ snapshot?.ad }}</div>
         <q-separator class="q-my-sm" :dark="darkMode"/>
         <div class="sm-font-size q-px-md q-py-sm q-mb-lg">
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Price Type</span>
+            <span>{{ $t('PriceType') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ snapshot?.price_type }}
             </span>
@@ -36,19 +36,20 @@
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Trade Limit</span>
+            <span>{{ $t('TradeLimit') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ formatCurrency(snapshot?.trade_floor, tradeLimitsCurrency(snapshot)) }} - {{ formatCurrency(minTradeAmount(snapshot), tradeLimitsCurrency(snapshot)) }} {{ tradeLimitsCurrency(snapshot) }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Apppealable after</span>
+            <!--TODO:-->
+            <span>{{ $t('ApppealableAfter') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ appealCooldown(snapshot?.appeal_cooldown_choice).label }}
             </span>
           </div>
           <div class="q-px-sm q-pb-sm" v-if="snapshot?.payment_types?.length > 0">
-            <div class="sm-font-size q-px-md">Payment Types</div>
+            <div class="sm-font-size q-px-md">{{ $t('PaymentTypes') }}</div>
             <div class="q-px-md q-gutter-sm q-pt-xs">
               <q-badge v-for="method, index in snapshot?.payment_types" :key="index" rounded outline :color="snapshot?.trade_type === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
                 {{ method }}

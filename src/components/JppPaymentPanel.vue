@@ -89,7 +89,7 @@
         <div v-if="!showDragSlide && !loading" class="q-mt-sm">
           <q-btn
             no-caps
-            label="Confirm"
+            :label="$t('Confirm')""
             class="full-width button"
             @click="showDragSlide = true"
           />
