@@ -10,7 +10,7 @@ let deviceId
 export async function getDeviceId () {
   if (!deviceId) {
     const deviceIdResp = await Device.getId()
-    deviceId = deviceIdResp?.uuid
+    deviceId = deviceIdResp?.uuid || deviceIdResp?.identifier
   }
   return deviceId
 }

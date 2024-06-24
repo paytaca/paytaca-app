@@ -51,11 +51,12 @@ export default {
       this.goToMainPage()
     },
     goToMainPage () {
-      if (this.user?.is_arbiter) {
-        this.$router.push({ name: 'exchange-appeals' })
-      } else {
-        this.$router.push({ name: 'p2p-store' })
-      }
+      this.$router?.push({ name: 'p2p-store' })
+      // if (this.user?.is_arbiter) {
+      //   this.$router?.push({ name: 'exchange-appeals' })
+      // } else {
+        
+      // }
     }
   }
 }

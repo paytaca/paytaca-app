@@ -1,44 +1,182 @@
 <template>
-    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
-    <div v-if="$route.name === 'p2p-orders'">
-      <OrderListings />
+    <div
+      v-if="state === 'order-list'"
+      class="q-mx-md q-mb-lg text-bow"
+      :class="getDarkModeClass(darkMode)"
+      :style="`height: ${minHeight}px;`">
+      <div v-if="!showSearch" class="row items-center q-px-sm">
+        <!-- currency dialog -->
+        <div class="col-auto">
+          <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
+            <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+          </div>
+        </div>
+        <q-space />
+        <div class="col-auto q-pr-md">
+          <q-btn
+            unelevated
+            ripple
+            dense
+            size="md"
+            :icon="'search'"
+            class="button button-text-primary col-auto q-mt-sm q-pa-none"
+            :class="getDarkModeClass(darkMode)"
+            @click="searchState('focus')">
+          </q-btn>
+          <FilterComponent :key="filterComponentKey" type="order" :currency="selectedCurrency?.symbol" :transactionType="statusType" @filter="onFilterListings"/>
+        </div>
+      </div>
+      <div v-else class="q-px-lg q-mx-xs">
+        <q-input ref="inputRef" v-model="query_name" placeholder="Search User..." dense @blur="searchState('blur')">
+          <template v-slot:append>
+            <q-icon name="close"
+              @click="() => {
+                if (query_name) {
+                  query_name = null
+                  receiveDialog(filters)
+                  $refs.inputRef.focus()
+                } else {
+                  searchState('blur')
+                }
+              }"
+              class="cursor-pointer" />
+            <q-icon name="search" @click="searchUser()" />
+          </template>
+        </q-input>
+      </div>
+      <div
+        class="col-8 row br-15 text-center pt-card btn-transaction md-font-size"
+        :class="getDarkModeClass(darkMode)"
+        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+        <button
+          class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
+          @click="statusType='ONGOING'">
+          Ongoing
+        </button>
+        <button
+          class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
+          @click="statusType='COMPLETED'">
+          Completed
+        </button>
+      </div>
+      <div class="q-mt-sm">
+        <!-- <q-pull-to-refresh @refresh="refreshData"> -->
+          <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">No Orders to Display</p>
+          </div>
+          <div v-else class="q-mb-none">
+            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+              <q-pull-to-refresh @refresh="refreshData">
+                <q-infinite-scroll
+                  ref="infiniteScroll"
+                  :items="listings"
+                  @load="loadMoreData"
+                  :offset="0">
+                  <template v-slot:loading>
+                    <div class="row justify-center q-my-md" v-if="hasMoreData">
+                      <q-spinner-dots color="primary" size="40px" />
+                    </div>
+                  </template>
+                  <div v-for="(listing, index) in listings" :key="index">
+                    <q-item clickable @click="selectOrder(listing)">
+                      <q-item-section>
+                        <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                          <div class="row q-mx-md">
+                            <div class="col ib-text">
+                              <div
+                                class="q-mb-none pt-label sm-font-size"
+                                :class="getDarkModeClass(darkMode)">
+                                ORDER #{{ listing.id }}
+                                <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
+                              </div>
+                              <span
+                                class=" pt-label md-font-size text-weight-bold"
+                                :class="getDarkModeClass(darkMode)">
+                                {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
+                              </span>
+                              <div
+                                class="col-transaction text-uppercase pt-label lg-font-size"
+                                :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
+                                {{ listing.ad?.fiat_currency?.symbol }} {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
+                              </div>
+                              <div class="sm-font-size">
+                                {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
+                              <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
+                            </div>
+                            <div class="text-right">
+                              <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                                <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
+                              </span> -->
+                              <div
+                                v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
+                                class="text-weight-bold subtext sm-font-size text-blue">
+                                Appealable
+                              </div>
+                              <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
+                                <q-rating
+                                  readonly
+                                  :model-value = "listing?.feedback?.rating || 0"
+                                  size="1em"
+                                  color="yellow-9"
+                                  icon="star"
+                                />
+                              </div>
+                              <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
+                                {{ listing.status?.label }}
+                              </div>
+                              <div class="text-weight-bold subtext sm-font-size" v-else>
+                                {{ listing.status?.label }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </q-item-section>
+                    </q-item>
+                  </div>
+                </q-infinite-scroll>
+              </q-pull-to-refresh>
+            </q-list>
+          </div>
+        <!-- </q-pull-to-refresh> -->
+      </div>
+      <q-inner-loading :showing="loading">
+        <ProgressLoader/>
+      </q-inner-loading>
     </div>
-    <div v-else>
-      <router-view :key="$route.path"></router-view>
-    </div>
-    <!-- <FiatProcessOrder
+    <FiatProcessOrder
       v-if="state === 'view-order'"
       :key="fiatProcessOrderKey"
       :order-data="selectedOrder"
       :notif-type="notifType"
       @back="returnOrderList()"
       @refresh="refreshOrder"
-    /> -->
-    <!-- <FiatProfileCard
+    />
+    <FiatProfileCard
       ref="fiatProfileCard"
       v-if="state === 'view-profile'"
       :userInfo="selectedUser"
       v-on:back="state = 'order-list'"
       @update-page-name="updatePageName"
-    /> -->
-    <!-- <FilterDialog
+    />
+    <FilterDialog
       v-if="openDialog"
       :type="dialogType"
       :filters="filters"
       @back="openDialog = false"
       @submit="receiveDialog"
-    /> -->
-    <!-- <FiatOrderForm v-if="state === 'order-form'" :ad-id="selectedUserAdId" @back="state = 'order-list'"/> -->
+    />
+    <FiatOrderForm v-if="state === 'order-form'" :ad-id="selectedUserAdId" @back="state = 'order-list'"/>
   </template>
 <script>
-// import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
-import HeaderNav from 'src/components/header-nav.vue'
-import OrderListings from 'src/components/ramp/fiat/OrderListings.vue'
-// import FiatProcessOrder from 'src/components/ramp/fiat/FiatProcessOrder.vue'
-// import FiatProfileCard from 'src/components/ramp/fiat/FiatProfileCard.vue'
-// import FilterDialog from 'src/components/ramp/fiat/dialogs/FilterDialog.vue'
-// import ProgressLoader from 'src/components/ProgressLoader.vue'
-// import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
+import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
+import FiatProcessOrder from 'src/components/ramp/fiat/FiatProcessOrder.vue'
+import FiatProfileCard from 'src/components/ramp/fiat/FiatProfileCard.vue'
+import FilterDialog from 'src/components/ramp/fiat/dialogs/FilterDialog.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -56,14 +194,12 @@ export default {
     }
   },
   components: {
-    // FiatProcessOrder,
-    // FiatProfileCard,
-    // ProgressLoader,
-    // FilterDialog,
-    HeaderNav,
-    OrderListings
-    // FiatOrderForm,
-    // FilterComponent
+    FiatProcessOrder,
+    FiatProfileCard,
+    ProgressLoader,
+    FilterDialog,
+    FiatOrderForm,
+    FilterComponent
   },
   props: {
     initStatusType: {
@@ -450,14 +586,6 @@ export default {
       vm.state = 'order-list'
       vm.resetAndRefetchListings()
     },
-    // viewUserProfile (data) {
-    //   this.selectedUser = {
-    //     id: data.owner.id,
-    //     self: !data.is_ad_owner
-    //   }
-    //   this.state = 'view-profile'
-    //   this.pageName = 'view-profile'
-    // },
     onViewAd (adId) {
       bus.emit('hide-menu')
       this.state = 'order-form'

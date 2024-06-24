@@ -5,7 +5,7 @@
           <!-- currency dialog -->
           <div class="col-auto">
             <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
-              <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+              <span v-if="isAllCurrencies">All</span><span v-else>{{ selectedCurrency?.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
             </div>
           </div>
           <q-space />
@@ -67,13 +67,12 @@
           </div>
           <div v-else>
             <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-              <q-pull-to-refresh @refresh="refreshData" :scroll-target="scrollTargetRef">
+              <q-pull-to-refresh @refresh="refreshData">
                 <q-infinite-scroll
                   ref="infiniteScroll"
                   :items="listings"
                   @load="loadMoreData"
-                  :offset="0"
-                  :scroll-target="scrollTargetRef">
+                  :offset="0">
                   <template v-slot:loading>
                     <div class="row justify-center q-my-md" v-if="hasMoreData">
                       <q-spinner-dots color="primary" size="40px" />
@@ -89,21 +88,21 @@
                                 :class="{'pt-label dark': darkMode}"
                                 class="md-font-size">
                                 <!-- @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)"> -->
-                                {{ userNameView(listing.owner.name) }}
+                                {{ userNameView(listing.owner?.name) }}
                               </span>
                               <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
                             </div>
                             <div class="row">
                               <q-rating
                                 readonly
-                                :model-value="listing.owner.rating ? listing.owner.rating : 0"
-                                :v-model="listing.owner.rating"
+                                :model-value="listing.owner?.rating ? listing.owner?.rating : 0"
+                                :v-model="listing.owner?.rating"
                                 size="1.1em"
                                 color="yellow-9"
                                 icon="star"
                                 icon-half="star_half"
                                 />
-                              <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
+                              <span class="q-mx-xs sm-font-size">({{ listing.owner?.rating ? parseFloat(listing.owner?.rating).toFixed(1) : 0 }})</span>
                             </div>
                             <div class="sm-font-size">
                               <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
@@ -112,17 +111,17 @@
                             <span
                               class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                               :class="getDarkModeClass(darkMode)">
-                              {{ listing.fiat_currency.symbol }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
+                              {{ listing.fiat_currency?.symbol }} {{ formatCurrency(listing.price, listing.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                             </span>
                             <span class="sm-font-size">/BCH</span><br>
                             <div class="sm-font-size">
                               <div class="row">
                                 <span class="col-3">Quantity</span>
-                                <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                                <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency?.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency?.symbol : listing.crypto_currency?.symbol }}</span>
                               </div>
                               <div class="row">
                                 <span class="col-3">Limit</span>
-                                <span class="col"> {{ formatCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formatCurrency(minTradeAmount(listing), listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                                <span class="col"> {{ formatCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency?.symbol : null)  }} - {{ formatCurrency(minTradeAmount(listing), listing.trade_limits_in_fiat ? listing.fiat_currency?.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency?.symbol : listing.crypto_currency?.symbol }}</span>
                               </div>
                             </div>
                           </div>
@@ -130,7 +129,7 @@
                         <div class="q-gutter-sm q-pt-xs">
                           <q-badge v-for="method in listing.payment_methods" :key="method.id"
                           rounded outline :color="transactionType === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
-                          {{ method.payment_type.name }}
+                          {{ method }}
                           </q-badge>
                         </div>
                       </div>
@@ -142,9 +141,9 @@
           </div>
         </div>
       </div>
-      <q-inner-loading :showing="loading">
+      <!-- <q-inner-loading :showing="loading">
         <ProgressLoader/>
-      </q-inner-loading>
+      </q-inner-loading> -->
     </div>
 </template>
 <script>
@@ -259,7 +258,7 @@ export default {
       return (this.pageNumber < this.totalPages)
     },
     isOwner () {
-      return this.selectedUser.name === this.$store.getters['ramp/getUser'].name
+      return this.selectedUser?.name === this.$store.getters['ramp/getUser']?.name
     }
   },
   created () {
@@ -299,7 +298,7 @@ export default {
       return Math.min.apply(null, amounts)
     },
     userNameView (name) {
-      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+      const limitedView = name?.length > 15 ? name?.substring(0, 15) + '...' : name
 
       return limitedView
     },
@@ -374,7 +373,7 @@ export default {
       return new Promise((resolve, reject) => {
         vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
           .then(() => {
-            const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
+            const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency?.symbol)
             console.log('paymentTypes:', paymentTypes)
             vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
             resolve(paymentTypes)
@@ -413,7 +412,7 @@ export default {
       if (this.selectedCurrency) {
         vm.loading = true
         const params = { ...vm.filters }
-        params.currency = vm.selectedCurrency.symbol !== 'All' ? vm.selectedCurrency.symbol : null
+        params.currency = vm.selectedCurrency?.symbol !== 'All' ? vm.selectedCurrency?.symbol : null
         params.trade_type = vm.transactionType
         params.query_name = vm.query_name
         vm.$store.dispatch('ramp/fetchAds',
@@ -434,7 +433,7 @@ export default {
               }
             }
           })
-          .finally(() => { vm.loading = false })
+          // .finally(() => { vm.loading = false })
       }
     },
     async receiveDialog (data) {
