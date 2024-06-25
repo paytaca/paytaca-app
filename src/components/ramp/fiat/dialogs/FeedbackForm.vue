@@ -94,7 +94,7 @@
                   v-if="!feedback.id ? true : false"
                   :disable="btnLoading || disableButton"
                   rounded
-                  :label="$t(step === 1 && appealed ? 'Next' : 'Submit')"
+                  :label="step === 1 && appealed ? $t('Next') : $t('Submit')"
                   class="q-space text-white"
                   color="blue-8"
                   :loading="btnLoading"

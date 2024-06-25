@@ -322,7 +322,8 @@
             flat
             :label="$t('Confirm')"
             @click="submitData()"
-            :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             v-close-popup
           />
         </div>
