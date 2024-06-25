@@ -284,6 +284,7 @@ const words = [
     Fee: 'Fee',
     Timestamp: 'Timestamp',
     ID: 'ID',
+    CashToken: 'CashToken'
   },
 ]
 

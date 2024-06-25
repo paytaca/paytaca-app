@@ -1,6 +1,6 @@
 <template>
   <div id="qr-reader-body" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="'QR Reader'" backnavpath="/" />
+    <header-nav :title="$t('QRReader')" backnavpath="/" />
 
     <QRUploader ref="qr-upload" @detect-upload="onQRDecode" />
 
@@ -46,7 +46,7 @@
           icon="add"
           @click="$router.push({ name: 'generate-qr' })"
         />
-        <span class="q-mt-sm">Generate QR</span>
+        <span class="q-mt-sm">{{ $t('GenerateQR') }}</span>
       </div>
 
       <div class="column flex flex-center">
@@ -57,7 +57,7 @@
           icon="upload"
           @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
         />
-        <span class="q-mt-sm">Upload QR</span>
+        <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
       </div>
     </div>
 
@@ -141,7 +141,7 @@ export default {
         vm.scanBarcode()
       } else {
         vm.$q.notify({
-          message: 'Permission to use camera is denied.',
+          message: vm.$t('CameraPermissionDenied'),
           timeout: 800,
           color: 'red-9',
           icon: 'settings_alert'
@@ -219,7 +219,7 @@ export default {
         BarcodeScanner.stopScan()
         document.body.classList.remove('transparent-body')
         vm.$q.notify({
-          message: 'Unable to identify QR code.',
+          message: vm.$t('UnidentifiedQRCode'),
           timeout: 800,
           color: 'red-9',
           icon: 'mdi-qrcode-remove'
@@ -267,7 +267,7 @@ export default {
           })
         } else {
           vm.$q.notify({
-            message: 'Unable to identify QR code.',
+            message: vm.$t('UnidentifiedQRCode'),
             timeout: 800,
             color: 'red-9',
             icon: 'mdi-qrcode-remove'
@@ -277,7 +277,7 @@ export default {
         vm.paused = false
       } else {
         vm.$q.notify({
-          message: 'Unable to identify QR code.',
+          message: vm.$t('UnidentifiedQRCode'),
           timeout: 800,
           color: 'red-9',
           icon: 'mdi-qrcode-remove'
@@ -288,7 +288,7 @@ export default {
       return this.$q.dialog({
         component: LoadingWalletDialog,
         componentProps: {
-          loadingText: 'Redirecting...'
+          loadingText: this.$t('Redirecting')
         }
       })
     }

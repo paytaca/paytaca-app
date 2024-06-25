@@ -1,7 +1,7 @@
 <template>
   <q-dialog persistent>
     <q-card class="q-pa-md pt-card text-center text-bow" :class="getDarkModeClass(darkMode)">
-      <p class="q-pt-lg q-px-xl text-h6">{{ $t(loadingText) }}</p>
+      <p class="q-pt-lg q-px-xl text-h6">{{ $t(loadingText) }}...</p>
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
     </q-card>
   </q-dialog>

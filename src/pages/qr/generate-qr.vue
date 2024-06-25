@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="'Generate QR'" backnavpath="/qr-reader" />
+    <header-nav :title="$t('GenerateQR')" backnavpath="/qr-reader" />
 
     <div
       v-if="generatingAddress"
@@ -26,7 +26,7 @@
           :class="getDarkModeClass(darkMode)"
         />
         <q-img src="ct-logo.png" height="35px" width="35px" />
-        CashToken
+        {{ $t('CashToken') }}
       </div>
 
       <div class="row">

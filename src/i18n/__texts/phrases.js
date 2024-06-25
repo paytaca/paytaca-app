@@ -623,7 +623,7 @@ const phrases = {
       SeeBasicWalletInfo: "See Basic Wallet Info",
       WalletName: "Wallet Name",
       WalletBalanceCap: "Wallet Balance",
-      LoadingWallet: "Loading wallet...",
+      LoadingWallet: "Loading wallet",
       ReceiverWarningText1: "First time receiving funds for this asset? Please",
       ReceiverWarningText2: "backup your seed phrase",
       ReceiverWarningText3: "before proceeding.",
@@ -909,6 +909,15 @@ const phrases = {
       UpdateSessionMsg: 'Input wallet index or WIF',
       NoProducts: 'No products',
     },
+    {
+      NoQRCodeFound: 'No QR code found in the uploaded image.',
+      GenerateQR: 'Generate QR',
+      QRReader: 'QR Reader',
+      UploadQR: 'Upload QR',
+      CameraPermissionDenied: 'Permission to use camera is denied.',
+      UnidentifiedQRCode: 'Unable to identify QR code.',
+      Redirecting: 'Redirecting'
+    }
   ],
   dynamic: [
     {

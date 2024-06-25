@@ -162,7 +162,7 @@ export default {
         vm.addData(value[0].rawValue)
       } else {
         vm.$q.notify({
-          message: 'No QR code found in the uploaded image.',
+          message: vm.$t('NoQRCodeFound'),
           timeout: 800,
           color: 'red-9',
           icon: 'mdi-qrcode-remove'
