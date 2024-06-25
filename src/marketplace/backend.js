@@ -7,6 +7,7 @@ const bchjs = new BCHJS()
 
 export const backend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
+  baseURL: 'http://localhost:8000/api',
 
   /**
    * @param {import('axios').AxiosRequestConfig} config 

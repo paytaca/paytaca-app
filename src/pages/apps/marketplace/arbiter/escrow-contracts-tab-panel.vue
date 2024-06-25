@@ -14,7 +14,7 @@
               clickable @click="() => filterOpts.status = status"
             >
               <q-item-section>
-                <q-item-label>{{ capitalize(status) }}</q-item-label>
+                <q-item-label>{{ capitalize(status).replaceAll('_', ' ') }}</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -62,7 +62,7 @@
     </div>
     <div class="row items-center justify-end q-my-xs">
       <q-chip v-if="filterOpts.status != 'all'" removable @remove="filterOpts.status = 'all'" :outline="darkMode">
-        {{ capitalize(filterOpts.status) }}
+        {{ capitalize(filterOpts.status).replaceAll('_', ' ') }}
       </q-chip>
       <q-chip v-if="filterOpts.orderId" removable @remove="filterOpts.orderId = undefined" :outline="darkMode">
         Order #{{ filterOpts?.orderId }}
@@ -134,6 +134,9 @@
             {{ formatOrderStatus(escrowContract?.payments?.[0]?.order?.status) }}
           </q-badge>
         </div>
+        <div v-else-if="escrowContract?.payments?.[0]?.checkoutId" class="text-grey">
+          Checkout
+        </div>
         <div v-else class="text-grey">No order</div>
       </div>
       <div v-if="escrowContract?.fiatAmount">
@@ -156,6 +159,17 @@
             {{ escrowContract?.fiatAmount?.currency }}
           </div>
         </div>
+      </div>
+      <div v-if="escrowContract?.pendingAppealTypes?.length" class="row items-center">
+        <div>Appeal:</div>
+        <q-space/>
+        <q-chip
+          v-for="appealType in escrowContract?.pendingAppealTypes" :key="appealType"
+          dense outline
+          class="q-my-none q-mr-none"
+        >
+          {{ capitalize(appealType).replaceAll('_', ' ') }}
+        </q-chip>
       </div>
       <q-menu
         touch-position
@@ -259,7 +273,7 @@ async function dialogPromise(qDialogOptions) {
 onMounted(() => fetchEscrowContracts())
 watch(() => [props.arbiterAddress], () => fetchEscrowContracts())
 
-const filterStatusOpts = ['all', 'pending', 'funded', 'released', 'refunded']
+const filterStatusOpts = ['all', 'pending', 'funded', 'released', 'has_settlement_appeal', 'refunded']
 const filterOrderingOpts = [
   { label: 'ID', value: 'id' },
   { label: 'Total', value: 'total_sats' },
@@ -316,6 +330,11 @@ function fetchEscrowContracts(opts={ limit: 0, offset: 0 }) {
       params.is_settled = false
       params.is_funded = true
       break
+    case 'has_settlement_appeal':
+      params.is_funded = true
+      params.has_pending_settlement = true
+      params.is_settled = false
+      break
     case 'pending':
       params.is_settled = false
       params.is_funded = false
@@ -325,6 +344,7 @@ function fetchEscrowContracts(opts={ limit: 0, offset: 0 }) {
       params.is_settled = undefined
       params.is_funded = undefined
       params.settlement_type = undefined
+      params.has_pending_settlement = undefined
   }
 
   if (params.ordering?.length > 0) {

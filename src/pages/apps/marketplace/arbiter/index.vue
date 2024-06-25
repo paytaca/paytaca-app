@@ -7,7 +7,7 @@
   >
     <HeaderNav title="Marketplace" class="header-nav"/>
 
-    <div v-if="!initialized">
+    <div v-if="!initialized" class="text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-center">
         <q-spinner v-if="refreshingPage" size="3rem"/>
         <div v-else class="text-subtitle1 text-grey q-my-lg">
@@ -17,7 +17,7 @@
     </div>
     <template v-else>
       <AuthGateway v-if="!user?.id || !escrowArbiter?.pubkey" @login="onLogin"/>
-      <div v-else class="q-pa-sm">
+      <div v-else class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
         <q-item dense class="q-mb-sm">
           <q-item-section side>
             <div class="user-icon" role="button" @click="() => updateUserProfile()">
@@ -38,6 +38,12 @@
               :content-style="{color: darkMode ? 'white' : 'black'}"
               :content-class="['pt-card-2 text-bow', getDarkModeClass(darkMode)]"
             >
+              <q-item clickable v-close-popup @click="() => updateUserProfile()">
+                <q-item-section>
+                  <q-item-label>Profile</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator/>
               <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.wif, 'Private key copied to clipboard')">
                 <q-item-section>
                   <q-item-label>Copy private key</q-item-label>
