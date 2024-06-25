@@ -202,5 +202,6 @@ defineExpose({
   openChatDialog,
   fetchChatMembers,
   refetchChatMember,
+  chatMembers,
 })
 </script>

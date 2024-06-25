@@ -50,9 +50,15 @@ export function getOpenedNotificationRoute(context) {
     case (NotificationTypes.MARKETPLACE_ORDER_STATUS_UPDATE):
     case (NotificationTypes.MARKETPLACE_ORDER_INCOMING_CALL):
     case (NotificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES):
-      route = {
-        name: 'app-marketplace-order',
-        params: { orderId: openedNotification?.data?.order_id },
+      if (openedNotification?.data?.escrow_contract_address) {
+        route = {
+          name: 'app-marketplace-arbiter',
+        }
+      } else {
+        route = {
+          name: 'app-marketplace-order',
+          params: { orderId: openedNotification?.data?.order_id },
+        }
       }
       break
     case(NotificationTypes.PAYMENT_REQUEST):

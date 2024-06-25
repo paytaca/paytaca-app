@@ -103,7 +103,7 @@
 </template>
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { ChatIdentity, EscrowArbiter, User } from "src/marketplace/objects";
+import { ChatIdentity, ChatSession, EscrowArbiter, User } from "src/marketplace/objects";
 import { getDeviceId } from "src/marketplace/chat/keys";
 import { arbiterBackend, getArbiterKeys, getArbiterWifData, getAuthKey, parseWif, setArbiterKeys } from "src/marketplace/arbiter";
 import { marketplacePushNotificationsManager } from "src/marketplace/push-notifications";
@@ -120,6 +120,8 @@ import ChatWidget from "./chat-widget.vue";
 import ArbiterProfileFormDialog from "src/components/marketplace/arbiter/ArbiterProfileFormDialog.vue";
 
 import blankUserImg from 'src/assets/blank_user_image.webp'
+
+const asyncSleep = duration => new Promise(resolve => setTimeout(resolve, duration))
 
 const $copyText = inject('$copyText')
 const $router = useRouter()
@@ -439,6 +441,42 @@ watch(() => user.value?.id, (newVal, prevVal) => {
   return marketplacePushNotificationsManager.subscribe({userId: user.value?.id })
 })
 
+/**
+ * handle-push-notification event can be potentially triggered before the page has
+ * initialized completely, so openedNotificationData is saved temporarily and
+ * handled once initialization is complete
+ */
+onMounted(() => bus.on('handle-push-notification', saveOrHandleOpenedNotification))
+onUnmounted(() => bus.off('handle-push-notification', saveOrHandleOpenedNotification))
+const openedNotificationData = ref()
+watch(initialized, (newVal, prevVal) => {
+  if (!newVal) return
+  if (prevVal) return
+  if (!openedNotificationData.value?.id) return
+  handleOpenedNotification(openedNotificationData.value)
+  openedNotificationData.value = undefined
+})
+
+function saveOrHandleOpenedNotification(openedNotification) {
+  if (!initialized.value) {
+    openedNotificationData.value = openedNotification
+    return
+  }
+  handleOpenedNotification(openedNotification)
+}
+
+function handleOpenedNotification(openedNotification) {
+  const notificationTypes = $store.getters['notification/types']
+  const type = openedNotification?.data?.type
+
+  if (type === notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES) {
+    openOrderChatDialog(openedNotification?.data?.type?.order_id)
+  } else if (type === notificationTypes.PENDING_ESCROW_SETTLEMENT_APPEAL) {
+    // open appeal
+    // not yet implemented
+  }
+}
+
 /** ------------------------------------------------------------------ */
 /** ------------------------------------------------------------------ */
 
@@ -459,6 +497,50 @@ async function filterOrderEscrowContracts(orderId) {
 
 async function refetchEscrowContract(address) {
   await escrowContractPanel.value?.refetchEscrowContracts?.({addresses: [address], append: false})
+}
+
+async function openOrderChatDialog(orderId) {
+  let dialog
+  
+  let timeoutId = setTimeout(() => {
+    dialog = $q.dialog({
+      title: 'Loading chat',
+      progress: true, 
+      persistent: true,
+      color: 'brandblue',
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }, 100)
+
+  const closeDialog = () => {
+    clearTimeout(timeoutId)
+    dialog?.hide?.()
+  }
+
+  try {
+    let chatSession = chatWidget.value?.chatMembers?.find?.(chatMember => {
+      return chatMember?.chatSession?.orderId === orderId
+    })?.chatSession
+    if (!chatSession) {
+      const response = await arbiterBackend.get(`connecta/orders/${orderId}/chat_session/`)
+      if (response?.data?.ref) chatSession = ChatSession.parse(response?.data)
+    }
+
+    if (!chatSession) throw new Error(`Unable to find chat session for order #${orderId}`)
+    if (!chatWidget.value) throw new Error(`Unable to open chat dialog due to missing chat widget`)
+    closeDialog()
+
+    console.log('chatSession', chatSession)
+    return onRequestOpenChatDialog(chatSession)
+  } catch(error) {
+    dialog?.update({
+      title: 'Error',
+      message: error?.response?.data?.detail || error?.message,
+    })
+    throw error
+  } finally {
+    dialog?.update({ progress: false, persistent: false, ok: true })
+  }
 }
 
 async function onRequestOpenChatDialog(chatSession) {
@@ -489,10 +571,10 @@ const updateUnreadChatSessionCount = debounce(() => {
       unreadChatSessionCount.value = response?.data?.count
       return response
     })
-}, 2500)
+}, 1000)
 
 
-async function refreshPage(done= () => {}) {
+async function refreshPage(done=() => {}) {
   let error
   try {
     refreshingPage.value = true
@@ -503,8 +585,9 @@ async function refreshPage(done= () => {}) {
           if (error?.response?.status === 401) return reLogin().then(() => {})
           return Promise.reject(error)
         }),
+
     ])
-    setTimeout(() => refreshEscrowContractPanel(), 100)
+    asyncSleep(100).then(() => refreshEscrowContractPanel())
     promptAuthErrors()
   } catch (_error) {
     error = _error
