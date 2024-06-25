@@ -445,7 +445,8 @@ export default {
           contractFee: fees.breakdown?.hardcoded_fee
         }
         const timestamp = contract.timestamp
-        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+        const isChipnet = vm.$store.getters['global/isChipnet']
+        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, isChipnet)
       })
     },
     fetchContract (orderId) {
