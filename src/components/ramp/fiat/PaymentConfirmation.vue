@@ -306,7 +306,7 @@ export default {
     async releaseBch () {
       const vm = this
       vm.sendErrors = []
-      const feContractAddr = await vm.data?.escrow.getAddress()
+      const feContractAddr = vm.data?.escrow.getAddress()
       const beContractAddr = vm.data?.contract.address
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
