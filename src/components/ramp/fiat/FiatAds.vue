@@ -49,14 +49,13 @@
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
           </div>
           <div v-else>
-            <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
-              <q-pull-to-refresh :scroll-target="scrollTargetRef" @refresh="refreshData">
+            <q-list :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
+              <q-pull-to-refresh @refresh="refreshData">
                 <q-infinite-scroll
                   ref="infiniteScroll"
                   :items="listings"
                   @load="loadMoreData"
-                  :offset="0"
-                  :scroll-target="scrollTargetRef">
+                  :offset="0">
                   <template v-slot:loading>
                     <div class="row justify-center q-my-md" v-if="hasMoreData">
                       <q-spinner-dots color="primary" size="40px" />
@@ -133,7 +132,7 @@
                             </div>
                           </div>
                           <div class="q-gutter-sm q-pt-xs">
-                            <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method.payment_type.name" />
+                            <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method" />
                           </div>
                         </div>
                       </q-item-section>

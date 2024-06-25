@@ -246,9 +246,9 @@ export function fetchChatPubkeys (chatRef) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to fetch pubkeys:', error.response)
+          console.error('Failed to fetch chat pubkeys:', error.response)
         } else {
-          console.error('Failed to fetch pubkeys:', error)
+          console.error('Failed to fetch chat pubkeys:', error)
         }
         reject(error)
       })
@@ -273,14 +273,14 @@ export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
         if (error.response) {
           console.error(error.response)
         }
-        return Promise.reject('Failed to save pubkey to server')
+        return Promise.reject('Failed to save chat pubkey to server')
       })
   }
 
   await savePrivkey(keypair.privkey)
     .catch(error => {
       console.error(error)
-      return Promise.reject('Failed to save privkey')
+      return Promise.reject('Failed to save chat privkey')
     })
 
   return keypair

@@ -49,8 +49,7 @@
               ref="infiniteScroll"
               :items="appeals"
               @load="loadMoreData"
-              :offset="0"
-              :scroll-target="scrollTargetRef">
+              :offset="0">
               <template v-slot:loading>
                 <div class="row justify-center q-my-md" v-if="hasMoreData">
                   <q-spinner-dots color="primary" size="40px" />

@@ -41,7 +41,7 @@
         hide-bottom-space
         bottom-slots
         error-message="Contract address mismatch"
-        :error="contractAddress && escrowContract?.getAddress() && !contractAddressMatch(contractAddress)"
+        :error="contractAddress && escrowContract?.getAddress() && !contractAddressMatch"
         :dark="darkMode"
         :loading="hasArbiters && !contractAddress"
         :disable="!hasArbiters"
@@ -112,7 +112,7 @@
     </div>
     <RampDragSlide
       :key="dragSlideKey"
-      :locked="!contractAddressMatch(contractAddress)"
+      :locked="!contractAddressMatch"
       v-if="showDragSlide"
       :style="{
         position: 'fixed',
@@ -174,6 +174,10 @@ export default {
     }
   },
   computed: {
+    contractAddressMatch () {
+      const localContractAddress = this.escrowContract?.getAddress()
+      return localContractAddress === this.contractAddress
+    },
     hasArbiters () {
       return this.arbiterOptions?.length > 0
     },
@@ -210,10 +214,6 @@ export default {
     onReloadContractAddress () {
       this.generateContractAddress(true)
       this.$emit('refresh')
-    },
-    contractAddressMatch (contractAddress) {
-      const localContractAddress = this.escrowContract?.getAddress()
-      return localContractAddress === contractAddress
     },
     selectArbiter () {
       this.contractAddress = null
@@ -266,7 +266,7 @@ export default {
     },
     async escrowBch () {
       const vm = this
-      if (!vm.contractAddressMatch(this.contractAddress)) {
+      if (!vm.contractAddressMatch) {
         vm.sendErrors.push('Contract address mismatch')
         vm.dragSlideOn = true
         vm.dragSlideKey++
