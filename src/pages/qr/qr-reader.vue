@@ -351,7 +351,7 @@ export default {
     align-self: center;
     margin-left: auto;
     margin-right: auto;
-    margin-top: 50px;
+    margin-top: 15vh;
   }
   .scan-design1 {
     position: absolute;
