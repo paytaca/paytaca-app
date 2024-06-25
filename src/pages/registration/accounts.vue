@@ -704,11 +704,7 @@ export default {
     setLanguage(languageCode) {
       if (!supportedLangsI18n[languageCode]) return
       this.$i18n.locale = languageCode
-      const newLocale = {
-        value: languageCode,
-        label: this.$t(supportedLangsI18n[languageCode])
-      }
-      this.$store.commit('global/setLanguage', newLocale)
+      this.$store.commit('global/setLanguage', languageCode)
     },
     onMnemonicVerified (value) {
       this.mnemonicVerified = value

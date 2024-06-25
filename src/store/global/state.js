@@ -1,7 +1,7 @@
 export default function () {
   return {
     network: 'BCH', // BCH || sBCH
-    language: 'English',
+    language: 'en-us',
     country: {
       name: 'United States',
       code: 'US'

@@ -9,7 +9,7 @@
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width:min(500px, 75vw);">
       <q-card-section>
         <div class="row no-wrap items-center justify-center">
-          <div class="text-h6">{{ title }}</div>
+          <div class="text-h6">{{ translatedTitle }}</div>
           <q-space/>
           <q-btn
             flat
@@ -142,8 +142,6 @@ import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import PhotoSelector from 'src/components/marketplace/PhotoSelector.vue'
 import { useI18n } from "vue-i18n"
 
-const { t } = useI18n()
-
 export default defineComponent({
   name: 'ReviewFormDialog',
   components: {
@@ -160,7 +158,7 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
-    title: { type: String, default: t('Review') },
+    title: { type: String, default: 'Review' },
     review: Review,
     orderId: [Number, String],
     productId: [Number, String],
@@ -169,9 +167,11 @@ export default defineComponent({
   setup(props, { emit: $emit }) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
+    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+    const translatedTitle = computed(() => t(title))
 
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))

@@ -155,5 +155,5 @@ export default {
   ja,
   ko,
   fr,
-  tl,
+  tl
 }
