@@ -10,6 +10,7 @@
     </div>
     <template v-else>
       <qrcode-stream
+        v-if="!isMobile"
         :camera="frontCamera ? 'front': 'auto'"
         :paused="paused"
         @detect="onQRDecode"
@@ -65,6 +66,7 @@
 </template>
 
 <script>
+import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import { QrcodeStream } from 'vue-qrcode-reader'
@@ -94,6 +96,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isMobile () {
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     }
   },
 
@@ -125,8 +130,108 @@ export default {
           }
         })
     },
+
     // MOBILE
-    // TODO
+    async prepareScanner () {
+      const vm = this
+
+      const status = await vm.checkPermission()
+      if (status) {
+        BarcodeScanner.prepare()
+        vm.scanBarcode()
+      } else {
+        vm.$q.notify({
+          message: 'Permission to use camera is denied.',
+          timeout: 800,
+          color: 'red-9',
+          icon: 'settings_alert'
+        })
+      }
+    },
+    async checkPermission () {
+      const status = await BarcodeScanner.checkPermission({ force: false })
+
+      if (status.granted) {
+        // user granted permission
+        return true
+      }
+
+      if (status.denied) {
+        // user denied permission
+        return false
+      }
+
+      if (status.asked) {
+        // system requested the user for permission during this call
+        // only possible when force set to true
+        BarcodeScanner.openAppSettings()
+      }
+
+      if (status.neverAsked) {
+        // user has not been requested this permission before
+        // it is advised to show the user some sort of prompt
+        // this way you will not waste your only chance to ask for the permission
+        // const c = confirm('We need your permission to use your camera to be able to scan QR codes')
+        BarcodeScanner.openAppSettings()
+      }
+
+      if (status.restricted || status.unknown) {
+        // ios only
+        // probably means the permission has been denied
+        return false
+      }
+
+      // user has not denied permission
+      // but the user also has not yet granted the permission
+      // so request it
+      const statusRequest = await BarcodeScanner.checkPermission({ force: true })
+
+      if (statusRequest.asked) {
+        // system requested the user for permission during this call
+        // only possible when force set to true
+        return statusRequest.granted
+      }
+
+      if (statusRequest.granted) {
+        // the user did grant the permission now
+        return true
+      }
+
+      // statusRequest.granted = true; the user did grant the permission now
+      // statusRequest.granted = false; user did not grant the permission,
+      // so he must have declined the request
+      return statusRequest.granted
+    },
+    async scanBarcode () {
+      const vm = this
+
+      BarcodeScanner.hideBackground()
+      document.body.classList.add('transparent-body')
+
+      const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
+
+      if (res.content) {
+        BarcodeScanner.showBackground()
+        BarcodeScanner.stopScan()
+        document.body.classList.remove('transparent-body')
+        vm.onQRDecode([{ rawValue: res.content }])
+      } else {
+        BarcodeScanner.stopScan()
+        document.body.classList.remove('transparent-body')
+        vm.$q.notify({
+          message: 'Unable to identify QR code.',
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
+        })
+        BarcodeScanner.prepare()
+        vm.scanBarcode()
+      }
+    },
+    stopScan () {
+      BarcodeScanner.showBackground()
+      BarcodeScanner.stopScan()
+    },
 
     async onQRDecode (content) {
       const vm = this
@@ -179,7 +284,6 @@ export default {
         })
       }
     },
-
     loadingDialog () {
       return this.$q.dialog({
         component: LoadingWalletDialog,
@@ -188,6 +292,22 @@ export default {
         }
       })
     }
+  },
+
+  mounted () {
+    const vm = this
+
+    if (vm.isMobile) {
+      vm.prepareScanner()
+    }
+  },
+
+  deactivated () {
+    this.stopScan()
+  },
+
+  beforeUnmount () {
+    this.stopScan()
   }
 }
 </script>
@@ -297,5 +417,11 @@ export default {
     bottom: 0px;
     border: 3px solid #3b7bf6;
     border-radius: 15%;
+  }
+</style>
+
+<style lang='scss'>
+  .transparent-body {
+    background: transparent !important;
   }
 </style>
