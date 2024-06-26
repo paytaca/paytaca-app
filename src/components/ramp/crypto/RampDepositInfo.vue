@@ -8,7 +8,10 @@
       <div v-if="!shiftExpired">
         <div class="text-center justify-center text-h6">
           <!--TODO:-->
-          Please send exactly <br><b style="letter-spacing: 1px;">{{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }} ({{ getNetwork(shiftInfo) }})</b> to...
+          Please send exactly <br>
+          <b style="letter-spacing: 1px;">
+            {{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }} ({{ getNetwork(shiftInfo) }})
+          </b> to...
         </div>
 
         <div class="row q-pt-md">

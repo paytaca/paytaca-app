@@ -29,9 +29,16 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>
-              <!--TODO:-->
-              Fulfulling {{ swapRequest && swapRequest.token && swapRequest.token.name }} swap for
-              {{ swapRequest && swapRequest.amount }}
+              {{
+                $t(
+                  'FulfillingSwap',
+                  {
+                    from: swapRequest && swapRequest.token && swapRequest.token.name,
+                    to: swapRequest && swapRequest.amount
+                  },
+                  `Fulfulling ${ swapRequest && swapRequest.token && swapRequest.token.name } swap for ${ swapRequest && swapRequest.amount }`
+                )
+              }}
             </q-item-label>
           </q-item-section>
         </q-item>

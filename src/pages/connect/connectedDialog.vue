@@ -8,8 +8,13 @@
         </div>
         <div class="text-h6 text-center text-bow" :class="getDarkModeClass(darkMode)" v-text="origin"></div>
         <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" v-if="connectedAddresses.length">
-          <!--TODO:-->
-          {{ `You have ${connectedAddresses.length} addresses connected to this site.` }}
+          {{
+            $t(
+              'ConnectedAddressesToSite',
+              { count: connectedAddress.length },
+              `You have ${connectedAddresses.length} addresses connected to this site.`
+            )
+          }}
         </div>
         <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" style="margin: 10px" v-else>
           {{ $t('YouArentConnectedToSite') }}

@@ -24,13 +24,13 @@
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Locked Price</span>
+            <span>{{ $t('LockedPrice') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ formatCurrency(snapshot?.price, snapshot?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ snapshot?.fiat_currency?.symbol }}
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <span>Trade Quantity</span>
+            <span>{{ $t('TradeQuantity') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ formatCurrency(snapshot?.trade_amount, tradeAmountCurrency(snapshot)) }} {{ tradeAmountCurrency(snapshot) }}
             </span>
@@ -42,10 +42,14 @@
             </span>
           </div>
           <div class="row justify-between no-wrap q-mx-lg">
-            <!--TODO:-->
-            <span>{{ $t('ApppealableAfter') }}</span>
-            <span class="text-nowrap q-ml-xs">
-              {{ appealCooldown(snapshot?.appeal_cooldown_choice).label }}
+            <span>
+              {{
+                $t(
+                  'AppealableAfterCooldown',
+                  { cooldown: appealCooldown(snapshot?.appeal_cooldown_choice).label },
+                  `Appealable after ${ appealCooldown(snapshot?.appeal_cooldown_choice).label }`
+                )
+              }}
             </span>
           </div>
           <div class="q-px-sm q-pb-sm" v-if="snapshot?.payment_types?.length > 0">

@@ -270,6 +270,7 @@ const words = [
     Ongoing: 'Ongoing',
     Completed: 'Completed',
     Appealable: 'Appealable',
+    APPEAL: 'APPEAL',
     BUY: 'BUY',
     SELL: 'SELL',
     Fixed: 'Fixed',
