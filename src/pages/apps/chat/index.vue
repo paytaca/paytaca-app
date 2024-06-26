@@ -35,7 +35,7 @@
     </div>
     <div v-if="chats && chats.length === 0" class="q-mt-lg row justify-center text-black">
       <p style="font-size: 18px;" class="q-mt-lg" :class="{ 'text-white': darkMode }">
-        No existing conversations
+        {{ $t('NoExistingConversations') }}
       </p>
     </div>
   </div>
