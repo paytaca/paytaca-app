@@ -70,13 +70,44 @@
           <div>Arbiter does not match saved private key in device</div>
           <div>Arbiter does not match with the logged in user</div>
         </q-banner> -->
-        <EscrowContractsTabPanel
-          ref="escrowContractPanel"
-          :keys="keys"
-          :arbiter-address="keys?.address"
-          :chat-identity="chatIdentity"
-          @open-chat-dialog="onRequestOpenChatDialog"
-        />
+        <div
+          class="row br-15 q-mb-sm text-center pt-card btn-transaction md-font-size full-width"
+          :class="getDarkModeClass(darkMode)"
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'pt-label dark': darkMode, 'active-transaction-btn': tab == 'appeal'}"
+            @click="tab='appeal'"
+          >
+            Appeal
+          </button>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'pt-label dark': darkMode, 'active-transaction-btn': tab == 'escrow'}"
+            @click="tab='escrow'"
+          >
+            Escrow
+          </button>
+        </div>
+        <q-tab-panels v-model="tab" class="arbiter-main-tab-panels" animated keep-alive>
+          <q-tab-panel name="appeal">
+            <SettlementAppealsPanel
+              ref="settlementAppealsPanel"
+              :keys="keys"
+              :chat-identity="chatIdentity"
+              @open-chat-dialog="onRequestOpenChatDialog"
+            />
+          </q-tab-panel>
+          <q-tab-panel name="escrow">
+            <EscrowContractsTabPanel
+              ref="escrowContractPanel"
+              :keys="keys"
+              :arbiter-address="keys?.address"
+              :chat-identity="chatIdentity"
+              @open-chat-dialog="onRequestOpenChatDialog"
+            />
+          </q-tab-panel>
+        </q-tab-panels>
         <div class="fixed-bottom q-pa-sm">
           <q-btn
             rounded
@@ -116,6 +147,7 @@ import { computed, inject, onActivated, onDeactivated, onMounted, onUnmounted, r
 import HeaderNav from "src/components/header-nav.vue";
 import AuthGateway from "./auth-gateway.vue";
 import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
+import SettlementAppealsPanel from "./settlement-appeals-panel.vue";
 import ChatWidget from "./chat-widget.vue";
 import ArbiterProfileFormDialog from "src/components/marketplace/arbiter/ArbiterProfileFormDialog.vue";
 
@@ -470,25 +502,54 @@ function handleOpenedNotification(openedNotification) {
   const type = openedNotification?.data?.type
 
   if (type === notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES) {
-    openOrderChatDialog(openedNotification?.data?.type?.order_id)
+    openOrderChatDialog(openedNotification?.data?.order_id)
   } else if (type === notificationTypes.PENDING_ESCROW_SETTLEMENT_APPEAL) {
-    // open appeal
-    // not yet implemented
+    displayEscrowSettlementAppeal(openedNotification?.data?.appeal_id)
   }
 }
 
 /** ------------------------------------------------------------------ */
 /** ------------------------------------------------------------------ */
 
+const tab = ref('appeal')
 const displayChats = ref(false)
 const chatWidget = ref()
+const settlementAppealsPanel = ref()
 const escrowContractPanel = ref()
+
+
+async function refreshSettlementAppealsPanel() {
+  await settlementAppealsPanel.value?.fetchAppeals?.()
+}
+
+async function displayEscrowSettlementAppeal(appealId) {
+  if (!appealId) return
+  if (!settlementAppealsPanel.value || tab.value != 'appeal') tab.value = 'appeal'
+  await asyncSleep(100)
+  if (!settlementAppealsPanel.value) {
+    return console.warn('Unable to display appeal due to missing appeals panel')
+  }
+  settlementAppealsPanel.value.filterOpts = {
+    ids: [appealId],
+    isPending: false,
+  }  
+  settlementAppealsPanel.value?.fetchAppeals?.()
+}
+window.f1 = (...args) => displayEscrowSettlementAppeal(...args)
+
 async function refreshEscrowContractPanel() {
   await escrowContractPanel.value?.fetchEscrowContracts?.()
 }
 
 async function filterOrderEscrowContracts(orderId) {
   if (!orderId) return
+  if (!escrowContractPanel.value || tab.value != 'escrow') tab.value = 'escrow'
+  await asyncSleep(100)
+
+  if (!escrowContractPanel.value) {
+    return console.warn('Unable to filter order escrow contracts due to missing escrow contracts panel')
+  }
+
   if (escrowContractPanel.value?.filterOpts) {
     displayChats.value = !(chatWidget.value?.openChatDialog)
     escrowContractPanel.value.filterOpts.orderId = orderId
@@ -530,7 +591,6 @@ async function openOrderChatDialog(orderId) {
     if (!chatWidget.value) throw new Error(`Unable to open chat dialog due to missing chat widget`)
     closeDialog()
 
-    console.log('chatSession', chatSession)
     return onRequestOpenChatDialog(chatSession)
   } catch(error) {
     dialog?.update({
@@ -587,7 +647,12 @@ async function refreshPage(done=() => {}) {
         }),
 
     ])
-    asyncSleep(100).then(() => refreshEscrowContractPanel())
+    asyncSleep(100).then(() => {
+      return Promise.all([
+        refreshEscrowContractPanel(),
+        refreshSettlementAppealsPanel(),
+      ])
+    })
     promptAuthErrors()
   } catch (_error) {
     error = _error
@@ -614,5 +679,46 @@ function copyToClipboard(value, message) {
   height: 35px;
   width: 35px;
   overflow:hidden;
+}
+/** start tab buttons */
+.btn-transaction {
+  font-size: 16px;
+  background-color: rgb(242, 243, 252);
+  border-radius: 24px;
+  padding: 4px;
+  margin-left: 12%;
+  margin-right: 12%;
+  margin-top: 10px;
+}
+.btn-custom {
+  height: 40px;
+  width: 47%;
+  border-radius: 20px;
+  border: none;
+  color: #4C4F4F;
+  background-color: transparent;
+  outline:0;
+  cursor: pointer;
+  transition: .2s;
+  font-weight: 500;
+}
+.btn-custom:hover {
+  background-color: rgb(242, 243, 252);
+  color: #4C4F4F;
+}
+.btn-custom.active-transaction-btn {
+  background-color: rgb(13,71,161) !important;
+  color: #fff;
+}
+.md-font-size {
+  font-size: medium;
+}
+/** end tab buttons */
+.arbiter-main-tab-panels {
+  background: inherit;
+}
+
+::v-deep(.arbiter-main-tab-panels.q-tab-panels .q-tab-panel) {
+  padding: 0;
 }
 </style>

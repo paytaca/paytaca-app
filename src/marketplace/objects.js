@@ -1600,6 +1600,7 @@ export class EscrowSettlementAppeal {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} data.escrow_contract
    * @param {String} data.type
    * @param {String} data.reason
    * @param {String} data.completed_at
@@ -1611,6 +1612,7 @@ export class EscrowSettlementAppeal {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.escrowContract = EscrowContract.parse(data?.escrow_contract)
     this.type = data?.type
     this.reason = data?.reason
 
