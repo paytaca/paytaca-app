@@ -336,7 +336,7 @@ import HeaderNav from '../../components/header-nav'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import QrScanner from '../../components/qr-scanner.vue'
-import { VOffline } from 'v-offline'
+// import { VOffline } from 'v-offline'
 import {
   convertCashAddress,
   isValidTokenAddress,
@@ -371,7 +371,7 @@ export default {
     HeaderNav,
     customKeyboard,
     QrScanner,
-    VOffline,
+    // VOffline,
     DenominatorTextDropdown,
     SendPageForm
   },
@@ -1023,14 +1023,21 @@ export default {
         getter = 'sep20/getAsset'
       }
       const assets = this.$store.getters[getter](id)
+
+      let asset
       if (assets.length > 0) {
-        return assets[0]
+        asset = assets[0]
       } else {
-        return {
+        asset = {
           id: this.assetId,
           symbol: this.symbol
         }
       }
+
+      if (id?.startsWith?.('ct/') && asset) {
+        asset.decimals = parseInt(asset.decimals) || 0
+      }
+      return asset
     },
     async setMaximumSendAmount () {
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]

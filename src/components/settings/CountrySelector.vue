@@ -99,8 +99,7 @@ export default {
             language = ['en-us']
           }
           this.$i18n.locale = language[0]
-          const locale = { value: language[0], label: this.$t(supportedLangs[language[0]])}
-          vm.$store.commit('global/setLanguage', locale)
+          vm.$store.commit('global/setLanguage', language[0])
 
           let currency = vm.currencyOptions.filter(o => o.symbol === selectedCountry.currency)
 

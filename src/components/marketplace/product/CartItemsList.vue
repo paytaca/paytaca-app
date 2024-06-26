@@ -12,7 +12,7 @@
         >
           <q-item-section>
             <q-item-label>
-              Edit item
+              {{ $t('EditItem') }}
             </q-item-label>
           </q-item-section>  
         </q-item>
@@ -22,7 +22,7 @@
         >
           <q-item-section>
             <q-item-label>
-              Remove item
+              {{ $t('RemoveItem') }}
             </q-item-label>
           </q-item-section>  
         </q-item>
@@ -37,7 +37,7 @@
         >
           <q-item-section>
             <q-item-label>
-              Go to page
+              {{ $t('GoToPage') }}
             </q-item-label>
           </q-item-section>  
         </q-item>
@@ -76,7 +76,7 @@
           {{ round(cartItem?.variant?.markupPrice * cartItem.quantity, 2) }} {{ currency }}
         </div>
       </div>
-      <div v-if="cartItem?.addons?.length" class="text-grey q-pl-lg">Addons:</div>
+      <div v-if="cartItem?.addons?.length" class="text-grey q-pl-lg">{{ $t('Addons') }}:</div>
       <div
         v-for="(addon, index) in cartItem.addons" :key="index"
         class="q-pl-lg q-pr-sm row items-center addon-item"
@@ -101,6 +101,7 @@ import { useStore } from 'vuex';
 import { debounce, useQuasar } from 'quasar';
 import { computed, defineComponent } from 'vue'
 import CartItemFormDialog from '../CartItemFormDialog.vue';
+import { useI18n } from "vue-i18n"
 
 export default defineComponent({
   name: 'CartItemsList',
@@ -111,6 +112,7 @@ export default defineComponent({
     useQuantityInput: Boolean,
   },
   setup(props) {
+    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -151,10 +153,11 @@ export default defineComponent({
     function removeItemConfirm(cartItem=CartItem.parse()) {
       const cart = props.cart
       $q.dialog({
-        title: 'Remove item',
+        title: t('RemoveItem'),
+        // TODO:
         message: `Remove item '${cartItem?.variant?.itemName}'. Are you sure?`,
         color: 'brandlue',
-        ok: { label: 'Remove item', noCaps: true, color: 'red' },
+        ok: { label: t('RemoveItem'), noCaps: true, color: 'red' },
         cancel: { noCaps: true, flat: true },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
       })

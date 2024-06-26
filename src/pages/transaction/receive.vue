@@ -569,8 +569,12 @@ export default {
             )
           }
         } else {
-          const value = isListedToken ? data.value : Number(data.amount)
-          const amount = value / (10 ** data.token_decimals)
+          let amount
+          if (data.token_name === 'bch') {
+            amount = data.value / (10 ** data.token_decimals)
+          } else {
+            amount = Number(data.amount) / (10 ** data.token_decimals)
+          }
           vm.notifyOnReceive(
             amount,
             data.token_symbol.toUpperCase(),

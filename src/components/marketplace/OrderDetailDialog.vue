@@ -3,6 +3,7 @@
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row no-wrap items-center justify-center">
+          <!--TODO:-->
           <div class="text-h6">Order #{{ order?.id }}</div>
           <q-chip :color="order?.statusColor" class="text-weight-medium text-white">
             {{ order?.formattedStatus }}
@@ -19,12 +20,12 @@
           {{ formatTimestampToText(order?.createdAt) }}
         </div>
         <div v-if="order?.customer?.fullName" class="q-mb-sm">
-          <div class="text-subtitle1">Customer</div>
+          <div class="text-subtitle1">{{ $t('Customer') }}</div>
           <div>{{ order?.customer?.fullName }}</div>
           <div>{{ order?.customer?.phoneNumber }}</div>
         </div>
         <div v-if="order?.deliveryAddress" class="q-mb-sm">
-          <div class="text-subtitle1">Delivery</div>
+          <div class="text-subtitle1">{{ $t('Delivery') }}</div>
           <div v-if="order?.deliveryAddress?.fullName !== order?.customer?.fullName">
             {{ order?.deliveryAddress?.fullName }}
           </div>
@@ -36,10 +37,10 @@
         <table class="items-table full-width q-mt-md">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Qty</th>
-              <th>Price</th>
-              <th>Subtotal</th>
+              <th>{{ $t('Item') }}</th>
+              <th>{{ $t('Qty') }}</th>
+              <th>{{ $t('Price') }}</th>
+              <th>{{ $t('Subtotal') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -64,24 +65,24 @@
         </table>
         <q-separator spaced/>
         <div class="row items-start">
-          <div>Subtotal</div>
+          <div>{{ $t('Subtotal') }}</div>
           <q-space/>
           <div>{{ order?.subtotal }} {{ orderCurrency }}</div>
         </div>
 
         <div class="row items-start">
-          <div>Markup</div>
+          <div>{{ $t('Markup') }}</div>
           <q-space/>
           <div>{{ order?.markupAmount }} {{ orderCurrency }}</div>
         </div>
 
         <div class="row items-start">
-          <div>Delivery fee</div>
+          <div>{{ $t('DeliveryFee') }}</div>
           <q-space/>
           <div>{{ order?.payment?.deliveryFee }} {{ orderCurrency }}</div>
         </div>
         <div class="row items-start">
-          <div class="text-subtitle1">Total</div>
+          <div class="text-subtitle1">{{ $t('Total') }}</div>
           <q-space/>
           <div>{{ order?.total }} {{ orderCurrency }}</div>
         </div>

@@ -27,7 +27,7 @@
       :label="$t('MinDuration')"
       v-model="addLiquidityForm.minAutoAcceptDuration"
       :rules="[
-        val => val >= 0 || $t('Invalid duration'),
+        val => val >= 0 || $t('InvalidDuration'),
       ]"
     />
     <DurationField
@@ -37,7 +37,7 @@
       :label="$t('MaxDuration')"
       v-model="addLiquidityForm.maxAutoAcceptDuration"
       :rules="[
-        val => val >= 0 || $t('Invalid duration'),
+        val => val >= 0 || $t('InvalidDuration'),
       ]"
     />
     <div class="q-gutter-y-md">

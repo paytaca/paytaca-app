@@ -3,6 +3,7 @@
     :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="locale"
     :options="localeOptions"
+    :option-label="getOptionLabel"
     :dark="darkMode"
     @filter="filterLangSelection"
     popup-content-style="color: black;"
@@ -61,6 +62,14 @@ export default {
     }
   },
   methods: {
+    getOptionLabel (opt) {
+      const match = this.defaultLocaleOptions.filter(lang => lang.value === opt)
+      if (match.length > 0) {
+        return match[0].label
+      } else {
+        return opt
+      }
+    },
     filterLangSelection (val, update) {
       if (!val) {
         this.localeOptions = this.defaultLocaleOptions
@@ -81,9 +90,9 @@ export default {
         return this.$store.getters['global/language']
       },
       set (lang) {
+        console.log('LANG:', lang)
         this.$i18n.locale = lang.value
-        const newLocale = { value: lang.value, label: this.$t(supportedLangs[lang.value]) }
-        this.$store.commit('global/setLanguage', newLocale)
+        this.$store.commit('global/setLanguage', lang.value)
       }
     }
   }

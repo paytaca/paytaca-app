@@ -26,7 +26,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn flat :label="$t('Cancel')" color="primary" v-close-popup />
           <q-btn flat label="Yes, Delete" color="red" @click="deleteHistory(topic)" v-close-popup />
         </q-card-actions>
       </q-card>

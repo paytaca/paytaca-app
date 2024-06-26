@@ -17,7 +17,7 @@
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
     <div class="q-px-lg">{{error_msg }} &#128533;</div>
     <div class="q-pt-lg text-center">
-      <q-btn color="blue-9" label="Try Again" @click="$emit('retry')"></q-btn>
+      <q-btn color="blue-9" :label="$t('TryAgain')" @click="$emit('retry')"></q-btn>
     </div>
   </div>
   <DragSlide
@@ -29,7 +29,7 @@
       zIndex: 1500,
     }"
     @swiped="dataConfirmed"
-    text="Swipe To Confirm"
+    :text="$t('SwipeToConfirmLower')"
     v-if="!networkError && state === 'confirmation'"
   />
 </template>
@@ -130,9 +130,9 @@ export default {
         if ('error' in response.data) {
           const errorMsg = response.data.error.message.toLowerCase()
           if (errorMsg.includes('invalid refunddestination')) {
-            vm.error_msg = "You've entered an invalid Refund Address. Please try again."
+            vm.error_msg = this.$t('RampInvalidAddressErrMsg1')
           } else if (errorMsg.includes('invalid receiving address')) {
-            vm.error_msg = vm.error_msg = "You've entered an invalid Receiving Address. Please try again."
+            vm.error_msg = vm.error_msg = this.$t('RampInvalidAddressErrMsg2')
           }
           vm.networkError = true
           vm.isloaded = true

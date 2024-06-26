@@ -3,7 +3,7 @@
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Payments</div>
+          <div class="text-h5 q-space">{{ $t('Payments') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <slot name="before"></slot>
@@ -57,7 +57,7 @@
                       @click="() => displayPaymentEscrowContract(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>View escrow</q-item-label>
+                        <q-item-label>{{ $t('ViewEscrow') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -68,7 +68,7 @@
           </q-item>
         </q-list>
         <div v-else class="text-center text-grey q-my-md">
-          No payments
+          {{ $t('NoPayments') }}
         </div>
       </q-card-section>
       <EscrowContractDialog
@@ -90,6 +90,7 @@ import { useStore } from 'vuex'
 import { capitalize, computed, defineComponent, ref, watch } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import EscrowContractDialog from 'src/components/marketplace/escrow-contract-dialog.vue'
+import { useI18n } from "vue-i18n"
 
 export default defineComponent({
   name: 'PaymentsListDialog',
@@ -109,6 +110,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -133,7 +135,7 @@ export default defineComponent({
 
     function updatePaymentStatus(opts={payment: Payment.parse(), status: null, force: false }) {
       const dialog = $q.dialog({
-        title: 'Updating payment',
+        title: t('UpdatingPayment'),
         progress: true,
         persistent: true,
         ok: false,
@@ -151,8 +153,8 @@ export default defineComponent({
                             data?.detail
           if (!errorMessage && Array.isArray(data)) errorMessage = data[0]
           if (!errorMessage && typeof error === 'string') errorMessage = error
-          if (!errorMessage) errorMessage = 'Unable to update status'
-          dialog.update({ title: 'Error', message: errorMessage })
+          if (!errorMessage) errorMessage = t('UpdatePaymentErrMsg')
+          dialog.update({ title: t('Error'), message: errorMessage })
         })
         .finally(() => {
           dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})

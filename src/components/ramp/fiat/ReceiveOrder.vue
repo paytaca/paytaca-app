@@ -5,7 +5,7 @@
       :class="getDarkModeClass(darkMode)">
       <div class="sm-font-size subtext q-pt-xs q-mx-md q-px-sm">
         <span class="text-nowrap q-ml-xs" :style="balanceExceeded ? 'color:red' : ''">
-          Balance: {{ bchBalance }} BCH
+          {{ $t('Balance') }}: {{ bchBalance }} BCH
         </span>
       </div>
       <div class="row q-pt-md q-px-sm">

@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-px-sm">
@@ -176,7 +176,7 @@
                 {{ formData.defaultLocation.longitude }}, {{ formData.defaultLocation.latitude }}
               </template>
               <template v-else>
-                Pin location
+                {{ $t('PinLocation') }}
               </template>
             </q-btn>
             <q-btn

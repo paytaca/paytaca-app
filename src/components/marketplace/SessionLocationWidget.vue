@@ -21,7 +21,7 @@
       <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">
-            Select Location
+            {{ $t('SelectLocation') }}
           </div>
           <q-space/>
           <q-btn
@@ -71,7 +71,7 @@
               @click.stop="() => setCurrentLocation()"
             >
               <q-icon name="location_on"/>
-              Use current location
+              {{ $t('UseCurrentLocation') }}
             </q-btn>
             <q-btn
               flat no-caps no-wrap
@@ -82,7 +82,7 @@
               @click.stop="() => updateDeviceLocation()"
             >
               <q-icon name="location_on"/>
-              Select pin location
+              {{ $t('SelectPinLocation') }}
             </q-btn>
           </div>
           <q-separator inset/>
@@ -97,6 +97,7 @@
                 <template v-if="location?.name">
                   {{ location?.name }} <span class="text-grey">#{{ location?.id }}</span>
                 </template>
+                <!--TODO:-->
                 <template v-else>Address #{{ location?.id }}</template>
               </q-item-label>
               <q-item-label class="text-caption ellipsis-2-lines">
@@ -114,7 +115,7 @@
                 @click.stop="() => showLocationInDialog(location)"
               >
                 <q-icon name="location_on"/>
-                <span class="text-underline">View in map</span>
+                <span class="text-underline">{{ $t('ViewInMap') }}</span>
               </q-btn>
             </q-item-section>
           </q-item>
@@ -132,7 +133,9 @@ import { ref, computed } from "vue";
 import PinLocationDialog from "src/components/PinLocationDialog.vue";
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from "vue-i18n"
 
+const { t } = useI18n()
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -170,7 +173,7 @@ async function updateDeviceLocation(opts={ dialogTitle: '', keepSelectorOpen: fa
         latitude: parseFloat(deviceLocation?.value?.latitude),
         longitude: parseFloat(deviceLocation?.value?.longitude)
       },
-      headerText: 'Pin location',
+      headerText: t('PinLocation'),
     }
   })
   return setDeviceLocation(data, opts)

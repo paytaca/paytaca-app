@@ -11,12 +11,11 @@
       </q-card-section>
 
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
         <q-btn
           flat
-          label="Confirm"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
+          :label="$t('Confirm')"
+          :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
           @click="submitData()"
           v-close-popup
         />
@@ -28,13 +27,13 @@
   <q-dialog full-width v-model="createPaymentMethod" @before-hide="$emit('back')">
     <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h5 text-center lg-font-size">Create Payment Method</div>
+        <div class="text-h5 text-center lg-font-size">{{ $t('CreatePaymentMethod') }}</div>
       </q-card-section>
 
       <div>
         <div class="q-mx-lg">
           <span class="md-font-size">
-            Payment Method
+            {{ $t('PaymentMethod') }}
           </span>
           <div class="text-center q-pt-sm">
             <q-select
@@ -61,7 +60,7 @@
         <div v-if="paymentMethod.payment_type">
           <div class="q-mx-lg q-pt-sm">
             <span class="md-font-size">
-              Account Name
+              {{ $t('AccountName') }}
             </span>
             <div class="text-center q-pt-sm">
               <q-input
@@ -78,7 +77,7 @@
           <div class="q-mx-lg q-pt-sm">
             <div v-if="paymentMethod.payment_type?.formats?.length > 1">
               <div class="md-font-size q-pb-sm">
-                Identifier Type
+                {{ $t('IdentifierType') }}
               </div>
               <q-select
                 dense
@@ -125,7 +124,7 @@
           <div class="col">
             <q-btn
               rounded
-              label="Cancel"
+              :label="$t('Cancel')"
               style="background-color: #ed5f59;"
               class="q-space text-white full-width"
               @click="$emit('back')"
@@ -135,7 +134,7 @@
             <q-btn
               :disable="paymentConfirm"
               rounded
-              label="Confirm"
+              :label="$t('Confirm')"
               class="q-space text-white full-width button"
               @click="submitData()"
               v-close-popup />
@@ -149,8 +148,8 @@
   <q-dialog persistent v-model="addPaymentMethod">
     <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-mx-sm">
-        <div class="text-weight-bold text-center">Select Payment Methods</div>
-        <div v-if="maxMethodReached" class="subtext text-center" style="font-size: 13px;"><i>Select only up to 5 methods</i></div>
+        <div class="text-weight-bold text-center">{{ $t('SelectPaymentMethods') }}</div>
+        <div v-if="maxMethodReached" class="subtext text-center" style="font-size: 13px;"><i>{{t('SelectOnlyUpTo5methods') }}</i></div>
       </q-card-section>
 
       <q-card-section class="text-left q-pt-sm q-mx-xs">
@@ -206,7 +205,7 @@
               v-if="paymentTypes.length !== 0"
               outline
               rounded
-              label='Add new'
+              :label="$t('AddNew')"
               class="button button-icon"
               :class="getDarkModeClass(darkMode)"
               @click="addNewPaymentMethod()"
@@ -220,6 +219,7 @@
               style="font-size: 12px;"
               v-close-popup>
               <template v-slot:default>
+                <!--TODO:-->
                 Select ({{ selectedPaymentMethods.length }})
               </template>
             </q-btn>
@@ -227,8 +227,8 @@
       </q-card-section>
 
       <!-- <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn flat label="Confirm" color="blue-6" @click="submitData()" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
+        :<q-btn flat label="$t('Confirm')" color="blue-6" @click="submitData()" v-close-popup />
       </q-card-actions> -->
     </q-card>
   </q-dialog>
@@ -237,7 +237,7 @@
   <q-dialog v-model="confirmDeletePaymentMethod" @before-hide="$emit('back')">
     <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="xm-font-size q-mx-lg">
-        <div class="text-center">Delete this Payment Method?</div>
+        <div class="text-center">{{ $t('DeleteThisPaymentMethod') }}</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
@@ -250,10 +250,10 @@
       </q-card-section>
 
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
         <q-btn
           flat
-          label="Confirm"
+          :label="$t('Confirm')"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
           @click="submitData()"
@@ -267,7 +267,7 @@
   <q-dialog persistent v-model="confirmRemovePaymentMethod">
     <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="xm-font-size q-mx-lg">
-        <div class="text-center">Remove this Payment Method?</div>
+        <div class="text-center">{{ $t('RemoveThisPaymentMethod') }}</div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
@@ -280,10 +280,10 @@
       </q-card-section>
 
       <q-card-section class="text-center" align="center">
-        <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
         <q-btn
           flat
-          label="Confirm"
+          :label="$t('Confirm')"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
           @click="submitData()"
@@ -297,7 +297,7 @@
   <q-dialog persistent v-model="editNickname">
     <q-card class="br-15 pt-card text-bow" style="width: 90%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-center q-my-sm">Set Display Name</div>
+        <div class="text-h6 text-center q-my-sm">Set Nickname</div>
         <div class="text-center">
           <q-input
             dense
@@ -320,10 +320,10 @@
           <q-btn
             :disable="!isNameValid"
             flat
-            label="Confirm"
+            :label="$t('Confirm')"
+            @click="submitData()"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
-            @click="submitData()"
             v-close-popup
           />
         </div>
@@ -342,16 +342,16 @@
         </div>
 
         <div class="row q-pt-sm text-center subtext sm-font-size">
-          <div class="col">1000 trades</div>
-          <div class="col">99% completion</div>
+          <div class="col">{{ $t('ThousandTrades') }}</div>
+          <div class="col">{{ $t('NintyNinePercentCompletion') }}</div>
         </div>
       </q-card-section>
 
       <q-card-actions class="text-center" align="center">
-        <q-btn flat label="Cancel" @click="$emit('back')" color="red-6" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" @click="$emit('back')" color="red-6" v-close-popup />
         <q-btn
           flat
-          label="Confirm"
+          :label="$t('Confirm')"
           @click="submitData()"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
@@ -365,26 +365,26 @@
   <q-dialog full-width persistent v-model="submitAppeal">
     <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-center">Submitting an Appeal&nbsp;&nbsp;<q-icon size="xs" name="info" color="blue-grey-6"/></div>
+        <div class="text-h6 text-center">{{ $t('SubmittingAnAppeal') }}&nbsp;&nbsp;<q-icon size="xs" name="info" color="blue-grey-6"/></div>
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none q-px-md">
         <span>
-          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
+          {{ $t('SubmittingAppealAgreement1') }}
         </span><br><br>
         <span class="q-pt-lg">
-          Submitting an appeal will raise dispute on the funds which requires the intervention of the smart contract's assigned Arbiter.
+          {{ $t('SubmittingAppealAgreement2') }}
         </span><br><br>
         <span class="q-pt-lg">
-          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
+          {{ $t('SubmittingAppealAgreement3') }}
         </span>
       </q-card-section>
 
       <q-card-actions class="q-pt-xs text-center" align="center">
-        <q-btn flat label="Cancel" @click="$emit('back')" color="red" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" @click="$emit('back')" color="red" v-close-popup />
         <q-btn
           flat
-          label="I understand, proceed"
+          :label="$t('IUnderstandProceed')"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
           @click="submitData()"
@@ -398,26 +398,26 @@
   <q-dialog full-width v-model="appeal" @before-hide="$emit('back')">
     <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-center">Submitting an Appeal</div>
+        <div class="text-h6 text-center">{{ $t('SubmittingAnAppeal') }}</div>
       </q-card-section>
 
       <q-card-section class="q-pt-none">
         <span>
-          The BCH funds are held by the escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.
+          {{ $t('SubmittingAppealAgreement1') }}
         </span><br><br>
         <span class="q-pt-lg">
-          Submitting an appeal will raise a dispute on the funds which requires the intervention of the smart contract's assigned <span class="text-weight-bold">Arbiter</span>.
+          {{ $t('SubmittingAppealAgreement2') }}
         </span><br><br>
         <span class="q-pt-lg">
-          The arbiter is a person or entity that is appointed or selected to act as a neutral and impartial third party in this dispute. The arbiter has the authority to release the funds to the buyer or refund to the seller.
+          {{ $t('SubmittingAppealAgreement3') }}
         </span>
       </q-card-section>
 
       <q-card-actions class="q-pt-lg text-center" align="center">
-        <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="red" @click="$emit('back')" v-close-popup />
         <q-btn
           flat
-          label="I understand, proceed"
+          :label="$t('IUnderstandProceed')"
           class="button"
           @click="onProceedAppeal()"
           v-close-popup
@@ -429,11 +429,11 @@
   <q-dialog full-width persistent v-model="appealForm">
     <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-center">Appeal Form</div>
+        <div class="text-h6 text-center">{{ $t('AppealForm') }}</div>
       </q-card-section>
       <q-card-section class="q-pt-none">
         <div class="q-mx-md">
-          <div class="sm-font-size text-weight-bold">Type</div>
+          <div class="sm-font-size text-weight-bold">{{ $t('Type') }}</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -443,7 +443,7 @@
               {{ appealType.label }}
             </q-badge>
           </div>
-          <div class="sm-font-size text-weight-bold q-mt-sm">Reasons</div>
+          <div class="sm-font-size text-weight-bold q-mt-sm">{{ $t('Reasons') }}</div>
           <div class="q-gutter-sm q-pt-sm">
             <q-badge
               class="q-pa-sm"
@@ -459,10 +459,10 @@
       </q-card-section>
 
       <q-card-actions class="q-pt-lg text-center" align="center">
-        <q-btn flat label="Cancel" color="red" @click="$emit('back')" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="red" @click="$emit('back')" v-close-popup />
         <q-btn
           flat
-          label="Submit"
+          :label="$t('Submit')"
           class="button"
           :disable="!selectedAppealType || selectedReasons.length === 0"
           @click="submitData()"
@@ -486,7 +486,7 @@
       <q-card-actions class="text-center" align="center">
         <q-btn
           flat
-          label="Confirm"
+          :label="$t('Confirm')"
           class="button button-text-primary"
           :class="getDarkModeClass(darkMode)"
           @click="$emit('back')"
@@ -588,30 +588,30 @@ export default {
 
       appealTypeOpts: [
         {
-          label: 'Release',
+          label: this.$t('Release'),
           value: 'RLS'
         },
         {
-          label: 'Refund',
+          label: this.$t('Refund'),
           value: 'RFN'
         }
       ],
       selectedAppealType: null,
       reasonOpts: [
-        'Unresponsive seller/buyer',
-        'Payment failed',
-        'I changed my mind'
+        this.$t('AppealFormReasonOpt1'),
+        this.$t('AppealFormReasonOpt2'),
+        this.$t('AppealFormReasonOpt3'),
       ],
       selectedReasons: [],
       ongoingStatuses: [
-        { value: 'SBM', label: 'Submitted' },
-        { value: 'CNF', label: 'Confirmed' },
-        { value: 'ESCRW_PN', label: 'Escrow Pending' },
-        { value: 'ESCRW', label: 'Escrowed' },
-        { value: 'PD_PN', label: 'Paid Pending' },
-        { value: 'PD', label: 'Paid' },
-        { value: 'RLS_PN', label: 'Release Pending' },
-        { value: 'RFN_PN', label: 'Refund Pending' }
+        { value: 'SBM', label: this.$t('Submitted') },
+        { value: 'CNF', label: this.$t('Confirmed') },
+        { value: 'ESCRW_PN', label: this.$t('EscrowPending') },
+        { value: 'ESCRW', label: this.$t('Escrowed') },
+        { value: 'PD_PN', label: this.$t('PaidPending') },
+        { value: 'PD', label: this.$t('Paid') },
+        { value: 'RLS_PN', label: this.$t('ReleasePending') },
+        { value: 'RFN_PN', label: this.$t('RefundPending') }
       ],
       completedStatuses: ['CNCL', 'RLS', 'RFN'],
       // paymentTypeFormat: {
@@ -663,7 +663,7 @@ export default {
   methods: {
     getDarkModeClass,
     paymentTypeFormat (format) {
-      return 'Test'
+      return this.$t('Test')
     },
     paymentTypeRules (val) {
       const format = this.paymentMethod.payment_type.format
@@ -673,19 +673,19 @@ export default {
           if (/^[\w\\.~!$%^&*=+}{'?-]+@([\w-]+\.)+[\w-]{2,4}$/.test(val)) {
             return true
           } else {
-            return 'Invalid Email Address'
+            return this.$t('InvalidEmailAddress')
           }
         case 'phone':
           if (/^(\d{9,15})$/.test(val)) {
             return true
           } else {
-            return 'Invalid Phone Number'
+            return this.$t('InvalidPhoneNumber')
           }
         case 'bank':
           if (/^(\d{9,35})$/.test(val)) {
             return true
           } else {
-            return 'Invalid Account Number'
+            return this.$t('InvalidAccountNumber')
           }
         default:
           return true

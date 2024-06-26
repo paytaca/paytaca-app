@@ -7,21 +7,21 @@
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatStore')">
           <q-icon class="mb-2" :class="isActive('FiatStore') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_storefront"/>
-        <span>Home</span>
+        <span>{{ $t('Home') }}</span>
       </q-btn>
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatAds')">
           <q-icon class="mb-2" :class="isActive('FiatAds') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_sell"/>
-        <span>Ads</span>
+        <span>{{ $t('Ads') }}</span>
       </q-btn>
       <q-btn flat no-caps dense class="footer-icon-btn btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatOrders')">
         <q-icon class="mb-2" :class="isActive('FiatOrders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"></q-icon>
         <q-badge v-if="data?.unreadOrdersCount > 0" rounded color="red" floating>{{ data?.unreadOrdersCount }}</q-badge>
         <!-- <q-badge class="" rounded color="red" floating>4</q-badge> -->
-        <span>Orders</span>
+        <span>{{ $t('Orders') }}</span>
       </q-btn>
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatProfileCard')">
           <q-icon class="mb-2" :class="isActive('FiatProfileCard') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
-        <span>Profile</span>
+        <span>{{ $t('Profile') }}</span>
       </q-btn>
       <q-btn flat no-caps dense v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
         <i class="footer-icon mdi mdi-launch default-text-color"></i>

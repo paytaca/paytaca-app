@@ -4,7 +4,7 @@
     class="q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md q-px-sm">
-      <div class="sm-font-size q-pb-xs q-ml-xs">Arbiter</div>
+      <div class="sm-font-size q-pb-xs q-ml-xs">{{ $t('Arbiter') }}</div>
       <q-input
         class="q-pb-xs md-font-size"
         readonly
@@ -14,7 +14,7 @@
         :label="data?.arbiter?.address"
         v-model="data.arbiter.name">
       </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">Contract Address</div>
+      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractAddress') }}</div>
       <q-input
         class="q-pb-xs"
         readonly
@@ -28,7 +28,7 @@
           </div>
         </template>
       </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">Contract Balance</div>
+      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
       <q-input
         class="q-pb-xs md-font-size"
         readonly
@@ -41,7 +41,7 @@
           <span>BCH</span>
         </template>
       </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ data?.type === 'buyer' ? 'Pay the seller' : 'Expect fiat payment of' }}</div>
+      <div class="sm-font-size q-py-xs q-ml-xs">{{ data?.type === 'buyer' ? $t('PayTheSeller') : $t('ExpectFiatPaymentOf') }}</div>
       <div @click="copyToClipboard(fiatAmount)">
         <q-input
           class="q-pb-xs md-font-size"
@@ -58,10 +58,10 @@
       </div>
     </div>
     <div class="q-mx-md q-px-sm q-pt-sm">
-      <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
+      <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
         <div class="text-center sm-font-size q-mx-md q-mb-sm">
         <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
-        <span v-if="data?.type === 'buyer'">Select the payment method(s) you used to pay the seller</span>
+        <span v-if="data?.type === 'buyer'">{{ $t('SelectPaymentMethod') }}</span>
         <span v-if="data?.type === 'seller'">The buyer selected the following payment methods.</span>
       </div>
       <div class="full-width">
@@ -116,11 +116,11 @@
           </div>
           <!-- Info messages -->
           <div v-if="sendingBch" class="sm-font-size">
-            <q-spinner class="q-mr-sm"/>Sending BCH, please do not close the app during this process.
+            <q-spinner class="q-mr-sm"/>{{ $t('SendingBchPleaseWait') }}
           </div>
           <!-- <div v-else class="row justify-center sm-font-size" style="overflow-wrap: break-word;">
             <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-            <span class="col text-left q-ml-sm">Please release the funds if you have received the fiat payment.</span>
+            <span class="col text-left q-ml-sm">{{ $t('PaymentConfirmationReleaseFundsMsg') }}</span>
           </div> -->
         </div>
       </div>
@@ -209,11 +209,12 @@ export default {
   },
   computed: {
     appealBtnLabel () {
+      // TODO:
       if (this.countDown) return `Appealable in ${this.countDown}`
-      return 'Submit an appeal'
+      return this.$t('SubmitAnAppeal')
     },
     dragSlideTitle () {
-      return this.data?.type === 'seller' ? 'Release Crypto' : 'Confirm Payment'
+      return this.data?.type === 'seller' ? this.$t('ReleaseCrypto') : this.$t('ConfirmPayment')
     },
     lockDragSlide () {
       const vm = this
@@ -305,7 +306,7 @@ export default {
     async releaseBch () {
       const vm = this
       vm.sendErrors = []
-      const feContractAddr = await vm.data?.escrow.getAddress()
+      const feContractAddr = vm.data?.escrow.getAddress()
       const beContractAddr = vm.data?.contract.address
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
