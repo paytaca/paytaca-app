@@ -1,6 +1,6 @@
 <template>
   <div id="connected-dialog pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
-    <div style="display: flex; justify-content: center; margin-top: 5px;">Connected Addresses</div>
+    <div style="display: flex; justify-content: center; margin-top: 5px;">{{$t('ConectedAddresses')}}</div>
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
       <q-card ref="card" style="padding: 20px 10px 5px 0;" class="pp-text br-15 pt-card" :class="getDarkModeClass(darkMode)">
         <div class="connected-dialog-header">
@@ -8,10 +8,11 @@
         </div>
         <div class="text-h6 text-center text-bow" :class="getDarkModeClass(darkMode)" v-text="origin"></div>
         <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" v-if="connectedAddresses.length">
+          <!--TODO:-->
           {{ `You have ${connectedAddresses.length} addresses connected to this site.` }}
         </div>
         <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" style="margin: 10px" v-else>
-          {{ `You are not connected to this site.` }}
+          {{ $t('YouArentConnectedToSite') }}
         </div>
 
         <q-card-section
@@ -27,7 +28,7 @@
             </q-item-section>
             <q-item-section class="address-section pt-label" :class="getDarkModeClass(darkMode)">
               <div>{{ address.split(':')[1] }}</div>
-              <div v-if="address == activeAddress" style="color: grey">Active</div>
+              <div v-if="address == activeAddress" style="color: grey">{{$t('Active')}}</div>
               <div
                 v-else
                 class="button button-text-primary"
@@ -35,7 +36,7 @@
                 style="font-weight: 400"
                 @click="switchAddress(address)"
               >
-                Switch to this address
+              {{$t('SwitchAddresses')}}
               </div>
             </q-item-section>
             <q-item-section side class="pt-label" :class="getDarkModeClass(darkMode)" style="padding-left: 4px">
