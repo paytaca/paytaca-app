@@ -547,73 +547,42 @@ export default {
     },
     isValidInputAmount (value = this.amount) {
       let valid = true
-      const decCount = [0, 0]
-      let temp = ''
-
-      if (this.byFiat) {
-        value = this.equivalentAmount
-      }
-      const parsedValue = parseFloat(value)
-      let tradeFloor = parseFloat(this.ad.trade_floor)
-      let tradeCeiling = parseFloat(this.minTradeAmount(this.ad))
-
-      for (const index in decCount) {
-        if (index < 1) {
-          temp = tradeFloor.toString().split('.')
-        } else {
-          temp = tradeCeiling.toString().split('.')
+      let tradeFloor = Number(this.ad.trade_floor).toFixed(8)
+      let tradeCeiling = Number(this.minTradeAmount(this.ad)).toFixed(8)
+      let amount = Number(Number(value).toFixed(8))
+      // if trade limits in fiat
+      if (this.ad.trade_limits_in_fiat) {
+        tradeFloor = Number(Number(tradeFloor).toFixed(2))
+        tradeCeiling = Number(Number(tradeCeiling).toFixed(2))
+        // if input value is in fiat, limit decimals to 2
+        amount = Number(amount.toFixed(2))
+        if (!this.byFiat) {
+          // if input value is in BCH, convert to fiat first
+          amount = Number((amount * this.ad.price).toFixed(2))
         }
-        decCount[index] = temp.length > 1 ? temp[1].length : 0
+      } else {
+        // if trade limits in BCH
+        if (this.byFiat) {
+          // if input value is in fiat, convert to BCH first
+          amount = Number((amount / this.ad.price).toFixed(8))
+        }
+      }
+      if (amount < tradeFloor) {
+        console.log('amount is less than tradeFloor')
+        console.log(`amount: ${amount}, tradeFloor: ${tradeFloor}`)
+        valid = false
+        this.amountError = this.$t('FiatOrderAmountErrMsg1')
+      }
+      if (amount > tradeCeiling) {
+        console.log('amount is greater than tradeCeiling')
+        console.log(`amount: ${amount}, tradeCeiling: ${tradeCeiling}`)
+        valid = false
+        this.amountError = this.$t('FiatOrderAmountErrMsg2')
       }
       if (value === undefined || isNaN(value)) {
         valid = false
         this.amountError = 'Amount cannot be none or undefined'
       }
-      if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
-        valid = false
-        this.amountError = this.$t('FiatOrderAmountErrMsg1')
-      }
-      if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
-        parsedValue.toFixed(decCount[1])
-        valid = false
-        this.amountError = this.$t('FiatOrderAmountErrMsg2')
-      }
-      // if trade limits in fiat, check if amount in fiat is less than tradeFloor
-      // if trade limits not in fiat, check if amount in bch is less than tradeFloor
-      if (this.ad.trade_limits_in_fiat) {
-        tradeFloor = Number(tradeFloor.toFixed(2))
-        tradeCeiling = Number(tradeCeiling.toFixed(2))
-
-        let amount = this.amount
-        if (!this.byFiat) {
-          amount = parsedValue * this.ad.price
-        }
-        amount = Number(amount)
-        // check if amount is less than trade floor
-        if (amount.toFixed(2) < tradeFloor) {
-          console.log('amount is less than tradeFloor')
-          console.log(`amount: ${amount}, tradeFloor: ${tradeFloor}`)
-          valid = false
-          this.amountError = 'Amount must be greater than minimum trade limit'
-        }
-        // check if amount is greater than trade ceiling
-        if (amount.toFixed(2) > tradeCeiling) {
-          console.log('amount is greater than tradeCeiling')
-          console.log(`amount: ${amount}, tradeCeiling: ${tradeCeiling}`)
-          valid = false
-          this.amountError = 'Amount must be lesser than maximum trade limit'
-        }
-      }
-
-      // if (parsedValue.toFixed(decCount[0]) < tradeFloor) {
-      //   valid = false
-      //   this.amountError = 'Amount must be greater than minimum trade limit'
-      // }
-      // if (parsedValue.toFixed(decCount[1]) > tradeCeiling) {
-      //   parsedValue.toFixed(decCount[1])
-      //   valid = false
-      //   this.amountError = 'Amount must be lesser than the maximum trade limit'
-      // }
       if (this.ad.trade_type === 'BUY') {
         if (this.balanceExceeded) {
           valid = false
@@ -623,9 +592,7 @@ export default {
       if (valid) {
         this.amountError = null
       }
-
       return valid
-      // return !(isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling || this.balanceExceeded)
     },
     resetInput () {
       if (this.amount !== '' && !isNaN(this.amount)) return

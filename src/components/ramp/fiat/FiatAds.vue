@@ -52,7 +52,6 @@
             <q-list :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
               <q-pull-to-refresh @refresh="refreshData">
                 <q-infinite-scroll
-                  ref="infiniteScroll"
                   :items="listings"
                   @load="loadMoreData"
                   :offset="0">
