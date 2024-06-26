@@ -3,7 +3,7 @@
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">
-          Invoice
+          {{ $t('Invoice') }}
         </div>
         <q-btn
           flat
@@ -15,33 +15,33 @@
       </div>
       <q-card-section>
         <div class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">PaymentID:</div>
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('PaymentID') }}:</div>
           <div class="ellipsis">#{{ jpp?.parsed?.paymentId }}</div>
           <q-btn
             flat
             icon="content_copy"
             size="sm"
             padding="xs"
-            @click="copyToClipboard(jpp?.parsed?.paymentId, 'Payment ID Copied')"
+            @click="copyToClipboard(jpp?.parsed?.paymentId, $t('PaymentIdCopied'))"
           />
         </div>
         <div v-if="jpp?.parsed?.paymentUrl" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">URL:</div>
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('URL') }}:</div>
           <div class="ellipsis">{{ jpp?.parsed?.paymentUrl }}</div>
           <q-btn
             flat
             icon="content_copy"
             size="sm"
             padding="xs"
-            @click="copyToClipboard(jpp?.parsed?.paymentUrl, 'Link Copied')"
+            @click="copyToClipboard(jpp?.parsed?.paymentUrl, $t('LinkCopied'))"
           />
         </div>
         <div v-if="jpp?.parsed?.time" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Created:</div>
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('Created') }}:</div>
           <div>{{ formatTimestampToText(jpp?.parsed?.time) }}</div>
         </div>
         <div v-if="jpp?.parsed?.memo" class="q-my-sm">
-          <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Memo:</div>
+          <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('Memo') }}:</div>
           <q-banner
             class="text-body1 rounded-borders memo-banner"
             :class="{'text-white': darkMode}"
@@ -51,7 +51,12 @@
         </div>
         <div>
           <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-            Recipient{{ jpp?.parsed?.outputs?.length > 1 ? 's' : '' }}:
+            <template v-if="jpp?.parsed?.outputs?.length > 1">
+              {{ $t('Recipients') }}:
+            </template>
+            <template v-else>
+              {{ $t('Recipient') }}:
+            </template>
           </div>
           <div
             v-for="(output, index) in jpp?.parsed?.outputs" :key="index"
@@ -71,7 +76,7 @@
             <div class="text-right">{{ output.amount / 10 ** 8 }} BCH</div>
           </div>
           <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mb-sm text-subtitle1">
-            <div class="q-space">Total:</div>
+            <div class="q-space">{{ $t('Total') }}:</div>
             <div>{{ jpp.total / 10 ** 8 }} BCH</div>
           </div>
         </div>
@@ -79,10 +84,15 @@
           <q-separator spaced/>
           <div class="row items-center transactions">
             <div class="text-subtitle1 q-space">
-              Transaction{{ jpp.txids.length > 1 ? 's' : '' }}
+              <template v-if="jpp.txids.length > 1">
+                {{ $t('Transactions') }}:
+              </template>
+              <template v-else>
+                {{ $t('Transaction') }}:
+              </template>
             </div>
             <div v-if="jpp?.paymentData?.paidAt" class="row items-center no-wrap">
-              <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Paid at:&nbsp;</div>
+              <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('PaidAt') }}:&nbsp;</div>
               <div>{{ formatTimestampToText(jpp?.paymentData?.paidAt) }}</div>
             </div>
           </div>

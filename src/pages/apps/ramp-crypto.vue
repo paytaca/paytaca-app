@@ -2,7 +2,7 @@
 <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <!-- back button -->
     <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div>
-    <HeaderNav title="Crypto Swap" backnavpath="/apps"/>
+    <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps"/>
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
     </div>
@@ -10,7 +10,7 @@
         <!-- CRYPTO Tab Content -->
         <RampShiftForm v-if="isAllowed" ref="shiftForm"/>
         <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
-            <div>Sorry. This feature is blocked in your country &#128533;</div>
+            <div>{{ $t('FeatureBlockedInYourCountry') }} &#128533;</div>
         </div>
     </div>
 </div>

@@ -6,7 +6,7 @@
         {{ loadingMsg }}
         <q-spinner/>
       </div>
-      <q-btn v-else flat no-caps label="Go to Home" to="/" class="text-underline" />
+      <q-btn v-else flat no-caps :label="$t('GoToHome')" to="/" class="text-underline" />
     </div>
   </div>
 </template>
@@ -15,13 +15,15 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const $router = useRouter()
 const $store = useStore()
 const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
 const openedNotification = computed(() => $store.getters['notification/openedNotification'])
 const loading = ref(false)
-const loadingMsg = ref('Loading ...')
+const loadingMsg = ref(`${t('Loading')}...`)
 
 const currentWalletIndex = computed(() => $store.getters['global/getWalletIndex'])
 async function switchWallet(index) {
@@ -36,7 +38,7 @@ async function switchWallet(index) {
 }
 
 async function handleOpenedNotification() {
-  loadingMsg.value = 'Resolving route ...'
+  loadingMsg.value = t('ResolvingRoute') + '...'
   const route = await $store.dispatch('notification/getOpenedNotificationRoute')
   const notifWalletIndex = parseInt(openedNotification.value?.data?.multi_wallet_index)
 
@@ -47,13 +49,13 @@ async function handleOpenedNotification() {
       'Expecting', notifWalletIndex, '.',
       'Switching wallet..',
     )
-    loadingMsg.value = 'Switching wallet ...'
+    loadingMsg.value = t('SwitchingWallet') + '...'
     // this function is expected to reload the page
     await switchWallet(notifWalletIndex)
     return
   }
 
-  loadingMsg.value = 'Redirecting ...'
+  loadingMsg.value = t('Redirecting') + '...'
   if (route) await $router.replace(route)
   else await $router.replace('/')
 
