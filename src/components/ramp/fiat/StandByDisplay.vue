@@ -234,8 +234,7 @@ export default {
     //   }
     // },
     appealBtnLabel () {
-      // TODO:
-      if (this.appealCountdown) return `Appealable in ${this.appealCountdown}`
+      if (this.appealCountdown) return this.$t('AppealableInSeconds', { countdown: this.appealCountdown }, `Appealable in ${this.appealCountdown}`)
       return this.$t('SubmitAnAppeal')
     },
     showAppealBtn () {

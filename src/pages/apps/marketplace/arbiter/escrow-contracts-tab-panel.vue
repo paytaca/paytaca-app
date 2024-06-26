@@ -65,8 +65,13 @@
         {{ capitalize(filterOpts.status) }}
       </q-chip>
       <q-chip v-if="filterOpts.orderId" removable @remove="filterOpts.orderId = undefined" :outline="darkMode">
-        <!--TODO:-->
-        Order #{{ filterOpts?.orderId }}
+        {{
+          $t(
+            'OrderIdNoSmall',
+            { ID: filterOpts?.orderId },
+            `Order #${ filterOpts?.orderId }`
+          )
+        }}
       </q-chip>
       <q-space/>
       <LimitOffsetPagination
@@ -124,11 +129,24 @@
         </q-icon>
       </div>
       <div class="row items-center q-mb-sm">
-        <!--TODO:-->
-        <div>Payment #{{ escrowContract?.payments?.[0]?.id }}</div>
+        <div>
+          {{
+            $t(
+              'PaymentIdNo',
+              { ID: escrowContract?.payments?.[0]?.id },
+              `Payment #${ escrowContract?.payments?.[0]?.id }`      
+            )
+          }}
+        </div>
         <q-space/>
         <div v-if="escrowContract?.payments?.[0]?.orderId">
-          Order #{{ escrowContract?.payments?.[0]?.orderId }}
+          {{
+            $t(
+              'OrderIdNoSmall',
+              { ID: escrowContract?.payments?.[0]?.orderId },
+              `Order #${ escrowContract?.payments?.[0]?.orderId }`
+            )
+          }}
           <q-badge
             v-if="escrowContract?.payments?.[0]?.order?.status"
             :color="parseOrderStatusColor(escrowContract?.payments?.[0]?.order?.status)"

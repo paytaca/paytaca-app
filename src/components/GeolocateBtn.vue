@@ -9,7 +9,8 @@
     <q-btn
       flat
       :icon="hasPermission ? 'my_location' : 'location_disabled'"
-      no-caps label="Locate"
+      no-caps
+      :label="$t('Locate')"
       v-bind="btnProps"
       class="button button-text-primary"
       :class="getDarkModeClass(darkMode)"
@@ -23,6 +24,7 @@ import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, onMounted } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 const $emit = defineEmits([
   'grant',
@@ -32,6 +34,7 @@ const props = defineProps({
   btnProps: Object,
 })
 
+const { t } = useI18n()
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -81,13 +84,13 @@ function updateGeolocationPermission(opts = { request: false, promptOnDeny: fals
         geolocation.value.permission?.coarseLocation === 'denied'
       ) {
         $q.dialog({
-          message: 'Enable access location in app settings',
+          message: t('EnableLocation'),
           class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         })
       } else if (opts?.promptOnDeny && !hasPermission.value) {
         $q.dialog({
           html: true,
-          message: geolocation.value?.permission?.error?.message || 'Unable to access geolocation',
+          message: geolocation.value?.permission?.error?.message || t('UnableToAccessLocation'),
           class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         })
       }
@@ -96,7 +99,7 @@ function updateGeolocationPermission(opts = { request: false, promptOnDeny: fals
 
 function geolocate() {
   const dialog = $q.dialog({
-    message: 'Finding device location',
+    message: t('FindingDeviceLocation'),
     persistent: true,
     progress: true,
     ok: false,
@@ -120,9 +123,9 @@ function geolocate() {
     .catch(error => {
       updateGeolocationPermission()
       let errorMsg = error?.message
-      if (errorMsg === 'location disabled') errorMsg = 'Please enable device\'s location service.'
+      if (errorMsg === 'location disabled') errorMsg = t('PleaseEnableLocationService')
       dialog.update({
-        title: 'Unable to locate device',
+        title: t('UnableToLocateDevice'),
         message: errorMsg || '',
       })
     })

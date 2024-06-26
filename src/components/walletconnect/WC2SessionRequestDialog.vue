@@ -42,7 +42,7 @@
           />
         </template>
         <template v-else-if="sessionRequest?.params?.request?.method === 'bch_signMessage'">
-          <div class="text-grey">Message</div>
+          <div class="text-grey">{{$t('Message')}}</div>
           <q-banner class=" rounded-borders pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             <div style="word-break: break-all;">
               {{ sessionRequest?.params?.request?.params?.message }}
@@ -57,7 +57,8 @@
           <q-btn
             :loading="loading"
             :disable="disable"
-            no-caps label="Accept"
+            no-caps
+            :label="$t('Accept')"
             icon="check" color="green"
             padding="xs md"
             class="q-space"
@@ -66,7 +67,8 @@
           <q-btn
             :loading="loading"
             :disable="disable"
-            no-caps label="Reject"
+            no-caps
+            :label="$t('Reject')"
             icon="close" color="red"
             padding="xs md"
             class="q-space"
