@@ -224,9 +224,11 @@ export default {
       this.fetchChatUnread(this.chatRef)
     },
     async loadChatInfo () {
-      if (this.order) {
-        this.chatRef = generateChatRef(this.order.id, this.order.created_at)
-        await this.fetchChatUnread(this.chatRef)
+      const vm = this
+      if (vm.order) {
+        const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+        vm.chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+        await vm.fetchChatUnread(vm.chatRef)
       }
     },
     async fetchChatUnread (chatRef) {

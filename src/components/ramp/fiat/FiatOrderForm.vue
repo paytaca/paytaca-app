@@ -222,7 +222,7 @@ import UserProfileDialog from './dialogs/UserProfileDialog.vue'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { createChatSession, updateChatMembers } from 'src/wallet/ramp/chat'
+import { createChatSession, updateChatMembers, generateChatRef } from 'src/wallet/ramp/chat'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
@@ -537,8 +537,11 @@ export default {
       })
     },
     createGroupChat (orderId, members, createdAt) {
+      const vm = this
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-      createChatSession(orderId, createdAt)
+      const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+      const chatRef = generateChatRef(vm.order.id, vm.order.created_at, _members)
+      createChatSession(orderId, chatRef)
         .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
         .catch(console.error)
     },

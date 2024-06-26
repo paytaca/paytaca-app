@@ -32,16 +32,13 @@
     <q-list
       ref="scrollTargetRef"
       :style="`height: ${attachmentUrl ? maxHeight - 280 : maxHeight - 120}px`"
-      style="overflow: auto;"
-    >
+      style="overflow: auto;">
       <q-infinite-scroll
         ref="infiniteScroll"
         :items="convo.messages"
-        :scroll-target="scrollTargetRef"
         @load="loadMoreData"
         :offset="0"
-        reverse
-      >
+        reverse>
         <template v-slot:loading>
           <div class="row justify-center q-my-md">
             <q-spinner-dots color="primary" size="40px" />
@@ -280,7 +277,8 @@ import {
   fetchChatMessages,
   generateChatRef,
   updateChatIdentity,
-  updateLastRead
+  updateLastRead,
+  generateChatIdentityRef
 } from 'src/wallet/ramp/chat'
 import { ChatMessage } from 'src/wallet/ramp/chat/objects'
 import { formatDate } from 'src/wallet/ramp'
@@ -382,6 +380,7 @@ export default {
   },
   data () {
     return {
+      chatIdentity: null,
       openChat: true,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -446,15 +445,17 @@ export default {
   },
   async mounted () {
     // Set Data Here
-    this.chatRef = generateChatRef(this.order?.id, this.order?.created_at)
+    const members = [this.order?.members?.buyer.public_key, this.order?.members?.seller.public_key].join('')
+    this.chatRef = generateChatRef(this.order?.id, this.order?.created_at, members)
     this.stopInfiniteScroll()
     this.loadKeyPair()
     this.loadChatSession()
   },
   computed: {
     userName () {
-      const vm = this
-      return vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
+      // const vm = this
+      // return vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
+      return this.chatIdentity?.name
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -497,7 +498,8 @@ export default {
         resolve(decMes)
       })
         .then(item => {
-          const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+          // const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+          const ref = this.chatIdentity?.ref
           item.chatIdentity.is_user = item.chatIdentity.ref === ref
           this.convo.messages.push(item)
           this.offset++
@@ -520,9 +522,10 @@ export default {
     },
     async loadChatSession () {
       const vm = this
-      const chatIdentity = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash)
+      const chatIdentityRef = generateChatIdentityRef(loadRampWallet().walletHash)
+      vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
       let createSession = false
-      await fetchChatSession(vm.chatRef)
+      const chatSession = await fetchChatSession(vm.chatRef)
         .catch(error => {
           if (error.response?.status === 404) {
             createSession = true
@@ -536,10 +539,9 @@ export default {
         }
 
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-
         // Create session if necessary
         if (createSession) {
-          await createChatSession(vm.order?.id, vm.order?.created_at).catch(error => { console.error(error) })
+          await createChatSession(vm.order?.id, vm.chatRef).catch(error => { console.error(error) })
           await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
         }
         await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
@@ -559,9 +561,9 @@ export default {
             // if mismatched name
             vm.chatMembers = members.map(member => {
               const name = this.$store.getters['ramp/getUser'].name
-              if ((name !== member.chat_identity.name) && (member.chat_identity.ref === chatIdentity.ref)) {
+              if ((name !== member.chat_identity.name) && (member.chat_identity.ref === vm.chatIdentity.ref)) {
                 const payload = {
-                  id: chatIdentity.id,
+                  id: vm.chatIdentity.id,
                   name: name
                 }
                 updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
@@ -569,8 +571,8 @@ export default {
 
               return {
                 id: member.chat_identity.id,
-                name: member.chat_identity.ref === chatIdentity.ref ? name : member.chat_identity.name,
-                is_user: member.chat_identity.ref === chatIdentity.ref,
+                name: member.chat_identity.ref === vm.chatIdentity.ref ? name : member.chat_identity.name,
+                is_user: member.chat_identity.ref === vm.chatIdentity.ref,
                 is_arbiter: member.chat_identity.id === vm.arbiterIdentity?.chat_identity_id || false,
                 pubkeys: member.chat_identity.pubkeys
               }
@@ -600,7 +602,7 @@ export default {
         vm.isloaded = true
       })
         .catch(error => {
-          console.error(error.response)
+          console.error(error.response || error)
           // if (error.response.status === 403) {
           //   bus.emit('session-expired')
           // }
@@ -706,7 +708,8 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          const ref = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+          // const ref = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+          const ref = vm.chatIdentity?.ref
           const temp = decryptedMessages
           temp.map(item => {
             item.chatIdentity.is_user = item.chatIdentity.ref === ref
