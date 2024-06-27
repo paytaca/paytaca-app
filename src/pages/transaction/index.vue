@@ -905,18 +905,20 @@ export default {
       this.adjustTransactionsDivHeight()
     },
     async handleOpenedNotification(openedNotification) {
-      const notificationTypes = this.$store.getters['notification/types']
-      if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
-        const txid = openedNotification?.data?.txid
-        const tokenId = openedNotification?.data?.token_id
-        this.findAndOpenTransaction({txid, tokenId, chain: 'BCH' })
-      } else if (openedNotification?.data?.type === notificationTypes.SBCH_TRANSACTION) {
-        const txid = openedNotification?.data?.txid
-        const tokenId = openedNotification?.data?.token_address
-        const logIndex = openedNotification?.data?.log_index
-        this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
-      } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
-        this.handleRampNotif(openedNotification?.data)
+      if(openedNotification) {
+        const notificationTypes = this.$store.getters['notification/types']
+        if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
+          const txid = openedNotification?.data?.txid
+          const tokenId = openedNotification?.data?.token_id
+          this.findAndOpenTransaction({txid, tokenId, chain: 'BCH' })
+        } else if (openedNotification?.data?.type === notificationTypes.SBCH_TRANSACTION) {
+          const txid = openedNotification?.data?.txid
+          const tokenId = openedNotification?.data?.token_address
+          const logIndex = openedNotification?.data?.log_index
+          this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
+        } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
+          this.handleRampNotif(openedNotification?.data)
+        }
       }
     },
     async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH' }) {
