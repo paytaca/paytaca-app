@@ -156,37 +156,28 @@ export default {
     },
     async loadChatIdentity () {
       const vm = this
+      const rampWallet = loadRampWallet()
       vm.hintMessage = this.$t('LoadingChatIdentity')
-      const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
-      const data = {
-        rampWallet: vm.rampWallet,
-        ref: vm.rampWallet.walletHash,
-        name: vm.user.name
-      }
-      // check if chatIdentity exists
-      let chatIdentity = await chatUtils.fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
-      // handle mismatching chat identity names
-      if (chatIdentity && chatIdentity.name !== vm.user.name) {
-        vm.hintMessage = this.$t('UpdatingChatIdentityName')
-        const payload = {
-          id: this.user.chat_identity_id,
-          name: vm.user.name
-        }
-        chatUtils.updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
-      }
 
       // Update signer data for signing chat authentication
       vm.hintMessage = this.$t('UpdatingSignerData')
-      const verifyingPubkey = chatIdentity?.verifying_pubkey || null
-      const currentIndex = vm.user?.address_path?.split('/')[1] || 0
-      await updateSignerData(verifyingPubkey, currentIndex).catch(error => { return vm.handleError(error, 'Failed to update signer data') })
+      await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
 
       // Update or create encrypting/decrypting keypair
       vm.hintMessage = this.$t('UpdatingChatKeypair')
       await chatUtils.updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
 
+      const chatIdentityRef = chatUtils.generateChatIdentityRef(rampWallet.walletHash)
+      const data = {
+        rampWallet: rampWallet,
+        ref: chatIdentityRef,
+        name: vm.user.name
+      }
+      // check if chatIdentity exists
+      let chatIdentity = await chatUtils.fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
+
+      // Build payload and create chat identity
       if (!chatIdentity) {
-        // Build payload and create chat identity
         vm.hintMessage = this.$t('CreatingChatIdentity')
         const payload = await vm.buildChatIdentityPayload(data).catch(error => { return vm.handleError(error, 'Failed to build chat identity') })
         chatIdentity = await chatUtils.createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
@@ -198,6 +189,7 @@ export default {
 
       // Update chat identity id if null or mismatch
       if (!vm.user.chat_identity_id || vm.user.chat_identity_id !== chatIdentity.id) {
+        const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
         chatUtils.updateChatIdentityId(userType, chatIdentity.id).catch(error => { return vm.handleError(error, 'Failed to update chat identity id') })
       }
       return true
