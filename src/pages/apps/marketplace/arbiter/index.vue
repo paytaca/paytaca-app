@@ -417,6 +417,7 @@ rpcClient.onNotification.push(rpcEvent => {
   }
   if (eventName === rpcEventNames.escrowFunding) refetchEscrowContract(data?.address)
   if (eventName === rpcEventNames.escrowSettlement) refetchEscrowContract(data?.address)
+  if (eventName === rpcEventNames.escrowSettlementAppeal) refreshSettlementAppealsPanel()
 })
 rpcClient.onOpen(() => {
   clearTimeout(rpcClientRecon.value.timeoutId)
@@ -443,6 +444,7 @@ const rpcEventNames = Object.freeze({
   updateMember: 'chat.update_member',
   escrowFunding: 'escrow_contract_funding',
   escrowSettlement: 'escrow_contract_settlement',
+  escrowSettlementAppeal: 'pending_escrow_settlement_appeal',
 })
 async function subscribeRpcEvents() {
   if (!isRpcClientOpen()) return console.log('Not subscribing on close websocket')
@@ -461,6 +463,7 @@ async function subscribeRpcEvents() {
     promises.push(
       rpcClient.call('subscribe', [rpcEventNames.escrowFunding, { arbiter_address: keys.value?.address }]),
       rpcClient.call('subscribe', [rpcEventNames.escrowSettlement, { arbiter_address: keys.value?.address }]),
+      rpcClient.call('subscribe', [rpcEventNames.escrowSettlementAppeal, { escrow_arbiter_address: keys.value?.address }]),
     )
   } else {
     console.log('Not subscribing escrow updates without arbiter address')
