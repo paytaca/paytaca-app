@@ -170,7 +170,6 @@ import HeaderNav from 'src/components/header-nav.vue'
 import FiatProcessOrder from './FiatProcessOrder.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import FilterDialog from './dialogs/FilterDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { formatCurrency, formatDate } from 'src/wallet/ramp'
@@ -189,7 +188,6 @@ export default {
   components: {
     FiatProcessOrder,
     FiatProfileCard,
-    ProgressLoader,
     FilterDialog,
     HeaderNav,
     FiatOrderForm,

@@ -168,7 +168,6 @@
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FiatOrderForm from './FiatOrderForm.vue'
 import FiatProfileCard from './FiatProfileCard.vue'
 import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
@@ -190,7 +189,6 @@ export default {
   components: {
     FiatOrderForm,
     FiatProfileCard,
-    ProgressLoader,
     HeaderNav,
     FilterComponent
   },

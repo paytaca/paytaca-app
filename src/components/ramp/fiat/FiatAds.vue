@@ -169,7 +169,6 @@ import HeaderNav from 'src/components/header-nav.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from './dialogs/FiatAdsDialogs.vue'
 import FiatAdsForm from './FiatAdsForm.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { formatCurrency, formatDate, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
@@ -187,7 +186,6 @@ export default {
     FiatAdsForm,
     FiatAdsDialogs,
     MiscDialogs,
-    ProgressLoader,
     HeaderNav
   },
   data () {
