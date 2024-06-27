@@ -4,6 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
+    <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <div>
         <header-nav :title="$t(`${action}Gift`)" backnavpath="/apps/gifts" />
@@ -27,7 +28,22 @@
                 <div style="margin-top: 20px; margin-bottom: 20px; font-size: 15px; color: grey;">
                   {{ $t('or') }}
                 </div>
-                <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
+                <div class="row items-center justify-around">
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="mdi-qrcode"
+                    @click="showQrScanner = true"
+                  />
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="upload"
+                    @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
+                  />
+                </div>
               </template>
               <div style="margin-top: 20px;">
                 <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift(null)">
@@ -60,6 +76,7 @@ import QrScanner from '../../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import QRUploader from 'src/components/QRUploader'
 
 export default {
   name: 'sweep',
@@ -79,7 +96,8 @@ export default {
   components: {
     HeaderNav,
     ProgressLoader,
-    QrScanner
+    QrScanner,
+    QRUploader
   },
   data () {
     return {
@@ -163,12 +181,13 @@ export default {
         vm.processing = false
       })
     },
-    onScannerDecode (content) {
+    async onScannerDecode (content) {
       this.showQrScanner = false
-      if (content.split('?code=').length === 2) {
-        this.scannedShare = content.split('?code=')[1]
+      const code = Array.isArray(content) ? content[0].rawValue : content
+      if (code.split('?code=').length === 2) {
+        this.scannedShare = code.split('?code=')[1]
       } else {
-        this.scannedShare = content
+        this.scannedShare = code
       }
       this.claimGift(null)
     }
