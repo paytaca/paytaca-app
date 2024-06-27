@@ -42,9 +42,15 @@
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg">
-              <!--TODO:-->
-              <span>Appealable after</span>
-              <span class="text-nowrap q-ml-xs">{{ appealCooldown.label }}</span>
+              <span>
+                {{
+                  $t(
+                    'AppealableAfterCooldown',
+                    { cooldown: appealCooldown.label },
+                    `Appealable after ${ appealCooldown.label }`
+                  )
+                }}
+              </span>
             </div>
           </div>
 
@@ -98,7 +104,6 @@
               </div>
             </div>
             <div class="q-pl-sm">
-              <!--TODO:-->
               <q-btn
                 class="sm-font-size button button-text-primary"
                 padding="none"
@@ -107,7 +112,13 @@
                 :disable="!hasArbiters"
                 :class="getDarkModeClass(darkMode)"
                 @click="byFiat = !byFiat">
-                Set amount in {{ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }}
+                {{
+                  $t(
+                    'SetAmountInCurrency',
+                    { currency: byFiat ? 'BCH' : ad?.fiat_currency?.symbol },
+                    `Set amount in ${ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }`
+                  )
+                }}
               </q-btn>
             </div>
             <div v-if="ad.trade_type === 'BUY'">

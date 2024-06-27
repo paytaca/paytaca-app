@@ -6,8 +6,15 @@
     :class="getDarkModeClass(darkMode)"
   >
       <div class="q-pt-md text-center text-weight-bold lg-font-size text-uppercase">{{ $t('AdSnapshot') }}</div>
-      <!--TODO:-->
-      <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Ad #{{ snapshot.ad }})</div>
+      <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">
+        {{
+          $t(
+            'AdIdNo',
+            { ID: snapshot.ad },
+            `(Ad #${ snapshot.ad })`
+          )
+        }}
+      </div>
 
       <q-separator class="q-my-sm" :dark="darkMode"/>
 

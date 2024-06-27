@@ -114,8 +114,15 @@
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div v-if="type === 'order'" class="row q-mt-none">
-                <!--TODO:-->
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
+                  {{
+                    $t(
+                      'ViewAmountInCurrency',
+                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
+                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
+                    )
+                  }}
+                </q-btn>
               </div>
             </div>
             <q-space/>
@@ -137,8 +144,15 @@
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div class="row q-mt-none">
-                <!--TODO:-->
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
+                  {{
+                    $t(
+                      'ViewAmountInCurrency',
+                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
+                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
+                    )
+                  }}
+                </q-btn>
               </div>
             </div>
             <div class="col-auto q-ml-md q-mr-sm text-right">

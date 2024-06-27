@@ -139,7 +139,7 @@
           </q-list>
           <q-separator spaced/>
           <div class="text-body1 pp-text">
-            <span>Total:</span>
+            <span>{{ $t('Total') }}:</span>
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
           <div v-if="paymentRequestStatus.executing" class="q-mt-md row justify-center">

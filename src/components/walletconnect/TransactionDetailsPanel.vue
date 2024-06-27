@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="row items-start">
-        <div>TX output</div>
+        <div>{{ $t('TxnOutput') }}</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(input?.txid)">
           {{ ellipsisText(input?.txid) }}:{{ input?.index }}
@@ -21,7 +21,7 @@
         </q-btn>
       </div>
       <div v-if="input?.address" class="row items-start">
-        <div>Address:</div>
+        <div>{{ $t('Address') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(input?.address)">
           {{ ellipsisText(input?.address) }}
@@ -29,7 +29,7 @@
         </q-btn>
       </div>
       <div v-else-if="input?.lockingBytecode" class="row items-start">
-        <div>Bytecode:</div>
+        <div>{{ $t('Bytecode') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(input?.lockingBytecode)">
           {{ ellipsisText(input?.lockingBytecode) }}
@@ -38,10 +38,10 @@
       </div>
 
       <div v-if="input?.token">
-        <div>Token:</div>
+        <div>{{ $t('Token') }}:</div>
         <div class="q-pl-sm">
           <div class="row items-start">
-            <div>Category:</div>
+            <div>{{ $t('Category') }}:</div>
             <q-space/>
             <q-btn no-caps flat padding="none" @click="copyToClipboard(input?.token?.category)">
               {{ ellipsisText(input?.token?.category) }}
@@ -49,7 +49,7 @@
             </q-btn>
           </div>
           <div v-if="input?.token?.amount" class="row items-start">
-            <div>Amount:</div>
+            <div>{{ $t('Amount') }}:</div>
             <q-space/>
             <div>{{ input?.token?.amount }}</div>
           </div>
@@ -65,7 +65,7 @@
       </div>
     </div>
     <q-separator spaced/>
-    <div>Outputs</div>
+    <div>{{ $t('Outputs') }}</div>
     <div v-for="(output, index) in parsedTx.outputs" :key="index" class="q-mb-md">
       <div class="row items-start">
         <div>#{{ index }}</div>
@@ -79,7 +79,7 @@
       </div>
 
       <div v-if="output?.opData" class="row items-start">
-        <div>Data:</div>
+        <div>{{ $t('Data') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(output?.opData)">
           <span class="text-right" style="word-break:break-all;">
@@ -89,7 +89,7 @@
         </q-btn>
       </div>
       <div v-if="output?.address" class="row items-start">
-        <div>Address:</div>
+        <div>{{ $t('Address') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(output?.address)">
           {{ ellipsisText(output?.address) }}
@@ -97,7 +97,7 @@
         </q-btn>
       </div>
       <div v-else-if="output?.lockingBytecode" class="row items-start">
-        <div>Bytecode:</div>
+        <div>{{ $t('Bytecode') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(output?.lockingBytecode)">
           {{ ellipsisText(output?.lockingBytecode) }}
@@ -105,10 +105,10 @@
         </q-btn>
       </div>
       <div v-if="output?.token">
-        <div>Token:</div>
+        <div>{{ $t('Token') }}:</div>
         <div class="q-pl-sm">
           <div class="row items-start">
-            <div>Category:</div>
+            <div>{{ $t('Category') }}:</div>
             <q-space/>
             <q-btn no-caps flat padding="none" @click="copyToClipboard(output?.token?.category)">
               {{ ellipsisText(output?.token?.category) }}
@@ -116,7 +116,7 @@
             </q-btn>
           </div>
           <div v-if="output?.token?.amount" class="row items-start">
-            <div>Amount:</div>
+            <div>{{ $t('Amount') }}:</div>
             <q-space/>
             <div>{{ output?.token?.amount }}</div>
           </div>
@@ -138,6 +138,7 @@ import { binToHex, isArbitraryDataOutput } from "@bitauth/libauth"
 import { ellipsisText, formatUnits } from "src/wallet/anyhedge/formatters"
 import { useQuasar } from "quasar"
 import { computed, inject } from "vue"
+import { useI18n } from "vue-i18n"
 
 const props = defineProps({
   transaction: Object,
@@ -146,6 +147,7 @@ const props = defineProps({
 
 const $copyText = inject('$copyText')
 const $q = useQuasar()
+const { t } = useI18n()
 
 const parsedTx = computed(() => {
   return {
@@ -197,7 +199,7 @@ function binToHexSafe(value) {
 function copyToClipboard(value, message) {
   $copyText(value)
   $q.notify({
-    message: message || 'Copied to clipboard',
+    message: message || t('CopiedToClipboard'),
     timeout: 800,
     color: 'blue-9',
     icon: 'mdi-clipboard-check'

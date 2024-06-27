@@ -337,7 +337,7 @@ import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { sha256 } from 'js-sha256'
-// import { VOffline } from 'v-offline'
+import { VOffline } from 'v-offline'
 import AssetFilter from '../../components/AssetFilter'
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
@@ -360,7 +360,7 @@ export default {
     AssetCards,
     pinDialog,
     securityOptionDialog,
-    // VOffline,
+    VOffline,
     connectedDialog,
     PriceChart,
     AssetFilter

@@ -7,8 +7,15 @@
       <div class="lg-font-size">
         <span>{{ headerTitle.toUpperCase() }}</span>
       </div>
-      <!--TODO:-->
-      <div class="text-center subtext sm-font-size q-mb-sm">ORDER ID: {{ order?.id }}</div>
+      <div class="text-center subtext sm-font-size q-mb-sm">
+        {{
+          $t(
+            'OrderIdNo2',
+            { ID: order?.id },
+            `ORDER ID: ${ order?.id }`
+          )
+        }}
+      </div>
     </div>
     <!-- <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef"> -->
       <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">

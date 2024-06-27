@@ -209,8 +209,7 @@ export default {
   },
   computed: {
     appealBtnLabel () {
-      // TODO:
-      if (this.countDown) return `Appealable in ${this.countDown}`
+      if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countdown }, `Appealable in ${this.countdown}`)
       return this.$t('SubmitAnAppeal')
     },
     dragSlideTitle () {

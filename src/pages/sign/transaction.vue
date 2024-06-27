@@ -2,15 +2,15 @@
   <div id="app-container" class="" :class="{'pt-card-3': darkMode}">
     <header-nav
       backnavpath="/"
-      :title="$t('Sign Transaction')"
+      :title="$t('SignTransaction')"
     ></header-nav>
     <div class="">
       <div class="q-pa-md text-white" style="padding-top: 40px;">
         <div class="col-12 q-mt-lg items-center">
           <span v-if="userPrompt" class="text-lg text-bold span-text-center" v-text="userPrompt"></span>
-          <p class="text-lg">Origin:</p><textarea rows="1" readonly class="ro-text" v-text="origin"></textarea>
-          <p class="text-lg">Signer:</p><textarea rows="1" readonly class="ro-text" v-text="connectedAddress.split(':')[1]"></textarea>
-          <p class="text-lg">Inputs:</p>
+          <p class="text-lg">{{$t('Origin')}}:</p><textarea rows="1" readonly class="ro-text" v-text="origin"></textarea>
+          <p class="text-lg">{{$t('Signer')}}:</p><textarea rows="1" readonly class="ro-text" v-text="connectedAddress.split(':')[1]"></textarea>
+          <p class="text-lg">{{$t('Inputs')}}:</p>
           <div v-for="(input,idx) of sourceOutputsUnpacked">
             <span class="font-normal">{{`#${idx}:`}}</span>
             {{`${satoshiToBCHString(input.valueSatoshis)} (${binToHex(input.outpointTransactionHash).slice(0,4)}...${binToHex(input.outpointTransactionHash).slice(-4)}:${input.outpointIndex}) ${toCashaddr(input.lockingBytecode).split(':')[1]}` }}
@@ -18,18 +18,18 @@
               <br/>
               <hr/>
               Token: <span :style="{'background-color': `#${binToHex(input.token.category.slice(0, 3))}`}">{{ binToHex(input.token.category.slice(0, 3)) }} <br/></span>
-              <span v-if="input.token.nft?.commitment.length"> Commitment: {{ binToHex(input.token.nft.commitment) }} <br/></span>
-              <span v-if="input.token.nft?.capability"> Capability: {{ input.token.nft.capability }} <br/></span>
-              <span v-if="input.token.amount > 0n"> Fungible amount: {{ input.token.amount }} <br/></span>
+              <span v-if="input.token.nft?.commitment.length">{{$t('Commitment')}}: {{ binToHex(input.token.nft.commitment) }} <br/></span>
+              <span v-if="input.token.nft?.capability">{{$t('Capability')}}: {{ input.token.nft.capability }} <br/></span>
+              <span v-if="input.token.amount > 0n">{{$t('FungibleAmount')}}: {{ input.token.amount }} <br/></span>
             </span>
             <span v-if="input.contract?.artifact.contractName">
               <hr/>
-              Contract: {{ input.contract?.artifact.contractName }} <br/>
-              Function: {{ input.contract?.abiFunction.name }} <br/>
+              {{$t('Contract')}}: {{ input.contract?.artifact.contractName }} <br/>
+              {{$t('Function')}}: {{ input.contract?.abiFunction.name }} <br/>
             </span>
             <p/>
           </div>
-          <p class="text-lg">Outputs:</p>
+          <p class="text-lg">{{$t('Outputs')}}:</p>
           <div v-for="(output,idx) of tx.outputs">
             <div v-if="output.lockingBytecode[0] === 106">
               <span class="font-normal">{{`#${idx}:`}}</span>
@@ -42,10 +42,10 @@
               <span v-if="output.token">
                 <br/>
                 <hr/>
-                Token: <span :style="{'background-color': `#${binToHex(output.token.category.slice(0, 3))}`}">{{ binToHex(output.token.category.slice(0, 3)) }} <br/></span>
-                <span v-if="output.token.nft?.commitment.length"> Commitment: {{ binToHex(output.token.nft.commitment) }} <br/></span>
-                <span v-if="output.token.nft?.capability"> Capability: {{ output.token.nft.capability }} <br/></span>
-                <span v-if="output.token.amount > 0n"> Fungible amount: {{ output.token.amount }} <br/></span>
+                {{$t('Token')}}: <span :style="{'background-color': `#${binToHex(output.token.category.slice(0, 3))}`}">{{ binToHex(output.token.category.slice(0, 3)) }} <br/></span>
+                <span v-if="output.token.nft?.commitment.length">{{$t('Commitment')}}: {{ binToHex(output.token.nft.commitment) }} <br/></span>
+                <span v-if="output.token.nft?.capability">{{$t('Capability')}}: {{ output.token.nft.capability }} <br/></span>
+                <span v-if="output.token.amount > 0n">{{$t('FungibleAmount')}}: {{ output.token.amount }} <br/></span>
               </span>
             </div>
             <p/>
@@ -265,8 +265,8 @@ export default defineComponent({
       const decodeResult = decodePrivateKeyWif(privateKeyWif);
       if (typeof decodeResult === "string") {
         this.$q.dialog({
-          message: "Not enough information provided, please include contract redeemScript",
-          title: "Error",
+          message:this.$t('RedeemScriptErrMsg'),
+          title: this.$t('Error'),
           seamless: true,
           ok: true
         });
@@ -277,7 +277,7 @@ export default defineComponent({
       if (typeof pubkeyCompressed === "string") {
         this.$q.dialog({
           message: pubkeyCompressed,
-          title: "Error",
+          title: this.$t('Error'),
           seamless: true,
           ok: true
         });
@@ -301,8 +301,8 @@ export default defineComponent({
             const coveredBytecode = this.sourceOutputsUnpacked[index].contract?.redeemScript;
             if (!coveredBytecode) {
               this.$q.dialog({
-                message: "Not enough information provided, please include contract redeemScript",
-                title: "Error",
+                message: this.$t('RedeemScriptErrMsg'),
+                title: this.$t('Error'),
                 seamless: true,
                 ok: true
               });
@@ -314,7 +314,7 @@ export default defineComponent({
             if (typeof signature === "string") {
               this.$q.dialog({
                 message: signature,
-                title: "Error",
+                title: this.$t('Error'),
                 seamless: true,
                 ok: true
               });

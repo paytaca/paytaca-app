@@ -30,8 +30,15 @@
               <template v-if="location?.name">
                 {{ location?.name }} <span class="text-grey">#{{ location?.id }}</span>
               </template>
-              <!--TODO:-->
-              <template v-else>Address #{{ location?.id }}</template>
+              <template v-else>
+                {{
+                  $t(
+                    'AddressLocationId',
+                    { locationId: location?.id },
+                    `Address #${ location?.id }`,
+                  )
+                }}
+              </template>
             </q-item-label>
             <q-item-label class="text-caption ellipsis-2-lines">
               {{ location?.formatted }}

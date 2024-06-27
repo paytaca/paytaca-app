@@ -4,13 +4,28 @@
     class="text-bow"
     :class="getDarkModeClass(darkMode)">
     <div v-if="step === 1">
-      <!--TODO:-->
       <div
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
         :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
         :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-        <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
-        <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
+        <span v-if="adsState === 'create'">
+          {{
+            $t(
+              'PostAd',
+              { type: transactionType.toUpperCase() },
+              `POST ${ transactionType.toUpperCase() } AD`
+            )
+          }}
+        </span>
+        <span v-if="adsState === 'edit'">
+          {{
+            $t(
+              'EditAd',
+              { type: transactionType.toUpperCase() },
+              `EDIT ${ transactionType.toUpperCase() } AD`
+            )
+          }}
+        </span>
       </div>
       <!-- Price Settings -->
       <div v-if="loading">
@@ -402,9 +417,20 @@ export default {
     },
     hints () {
       return {
-        // TODO:
-        priceValue: this.adData.priceType === 'FLOATING' ? `Price is ${this.priceValue}% of market price` : this.$t('PriceValueHint'),
-        tradeAmount: `The total amount of BCH you want to ${this.transactionType.toLocaleLowerCase()}`,
+        priceValue: (
+          this.adData.priceType === 'FLOATING'
+          ? this.$t(
+            'FiatAdFormHint1',
+            { priceValue: this.priceValue },
+            `Price is ${this.priceValue}% of market price`
+          )
+          : this.$t('PriceValueHint')
+        ),
+        tradeAmount: this.$t(
+          'FiatAdFormHint2',
+          { type: this.transactionType.toLocaleLowerCase() },
+          `The total amount of BCH you want to ${this.transactionType.toLocaleLowerCase()}`
+        ),
         minAmount: this.$t('MinAmountHint'),
         maxAmount: this.$t('MaxAmountHint'),
         appealCooldown: this.$t('AppealCooldownHint')

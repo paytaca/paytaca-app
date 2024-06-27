@@ -62,9 +62,13 @@
                       </div>
                     </div>
                     <div>
-                      <!--TODO:-->
-                      ({{ product?.reviewSummary?.count }}
-                      {{ product?.reviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                      {{
+                        $t(
+                          'ReviewCount',
+                          { count: product?.reviewSummary?.count },
+                          `(${ product?.reviewSummary?.count } review(s))`
+                        )
+                      }}
                     </div>
                   </q-menu>
                 </div>

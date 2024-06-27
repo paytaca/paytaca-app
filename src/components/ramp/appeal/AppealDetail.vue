@@ -124,8 +124,13 @@
           </q-card>
         </div>
         <div class="q-mx-lg q-mt-md" v-if="sendingBch">
-          <!--TODO:-->
-          <q-spinner class="q-mr-xs"/>{{ selectedAction === 'release' ? 'Releasing' : 'Refunding'}} BCH, please wait.
+          <q-spinner class="q-mr-xs"/>
+          <template v-if="selectedAction === 'release'">
+            {{ $t('ReleasingBch') }}
+          </template>
+          <template v-else>
+            {{ $t('RefundingBch') }}
+          </template>
         </div>
         <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto; max-width: 300px">
           <q-card flat class="row pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">

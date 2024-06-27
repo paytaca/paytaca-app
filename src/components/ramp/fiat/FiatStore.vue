@@ -106,9 +106,24 @@
                         <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
                       </div>
                       <div class="sm-font-size">
-                        <!--TODO:-->
-                        <span class="q-mr-sm">{{ listing.trade_count }} total trades </span>
-                        <span class="q-ml-sm">{{ formatCompletionRate(listing.completion_rate) }}% completion</span><br>
+                        <span class="q-mr-sm">
+                          {{
+                            $t(
+                              'TradeCount',
+                              { count: listing.trade_count },
+                              `${ listing.trade_count || 0 } trades`
+                            )
+                          }}
+                        </span>
+                        <span class="q-ml-sm">
+                          {{
+                            $t(
+                              'CompletionPercentage',
+                              { percentage: formatCompletionRate(listing.completion_rate) },
+                              `${ formatCompletionRate(listing.completion_rate) }% completion`
+                            )
+                          }}
+                        </span><br>
                       </div>
                       <span
                         class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
