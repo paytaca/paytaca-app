@@ -19,6 +19,45 @@
           </q-list>
         </q-menu>
       </q-btn>
+      <q-btn :disable="fetchingAppeals" flat padding="sm" icon="sort" :color="filterOpts.orderingField ? 'brandblue' : undefined">
+        <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+          <q-list separator>
+            <q-item
+              v-if="filterOpts.orderingField"
+              :disable="fetchingAppeals"
+              class="text-grey"
+              clickable v-close-popup
+              @click="() => toggleOrderingField(undefined, 100)"
+            >
+              <q-item-section>
+                <q-item-label>Remove ordering</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-for="opt in filterOrderingOpts" :key="opt?.value"
+              :disable="fetchingAppeals"
+              :active="filterOpts.orderingField === opt.value"
+              clickable v-close-popup
+              @click="() => toggleOrderingField(opt.value)"
+            >
+              <q-item-section>
+                <q-item-label>{{ opt?.label || capitalize(opt?.value).replaceAll('_', ' ') }}</q-item-label>
+              </q-item-section>
+              <q-item-section avatar class="q-ml-none">
+                <q-icon
+                  v-if="filterOpts.orderingField === opt.value"
+                  name="sort"
+                  :style="{
+                    transform: filterOpts.descending ? 'scaleX(-1)' : 'rotate(180deg)',
+                    transition: 'transform 0.1s ease-in',
+                  }"
+                />
+                <q-icon v-else/>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-btn>
     </div>
     <div class="row items-center justify-end q-my-xs">
       <q-chip v-if="filterOpts.ids?.length" removable @remove="filterOpts.ids = []" :outline="darkMode">
@@ -178,10 +217,32 @@ async function dialogPromise(qDialogOptions) {
 
 const arbiterAddress = computed(() => props.keys?.address)
 
+const filterOrderingOpts = [
+  { label: 'ID', value: 'id' },
+  { label: 'Created', value: 'created_at' },
+  { label: 'Completed', value: 'completed_at' },
+  { label: 'Cancelled', value: 'cancelled_at' },
+]
 const filterOpts = ref({
   isPending: true,
   ids: [],
+  orderingField: 'created_at',
+  descending: true,
 })
+
+async function toggleOrderingField(value, delay=0) {
+  if (Number.isInteger(delay) && delay > 0) await sleepPromise(delay)
+
+  if (!value) {
+    filterOpts.value.orderingField = undefined
+    filterOpts.value.descending = false
+    return
+  }
+
+  if (filterOpts.value.orderingField != value) filterOpts.value.orderingField = value
+  else filterOpts.value.descending = !filterOpts.value.descending
+}
+
 watch(filterOpts, () => fetchAppeals(), { deep: true })
 
 
@@ -196,6 +257,7 @@ const fetchAppeals = debounce((opts={ limit: 0, offset: 0 }) => {
     limit: opts?.limit || 10,
     offset: opts?.offset || undefined,
     arbiter_addresses: props.keys?.arbiter_addresses,
+    ordering: filterOpts.value.orderingField,
   }
 
   if (filterOpts.value.isPending) {
@@ -206,6 +268,14 @@ const fetchAppeals = debounce((opts={ limit: 0, offset: 0 }) => {
 
   if (filterOpts.value.ids?.length) {
     params.ids = filterOpts.value.ids.join(',')
+  }
+
+  if (params.ordering?.length > 0) {
+    if (params.ordering.startsWith('-') && !filterOpts.value.descending) {
+      params.ordering = params.ordering.substring(1)
+    } else if (!params.ordering.startsWith('-') && filterOpts.value.descending) {
+      params.ordering = '-' + params.ordering
+    }
   }
 
   fetchingAppeals.value = true
