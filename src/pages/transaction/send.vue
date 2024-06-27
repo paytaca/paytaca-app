@@ -4,6 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
+    <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || name || '')"
@@ -101,14 +102,23 @@
               <div class="col-12 text-uppercase text-center or-label">
                 {{ $t('or') }}
               </div>
-              <div class="col-12 q-mt-lg text-center">
-                <q-btn
-                  round
-                  size="lg"
-                  class="btn-scan button text-white bg-grad"
-                  icon="mdi-qrcode"
-                  @click="showQrScanner = true"
-                />
+              <div class="col-12 q-mt-lg">
+                <div class="row items-center justify-around">
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="mdi-qrcode"
+                    @click="showQrScanner = true"
+                  />
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="upload"
+                    @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
+                  />
+                </div>
               </div>
             </div>
             <div class="q-pa-md text-center text-weight-medium">
@@ -153,6 +163,7 @@
                       @on-recipient-input="onRecipientInput"
                       @on-empty-recipient="onEmptyRecipient"
                       @on-selected-denomination-change="onSelectedDenomination"
+                      @on-qr-uploader-click="onQRUploaderClick"
                       :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
@@ -181,6 +192,7 @@
                     @on-recipient-input="onRecipientInput"
                     @on-empty-recipient="onEmptyRecipient"
                     @on-selected-denomination-change="onSelectedDenomination"
+                    @on-qr-uploader-click="onQRUploaderClick"
                     :key="generateKeys(index)"
                     ref="sendPageRef"
                   />
@@ -357,6 +369,7 @@ import SendPageForm from 'src/components/SendPageForm.vue'
 import SingleWallet from 'src/wallet/single-wallet'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import QRUploader from 'src/components/QRUploader'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -373,7 +386,8 @@ export default {
     QrScanner,
     VOffline,
     DenominatorTextDropdown,
-    SendPageForm
+    SendPageForm,
+    QRUploader
   },
   props: {
     network: {
@@ -699,12 +713,12 @@ export default {
         'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
       ).format(dateObj)
     },
-    onScannerDecode (content) {
+    async onScannerDecode(content) {
       this.disableSending = false
       this.bip21Expires = null
       this.showQrScanner = false
       this.sliderStatus = false
-      let address = content
+      let address = Array.isArray(content) ? content[0].rawValue : content
       let amount = null
       let amountValue = null
       let currency = null
@@ -1593,6 +1607,9 @@ export default {
         this.singleWallet = undefined
       }
       return { wallet, singleWallet: this.singleWallet }
+    },
+    onQRUploaderClick () {
+      this.$refs['qr-upload'].$refs['q-file'].pickFiles()
     }
   },
 
@@ -1634,6 +1651,11 @@ export default {
     }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+
+    // check query if address is not empty (from qr reader redirection)
+    if (vm.$route.query.address !== '') {
+      vm.onScannerDecode(vm.$route.query.address)
+    }
   },
 
   unmounted () {

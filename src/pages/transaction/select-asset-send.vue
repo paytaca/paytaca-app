@@ -98,6 +98,12 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
+  props: {
+    address: {
+      type: String,
+      default: ''
+    }
+  },
   components: {
     HeaderNav,
     AssetFilter,
@@ -157,7 +163,7 @@ export default {
       }
 
       const vm = this
-      return this.$store.getters['assets/getAssets'].filter(function (item) {
+      const assets = this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item?.id === 'bch'
           const tokenType = item?.id?.split?.('/')?.[0]
@@ -167,6 +173,12 @@ export default {
           return tokenType === 'slp' || isBch
         }
       })
+
+      if (vm.address !== '' && vm.address.includes('bitcoincash:zq')) {
+        return assets.splice(1)
+      }
+      
+      return assets
     }
   },
   methods: {
@@ -183,10 +195,11 @@ export default {
       this.selectedNetwork = newNetwork
     },
     redirectToSend (asset) {
-      let query = {
+      const query = {
         assetId: asset.id,
         tokenType: 1,
-        network: this.selectedNetwork
+        network: this.selectedNetwork,
+        address: this.address
       }
       this.$router.push({
         name: 'transaction-send',

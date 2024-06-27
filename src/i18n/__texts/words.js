@@ -295,6 +295,8 @@ const words = [
     Unread: 'Unread',
     Fee: 'Fee',
     Timestamp: 'Timestamp',
+    ID: 'ID',
+    CashToken: 'CashToken',
     Signer: 'Signer',
     Origin: 'Origin',
     Message: 'Message',
@@ -310,6 +312,7 @@ const words = [
     Created: 'Created',
     Expires: 'Expires',
     BCH: 'BCH',
+    Map: 'Map'
   },
 ]
 
