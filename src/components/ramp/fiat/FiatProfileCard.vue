@@ -13,67 +13,68 @@
     </div>
     <div v-else>
       <div v-if="state === 'initial'">
-        <div v-if="user" class="q-mb-lg">
-          <div class="text-center q-pt-none">
-            <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-            <div class="text-weight-bold lg-font-size q-pt-sm">
-              <span id="target-name">{{ user.name }}</span>
-              <q-icon
-                @click="editNickname = true"
-                v-if="user?.self"
-                size="sm"
-                name='o_edit'
-                class="button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
-              />
+        <q-pull-to-refresh @refresh="refreshData">
+          <div v-if="user" class="q-mb-lg">
+            <div class="text-center q-pt-none">
+              <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+              <div class="text-weight-bold lg-font-size q-pt-sm">
+                <span id="target-name">{{ user.name }}</span>
+                <q-icon
+                  @click="editNickname = true"
+                  v-if="user?.self"
+                  size="sm"
+                  name='o_edit'
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                />
+              </div>
             </div>
-          </div>
-          <!-- Edit Payment Methods -->
-          <div class="row q-mx-lg q-px-md q-pt-md" v-if="user?.self">
-            <q-btn
-              rounded
-              no-caps
-              :label="$t('EditPaymentMethods')"
-              color="blue-8"
-              class="q-space q-mx-md button"
-              @click="() => {
-                state= 'edit-pm'
-                if (!userInfo) {
-                  pageName = state
-                } else {
-                  $emit('updatePageName', state)
-                }
-              }"
-              icon="o_payments"
-              >
-            </q-btn>
-          </div>
+            <!-- Edit Payment Methods -->
+            <div class="row q-mx-lg q-px-md q-pt-md" v-if="user?.self">
+              <q-btn
+                rounded
+                no-caps
+                :label="$t('EditPaymentMethods')"
+                color="blue-8"
+                class="q-space q-mx-md button"
+                @click="() => {
+                  state= 'edit-pm'
+                  if (!userInfo) {
+                    pageName = state
+                  } else {
+                    $emit('updatePageName', state)
+                  }
+                }"
+                icon="o_payments"
+                >
+              </q-btn>
+            </div>
 
-          <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
-            <q-btn
-              rounded
-              no-caps
-              label="See User Ads"
-              color="blue-8"
-              class="q-space"
-              icon="sym_o_sell"
-              @click="fetchUserAds()"
-              >
-            </q-btn>
-          </div> -->
+            <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
+              <q-btn
+                rounded
+                no-caps
+                label="See User Ads"
+                color="blue-8"
+                class="q-space"
+                icon="sym_o_sell"
+                @click="fetchUserAds()"
+                >
+              </q-btn>
+            </div> -->
 
-          <!-- User Stats -->
-          <div class="row justify-center q-px-sm q-pt-sm">
-            <q-rating
-              readonly
-              :model-value="user.rating ? user.rating : 0"
-              :v-model="user.rating"
-              size="1.5em"
-              color="yellow-9"
-              icon="star"
-              icon-half="star_half"
-            />
-            <span class="q-mx-sm sm-font-size">
+            <!-- User Stats -->
+            <div class="row justify-center q-px-sm q-pt-sm">
+              <q-rating
+                readonly
+                :model-value="user.rating ? user.rating : 0"
+                :v-model="user.rating"
+                size="1.5em"
+                color="yellow-9"
+                icon="star"
+                icon-half="star_half"
+              />
+                <span class="q-mx-sm sm-font-size">
               {{
                 $t(
                   'RatingValue',
@@ -82,9 +83,9 @@
                 )
               }}
             </span>
-          </div>
-          <div class="text-center sm-font-size q-pt-sm">
-              <span>
+            </div>
+            <div class="text-center sm-font-size q-pt-sm">
+                <span>
                 {{
                   $t(
                     'TradeCount',
@@ -94,9 +95,9 @@
                 }}
               </span>
               &nbsp;&nbsp;
-              <span>|</span>
+                <span>|</span>
               &nbsp;&nbsp;
-              <span>
+                <span>
                 {{
                   $t(
                     'CompletionPercentage',
@@ -105,8 +106,9 @@
                   )
                 }}
               </span>
+            </div>
           </div>
-        </div>
+        </q-pull-to-refresh>
         <div
           class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
@@ -340,13 +342,17 @@ export default {
     if (!this.userInfo) {
       this.pageName = 'main'
     }
-
     this.processUserData()
     this.fetchReviews()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    refreshData (done) {
+      this.processUserData()
+      this.fetchReviews()
+      done()
+    },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
 

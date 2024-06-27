@@ -134,7 +134,8 @@ export default {
     },
     addArbiterToChat () {
       const vm = this
-      const chatRef = generateChatRef(vm.order.id, vm.order.created_at)
+      const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+      const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)

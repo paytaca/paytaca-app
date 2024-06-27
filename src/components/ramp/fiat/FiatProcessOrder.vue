@@ -491,7 +491,8 @@ export default {
             vm.order = response.data
             vm.updateStatus(vm.order.status)
             vm.updateOrderReadAt()
-            const chatRef = generateChatRef(vm.order.id, vm.order.created_at)
+            const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+            const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
             vm.chatRef = chatRef
             fetchChatSession(chatRef)
               .then(res => {
@@ -771,7 +772,8 @@ export default {
     },
     addArbiterToChat () {
       const vm = this
-      const chatRef = generateChatRef(vm.order.id, vm.order.created_at) // `ramp-order-${vm.order.id}-chat`
+      const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+      const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)
