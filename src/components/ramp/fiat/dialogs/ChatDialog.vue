@@ -34,6 +34,7 @@
       :style="`height: ${attachmentUrl ? maxHeight - 280 : maxHeight - 120}px`"
       style="overflow: auto;">
       <q-infinite-scroll
+        :scroll-target="scrollTargetRef"
         ref="infiniteScroll"
         :items="convo.messages"
         @load="loadMoreData"
@@ -311,14 +312,16 @@ export default {
     const tempMessage = ref(null)
 
     const resetScroll = async (type = null) => {
-      await infiniteScroll.value.reset()
-      const scrollElement = scrollTargetRef.value.$el
-      const test = infiniteScroll.value.$el
+      if (infiniteScroll.value) {
+        await infiniteScroll.value.reset()
+        const scrollElement = scrollTargetRef.value.$el
+        const test = infiniteScroll.value.$el
 
-      if (type) {
-        scrollElement.scrollTop = test.clientHeight - scrollSnapshot.value
-      } else {
-        scrollElement.scrollTop = test.clientHeight
+        if (type) {
+          scrollElement.scrollTop = test.clientHeight - scrollSnapshot.value
+        } else {
+          scrollElement.scrollTop = test.clientHeight
+        }
       }
     }
 
@@ -341,12 +344,12 @@ export default {
       stopInfiniteScroll () {
         setTimeout(() => {
           infiniteScroll.value.stop()
-        }, 1000)
+        }, 100)
       },
       resumeInfiniteScroll () {
         setTimeout(() => {
           infiniteScroll.value.resume()
-        }, 1000)
+        }, 100)
       },
       openFileAttachementField (evt) {
         fileAttachmentField.value?.pickFiles?.(evt)
