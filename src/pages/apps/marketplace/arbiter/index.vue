@@ -124,6 +124,7 @@
         <ChatWidget
           ref="chatWidget"
           v-model="displayChats"
+          :keys="keys"
           :chat-identity="chatIdentity" :custom-backend="arbiterBackend"
           @open-order-escrow-contracts="filterOrderEscrowContracts"
           @hide="() => updateUnreadChatSessionCount()"
@@ -169,6 +170,9 @@ function resetPage() {
   escrowArbiter.value = EscrowArbiter.parse()
   initialized.value = false
 }
+
+/** ------------------------------------------------------------------ */
+/** -- Auth State -- */
 
 const keys = ref([].map(parseWif)[0])
 async function updateKeys() {
@@ -372,6 +376,7 @@ async function reLogin() {
 
 /** ------------------------------------------------------------------ */
 /** ------------------------------------------------------------------ */
+/** -- Backend updates (push notifs & websocket) -- */
 
 onActivated(() => connectRpcClient())
 onDeactivated(() => disconnectRpcClient())
@@ -510,6 +515,7 @@ function handleOpenedNotification(openedNotification) {
 
 /** ------------------------------------------------------------------ */
 /** ------------------------------------------------------------------ */
+/** -- UI State & actions -- */
 
 const tab = ref('appeal')
 const displayChats = ref(false)

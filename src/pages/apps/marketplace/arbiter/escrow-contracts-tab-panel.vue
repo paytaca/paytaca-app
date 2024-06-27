@@ -236,8 +236,8 @@
 </template>
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { backend } from "src/marketplace/backend"
 import { ChatIdentity, ChatMember, EscrowContract, Order } from "src/marketplace/objects"
+import { arbiterBackend } from "src/marketplace/arbiter";
 import { compileEscrowSmartContract } from "src/marketplace/escrow/"
 import { formatOrderStatus, parseOrderStatusColor, round } from "src/marketplace/utils"
 import { setupCache } from "axios-cache-interceptor";
@@ -251,7 +251,7 @@ import OrderDetailDialog from "src/components/marketplace/OrderDetailDialog.vue"
 import SettlementTransactionPreviewDialog from "src/components/marketplace/arbiter/SettlementTransactionPreviewDialog.vue";
 
 
-const cachedBackend = setupCache(axios.create({...backend.defaults}), { ttl: 30 * 1000 })
+const cachedBackend = setupCache(axios.create({...arbiterBackend.defaults}), { ttl: 30 * 1000 })
 const props = defineProps({
   keys: Object,
   arbiterAddress: String,
@@ -356,7 +356,7 @@ function fetchEscrowContracts(opts={ limit: 0, offset: 0 }) {
   }
 
   fetchingEscrowContracts.value = true
-  return backend.get(`connecta/escrow/`, { params })
+  return arbiterBackend.get(`connecta/escrow/`, { params })
     .then(response => {
       escrowContracts.value = response?.data?.results?.map(EscrowContract.parse)
       escrowContractsPagination.value.count = response?.data?.count
@@ -382,7 +382,7 @@ function refetchEscrowContracts(opts={addresses: [].map(String), append: false})
 
   const params = { addresses: addresses.join(','), limit: addresses?.length || 0 }
 
-  return backend.get(`connecta/escrow/`, { params })
+  return arbiterBackend.get(`connecta/escrow/`, { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
       response?.data?.results?.map?.(EscrowContract.parse)
@@ -455,6 +455,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
       persistent: true,
       color: 'brandblue',
       ok: false,
+      ok: true,
       class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     })
   }, 10)
@@ -472,6 +473,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
       "vout": escrowContract.fundingVout,
       "satoshis": escrowContract.fundingSats,
     }
+    console.log({fundingUtxo})
     dialog?.update?.({ message: 'Creating transaction' })
     let promise
     if(settlementType === 'release') {
@@ -522,7 +524,7 @@ async function sendSettlementTx(escrowContract, transaction) {
     const txHex = await transaction.build()
     const data = { settlement_tx_hex: txHex }
     dialog.update({ message: 'Broadcasting transaction' })
-    return await backend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
+    return await arbiterBackend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
       .then(response => {
         escrowContract.raw = response?.data
         dialog.hide()
@@ -606,7 +608,7 @@ function getOrderChatMembers() {
     })
   })
 
-  const promise = backend.get(`chat/members/full_info/`, { params })
+  const promise = arbiterBackend.get(`chat/members/full_info/`, { params })
     .then(response => {
       const chatMembers = response?.data?.results?.map?.(ChatMember.parse)
       chatMembers.forEach(chatMember => {
