@@ -74,69 +74,69 @@
         <div class="row justify-center" v-if="loading">
           <q-spinner-dots color="primary" size="40px" />
         </div>
-          <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <div v-for="(listing, index) in listings" :key="index">
-              <q-item clickable @click="selectOrder(listing)">
-                <q-item-section>
-                  <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="row q-mx-md">
-                      <div class="col ib-text">
-                        <!--TODO:-->
-                        <div
-                          class="q-mb-none pt-label sm-font-size"
-                          :class="getDarkModeClass(darkMode)">
-                          ORDER #{{ listing.id }}
-                          <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
-                        </div>
-                        <span
-                          class=" pt-label md-font-size text-weight-bold"
-                          :class="getDarkModeClass(darkMode)">
-                          {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
-                        </span>
-                        <div
-                          class="col-transaction text-uppercase pt-label lg-font-size"
-                          :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
-                          {{ listing.ad?.fiat_currency?.symbol }} {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
-                        </div>
-                        <div class="sm-font-size">
-                          {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                        <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
+        <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+          <div v-for="(listing, index) in listings" :key="index">
+            <q-item clickable @click="selectOrder(listing)">
+              <q-item-section>
+                <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="row q-mx-md">
+                    <div class="col ib-text">
+                      <!--TODO:-->
+                      <div
+                        class="q-mb-none pt-label sm-font-size"
+                        :class="getDarkModeClass(darkMode)">
+                        ORDER #{{ listing.id }}
+                        <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
                       </div>
-                      <div class="text-right">
-                        <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
-                          <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
-                        </span> -->
-                        <div
-                          v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
-                          class="text-weight-bold subtext sm-font-size text-blue">
-                          {{ $t('Appealable') }}
-                        </div>
-                        <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
-                          <q-rating
-                            readonly
-                            :model-value = "listing?.feedback?.rating || 0"
-                            size="1em"
-                            color="yellow-9"
-                            icon="star"
-                          />
-                        </div>
-                        <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
-                          {{ listing.status?.label }}
-                        </div>
-                        <div class="text-weight-bold subtext sm-font-size" v-else>
-                          {{ listing.status?.label }}
-                        </div>
+                      <span
+                        class=" pt-label md-font-size text-weight-bold"
+                        :class="getDarkModeClass(darkMode)">
+                        {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
+                      </span>
+                      <div
+                        class="col-transaction text-uppercase pt-label lg-font-size"
+                        :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
+                        {{ listing.ad?.fiat_currency?.symbol }} {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
+                      </div>
+                      <div class="sm-font-size">
+                        {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
+                      <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
+                    </div>
+                    <div class="text-right">
+                      <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                        <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
+                      </span> -->
+                      <div
+                        v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
+                        class="text-weight-bold subtext sm-font-size text-blue">
+                        {{ $t('Appealable') }}
+                      </div>
+                      <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
+                        <q-rating
+                          readonly
+                          :model-value = "listing?.feedback?.rating || 0"
+                          size="1em"
+                          color="yellow-9"
+                          icon="star"
+                        />
+                      </div>
+                      <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
+                        {{ listing.status?.label }}
+                      </div>
+                      <div class="text-weight-bold subtext sm-font-size" v-else>
+                        {{ listing.status?.label }}
                       </div>
                     </div>
                   </div>
-                </q-item-section>
-              </q-item>
-            </div>
-            <div class="row justify-center">
-              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
-              <q-btn v-else-if="hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
-            </div>
-          </q-list>
+                </div>
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="row justify-center">
+            <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+            <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+          </div>
+        </q-list>
       </div>
     </div>
   </div>

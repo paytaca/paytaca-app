@@ -132,7 +132,7 @@
             </div>
             <div class="row justify-center">
               <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
-              <q-btn v-else-if="hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+              <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
             </div>
           </q-list>
         </div>
@@ -355,7 +355,9 @@ export default {
     async resetAndRefetchListings () {
       const vm = this
       vm.$store.commit('ramp/resetAdsPagination')
+      vm.loading = true
       await vm.fetchAds(true)
+      vm.loading = false
     },
     updatePaginationValues () {
       const vm = this
