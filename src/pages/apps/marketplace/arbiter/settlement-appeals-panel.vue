@@ -40,7 +40,10 @@
         @update:modelValue="fetchAppeals"
       />
     </div>
-    <div v-if="!appeals?.length" class="text-center text-grey text-subtitle1">
+    <div v-if="fetchingAppeals" class="text-center q-my-xs">
+      <q-spinner size="lg" color="brandblue"/>
+    </div>
+    <div v-else-if="!appeals?.length" class="text-center text-grey text-subtitle1">
       No appeals to show
     </div>
     <div
@@ -59,8 +62,33 @@
           </q-menu>
         </div>
       </div>
-      <div v-if="appeal?.type" style="whitespace:nowrap;">{{ capitalize(appeal?.type).replaceAll('_', ' ') }}</div>
-      <div v-else class="text-grey" style="whitespace:nowrap;">No settlement type</div>
+      
+      <div class="row items-center">
+        <div v-if="appeal?.type" style="whitespace:nowrap;">{{ capitalize(appeal?.type).replaceAll('_', ' ') }}</div>
+        <div v-else class="text-grey" style="whitespace:nowrap;">No settlement type</div>
+        <div v-if="appeal?.completedAt" @click.stop>
+          <q-badge
+            rounded
+            label="Completed"
+            class="q-ml-xs"
+            color="green"
+          />
+          <q-menu class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            {{ formatTimestampToText(appeal?.completedAt) }}
+          </q-menu>
+        </div>
+        <div v-else-if="appeal?.cancelledAt" @click.stop>
+          <q-badge
+            rounded
+            label="Cancelled"
+            class="q-ml-xs"
+            color="green"
+          />
+          <q-menu class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            {{ formatTimestampToText(appeal?.cancelledAt) }}
+          </q-menu>
+        </div>
+      </div>
       <div class="row item-center no-wrap">
         <div class="ellipsis">{{ appeal?.escrowContract?.address }}</div>
         <q-space/>
@@ -94,7 +122,7 @@
             v-if="appeal?.type === 'release'"
             :disable="!Boolean(appeal?.escrowContract?.fundingTxid)"
             clickable v-close-popup
-            @click="() => settleEscrowContract(appeal?.escrowContract, { type: 'release' })"
+            @click="() => settleEscrowContract(appeal?.escrowContract, { type: 'release', escrowSettlementAppealId: appeal?.id })"
           >
             <q-item-section>
               <q-item-label>Release funds</q-item-label>
@@ -105,7 +133,7 @@
             v-if="['refund', 'full_refund'].includes(appeal?.type)"
             :disable="!Boolean(appeal?.escrowContract?.fundingTxid)"
             clickable v-close-popup
-            @click="() => settleEscrowContract(appeal?.escrowContract, { type: 'refund' })"
+            @click="() => settleEscrowContract(appeal?.escrowContract, { type: 'refund', escrowSettlementAppealId: appeal?.id })"
           >
             <q-item-section>
               <q-item-label>Return funds</q-item-label>
@@ -194,6 +222,28 @@ const fetchAppeals = debounce((opts={ limit: 0, offset: 0 }) => {
     })
 }, 250)
 
+function refetchAppeals(ids=[].map(Number)) {
+  const parsedIds = ids?.map?.(parseInt).filter(Boolean)
+  if (!parsedIds?.length) return Promise.resolve()
+  const params = {
+    ids: parsedIds.join(','),
+  }
+  return arbiterBackend.get(`connecta/escrow-settlement-appeals`, { params })
+    .then(response => {
+      const results = response?.data?.results?.map?.(EscrowSettlementAppeal.parse)
+      if (!Array.isArray(results)) return Promise.reject({ response })
+      results.forEach(appeal => {
+        const index = appeals.value.findIndex(_appeal => _appeal?.id === appeal?.id)
+        if (index < 0) return
+        appeals.value[index] = appeal
+      })
+      return response
+    })
+    .finally(() => {
+      fetchingAppeals.value = false
+    })
+}
+
 function resolveEscrowContractStatus(escrowContract = EscrowContract.parse()) {
   if (!escrowContract.isFunded) return { label: 'Pending', color: 'grey' }
   if (!escrowContract.isSettled) return { label: 'Funded', color: 'orange' }
@@ -206,8 +256,9 @@ function resolveEscrowContractStatus(escrowContract = EscrowContract.parse()) {
  * @param {EscrowContract} escrowContract 
  * @param {Object} opts
  * @param {'release' | 'refund'} opts.type
+ * @param {Number} [opts.escrowSettlementAppealId]
  */
-async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts={ type: '' }) {
+async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts={ type: '', escrowSettlementAppealId: undefined }) {
   const settlementType = opts?.type
   if (!['release', 'refund'].includes(settlementType)) return
 
@@ -278,7 +329,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     $q.dialog({
       component: SettlementTransactionPreviewDialog,
       componentProps: { escrowContract: escrowContract, transaction: transaction }
-    }).onOk(() => sendSettlementTx(escrowContract, transaction))
+    }).onOk(() => sendSettlementTx(escrowContract, transaction, opts?.escrowSettlementAppealId))
     // const txHex = await transaction.build()
     // console.log('txhex', txHex)
   } catch(error) {
@@ -297,8 +348,9 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
 /**
  * @param {EscrowContract} escrowContract 
  * @param {import('cashscript').Transaction} transaction 
+ * @param {Number} [escrowSettlementAppealId]
  */
-async function sendSettlementTx(escrowContract, transaction) {
+async function sendSettlementTx(escrowContract, transaction, escrowSettlementAppealId) {
   const dialog = $q.dialog({
     title: 'Settle escrow contract',
     persistent: true,
@@ -310,12 +362,16 @@ async function sendSettlementTx(escrowContract, transaction) {
   try {
     dialog.update({ message: 'Building transaction'})
     const txHex = await transaction.build()
-    const data = { settlement_tx_hex: txHex }
+    const data = {
+      settlement_tx_hex: txHex,
+      escrow_settlement_appeal_id: parseInt(escrowSettlementAppealId) || undefined,
+    }
     dialog.update({ message: 'Broadcasting transaction' })
     return await arbiterBackend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
       .then(response => {
         escrowContract.raw = response?.data
         dialog.hide()
+        if (escrowSettlementAppealId) refetchAppeals([escrowSettlementAppealId])
         return response
       })
       .catch(error => {
