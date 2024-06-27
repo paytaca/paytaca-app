@@ -312,6 +312,7 @@ const words = [
     Created: 'Created',
     Expires: 'Expires',
     BCH: 'BCH',
+    Map: 'Map'
   },
 ]
 
