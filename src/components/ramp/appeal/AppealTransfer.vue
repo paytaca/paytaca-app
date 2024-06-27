@@ -61,8 +61,17 @@
         </q-btn>
         <div v-if="hideBtn && !errorMessage">
           <span v-if="state === 'verifying'">
-            <!--TODO:-->
-            <q-spinner class="q-mr-sm"/>Verifying, please wait. <span v-if="waitSeconds">({{ waitSeconds }}s)</span>
+            <q-spinner class="q-mr-sm"/>
+            <span v-if="waitSeconds">
+              {{
+                $t(
+                  'VerifyingWithSeconds',
+                  { seconds: waitSeconds },
+                  `Verifying, please wait. (${ waitSeconds }s)`
+                )
+              }}
+            </span>
+            <span v-else>{{ $t('VerifyingPleaseWait2') }}</span>
           </span>
         </div>
       </div>

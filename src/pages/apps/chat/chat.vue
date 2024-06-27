@@ -13,7 +13,7 @@
         <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px">
           <q-item clickable v-close-popup>
             <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)" @click="confirmDeletion = true">
-              Clear History
+              {{ $t('ClearHistory') }}
             </q-item-section>
           </q-item>
         </q-list>
@@ -22,19 +22,19 @@
     <q-dialog class="text-black" v-model="confirmDeletion" persistent seamless>
       <q-card :dark="darkMode">
         <q-card-section class="row items-center">
-          <span class="q-ml-sm">This will delete your local copy of this conversation except the last message. Do you want to proceed?</span>
+          <span class="q-ml-sm">{{ $t('ChatWarningMsg') }}</span>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat :label="$t('Cancel')" color="primary" v-close-popup />
-          <q-btn flat label="Yes, Delete" color="red" @click="deleteHistory(topic)" v-close-popup />
+          <q-btn flat :label="$t('YesDelete')" color="red" @click="deleteHistory(topic)" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
     <div id="main-container" class="q-pa-lg row justify-center text-black" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '0px'}">
       <template v-if="!connected && !topic">
         <div class="q-pa-md row justify-center">
-          <p :class="{'text-white': darkMode}">You are chatting as:</p>
+          <p :class="{'text-white': darkMode}">{{ $t('YouAreChattingAs') }}:</p>
           <div class="q-pa-md row justify-center" style="width: 100%; margin-top: -15px;">
             <small :class="{'text-white': darkMode}">{{ getAddress() }}</small>
           </div>
@@ -43,7 +43,7 @@
           <div class="q-pa-md row justify-center">
             <template v-if="recipientAddress">
               <div class="q-pa-md row justify-center" style="margin-top: -55px;">
-                <p :class="{'text-white': darkMode}">You are chatting with:</p>
+                <p :class="{'text-white': darkMode}">{{ $t('YouAreChattingWith') }}:</p>
                 <div class="row justify-center" style="width: 100%;">
                   <small :class="{'text-white': darkMode}">{{ recipientAddress }}</small>
                 </div>
@@ -53,7 +53,7 @@
               <q-input
                 class="q-mt-md"
                 v-model="recipientAddress"
-                label="Set address to chat with"
+                :label="$t('SetAddressToChatWith')"
                 style="width: 300px; margin-top: -15px;"
                 :error-message="recipientError"
                 :error="recipientError !== null"
@@ -75,7 +75,7 @@
           <q-btn
             color="blue"
             icon-right="mdi-connection"
-            label="Start Chat"
+            :label="$t('StartChat')"
             @click.prevent="connectToBroker()"
             :disable="!recipientAddress || connecting"
           />
@@ -110,7 +110,7 @@
         <q-btn
           color="blue"
           icon-right="send"
-          label="Send"
+          :label="$t('Send')"
           @click.prevent="sendEncryptedChatMessage"
           :disable="!message"
         />

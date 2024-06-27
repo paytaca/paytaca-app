@@ -3,8 +3,15 @@
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row no-wrap items-center justify-center">
-          <!--TODO:-->
-          <div class="text-h6">Order #{{ order?.id }}</div>
+          <div class="text-h6">
+            {{
+              $t(
+                'OrderIdNoSmall',
+                { ID: order?.id },
+                `Order #${ order?.id }`
+              )
+            }}
+          </div>
           <q-chip :color="order?.statusColor" class="text-weight-medium text-white">
             {{ order?.formattedStatus }}
           </q-chip>

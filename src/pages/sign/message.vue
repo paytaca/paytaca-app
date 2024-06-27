@@ -8,9 +8,9 @@
       <div class="q-pa-md" style="padding-top: 70px;">
         <div class="col-12 q-mt-sm items-center">
           <span v-if="userPrompt" class="text-lg text-bold span-text-center" v-text="userPrompt"></span>
-          <p class="text-lg">Signer:</p><textarea readonly class="ro-text" v-text="connectedAddress.split(':')[1]"></textarea>
-          <p class="text-lg">Origin:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
-          <p class="text-lg">Message:</p><textarea readonly class="ro-text" v-text="message"></textarea>
+          <p class="text-lg">{{$t('Signer')}}:</p><textarea readonly class="ro-text" v-text="connectedAddress.split(':')[1]"></textarea>
+          <p class="text-lg">{{$t('Origin')}}:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
+          <p class="text-lg">{{$t('Message')}}:</p><textarea readonly class="ro-text" v-text="message"></textarea>
         </div>
       </div>
       <hr />
@@ -21,7 +21,7 @@
         <q-btn size="lg" class="btn text-white" :label="$t('Cancel')" @click="cancel" />
         <q-btn size="lg" class="btn text-white" :label="$t('Sign')" @click="executeSecurityChecking" />
       </div>
-    </div>
+    </div>\
 
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinDialogCompletion" />
   </div>
@@ -34,6 +34,7 @@ import HeaderNav from '../../components/header-nav'
 import { secp256k1, sha256, binToBase64, utf8ToBin, hexToBin, decodePrivateKeyWif } from "@bitauth/libauth"
 import pinDialog from '../../components/pin'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+
 
 export default {
   name: 'sign-message',
@@ -161,7 +162,6 @@ export default {
     const { connectedAddress, connectedAddressIndex } = walletInfo
     this.connectedAddress = connectedAddress;
     this.connectedAddressIndex = connectedAddressIndex;
-
     // Load wallets
     const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
     const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]

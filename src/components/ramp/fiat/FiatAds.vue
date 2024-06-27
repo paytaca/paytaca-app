@@ -18,13 +18,13 @@
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
             @click="transactionType='BUY'">
-            Buy Ads
+            {{ $t('BuyAds') }}
           </button>
           <button
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
             @click="transactionType='SELL'">
-            Sell Ads
+            {{ $t('SellAds') }}
           </button>
         </div>
         <div class="col">
@@ -74,8 +74,24 @@
                                 {{ listing.price_type }}
                               </span><br>
                               <div class="row q-gutter-md">
-                                <span>{{ listing.trade_count }} trades</span>
-                                <span>{{ Number(listing.completion_rate.toFixed(2)) }}% completion</span>
+                                <span>
+                                  {{
+                                    $t(
+                                      'TradeCount',
+                                      { count: listing.trade_count },
+                                      `${ listing.trade_count } trades`
+                                    )
+                                  }}
+                                </span>
+                                <span>
+                                  {{
+                                    $t(
+                                      'CompletionPercentage',
+                                      { percentage: Number(listing.completion_rate.toFixed(2)) },
+                                      `${ Number(listing.completion_rate.toFixed(2)) }% completion`
+                                    )
+                                  }}
+                                </span>
                               </div>
                               <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
                                 {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
@@ -90,9 +106,15 @@
                                 <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                               </div>
                               <div class="sm-font-size">
-                                <!--TODO:-->
-                                <span>Appealable in </span>
-                                <span class="text-weight-bold">{{ appealCooldown(listing.appeal_cooldown).label }}</span>
+                                <span>
+                                  {{
+                                    $t(
+                                      'AppealableInCooldown',
+                                      { cooldown: appealCooldown(listing.appeal_cooldown).label },
+                                      `Appealable in ${ appealCooldown(listing.appeal_cooldown).label }`
+                                    )
+                                  }}
+                                </span>
                               </div>
                             </div>
                             <div class="text-right">

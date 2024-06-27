@@ -88,11 +88,16 @@
                       <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                         <div class="row q-mx-md">
                           <div class="col ib-text">
-                            <!--TODO:-->
                             <div
                               class="q-mb-none pt-label sm-font-size"
                               :class="getDarkModeClass(darkMode)">
-                              ORDER #{{ listing.id }}
+                              {{
+                                $t(
+                                  'OrderIdNo',
+                                  { ID: listing.id },
+                                  `ORDER #${ listing.id }`
+                                )
+                              }}
                               <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
                             </div>
                             <span

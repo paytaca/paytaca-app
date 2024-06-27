@@ -335,7 +335,7 @@ import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { sha256 } from 'js-sha256'
-// import { VOffline } from 'v-offline'
+import { VOffline } from 'v-offline'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
@@ -366,7 +366,7 @@ export default {
     AssetCards,
     pinDialog,
     securityOptionDialog,
-    // VOffline,
+    VOffline,
     connectedDialog,
     PriceChart,
     AssetFilter,

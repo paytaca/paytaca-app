@@ -36,8 +36,14 @@
     <!-- Create/Edit Payment Method -->
     <q-card v-else class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <!--TODO:-->
-        <div class="q-mt-sm text-h6 text-center">{{action === 'createPaymentMethod' || action === 'addMethodFromAd' ? 'Add' : 'Edit'}} Payment Method</div>
+        <div class="q-mt-sm text-h6 text-center">
+          <template v-if="action === 'createPaymentMethod' || action === 'addMethodFromAd'">
+            {{ $t('AddPaymentMethod') }}
+          </template>
+          <template v-else>
+            {{ $t('EditPaymentMethod') }}
+          </template>
+        </div>
       </q-card-section>
       <div v-if="loading" class="row justify-center">
         <ProgressLoader/>

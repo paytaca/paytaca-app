@@ -7,10 +7,23 @@
           <template v-if="addon?.isRequired">*</template>
         </div>
         <div class="text-grey">
-          <!--TODO:-->
-          Select {{ addon?.minOpts }}
-          <template v-if="addon?.minOpts != addon?.maxOpts">
-            to {{ addon?.maxOpts }}
+          <template v-if="addon?.minOpts == addon?.maxOpts">
+            {{
+              $t(
+                'SelectValueAndTo',
+                { value: addon?.minOpts, to: addon?.maxOpts },
+                `Select ${ addon?.minOpts } to ${ addon?.maxOpts }`
+              )
+            }}
+          </template>
+          <template v-else>
+            {{
+              $t(
+                'SelectValue',
+                { value: addon?.minOpts },
+                `Select ${ addon?.minOpts }`
+              )
+            }}
           </template>
         </div>
       </div>

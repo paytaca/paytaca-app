@@ -219,8 +219,13 @@
               style="font-size: 12px;"
               v-close-popup>
               <template v-slot:default>
-                <!--TODO:-->
-                Select ({{ selectedPaymentMethods.length }})
+                {{
+                  $t(
+                    'SelectValue',
+                    { value: selectedPaymentMethods.length },
+                    `Select ${ selectedPaymentMethods.length }`
+                  )
+                }}
               </template>
             </q-btn>
         </div>
