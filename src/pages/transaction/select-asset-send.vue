@@ -223,14 +223,6 @@ export default {
         await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
       })
     })
-
-    // check if address is not empty (from qr reader redirection)
-    if (vm.address !== '') {
-      if (vm.address.includes('bitcoincash:qq') || vm.address.includes('bitcoincash:?')) {
-        // bch
-        vm.redirectToSend(assets[0])
-      }
-    }
   }
 }
 </script>

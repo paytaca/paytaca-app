@@ -261,10 +261,23 @@ export default {
           setTimeout(() => {
             loadingDialog.hide()
           }, 700)
-          vm.$router.push({
-            name: 'transaction-send-select-asset',
-            query: { address: value }
-          })
+          if (value.includes('bitcoincash:qq') || value.includes('bitcoincash:?')) {
+            const query = {
+              assetId: vm.$store.getters['assets/getAssets'][0].id,
+              tokenType: 1,
+              network: 'BCH',
+              address: value
+            }
+            vm.$router.push({
+              name: 'transaction-send',
+              query
+            })
+          } else {
+            vm.$router.push({
+              name: 'transaction-send-select-asset',
+              query: { address: value }
+            })
+          }
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
