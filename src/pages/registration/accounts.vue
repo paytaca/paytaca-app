@@ -242,6 +242,20 @@
                   </template>
                 </template>
 
+                <template v-else-if="importSeedPhrase && authenticationPhase === 'backup-phrase'">
+                  <div class="text-bow" :class="getDarkModeClass(darkMode)">
+                    <p class="dim-text" style="margin-top: 10px;">
+                      {{ $t('WalletRestoredDescription') }}
+                    </p>
+                  </div>
+                  <q-btn
+                    rounded
+                    :label="$t('Continue')"
+                    class="q-mt-lg full-width button"
+                    @click="onProceedToNextStep"
+                  />
+                </template>
+
                 <template v-else-if="authenticationPhase === 'skip'">
                   <MnemonicProcessContainer
                     :importSeedPhrase="importSeedPhrase"
@@ -668,7 +682,7 @@ export default {
       }
 
       if (response.data?.currency.code) {
-        result.country = {
+        result.currency = {
           symbol: response.data?.currency.code,
           name: response.data?.currency?.name
         }
@@ -773,7 +787,11 @@ export default {
         finalLang = defaultLang
       }
 
-      console.log({ finalLang, deviceLang, ipGeoLang })
+      // if country is Philippines, set language to English
+      if (ipGeoPreferences.country.code === 'PH') {
+        finalLang = defaultLang
+      }
+
       this.setLanguage(finalLang)
     }
 

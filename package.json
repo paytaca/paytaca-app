@@ -53,6 +53,7 @@
     "cashscript": "^0.8.0",
     "cashscript0.7.5": "npm:cashscript@^0.7.5",
     "chart.js": "^4.2.1",
+    "client-zip": "^2.4.5",
     "core-js": "^3.6.5",
     "crypto-js": "^4.2.0",
     "date-fns": "^2.29.3",

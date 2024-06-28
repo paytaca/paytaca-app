@@ -191,6 +191,7 @@
 <script>
 import sss from 'shamirs-secret-sharing'
 import html2canvas from 'html2canvas'
+import { downloadZip } from 'client-zip'
 
 import { toHex } from 'hex-my-bytes'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -267,44 +268,51 @@ export default {
     displayNotif (message, color, icon) {
       this.$q.notify({ message, timeout: 800, color, icon })
     },
-    takeScreenshot () {
-      const saveToDesktop = (image, fileName, shouldDisplayNotif = false) => {
-        try {
-          const link = document.createElement('a')
-          link.href = image
-          link.download = fileName
-          link.click()
-
-          if (shouldDisplayNotif) {
-            this.displayNotif('QR code images saved successfully.', 'blue-9', 'mdi-qrcode-plus')
-          }
-        } catch (error) {
-          this.displayNotif('An error occurred while saving the QR code images.', 'red-9', 'mdi-qrcode-remove')
-        }
-      }
-
+    async takeScreenshot () {
       const vm = this
-      document.addEventListener('deviceready', () => {}, false)
+      const files = []
 
       const personalQrElement = document.getElementById('personal-qr')
       html2canvas(personalQrElement).then((canvas) => {
-        const image = canvas.toDataURL('image/png')
         const fileName = `qr-first-shard-${vm.walletHash.substring(0, 10)}.png`
-        saveToDesktop(image, fileName)
+        canvas.toBlob((blob) => {
+          files.push({
+            name: fileName,
+            lastModified: new Date(),
+            input: blob
+          })
+        })
       })
 
       const sharingQrElement = document.getElementById('sharing-qr')
       html2canvas(sharingQrElement).then((canvas) => {
-        const image = canvas.toDataURL('image/png')
         const fileName = `qr-second-shard-${vm.walletHash.substring(0, 10)}.png`
-        saveToDesktop(image, fileName)
+        canvas.toBlob((blob) => {
+          files.push({
+            name: fileName,
+            lastModified: new Date(),
+            input: blob
+          })
+        })
       })
 
       const extraQrElement = document.getElementById('extra-qr')
       html2canvas(extraQrElement).then((canvas) => {
-        const image = canvas.toDataURL('image/png')
         const fileName = `qr-extra-shard-${vm.walletHash.substring(0, 10)}.png`
-        saveToDesktop(image, fileName, true)
+        canvas.toBlob(async (blob) => {
+          files.push({
+            name: fileName,
+            lastModified: new Date(),
+            input: blob
+          })
+
+          const zipBlob = await downloadZip(files).blob()
+          const link = document.createElement('a')
+          link.href = URL.createObjectURL(zipBlob)
+          link.download = `qr-shards-${vm.walletHash.substring(0, 10)}.zip`
+          link.click()
+          link.remove()
+        })
       })
 
       if (!vm.fromWalletInfo) {
