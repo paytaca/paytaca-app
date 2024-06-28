@@ -668,7 +668,7 @@ export default {
       }
 
       if (response.data?.currency.code) {
-        result.country = {
+        result.currency = {
           symbol: response.data?.currency.code,
           name: response.data?.currency?.name
         }
@@ -733,6 +733,7 @@ export default {
 
     // auto-detect country
     const ipGeoPreferences = await this.getIPGeolocationPreferences()
+    console.log('ipGeoPreferences', ipGeoPreferences)
 
     const vm = this
     setTimeout(function () {
