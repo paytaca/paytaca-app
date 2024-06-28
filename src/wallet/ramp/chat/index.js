@@ -206,7 +206,7 @@ export async function updateLastRead (chatRef, messages) {
   }
   return chatBackend.post(`chat/sessions/${chatRef}/chat_member/`, data, { forceSign: true })
     .then(response => {
-      // console.log('Updated last read timestamp')
+      console.log('Updated last read timestamp:', data)
       return response
     })
 }

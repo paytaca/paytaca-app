@@ -600,6 +600,8 @@ export default {
             const messages = data.results
             vm.convo.messages = messages.reverse()
             await vm.decryptMessages(messages)
+            // Update last read
+            updateLastRead(vm.chatRef, vm.convo.messages).then(() => { bus.emit('last-read-update') })
           })
           .finally(() => {
             setTimeout(() => {
@@ -608,8 +610,6 @@ export default {
             }, 1000)
           })
 
-        // Update last read
-        updateLastRead(vm.chatRef, vm.convo.messages).then(() => { bus.emit('last-read-update') })
         vm.isloaded = true
       })
         .catch(error => {
