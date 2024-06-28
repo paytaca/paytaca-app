@@ -172,7 +172,6 @@ import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair, sha256 } from 'src/marketplace/chat'
-import { privToPub } from 'src/marketplace/chat/keys'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useDialogPluginComponent, debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -192,7 +191,6 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     chatRef: String,
-    usePrivkey: String,
     customBackend: { required: false, default: () => backend },
   },
   emits: [
@@ -309,13 +307,6 @@ export default defineComponent({
     const keypair = ref({ privkey: '', pubkey: '' })
     onMounted(() => loadKeypair())
     async function loadKeypair() {
-      if (props.usePrivkey) {
-        keypair.value = {
-          privkey: props.usePrivkey,
-          pubkey: privToPub(props.usePrivkey),
-        }
-        return
-      }
       keypair.value = await updateOrCreateKeypair().catch(console.error)
     }
     async function decryptMessages() {

@@ -1,6 +1,6 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="$t('AppealRamp')" backnavpath="/apps"/>
+  <HeaderNav :title="`Appeal Ramp`" backnavpath="/apps"/>
 
   <div v-if="state === 'appeal-list'" class="q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
     <q-pull-to-refresh @refresh="refreshData">

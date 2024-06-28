@@ -1,33 +1,29 @@
-import { useI18n } from "vue-i18n"
-const { t } = useI18n()
-
-
 export function formatOrderStatus (value) {
   switch (value) {
     case 'SBM':
-      return t('Submitted')
+      return 'Submitted'
     case 'CNF':
-      return t('Confirmed')
+      return 'Confirmed'
     case 'ESCRW_PN':
-      return t('EscrowPending')
+      return 'Escrow Pending'
     case 'ESCRW':
-      return t('Escrowed')
+      return 'Escrowed'
     case 'PD_PN':
-      return t('PaidPending')
+      return 'Paid Pending'
     case 'PD':
-      return t('Paid')
+      return 'Paid'
     case 'RLS':
-      return t('Released')
+      return 'Released'
     case 'RFN':
-      return t('Refunded')
+      return 'Refunded'
     case 'CNCL':
-      return t('Cancelled')
+      return 'Cancelled'
     case 'APL':
-      return t('Appealed')
+      return 'Appealed'
     case 'RLS_PN':
-      return t('ReleasePending')
+      return 'Release Pending'
     case 'RFN_PN':
-      return t('RefundPending')
+      return 'Refund Pending'
     default:
       return ''
   }
@@ -107,51 +103,51 @@ export function formatRelativeDate (date) {
   const elapsedDays = Math.round(elapsedHours / 24)
 
   if (elapsedMinutes < 1) {
-    dateString = t('JustNow')
+    dateString = 'Just now'
   } else if (elapsedMinutes < 60) {
     dateString = elapsedMinutes.toString()
     if (elapsedMinutes > 1) {
-      dateString += t('MinutesAgo')
+      dateString += ' minutes ago'
     } else {
-      dateString += t('MinuteAgo')
+      dateString += ' minute ago'
     }
   } else if (elapsedHours < 24) {
     dateString = elapsedHours.toString()
     if (elapsedHours > 1) {
-      dateString += t('HoursAgo')
+      dateString += ' hours ago'
     } else {
-      dateString += t('HourAgo')
+      dateString += ' hour ago'
     }
   } else if (elapsedDays < 7) {
     dateString = elapsedDays.toString()
     if (elapsedDays > 1) {
-      dateString += t('DaysAgo')
+      dateString += ' days ago'
     } else {
-      dateString += t('DayAgo')
+      dateString += ' day ago'
     }
   } else if (elapsedDays < 30) {
     const elapsedWeeks = Math.round(elapsedDays / 7)
     dateString = elapsedWeeks.toString()
     if (elapsedWeeks > 1) {
-      dateString += t('WeeksAgo')
+      dateString += ' weeks ago'
     } else {
-      dateString += t('WeekAgo')
+      dateString += ' week ago'
     }
   } else if (elapsedDays < 365) {
     const elapsedMonths = Math.round(elapsedDays / 30)
     dateString = elapsedMonths.toString()
     if (elapsedMonths > 1) {
-      dateString += t('MonthsAgo')
+      dateString += ' months ago'
     } else {
-      dateString += t('MonthAgo')
+      dateString += ' month ago'
     }
   } else {
     const elapsedYears = Math.round(elapsedDays / 365)
     dateString = elapsedYears.toString()
     if (elapsedYears === 1) {
-      dateString += t('YearAgo')
+      dateString = dateString + ' year ago'
     } else {
-      dateString += t('YearsAgo')
+      dateString = dateString + ' years ago'
     }
   }
   return dateString
@@ -160,21 +156,21 @@ export function formatRelativeDate (date) {
 export function getAppealCooldown (timeValue) {
   switch (timeValue) {
     case 5:
-      return { label: t('FiveMinutes'), value: 5 }
+      return { label: '5 minutes', value: 5 }
     case 15:
-      return { label: t('FifteenMinutes'), value: 15 }
+      return { label: '15 minutes', value: 15 }
     case 30:
-      return { label: t('ThirtyMinutes'), value: 30 }
+      return { label: '30 minutes', value: 30 }
     case 45:
-      return { label: t('FortyFiveMinutes'), value: 45 }
+      return { label: '45 minutes', value: 45 }
     case 60:
-      return { label: t('OneHour'), value: 60 }
+      return { label: '1 hour', value: 60 }
     case 300:
-      return { label: t('FiveHours'), value: 300 }
+      return { label: '5 hours', value: 300 }
     case 720:
-      return { label: t('TwelveHours'), value: 720 }
+      return { label: '12 hours', value: 720 }
     case 1440:
-      return { label: t('TwentyFourHours'), value: 1440 }
+      return { label: '24 hours', value: 1440 }
     default:
       return ''
   }

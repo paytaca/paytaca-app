@@ -87,7 +87,7 @@
         padding="xs sm"
         class="button button-text-primary"
         :class="getDarkModeClass(darkMode)"
-        :label="$t('AdvanceBackupMethods')"
+        :label="'Advance Backup Methods'"
         @click="showAdvanceMethods = true"
       />
     </div>
