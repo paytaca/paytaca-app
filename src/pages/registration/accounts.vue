@@ -242,6 +242,20 @@
                   </template>
                 </template>
 
+                <template v-else-if="importSeedPhrase && authenticationPhase === 'backup-phrase'">
+                  <div class="text-bow" :class="getDarkModeClass(darkMode)">
+                    <p class="dim-text" style="margin-top: 10px;">
+                      {{ $t('WalletRestoredDescription') }}
+                    </p>
+                  </div>
+                  <q-btn
+                    rounded
+                    :label="$t('Continue')"
+                    class="q-mt-lg full-width button"
+                    @click="onProceedToNextStep"
+                  />
+                </template>
+
                 <template v-else-if="authenticationPhase === 'skip'">
                   <MnemonicProcessContainer
                     :importSeedPhrase="importSeedPhrase"
