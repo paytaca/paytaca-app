@@ -245,6 +245,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 
 export default {
   name: 'app-wallet-info',
@@ -584,10 +585,32 @@ export default {
         })
       }
     },
-    deleteWallet () {
+    async deleteWallet () {
+      if (!this.wallet) await this.loadWallet()
+      const walletHashes = [
+        this.wallet.BCH.walletHash,
+        this.wallet.BCH_CHIP.walletHash,
+        this.wallet.SLP.walletHash,
+        this.wallet.SLP_TEST.walletHash,
+        this.wallet.sBCH.walletHash,
+      ]
+      const marketplaceCustomerRef = await this.$store.dispatch('marketplace/getCartRef')
+      console.log({ marketplaceCustomerRef })
+
+      const promises = [
+        this.$pushNotifications.unsubscribe(walletHashes)?.catch(console.error)
+      ]
+      if (marketplaceCustomerRef) {
+        promises.push(
+          marketplacePushNotificationsManager.unsubscribe({ customerRef: marketplaceCustomerRef }),
+        )
+      }
+      await Promise.all(promises)
+
       const vm = this
       const currentWalletIndex = this.$store.getters['global/getWalletIndex']
-      this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(function () {
+      this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
+      }).then(function () {
         const vault = vm.$store.state.global.vault
         const undeletedWallets = []
         const vaultCheck = vault.filter(function (wallet, index) {

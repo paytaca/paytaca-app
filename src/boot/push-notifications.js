@@ -273,6 +273,37 @@ class PushNotificationsManager {
     this.subscriptionInfo = response?.data
     return response
   }
+
+  async unsubscribe(walletHashes) {
+    if (!this.deviceId) await this.fetchDeviceId()
+
+    if (!this.deviceId) return console.log('Aborting unsubscribe, no device id')
+
+    const platform = Capacitor.getPlatform()
+    const data = {
+      wallet_hashes: walletHashes,
+    }
+    if (platform === 'ios') {
+      data.apns_device_id = this.deviceId
+    } else if (platform === 'android') {
+      const _device_id = BigNumber.from('0x' + this.deviceId).toString()
+      data.gcm_device_id = _device_id
+    } else {
+      return console.log('Aborting unsubscribe, no valid platform found')
+    }
+
+    const response = await this.watchtower.BCH._api.post(
+      '/push-notifications/unsubscribe/',
+      data,
+    )
+
+    console.log('Unsubscribed to push notiications', {
+      data: data,
+      result: response?.data
+    })
+
+    return response?.data
+  }
 }
 
 export const pushNotificationsManager = new PushNotificationsManager()
