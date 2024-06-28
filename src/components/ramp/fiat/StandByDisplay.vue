@@ -120,7 +120,7 @@
             <q-btn
               flat
               no-caps
-              :disable="!data?.wsConnected || appealCountdown !== null"
+              :disable="appealCountdown !== null"
               :label="appealBtnLabel"
               class="q-space text-white"
               color="blue-6"

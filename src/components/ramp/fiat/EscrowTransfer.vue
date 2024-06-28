@@ -182,7 +182,7 @@ export default {
       return this.arbiterOptions?.length > 0
     },
     showDragSlide () {
-      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && this.data?.wsConnected && !this.sendingBch && this.contractAddress)
+      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
     },
     arbiterOptionsMessage () {
       return `No available arbiter found for currency ${this.order?.ad?.fiat_currency?.symbol}`

@@ -229,9 +229,7 @@ export default {
         arbiter: this.order?.arbiter,
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
-        fees: this.fees,
-        // escrow: this.escrowContract,
-        wsConnected: !this.reconnectingWebSocket
+        fees: this.fees
       }
     },
     verifyTransactionData () {
@@ -243,8 +241,7 @@ export default {
           address: this.contract.addresses.arbiter
         },
         action: this.verifyAction,
-        escrow: this.escrowContract,
-        wsConnected: !this.reconnectingWebSocket
+        escrow: this.escrowContract
       }
     },
     standByDisplayData () {
@@ -261,8 +258,7 @@ export default {
         feedback: this.feedback,
         contractAddress: this.contract.address,
         arbiter: arbiter,
-        escrow: this.escrowContract,
-        wsConnected: !this.reconnectingWebSocket
+        escrow: this.escrowContract
       }
     },
     paymentConfirmationData () {
@@ -276,8 +272,7 @@ export default {
           address: this.contract.addresses.arbiter
         },
         errors: this.errorMessages,
-        escrow: this.escrowContract,
-        wsConnected: !this.reconnectingWebSocket
+        escrow: this.escrowContract
       }
     },
     receiveOrderData () {
@@ -351,7 +346,7 @@ export default {
       vm.isloaded = true
       if (this.notifType === 'new_message') { this.openChat = true}
     })
-    this.setupWebsocket(5, 1000)
+    this.setupWebsocket(20, 1000)
   },
   beforeUnmount () {
     this.autoReconWebSocket = false

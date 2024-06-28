@@ -130,7 +130,7 @@
           v-if="!sendingBch"
           flat
           no-caps
-          :disable="!data?.wsConnected || countDown !== ''"
+          :disable="countDown !== ''"
           :label="appealBtnLabel"
           color="blue-6"
           @click="onOpenAppealForm"
@@ -142,7 +142,7 @@
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <RampDragSlide
-  v-if="showDragSlide && data?.wsConnected"
+  v-if="showDragSlide"
   :key="dragSlideKey"
   :text="dragSlideTitle"
   :locked="lockDragSlide"

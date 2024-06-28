@@ -58,7 +58,7 @@
         <q-btn
           rounded
           :loading="loading"
-          :disable="disableBtn || !data?.wsConnected"
+          :disable="disableBtn"
           :label="$t('Retry')"
           class="col q-mx-lg button"
           @click="submitAction">
