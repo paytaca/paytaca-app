@@ -66,8 +66,15 @@ class MarketplacePushNotificationsManager {
       })
   }
 
-  async subscribe(customerId=0, multiWalletIndex=[].map(Number)[0]) {
-    if (!customerId) return
+  async subscribe(opts={ customerId: 0, userId: 0, multiWalletIndex: [].map(Number)[0]}) {
+    const customerId = opts?.customerId
+    const userId = opts?.userId
+    const multiWalletIndex = opts?.multiWalletIndex
+    if (!customerId && !userId) return
+    if (customerId && userId) {
+      console.warn('Subscribing both user id & customer id for marketplace push notiications is not allowed')
+      return
+    }
     if (!this.appInfo?.id) await this.fetchAppInfo()
     if (!this.deviceId) await this.fetchDeviceId()
     if (!this.registrationToken) await this.fetchRegistrationToken()
@@ -79,7 +86,8 @@ class MarketplacePushNotificationsManager {
     }
 
     const data = {
-      customer_id: customerId,
+      customer_id: customerId || undefined,
+      user_id: userId || undefined,
       gcm_device: undefined, apns_device: undefined,
       application_id: this.appInfo?.id,
       multi_wallet_index: multiWalletIndex,
