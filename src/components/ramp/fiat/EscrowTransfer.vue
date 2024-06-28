@@ -261,6 +261,7 @@ export default {
       if (this.fees) {
         this.transferAmount += this.fees.total / 100000000
       }
+      this.transferAmount = parseFloat(this.transferAmount.toFixed(8))
     },
     async completePayment () {
       const vm = this
