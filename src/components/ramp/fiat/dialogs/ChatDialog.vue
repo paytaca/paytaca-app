@@ -56,19 +56,19 @@
                 <div class="q-px-md justify-center q-pb-lg q-mb-md" v-if="message.encryptedAttachmentUrl">
                   <div v-if="message.message" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
-                      :name="`(${memberType(message.chatIdentity.id)}) ${userNameView(message.chatIdentity.name)}`"
-                      :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity.name }&color=fffff`"
+                      :name="`(${memberType(message.chatIdentity?.id)}) ${userNameView(message.chatIdentity?.name)}`"
+                      :avatar="`https://ui-avatars.com/api/?background=random&name=${ message.chatIdentity?.name }&color=fffff`"
                       :stamp="formattedDate(message.createdAt)"
-                      :sent="message.chatIdentity.is_user"
-                      :bg-color="message.chatIdentity.is_user ? 'blue-5': 'blue-grey-2'"
-                      :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
+                      :sent="message.chatIdentity?.is_user"
+                      :bg-color="message.chatIdentity?.is_user ? 'blue-5': 'blue-grey-2'"
+                      :text-color="message.chatIdentity?.is_user ? 'white' : 'black'"
                       size="6"
                     >
                       <div class="font-13 text-weight-light">
                         {{ message._decryptedMessage }}
                       </div>
                     </q-chat-message>
-                    <div class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
+                    <div class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity?.is_user ? 'justify-end' : ''">
                       <img
                         v-if="message?.decryptedAttachmentFile?.url"
                         class="q-px-sm cursor-pointer image-attachment"
@@ -98,15 +98,15 @@
                   <div v-else :style="!message?.decryptedAttachmentFile?.url && !message?.$state?.decryptingAttachment ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <div
                       class="font-13"
-                      :class="message.chatIdentity.is_user? 'text-right' : ''"
-                      :style="message.chatIdentity.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'"
+                      :class="message.chatIdentity?.is_user? 'text-right' : ''"
+                      :style="message.chatIdentity?.is_user ? 'padding-right: 55px;' : 'padding-left: 55px;'"
                     >
-                      {{ `(${memberType(message.chatIdentity.id)}) ${userNameView(message.chatIdentity.name)}` }}
+                      {{ `(${memberType(message.chatIdentity?.id)}) ${userNameView(message.chatIdentity?.name)}` }}
                     </div>
-                    <div class="row" :class="message.chatIdentity.is_user ? 'justify-end' : ''">
-                      <q-avatar size="6" v-if="!message.chatIdentity.is_user">
+                    <div class="row" :class="message.chatIdentity?.is_user ? 'justify-end' : ''">
+                      <q-avatar size="6" v-if="!message.chatIdentity?.is_user">
                         <img
-                          :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                          :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity?.name}&color=fffff`"
                           alt=""
                         >
                       </q-avatar>
@@ -136,9 +136,9 @@
                           </div>
                         </div>
                       </div>
-                      <q-avatar size="6" v-if="message.chatIdentity.is_user">
+                      <q-avatar size="6" v-if="message.chatIdentity?.is_user">
                         <img
-                          :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                          :src="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity?.name}&color=fffff`"
                           alt=""
                         >
                       </q-avatar>
@@ -148,12 +148,12 @@
                 <div class="q-px-md row justify-center" v-else>
                   <div style="width: 100%;" :style="!message._decryptedMessage ? 'filter: blur(8px);-webkit-filter: blur(8px);' : ''">
                     <q-chat-message
-                      :name="`(${memberType(message.chatIdentity.id)}) ${userNameView(message.chatIdentity.name)}`"
-                      :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity.name}&color=fffff`"
+                      :name="`(${memberType(message.chatIdentity?.id)}) ${userNameView(message.chatIdentity?.name)}`"
+                      :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity?.name}&color=fffff`"
                       :stamp="formattedDate(message.createdAt)"
-                      :sent="message.chatIdentity.is_user"
-                      :bg-color="message.chatIdentity.is_user ? 'blue-5' : 'blue-grey-2'"
-                      :text-color="message.chatIdentity.is_user ? 'white' : 'black'"
+                      :sent="message.chatIdentity?.is_user"
+                      :bg-color="message.chatIdentity?.is_user ? 'blue-5' : 'blue-grey-2'"
+                      :text-color="message.chatIdentity?.is_user ? 'white' : 'black'"
                       size="6"
                     >
                       <div class="font-13 text-weight-regular">
@@ -348,7 +348,7 @@ export default {
       },
       resumeInfiniteScroll () {
         setTimeout(() => {
-          infiniteScroll.value.resume()
+          infiniteScroll?.value?.resume()
         }, 100)
       },
       openFileAttachementField (evt) {
@@ -472,7 +472,7 @@ export default {
     isNotDefaultTheme,
     getDarkModeClass,
     userNameView (name) {
-      const limitedView = name.length > 13 ? name.substring(0, 10) + '...' : name;
+      const limitedView = name?.length > 13 ? name?.substring(0, 10) + '...' : name;
 
       return limitedView
     },
@@ -497,7 +497,7 @@ export default {
     },
     async onNewMessage (messageData) {
       const vm = this
-      if ((vm.convo.messages[this.convo.messages.length - 1].id !== messageData.id) && !this.addingNewMessage) {
+      if ((vm.convo?.messages[this.convo?.messages?.length - 1]?.id !== messageData?.id) && !this.addingNewMessage) {
         return new Promise((resolve, reject) => {
           this.addingNewMessage = true
           const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
@@ -537,7 +537,7 @@ export default {
       const chatIdentityRef = generateChatIdentityRef(loadRampWallet().walletHash)
       vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
       let createSession = false
-      const chatSession = await fetchChatSession(vm.chatRef)
+      await fetchChatSession(vm.chatRef)
         .catch(error => {
           if (error.response?.status === 404) {
             createSession = true
@@ -549,37 +549,37 @@ export default {
         } else {
           vm.arbiterIdentity = members.filter(member => member.is_arbiter)[0]
         }
-
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
         // Create session if necessary
         if (createSession) {
           await createChatSession(vm.order?.id, vm.chatRef).catch(error => { console.error(error) })
           await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
+        } else {
+          // Add or update current chat members if any
+          fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
+            if (currentChatMembers?.length !== chatMembers?.length) {
+              const chatMemberIds = chatMembers.map(el => el.chat_identity_id)
+              const membersToRemove = (currentChatMembers.filter(function (member) {
+                return !chatMemberIds.includes(member.chat_identity.id)
+              })).map(el => el.chat_identity.id)
+              await updateChatMembers(vm.chatRef, chatMembers, membersToRemove).catch(error => { console.error(error) })
+            }
+          })
         }
         await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
-
-        // Add or update current chat members if any
-        await fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
-          const chatMemberIds = chatMembers.map(el => el.chat_identity_id)
-          const membersToRemove = (currentChatMembers.filter(function (member) {
-            return !chatMemberIds.includes(member.chat_identity.id)
-          })).map(el => el.chat_identity.id)
-          await updateChatMembers(vm.chatRef, chatMembers, membersToRemove).catch(error => { console.error(error) })
-        })
-
         // Refetch updated chat members and format
         await fetchChatMembers(vm.chatRef)
           .then(members => {
             // if mismatched name
             vm.chatMembers = members.map(member => {
-              const name = this.$store.getters['ramp/getUser'].name
-              if ((name !== member.chat_identity.name) && (member.chat_identity.ref === vm.chatIdentity.ref)) {
-                const payload = {
-                  id: vm.chatIdentity.id,
-                  name: name
-                }
-                updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
-              }
+              // const name = this.$store.getters['ramp/getUser'].name
+              // if ((name !== member.chat_identity.name) && (member.chat_identity.ref === vm.chatIdentity.ref)) {
+              //   const payload = {
+              //     id: vm.chatIdentity.id,
+              //     name: name
+              //   }
+              //   updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
+              // }
 
               return {
                 id: member.chat_identity.id,
@@ -592,7 +592,7 @@ export default {
           })
 
         // Fetch and decrypt messages
-        await fetchChatMessages(vm.chatRef)
+        fetchChatMessages(vm.chatRef)
           .then(async (data) => {
             // set offset
             vm.totalMessages = data.count
@@ -609,8 +609,7 @@ export default {
           })
 
         // Update last read
-        await updateLastRead(vm.chatRef, vm.convo.messages)
-        bus.emit('last-read-update')
+        updateLastRead(vm.chatRef, vm.convo.messages).then(() => { bus.emit('last-read-update') })
         vm.isloaded = true
       })
         .catch(error => {
