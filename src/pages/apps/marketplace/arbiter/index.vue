@@ -11,7 +11,7 @@
       <div class="text-center">
         <q-spinner v-if="refreshingPage" size="3rem"/>
         <div v-else class="text-subtitle1 text-grey q-my-lg">
-          Page did not load swipe up to reload.
+          {{ $t('PageDidNotLoadSwipeUp', undefined, 'Page did not load, swipe up to reload.') }}
         </div>
       </div>
     </div>
@@ -26,7 +26,7 @@
           </q-item-section>
           <q-item-section>
             <q-item-label class="text-body1">{{ user?.fullName }}</q-item-label>
-            <q-item-label class="text-caption text-grey top">Arbiter Address</q-item-label>
+            <q-item-label class="text-caption text-grey top">{{ $t('ArbiterAddress', undefined, 'Arbiter address') }}</q-item-label>
             <q-item-label class="text-caption" style="word-break: break-all;">{{ keys?.address }}</q-item-label>
           </q-item-section>
           <q-item-section avatar>
@@ -40,24 +40,24 @@
             >
               <q-item clickable v-close-popup @click="() => updateUserProfile()">
                 <q-item-section>
-                  <q-item-label>Profile</q-item-label>
+                  <q-item-label>{{ $t('Profile') }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator/>
               <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.wif, 'Private key copied to clipboard')">
                 <q-item-section>
-                  <q-item-label>Copy private key</q-item-label>
+                  <q-item-label>{{ $t('CopyPrivateKey') }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item clickable v-close-popup @click="() => copyToClipboard(keys?.pubkey, 'Public key copied to clipboard')">
                 <q-item-section>
-                  <q-item-label>Copy public key</q-item-label>
+                  <q-item-label>{{ $t('CopyPublicKey') }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator/>
               <q-item clickable v-close-popup @click="() => confirmLogout()">
                 <q-item-section>
-                  <q-item-label>Logout</q-item-label>
+                  <q-item-label>{{ $t('Logout') }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-btn-dropdown>
@@ -79,14 +79,14 @@
             :class="{'pt-label dark': darkMode, 'active-transaction-btn': tab == 'appeal'}"
             @click="tab='appeal'"
           >
-            Appeal
+            {{ $t('Appeal') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
             :class="{'pt-label dark': darkMode, 'active-transaction-btn': tab == 'escrow'}"
             @click="tab='escrow'"
           >
-            Escrow
+            {{ $t('Escrow') }}
           </button>
         </div>
         <q-tab-panels v-model="tab" class="arbiter-main-tab-panels" animated keep-alive>
@@ -142,6 +142,7 @@ import { marketplacePushNotificationsManager } from "src/marketplace/push-notifi
 import { bus } from "src/wallet/event-bus";
 import { RpcWebSocketClient } from "rpc-websocket-client";
 import { debounce, useQuasar } from "quasar";
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { computed, inject, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from "vue";
@@ -151,14 +152,13 @@ import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
 import SettlementAppealsPanel from "./settlement-appeals-panel.vue";
 import ChatWidget from "./chat-widget.vue";
 import ArbiterProfileFormDialog from "src/components/marketplace/arbiter/ArbiterProfileFormDialog.vue";
-import { useI18n } from "vue-i18n"
 
 import blankUserImg from 'src/assets/blank_user_image.webp'
 
 const asyncSleep = duration => new Promise(resolve => setTimeout(resolve, duration))
 
-const { t } = useI18n()
 const $copyText = inject('$copyText')
+const $t = useI18n().t
 const $router = useRouter()
 const $q = useQuasar()
 const $store = useStore()
@@ -245,12 +245,12 @@ async function updateChatIdentity() {
 
 function confirmLogout() {
   $q.dialog({
-    title: 'Logout',
-    message: `This will the delete arbiter's private key stored in device. Are you sure?`,
+    title: $t('Logout'),
+    message: $t('ArbiterLogoutPrompt', undefined, `This will the delete arbiter's private key stored in device. Are you sure?`),
     color: 'brandblue',
     class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
-    ok: { color: 'red', noCaps: true, label: 'Logout' },
-    cancel: { color: 'grey', noCaps: true, label: 'Cancel', flat: true },
+    ok: { color: 'red', noCaps: true, label: $t('Logout') },
+    cancel: { color: 'grey', noCaps: true, label: $t('Cancel'), flat: true },
   })
     .onOk(() => logOut())
 }
@@ -281,8 +281,8 @@ const authErrors = computed(() => {
 function promptAuthErrors() {
   if (!authErrors.value?.length) return
   $q.dialog({
-    title: 'Session error',
-    message: `Logged in session does not match with arbiter's keys stored in device`,
+    title: $t('SessionError', undefined, 'Session Error'),
+    message: $t('ArbiterSessionKeyMismatch', undefined, `Logged in session does not match with arbiter's keys stored in device`),
     color: 'brandblue',
     persistent: true,
     class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
@@ -323,8 +323,8 @@ async function reLogin() {
   const wif = keys.value?.wif
   if (!wif) return
   const dialog = $q.dialog({
-    title: 'Log In',
-    message: 'Refreshing authentication',
+    title: $t('LogIn'),
+    message: $t('RefreshingAuthentication', undefined, 'Refreshing authentication'),
     progress: true, 
     persistent: true,
     ok: false,
@@ -333,12 +333,13 @@ async function reLogin() {
   })
   const onUpdateStep = (step='') => {
     let msg
-    if (step === 'nonce') msg = 'Generating authentication challenge'
-    if (step === 'sign') msg = 'Signing authentication challenge'
-    if (step === 'authtoken') msg = 'Sending authentication challenge'
-    if (step === 'store') msg = 'Saving authentication credentials'
+    if (step === 'nonce') msg = $t('GenAuthChallenge', undefined, 'Generating authentication challenge')
+    if (step === 'sign') msg = $t('SigningAuthChallenge', undefined, 'Signing authentication challenge')
+    if (step === 'authtoken') msg = $t('SendingAuthChallenge', undefined, 'Sending authentication challenge')
+    if (step === 'store') msg = $t('SavingAuthCred', undefined, 'Saving authentication credentials')
 
-    dialog.update({ message: msg || 'Refreshing authentication' })
+    msg = msg || $t('RefreshingAuthentication', undefined, 'Refreshing authentication')
+    dialog.update({ message: msg })
   }
 
   return getAuthKey({ wif, saveAuthToken: true, onUpdateStep })
@@ -348,7 +349,7 @@ async function reLogin() {
       return response
     })
     .catch(error => {
-      let errorMessage = 'Unknwon error occurred'
+      let errorMessage = $t('UnknownErrorOccurred', undefined, 'Unknown error occurred')
       if (error.name !== 'ArbiterAuthError') {
         dialog.update({ message: errorMessage })
         return Promise.reject(error)
@@ -356,15 +357,15 @@ async function reLogin() {
 
       const msg = error?.message
       if (msg == 'NoMatchingArbiterFound') {
-        errorMessage = 'No arbiter found with the provided key'
+        errorMessage = $t('NoArbiterFromKey', undefined, 'No arbiter found with the provided key')
       } else if (msg === 'FetchChallengeFailed') {
-        errorMessage = 'Unable to fetch authentication challenge'
+        errorMessage = $t('UnableToFetchAuthChallenge', undefined, 'Unable to fetch authentication challenge')
       } else if (msg === 'AuthChallengeSignError') {
-        errorMessage = 'Error in signing'
+        errorMessage = $t('AuthSignError', undefined, 'Authentication challenge signing error')
       } else if (msg === 'IncorrectArbiterData') {
-        errorMessage = 'Error in fetching auth token'
+        errorMessage = $t('FetchAuthTokenError', undefined, 'Error in fetching auth token')
       } else if (msg === 'SaveAuthKeyError') {
-        errorMessage = 'Error in saving keys'
+        errorMessage = $t('ErrorSavingKeys', undeined, 'Error in saving keys')
       }
       dialog.update({ message: errorMessage })
       return Promise.reject(error)
@@ -576,7 +577,7 @@ async function openOrderChatDialog(orderId) {
   
   let timeoutId = setTimeout(() => {
     dialog = $q.dialog({
-      title: 'Loading chat',
+      title: $t('LoadingChat', undefined, 'Loading chat'),
       progress: true, 
       persistent: true,
       color: 'brandblue',
@@ -598,7 +599,13 @@ async function openOrderChatDialog(orderId) {
       if (response?.data?.ref) chatSession = ChatSession.parse(response?.data)
     }
 
-    if (!chatSession) throw new Error(`Unable to find chat session for order #${orderId}`)
+    if (!chatSession) {
+      throw new Error($t(
+        'UnableToFindChatSessionOrderID',
+        { ID: orderId },
+        `Unable to find chat session for order #${orderId}`,
+      ))
+    }
     if (!chatWidget.value) throw new Error(`Unable to open chat dialog due to missing chat widget`)
     closeDialog()
 
@@ -678,7 +685,7 @@ async function refreshPage(done=() => {}) {
 function copyToClipboard(value, message) {
   $copyText(value)
   $q.notify({
-    message: message || 'Copied to clipboard',
+    message: message || $t('CopiedToClipboard', undefined, 'Copied to clipboard'),
     timeout: 800,
     color: 'blue-9',
     icon: 'mdi-clipboard-check'

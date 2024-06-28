@@ -13,7 +13,7 @@
       style="max-height:75vh !important;"
     >
       <div class="row items-center no-wrap dialog-content-header">
-        <div class="text-h6">Arbiter Profile</div>
+        <div class="text-h6">{{ $t('Profile') }}</div>
         <q-space/>
         <q-btn v-close-popup flat icon="close" class="q-r-mr-sm"/>
       </div>
@@ -52,7 +52,7 @@
             dense
             outlined
             :disable="loading"
-            label="First name"
+            :label="$t('FirstName')"
             v-model="formData.firstName"
             :maxlength="40"
             :error="Boolean(formErrors?.firstName)"
@@ -62,7 +62,7 @@
             dense
             outlined
             :disable="loading"
-            label="Last name"
+            :label="$t('LastName')"
             v-model="formData.lastName"
             :maxlength="40"
             :error="Boolean(formErrors?.lastName)"
@@ -72,7 +72,7 @@
             dense
             outlined
             :disable="loading"
-            label="Phone number"
+            :label="$t('PhoneNumber')"
             v-model="formData.phoneNumber"
             :maxlength="20"
             :error="Boolean(formErrors?.phoneNumber)"
@@ -83,7 +83,7 @@
             no-caps
             :disable="loading"
             :loading="loading"
-            label="Save"
+            :label="$t('Save')"
             type="submit"
             color="brandblue"
             class="full-width"

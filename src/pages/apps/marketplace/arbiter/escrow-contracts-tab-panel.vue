@@ -1,20 +1,20 @@
 <template>
   <div class="q-pa-sm">
     <div class="row items-center">
-      <div class="text-h6">{{ $t('EscrowContracts') }}</div>
+      <div class="text-h6">{{$t('EscrowContracts', undefined, 'Escrow contracts')}}</div>
       <q-space/>
       <q-btn :disable="fetchingEscrowContracts" flat padding="sm" icon="tune" :color="filterOpts.status != 'all' ? 'brandblue' : undefined">
         <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
           <q-list separator>
             <q-item
-              v-for="status in filterStatusOpts" :key="status"
+              v-for="statusOpt in filterStatusOpts" :key="statusOpt.value"
               :disable="fetchingEscrowContracts"
-              :active="filterOpts.status === status"
+              :active="filterOpts.status === statusOpt.value"
               v-close-popup
-              clickable @click="() => filterOpts.status = status"
+              clickable @click="() => filterOpts.status = statusOpt.value"
             >
               <q-item-section>
-                <q-item-label>{{ capitalize(status).replaceAll('_', ' ') }}</q-item-label>
+                <q-item-label>{{ statusOpt.label }}</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -62,7 +62,7 @@
     </div>
     <div class="row items-center justify-end q-my-xs">
       <q-chip v-if="filterOpts.status != 'all'" removable @remove="filterOpts.status = 'all'" :outline="darkMode">
-        {{ capitalize(filterOpts.status).replaceAll('_', ' ') }}
+        {{ filterStatusOpts.find(opt => opt?.value == filterOpts.status )?.label || capitalize(filterOpts.status).replaceAll('_', ' ') }}
       </q-chip>
       <q-chip v-if="filterOpts.orderId" removable @remove="filterOpts.orderId = undefined" :outline="darkMode">
         {{
@@ -155,7 +155,7 @@
           </q-badge>
         </div>
         <div v-else-if="escrowContract?.payments?.[0]?.checkoutId" class="text-grey">
-          Checkout
+          {{ $t('Checkout') }}
         </div>
         <div v-else class="text-grey">{{ $t('NoOrder') }}</div>
       </div>
@@ -188,7 +188,7 @@
           dense outline
           class="q-my-none q-mr-none"
         >
-          {{ capitalize(appealType).replaceAll('_', ' ') }}
+          {{ formatSettlementApealType(appealType) }}
         </q-chip>
       </div>
       <q-menu
@@ -257,19 +257,19 @@
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { ChatIdentity, ChatMember, EscrowContract, Order } from "src/marketplace/objects"
-import { arbiterBackend } from "src/marketplace/arbiter";
+import { arbiterBackend, formatSettlementApealType } from "src/marketplace/arbiter";
 import { compileEscrowSmartContract } from "src/marketplace/escrow/"
 import { formatOrderStatus, parseOrderStatusColor, round } from "src/marketplace/utils"
 import { setupCache } from "axios-cache-interceptor";
 import axios from "axios";
 import { useQuasar } from "quasar";
+import { useI18n } from "vue-i18n"
 import { useStore } from "vuex";
 import { capitalize, computed, onMounted, ref, watch } from "vue"
 import LimitOffsetPagination from "src/components/LimitOffsetPagination.vue";
 import EscrowContractDialog from "src/components/marketplace/escrow-contract-dialog.vue";
 import OrderDetailDialog from "src/components/marketplace/OrderDetailDialog.vue";
 import SettlementTransactionPreviewDialog from "src/components/marketplace/arbiter/SettlementTransactionPreviewDialog.vue";
-import { useI18n } from "vue-i18n"
 
 
 const cachedBackend = setupCache(axios.create({...arbiterBackend.defaults}), { ttl: 30 * 1000 })
@@ -282,7 +282,7 @@ const $emit = defineEmits([
   'open-chat-dialog',
 ])
 
-const { t } = useI18n()
+const { t: $t } = useI18n()
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
@@ -295,12 +295,19 @@ async function dialogPromise(qDialogOptions) {
 onMounted(() => fetchEscrowContracts())
 watch(() => [props.arbiterAddress], () => fetchEscrowContracts())
 
-const filterStatusOpts = ['all', 'pending', 'funded', 'released', 'has_settlement_appeal', 'refunded']
+const filterStatusOpts = [
+  {label: $t('All'), value: 'all'},
+  {label: $t('Pending'), value: 'pending'},
+  {label: $t('Funded'), value: 'funded'},
+  {label: $t('Released'), value: 'released'},
+  {label: $t('HasSettlementAppeal', undefined, 'Has settlement appeal'), value: 'has_settlement_appeal'},
+  {label: $t('Refunded'), value: 'refunded'},
+]
 const filterOrderingOpts = [
-  { label: t('ID'), value: 'id' },
-  { label: t('Total'), value: 'total_sats' },
-  { label: t('OrderID'), value: 'order_id' },
-  { label: t('Timestamp'), value: 'timestamp' },
+  { label: $t('ID'), value: 'id' },
+  { label: $t('Total'), value: 'total_sats' },
+  { label: $t('OrderID'), value: 'order_id' },
+  { label: $t('Timestamp'), value: 'timestamp' },
 ]
 const filterOpts = ref({
   status: 'all', // all | pending | funded | settled | refunded
@@ -446,23 +453,23 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
   if (orderStatus) {
     if (settlementType === 'refund' && orderStatus !== 'cancelled') {
       await dialogPromise({
-        title: t('RefundEscrow'),
-        message: t('RefundEscrowMsg'),
+        title: $t('RefundEscrow'),
+        message: $t('RefundEscrowMsg'),
         color: 'brandblue',
         persistent: true,
-        ok: { label: t('Refund'), noCaps: true },
-        cancel: { label: t('Cancel'), noCaps: true, color: 'grey', flat: true },
+        ok: { label: $t('Refund'), noCaps: true },
+        cancel: { label: $t('Cancel'), noCaps: true, color: 'grey', flat: true },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
       })
     }
     if (settlementType === 'release' && orderStatus !== 'completed') {
       await dialogPromise({
-        title: t('CompleteEscrow'),
-        message: t('CompleteEscrowMsg'),
+        title: $t('CompleteEscrow'),
+        message: $t('CompleteEscrowMsg'),
         color: 'brandblue',
         persistent: true,
-        ok: { label: t('Proceed'), noCaps: true },
-        cancel: { label: t('Cancel'), noCaps: true, color: 'grey', flat: true },
+        ok: { label: $t('Proceed'), noCaps: true },
+        cancel: { label: $t('Cancel'), noCaps: true, color: 'grey', flat: true },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
       }) 
     }
@@ -472,7 +479,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
   let dialog
   const dialogTimeout = setTimeout(() => {
     dialog = $q.dialog({
-      title: settlementType  === 'release' ? t('CompleteEscrow') : t('RefundEscrow'),
+      title: settlementType  === 'release' ? $t('CompleteEscrow') : $t('RefundEscrow'),
       progress: true,
       persistent: true,
       color: 'brandblue',
@@ -482,20 +489,20 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     })
   }, 10)
   try {
-    dialog?.update?.({ message: t('CompilingContract') })
+    dialog?.update?.({ message: $t('CompilingContract') })
     const escrow = compileEscrowSmartContract(escrowContract)
     console.log('NETWORK', escrow.network)
     const contract = escrow.getContract()
     if (contract.address != escrowContract?.address) {
       console.warn('Address mismatch got', contract.address, 'expected', escrowContract?.address)
-      throw new Error(t('CompilingContractError'), { cause: 'invalid_compilation' })
+      throw new Error($t('CompilingContractError'), { cause: 'invalid_compilation' })
     }
     const fundingUtxo = {
       "txid": escrowContract.fundingTxid,
       "vout": escrowContract.fundingVout,
       "satoshis": escrowContract.fundingSats,
     }
-    dialog?.update?.({ message: t('CreatingTransaction') })
+    dialog?.update?.({ message: $t('CreatingTransaction') })
     let promise
     if(settlementType === 'release') {
       promise = escrow.release(fundingUtxo, props.keys?.wif)
@@ -521,7 +528,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     if (typeof error?.message === 'string' && error?.message?.length < 200) errorMessage = error?.message
     if (error?.cause == 'invalid_compilation') errorMessage = error?.message
 
-    dialog?.update?.({ message: errorMessage || t('UnknownErrorOccurred') })
+    dialog?.update?.({ message: errorMessage || $t('UnknownErrorOccurred') })
   } finally {
     dialog?.update?.({ persistent: false, progress: false, ok: true })
   }
@@ -533,7 +540,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
  */
 async function sendSettlementTx(escrowContract, transaction) {
   const dialog = $q.dialog({
-    title: t('SettleEscrowContract'),
+    title: $t('SettleEscrowContract'),
     persistent: true,
     progress: true,
     color: 'brandblue',
@@ -541,10 +548,10 @@ async function sendSettlementTx(escrowContract, transaction) {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
   })
   try {
-    dialog.update({ message: t('BuildingTransaction') })
+    dialog.update({ message: $t('BuildingTransaction') })
     const txHex = await transaction.build()
     const data = { settlement_tx_hex: txHex }
-    dialog.update({ message: t('BroadcastingTransaction')  })
+    dialog.update({ message: $t('BroadcastingTransaction')  })
     return await backend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
       .then(response => {
         escrowContract.raw = response?.data
@@ -565,7 +572,7 @@ async function sendSettlementTx(escrowContract, transaction) {
     let dialogMsg
     const msg = error?.message 
     if (typeof msg === 'string' && msg?.length < 200) dialogMsg = msg 
-    dialog.update({ message: dialogMsg || t('ErrorInBuildingTransaction')})
+    dialog.update({ message: dialogMsg || $t('ErrorInBuildingTransaction')})
   } finally {
     dialog.update({ persistent: false, progress: false, ok: true })
   }
@@ -578,7 +585,7 @@ async function showEscrowOrder(escrowContract=EscrowContract.parse()) {
 
   let dialog
   const timeoutId = setTimeout(() => dialog = $q.dialog({
-    title: t('FetchingData'),
+    title: $t('FetchingData'),
     progress: true,
     position: 'bottom',
     ok: false,

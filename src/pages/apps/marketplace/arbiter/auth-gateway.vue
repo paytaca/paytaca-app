@@ -5,7 +5,7 @@
       style="max-width:min(80vw, 500px);margin:auto;"
     >
       <q-card-section class="q-pa-lg">
-        <div class="text-center text-h6 q-mb-md">Arbiter Login</div>
+        <div class="text-center text-h6 q-mb-md">{{ $t('ArbiterLogin', undefined, 'Arbiter Login') }}</div>
         <div v-if="loggingIn" class="text-center q-py-md">
           <q-spinner size="3rem"/>
           <div v-if="loginStatus" class="q-mt-md">{{ loginStatus }}</div>
@@ -15,7 +15,7 @@
             <template v-slot:avatar>
               <q-icon name="info" size="1.75em"/>
             </template>
-            Input WIF key of arbiter to login
+            {{ $t('InputWIFKey', undefined, 'Input WIF key of arbiter to login') }}
           </q-banner>
           <!-- <div class="text-body2 q-my-sm text-center">
             Input WIF key of arbiter to login
@@ -43,7 +43,7 @@
             :disable="loggingIn"
             type="submit"
             no-caps
-            label="Login"
+            :label="$t('LogIn')"
             color="brandblue"
             class="full-width"
           />
@@ -57,6 +57,7 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { User } from "src/marketplace/objects";
 import { arbiterBackend, getAuthKey } from "src/marketplace/arbiter";
 import { cachedBackend } from "src/marketplace/backend";
+import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import { computed, ref } from "vue";
 
@@ -64,6 +65,7 @@ const $emit = defineEmits([
   'login',
 ])
 
+const $t = useI18n().t
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -95,13 +97,13 @@ async function loginProcess() {
     wif: loginInput.value, 
     saveAuthToken: true,
     onUpdateStep: step => {
-      if (step === 'nonce') loginStatus.value = 'Generating authentication challenge'
-      if (step === 'sign') loginStatus.value = 'Signing authentication challenge'
-      if (step === 'authtoken') loginStatus.value = 'Sending authentication challenge'
-      if (step === 'store') loginStatus.value = 'Saving authentication credentials'
+      if (step === 'nonce') loginStatus.value = $t('GenAuthChallenge', undefined, 'Generating authentication challenge')
+      if (step === 'sign') loginStatus.value = $t('SigningAuthChallenge', undefined, 'Signing authentication challenge')
+      if (step === 'authtoken') loginStatus.value = $t('SendingAuthChallenge', undefined, 'Sending authentication challenge')
+      if (step === 'store') loginStatus.value = $t('SavingAuthCred', undefined, 'Saving authentication credentials')
     }
   }).catch(error => {
-    let errorMessage = 'Unknwon error occurred'
+    let errorMessage = $t('UnknownErrorOccurred', undefined, 'Unknown error occurred')
     if (error.name !== 'ArbiterAuthError') {
       dialog.update({ message: errorMessage })
       return Promise.reject(error)
@@ -109,15 +111,15 @@ async function loginProcess() {
 
     const msg = error?.message
     if (msg == 'NoMatchingArbiterFound') {
-      errorMessage = 'No arbiter found with the provided key'
+      errorMessage = $t('NoArbiterFromKey', undefined, 'No arbiter found with the provided key')
     } else if (msg === 'FetchChallengeFailed') {
-      errorMessage = 'Unable to fetch authentication challenge'
+      errorMessage = $t('UnableToFetchAuthChallenge', undefined, 'Unable to fetch authentication challenge')
     } else if (msg === 'AuthChallengeSignError') {
-      errorMessage = 'Error in signing'
+      errorMessage = $t('AuthSignError', undefined, 'Error in signing')
     } else if (msg === 'IncorrectArbiterData') {
-      errorMessage = 'Error in fetching auth token'
+      errorMessage = $t('FetchAuthTokenError', undefined, 'Error in fetching auth token')
     } else if (msg === 'SaveAuthKeyError') {
-      errorMessage = 'Error in saving keys'
+      errorMessage = $t('ErrorSavingKeys', undefined, 'Error in saving keys')
     }
     dialog.update({ message: errorMessage })
     return Promise.reject(error)

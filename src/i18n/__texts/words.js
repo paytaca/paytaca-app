@@ -16,7 +16,6 @@ const words = [
     Address: "Address",
     Applications: "Applications",
     Category: "Category",
-    Outputs: "Outputs",
     Token: "Token",
     Approve: "Approve",
     Apps: "Apps",
@@ -265,10 +264,12 @@ const words = [
     ADS: 'ADS',
     Limit: 'Limit',
     Limits: 'Limits',
+    Funded: 'Funded',
     Released: 'Released',
     Canceled: 'Canceled',
     Ongoing: 'Ongoing',
     Completed: 'Completed',
+    Cancelled: 'Cancelled',
     Appealable: 'Appealable',
     APPEAL: 'APPEAL',
     BUY: 'BUY',
@@ -314,6 +315,13 @@ const words = [
     BCH: 'BCH',
     Map: 'Map'
   },
+  {
+    Marketplace: 'Marketplace',
+    Checkout: "Checkout",
+    Logout: "Logout",
+    Reason: "Reason",
+    Appeal: 'Appeal',
+  }
 ]
 
 module.exports = words

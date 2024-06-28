@@ -8,12 +8,12 @@
           <q-list separator>
             <q-item clickable v-close-popup :active="filterOpts.isPending" @click="() => filterOpts.isPending = true">
               <q-item-section>
-                <q-item-label>Pending</q-item-label>
+                <q-item-label>{{ $t('Pending') }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item clickable v-close-popup :active="!filterOpts.isPending" @click="() => filterOpts.isPending = false">
               <q-item-section>
-                <q-item-label>All</q-item-label>
+                <q-item-label>{{ $t('All') }}</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -30,7 +30,7 @@
               @click="() => toggleOrderingField(undefined, 100)"
             >
               <q-item-section>
-                <q-item-label>Remove ordering</q-item-label>
+                <q-item-label>{{ $t('RemoveOrdering', undefined, 'Remove ordering') }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item
@@ -83,7 +83,7 @@
       <q-spinner size="lg" color="brandblue"/>
     </div>
     <div v-else-if="!appeals?.length" class="text-center text-grey text-subtitle1">
-      No appeals to show
+      {{ $t('NoAppeals', undefined, 'No appeals to show') }}
     </div>
     <div
       v-for="appeal in appeals" :key="appeal?.address"
@@ -103,12 +103,12 @@
       </div>
       
       <div class="row items-center">
-        <div v-if="appeal?.type" style="whitespace:nowrap;">{{ capitalize(appeal?.type).replaceAll('_', ' ') }}</div>
-        <div v-else class="text-grey" style="whitespace:nowrap;">No settlement type</div>
+        <div v-if="appeal?.type" style="whitespace:nowrap;">{{ formatSettlementApealType(appeal?.type) }}</div>
+        <div v-else class="text-grey" style="whitespace:nowrap;">{{$t('NoSettlementType', undefined, 'No settlement type')}}</div>
         <div v-if="appeal?.completedAt" @click.stop>
           <q-badge
             rounded
-            label="Completed"
+            :label="$t('Completed')"
             class="q-ml-xs"
             color="green"
           />
@@ -119,7 +119,7 @@
         <div v-else-if="appeal?.cancelledAt" @click.stop>
           <q-badge
             rounded
-            label="Cancelled"
+            :label="$t('Cancelled')"
             class="q-ml-xs"
             color="green"
           />
@@ -139,10 +139,10 @@
         />
       </div>
       <div class="row items-start no-wrap">
-        <div class="q-pr-xs">Reason:</div>
+        <div class="q-pr-xs">{{ $t('Reason') }}:</div>
         <q-space/>
         <div v-if="appeal?.reason">{{ appeal?.reason }}</div>
-        <div v-else class="text-grey">Not specified</div>
+        <div v-else class="text-grey">{{ $t('None' )}}</div>
       </div>
       <q-menu
         touch-position
@@ -152,7 +152,7 @@
         <q-list>
           <q-item clickable v-close-popup @click="() => showEscrowContract(appeal?.escrowContract)">
             <q-item-section>
-              <q-item-label>View escrow</q-item-label>
+              <q-item-label>{{ $t('ViewEscrow', undefined, 'View escrow') }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-separator/>
@@ -164,7 +164,7 @@
             @click="() => settleEscrowContract(appeal?.escrowContract, { type: 'release', escrowSettlementAppealId: appeal?.id })"
           >
             <q-item-section>
-              <q-item-label>Release funds</q-item-label>
+              <q-item-label>{{ $t('ReleaseFunds', undefined, 'Release funds') }}</q-item-label>
             </q-item-section>
           </q-item>
 
@@ -175,7 +175,7 @@
             @click="() => settleEscrowContract(appeal?.escrowContract, { type: 'refund', escrowSettlementAppealId: appeal?.id })"
           >
             <q-item-section>
-              <q-item-label>Return funds</q-item-label>
+              <q-item-label>{{ $t('ReturnFunds', undefined, 'Return funds') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -188,8 +188,9 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { formatDateRelative, formatTimestampToText } from "src/marketplace/utils";
 import { ChatIdentity, EscrowContract, EscrowSettlementAppeal } from "src/marketplace/objects";
 import { compileEscrowSmartContract } from "src/marketplace/escrow";
-import { arbiterBackend, parseWif } from "src/marketplace/arbiter";
+import { arbiterBackend, formatSettlementApealType, parseWif } from "src/marketplace/arbiter";
 import { debounce, useQuasar } from "quasar";
+import { useI18n } from "vue-i18n";
 import { useStore } from "vuex";
 import { capitalize, computed, onMounted, ref, watch } from "vue";
 import LimitOffsetPagination from "src/components/LimitOffsetPagination.vue";
@@ -206,6 +207,7 @@ const props = defineProps({
   chatIdentity: ChatIdentity,
 })
 
+const { t: $t } = useI18n()
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -218,10 +220,10 @@ async function dialogPromise(qDialogOptions) {
 const arbiterAddress = computed(() => props.keys?.address)
 
 const filterOrderingOpts = [
-  { label: 'ID', value: 'id' },
-  { label: 'Created', value: 'created_at' },
-  { label: 'Completed', value: 'completed_at' },
-  { label: 'Cancelled', value: 'cancelled_at' },
+  { label: $t('ID'), value: 'id' },
+  { label: $t('Created'), value: 'created_at' },
+  { label: $t('Completed'), value: 'completed_at' },
+  { label: $t('Cancelled'), value: 'cancelled_at' },
 ]
 const filterOpts = ref({
   isPending: true,
@@ -230,6 +232,10 @@ const filterOpts = ref({
   descending: true,
 })
 
+async function sleepPromise(duration=0) {
+  if (!Number.isInteger(duration) || duration <= 0) return
+  return new Promise((resolve) => setTimeout(resolve, duration))
+}
 async function toggleOrderingField(value, delay=0) {
   if (Number.isInteger(delay) && delay > 0) await sleepPromise(delay)
 
@@ -315,10 +321,10 @@ function refetchAppeals(ids=[].map(Number)) {
 }
 
 function resolveEscrowContractStatus(escrowContract = EscrowContract.parse()) {
-  if (!escrowContract.isFunded) return { label: 'Pending', color: 'grey' }
-  if (!escrowContract.isSettled) return { label: 'Funded', color: 'orange' }
-  if (escrowContract.settlementType === 'released') return { label: 'Released', color: 'green' }
-  if (escrowContract.settlementType === 'refunded') return { label: 'Refunded', color: 'green' }
+  if (!escrowContract.isFunded) return { label: $t('Pending'), color: 'grey' }
+  if (!escrowContract.isSettled) return { label: $t('Funded'), color: 'orange' }
+  if (escrowContract.settlementType === 'released') return { label: $t('Released'), color: 'green' }
+  if (escrowContract.settlementType === 'refunded') return { label: $t('Refunded'), color: 'green' }
 }
 
 
@@ -336,23 +342,23 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
   if (orderStatus) {
     if (settlementType === 'refund' && orderStatus !== 'cancelled') {
       await dialogPromise({
-        title: 'Refund escrow',
-        message: 'Related order for this payment is not cancelled. Proceed to refund?',
+        title: $t('RefundEscrow', undefined, 'Refund escrow'),
+        message: $t('RefundEscrowMsg', undefined, 'Related order for this payment is not cancelled. Proceed to refund?'),
         color: 'brandblue',
         persistent: true,
-        ok: { label: 'Refund', noCaps: true },
-        cancel: { label: 'Cancel', noCaps: true, color: 'grey', flat: true },
+        ok: { label: $t('Refund'), noCaps: true },
+        cancel: { label: $t('Cancel'), noCaps: true, color: 'grey', flat: true },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
       })
     }
     if (settlementType === 'release' && orderStatus !== 'completed') {
       await dialogPromise({
-        title: 'Complete escrow',
-        message: 'Related order for this payment is not yet completed. Proceed to release funds?',
+        title: $t('CompleteEscrow', undefined, 'Complete escrow'),
+        message: $t('CompleteEscrowMsg', undefined, 'Related order for this payment is not yet completed. Proceed to release funds?'),
         color: 'brandblue',
         persistent: true,
-        ok: { label: 'Proceed', noCaps: true },
-        cancel: { label: 'Cancel', noCaps: true, color: 'grey', flat: true },
+        ok: { label: $t('Proceed'), noCaps: true },
+        cancel: { label: $t('Cancel'), noCaps: true, color: 'grey', flat: true },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
       }) 
     }
@@ -362,7 +368,9 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
   let dialog
   const dialogTimeout = setTimeout(() => {
     dialog = $q.dialog({
-      title: settlementType  === 'release' ? 'Complete escrow' : 'Refund escrow',
+      title: settlementType  === 'release'
+        ? $t('CompleteEscrow', undefined, 'Complete escrow')
+        : $t('RefundEscrow', undefined, 'Refund escrow'),
       progress: true,
       persistent: true,
       color: 'brandblue',
@@ -371,19 +379,22 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     })
   }, 10)
   try {
-    dialog?.update?.({ message: 'Compiling contract' })
+    dialog?.update?.({ message: $t('CompilingContract', undefined, 'Compiling contract') })
     const escrow = compileEscrowSmartContract(escrowContract)
     const contract = escrow.getContract()
     if (contract.address != escrowContract?.address) {
       console.warn('Address mismatch got', contract.address, 'expected', escrowContract?.address)
-      throw new Error('Compiled contract does not match address', { cause: 'invalid_compilation' })
+      throw new Error(
+        $t('CompilingContractError', undefined, 'Compiled contract does not match address'),
+        { cause: 'invalid_compilation' }
+      )
     }
     const fundingUtxo = {
       "txid": escrowContract.fundingTxid,
       "vout": escrowContract.fundingVout,
       "satoshis": escrowContract.fundingSats,
     }
-    dialog?.update?.({ message: 'Creating transaction' })
+    dialog?.update?.({ message: $t('CreatingTransaction', undefined, 'Creating transaction') })
     let promise
     if(settlementType === 'release') {
       promise = escrow.release(fundingUtxo, props.keys?.wif)
@@ -408,7 +419,8 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     if (typeof error?.message === 'string' && error?.message?.length < 200) errorMessage = error?.message
     if (error?.cause == 'invalid_compilation') errorMessage = error?.message
 
-    dialog?.update?.({ message: errorMessage || 'Unknown error occurred' })
+    errorMessage = errorMessage || $t('UnknownErrorOccurred', undefined, 'Unknown error occurred')
+    dialog?.update?.({ message: errorMessage })
   } finally {
     dialog?.update?.({ persistent: false, progress: false, ok: true })
   }
@@ -422,7 +434,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
  */
 async function sendSettlementTx(escrowContract, transaction, escrowSettlementAppealId) {
   const dialog = $q.dialog({
-    title: 'Settle escrow contract',
+    title: $t('SettleEscrowContract', undefined, 'Settle escrow contract'),
     persistent: true,
     progress: true,
     color: 'brandblue',
@@ -430,13 +442,13 @@ async function sendSettlementTx(escrowContract, transaction, escrowSettlementApp
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
   })
   try {
-    dialog.update({ message: 'Building transaction'})
+    dialog.update({ message: $t('BuildingTransaction', undefined, 'Building transaction') })
     const txHex = await transaction.build()
     const data = {
       settlement_tx_hex: txHex,
       escrow_settlement_appeal_id: parseInt(escrowSettlementAppealId) || undefined,
     }
-    dialog.update({ message: 'Broadcasting transaction' })
+    dialog.update({ message: $t('BroadcastingTransaction', undefined, 'Broadcasting transaction') })
     return await arbiterBackend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
       .then(response => {
         escrowContract.raw = response?.data
@@ -458,7 +470,8 @@ async function sendSettlementTx(escrowContract, transaction, escrowSettlementApp
     let dialogMsg
     const msg = error?.message 
     if (typeof msg === 'string' && msg?.length < 200) dialogMsg = msg 
-    dialog.update({ message: dialogMsg || 'Error in building transaction'})
+    dialogMsg = dialogMsg || $t('ErrorInBuildingTransaction', undefined, 'Error in building transaction') 
+    dialog.update({ message: dialogMsg })
   } finally {
     dialog.update({ persistent: false, progress: false, ok: true })
   }

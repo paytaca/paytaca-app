@@ -1,11 +1,15 @@
 import BCHJS from '@psf/bch-js';
 import axios from 'axios';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+import { capitalize } from 'vue';
 import { bus } from 'src/wallet/event-bus';
 import { backend } from './backend';
 import { generateKeypair } from './chat/keys';
 import { EscrowArbiter } from './objects';
+import { i18n } from 'src/boot/i18n';
 
+
+const { t: $t } = i18n.global
 const bchjs = new BCHJS()
 
 export function getWifPubkey(wif) {
@@ -158,3 +162,22 @@ export async function getArbiterWifData() {
   if (!wif) return
   return parseWif(wif)
 }
+
+/* ---------------------------------------------------------------------------- */
+/** Formatters */
+/**
+ * @param {'release' | 'refund' | 'full_refund' } val 
+ */
+export function formatSettlementApealType(val) {
+  switch(val) {
+    case 'release':
+      return $t('Release')
+    case 'refund':
+      return $t('Refund')
+    case 'full_refund':
+      return $t('FullRefund', undefined, 'Full refund')
+    default:
+      return capitalize(val).replaceAll('_', ' ')
+  }
+}
+/* ---------------------------------------------------------------------------- */
