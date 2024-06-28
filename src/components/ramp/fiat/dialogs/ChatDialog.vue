@@ -29,7 +29,7 @@
     </div>
 
     <!-- Convo -->
-    <q-list
+    <div
       ref="scrollTargetRef"
       :style="`height: ${attachmentUrl ? maxHeight - 280 : maxHeight - 120}px`"
       style="overflow: auto;">
@@ -182,7 +182,7 @@
           </div>
         </div> -->
       </q-infinite-scroll>
-    </q-list>
+    </div>
 
     <!-- Message Input -->
     <div v-if="!completedOrder" class="row q-py-sm q-px-sm" :class="getDarkModeClass(darkMode)">
@@ -314,7 +314,7 @@ export default {
     const resetScroll = async (type = null) => {
       if (infiniteScroll.value) {
         await infiniteScroll.value.reset()
-        const scrollElement = scrollTargetRef.value.$el
+        const scrollElement = scrollTargetRef.value
         const test = infiniteScroll.value.$el
 
         if (type) {
@@ -410,7 +410,8 @@ export default {
       },
       chatMembers: [],
       chatPubkeys: [],
-      arbiterIdentity: null
+      arbiterIdentity: null,
+      addingNewMessage: false
     }
   },
   props: {
@@ -496,13 +497,15 @@ export default {
     },
     async onNewMessage (messageData) {
       const vm = this
-      if (vm.convo.messages[this.convo.messages.length - 1].id !== messageData.id) {
+      if ((vm.convo.messages[this.convo.messages.length - 1].id !== messageData.id) && !this.addingNewMessage) {
         return new Promise((resolve, reject) => {
+          this.addingNewMessage = true
           const decMes = vm.decryptMessage(new ChatMessage(messageData), false)
           resolve(decMes)
         })
           .then(item => {
             // const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
+            this.addingNewMessage = false
             const ref = this.chatIdentity?.ref
             item.chatIdentity.is_user = item.chatIdentity.ref === ref
             this.convo.messages.push(item)
@@ -513,6 +516,10 @@ export default {
             await updateLastRead(vm.chatRef, vm.convo.messages)
             bus.emit('last-read-update')
             vm.resetScroll()
+          })
+          .catch(error => {
+            console.log(error)
+            this.addingNewMessage = false
           })
       }
     },
@@ -729,8 +736,10 @@ export default {
           }
         })
         .then(() => {
-          if (type) {
+          if (type !== 'initial') {
             this.resetScroll('new-message')
+          } else {
+            this.resetScroll()
           }
         })
     },
