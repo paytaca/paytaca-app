@@ -2,7 +2,7 @@
   <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
-  <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
+  <div v-show="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
     <div class="q-pt-sm text-center text-weight-bold">
       <div class="lg-font-size">
         <span>{{ headerTitle.toUpperCase() }}</span>
@@ -17,71 +17,72 @@
         }}
       </div>
     </div>
-    <!-- <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef"> -->
-      <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
-        <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef">
-          <div class="q-mx-lg q-px-sm q-mb-sm">
-            <TradeInfoCard
-              :order="order"
-              :ad="ad"
-              type="order"
-              @view-ad="showAdSnapshot=true"
-              @view-peer="onViewPeer"
-              @view-reviews="showReviews=true"
-              @view-chat="openChat=true"/>
-          </div>
-          <!-- Ad Owner Confirm / Decline -->
-          <ReceiveOrder
-            v-if="state === 'order-confirm-decline'"
-            :data="receiveOrderData"
-            @confirm="confirmingOrder"
-            @cancel="cancellingOrder"
+    <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow:auto;">
+      <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
+        <div class="q-mx-lg q-px-sm q-mb-sm">
+          <TradeInfoCard
+            :order="order"
+            :ad="ad"
+            type="order"
+            @view-ad="showAdSnapshot=true"
+            @view-peer="onViewPeer"
+            @view-reviews="showReviews=true"
+            @view-chat="openChat=true"/>
+        </div>
+        <!-- Ad Owner Confirm / Decline -->
+        <ReceiveOrder
+          v-if="state === 'order-confirm-decline'"
+          :data="receiveOrderData"
+          @confirm="confirmingOrder"
+          @cancel="cancellingOrder"
+          @back="onBack"
+        />
+        <EscrowTransfer
+          v-if="state === 'escrow-bch'"
+          :key="escrowTransferKey"
+          :data="escrowTransferData"
+          @sending="onSendingBCH"
+          @success="onEscrowSuccess"
+          @back="onBack"
+          @refresh="generateContract"
+          @updateArbiterStatus="onUpdateArbiterStatus"
+        />
+        <VerifyTransaction
+          v-if="state === 'tx-confirmation'"
+          :key="verifyTransactionKey"
+          :data="verifyTransactionData"
+          @verifying="onVerifyingTx"
+          @success="onVerifyTxSuccess"
+          @back="onBack"
+        />
+        <!-- Waiting Page -->
+        <div v-if="state === 'standby-view'">
+          <StandByDisplay
+            :key="standByDisplayKey"
+            :data="standByDisplayData"
+            @send-feedback="sendFeedback"
+            @submit-appeal="submitAppeal"
             @back="onBack"
+            @refresh="refreshContent"
+            @cancel-order="cancellingOrder"
           />
-          <EscrowTransfer
-            v-if="state === 'escrow-bch'"
-            :key="escrowTransferKey"
-            :data="escrowTransferData"
-            @success="onEscrowSuccess"
-            @back="onBack"
-            @refresh="generateContract"
-            @updateArbiterStatus="onUpdateArbiterStatus"
-          />
-          <VerifyTransaction
-            v-if="state === 'tx-confirmation'"
-            :key="verifyTransactionKey"
-            :data="verifyTransactionData"
-            @success="onVerifyTxSuccess"
-            @back="onBack"
-          />
-          <!-- Waiting Page -->
-          <div v-if="state === 'standby-view'">
-            <StandByDisplay
-              :key="standByDisplayKey"
-              :data="standByDisplayData"
-              @send-feedback="sendFeedback"
-              @submit-appeal="submitAppeal"
-              @back="onBack"
-              @refresh="refreshContent"
-              @cancel-order="cancellingOrder"
-            />
-          </div>
+        </div>
 
-          <!-- Payment Confirmation -->
-          <div v-if="state === 'payment-confirmation'">
-            <PaymentConfirmation
-              :key="paymentConfirmationKey"
-              :data="paymentConfirmationData"
-              @verify-release="handleVerifyRelease"
-              @back="onBack"
-            />
-          </div>
-          <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
-            <q-spinner-ios size="1.5em"/>
-          </div>
-        </q-pull-to-refresh>
-      </div>
-    <!-- </q-pull-to-refresh> -->
+        <!-- Payment Confirmation -->
+        <div v-if="state === 'payment-confirmation'">
+          <PaymentConfirmation
+            :key="paymentConfirmationKey"
+            :data="paymentConfirmationData"
+            @sending="onSendingBCH"
+            @verify-release="handleVerifyRelease"
+            @back="onBack"
+          />
+        </div>
+        <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
+          <q-spinner-ios size="1.5em"/>
+        </div>
+      </q-pull-to-refresh>
+    </div>
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog" >
@@ -96,6 +97,7 @@
   <AdSnapshotDialog v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
   <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
   <ChatDialog v-if="openChat" :order="order" @close="openChat=false"/>
+  <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
 </template>
 <script>
 import { formatCurrency } from 'src/wallet/ramp'
@@ -117,8 +119,15 @@ import PaymentConfirmation from './PaymentConfirmation.vue'
 import TradeInfoCard from './TradeInfoCard.vue'
 import AdSnapshotDialog from './dialogs/AdSnapshotDialog.vue'
 import UserProfileDialog from './dialogs/UserProfileDialog.vue'
+import ContractProgressDialog from './dialogs/ContractProgressDialog.vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    return {
+      scrollTargetRef
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -167,7 +176,9 @@ export default {
       hasUnread: false,
       chatRef: '',
       hideTradeInfo: false,
-      hasArbiters: true
+      hasArbiters: true,
+      sendingBch: false,
+      verifyingTx: false
     }
   },
   components: {
@@ -181,7 +192,8 @@ export default {
     ChatDialog,
     TradeInfoCard,
     AdSnapshotDialog,
-    UserProfileDialog
+    UserProfileDialog,
+    ContractProgressDialog
   },
   props: {
     orderData: {
@@ -193,17 +205,24 @@ export default {
       default: ''
     }
   },
-  setup () {
-    const scrollTargetRef = ref(null)
-
-    return {
-      scrollTargetRef
-    }
-  },
   computed: {
+    showContractProgDialog () {
+      return this.sendingBch || this.verifyingTx
+    },
+    contractProgMsg () {
+      if (this.sendingBch) {
+        return this.$t('SendingBchPleaseWait')
+      }
+      if (this.verifyingTx) {
+        return this.$t('VerifyingPleaseWait')
+      }
+      return ''
+    },
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 180 : this.$q.screen.height - 150
-      if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
+      if (this.sendingBch || this.verifyingTx) {
+        height = height - 40
+      } else if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
       }
       return height
@@ -325,14 +344,15 @@ export default {
   watch: {
     reconnectingWebSocket () {
       this.reloadChildComponents()
+    },
+    state (val) {
+      if (val === 'tx-confirmation') {
+        this.onSendingBCH(false)
+      }
     }
   },
   created () {
     bus.emit('hide-menu')
-
-    // WIP
-    // bus.on('hide-chat', this.hideChat())
-    // bus.on('show-chat', this.showChat())
   },
   async mounted () {
     const vm = this
@@ -341,10 +361,10 @@ export default {
     if (vm.order.contract) {
       vm.generateContract()
     }
+    vm.isloaded = true
     vm.fetchAd()
     vm.fetchFeedback().then(() => {
-      vm.isloaded = true
-      if (this.notifType === 'new_message') { this.openChat = true}
+      if (this.notifType === 'new_message') { this.openChat = true }
     })
     this.setupWebsocket(20, 1000)
   },
@@ -355,6 +375,12 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    onVerifyingTx (verifying) {
+      this.verifyingTx = verifying
+    },
+    onSendingBCH (sending) {
+      this.sendingBch = sending
+    },
     onUpdateArbiterStatus (hasArbiters) {
       this.hasArbiters = hasArbiters
     },
@@ -507,22 +533,6 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
-            } else {
-              console.error(error)
-            }
-            reject(error)
-          })
-      })
-    },
-    fetchOrderMembers (orderId) {
-      return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
             } else {
               console.error(error)
             }
@@ -894,10 +904,15 @@ export default {
       this.websocket.watchtower.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
-        this.fetchOrder()
-        if (data?.contract_address) {
-          this.fetchOrder().then(this.fetchContract().then(() => { this.escrowTransferKey++ }))
+        if (data?.txdata) {
+          this.verifyingTx = false
         }
+        this.fetchOrder()
+          .then(() => {
+            if (data?.contract_address) {
+              this.fetchContract().then(() => { this.escrowTransferKey++ })
+            }
+          })
       }
       this.websocket.chat.onmessage = (event) => {
         const parsedData = JSON.parse(event.data)
@@ -942,8 +957,11 @@ export default {
       this.showPeerProfile = true
     },
     refreshContent (done) {
-      if (done) this.$emit('refresh', done)
-      else this.$refs.pullToRefresh.trigger()
+      if (done) {
+        this.$emit('refresh', done)
+      } else {
+        this.$refs.pullToRefresh.trigger()
+      }
     }
   }
 }
