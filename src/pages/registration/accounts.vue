@@ -733,7 +733,6 @@ export default {
 
     // auto-detect country
     const ipGeoPreferences = await this.getIPGeolocationPreferences()
-    console.log('ipGeoPreferences', ipGeoPreferences)
 
     const vm = this
     setTimeout(function () {
@@ -774,7 +773,11 @@ export default {
         finalLang = defaultLang
       }
 
-      console.log({ finalLang, deviceLang, ipGeoLang })
+      // if country is Philippines, set language to English
+      if (ipGeoPreferences.country.code === 'PH') {
+        finalLang = defaultLang
+      }
+
       this.setLanguage(finalLang)
     }
 
