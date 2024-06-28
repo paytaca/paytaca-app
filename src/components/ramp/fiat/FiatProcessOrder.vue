@@ -103,7 +103,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
-import { updateChatMembers, generateChatRef, fetchChatSession } from 'src/wallet/ramp/chat'
+import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -202,11 +202,11 @@ export default {
   },
   computed: {
     scrollHeight () {
-      let height = this.$q.platform.is.ios ? this.$q.screen.height - 380 : this.$q.screen.height - 350
+      let height = this.$q.platform.is.ios ? this.$q.screen.height - 180 : this.$q.screen.height - 150
       if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
       }
-      return height + 200
+      return height
     },
     headerTitle () {
       switch (this.state) {
@@ -500,6 +500,9 @@ export default {
               })
               .catch(error => {
                 console.log(error)
+                if (error.response?.status === 404) {
+                  vm.createGroupChat(vm.order?.id, chatRef)
+                }
               })
             resolve(response.data)
           })
@@ -515,6 +518,31 @@ export default {
             reject(error)
           })
       })
+    },
+    fetchOrderMembers (orderId) {
+      return new Promise((resolve, reject) => {
+        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+          .then(response => {
+            resolve(response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error(error.response)
+            } else {
+              console.error(error)
+            }
+            reject(error)
+          })
+      })
+    },
+    async createGroupChat (orderId, chatRef) {
+      if (!orderId) throw Error(`Missing required parameter: orderId (${orderId})`)
+      const vm = this
+      const members = await vm.fetchOrderMembers(orderId)
+      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+      createChatSession(orderId, chatRef)
+        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
+        .catch(console.error)
     },
     updateOrderReadAt () {
       const vm = this
