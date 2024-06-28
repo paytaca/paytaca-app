@@ -584,10 +584,21 @@ export default {
         })
       }
     },
-    deleteWallet () {
+    async deleteWallet () {
+      if (!this.wallet) await this.loadWallet()
+      const walletHashes = [
+        this.wallet.BCH.walletHash,
+        this.wallet.BCH_CHIP.walletHash,
+        this.wallet.SLP.walletHash,
+        this.wallet.SLP_TEST.walletHash,
+        this.wallet.sBCH.walletHash,
+      ]
+
       const vm = this
       const currentWalletIndex = this.$store.getters['global/getWalletIndex']
-      this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(function () {
+      this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
+        return vm.$pushNotifications.unsubscribe(walletHashes)?.catch(console.error)
+      }).then(function () {
         const vault = vm.$store.state.global.vault
         const undeletedWallets = []
         const vaultCheck = vault.filter(function (wallet, index) {
