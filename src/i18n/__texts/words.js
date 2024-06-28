@@ -239,6 +239,15 @@ const words = [
       Okay: 'Okay',
       Unavailable: 'Unavailable',
       Available: 'Available',
+      Marketplace: 'Marketplace',
+      Korean: 'Korean',
+      Japanese: 'Japanese',
+      Tagalog: 'Tagalog',
+      Cebuano: 'Cebuano',
+      Dutch: 'Dutch',
+      Indonesian: 'Indonesian',
+      Italian: 'Italian',
+      Afrikaans: 'Afrikaans',
   },
   {
     Resolved: 'Resolved',
@@ -313,7 +322,9 @@ const words = [
     Created: 'Created',
     Expires: 'Expires',
     BCH: 'BCH',
-    Map: 'Map'
+    Map: 'Map',
+    Confirmed: "Confirmed",
+    Cancelled: "Cancelled",
   },
   {
     Marketplace: 'Marketplace',
