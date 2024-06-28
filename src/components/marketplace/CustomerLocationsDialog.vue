@@ -3,14 +3,15 @@
     <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pb-none">
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Addresses</div>
+          <div class="text-h5 q-space">{{ $t('Addresses') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
         </div>
         <div class="row">
           <q-space/>
           <q-btn
             icon="add"
-            no-caps label="Add new address"
+            no-caps
+            :label="$t('AddNewAddress')"
             padding="2px md"
             class="button"
             @click="() => editLocation()"
@@ -19,7 +20,7 @@
       </q-card-section>
       <q-card-section v-if="!customerLocations?.length">
         <div class="text-center text-grey">
-          No saved locations
+          {{ $t('NoSavedLocations') }}
         </div>
       </q-card-section>
       <q-list class="q-mb-md" separator>
@@ -29,7 +30,15 @@
               <template v-if="location?.name">
                 {{ location?.name }} <span class="text-grey">#{{ location?.id }}</span>
               </template>
-              <template v-else>Address #{{ location?.id }}</template>
+              <template v-else>
+                {{
+                  $t(
+                    'AddressLocationId',
+                    { locationId: location?.id },
+                    `Address #${ location?.id }`,
+                  )
+                }}
+              </template>
             </q-item-label>
             <q-item-label class="text-caption ellipsis-2-lines">
               {{ location?.formatted }}
@@ -43,7 +52,7 @@
                 @click="() => showLocationInDialog(location)"
               >
                 <q-icon name="location_on"/>
-                <span class="text-underline">View in map</span>
+                <span class="text-underline">{{ $t('ViewInMap') }}</span>
               </q-btn>
             </q-item-label>
           </q-item-section>
@@ -83,6 +92,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -107,9 +117,9 @@ export default defineComponent({
 
     function deleteLocationConfirm(locationId) {
       $q.dialog({
-        title: 'Delete address',
-        message: 'Are you sure?',
-        ok: { color: 'red', noCaps: true, label: 'Delete', outlined: true },
+        title: t('DeleteAddress'),
+        message: t('AreYouSure'),
+        ok: { color: 'red', noCaps: true, label: t('Delete'), outlined: true },
         cancel: { flat: true, color: 'grey', noCaps: true },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
       }).onOk(() => deleteLocation(locationId))
@@ -117,7 +127,7 @@ export default defineComponent({
 
     function deleteLocation(locationId) {
       const dialog = $q.dialog({
-        title: 'Removing address',
+        title: t('RemovingAddress'),
         progress: true,
         ok: false,
         cancel: false,

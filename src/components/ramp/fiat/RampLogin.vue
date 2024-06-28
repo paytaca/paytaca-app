@@ -7,6 +7,7 @@
     <div>
       <div class="q-px-md q-mb-sm text-h6 login-label">
         <div class="row justify-center q-mb-sm">
+          <!--TODO:-->
           {{ register ? "Sign up" : "Login"}} as {{ user?.is_arbiter ? "Arbiter" : "Peer"}}
         </div>
         <q-input
@@ -20,7 +21,7 @@
           :dark="darkMode"
           :readonly="!register || user?.is_arbiter"
           :disable="loggingIn"
-          :placeholder="register ? 'Enter nickname' : ''"
+          :placeholder="register ? $t('EnterNickname') : ''"
           :loading="loggingIn || (!usernickname && !register) || isLoading"
           :error="errorMessage !== null"
           v-model="usernickname">
@@ -155,48 +156,40 @@ export default {
     },
     async loadChatIdentity () {
       const vm = this
-      vm.hintMessage = 'Loading chat identity'
-      const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
+      const rampWallet = loadRampWallet()
+      vm.hintMessage = this.$t('LoadingChatIdentity')
+
+      // Update signer data for signing chat authentication
+      vm.hintMessage = this.$t('UpdatingSignerData')
+      await updateSignerData().catch(error => { return vm.handleError(error, 'Failed to update signer data') })
+
+      // Update or create encrypting/decrypting keypair
+      vm.hintMessage = this.$t('UpdatingChatKeypair')
+      await chatUtils.updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
+
+      const chatIdentityRef = chatUtils.generateChatIdentityRef(rampWallet.walletHash)
       const data = {
-        rampWallet: vm.rampWallet,
-        ref: vm.rampWallet.walletHash,
+        rampWallet: rampWallet,
+        ref: chatIdentityRef,
         name: vm.user.name
       }
       // check if chatIdentity exists
       let chatIdentity = await chatUtils.fetchChatIdentity(data.ref).catch(error => { return vm.handleError(error, 'Unable to fetch chat identity') })
-      // handle mismatching chat identity names
-      if (chatIdentity && chatIdentity.name !== vm.user.name) {
-        vm.hintMessage = 'Updating chat identity name'
-        const payload = {
-          id: this.user.chat_identity_id,
-          name: vm.user.name
-        }
-        chatUtils.updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
-      }
 
-      // Update signer data for signing chat authentication
-      vm.hintMessage = 'Updating signer data'
-      const verifyingPubkey = chatIdentity?.verifying_pubkey || null
-      const currentIndex = vm.user?.address_path?.split('/')[1] || 0
-      await updateSignerData(verifyingPubkey, currentIndex).catch(error => { return vm.handleError(error, 'Failed to update signer data') })
-
-      // Update or create encrypting/decrypting keypair
-      vm.hintMessage = 'Updating chat keypair'
-      await chatUtils.updateOrCreateKeypair().catch(error => { return vm.handleError(error) })
-
+      // Build payload and create chat identity
       if (!chatIdentity) {
-        // Build payload and create chat identity
-        vm.hintMessage = 'Creating chat identity'
+        vm.hintMessage = this.$t('CreatingChatIdentity')
         const payload = await vm.buildChatIdentityPayload(data).catch(error => { return vm.handleError(error, 'Failed to build chat identity') })
         chatIdentity = await chatUtils.createChatIdentity(payload).catch(error => { return vm.handleError(error, 'Failed to create chat identity') })
       }
 
       // Save chat identity to store
       vm.$store.commit('ramp/updateChatIdentity', { ref: data.ref, chatIdentity: chatIdentity })
-      vm.hintMessage = 'Almost there'
+      vm.hintMessage = this.$t('AlmostThere')
 
       // Update chat identity id if null or mismatch
       if (!vm.user.chat_identity_id || vm.user.chat_identity_id !== chatIdentity.id) {
+        const userType = vm.user.is_arbiter ? 'arbiter' : 'peer'
         chatUtils.updateChatIdentityId(userType, chatIdentity.id).catch(error => { return vm.handleError(error, 'Failed to update chat identity id') })
       }
       return true
@@ -209,7 +202,7 @@ export default {
       if (!encPubkey) {
         // Handle null encrypting pubkey
         console.error(`Error: getKeypair() returned pubkey: "${encPubkey}". Recreating keypair without updating server pubkey..`)
-        this.hintMessage = 'Updating chat keypair'
+        this.hintMessage = this.$t('UpdatingChatKeypair')
         encPubkey = (await chatUtils.updateOrCreateKeypair({ updatePubkey: false }).catch(error => { return this.handleError(error) })).pubkey
       }
       const payload = {
@@ -227,7 +220,7 @@ export default {
     savePubkeyAndAddress () {
       return new Promise((resolve, reject) => {
         const vm = this
-        vm.hintMessage = 'Updating pubkey and address'
+        vm.hintMessage = this.$t('UpdatingPubkeyAndAddress')
         const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
         vm.rampWallet.pubkey().then(async pubkey => {
           const payload = {
@@ -267,7 +260,7 @@ export default {
       vm.errorMessage = null
       try {
         vm.loggingIn = true
-        vm.hintMessage = 'Logging you in'
+        vm.hintMessage = vm.$t('LoggingYouIn')
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
         const keypair = await vm.rampWallet.keypair()
         const signature = await vm.rampWallet.signMessage(keypair.privateKey, otp)
@@ -289,7 +282,7 @@ export default {
           console.error(error.response)
           vm.errorMessage = error.response.data.error || error
           if (vm.errorMessage.includes('disabled')) {
-            vm.errorMessage = 'This account is disabled'
+            vm.errorMessage = vm.$t('ThisAccountIsDisabled')
           }
           console.log('error:', vm.errorMessage)
         }
@@ -394,9 +387,9 @@ export default {
     verifyBiometric () {
       return new Promise((resolve) => {
         NativeBiometric.verifyIdentity({
-          reason: 'For ownership verification',
-          title: 'Security Authentication',
-          subtitle: 'Verify your account using fingerprint.',
+          reason: this.$t('NativeBiometricReason2'),
+          title: this.$t('SecurityAuthentication'),
+          subtitle: this.$t('NativeBiometricSubtitle'),
           description: ''
         })
           .then(() => {
@@ -405,7 +398,7 @@ export default {
           .catch((error) => {
             console.error(error)
             if (!String(error).toLocaleLowerCase().includes('cancel')) {
-              this.errorMessage = 'Failed to authenticate'
+              this.errorMessage = this.$t('FailedToAuthenticate')
             }
             resolve(false)
           })

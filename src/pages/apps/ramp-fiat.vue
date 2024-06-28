@@ -80,7 +80,7 @@ export default {
       const filters = this.$store.getters['ramp/ongoingOrderFilters'](currency || 'All')
       // filter the new order
       let filterCheck = false
-      const order = data.extra.order
+      const order = data?.extra?.order
       if ((currency === 'All' || order.ad.fiat_currency.symbol === currency) &&
               filters.not_appealable && filters.ownership.notOwned && !filters.queryname) {
         filterCheck = true
@@ -100,9 +100,9 @@ export default {
       if (addToList) {
         const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
         if (filters.sort_type === 'descending') {
-          ongoingOrders.unshift(data.extra.order)
+          ongoingOrders.unshift(data?.extra?.order)
         } else {
-          ongoingOrders.push(data.extra.order)
+          ongoingOrders.push(data?.extra?.order)
         }
         this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
       }
@@ -110,7 +110,7 @@ export default {
     handleNewAppeal (data) {
       const ongoingAppeals = [...this.$store.getters['ramp/pendingAppeals']]
       if (ongoingAppeals.length >= 20) return
-      ongoingAppeals.push(data.extra.appeal)
+      ongoingAppeals.push(data?.extra?.appeal)
       this.$store.commit('ramp/updatePendingAppeals', { overwrite: true, data: { appeals: ongoingAppeals } })
     },
     setupWebsocket (retries, delayDuration) {
@@ -121,7 +121,7 @@ export default {
       }
       this.websocket.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        bus.emit('update-unread-count', data.extra.unread_count)
+        bus.emit('update-unread-count', data?.extra?.unread_count)
         if (data.type === 'NEW_ORDER') {
           this.handleNewOrder(data)
         }

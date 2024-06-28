@@ -151,11 +151,13 @@ import EscrowContractsTabPanel from "./escrow-contracts-tab-panel.vue";
 import SettlementAppealsPanel from "./settlement-appeals-panel.vue";
 import ChatWidget from "./chat-widget.vue";
 import ArbiterProfileFormDialog from "src/components/marketplace/arbiter/ArbiterProfileFormDialog.vue";
+import { useI18n } from "vue-i18n"
 
 import blankUserImg from 'src/assets/blank_user_image.webp'
 
 const asyncSleep = duration => new Promise(resolve => setTimeout(resolve, duration))
 
+const { t } = useI18n()
 const $copyText = inject('$copyText')
 const $router = useRouter()
 const $q = useQuasar()

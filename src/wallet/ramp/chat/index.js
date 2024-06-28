@@ -81,9 +81,9 @@ export async function updateChatIdentity (payload) {
   })
 }
 
-export async function createChatSession (orderId, createdAt) {
+export async function createChatSession (orderId, chatRef) {
   return new Promise((resolve, reject) => {
-    const chatRef = generateChatRef(orderId, createdAt)
+    // const chatRef = generateChatRef(orderId, createdAt, members)
     const payload = {
       ref: chatRef,
       title: `Ramp Order #${orderId} chat`
@@ -246,9 +246,9 @@ export function fetchChatPubkeys (chatRef) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to fetch pubkeys:', error.response)
+          console.error('Failed to fetch chat pubkeys:', error.response)
         } else {
-          console.error('Failed to fetch pubkeys:', error)
+          console.error('Failed to fetch chat pubkeys:', error)
         }
         reject(error)
       })
@@ -273,22 +273,27 @@ export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
         if (error.response) {
           console.error(error.response)
         }
-        return Promise.reject('Failed to save pubkey to server')
+        return Promise.reject('Failed to save chat pubkey to server')
       })
   }
 
   await savePrivkey(keypair.privkey)
     .catch(error => {
       console.error(error)
-      return Promise.reject('Failed to save privkey')
+      return Promise.reject('Failed to save chat privkey')
     })
 
   return keypair
 }
 
-export function generateChatRef (id, createdAt) {
-  const hashVal = id + createdAt
+export function generateChatRef (id, createdAt, members) {
+  if (!members) throw Error('Missing required value: members')
+  const hashVal = id + createdAt + members
   return sha256(hashVal)
+}
+
+export function generateChatIdentityRef (walletHash) {
+  return sha256(walletHash)
 }
 
 export {

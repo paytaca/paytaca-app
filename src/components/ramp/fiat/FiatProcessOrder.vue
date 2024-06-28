@@ -7,7 +7,15 @@
       <div class="lg-font-size">
         <span>{{ headerTitle.toUpperCase() }}</span>
       </div>
-      <div class="text-center subtext sm-font-size q-mb-sm">ORDER ID: {{ order?.id }}</div>
+      <div class="text-center subtext sm-font-size q-mb-sm">
+        {{
+          $t(
+            'OrderIdNo2',
+            { ID: order?.id },
+            `ORDER ID: ${ order?.id }`
+          )
+        }}
+      </div>
     </div>
     <!-- <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent" :scroll-target="scrollTargetRef"> -->
       <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
@@ -210,7 +218,7 @@ export default {
         case 'tx-confirmation':
           return `verifying ${this.verifyAction}`
         case 'payment-confirmation':
-          return this.confirmType === 'buyer' ? 'Pay Fiat' : 'Release BCH'
+          return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
         default:
           return ''
       }
@@ -307,7 +315,10 @@ export default {
       const vm = this
       const now = new Date().getTime()
       const expiryDate = new Date(vm.order.expires_at)
-      const exception = ['Released', 'Canceled']
+      const exception = [
+        this.$t('Released'),
+        this.$t('Canceled')
+      ]
       if (expiryDate < now && vm.order.expires_at && !exception.includes(vm.order.status.label)) {
         return true
       } else {
@@ -480,7 +491,8 @@ export default {
             vm.order = response.data
             vm.updateStatus(vm.order.status)
             vm.updateOrderReadAt()
-            const chatRef = generateChatRef(vm.order.id, vm.order.created_at)
+            const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+            const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
             vm.chatRef = chatRef
             fetchChatSession(chatRef)
               .then(res => {
@@ -760,7 +772,8 @@ export default {
     },
     addArbiterToChat () {
       const vm = this
-      const chatRef = generateChatRef(vm.order.id, vm.order.created_at) // `ramp-order-${vm.order.id}-chat`
+      const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+      const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)
@@ -796,13 +809,13 @@ export default {
     // Opening Dialog
     confirmingOrder () {
       this.dialogType = 'confirmOrder'
-      this.title = 'Confirm Order?'
+      this.title = this.$t('ConfirmOrder')
       this.openDialog = true
     },
     cancellingOrder () {
       this.dialogType = 'confirmCancelOrder'
       this.openDialog = true
-      this.title = 'Cancel this order?'
+      this.title = this.$t('CancelThisOrder')
     },
 
     // Others

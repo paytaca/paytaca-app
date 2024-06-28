@@ -11,7 +11,7 @@
     persistent>
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-subtitle1 q-space">Fulfilling swap</div>
+        <div class="text-subtitle1 q-space">{{ $t('FulfillingSwap') }}</div>
         <q-btn
           flat
           padding="sm"
@@ -21,8 +21,7 @@
       </div>
       <q-card-section>
         <q-banner rounded :class="'text-white bg-red-4'">
-          You can close this dialog and the swap will proceed.
-          However you might not be able to see the progress.
+          {{ $t('SpicebotBridgeSwapWarningMsg') }}
         </q-banner>
         <q-item class="q-px-none">
           <q-item-section avatar>
@@ -30,8 +29,16 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>
-              Fulfulling {{ swapRequest && swapRequest.token && swapRequest.token.name }} swap for
-              {{ swapRequest && swapRequest.amount }}
+              {{
+                $t(
+                  'FulfillingSwap',
+                  {
+                    from: swapRequest && swapRequest.token && swapRequest.token.name,
+                    to: swapRequest && swapRequest.amount
+                  },
+                  `Fulfulling ${ swapRequest && swapRequest.token && swapRequest.token.name } swap for ${ swapRequest && swapRequest.amount }`
+                )
+              }}
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -49,7 +56,7 @@
           </div>
         </div>
         <div v-else class="text-center">
-          <div class="q-my-md pt-label" :class="getDarkModeClass(darkMode)">Outgoing transaction not found</div>
+          <div class="q-my-md pt-label" :class="getDarkModeClass(darkMode)">{{ $t('OutgoingTxnNotFound') }}</div>
           <q-btn
             no-caps
             color="brandblue"

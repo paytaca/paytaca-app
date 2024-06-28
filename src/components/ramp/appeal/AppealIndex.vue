@@ -2,82 +2,76 @@
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
   <HeaderNav :title="`Appeal Ramp`" backnavpath="/apps"/>
 
-  <div class="q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`"
-    v-if="state === 'appeal-list'">
-    <div>
-      <q-pull-to-refresh @refresh="refreshData">
-        <div
-          class="row br-15 q-mb-sm text-center pt-card btn-transaction md-font-size"
-          :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-          <button
-            class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'PENDING'}"
-            @click="statusType='PENDING'">
-            Pending
-          </button>
-          <button
-            class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}"
-            @click="statusType='RESOLVED'">
-            Resolved
-          </button>
-        </div>
-      </q-pull-to-refresh>
-      <q-list ref="scrollTargetRef" :style="`max-height: ${minHeight - 105}px`" style="overflow:auto;">
-        <!-- Loading icon -->
-        <div class="row justify-center">
-          <q-spinner-dots
-            v-if="loading"
-            class="q-pb-sm"
-            color="primary"
-            size="3em"
-          />
-        </div>
-        <!-- Empty list display -->
-        <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">Nothing to display</p>
-        </div>
-        <!-- List -->
-        <div v-else>
-            <q-infinite-scroll
-              ref="infiniteScroll"
-              :items="appeals"
-              @load="loadMoreData"
-              :offset="0"
-              :scroll-target="scrollTargetRef">
-              <template v-slot:loading>
-                <div class="row justify-center q-my-md" v-if="hasMoreData">
-                  <q-spinner-dots color="primary" size="40px" />
-                </div>
-              </template>
-              <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
-                <q-item clickable @click="selectAppeal(index)">
-                  <q-item-section class="q-py-sm">
-                    <div class="row q-mx-md">
-                      <div class="col ib-text">
-                        <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
-                        <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
-                        <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
-                        <div class="xs-font-size">{{ appeal.owner.name}}</div>
-                        <div class="row text-weight-bold" style="font-size: medium;">ORDER #{{ appeal.order.id }}</div>
-                        <div class="xs-font-size">
-                          <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
-                          <div v-if="statusType === 'RESOLVED'" class="row"> Resolved {{ formattedDate(appeal.resolved_at) }} </div>
-                        </div>
-                        <div v-for="(reason, index) in appeal.reasons" :key="index">
-                          <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
-                        </div>
-                      </div>
+  <div v-if="state === 'appeal-list'" class="q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
+    <q-pull-to-refresh @refresh="refreshData">
+      <div class="row br-15 q-mb-sm text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode)" :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+        <button
+          class="col br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'PENDING'}"
+          @click="statusType='PENDING'">
+          {{ $t('Pending') }}
+        </button>
+        <button
+          class="col br-15 btn-custom fiat-tab q-mt-none"
+          :class="{'pt-label dark': darkMode, 'active-transaction-btn': statusType == 'RESOLVED'}"
+          @click="statusType='RESOLVED'">
+          {{ $t('Resolved') }}
+        </button>
+      </div>
+    </q-pull-to-refresh>
+    <!-- Empty list display -->
+    <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
+      <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
+    </div>
+    <!-- List -->
+    <div v-else>
+      <div class="row justify-center" v-if="loading">
+        <q-spinner-dots color="primary" size="40px" />
+      </div>
+      <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 105}px`" style="overflow:auto;">
+        <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
+          <q-item clickable @click="selectAppeal(index)">
+            <q-item-section class="q-py-sm">
+              <div class="row q-mx-md">
+                <div class="col ib-text">
+                  <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                  <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+                  <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
+                  <div class="xs-font-size">{{ appeal.owner.name}}</div>
+                  <div class="row text-weight-bold" style="font-size: medium;">
+                    {{
+                      $t(
+                        'OrderIdNo',
+                        { ID: appeal.order.id },
+                        `ORDER #${ appeal.order.id }`
+                      )
+                    }}
+                  </div>
+                  <div class="xs-font-size">
+                    <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
+                    <div v-if="statusType === 'RESOLVED'" class="row">
+                      {{
+                        $t(
+                          'ResolvedDate',
+                          { date: formattedDate(appeal.resolved_at) },
+                          `Resolved ${ formattedDate(appeal.resolved_at) }`
+                        )
+                      }}
                     </div>
-                  </q-item-section>
-                </q-item>
-                <q-separator class="q-mx-lg" :dark="darkMode"/>
+                  </div>
+                  <div v-for="(reason, index) in appeal.reasons" :key="index">
+                    <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
+                  </div>
+                </div>
               </div>
-            </q-infinite-scroll>
+            </q-item-section>
+          </q-item>
+          <q-separator class="q-mx-lg" :dark="darkMode"/>
+        </div>
+        <div class="row justify-center">
+          <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+          <q-btn v-else-if="!loading && hasMoreData" flat @click="loadMoreData">view more</q-btn>
         </div>
       </q-list>
     </div>
@@ -109,11 +103,9 @@ import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   setup () {
-    const scrollTargetRef = ref(null)
-    const infiniteScroll = ref(null)
+    const scrollTarget = ref(null)
     return {
-      scrollTargetRef,
-      infiniteScroll
+      scrollTarget
     }
   },
   data () {
@@ -132,7 +124,8 @@ export default {
       currentPage: 'Appeal',
       footerData: {
         unreadOrdersCount: 0
-      }
+      },
+      loadingMoreData: false
     }
   },
   components: {
@@ -150,7 +143,7 @@ export default {
   watch: {
     statusType () {
       const vm = this
-      vm.resetAndScrollToTop()
+      vm.scrollToTop()
       vm.refreshData()
     }
   },
@@ -230,7 +223,6 @@ export default {
     },
     async fetchAppeals (overwrite = false) {
       const vm = this
-      vm.loading = true
       const params = { state: vm.statusType }
       await vm.$store.dispatch('ramp/fetchAppeals',
         {
@@ -240,7 +232,7 @@ export default {
         })
         .then((data) => {
           vm.footerData.unreadOrdersCount = data.unread_count
-          vm.loading = false
+          vm.updatePaginationValues()
         })
         .catch(error => {
           console.error(error)
@@ -250,42 +242,37 @@ export default {
           }
         })
     },
-    async loadMoreData (_, done) {
+    async loadMoreData () {
       const vm = this
       if (!vm.hasMoreData) {
-        done(true)
         return
       }
       vm.updatePaginationValues()
+      vm.loadingMoreData = true
       if (vm.pageNumber < vm.totalPages) {
-        vm.fetchAppeals().then(done()).catch(done())
+        await vm.fetchAppeals()
       }
+      vm.loadingMoreData = false
     },
     async refreshData (done) {
-      this.loading = true
-      await this.resetAndRefetchListings()
       if (done) done()
+      await this.resetAndRefetchListings()
     },
     async resetAndRefetchListings () {
       const vm = this
       vm.$store.commit('ramp/resetAppealsPagination')
+      vm.loading = true
       await vm.fetchAppeals(true)
-      vm.updatePaginationValues()
+      vm.loading = false
     },
     updatePaginationValues () {
       const vm = this
       vm.totalPages = vm.$store.getters['ramp/appealsTotalPages'](vm.statusType)
       vm.pageNumber = vm.$store.getters['ramp/appealsPageNumber'](vm.statusType)
     },
-    resetAndScrollToTop () {
-      if (this.$refs.infiniteScroll) {
-        this.$refs.infiniteScroll.reset()
-      }
-      this.scrollToTop()
-    },
     scrollToTop () {
-      if (this.$refs.scrollTargetRef) {
-        const scrollElement = this.$refs.scrollTargetRef.$el
+      if (this.$refs.scrollTarget) {
+        const scrollElement = this.$refs.scrollTarget.$el
         scrollElement.scrollTop = 0
       }
     },

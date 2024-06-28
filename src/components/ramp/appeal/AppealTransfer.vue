@@ -3,7 +3,7 @@
     class="q-mx-md q-pt-sm text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-py-md q-px-sm">
-      <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
+      <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractAddress') }}</div>
       <q-input
         class="q-pb-sm"
         readonly
@@ -18,7 +18,7 @@
           </div>
         </template>
       </q-input>
-      <div class="q-pb-xs text-italic">Contract Balance</div>
+      <div class="q-pb-xs text-italic">{{ $t('ContractBalance') }}</div>
       <div @click="copyToClipboard(contract.balance)">
         <q-input
           class="q-pb-sm md-font-size"
@@ -31,7 +31,7 @@
             <template v-slot:append>BCH</template>
         </q-input>
       </div>
-      <div class="sm-font-size q-pb-xs text-italic">Transaction ID</div>
+      <div class="sm-font-size q-pb-xs text-italic">{{ $t('TransactionId') }}</div>
       <q-input
         class="q-pb-sm"
         dense
@@ -61,7 +61,17 @@
         </q-btn>
         <div v-if="hideBtn && !errorMessage">
           <span v-if="state === 'verifying'">
-            <q-spinner class="q-mr-sm"/>Verifying, please wait. <span v-if="waitSeconds">({{ waitSeconds }}s)</span>
+            <q-spinner class="q-mr-sm"/>
+            <span v-if="waitSeconds">
+              {{
+                $t(
+                  'VerifyingWithSeconds',
+                  { seconds: waitSeconds },
+                  `Verifying, please wait. (${ waitSeconds }s)`
+                )
+              }}
+            </span>
+            <span v-else>{{ $t('VerifyingPleaseWait2') }}</span>
           </span>
         </div>
       </div>

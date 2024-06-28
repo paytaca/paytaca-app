@@ -3,5 +3,6 @@
   "vetur.format.enable": false,
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "vue"],
 
-  "vetur.experimental.templateInterpolationService": false
+  "vetur.experimental.templateInterpolationService": false,
+  "editor.fontWeight": "normal"
 }

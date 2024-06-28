@@ -9,7 +9,7 @@
       </div>
       <div v-else>
         <q-card class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
-          <div class="sm-font-size q-pb-xs text-italic">Contract Address</div>
+          <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractAddress') }}</div>
           <q-input
             class="q-pb-xs"
             readonly
@@ -23,7 +23,7 @@
               </div>
             </template>
           </q-input>
-          <div class="sm-font-size q-pb-xs text-italic">Contract Balance</div>
+          <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractBalance') }}</div>
           <q-input
             class="q-pb-xs"
             readonly
@@ -47,8 +47,8 @@
               indicator-color="primary"
               align="justify"
               narrow-indicator>
-              <q-tab name="status" label="Status" />
-              <q-tab name="transaction" label="Transactions" />
+              <q-tab name="status" :label="$t('Status')" />
+              <q-tab name="transaction" :label="$t('Transactions')" />
             </q-tabs>
             <q-separator class="q-mb-sm" :dark="darkMode"/>
             <div v-if="tab === 'status'">
@@ -64,10 +64,10 @@
             </div>
             <div v-if="tab === 'transaction'">
               <div class="row text-weight-bold sm-font-size">
-                <div class="col text-center">Action</div>
-                <div class="col text-center">Txid</div>
-                <div class="col text-center">Status</div>
-                <div class="col text-center">Date</div>
+                <div class="col text-center">{{ $t('Action') }}</div>
+                <div class="col text-center">{{ $t('Txid') }}</div>
+                <div class="col text-center">{{ $t('Status') }}</div>
+                <div class="col text-center">{{ $t('Date') }}</div>
               </div>
               <q-separator class="q-my-sm" :dark="darkMode"/>
               <div>
@@ -87,11 +87,11 @@
         <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
           <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
             <div class="text-center q-py-xs text-weight-bold text-uppercase">
-              Select Action
+              {{ $t('SelectAction') }}
             </div>
             <q-separator class="q-my-sm" :dark="darkMode"/>
               <div class="row justify-between no-wrap q-mx-lg">
-                <span class="sm-font-size">Release</span>
+                <span class="sm-font-size">{{ $t('Release') }}</span>
                 <span class="text-nowrap q-ml-xs">
                   <q-btn
                     rounded
@@ -107,7 +107,7 @@
               </div>
               <q-separator class="q-my-sm" :dark="darkMode"/>
               <div class="row justify-between no-wrap q-mx-lg">
-                <span class="sm-font-size">Refund</span>
+                <span class="sm-font-size">{{ $t('Refund') }}</span>
                 <span class="text-nowrap q-ml-xs">
                   <q-btn
                     rounded
@@ -124,7 +124,13 @@
           </q-card>
         </div>
         <div class="q-mx-lg q-mt-md" v-if="sendingBch">
-          <q-spinner class="q-mr-xs"/>{{ selectedAction === 'release' ? 'Releasing' : 'Refunding'}} BCH, please wait.
+          <q-spinner class="q-mr-xs"/>
+          <template v-if="selectedAction === 'release'">
+            {{ $t('ReleasingBch') }}
+          </template>
+          <template v-else>
+            {{ $t('RefundingBch') }}
+          </template>
         </div>
         <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto; max-width: 300px">
           <q-card flat class="row pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">
@@ -150,7 +156,7 @@
     }"
     @ok="onSubmit"
     @cancel="onSecurityCancel"
-    text="Swipe To Confirm"
+    :text="$t('SwipeToConfirmLower')"
   />
 </template>
 <script>

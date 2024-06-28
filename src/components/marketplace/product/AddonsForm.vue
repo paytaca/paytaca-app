@@ -7,9 +7,23 @@
           <template v-if="addon?.isRequired">*</template>
         </div>
         <div class="text-grey">
-          Select {{ addon?.minOpts }}
-          <template v-if="addon?.minOpts != addon?.maxOpts">
-            to {{ addon?.maxOpts }}
+          <template v-if="addon?.minOpts == addon?.maxOpts">
+            {{
+              $t(
+                'SelectValueAndTo',
+                { value: addon?.minOpts, to: addon?.maxOpts },
+                `Select ${ addon?.minOpts } to ${ addon?.maxOpts }`
+              )
+            }}
+          </template>
+          <template v-else>
+            {{
+              $t(
+                'SelectValue',
+                { value: addon?.minOpts },
+                `Select ${ addon?.minOpts }`
+              )
+            }}
           </template>
         </div>
       </div>
@@ -49,7 +63,7 @@
           <input
             v-if="innerVal.find(data => data?.addonOptionId == option?.id)"
             dense
-            placeholder="Input details"
+            :placeholder="$t('InputDetails')"
             class="option-input full-width q-mb-xs"
             :value="innerVal.find(data => data?.addonOptionId == option?.id).inputValue"
             @input="event => {

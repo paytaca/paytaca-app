@@ -228,7 +228,7 @@ export async function getAssetMetadata (context, assetId) {
       'name': _metadata.name,
       'description': _metadata.description,
       'symbol': _metadata.token.symbol,
-      'decimals': _metadata.token.decimals,
+      'decimals': parseInt(_metadata.token.decimals) || 0,
       'logo': convertIpfsUrl(imageUrl)
     }
   }

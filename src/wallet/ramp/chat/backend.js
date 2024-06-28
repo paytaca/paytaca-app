@@ -2,6 +2,7 @@ import BCHJS from '@psf/bch-js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import axios from 'axios'
+import { generateChatIdentityRef } from '.'
 
 const bchjs = new BCHJS()
 
@@ -28,7 +29,8 @@ chatBackend.interceptors.request.use(async (config) => {
     const signResponse = await signRequestData(data)
     if (!signResponse.signature) return config
 
-    config.headers['X-Chat-Identity'] = [signResponse.walletHash, timestamp, signResponse.signature].join(':')
+    const chatIdentityRef = generateChatIdentityRef(signResponse.walletHash)
+    config.headers['X-Chat-Identity'] = [chatIdentityRef, timestamp, signResponse.signature].join(':')
   }
   return config
 })
@@ -78,7 +80,7 @@ export async function setSignerData (value = '') {
   }
 }
 
-export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0) {
+export async function updateSignerData () {
   console.log('Updating signer data')
 
   const wallet = loadRampWallet()
@@ -87,16 +89,16 @@ export async function updateSignerData (currentVerifyingPubkey, currentIndex = 0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
   const privkey = await wallet.privkey(null, `0/${verifyingPubkeyIndex}`)
   const verifyingPubkey = await wallet.pubkey(null, `0/${verifyingPubkeyIndex}`)
-  if (currentVerifyingPubkey && currentVerifyingPubkey !== verifyingPubkey) {
-    // Resolve the correct keypair
-    console.log('Pubkeys do not match. Resolving correct keypair')
-    const [keypair, index] = await resolveMatchingKeypair(wallet, currentVerifyingPubkey, currentIndex)
-    if (!keypair || !index) {
-      return Promise.reject('Failed to updateVerifyingPubkey: Could not find matching keypair/index')
-    }
-    // Update the verifying pubkey in the server
-    await updateVerifyingPubkey(wallet, keypair, verifyingPubkey, index)
-  }
+  // if (currentVerifyingPubkey && currentVerifyingPubkey !== verifyingPubkey) {
+  //   // Resolve the correct keypair
+  //   console.log('Pubkeys do not match. Resolving correct keypair')
+  //   const [keypair, index] = await resolveMatchingKeypair(wallet, currentVerifyingPubkey, currentIndex)
+  //   if (!keypair || !index) {
+  //     return Promise.reject('Failed to updateVerifyingPubkey: Could not find matching keypair/index')
+  //   }
+  //   // Update the verifying pubkey in the server
+  //   await updateVerifyingPubkey(wallet, keypair, verifyingPubkey, index)
+  // }
 
   const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
   const message = `${Date.now()}`

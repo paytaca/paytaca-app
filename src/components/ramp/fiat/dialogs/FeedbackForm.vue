@@ -5,7 +5,7 @@
             <div v-if="loading" class="row justify-center"><ProgressLoader/></div>
             <div v-else>
               <div class="q-mb-md text-center text-bold">
-                <span style="font-size: large;">{{ !feedback.id ? 'Rate your Experience' : 'Your Feedback' }}</span>
+                <span style="font-size: large;">{{ !feedback.id ? $t('RateYourExperience') : $t('YourFeedback') }}</span>
               </div>
               <div v-if="step === 1">
                 <div v-if="arbiterFeedback.created_at" class="fixed" style="margin-top: -5px; width: 83%;" >
@@ -39,7 +39,7 @@
                     v-model="feedback.comment"
                     :dark="darkMode"
                     :readonly="btnLoading || feedback.id ? true : false"
-                    placeholder="Add comment here..."
+                    :placeholder="$t('AddCommentHere')"
                     dense
                     outlined
                     autogrow
@@ -94,7 +94,7 @@
                   v-if="!feedback.id ? true : false"
                   :disable="btnLoading || disableButton"
                   rounded
-                  :label="step === 1 && appealed ? 'Next' : 'Submit'"
+                  :label="step === 1 && appealed ? $t('Next') : $t('Submit')"
                   class="q-space text-white"
                   color="blue-8"
                   :loading="btnLoading"
@@ -110,7 +110,8 @@
               </div>
             </div>
 
-            <div v-if="showPostMessage" class="text-center text-blue md-font-size q-mt-md">Review Posted! {{ timer ? `(${timer})` : '' }}</div>
+            <div v-if="showPostMessage" class="text-center text-blue md-font-size q-mt-md">
+                  {{ $t('ReviewPosted') }} {{ timer ? `(${timer})` : '' }}</div>
           </div>
         </q-card>
     </q-dialog>

@@ -7,16 +7,16 @@
     <div class="text-white">
       <div class="q-pa-md" style="padding-top: 70px;">
         <div class="col-12 q-mt-lg items-center">
-          <p class="text-lg">Origin:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
+          <p class="text-lg">{{$t('Origin')}}:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
 
-          <p>Select the addresses to use on this site</p>
+          <p>{{$t('SelectAddresses')}}</p>
           <div v-for="(address, index) in addresses" :key="index">
             <input type="radio" v-model="connectedAddressIndex" :id="address" name="connectedAddressIndex" :value="index">
             <label style="padding-left: 5px" :for="address">{{ address.split(':')[1] }}</label>
           </div>
           <hr />
-          <p>Permissions: see address, account balance, activity and suggest transactions to approve</p>
-          <p>Only connect with sites you trust.</p>
+          <p>{{$t('Permissions')}}</p>
+          <p>{{$t('OnlyConnect')}}</p>
         </div>
       </div>
       <hr />

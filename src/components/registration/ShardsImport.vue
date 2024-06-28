@@ -4,14 +4,7 @@
     @decode="onScannerDecode"
   />
 
-  <q-file
-    ref="qr-upload"
-    style="display: none;"
-    v-model="fileModel"
-    accept="image/*"
-    :model-value="null"
-    @update:model-value="onUploadDetect"
-  />
+  <QRUploader ref="qr-upload" @detect-upload="onUploadDetect" />
 
   <div class="text-bow q-px-lg" :class="getDarkModeClass(darkMode)">
     <p class="text-center text-subtitle1">
@@ -37,7 +30,7 @@
           class="btn-scan button text-white bg-grad"
           icon="upload"
           :disable="disablePersonal"
-          @click="isPersonalClicked = true, $refs['qr-upload'].pickFiles()"
+          @click="isPersonalClicked = true, $refs['qr-upload'].$refs['q-file'].pickFiles()"
         />
       </div>
     </div>
@@ -61,7 +54,7 @@
           class="btn-scan button text-white bg-grad"
           icon="upload"
           :disable="disableForSharing"
-          @click="isForSharingClicked = true, $refs['qr-upload'].pickFiles()"
+          @click="isForSharingClicked = true, $refs['qr-upload'].$refs['q-file'].pickFiles()"
         />
       </div>
     </div>
@@ -116,10 +109,10 @@
 
 <script>
 import sss from 'shamirs-secret-sharing'
-import { BarcodeDetector } from 'barcode-detector/pure'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
-import QrScanner from 'src/components/qr-scanner.vue'
+import QrScanner from 'src/components/qr-scanner'
+import QRUploader from 'src/components/QRUploader'
 
 export default {
   name: 'ShardsImport',
@@ -130,13 +123,13 @@ export default {
   ],
 
   components: {
-    QrScanner
+    QrScanner,
+    QRUploader
   },
 
   data () {
     return {
       showQrScanner: false,
-      fileModel: null,
       retrievedCodes: [null, null],
       areQRCodesValid: false,
       isPersonalClicked: false,
@@ -162,36 +155,34 @@ export default {
       vm.addData(content)
       vm.validateQRCodes()
     },
-    async onUploadDetect (file) {
+    async onUploadDetect (value) {
       const vm = this
 
-      try {
-        const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] })
-        await barcodeDetector.detect(file).then((detectedCode) => {
-          if (detectedCode.length > 0) {
-            vm.addData(detectedCode[0].rawValue)
-            vm.validateQRCodes()
-          } else {
-            vm.$q.notify({
-              message: 'No QR code found in the uploaded image.',
-              timeout: 800,
-              color: 'red-9',
-              icon: 'mdi-qrcode-remove'
-            })
-          }
+      if (value) {
+        vm.addData(value[0].rawValue)
+      } else {
+        vm.$q.notify({
+          message: vm.$t('NoQRCodeFound'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
         })
-      } catch (_error) {
-        vm.validateQRCodes()
       }
+
+      vm.validateQRCodes()
     },
     validateQRCodes () {
       const vm = this
 
       if (vm.retrievedCodes[0] && vm.retrievedCodes[1]) {
-        const recovered = sss.combine([vm.retrievedCodes[0], vm.retrievedCodes[1]]).toString()
-        vm.areQRCodesValid = recovered.split(' ').length === 12
-        vm.qrCodeDivClass = vm.areQRCodesValid ? 'match' : 'not-match'
-        vm.$emit('set-seed-phrase', recovered)
+        try {
+          const recovered = sss.combine([vm.retrievedCodes[0], vm.retrievedCodes[1]]).toString()
+          vm.areQRCodesValid = recovered.split(' ').length === 12
+          vm.qrCodeDivClass = vm.areQRCodesValid ? 'match' : 'not-match'
+          vm.$emit('set-seed-phrase', recovered)
+        } catch (error) {
+          vm.qrCodeDivClass = 'not-match'
+        }
       }
 
       if (vm.isPersonalClicked && vm.retrievedCodes[0] === null) {

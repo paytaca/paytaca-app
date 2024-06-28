@@ -11,7 +11,7 @@
     <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Call</div>
+          <div class="text-h5 q-space">{{ $t('Call') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <div class="q-my-sm">
@@ -21,16 +21,16 @@
               readonly
               :dark="darkMode"
               borderless dense
-              label="Name"
+              :label="$t('Name')"
               :model-value="localIdentity.name"
               debounce="1000"
             />
             <q-space/>
             <div class="text-right">
               <q-menu v-if="debugMode" class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
-                <div>StreamID: {{ manager?.localStream?.id }}</div>
-                <div>AudioTrackIDs: {{  manager?.localStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
-                <div>VideoTrackIDs: {{  manager?.localStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                <div>{{ $t('StreamID') }}: {{ manager?.localStream?.id }}</div>
+                <div>{{ $t('AudioTrackIDs') }}: {{  manager?.localStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                <div>{{ $t('VideoTrackIDs') }}: {{  manager?.localStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
               </q-menu>
               <AVMedia
                 v-if="manager?.localStream?.getAudioTracks?.().length"
@@ -41,7 +41,7 @@
                 style="justify-self: center;align-self: center;"
               />
               <div v-else class="text-grey">
-                Mic is turned off
+                {{ $t('MicTurnedOff') }}
               </div>
               <div v-if="manager?.localPeerId" class="text-caption bottom">
                 #{{ manager?.localPeerId }}
@@ -71,9 +71,9 @@
           </div>
           <template v-if="debugMode">
             <div class="row items-center">
-              <q-toggle label="Keep manager" v-model="keepManager" dense class="q-mx-sm"/>
+              <q-toggle :label="$t('KeepManager')" v-model="keepManager" dense class="q-mx-sm"/>
               <q-space/>
-              <q-toggle label="Mute local stream" v-model="muteLocalStream" dense class="q-mx-sm"/>
+              <q-toggle :label="$t('MuteLocalStream')" v-model="muteLocalStream" dense class="q-mx-sm"/>
             </div>
             <div class="row items-center q-mt-sm">
               <q-space/>
@@ -107,13 +107,13 @@
             class="text-center"
           >
             <q-spinner size="3em"/>
-            <div v-if="fetchingSession">Fetching session</div>
-            <div v-if="creatingSession">Creating session</div>
-            <div v-if="initializingWebsocket">Connecting to server</div>
-            <div v-if="loadingLocalStream">Loading devices</div>
+            <div v-if="fetchingSession">{{ $t('FetchingSession') }}</div>
+            <div v-if="creatingSession">{{ $t('CreatingSession') }}</div>
+            <div v-if="initializingWebsocket">{{ $t('ConnectingToServer') }}</div>
+            <div v-if="loadingLocalStream">{{ $t('LoadingSevices') }}</div>
           </div>
           <div v-if="callRunning && !manager?.members?.length">
-            Waiting for others to join call
+            {{ $t('WaitingForOthersToJoinCall') }}
           </div>
 
           <div v-for="(member, index) in manager?.members" :key="member.id" class="chat-member-container">
@@ -147,11 +147,10 @@
                 />
                 <div v-if="member.name">{{ member.name }}</div>
                 <div v-else >#{{ member.id }}</div>
-
                 <q-menu v-if="debugMode" class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
-                  <div>StreamID: {{ member?.mediaStream?.id }}</div>
-                  <div>AudioTrackIDs: {{  member?.mediaStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
-                  <div>VideoTrackIDs: {{  member?.mediaStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                  <div>{{ $t('StreamID') }}: {{ member?.mediaStream?.id }}</div>
+                  <div>{{ $t('AudioTrackIDs') }}: {{  member?.mediaStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                  <div>{{ $t('VideoTrackIDs') }}: {{  member?.mediaStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
                 </q-menu>
               </div>
             </div>
@@ -168,7 +167,7 @@
                   membersMuted = !membersMuted
                 }"
               />
-              <div>{{ !membersMuted ? 'Mute' : 'Unmute' }}</div>
+              <div>{{ !membersMuted ? $t('Mute') : $t('Unmute') }}</div>
             </div>
           </div>
           <div class="text-center">
@@ -179,7 +178,7 @@
               size="lg"
               @click="() => callRunning ? hangUp() : startCall()"
             />
-            <div>{{ callRunning ? 'Hang-up' : 'Call' }}</div>
+            <div>{{ callRunning ? $t('Hang-up') : $t('Call') }}</div>
           </div>
 
           <div class="text-center">
@@ -192,7 +191,7 @@
                 manager?.updateStreamConstraints()
               }"
             />
-            <div>{{ manager?.constraints?.audio ? 'Mic on' : 'Mic off' }}</div>
+            <div>{{ manager?.constraints?.audio ? $t('MicOn') : $t('MicOff') }}</div>
           </div>
         </div>
         <div v-else class="row items-center q-gutter-x-sm">
@@ -200,14 +199,16 @@
             <q-btn
               :disable="fetchingSession || creatingSession"
               outline
-              no-caps label="Cancel"
+              no-caps
+              :label="$t('Cancel')"
               class="q-space"
               v-close-popup
             />
             <q-btn
               :disable="fetchingSession || creatingSession"
               :loading="fetchingSession || creatingSession"
-              no-caps label="Join call"
+              no-caps
+              :label="$t('JoinCall')"
               class="q-space button"
               @click="() => prepareAndStartCall({ create: false })"
             />
@@ -216,14 +217,16 @@
             <q-btn
               :disable="fetchingSession || creatingSession"
               outline
-              no-caps label="Cancel"
+              no-caps
+              :label="$t('Cancel')"
               class="q-space"
               v-close-popup
             />
             <q-btn
               :disable="fetchingSession || creatingSession"
               :loading="fetchingSession || creatingSession"
-              no-caps label="Create call"
+              no-caps
+              :label="$t('CreateCall')"
               class="q-space button"
               @click="() => prepareAndStartCall({ create: true })"
             />

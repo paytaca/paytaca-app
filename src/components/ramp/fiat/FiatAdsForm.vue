@@ -8,8 +8,24 @@
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
         :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
         :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-        <span v-if="adsState === 'create'">POST {{ transactionType.toUpperCase() }} AD</span>
-        <span v-if="adsState === 'edit'">EDIT {{ transactionType.toUpperCase() }} AD</span>
+        <span v-if="adsState === 'create'">
+          {{
+            $t(
+              'PostAd',
+              { type: transactionType.toUpperCase() },
+              `POST ${ transactionType.toUpperCase() } AD`
+            )
+          }}
+        </span>
+        <span v-if="adsState === 'edit'">
+          {{
+            $t(
+              'EditAd',
+              { type: transactionType.toUpperCase() },
+              `EDIT ${ transactionType.toUpperCase() } AD`
+            )
+          }}
+        </span>
       </div>
       <!-- Price Settings -->
       <div v-if="loading">
@@ -21,7 +37,7 @@
         <q-scroll-area :style="`height: ${minHeight}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
-              <span>Price Setting</span>&nbsp;
+              <span>{{ $t('PriceSetting') }}</span>&nbsp;
             </div>
             <div class="text-center q-mx-md">
               <q-btn-toggle
@@ -35,14 +51,14 @@
                 :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :options="[
-                  {label: 'Fixed', value: 'FIXED'},
-                  {label: 'Floating', value: 'FLOATING'}
+                  {label: $t('Fixed'), value: 'FIXED'},
+                  {label: $t('Floating'), value: 'FLOATING'}
                 ]">
               </q-btn-toggle>
             </div>
             <div class="row q-py-sm q-gutter-sm q-px-md sm-font-size">
               <div class="col-4">
-                <div class="q-pl-sm q-pb-xs">Fiat Currency</div>
+                <div class="q-pl-sm q-pb-xs">{{ $t('FiatCurrency') }}</div>
                 <q-input
                   dense
                   rounded
@@ -58,7 +74,7 @@
                 </q-input>
               </div>
               <div class="col">
-                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price' }}</div>
+                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? $t('FixedPrice') : $t('FloatingPrice') }}</div>
                 <q-input
                   dense
                   rounded
@@ -85,8 +101,8 @@
             </div>
             <div class="q-mx-lg sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
               <div class="row justify-between">
-                <span class="col text-left">Your Price</span>
-                <span class="col text-right">Current Market Price</span>
+                <span class="col text-left">{{ $t('YourPrice') }}</span>
+                <span class="col text-right">{{ $t('CurrentMarketPrice') }}</span>
               </div>
               <div class="row justify-between">
                 <span class="col text-left text-weight-bold md-font-size">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(priceAmount).replace(/[^\d.,-]/g, '') }}</span>
@@ -99,7 +115,7 @@
           <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
               <div class="q-pb-xs q-pl-sm">
-                <span class="text-weight-bold">Trade Quantity</span>&nbsp;
+                <span class="text-weight-bold">{{ $t('TradeQuantity') }}</span>&nbsp;
               </div>
               <q-input
                 ref="tradeAmountRef"
@@ -124,11 +140,11 @@
             <q-checkbox size="sm" v-model="setTradeQuantityInFiat" class="q-mx-md sm-font-size" color="blue-8">Set quantity in fiat </q-checkbox>
             <div class="q-px-md q-mt-sm">
               <div class="q-pb-xs q-pl-sm text-weight-bold">
-                <span>Trade Limit</span>&nbsp;
+                <span>{{ $t('TradeLimit') }}</span>&nbsp;
               </div>
               <div class="row">
                 <div class="col">
-                  <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
+                  <div class="q-pl-sm q-pb-xs sm-font-size">{{ $t('Minimum') }}</div>
                   <q-input
                     ref="tradeFloorRef"
                     dense
@@ -151,7 +167,7 @@
                   <q-icon class="q-pt-md q-mt-lg" name="remove"/>
                 </div>
                 <div class="col">
-                  <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
+                  <div class="q-pl-sm q-pb-xs sm-font-size">{{ $t('Maximum') }}</div>
                   <q-input
                     ref="tradeCeilingRef"
                     dense
@@ -178,7 +194,7 @@
           <!-- Appeal Cooldown -->
           <div class="q-mx-lg">
             <div class="q-px-lg">
-              <div class="q-pt-md">Set orders appealable after</div>
+              <div class="q-pt-md">{{ $t('SetOrderAppealsAfter') }}</div>
             </div>
             <div class="q-mx-md q-pt-sm">
               <q-select
@@ -207,7 +223,7 @@
               <q-checkbox
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 v-model="adData.isPublic"
-                label="Public"
+                :label="$t('Public')"
               />
             </div>
             <!-- Warning message for when no currency arbiter is available for ad -->
@@ -220,7 +236,7 @@
               :disable="checkPostData()"
               rounded
               no-caps
-              label="Next"
+              :label="$t('Next')"
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               class="q-space"
               @click="checkSubmitOption()"
@@ -238,7 +254,7 @@
   <div v-if="step === 2">
     <AddPaymentMethods
       :type="'Ads'"
-      :confirm-label="'Next'"
+      :confirm-label="$t('Next')"
       :currency="adData.fiatCurrency.symbol"
       :currentPaymentMethods="adData.paymentMethods"
       v-on:submit="appendPaymentMethods"
@@ -327,55 +343,55 @@ export default {
         paymentMethods: [],
         isPublic: true,
         appealCooldown: {
-          label: '60 minutes',
+          label: this.$t('SixtyMinutes'),
           value: 60
         }
       },
       cdSelection: [
         {
-          label: '15 minutes',
+          label: this.$t('FifteenMinutes'),
           value: 15
         },
         {
-          label: '30 minutes',
+          label: this.$t('ThirtyMinutes'),
           value: 30
         },
         {
-          label: '45 minutes',
+          label: this.$t('FortyFiveMinutes'),
           value: 45
         },
         {
-          label: '1 hour',
+          label: this.$t('OneHour'),
           value: 60
         }],
       fiatCurrencies: [],
       numberValidation: [
-        (val) => !!val || 'This is required',
-        (val) => val > 0 || 'Cannot be zero'
+        (val) => !!val || this.$t('ThisIsRequired'),
+        (val) => val > 0 || this.$t('CannotBeZero')
       ],
       // tradeLimitValidation: [
-      //   (val) => !!val || 'This is required',
-      //   (val) => val > 0 || 'Cannot be zero',
-      //   (val) => this.tradeLimitVsQuantityValid(val) || 'Cannot exceed trade quantity',
-      //   () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || 'Invalid range'
+      //   (val) => !!val || this.$t('ThisIsRequired'),
+      //   (val) => val > 0 || this.$t('CannotBeZero'),
+      //   (val) => this.tradeLimitVsQuantityValid(val) || this.$t('FiatAdFormValidation1'),
+      //   () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || this.$t('InvalidRange')
       // ],
       // tradeAmountValidation: [
-      //   (val) => !!val || 'This is required',
-      //   (val) => val > 0 || 'Cannot be zero',
-      //   (val) => Number(this.adData.tradeFloor) <= Number(val) || 'Cannot be less than min trade limit'
+      //   (val) => !!val || this.$t('ThisIsRequired'),
+      //   (val) => val > 0 || this.$t('CannotBeZero'),
+      //   (val) => Number(this.adData.tradeFloor) <= Number(val) || this.$t('FiatAdFormValidation2')
       // ],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       instruction: { // temp
         'price-setting': {
-          title: 'Price Setting',
-          text: 'Price settings instruction here'
+          title: this.$t('PriceSetting'),
+          text: this.$t('FiatAdFormInstruction1')
         },
         'trade-quantity': {
-          title: 'Trade Quantity',
-          text: 'Trade quantity instruction here'
+          title: this.$t('TradeQuantity'),
+          text: this.$t('FiatAdFormInstruction2')
         },
         'trade-limit': {
-          title: 'Trade limit instruction here',
+          title: this.$t('FiatAdFormInstruction3'),
           text: null
         }
       },
@@ -401,11 +417,23 @@ export default {
     },
     hints () {
       return {
-        priceValue: this.adData.priceType === 'FLOATING' ? `Price is ${this.priceValue}% of market price` : 'Fixed prices do not change',
-        tradeAmount: `The total amount of BCH you want to ${this.transactionType.toLocaleLowerCase()}`,
-        minAmount: 'The min amount per transaction',
-        maxAmount: 'The max amount per transaction',
-        appealCooldown: 'The waiting period before counterparties can submit dispute appeals'
+        priceValue: (
+          this.adData.priceType === 'FLOATING'
+          ? this.$t(
+            'FiatAdFormHint1',
+            { priceValue: this.priceValue },
+            `Price is ${this.priceValue}% of market price`
+          )
+          : this.$t('PriceValueHint')
+        ),
+        tradeAmount: this.$t(
+          'FiatAdFormHint2',
+          { type: this.transactionType.toLocaleLowerCase() },
+          `The total amount of BCH you want to ${this.transactionType.toLocaleLowerCase()}`
+        ),
+        minAmount: this.$t('MinAmountHint'),
+        maxAmount: this.$t('MaxAmountHint'),
+        appealCooldown: this.$t('AppealCooldownHint')
       }
     },
     confirmationData () {

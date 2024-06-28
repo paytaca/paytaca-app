@@ -3,6 +3,7 @@
     :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="locale"
     :options="localeOptions"
+    :option-label="getOptionLabel"
     :dark="darkMode"
     @filter="filterLangSelection"
     popup-content-style="color: black;"
@@ -48,19 +49,35 @@ export default {
       // locale: this.$store.getters['global/language'],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
+        { value: 'tl', label: this.$t('Filipino') },
+        { value: 'ceb', label: this.$t('Cebuano') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
         { value: 'zh-tw', label: this.$t('ChineseTraditional') },
+        { value: 'nl', label: this.$t('Dutch') },
+        { value: 'fr', label: this.$t('French') },
         { value: 'de', label: this.$t('German') },
         { value: 'ha', label: this.$t('Hausa') },
+        { value: 'id', label: this.$t('Indonesian') },
+        { value: 'it', label: this.$t('Italian') },
+        { value: 'ja', label: this.$t('Japanese') },
+        { value: 'ko', label: this.$t('Korean') },
         { value: 'pt', label: this.$t('Portuguese') },
         { value: 'pt-br', label: this.$t('BrazilianPortuguese') },
         { value: 'es', label: this.$t('Spanish') },
-        { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
+        { value: 'es-ar', label: this.$t('ArgentinianSpanish') }
       ],
       localeOptions: []
     }
   },
   methods: {
+    getOptionLabel (opt) {
+      const match = this.defaultLocaleOptions.filter(lang => lang.value === opt)
+      if (match.length > 0) {
+        return match[0].label
+      } else {
+        return opt
+      }
+    },
     filterLangSelection (val, update) {
       if (!val) {
         this.localeOptions = this.defaultLocaleOptions
@@ -81,9 +98,9 @@ export default {
         return this.$store.getters['global/language']
       },
       set (lang) {
+        console.log('LANG:', lang)
         this.$i18n.locale = lang.value
-        const newLocale = { value: lang.value, label: this.$t(supportedLangs[lang.value]) }
-        this.$store.commit('global/setLanguage', newLocale)
+        this.$store.commit('global/setLanguage', lang.value)
       }
     }
   }

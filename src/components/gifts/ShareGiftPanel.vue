@@ -28,7 +28,9 @@
 import { computed, inject } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
+import { useI18n } from "vue-i18n"
 
+const { t } = useI18n()
 const $copyText = inject('$copyText')
 const $q = useQuasar()
 const $store = useStore()
@@ -67,7 +69,7 @@ const shareLinks = computed(() => {
   return data
 })
 
-function copyToClipboard (value, message='Copied to clipboard') {
+function copyToClipboard (value, message=t('CopiedToClipboard')) {
   $copyText(value)
   $q.notify({
     message: message,

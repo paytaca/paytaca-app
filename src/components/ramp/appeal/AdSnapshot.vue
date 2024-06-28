@@ -5,38 +5,47 @@
     class="br-15 q-pt-sm q-mx-md q-mx-none q-my-lg pt-card-2 text-bow"
     :class="getDarkModeClass(darkMode)"
   >
-      <div class="q-pt-md text-center text-weight-bold lg-font-size text-uppercase">Ad Snapshot</div>
-      <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">(Ad #{{ snapshot.ad }})</div>
+      <div class="q-pt-md text-center text-weight-bold lg-font-size text-uppercase">{{ $t('AdSnapshot') }}</div>
+      <div class="text-center sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">
+        {{
+          $t(
+            'AdIdNo',
+            { ID: snapshot.ad },
+            `(Ad #${ snapshot.ad })`
+          )
+        }}
+      </div>
 
       <q-separator class="q-my-sm" :dark="darkMode"/>
 
       <div class="sm-font-size q-px-md q-py-md" :class="darkMode ? '' : 'text-grey-7'">
         <div class="row justify-between no-wrap q-mx-lg">
-          <span>Price Type</span>
+          <span>{{ $t('PriceType') }}</span>
           <span class="text-nowrap q-ml-xs">
             {{ snapshot.price_type }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
+          <!--TODO-->
           <span>({{ snapshot.price_type === 'FIXED' ? 'Fixed' : 'Floating' }}) Price</span>
           <span class="text-nowrap q-ml-xs">
             {{ snapshot.price_type === 'FIXED' ? formattedCurrency(snapshot.fixed_price, snapshot.fiat_currency.symbol) : snapshot.floating_price }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
-          <span>Market Price</span>
+          <span>{{ $t('MarketPrice') }}</span>
           <span class="text-nowrap q-ml-xs">
             {{ formattedCurrency(snapshot.market_price, snapshot.fiat_currency.symbol) }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
-          <span>Trade Limit</span>
+          <span>{{ $t('TradeLimit') }}</span>
           <span class="text-nowrap q-ml-xs">
             {{ formattedCurrency(snapshot.trade_floor, snapshot.fiat_currency.symbol) }} - {{ formattedCurrency(snapshot.trade_ceiling, snapshot.fiat_currency.symbol) }}
           </span>
         </div>
         <div class="row justify-between no-wrap q-mx-lg">
-          <span>Time Limit</span>
+          <span>{{ $t('TimeLimit') }}</span>
           <span class="text-nowrap q-ml-xs">
             {{ formattedTimeLimit(snapshot.time_duration_choice).label }}
           </span>
@@ -44,15 +53,15 @@
       </div>
 
       <div class="q-mx-lg q-pb-sm">
-        <div class="md-font-size text-weight-bold q-px-md">Ad Payment Methods</div>
+        <div class="md-font-size text-weight-bold q-px-md">{{ $t('AdPaymentMethods') }}</div>
         <div class="q-gutter-sm q-pt-sm q-px-md">
           <q-badge v-for="(method, index) in snapshot.payment_methods" :key="index" rounded outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-7'" :label="method.payment_type" />
         </div>
       </div>
 
       <div class="q-py-md q-mx-lg q-pb-sm">
-        <div class="md-font-size text-weight-bold q-px-md">Selected Payment Methods</div>
-        <div v-if="selectedPaymentMethods.length === 0" class="q-px-md sm-font-size">~ No payment method selected ~</div>
+        <div class="md-font-size text-weight-bold q-px-md">{{ $t('SelectedPaymentMethods') }}</div>
+        <div v-if="selectedPaymentMethods.length === 0" class="q-px-md sm-font-size">~ {{ $t('NoPaymentMethodSelected') }} ~</div>
         <div v-for="(method, index) in selectedPaymentMethods" :key="index">
           <div class="q-px-sm q-my-sm">
             <q-card flat bordered class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">

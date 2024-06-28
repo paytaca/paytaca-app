@@ -3,7 +3,7 @@
     <!-- Payment Deletion Confirmation -->
     <q-card v-if="action === 'deletePaymentMethod'" class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section class="xm-font-size q-mx-lg text-center">
-        <div v-if="!errorMessage">Delete this Payment Method?</div>
+        <div v-if="!errorMessage">{{ $t('DeleteThisPaymentMethod') }}</div>
       </q-card-section>
       <div v-if="loading" class="row justify-center">
         <ProgressLoader/>
@@ -21,11 +21,11 @@
           {{ errorMessage }}
         </q-card-section>
         <q-card-actions class="text-center" align="center">
-          <q-btn flat :label="!errorMessage ? 'Cancel' : 'OK'" color="red-6" @click="$emit('back')" v-close-popup />
+          <q-btn flat :label="!errorMessage ? this.$t('Cancel') : this.$t('OK')" color="red-6" @click="$emit('back')" v-close-popup />
           <q-btn
             v-if="!errorMessage"
             flat
-            label="Confirm"
+            :label="$t('Confirm')"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
             @click="onSubmit()"
@@ -36,7 +36,14 @@
     <!-- Create/Edit Payment Method -->
     <q-card v-else class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="q-mt-sm text-h6 text-center">{{action === 'createPaymentMethod' || action === 'addMethodFromAd' ? 'Add' : 'Edit'}} Payment Method</div>
+        <div class="q-mt-sm text-h6 text-center">
+          <template v-if="action === 'createPaymentMethod' || action === 'addMethodFromAd'">
+            {{ $t('AddPaymentMethod') }}
+          </template>
+          <template v-else>
+            {{ $t('EditPaymentMethod') }}
+          </template>
+        </div>
       </q-card-section>
       <div v-if="loading" class="row justify-center">
         <ProgressLoader/>
@@ -50,7 +57,7 @@
             filled
             :disable="action !== 'createPaymentMethod'"
             v-model="paymentMethod.payment_type"
-            label="Payment Type"
+            :label="$t('PaymentType')"
             option-label="full_name"
             class="q-py-xs"
             :dark="darkMode"
@@ -74,7 +81,7 @@
               borderless
               filled
               v-model="paymentMethod.identifier_format"
-              label="Identifier Type"
+              :label="$t('IdentifierType')"
               :dark="darkMode"
               :options="paymentMethod.payment_type?.formats"
               @update:model-value="onUpdateIdentifierType"
@@ -109,9 +116,9 @@
               dense
               filled
               hide-bottom-space
-              label="Account Name"
+              :label="$t('AccountName')"
               :dark="darkMode"
-              :rules="[val => !!val || 'This field is required']"
+              :rules="[val => !!val || $t('FieldRequired')]"
               v-model="paymentMethod.account_name"
               class="q-py-xs">
             </q-input>
@@ -121,14 +128,14 @@
           <div class="row no-wrap q-gutter-md">
             <q-btn
               rounded
-              label="Cancel"
+              :label="$t('Cancel')"
               class="col"
               @click="$emit('back')"
               v-close-popup />
             <q-btn
               rounded
               flat
-              label="Submit"
+              :label="$t('Submit')"
               class="col button"
               :disable="disableSubmitBtn"
               @click="onSubmit()"
@@ -201,26 +208,26 @@ export default {
   methods: {
     getDarkModeClass,
     isValidIdentifier (val) {
-      if (!val) return 'This field is required'
+      if (!val) return this.$t('FieldRequired')
       const format = this.paymentMethod.identifier_format
       switch (format) {
         case 'Email Address':
           if (/^[\w\\.~!$%^&*=+}{'?-]+@([\w-]+\.)+[\w-]{2,4}$/.test(val)) {
             return true
           } else {
-            return 'Invalid Email Address'
+            return this.$t('InvalidEmailAddress')
           }
         case 'Mobile Number':
           if (/^(\d{9,15})$/.test(val)) {
             return true
           } else {
-            return 'Invalid Phone Number'
+            return this.$t('InvalidPhoneNumber')
           }
         case 'Bank Account Number':
           if (/^(\d{9,35})$/.test(val)) {
             return true
           } else {
-            return 'Invalid Account Number'
+            return this.$t('InvalidAccountNumber')
           }
         default:
           return true

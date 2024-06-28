@@ -2,7 +2,7 @@
   <q-card flat bordered :dark="darkMode" class="text-bow br-15">
     <q-card-section bordered class="pt-card" :class="getDarkModeClass(darkMode)" style="overflow-x: auto;">
       <div v-if="type !== 'appeal'">
-        <div class="xs-font-size">Trading with</div>
+        <div class="xs-font-size">{{ $t('TradingWith') }}</div>
         <div class="row justify-end">
             <div class="col q-py-none">
                 <div style="overflow-x: auto; max-width: 125px;">
@@ -37,7 +37,7 @@
       <div v-else>
         <div class="row justify-between no-wrap">
           <div class="col-auto">
-            <div class="sm-font-size">SELLER</div>
+            <div class="sm-font-size">{{ $t('SELLER') }}</div>
             <div class="row justify-end">
                 <div class="col q-py-none">
                     <div style="max-width: 125px; overflow-x: auto;">
@@ -64,7 +64,7 @@
             </div>
           </div>
           <div class="col-auto text-right">
-            <div class="sm-font-size">BUYER</div>
+            <div class="sm-font-size">{{ $t('BUYER') }}</div>
             <div class="row justify-end q-py-none">
               <div style="max-width: 125px; overflow-x: auto;">
                 <q-btn
@@ -98,7 +98,7 @@
         <div v-if="type !== 'appeal'" class="row justify-end">
             <div class="col-auto">
               <div v-if="type === 'ad'">
-                <div class="xs-font-size">Price</div>
+                <div class="xs-font-size">{{ $t('Price') }}</div>
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                     :class="getDarkModeClass(darkMode)">
@@ -107,14 +107,22 @@
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
               <div v-if="type === 'order'">
-                <div class="xs-font-size">Trade Amount</div>
+                <div class="xs-font-size">{{ $t('TradeAmount') }}</div>
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}{{ tradeAmount }}
                 </span>
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div v-if="type === 'order'" class="row q-mt-none">
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
+                  {{
+                    $t(
+                      'ViewAmountInCurrency',
+                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
+                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
+                    )
+                  }}
+                </q-btn>
               </div>
             </div>
             <q-space/>
@@ -125,7 +133,7 @@
         <div v-else>
           <div class="row no-wrap justify-between">
             <div class="col-auto">
-              <div class="row xs-font-size">Trade Amount</div>
+              <div class="row xs-font-size">{{ $t('TradeAmount') }}</div>
               <div class="q-mb-none">
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}
@@ -136,11 +144,19 @@
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div class="row q-mt-none">
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
+                  {{
+                    $t(
+                      'ViewAmountInCurrency',
+                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
+                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
+                    )
+                  }}
+                </q-btn>
               </div>
             </div>
             <div class="col-auto q-ml-md q-mr-sm text-right">
-              <div class="xs-font-size">Ad Price</div>
+              <div class="xs-font-size">{{ $t('AdPrice') }}</div>
               <div>
                 <span
                     class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
@@ -150,7 +166,7 @@
                 <span class="sm-font-size">/BCH</span>
               </div>
               <div class="row justify-end q-mt-none text-right">
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="onViewAd"> View Ad </q-btn>
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="onViewAd"> {{ $t('ViewAd') }} </q-btn>
               </div>
             </div>
           </div>
@@ -222,9 +238,11 @@ export default {
       this.fetchChatUnread(this.chatRef)
     },
     async loadChatInfo () {
-      if (this.order) {
-        this.chatRef = generateChatRef(this.order.id, this.order.created_at)
-        await this.fetchChatUnread(this.chatRef)
+      const vm = this
+      if (vm.order) {
+        const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+        vm.chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+        await vm.fetchChatUnread(vm.chatRef)
       }
     },
     async fetchChatUnread (chatRef) {

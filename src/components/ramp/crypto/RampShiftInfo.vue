@@ -49,22 +49,22 @@
 
     <div class="q-py-lg">
       <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>Deposit Amount:</span>
+        <span>{{ $t('DepositAmount') }}:</span>
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.depositAmount }} {{ shiftInfo.deposit.coin }}</span>
       </div>
       <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>Receiving Amount:</span>
+        <span>{{ $t('ReceivingAmount') }}:</span>
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.settleAmount }} {{ shiftInfo.settle.coin }}</span>
       </div>
     </div>
 
     <div class="q-pb-lg" v-if="historyInfo.shift_status == 'settled'">
       <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>Date Completed:</span>
+        <span>{{ $t('DateCompleted') }}:</span>
         <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ getDate(historyInfo.date_shift_completed) }}</span>
       </div>
       <div class="text-center q-pt-md q-px-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>Transaction ID:</span><br>
+        <span>{{ $t('TransactionId') }}:</span><br>
         <div class="q-pt-sm q-px-lg" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
           <span style="font-size: 15px; overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
         </div>
@@ -74,7 +74,7 @@
     <div v-if="state === 'history'">
       <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status === 'waiting' && historyInfo.ramp_type === 'on'">
         <q-item-section class="text-center q-px-md">
-          <q-item-label>Deposit Address: </q-item-label>
+          <q-item-label>{{ $t('DepositAddress') }}: </q-item-label>
 
           <q-item-label class="q-px-lg text-h5" style="overflow-wrap: break-word">
             <span class="qr-code-text text-weight-light text-center">
@@ -96,7 +96,7 @@
 
     <q-item>
       <q-item-section class="text-center q-pb-sm q-pt-sm" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
-        <q-item-label>Recieving Address: </q-item-label>
+        <q-item-label>{{ $t('ReceivingAddress:') }} </q-item-label>
         <q-item-label class=" q-pt-xs">
         <span style="font-size: 13px;">{{ shiftInfo.settleAddress }}</span>
         </q-item-label>
@@ -104,7 +104,7 @@
     </q-item>
     <q-item>
       <q-item-section class="text-center" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
-        <q-item-label>Refund Address: </q-item-label>
+        <q-item-label>{{ $t('RefundAddress') }}: </q-item-label>
         <q-item-label class="q-px-lg q-pt-xs">
           <span style="font-size: 13px;">{{ shiftInfo.refundAddress }}</span>
         </q-item-label>
