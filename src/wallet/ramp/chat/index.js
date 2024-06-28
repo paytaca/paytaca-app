@@ -4,6 +4,25 @@ import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
 
+export function updateOrderChatSessionRef (orderId, chatRef) {
+  return new Promise((resolve, reject) => {
+    const payload = { chat_session_ref: chatRef }
+    backend.patch(`/ramp-p2p/order/${orderId}`, payload, { authorize: true })
+      .then(response => {
+        console.log('Updated order chat_session_ref:', response.data)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to update order chat_session_ref:', error.response)
+        } else {
+          console.error('Failed to update order chat_session_ref:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
 export async function updateChatIdentityId (userType, id) {
   return new Promise((resolve, reject) => {
     const payload = { chat_identity_id: id }

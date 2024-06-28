@@ -2,7 +2,7 @@
   <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
-  <div v-show="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
+  <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
     <div class="q-pt-sm text-center text-weight-bold">
       <div class="lg-font-size">
         <span>{{ headerTitle.toUpperCase() }}</span>
@@ -105,7 +105,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
-import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession } from 'src/wallet/ramp/chat'
+import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/wallet/ramp/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import RampContract from 'src/wallet/ramp/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -359,7 +359,7 @@ export default {
     await vm.fetchOrder()
     await vm.fetchFees()
     if (vm.order.contract) {
-      vm.generateContract()
+      await vm.generateContract()
     }
     vm.isloaded = true
     vm.fetchAd()
@@ -367,10 +367,12 @@ export default {
       if (this.notifType === 'new_message') { this.openChat = true }
     })
     this.setupWebsocket(20, 1000)
+    this.setupChatWebsocket(20, 1000)
   },
   beforeUnmount () {
     this.autoReconWebSocket = false
     this.closeWSConnection()
+    this.closeChatWSConnection()
   },
   methods: {
     getDarkModeClass,
@@ -515,16 +517,19 @@ export default {
             const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
             const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
             vm.chatRef = chatRef
-            fetchChatSession(chatRef)
-              .then(res => {
-                vm.hasUnread = res.data.unread_count > 0
-              })
-              .catch(error => {
-                console.log(error)
-                if (error.response?.status === 404) {
-                  vm.createGroupChat(vm.order?.id, chatRef)
-                }
-              })
+            if (vm.order?.chat_session_ref !== chatRef) {
+              updateOrderChatSessionRef(vm.order?.id, chatRef)
+              fetchChatSession(chatRef)
+                .then(res => {
+                  vm.hasUnread = res.data.unread_count > 0
+                })
+                .catch(error => {
+                  console.log(error)
+                  if (error.response?.status === 404) {
+                    vm.createGroupChat(vm.order?.id, chatRef)
+                  }
+                })
+            }
             resolve(response.data)
           })
           .catch(error => {
@@ -885,22 +890,41 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-
-    setupWebsocket (retries, delayDuration) {
-      const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.order.id}/`
+    setupChatWebsocket (retries, delayDuration) {
       const wsChatUrl = `${getChatBackendWsUrl()}${this.chatRef}/`
-      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
       this.websocket.chat = new WebSocket(wsChatUrl)
-
-      // on open
-      this.websocket.watchtower.onopen = () => {
-        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
-      }
       this.websocket.chat.onopen = () => {
         console.log('Chat WebSocket connection established to ' + wsChatUrl)
       }
-
-      // on message
+      this.websocket.chat.onmessage = (event) => {
+        const parsedData = JSON.parse(event.data)
+        console.log('Chat WebSocket data:', parsedData)
+        if (parsedData?.type === 'new_message') {
+          const messageData = parsedData.data
+          // RECEIVE MESSAGE
+          console.log('Received a new message:', messageData)
+          bus.emit('last-read-update')
+          if (this.openChat) {
+            bus.emit('new-message', messageData)
+          }
+        }
+      }
+      this.websocket.chat.onclose = () => {
+        console.log('Chat WebSocket connection closed.')
+        if (this.autoReconWebSocket && retries > 0) {
+          // this.reconnectingWebSocket = true
+          console.log(`Chat WS reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
+          return this.delay(delayDuration)
+            .then(() => this.setupChatWebsocket(retries - 1, delayDuration * 2))
+        }
+      }
+    },
+    setupWebsocket (retries, delayDuration) {
+      const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.order.id}/`
+      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
+      this.websocket.watchtower.onopen = () => {
+        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
+      }
       this.websocket.watchtower.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log('WebSocket data:', data)
@@ -914,20 +938,6 @@ export default {
             }
           })
       }
-      this.websocket.chat.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data)
-        console.log('Chat WebSocket data:', parsedData)
-
-        if (parsedData?.type === 'new_message') {
-          const messageData = parsedData.data
-          // RECEIVE MESSAGE
-          console.log('Received a new message:', messageData)
-          bus.emit('last-read-update')
-          if (this.openChat) bus.emit('new-message', messageData)
-        }
-      }
-
-      // on close
       this.websocket.watchtower.onclose = () => {
         console.log('WebSocket connection closed.')
         if (this.autoReconWebSocket && retries > 0) {
@@ -937,12 +947,11 @@ export default {
             .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
         }
       }
-      this.websocket.chat.onclose = () => {
-        console.log('Chat WebSocket connection closed.')
-      }
     },
     closeWSConnection () {
       if (this.websocket.watchtower) this.websocket.watchtower.close()
+    },
+    closeChatWSConnection () {
       if (this.websocket.chat) this.websocket.chat.close()
     },
     delay (duration) {
