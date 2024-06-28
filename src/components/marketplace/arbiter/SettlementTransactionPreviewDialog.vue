@@ -19,7 +19,7 @@
           </div>
           <div class="row items-start">
             <div class="col-6 col-sm-6 q-mb-sm q-pr-xs">
-              <div class="text-subtitle1">Inputs</div>
+              <div class="text-subtitle1">{{ $t('Inputs') }}</div>
               <div
                 v-for="(input, index) in transaction?.inputs" :key="index"
                 class="q-mb-xs"
@@ -41,7 +41,7 @@
               </div>
             </div>
             <div class="col-6 col-sm-6 q-mb-sm q-pl-xs">
-              <div class="text-subtitle1">Outputs</div>
+              <div class="text-subtitle1">{{ $t('Outputs') }}</div>
               <div
                 v-for="(output, index) in transaction?.outputs" :key="index"
                 class="q-mb-xs"
@@ -61,7 +61,7 @@
                   {{ output?.to }}
                 </div>
                 <div v-if="output?.token" class="q-pa-sm q-mt-xs shadow-1">
-                  <div class="text-body2">Token</div>
+                  <div class="text-body2">{{ $t('Token') }}</div>
                   <div
                     style="word-wrap:break-word;position:relative;"
                     v-ripple @click="() => copyToClipboard(output?.token?.category)"
@@ -69,7 +69,7 @@
                     {{ output?.token?.category }}
                   </div>
                   <div v-if="output?.token?.amount">
-                    Amount: {{ output?.token?.amount }}
+                    {{ $t('Amount') }}: {{ output?.token?.amount }}
                   </div>
                   <div v-if="output?.token?.nft">
                     <div class="row items-center no-wrap">
@@ -106,6 +106,9 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { EscrowContract } from 'src/marketplace/objects'
 import { useStore } from 'vuex'
 import { computed, defineComponent, inject, ref, watch } from 'vue'
+import { i18n } from 'src/boot/i18n'
+
+const { t: $t } = i18n.global
 
 export default defineComponent({
   name: 'SettlementTransactionPreviewDialog',
@@ -119,11 +122,11 @@ export default defineComponent({
     transaction: Object,
     okButton: {
       type: [Object, null],
-      default: () => Object({ label: 'OK', color: 'brandblue', class: 'full-width q-mb-xs' }),
+      default: () => Object({ label: $t('OK'), color: 'brandblue', class: 'full-width q-mb-xs' }),
     },
     cancelButton: {
       type: [Object, null],
-      default: () => Object({ label: 'Cancel', color: 'grey', class: 'full-width q-mb-xs' }),
+      default: () => Object({ label: $t('Cancel'), color: 'grey', class: 'full-width q-mb-xs' }),
     },
   },
   setup(props, { emit: $emit }) {
@@ -141,7 +144,7 @@ export default defineComponent({
     function copyToClipboard(value, message) {
       $copyText(value)
       $q.notify({
-        message: message || 'Copied to clipboard',
+        message: message || $t('CopiedToClipboard', undefined, 'Copied to clipboard'),
         timeout: 800,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'

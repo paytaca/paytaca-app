@@ -1037,6 +1037,34 @@ const phrases = {
       FilterBuyAds: "Filter Buy Ads",
       BuyAds: "Buy Ads",
       SellAds: "Sell Ads",
+    },
+    {
+      PageDidNotLoadSwipeUp: "Page did not load, swipe up to reload.",
+      ArbiterAddress: "Arbiter address",
+      ArbiterLogoutPrompt: "This will the delete arbiter's private key stored in device. Are you sure?",
+      RefreshingAuthentication: "Refreshing authentication",
+      GenAuthChallenge: "Generating authentication challenge",
+      SigningAuthChallenge: "Signing authentication challenge",
+      SendingAuthChallenge: "Sending authentication challenge",
+      SavingAuthCred: "Saving authentication credentials",
+      NoArbiterFromKey: "No arbiter found with the provided key",
+      UnableToFetchAuthChallenge: "Unable to fetch authentication challenge",
+      AuthSignError: "Authentication challenge signing error",
+      FetchAuthTokenError: "Error in fetching auth token",
+      ErrorSavingKeys: "Error in saving keys",
+      LoadingChat: "Loading chat",
+      ArbiterLogin: "Arbiter login",
+      InputWIFKey: "Input WIF key of arbiter to login",
+      HasSettlementAppeal: "Has settlement appeal",
+      NoAppeals: "No appeals to show",
+      NoSettlementType: "No settlement type",
+      FullRefund: "Full refund",
+      RemoveImage: "Remove image",
+      ReplaceImage: "Replace image",
+      SelectImage: "Select image",
+      FirstName: "First name",
+      LastName: "Last name",
+      PhoneNumber: "Phone Number",
     }
   ],
   dynamic: [
@@ -1095,6 +1123,9 @@ const phrases = {
       PostAd: "POST {type} AD",
       FiatAdFormHint1: "Price is {priceValue}% of market price",
       FiatAdFormHint2: "The total amount of BCH you want to {type}",
+    },
+    {
+      UnableToFindChatSessionOrderID: "Unable to find chat session for order #{ID}",
     }
   ]
 }
