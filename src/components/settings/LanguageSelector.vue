@@ -49,6 +49,7 @@ export default {
       // locale: this.$store.getters['global/language'],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
+        { value: 'tl', label: this.$t('Filipino') },
         { value: 'ceb', label: this.$t('Cebuano') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
         { value: 'zh-tw', label: this.$t('ChineseTraditional') },
@@ -63,8 +64,7 @@ export default {
         { value: 'pt', label: this.$t('Portuguese') },
         { value: 'pt-br', label: this.$t('BrazilianPortuguese') },
         { value: 'es', label: this.$t('Spanish') },
-        { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
-        { value: 'tl', label: this.$t('Tagalog') },
+        { value: 'es-ar', label: this.$t('ArgentinianSpanish') }
       ],
       localeOptions: []
     }

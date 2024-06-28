@@ -93,10 +93,10 @@
         </div>
       </div>
       <div v-else>
-        <div v-if="sendingBch" class="sm-font-size">
+        <!-- <div v-if="sendingBch" class="sm-font-size">
           <q-spinner class="q-mr-sm"/>{{ $t('SendingBchPleaseWait') }}
-        </div>
-        <div v-else class="sm-font-size q-mt-sm">
+        </div> -->
+        <div class="sm-font-size q-mt-sm">
           <div class="row q-ml-xs">
             Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
           </div>
@@ -158,7 +158,7 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
-  emits: ['back', 'success', 'refresh', 'updateArbiterStatus'],
+  emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending'],
   components: {
     RampDragSlide
   },
@@ -166,6 +166,9 @@ export default {
     data: Object
   },
   watch: {
+    sendingBch (val) {
+      this.$emit('sending', val)
+    },
     fees (value) {
       if (value) this.dragSlideOn = true
     },
@@ -182,7 +185,7 @@ export default {
       return this.arbiterOptions?.length > 0
     },
     showDragSlide () {
-      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && this.data?.wsConnected && !this.sendingBch && this.contractAddress)
+      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
     },
     arbiterOptionsMessage () {
       return `No available arbiter found for currency ${this.order?.ad?.fiat_currency?.symbol}`
@@ -258,6 +261,7 @@ export default {
       if (this.fees) {
         this.transferAmount += this.fees.total / 100000000
       }
+      this.transferAmount = parseFloat(this.transferAmount.toFixed(8))
     },
     async completePayment () {
       const vm = this

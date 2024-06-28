@@ -460,7 +460,7 @@ export default {
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {
-            this.amount = this.ad.trade_floor
+            this.amount = parseFloat(this.ad.trade_floor)
             this.byFiat = this.ad.trade_limits_in_fiat
             if (this.byFiat) {
               this.amount = Number(this.amount).toFixed(2)
@@ -656,7 +656,7 @@ export default {
           amount = amount / price
         }
       }
-      this.amount = amount.toFixed(this.byFiat ? 2 : 8)
+      this.amount = parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
     },
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)

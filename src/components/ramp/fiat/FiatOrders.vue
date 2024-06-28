@@ -1,6 +1,6 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="$t('P2PExchange')" backnavpath="/apps"/>
+  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
   <div
     v-if="state === 'order-list'"
     class="q-mx-md q-mb-lg text-bow"
@@ -278,7 +278,6 @@ export default {
     bus.on('view-ad', this.onViewAd)
   },
   async mounted () {
-    console.log('order-params: ', this.$route.query)
     if (Object.keys(this.$route.query).length > 0) {
       this.notifType = this.$route.query.type
       this.selectedOrder = { id: this.$route.query.order_id }

@@ -641,11 +641,11 @@ export default {
       }
     },
     updateStoreFilters (filters) {
-      if (!filters) return
+      if (!filters || Object.keys(filters).length === 0) return
       this.storeFilters = filters
     },
     updateOrderFilters (filters) {
-      if (!filters) return
+      if (!filters || Object.keys(filters).length === 0) return
       this.orderFilters = filters
     },
     paymentTimeLimit (timeValue) {

@@ -96,15 +96,14 @@
       v-model="chatDialog.show"
       :chat-ref="chatDialog.chatSession?.ref"
       :custom-backend="customBackend"
-      :use-privkey="keys?.chat?.privkey"
       @chat-member="onChatMemberUpdate"
     />
   </div>
 </template>
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { backend } from 'src/marketplace/backend';
 import { ChatIdentity, ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects';
-import { arbiterBackend, parseWif } from 'src/marketplace/arbiter';
 import { formatDateRelative } from 'src/marketplace/utils';
 import { useDialogPluginComponent } from 'quasar';
 import { useStore } from 'vuex';
@@ -124,14 +123,8 @@ const $emit = defineEmits([
 const props = defineProps({
   modelValue: true,
 
-  keys: {
-    type: Object,
-    default: () => {
-      return [].map(parseWif)[0]
-    }
-  },
   chatIdentity: ChatIdentity,
-  customBackend: { default: () => arbiterBackend },
+  customBackend: { default: () => backend },
 })
 
 const $store = useStore()
@@ -209,6 +202,5 @@ defineExpose({
   openChatDialog,
   fetchChatMembers,
   refetchChatMember,
-  chatMembers,
 })
 </script>

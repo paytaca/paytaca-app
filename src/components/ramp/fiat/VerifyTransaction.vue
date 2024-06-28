@@ -42,7 +42,8 @@
         :dark="darkMode"
         :loading="!txidLoaded && !transactionId"
         v-model="transactionId"
-        @click="copyToClipboard(transactionId)">
+        @click="copyToClipboard(transactionId)"
+        class="q-mb-md">
         <template v-slot:append>
           <q-icon
             size="sm"
@@ -54,19 +55,19 @@
       <div v-if="errorMessage" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
         <q-icon name="error" size="1.2em" class="q-pr-xs"/>{{ errorMessage }}
       </div>
-      <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-sm q-pt-md">
+      <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-md">
         <q-btn
           rounded
           :loading="loading"
-          :disable="disableBtn || !data?.wsConnected"
+          :disable="disableBtn"
           :label="$t('Retry')"
           class="col q-mx-lg button"
           @click="submitAction">
         </q-btn>
       </div>
-      <div class="q-my-sm" v-if="state === 'verifying' && hideBtn">
+      <!-- <div class="q-my-sm" v-if="verifyingTx && hideBtn">
         <q-spinner class="q-mr-sm"/>{{ $t('VerifyingPleaseWait') }}
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -88,14 +89,14 @@ export default {
       disableBtn: true,
       hideBtn: false,
       errorMessage: null,
-      state: null,
+      verifyingTx: false,
       txidLoaded: false,
       balanceLoaded: false,
       disableTxidInput: true,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
-  emits: ['back', 'success'],
+  emits: ['back', 'success', 'verifying'],
   components: {},
   props: {
     data: Object
@@ -107,6 +108,9 @@ export default {
     },
     balanceLoaded () {
       this.checkTransferStatus()
+    },
+    verifyingTx (val) {
+      this.$emit('verifying', val)
     }
   },
   async mounted () {
@@ -179,8 +183,12 @@ export default {
     verifyRelease () {
       const vm = this
       const body = { txid: this.transactionId }
+      vm.verifyingTx = true
       backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release`, body, { authorize: true })
-        .then(response => console.log(response.data))
+        .then(response => {
+          console.log(response.data)
+          vm.verifyingTx = false
+        })
         .catch(error => {
           if (error.response) {
             console.error(error.response)
@@ -191,6 +199,7 @@ export default {
           } else {
             console.error(error)
           }
+          vm.verifyingTx = false
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -199,8 +208,12 @@ export default {
     verifyEscrow () {
       const vm = this
       const body = { txid: vm.transactionId }
+      vm.verifyingTx = true
       backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow`, body, { authorize: true })
-        .then(response => console.log(response.data))
+        .then(response => {
+          console.log(response.data)
+          vm.verifyingTx = false
+        })
         .catch(error => {
           console.error(error.response)
           if (error.response?.data?.error === 'txid is required') {
@@ -209,6 +222,7 @@ export default {
           if (error.response.status === 403) {
             bus.emit('session-expired')
           }
+          vm.verifyingTx = false
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -219,17 +233,14 @@ export default {
       vm.hideBtn = true
       vm.errorMessage = null
       vm.loading = true
-      vm.state = 'verifying'
-      setTimeout(function () {
-        switch (vm.data?.action) {
-          case 'ESCROW':
-            vm.verifyEscrow()
-            break
-          case 'RELEASE':
-            vm.verifyRelease()
-            break
-        }
-      }, 3000)
+      switch (vm.data?.action) {
+        case 'ESCROW':
+          vm.verifyEscrow()
+          break
+        case 'RELEASE':
+          vm.verifyRelease()
+          break
+      }
     },
     checkTransferStatus () {
       if (this.balanceLoaded && this.txidLoaded) {
@@ -257,7 +268,7 @@ export default {
             }
             break
         }
-        this.state = 'verifying'
+        this.verifyingTx = true
         this.loading = false
       }
     },
