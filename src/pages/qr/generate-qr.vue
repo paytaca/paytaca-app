@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('GenerateQR')" backnavpath="/qr-reader" />
+    <header-nav :title="$t('GenerateQR')" backnavpath="/" />
 
     <div
       v-if="generatingAddress"
@@ -93,7 +93,7 @@
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { Address } from 'src/wallet'
-
+import { useWakeLock } from '@vueuse/core'
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader'
 
@@ -163,12 +163,20 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
     const vm = this
 
     vm.generatingAddress = true
     vm.getAddresses()
     vm.generatingAddress = false
+
+
+    self.wakeLock = useWakeLock()
+    await wakeLock.request('screen')
+  },
+
+  async unmounted () {
+    await self.wakeLock.release()
   }
 }
 </script>

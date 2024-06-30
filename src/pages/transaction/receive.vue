@@ -173,6 +173,7 @@ import {
   convertTokenAmount,
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { useWakeLock } from '@vueuse/core'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -644,7 +645,7 @@ export default {
     }
   },
 
-  unmounted () {
+  async unmounted () {
     if (!this.assetId.endsWith('unlisted')) {
       this.stopSbchListener()
       this.$disconnect()
@@ -654,6 +655,8 @@ export default {
     NativeAudio.unload({
       assetId: 'send-success',
     })
+
+    await self.wakeLock.release()
   },
 
   async mounted () {
@@ -673,6 +676,9 @@ export default {
       volume: 1.0,
       isUrl: false
     })
+
+    self.wakeLock = useWakeLock()
+    await wakeLock.request('screen')
 
     vm.tokens = vm.$store.getters['global/network'] === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
   },
