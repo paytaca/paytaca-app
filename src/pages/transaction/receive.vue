@@ -515,9 +515,9 @@ export default {
         dropRate: 3
       })
       if (!vm.$q.platform.is.mobile) {
-        if (isCashToken)
+        if (isCashToken) {
           amount = convertTokenAmount(amount, decimals)
-
+        }
         vm.$q.notify({
           classes: 'br-15 text-body1',
           message: `${amount} ${symbol} received!`,

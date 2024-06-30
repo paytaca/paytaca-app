@@ -91,7 +91,7 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { convertCashAddress } from 'src/wallet/chipnet'
+import { getWatchtowerWebsocketUrl, convertCashAddress } from 'src/wallet/chipnet'
 import { Address } from 'src/wallet'
 import { useWakeLock } from '@vueuse/core'
 import HeaderNav from 'src/components/header-nav'
@@ -110,7 +110,8 @@ export default {
       generatingAddress: false,
       isCt: false,
       legacy: false,
-      addresses: []
+      addresses: [],
+      incomingTransactions: []
     }
   },
 
@@ -160,6 +161,45 @@ export default {
     convertToLegacyAddress (address) {
       const addressObj = new Address(address)
       return addressObj.toLegacyAddress()
+    },
+    setupListener () {
+      const vm = this
+      const wsURL = getWatchtowerWebsocketUrl(vm.isChipnet)
+      const url = `${wsURL}/watch/bch/${this.address}/`
+      vm.$connect(url)
+      vm.$options.sockets.onmessage = async function (message) {
+        const data = JSON.parse(message.data)
+        if (this.incomingTransactions.indexOf(data.txid) === -1) {
+          this.incomingTransactions.push(data.txid)
+          vm.$confetti.start({
+            particles: [
+              {
+                type: 'heart'
+              }
+            ],
+            size: 3,
+            dropRate: 3
+          })
+          if (!vm.$q.platform.is.mobile) {
+            let decimals = 8
+            let amount = data.value / (10 ** decimals)
+            if (data.token_id.startsWith('ct/')) {
+              decimals = data.token_decimals
+              amount = Number(data.amount) / (10 ** data.token_decimals)
+            }
+            vm.$q.notify({
+              classes: 'br-15 text-body1',
+              message: `${amount.toFixed(decimals)} ${data.token_symbol.toUpperCase()} received!`,
+              color: 'blue-9',
+              position: 'bottom',
+              timeout: 4000
+            })
+          }
+          setTimeout(function () {
+            vm.$confetti.stop()
+          }, 3000)
+        }
+      }
     }
   },
 
@@ -170,13 +210,14 @@ export default {
     vm.getAddresses()
     vm.generatingAddress = false
 
-
+    vm.setupListener()
     self.wakeLock = useWakeLock()
     await wakeLock.request('screen')
   },
 
   async unmounted () {
     await self.wakeLock.release()
+    this.$disconnect()
   }
 }
 </script>

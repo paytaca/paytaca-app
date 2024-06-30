@@ -56,7 +56,7 @@
       </button>
     </div>
 
-    <div id="qr-button">
+    <div id="qr-button" @click="$router.push({ name: 'qr-reader' })">
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'qr-reader' }">
           <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-qr.png" size="30px" />
@@ -68,7 +68,7 @@
         </router-link>
       </button>
       <br>
-      <span :class="getDarkModeClass()" @click="$router.push({ name: 'transaction-send-select-asset' })">{{ 'QR' }}</span>
+      <span :class="getDarkModeClass()" @click="$router.push({ name: 'qr-reader' })">{{ 'QR' }}</span>
     </div>
   </div>
 </template>
