@@ -566,7 +566,7 @@ export default {
         seamless: true,
         ok: this.$t('Yes')
       }).onOk(() => {
-        vm.deleteWallet()
+        vm.deleteWallet(vm)
       }).onCancel(() => {
         vm.disableDeleteButton = false
       })
@@ -585,31 +585,31 @@ export default {
         })
       }
     },
-    async deleteWallet () {
-      if (!this.wallet) await this.loadWallet()
-      const walletHashes = [
-        this.wallet.BCH.walletHash,
-        this.wallet.BCH_CHIP.walletHash,
-        this.wallet.SLP.walletHash,
-        this.wallet.SLP_TEST.walletHash,
-        this.wallet.sBCH.walletHash,
-      ]
-      const marketplaceCustomerRef = await this.$store.dispatch('marketplace/getCartRef')
-      console.log({ marketplaceCustomerRef })
+    async deleteWallet (vm) {
+      if (!vm.wallet) await vm.loadWallet()
+      if (vm.$q.platform.is.mobile) {
+        const walletHashes = [
+          vm.wallet.BCH.walletHash,
+          vm.wallet.BCH_CHIP.walletHash,
+          vm.wallet.SLP.walletHash,
+          vm.wallet.SLP_TEST.walletHash,
+          vm.wallet.sBCH.walletHash,
+        ]
+        const marketplaceCustomerRef = await vm.$store.dispatch('marketplace/getCartRef')
+        console.log({ marketplaceCustomerRef })
 
-      const promises = [
-        this.$pushNotifications.unsubscribe(walletHashes)?.catch(console.error)
-      ]
-      if (marketplaceCustomerRef) {
-        promises.push(
-          marketplacePushNotificationsManager.unsubscribe({ customerRef: marketplaceCustomerRef }),
-        )
+        const promises = [
+          vm.$pushNotifications.unsubscribe(walletHashes)?.catch(console.error)
+        ]
+        if (marketplaceCustomerRef) {
+          promises.push(
+            marketplacePushNotificationsManager.unsubscribe({ customerRef: marketplaceCustomerRef }),
+          )
+        }
+        await Promise.all(promises)
       }
-      await Promise.all(promises)
-
-      const vm = this
-      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
-      this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
+      const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
+      vm.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
       }).then(function () {
         const vault = vm.$store.state.global.vault
         const undeletedWallets = []

@@ -141,17 +141,24 @@ class MarketplacePushNotificationsManager {
       return console.log('Aborting unsubscribe, no valid platform found')
     }
 
-    const response = await backend.post(
-      '/notifications/unsubscribe/',
-      data,
-    )
+    // TODO: Temporarily suppressing error from status code 400 when unsubscribing
+    // devices from marketplace notifications in commerce-hub. Will need to figure out
+    // later what is the root cause of the error in commerce-hub side.
+    try {
+      const response = await backend.post(
+        '/notifications/unsubscribe/',
+        data,
+      )
 
-    console.log('Unsubscribed to push notiications', {
-      data: data,
-      result: response?.data
-    })
+      console.log('Unsubscribed to push notifications', {
+        data: data,
+        result: response?.data
+      })
 
-    return response?.data
+      return response?.data
+    } catch(err) {
+      console.log('Error in unsubscribing from marketplace notifications')
+    }
   }
 }
 

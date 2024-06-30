@@ -283,6 +283,7 @@ class PushNotificationsManager {
     const data = {
       wallet_hashes: walletHashes,
     }
+
     if (platform === 'ios') {
       data.apns_device_id = this.deviceId
     } else if (platform === 'android') {
@@ -297,7 +298,7 @@ class PushNotificationsManager {
       data,
     )
 
-    console.log('Unsubscribed to push notiications', {
+    console.log('Unsubscribed to push notifications', {
       data: data,
       result: response?.data
     })
