@@ -57,6 +57,7 @@
               <p v-if="error" style="color: red; font-size: 20px;">
                 {{ error }}
               </p>
+              <q-btn v-if="completed || error" class="q-mt-md" @click="$router.push('/')">{{ $t("GoToHome") }}</q-btn>
             </div>
           </div>
         </div>
