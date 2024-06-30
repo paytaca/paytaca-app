@@ -8,13 +8,13 @@
             <v-offline @detected-condition="onConnectivityChange" />
 
             <div
-              class="row q-pb-xs q-px-sm q-pt-sm"
+              class="row q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown />
             </div>
 
-            <div class="row q-pb-xs" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
+            <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
@@ -79,7 +79,7 @@
                 </q-tabs>
               </template>
             </div>
-            <div class="row q-mt-sm">
+            <div class="row q-mt-xs">
               <div class="col text-white" @click="selectBch">
                 <q-card id="bch-card">
                   <q-card-section horizontal>

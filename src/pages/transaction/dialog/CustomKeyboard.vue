@@ -109,7 +109,7 @@ export default {
   z-index: 1;
 }
 .pt-keyboard-container {
-  height: 300px;
+  height: 250px;
   background: #fff;
 }
 .br-top-15 {
