@@ -246,6 +246,7 @@ import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 
 export default {
   name: 'app-wallet-info',
@@ -338,6 +339,14 @@ export default {
           const wallet = new Wallet(mnemonic, 'BCH')
           vm.wallet = markRaw(wallet)
         })
+    },
+    deletingWalletDialog () {
+      return this.$q.dialog({
+        component: LoadingWalletDialog,
+        componentProps: {
+          loadingText: `${this.$t('DeletingWallet')}`
+        }
+      })
     },
     updateUtxoScanTasksStatus(nextUpdate=5*1000, age=0) {
       const bchWalletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()  
@@ -566,6 +575,7 @@ export default {
         seamless: true,
         ok: this.$t('Yes')
       }).onOk(() => {
+        vm.deletingWalletDialog()
         vm.deleteWallet(vm)
       }).onCancel(() => {
         vm.disableDeleteButton = false

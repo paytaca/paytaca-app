@@ -5,6 +5,11 @@ const words = require('./__texts/words')
 const phrases = require('./__texts/phrases')
 
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
 /**
  * NOTE: YOU ONLY NEED TO UPDATE TEXTS on the words and phrases files and run this script.
  * This script automatically translates and writes the translated
@@ -115,6 +120,9 @@ class Translator {
           const interpolatedMatches = value.match(this.regex.interpolatedStrRegex)
           if (interpolatedMatches !== null) interpolatedWords[key] = interpolatedMatches
         }
+
+        // Sleep for 2 seconds
+        await sleep(2000)
 
         // translate in bulks
         let translatedObj = await translate(group, codes)

@@ -454,7 +454,7 @@ export default {
     },
     backPath: {
       type: String,
-      default: '/send/select-asset'
+      default: '/'
     }
   },
   data () {

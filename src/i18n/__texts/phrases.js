@@ -484,6 +484,7 @@ const phrases = {
       MainBranch: "Main Branch",
       WalletDeletion: "Wallet Deletion",
       DeleteWalletNow: "Delete Wallet Now",
+      DeletingWallet: "Deleting wallet",
       DeleteWallet: "Delete Wallet",
       DeleteWalletDescription: "Are you sure you want to delete this wallet?",
       UTXOScanComplete: "UTXO scan completed at",
