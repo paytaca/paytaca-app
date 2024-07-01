@@ -1533,10 +1533,15 @@ export default {
         return true
       } else {
         const vm = this
-        setTimeout(function () {
-          vm.setAmountInFiat = true
+        const recipientAddress = value.split('?')[0]
+        if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
+          setTimeout(function () {
+            vm.setAmountInFiat = true
+            vm.customKeyboardState = 'show'
+          })
+        } else {
           vm.customKeyboardState = 'show'
-        })
+        }
       }
 
       if (value && this.isNFT) {
