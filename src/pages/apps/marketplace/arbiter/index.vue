@@ -259,6 +259,9 @@ async function logOut() {
   try{
     $q.loading.show({ group: 'logout' })
     await arbiterBackend.post(`users/revoke_token/`).catch(console.error)
+      .then(() => {
+        return marketplacePushNotificationsManager.unsubscribe({ userId: user.value?.id }).catch(console.error)
+      })
       .then(() => $q.loading.hide('logout'))
     setArbiterKeys()
   } finally {

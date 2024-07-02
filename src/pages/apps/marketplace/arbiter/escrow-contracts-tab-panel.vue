@@ -552,7 +552,7 @@ async function sendSettlementTx(escrowContract, transaction) {
     const txHex = await transaction.build()
     const data = { settlement_tx_hex: txHex }
     dialog.update({ message: $t('BroadcastingTransaction')  })
-    return await backend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
+    return await arbiterBackend.post(`connecta/escrow/${escrowContract?.address}/broadcast_settlement/`, data)
       .then(response => {
         escrowContract.raw = response?.data
         dialog.hide()
