@@ -1,6 +1,6 @@
 <template>
   <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName != 'main'" @click="customBack"></div>
-  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
+  <HeaderNav :title="$t('P2PExchange')" backnavpath="/apps"/>
   <div
     v-if="state === 'order-list'"
     class="q-mx-md q-mb-lg text-bow"

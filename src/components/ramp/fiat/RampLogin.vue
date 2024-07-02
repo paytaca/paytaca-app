@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`${user?.is_arbiter ? 'Appeal Ramp' : 'P2P Exchange'}`" backnavpath="/apps"/>
+  <HeaderNav :title="`${user?.is_arbiter ? $t('AppealRamp') : $t('P2PExchange')}`" backnavpath="/apps"/>
   <div
   class="q-mb-lg text-bow"
   :class="getDarkModeClass(darkMode)"

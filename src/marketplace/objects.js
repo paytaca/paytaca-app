@@ -1,5 +1,5 @@
 import { nativeFileAPI } from "src/utils/native-file"
-import { backend } from "./backend"
+import { backend, cachedBackend } from "./backend"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
 import { formatOrderStatus, lineItemPropertiesToText, parseOrderStatusColor } from './utils'
 
@@ -1584,6 +1584,55 @@ export class Payment {
   }
 }
 
+export class EscrowSettlementAppeal {
+  static parse(data) {
+    return new EscrowSettlementAppeal(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.escrow_contract
+   * @param {String} data.type
+   * @param {String} data.reason
+   * @param {String} data.completed_at
+   * @param {String} data.cancelled_at
+   * @param {String} data.created_at
+   * @param {Object} [data.created_by_user]
+   * @param {Object} [data.created_by_customer]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.escrowContract = EscrowContract.parse(data?.escrow_contract)
+    this.type = data?.type
+    this.reason = data?.reason
+
+    if (data?.completed_at) this.completedAt = new Date(data?.completed_at)
+    else if (this.completedAt) delete this.completedAt
+
+    if (data?.cancelled_at) this.cancelledAt = new Date(data?.cancelled_at)
+    else if (this.cancelledAt) delete this.cancelledAt
+
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+
+    if(data?.created_by_user) this.createdByUser = User.parse(data?.created_by_user)
+    else if(this.createdByUser) delete this.createdByUser
+
+    if (data?.created_by_customer) this.createdByCustomer = User.parse(data?.created_by_customer)
+    else if(this.createdByCustomer) delete this.createdByCustomer
+  }
+}
+
 export class EscrowContract {
   static parse(data) {
     return new EscrowContract(data) 
@@ -1621,6 +1670,8 @@ export class EscrowContract {
    * @param {String} data.delivery_fee_key_nft.fee_pool_contract.key_nft_category
    * @param {String} data.delivery_fee_key_nft.fee_pool_contract.owner_address
    * @param {String} data.timestamp
+   * @param {Number} data.pending_appeals_count
+   * @param {String[]} data.pending_appeal_types
    * 
    * @param {String} [data.funding_txid]
    * @param {Number} [data.funding_vout]
@@ -1660,6 +1711,9 @@ export class EscrowContract {
 
     if (data?.timestamp) this.timestamp = new Date(data?.timestamp) * 1
     else if (this.timestamp) delete this.timestamp
+
+    this.pendingAppealsCount = data?.pending_appeals_count
+    this.pendingAppealTypes = data?.pending_appeal_types
 
     this.fundingTxid = data?.funding_txid
     this.fundingVout = data?.funding_vout
@@ -1757,6 +1811,67 @@ export class EscrowContract {
 
     if (isTestnet) return `https://chipnet.imaginary.cash/tx/${txid}`
     return `https://blockchair.com/bitcoin-cash/transaction/${txid}`
+  }
+
+  getPendingSettlementAppeals() {
+    if (!this.address) return Promise.resolve()
+
+    const params = {
+      escrow_addresses: this.address,
+      pending: true,
+    }
+    const cache = {
+      ttl: 10 * 1000, // 10 seconds
+    }
+
+    return cachedBackend.get(`connecta/escrow-settlement-appeals/`, { params, cache })
+      .then(response => {
+        const results = response?.data?.results
+        if (Array.isArray(results)) {
+          this.pendingSettlementAppeals = results?.map?.(EscrowSettlementAppeal.parse)
+        }
+        return response
+      })
+  }
+}
+
+export class EscrowArbiter {
+  static parse(data) {
+    return new EscrowArbiter(data)
+  }
+
+  constructor(data) { 
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.pubkey
+   * @param {String} data.cash_address
+   * @param {Number} data.user_id
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.pubkey = data?.pubkey
+    this.cashAddress = data?.cash_address
+    this.userId = data?.user_id
+  }
+
+  async getUser() {
+    if (!this.userId) return Promise.resolve()
+
+    return backend.get(`/users/${this.userId}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.user = User.parse(response?.data)
+        return response
+      })
   }
 }
 
