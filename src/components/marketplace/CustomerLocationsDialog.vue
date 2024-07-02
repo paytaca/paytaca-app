@@ -73,6 +73,7 @@
 <script>
 import { Location } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
