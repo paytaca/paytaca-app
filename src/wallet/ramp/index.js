@@ -1,8 +1,12 @@
 import { useI18n } from "vue-i18n"
-const { t } = useI18n()
 
+function loadvuet () {
+  const { t } = useI18n()
+  return t
+}
 
 export function formatOrderStatus (value) {
+  const t = loadvuet()
   switch (value) {
     case 'SBM':
       return t('Submitted')
@@ -94,6 +98,7 @@ export function formatAddress (address, startLength = 35, endLength = 5) {
 }
 
 export function formatRelativeDate (date) {
+  const t = loadvuet()
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const yesterday = new Date(today)
@@ -158,6 +163,7 @@ export function formatRelativeDate (date) {
 }
 
 export function getAppealCooldown (timeValue) {
+  const t = loadvuet()
   switch (timeValue) {
     case 5:
       return { label: t('FiveMinutes'), value: 5 }
