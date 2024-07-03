@@ -1,6 +1,5 @@
 <template>
-  <div
-    v-if="step === 1"
+  <div v-if="step === 1"
     class="text-bow"
     :class="getDarkModeClass(darkMode)">
     <div v-if="step === 1">

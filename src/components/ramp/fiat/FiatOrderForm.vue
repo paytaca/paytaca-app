@@ -238,6 +238,18 @@ import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+    return {
+      scrollTargetRef,
+      scrollDown () {
+        const x = setTimeout(() => {
+          const scrollElement = scrollTargetRef.value.$el
+          scrollTargetRef.value.setScrollPosition('vertical', scrollElement.scrollHeight)
+        }, 50)
+      }
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -268,21 +280,6 @@ export default {
       },
       marketPrice: 0,
       arbitersAvailable: []
-    }
-  },
-  setup () {
-    const scrollTargetRef = ref(null)
-
-    return {
-      scrollTargetRef,
-
-      scrollDown () {
-        const x = setTimeout(() => {
-          const scrollElement = scrollTargetRef.value.$el
-
-          scrollTargetRef.value.setScrollPosition('vertical', scrollElement.scrollHeight)
-        }, 50)
-      }
     }
   },
   props: {

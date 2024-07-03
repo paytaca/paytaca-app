@@ -1,6 +1,6 @@
 <template>
-  <div
-    v-if="step === 1"
+  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+  <div v-if="step === 1"
     class="text-bow"
     :class="getDarkModeClass(darkMode)">
     <div v-if="step === 1">
@@ -8,8 +8,24 @@
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
         :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
         :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-        <span v-if="adsState === 'create'">POST {{ transactionType?.toUpperCase() }} AD</span>
-        <span v-if="adsState === 'edit'">EDIT {{ transactionType?.toUpperCase() }} AD</span>
+        <span v-if="adsState === 'create'">
+          {{
+            $t(
+              'PostAd',
+              { type: transactionType?.toUpperCase() },
+              `POST ${ transactionType?.toUpperCase() } AD`
+            )
+          }}
+        </span>
+        <span v-if="adsState === 'edit'">
+          {{
+            $t(
+              'EditAd',
+              { type: transactionType.toUpperCase() },
+              `EDIT ${ transactionType.toUpperCase() } AD`
+            )
+          }}
+        </span>
       </div>
       <!-- Price Settings -->
       <div v-if="loading">
@@ -21,7 +37,7 @@
         <q-scroll-area :style="`height: ${minHeight}px`" style="overflow-y:auto;">
           <div class="q-px-lg">
             <div class="q-mx-lg q-pb-sm q-pt-sm text-weight-bold">
-              <span>Price Setting</span>&nbsp;
+              <span>{{ $t('PriceSetting') }}</span>&nbsp;
             </div>
             <div class="text-center q-mx-md">
               <q-btn-toggle
@@ -35,14 +51,14 @@
                 :toggle-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :text-color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 :options="[
-                  {label: 'Fixed', value: 'FIXED'},
-                  {label: 'Floating', value: 'FLOATING'}
+                  {label: $t('Fixed'), value: 'FIXED'},
+                  {label: $t('Floating'), value: 'FLOATING'}
                 ]">
               </q-btn-toggle>
             </div>
             <div class="row q-py-sm q-gutter-sm q-px-md sm-font-size">
               <div class="col-4">
-                <div class="q-pl-sm q-pb-xs">Fiat Currency</div>
+                <div class="q-pl-sm q-pb-xs">{{ $t('FiatCurrency') }}</div>
                 <q-input
                   dense
                   rounded
@@ -58,7 +74,7 @@
                 </q-input>
               </div>
               <div class="col">
-                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? 'Fixed Price' : 'Floating Price' }}</div>
+                <div class="q-pl-sm q-pb-xs">{{ adData.priceType === 'FIXED'? $t('FixedPrice') : $t('FloatingPrice') }}</div>
                 <q-input
                   dense
                   rounded
@@ -85,8 +101,8 @@
             </div>
             <div class="q-mx-lg sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
               <div class="row justify-between">
-                <span class="col text-left">Your Price</span>
-                <span class="col text-right">Current Market Price</span>
+                <span class="col text-left">{{ $t('YourPrice') }}</span>
+                <span class="col text-right">{{ $t('CurrentMarketPrice') }}</span>
               </div>
               <div class="row justify-between">
                 <span class="col text-left text-weight-bold md-font-size">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(priceAmount).replace(/[^\d.,-]/g, '') }}</span>
@@ -99,7 +115,7 @@
           <div class="q-mx-lg q-mt-md">
             <div class="q-mt-sm q-px-md">
               <div class="q-pb-xs q-pl-sm">
-                <span class="text-weight-bold">Trade Quantity</span>&nbsp;
+                <span class="text-weight-bold">{{ $t('TradeQuantity') }}</span>&nbsp;
               </div>
               <q-input
                 ref="tradeAmountRef"
@@ -124,11 +140,11 @@
             <q-checkbox size="sm" v-model="setTradeQuantityInFiat" class="q-mx-md sm-font-size" color="blue-8">Set quantity in fiat </q-checkbox>
             <div class="q-px-md q-mt-sm">
               <div class="q-pb-xs q-pl-sm text-weight-bold">
-                <span>Trade Limit</span>&nbsp;
+                <span>{{ $t('TradeLimit') }}</span>&nbsp;
               </div>
               <div class="row">
                 <div class="col">
-                  <div class="q-pl-sm q-pb-xs sm-font-size">Minimum</div>
+                  <div class="q-pl-sm q-pb-xs sm-font-size">{{ $t('Minimum') }}</div>
                   <q-input
                     ref="tradeFloorRef"
                     dense
@@ -151,7 +167,7 @@
                   <q-icon class="q-pt-md q-mt-lg" name="remove"/>
                 </div>
                 <div class="col">
-                  <div class="q-pl-sm q-pb-xs sm-font-size">Maximum</div>
+                  <div class="q-pl-sm q-pb-xs sm-font-size">{{ $t('Maximum') }}</div>
                   <q-input
                     ref="tradeCeilingRef"
                     dense
@@ -178,7 +194,7 @@
           <!-- Appeal Cooldown -->
           <div class="q-mx-lg">
             <div class="q-px-lg">
-              <div class="q-pt-md">Set orders appealable after</div>
+              <div class="q-pt-md">{{ $t('SetOrderAppealsAfter') }}</div>
             </div>
             <div class="q-mx-md q-pt-sm">
               <q-select
@@ -207,7 +223,7 @@
               <q-checkbox
                 :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
                 v-model="adData.isPublic"
-                label="Public"
+                :label="$t('Public')"
               />
             </div>
             <!-- Warning message for when no currency arbiter is available for ad -->
@@ -220,10 +236,10 @@
               :disable="checkPostData()"
               rounded
               no-caps
-              label="Next"
+              :label="$t('Next')"
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               class="q-space"
-              @click="checkSubmitOption()"
+              @click="nextStep()"
             />
           </div>
         </q-scroll-area>
@@ -238,10 +254,10 @@
   <div v-if="step === 2">
     <AddPaymentMethods
       :type="'Ads'"
-      :confirm-label="'Next'"
+      :confirm-label="$t('Next')"
       :currency="adData.fiatCurrency.symbol"
       :currentPaymentMethods="adData.paymentMethods"
-      v-on:submit="appendPaymentMethods"
+      @submit="nextStep"
       @back="step--"
     />
   </div>
@@ -251,7 +267,7 @@
       :ptl="appealCooldown"
       :transaction-type="transactionType"
       v-on:back="step--"
-      @submit="onSubmit()"
+      @submit="nextStep"
     />
   </div>
   <div v-if="openDialog" >
@@ -270,6 +286,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import HeaderNav from 'src/components/header-nav.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import DisplayConfirmation from 'src/components/ramp/fiat/DisplayConfirmation.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -291,14 +308,15 @@ export default {
     AddPaymentMethods,
     DisplayConfirmation,
     ProgressLoader,
-    MiscDialogs
+    MiscDialogs,
+    HeaderNav
   },
   emits: ['back', 'submit', 'updatePageName'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      loading: true,
+      loading: false,
       openDialog: false,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       websocket: null,
@@ -327,44 +345,44 @@ export default {
         paymentMethods: [],
         isPublic: true,
         appealCooldown: {
-          label: '60 minutes',
+          label: this.$t('SixtyMinutes'),
           value: 60
         }
       },
       cdSelection: [
         {
-          label: '15 minutes',
+          label: this.$t('FifteenMinutes'),
           value: 15
         },
         {
-          label: '30 minutes',
+          label: this.$t('ThirtyMinutes'),
           value: 30
         },
         {
-          label: '45 minutes',
+          label: this.$t('FortyFiveMinutes'),
           value: 45
         },
         {
-          label: '1 hour',
+          label: this.$t('OneHour'),
           value: 60
         }],
       fiatCurrencies: [],
       numberValidation: [
-        (val) => !!val || 'This is required',
-        (val) => val > 0 || 'Cannot be zero'
+        (val) => !!val || this.$t('ThisIsRequired'),
+        (val) => val > 0 || this.$t('CannotBeZero')
       ],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       instruction: { // temp
         'price-setting': {
-          title: 'Price Setting',
-          text: 'Price settings instruction here'
+          title: this.$t('PriceSetting'),
+          text: this.$t('FiatAdFormInstruction1')
         },
         'trade-quantity': {
-          title: 'Trade Quantity',
-          text: 'Trade quantity instruction here'
+          title: this.$t('TradeQuantity'),
+          text: this.$t('FiatAdFormInstruction2')
         },
         'trade-limit': {
-          title: 'Trade limit instruction here',
+          title: this.$t('FiatAdFormInstruction3'),
           text: null
         }
       },
@@ -374,35 +392,13 @@ export default {
       setTradeQuantityInFiat: false,
       setTradeLimitsInFiat: false,
       arbiterOptions: [],
-      transactionType: null
+      transactionType: null,
+      previousRoute: null,
+      adsState: null
     }
   },
-  props: {
-    // transactionType: String,
-    adsState: String,
-    selectedAdId: Number
-  },
-  computed: {
-    hasArbiters () {
-      return this.arbiterOptions.length > 0
-    },
-    hints () {
-      return {
-        priceValue: this.adData.priceType === 'FLOATING' ? `Price is ${this.priceValue}% of market price` : 'Fixed prices do not change',
-        tradeAmount: `The total amount of BCH you want to ${this.transactionType?.toLocaleLowerCase()}`,
-        minAmount: 'The min amount per transaction',
-        maxAmount: 'The max amount per transaction',
-        appealCooldown: 'The waiting period before counterparties can submit dispute appeals'
-      }
-    },
-    confirmationData () {
-      const vm = this
-      const data = { ...vm.adData }
-      data.isTradeAmountFiat = this.setTradeQuantityInFiat
-      data.isTradeLimitsFiat = this.setTradeLimitsInFiat
-      console.log('confirmationData:', data)
-      return data
-    }
+  created () {
+    bus.emit('hide-menu')
   },
   watch: {
     setTradeQuantityInFiat (value) {
@@ -486,36 +482,74 @@ export default {
       }
     }
   },
-  created () {
-    bus.emit('hide-menu')
+  computed: {
+    hasArbiters () {
+      return this.arbiterOptions.length > 0
+    },
+    hints () {
+      return {
+        priceValue: (
+          this.adData.priceType === 'FLOATING'
+            ? this.$t(
+              'FiatAdFormHint1',
+              { priceValue: this.priceValue },
+            `Price is ${this.priceValue}% of market price`
+            )
+            : this.$t('PriceValueHint')
+        ),
+        tradeAmount: this.$t(
+          'FiatAdFormHint2',
+          { type: this.transactionType?.toLocaleLowerCase() },
+          `The total amount of BCH you want to ${this.transactionType?.toLocaleLowerCase()}`
+        ),
+        minAmount: this.$t('MinAmountHint'),
+        maxAmount: this.$t('MaxAmountHint'),
+        appealCooldown: this.$t('AppealCooldownHint')
+      }
+    },
+    confirmationData () {
+      const vm = this
+      const data = { ...vm.adData }
+      data.isTradeAmountFiat = this.setTradeQuantityInFiat
+      data.isTradeLimitsFiat = this.setTradeLimitsInFiat
+      console.log('confirmationData:', data)
+      return data
+    }
   },
   async mounted () {
+    this.step = Number(this.$route.query?.step) || 1
     this.loadFormData()
   },
   beforeUnmount () {
     this.closeWSConnection()
   },
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path
+    })
+  },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
     async loadFormData () {
+      this.loading = true
       // determine if form is edit or create
-      console.log('loadFormData:', this.$route.name)
       if (this.$route.name === 'p2p-ads-edit-form') {
-        await this.fetchAd(this.$route.params?.ad)
+        await this.fetchAd()
         this.transactionType = this.adData?.tradeType?.toUpperCase()
+        this.adsState = 'edit'
       }
       if (this.$route.name === 'p2p-ads-create-form') {
         this.transactionType = this.$route.query?.type
+        this.adData.tradeType = this.transactionType?.toUpperCase()
+        this.adsState = 'create'
       }
-      console.log('____transactionType:', this.transactionType)
 
       await this.fetchArbiters()
       await this.getFiatCurrencies()
       this.getInitialMarketPrice()
       this.updatePriceValue(this.adData.priceType)
       this.setupWebsocket()
-      // this.adData.tradeType = this.transactionType?.toUpperCase()
       this.loading = false
     },
     tradeAmountValidation (val) {
@@ -565,11 +599,9 @@ export default {
 
       this.openDialog = true
     },
-    async fetchAd (id) {
+    async fetchAd () {
       const vm = this
-      // const selectedAdId = this.$route.params?.ad
-      if (!id) return
-      await backend.get(`/ramp-p2p/ad/${id}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}`, { authorize: true })
         .then(response => {
           console.log('response:', response)
           const data = response.data
@@ -627,40 +659,31 @@ export default {
           vm.handleRequestError(error)
         })
     },
-    createAd () {
+    async createAd () {
       const vm = this
-      return new Promise((resolve, reject) => {
-        const body = vm.transformPostData()
-        backend.post('/ramp-p2p/ad/', body, { authorize: true })
-          .then(response => {
-            vm.swipeStatus = true
-            vm.$emit('submit')
-            resolve(response.data)
-          })
-          .catch(error => {
-            vm.handleRequestError(error)
-            vm.swipeStatus = false
-            reject(error)
-          })
-      })
+      const body = vm.transformPostData()
+      await backend.post('/ramp-p2p/ad/', body, { authorize: true })
+        .then(() => {
+          vm.swipeStatus = true
+          // vm.$emit('submit')
+        })
+        .catch(error => {
+          vm.handleRequestError(error)
+          vm.swipeStatus = false
+        })
     },
-    updateAd () {
+    async updateAd () {
       const vm = this
-      return new Promise((resolve, reject) => {
-        const body = vm.transformPostData(false)
-        const selectedAdId = vm.$route.params?.ad
-        backend.put(`/ramp-p2p/ad/${selectedAdId}`, body, { authorize: true })
-          .then(response => {
-            vm.swipeStatus = true
-            vm.$emit('submit')
-            resolve(response.data)
-          })
-          .catch(error => {
-            vm.handleRequestError(error)
-            vm.swipeStatus = false
-            reject(error)
-          })
-      })
+      const body = vm.transformPostData(false)
+      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}`, body, { authorize: true })
+        .then(() => {
+          vm.swipeStatus = true
+          // vm.$emit('submit')
+        })
+        .catch(error => {
+          vm.handleRequestError(error)
+          vm.swipeStatus = false
+        })
     },
     fetchArbiters () {
       return new Promise((resolve, reject) => {
@@ -678,18 +701,6 @@ export default {
             reject(error)
           })
       })
-    },
-    async onSubmit () {
-      const vm = this
-      vm.step++
-      switch (vm.adsState) {
-        case 'create':
-          vm.createAd()
-          break
-        case 'edit':
-          vm.updateAd()
-          break
-      }
     },
     async getInitialMarketPrice () {
       const vm = this
@@ -739,10 +750,41 @@ export default {
         }
       }
     },
-    async checkSubmitOption () {
-      const vm = this
-      vm.step++
+    async nextStep (data) {
+      const currentStep = this.step
+      console.log('nextStep:', currentStep)
+      if (currentStep === 2) {
+        this.adData.paymentMethods = data
+      }
+      if (currentStep === 3) {
+        this.onSubmit()
+        await this.$router.push({ name: 'p2p-ads' })
+      }
+      if (currentStep < 3) {
+        this.step++
+        await this.$router.replace({ query: { ...this.$route.query, step: this.step } })
+      }
     },
+    async onSubmit () {
+      const vm = this
+      switch (vm.adsState) {
+        case 'create':
+          await vm.createAd()
+          break
+        case 'edit':
+          await vm.updateAd()
+          break
+      }
+    },
+    // appendPaymentMethods (paymentMethods) {
+    //   const vm = this
+    //   vm.adData.paymentMethods = paymentMethods
+    //   vm.step++
+    // },
+    // async checkSubmitOption () {
+    //   this.step++
+    //   await this.$router.replace({ query: { step: vm.step } })
+    // },
     async updateFiatCurrency () {
       const vm = this
       // vm.priceValue = ''
@@ -785,7 +827,7 @@ export default {
       // if (vm.setTradeLimitsInFiat) {
       //   tradeCeiling = (tradeCeiling / vm.marketPrice).toFixed(8)
       // }
-      return {
+      const payload = {
         trade_type: data.tradeType,
         price_type: data.priceType,
         fiat_currency: create ? data.fiatCurrency.symbol : data.fiatCurrency.id,
@@ -801,6 +843,8 @@ export default {
         payment_methods: idList,
         is_public: data.isPublic
       }
+      console.log('payload:', payload)
+      return payload
     },
     updatePriceValue (priceType) {
       const vm = this
@@ -864,11 +908,6 @@ export default {
       this.websocket.onclose = () => {
         console.log('WebSocket connection closed.')
       }
-    },
-    appendPaymentMethods (paymentMethods) {
-      const vm = this
-      vm.adData.paymentMethods = paymentMethods
-      vm.step++
     },
     decPriceValue () {
       this.priceValue = Number((this.priceValue - 0.1).toFixed(2))

@@ -205,7 +205,14 @@ const routes = [
               {
                 path: 'orders/',
                 name: 'p2p-orders',
-                component: () => import('src/pages/apps/exchange/peer_to_peer/orders.vue')
+                component: () => import('src/pages/apps/exchange/peer_to_peer/orders.vue'),
+                children: [
+                  {
+                    path: ':order/',
+                    name: 'p2p-order',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/order.vue')
+                  },
+                ]
               },
               {
                 path: 'profile/',

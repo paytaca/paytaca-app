@@ -1,18 +1,19 @@
 <template>
-    <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
-    <HeaderNav v-if="pageName" :title="`P2P Exchange`" backnavpath="/apps"/>
-    <div
-      v-if="!selectedListing && state === 'initial'"
-      class="q-mx-md q-mb-lg q-pb-lg text-bow"
-      :class="getDarkModeClass(darkMode)"
-      :style="`height: ${minHeight}px;`">
-      <div v-if="!isloaded">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-        </div>
+  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
+  <HeaderNav v-if="pageName" :title="`P2P Exchange`" backnavpath="/apps"/>
+  <div
+    v-if="!selectedListing && state === 'initial'"
+    class="q-mx-md q-mb-lg q-pb-lg text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`">
+    <div v-if="!isloaded">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
-      <div v-else>
-        <div v-if="state === 'initial'">
+    </div>
+    <div v-else>
+      <div v-if="state === 'initial'">
+        <q-pull-to-refresh @refresh="refreshData">
           <div v-if="user" class="q-mb-lg">
             <div class="text-center q-pt-none">
               <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
@@ -33,7 +34,7 @@
               <q-btn
                 rounded
                 no-caps
-                label="Edit Payment Methods"
+                :label="$t('EditPaymentMethods')"
                 color="blue-8"
                 class="q-space q-mx-md button"
                 @click="() => {
@@ -73,148 +74,189 @@
                 icon="star"
                 icon-half="star_half"
               />
-              <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating?.toFixed(1) : 0}} rating)</span>
+                <span class="q-mx-sm sm-font-size">
+              {{
+                $t(
+                  'RatingValue',
+                  { rating: user.rating ? user.rating?.toFixed(1) : 0 },
+                  `(${ user.rating ? user.rating?.toFixed(1) : 0 } rating)`
+                )
+              }}
+            </span>
             </div>
             <div class="text-center sm-font-size q-pt-sm">
-                <span>{{ user.trade_count || 0 }} trades</span>&nbsp;&nbsp;
-                <span>|</span>&nbsp;&nbsp;
-                <span> {{ user.completion_rate ? user.completion_rate?.toFixed(1) : 0 }}% completion</span>
+                <span>
+                {{
+                  $t(
+                    'TradeCount',
+                    { count: user.trade_count },
+                    `${ user.trade_count || 0 } trades`
+                  )
+                }}
+              </span>
+              &nbsp;&nbsp;
+                <span>|</span>
+              &nbsp;&nbsp;
+                <span>
+                {{
+                  $t(
+                    'CompletionPercentage',
+                    { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : 0 },
+                    `${ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }% completion`
+                  )
+                }}
+              </span>
             </div>
           </div>
-          <div
-            class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
-            :class="getDarkModeClass(darkMode)"
-            :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-            <button
-              class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}"
-              @click="activeTab = 'reviews'">
-              REVIEWS
-            </button>
-            <button
-              v-if="!user?.self"
-              class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}"
-              @click="activeTab = 'ads'">
-              ADS
-            </button>
-          </div>
-          <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;">
-            <!-- Reviews tab -->
-            <div v-if="activeTab === 'reviews'">
-              <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
-                No Reviews Yet
-              </div>
-              <div v-else class="q-mx-lg q-px-md">
-                  <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-                    <div class="text-weight-bold sm-font-size">{{ userNameView(review.from_peer.name) }}</div>
-                    <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
-                    <div class="sm-font-text">
-                      <q-rating
-                        readonly
-                        v-model="review.rating"
-                        size="1.5em"
-                        color="yellow-9"
-                        icon="star"
-                      />
-                      <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating?.toFixed(1) : 0}})</span>
-                    </div>
-                    <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
-                      {{ review.comment }}
-                    </div>
-                    <q-separator :dark="darkMode" class="q-mt-md"/>
-                  </div>
-                  <div class="row justify-center" v-if="loadingReviews">
-                    <q-spinner-dots size="35px"/>
-                  </div>
-                  <div class="row" v-else-if="hasMoreReviewsData">
-                    <q-btn
-                      dense
-                      flat
-                      class="col text-center text-blue sm-font-size"
-                      @click=loadMoreData>
-                      view more
-                    </q-btn>
-                  </div>
-              </div>
+        </q-pull-to-refresh>
+        <div
+          class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
+          :class="getDarkModeClass(darkMode)"
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+          <button
+            class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}"
+            @click="activeTab = 'reviews'">
+            {{ $t('REVIEWS') }}
+          </button>
+          <button
+            v-if="!user?.self"
+            class="col-grow br-15 btn-custom fiat-tab q-mt-none"
+            :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}"
+            @click="activeTab = 'ads'">
+            {{ $t('ADS') }}
+          </button>
+        </div>
+        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;">
+          <!-- Reviews tab -->
+          <div v-if="activeTab === 'reviews'">
+            <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+              {{ $t('NoReviewsYet') }}
             </div>
-            <!-- Ads tab -->
-            <div v-if="activeTab === 'ads'">
-              <div v-if="!loadingAds && adsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
-                No Ads Yet
-              </div>
-              <div v-else class="q-mx-lg">
-                <q-item class="q-py-none" v-for="(ad, index) in adsList" :key="index" clickable @click="selectAd(ad)">
-                  <q-item-section>
-                    <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                      <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
-                      <div class="sm-font-size q-mr-sm">
-                        <span class="q-mr-sm">{{ ad.trade_count }} trades </span>
-                        <span class="q-ml-sm">{{ formatCompletionRate(ad.completion_rate) }}% completion</span><br>
-                      </div>
-                      <span
-                        class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                        :class="getDarkModeClass(darkMode)">
-                        {{ formattedCurrency(ad.price, ad?.fiat_currency?.symbol) }}
-                      </span>
-                      <span class="sm-font-size">/BCH</span><br>
-                      <div class="sm-font-size">
-                        <div class="row">
-                          <span class="col-3">Quantity</span>
-                          <span class="col">{{ formattedCurrency(ad.trade_amount, false) }} BCH</span>
-                        </div>
-                        <div class="row">
-                          <span class="col-3">Limit</span>
-                          <span class="col"> {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency?.symbol }}  - {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency?.symbol }}</span>
-                        </div>
-                      </div>
-                      <div class="row sm-font-size q-gutter-md">
-                        <span>Appealable in </span>
-                        <span>{{ appealCooldown(ad.appeal_cooldown).label }}</span>
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-                <div class="row justify-center" v-if="loadingAds">
+            <div v-else class="q-mx-lg q-px-md">
+                <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
+                  <div class="text-weight-bold sm-font-size">{{ userNameView(review.from_peer.name) }}</div>
+                  <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
+                  <div class="sm-font-text">
+                    <q-rating
+                      readonly
+                      v-model="review.rating"
+                      size="1.5em"
+                      color="yellow-9"
+                      icon="star"
+                    />
+                    <span class="q-mx-sm sm-font-size">({{ review.rating ? review.rating?.toFixed(1) : 0}})</span>
+                  </div>
+                  <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
+                    {{ review.comment }}
+                  </div>
+                  <q-separator :dark="darkMode" class="q-mt-md"/>
+                </div>
+                <div class="row justify-center" v-if="loadingReviews">
                   <q-spinner-dots size="35px"/>
                 </div>
-                <div class="row" v-else-if="hasMoreAdsData">
+                <div class="row" v-else-if="hasMoreReviewsData">
                   <q-btn
                     dense
                     flat
                     class="col text-center text-blue sm-font-size"
                     @click=loadMoreData>
-                    view more
+                    {{ $t('viewmore') }}
                   </q-btn>
                 </div>
+            </div>
+          </div>
+          <!-- Ads tab -->
+          <div v-if="activeTab === 'ads'">
+            <div v-if="!loadingAds && adsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+              {{ $t('NoAdsYet') }}
+            </div>
+            <div v-else class="q-mx-lg">
+              <q-item class="q-py-none" v-for="(ad, index) in adsList" :key="index" clickable @click="selectAd(ad)">
+                <q-item-section>
+                  <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                    <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
+                    <div class="sm-font-size q-mr-sm">
+                      <span class="q-mr-sm">
+                        {{
+                          $t(
+                            'TradeCount',
+                            { count: ad.trade_count },
+                            `${ ad.trade_count || 0 } trades`
+                          )
+                        }}
+                      </span>
+                      <span class="q-ml-sm">
+                        {{
+                          $t(
+                            'CompletionPercentage',
+                            { percentage: formatCompletionRate(ad.completion_rate) },
+                            `${ formatCompletionRate(ad.completion_rate) }% completion`
+                          )
+                        }}
+                      </span><br>
+                    </div>
+                    <span
+                      class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                      :class="getDarkModeClass(darkMode)">
+                      {{ formattedCurrency(ad.price, ad?.fiat_currency?.symbol) }}
+                    </span>
+                    <span class="sm-font-size">/BCH</span><br>
+                    <div class="sm-font-size">
+                      <div class="row">
+                        <span class="col-3">{{ $t('Quantity') }}</span>
+                        <span class="col">{{ formattedCurrency(ad.trade_amount, false) }} BCH</span>
+                      </div>
+                      <div class="row">
+                        <span class="col-3">{{ $t('Limit') }}</span>
+                        <span class="col"> {{ parseFloat(ad.trade_floor) }} {{ ad.crypto_currency?.symbol }}  - {{ parseFloat(ad.trade_amount) }} {{ ad.crypto_currency?.symbol }}</span>
+                      </div>
+                    </div>
+                    <div class="row sm-font-size q-gutter-md">
+                      <span>
+                        {{
+                          $t(
+                            'AppealableInCooldown',
+                            { cooldown: appealCooldown(ad.appeal_cooldown).label },
+                            `Appealable in ${ appealCooldown(ad.appeal_cooldown).label }`
+                          )
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
+              <div class="row justify-center" v-if="loadingAds">
+                <q-spinner-dots size="35px"/>
+              </div>
+              <div class="row" v-else-if="hasMoreAdsData">
+                <q-btn
+                  dense
+                  flat
+                  class="col text-center text-blue sm-font-size"
+                  @click=loadMoreData>
+                  {{ $t('viewmore') }}
+                </q-btn>
               </div>
             </div>
-          </q-scroll-area>
-        </div>
+          </div>
+        </q-scroll-area>
       </div>
     </div>
-    <AddPaymentMethods
-      ref="addPaymentMethods"
-      v-if="state === 'edit-pm'"
-      :type="'Profile'"
-      v-on:back="state = 'initial'"
-    />
-    <MiscDialogs
-      v-if="editNickname"
-      :type="'editNickname'"
-      v-on:back="editNickname = false"
-      v-on:submit="updateUserName"
-    />
-    <!-- Feedback Dialog -->
-    <div v-if="openReviews">
-      <FeedbackDialog
-        :openReviews="openReviews"
-        :toPeerID="user.id"
-        :fromPeerID="user.id"
-        @back="openReviews = false"
-      />
-    </div>
-  </template>
+  </div>
+  <AddPaymentMethods
+    ref="addPaymentMethods"
+    v-if="state === 'edit-pm'"
+    :type="'Profile'"
+    v-on:back="state = 'initial'"
+  />
+  <MiscDialogs
+    v-if="editNickname"
+    :type="'editNickname'"
+    v-on:back="editNickname = false"
+    v-on:submit="updateUserName"
+  />
+</template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
@@ -291,13 +333,17 @@ export default {
     if (!this.userInfo) {
       this.pageName = 'main'
     }
-
     this.processUserData()
     this.fetchReviews()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    refreshData (done) {
+      this.processUserData()
+      this.fetchReviews()
+      done()
+    },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
 
@@ -513,7 +559,7 @@ export default {
   }
 }
 </script>
-  <style lang="scss" scoped>
+<style lang="scss" scoped>
   .xs-font-size {
     font-size: x-small;
   }
@@ -523,7 +569,6 @@ export default {
   .md-font-size {
     font-size: medium;
   }
-
   .lg-font-size {
     font-size: large;
   }
@@ -573,4 +618,4 @@ export default {
     z-index: 1;
     left: 10px;
   }
-  </style>
+</style>
