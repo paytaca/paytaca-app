@@ -1,6 +1,5 @@
 import { castBooleanSafe, castNumberSafe, removeNullish } from './utils'
 
-
 const routes = [
   {
     path: '/',
@@ -25,6 +24,7 @@ const routes = [
       {
         path: 'send/select-asset',
         name: 'transaction-send-select-asset',
+        props: route => route.query,
         component: () => import('pages/transaction/select-asset-send.vue')
       },
       {
@@ -66,6 +66,17 @@ const routes = [
         name: 'push-notification-router',
         props: route => route.query,
         component: () => import('src/pages/push-notification-router.vue')
+      },
+      {
+        path: 'qr-reader',
+        name: 'qr-reader',
+        props: route => route.query,
+        component: () => import('pages/qr/qr-reader.vue')
+      },
+      {
+        path: 'generate-qr',
+        name: 'generate-qr',
+        component: () => import('pages/qr/generate-qr.vue')
       }
     ]
   },
@@ -114,8 +125,8 @@ const routes = [
           { path: 'orders/:orderId', component: () => import('src/pages/apps/marketplace/order.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-order' },
           { path: 'orders/', component: () => import('src/pages/apps/marketplace/orders.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-orders' },
           { path: 'customer', component: () => import('src/pages/apps/marketplace/customer.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-customer' },
-          { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } },
-        ],
+          { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
+        ]
       },
       { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
       {

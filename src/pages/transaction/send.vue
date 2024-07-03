@@ -4,6 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
+    <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || name || '')"
@@ -52,7 +53,7 @@
         <div
           v-else
           class="send-form-container"
-          :class="sent ? 'q-mt-md sent' : 'q-mt-xl'"
+          :class="sent ? 'q-mt-md sent' : 'q-mt-xs'"
         >
           <div class="q-pa-md enter-address-container">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
@@ -101,14 +102,23 @@
               <div class="col-12 text-uppercase text-center or-label">
                 {{ $t('or') }}
               </div>
-              <div class="col-12 q-mt-lg text-center">
-                <q-btn
-                  round
-                  size="lg"
-                  class="btn-scan button text-white bg-grad"
-                  icon="mdi-qrcode"
-                  @click="showQrScanner = true"
-                />
+              <div class="col-12 q-mt-lg">
+                <div class="row items-center justify-around">
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="mdi-qrcode"
+                    @click="showQrScanner = true"
+                  />
+                  <q-btn
+                    round
+                    size="lg"
+                    class="btn-scan button text-white bg-grad"
+                    icon="upload"
+                    @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
+                  />
+                </div>
               </div>
             </div>
             <div class="q-pa-md text-center text-weight-medium">
@@ -153,6 +163,7 @@
                       @on-recipient-input="onRecipientInput"
                       @on-empty-recipient="onEmptyRecipient"
                       @on-selected-denomination-change="onSelectedDenomination"
+                      @on-qr-uploader-click="onQRUploaderClick"
                       :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
@@ -181,6 +192,7 @@
                     @on-recipient-input="onRecipientInput"
                     @on-empty-recipient="onEmptyRecipient"
                     @on-selected-denomination-change="onSelectedDenomination"
+                    @on-qr-uploader-click="onQRUploaderClick"
                     :key="generateKeys(index)"
                     ref="sendPageRef"
                   />
@@ -195,10 +207,10 @@
 
               <div
                 class="row"
-                style="margin-top: -10px;"
+                style="margin-top: -15px;"
                 v-if="!sendDataMultiple[0].fixedAmount && !isNFT && asset.id === 'bch'"
               >
-                <div class="col q-mt-md">
+                <div class="col q-mt-xs">
                   <a
                     href="#"
                     class="button button-text-primary set-amount-button"
@@ -336,7 +348,7 @@ import HeaderNav from '../../components/header-nav'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import QrScanner from '../../components/qr-scanner.vue'
-// import { VOffline } from 'v-offline'
+import { VOffline } from 'v-offline'
 import {
   convertCashAddress,
   isValidTokenAddress,
@@ -357,6 +369,7 @@ import SendPageForm from 'src/components/SendPageForm.vue'
 import SingleWallet from 'src/wallet/single-wallet'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import QRUploader from 'src/components/QRUploader'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -371,9 +384,10 @@ export default {
     HeaderNav,
     customKeyboard,
     QrScanner,
-    // VOffline,
+    VOffline,
     DenominatorTextDropdown,
-    SendPageForm
+    SendPageForm,
+    QRUploader
   },
   props: {
     network: {
@@ -440,7 +454,7 @@ export default {
     },
     backPath: {
       type: String,
-      default: '/send/select-asset'
+      default: '/'
     }
   },
   data () {
@@ -699,12 +713,12 @@ export default {
         'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
       ).format(dateObj)
     },
-    onScannerDecode (content) {
+    async onScannerDecode(content) {
       this.disableSending = false
       this.bip21Expires = null
       this.showQrScanner = false
       this.sliderStatus = false
-      let address = content
+      let address = Array.isArray(content) ? content[0].rawValue : content
       let amount = null
       let amountValue = null
       let currency = null
@@ -1517,6 +1531,17 @@ export default {
 
         this.disableSending = false
         return true
+      } else {
+        const vm = this
+        const recipientAddress = value.split('?')[0]
+        if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
+          setTimeout(function () {
+            vm.setAmountInFiat = true
+            vm.customKeyboardState = 'show'
+          })
+        } else {
+          vm.customKeyboardState = 'show'
+        }
       }
 
       if (value && this.isNFT) {
@@ -1593,6 +1618,9 @@ export default {
         this.singleWallet = undefined
       }
       return { wallet, singleWallet: this.singleWallet }
+    },
+    onQRUploaderClick () {
+      this.$refs['qr-upload'].$refs['q-file'].pickFiles()
     }
   },
 
@@ -1634,6 +1662,11 @@ export default {
     }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+
+    // check query if address is not empty (from qr reader redirection)
+    if (vm.$route.query.address !== '') {
+      vm.onScannerDecode(vm.$route.query.address)
+    }
   },
 
   unmounted () {

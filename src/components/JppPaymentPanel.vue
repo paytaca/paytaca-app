@@ -1,39 +1,39 @@
 <template>
   <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
     <q-card-section>
-        <div class="text-h6 ellipsis">Payment</div>
+        <div class="text-h6 ellipsis">{{$t('Payment')}}</div>
         <div class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">PaymentID:</div>
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('PaymentID')}}:</div>
           <div class="ellipsis">#{{ jpp?.parsed?.paymentId }}</div>
           <q-btn
             flat
             icon="content_copy"
             size="sm"
             padding="xs"
-            @click="copyToClipboard(jpp?.parsed?.paymentId, 'Payment ID Copied')"
+            @click="copyToClipboard(jpp?.parsed?.paymentId, $t('PaymentIdCopied'))"
           />
         </div>
         <div v-if="jpp?.parsed?.paymentUrl" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">URL:</div>
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('URL')}}:</div>
           <div class="ellipsis">{{ jpp?.parsed?.paymentUrl }}</div>
           <q-btn
             flat
             icon="content_copy"
             size="sm"
             padding="xs"
-            @click="copyToClipboard(jpp?.parsed?.paymentUrl, 'Link Copied')"
+            @click="copyToClipboard(jpp?.parsed?.paymentUrl, $t('LinkCopied'))"
           />
         </div>
         <div v-if="jpp?.parsed?.time" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Created:</div>
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('Created')}}:</div>
           <div>{{ formatTimestampToText(jpp?.parsed?.time) }}</div>
         </div>
         <div v-if="jpp?.parsed?.expires" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Expires:</div>
+          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('Expires')}}:</div>
           <div>{{ formatTimestampToText(jpp?.parsed?.expires) }}</div>
         </div>
         <div v-if="jpp?.parsed?.memo" class="q-my-sm">
-          <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Memo:</div>
+          <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('Memo')}}:</div>
           <q-banner
             class="text-body1 rounded-borders memo-banner"
             :class="{'text-white': darkMode}"
@@ -43,7 +43,7 @@
         </div>
         <div>
           <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-            Recipient{{ jpp?.parsed?.outputs?.length > 1 ? 's' : '' }}:
+            {{$t('Recipient')}}{{ jpp?.parsed?.outputs?.length > 1 ? 's' : '' }}:
           </div>
           <div
             v-for="(output, index) in jpp?.parsed?.outputs" :key="index"
@@ -60,16 +60,21 @@
                 </div>
               </q-popup-proxy>
             </div>
-            <div class="text-right">{{ output.amount / 10 ** 8 }} BCH</div>
+            <div class="text-right">{{ output.amount / 10 ** 8 }} {{$t('BCH')}}</div>
           </div>
           <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mb-sm text-subtitle1">
-            <div class="q-space">Total:</div>
-            <div>{{ jpp.total / 10 ** 8 }} BCH</div>
+            <div class="q-space">{{$t('Total')}}:</div>
+            <div>{{ jpp.total / 10 ** 8 }} {{$t('BCH')}}</div>
           </div>
         </div>
         <div v-if="jpp.txids.length">
           <div class="text-subtitle1 transactions">
-            Transaction{{ jpp.txids.length > 1 ? 's' : '' }}
+            <template v-if="jpp.txids.length > 1">
+              {{ $t('Transactions') }}
+            </template>
+            <template v-else>
+              {{ $t('Transaction') }}
+            </template>
           </div>
           <div v-for="(txid, index) in jpp.txids" :key="index" class="row items-center">
             <div class="q-space ellipsis">{{ ellipsisText(txid, {start: 10, end: 10 }) }}</div>
@@ -89,7 +94,7 @@
         <div v-if="!showDragSlide && !loading" class="q-mt-sm">
           <q-btn
             no-caps
-            :label="$t('Confirm')""
+            :label="$t('Confirm')"
             class="full-width button"
             @click="showDragSlide = true"
           />

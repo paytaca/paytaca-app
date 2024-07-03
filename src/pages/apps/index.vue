@@ -127,7 +127,7 @@ export default {
           smartBCHOnly: true
         },
         {
-          name: 'Crypto Swap',
+          name: this.$t('CryptoSwap'),
           iconName: 'mdi-autorenew',
           path: '/apps/ramp/crypto',
           active: true,
@@ -206,7 +206,7 @@ export default {
     },
     openApp (app) {
       if (app.active) {
-        if (app.name === 'Wallet Backup') {
+        if (app.name === this.$t('WalletBackup')) {
           this.executeSecurityChecking()
         } else {
           this.$router.push(app.path)
@@ -235,14 +235,14 @@ export default {
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
-        reason: 'For ownership verification',
-        title: 'Security Authentication',
-        subtitle: 'Verify your account using fingerprint.',
+        reason: this.$t('NativeBiometricReason2'),
+        title: this.$t('SecurityAuthentication'),
+        subtitle: this.$t('NativeBiometricSubtitle'),
         description: ''
       })
         .then(() => {
           // Authentication successful
-          this.submitLabel = 'Processing'
+          this.submitLabel = this.$t('Processing')
           this.customKeyboardState = 'dismiss'
           setTimeout(() => {
             this.toggleMnemonicDisplay('proceed')
@@ -251,9 +251,9 @@ export default {
         (error) => {
           // Failed to authenticate
           this.warningAttemptsStatus = 'dismiss'
-          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+          if (error.message.includes(this.$t('Cancel')) || error.message.includes(this.$t('AuthenticationCancelled')) || error.message.includes(this.$t('FingerprintOperationCancelled'))) {
             this.proceedToBackup = false
-          } else if (error.message.includes('Too many attempts. Try again later.')) {
+          } else if (error.message.includes(this.$t('MaxAttempts'))) {
             this.warningAttemptsStatus = 'show'
           } else {
             this.verifyBiometric()
@@ -279,7 +279,7 @@ export default {
     try {
       if (this.$router.resolve({name: 'apps-sandbox'})) {
         this.apps.unshift({
-          name: 'Sandbox',
+          name: this.$t('Sandbox'),
           iconName: '',
           path: '/apps/sandbox',
           active: true
@@ -325,6 +325,7 @@ export default {
   #apps-page-container {
     background-color: #ECF3F3;
     min-height: 100vh;
+    padding-bottom: 30px;
   }
 
   .section-title {

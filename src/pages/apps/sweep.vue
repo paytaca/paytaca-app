@@ -59,7 +59,7 @@
                     :class="getDarkModeClass(darkMode)"
                     :disabled="(tokens.length - skippedTokens.length) > 0"
                   >
-                    Sweep
+                    {{ $t('Sweep') }}
                   </q-btn>
                   <span v-if="(tokens.length - skippedTokens.length) > 0" style="color: red;">
                     <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
@@ -241,7 +241,7 @@ export default {
           })
         }
       } else {
-        vm.error = 'Invalid private key!'
+        vm.error = this.$t('InvalidPrivateKey')
       }
     },
     sweepToken (token) {

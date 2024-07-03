@@ -29,9 +29,14 @@
                       </div>
                       <q-checkbox v-model:model-value="option.selected" @update:model-value="updateSelectedPaymentMethods(option)" :color="option.alien ? 'red': 'cyan'" keep-color/>
                   </div>
-                  <!--TODO:-->
                   <div v-if="option.alien" class="subtext xs-font-size text-weight-bold" style="color:red">
-                    {{ currency }} does not support this payment type
+                    {{
+                      $t(
+                        'PaymentTypeUnsupported',
+                        { currency },
+                        `${ currency } does not support this payment type`
+                      )
+                    }}
                   </div>
               </q-item-section>
               </q-item>
@@ -44,8 +49,13 @@
           <q-btn v-if="paymentTypeOpts.length > 0" outline rounded label='Add new' class="button button-icon q-mr-sm" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
           <q-btn rounded class="button q-ml-sm" @click="submitUpdatedPaymentMethods()" :disable="hasAlienPaymentsSelected" v-close-popup>
             <template v-slot:default>
-              <!--TODO:-->
-                Select {{ selectedPaymentMethods.length }}
+              {{
+                $t(
+                  'SelectValue',
+                  { value: selectedPaymentMethods.length },
+                  `Select ${ selectedPaymentMethods.length }`
+                )
+              }}
             </template>
           </q-btn>
           <!-- </div> -->

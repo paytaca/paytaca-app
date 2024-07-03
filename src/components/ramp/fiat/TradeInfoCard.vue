@@ -29,7 +29,7 @@
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
                 <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
-                  <q-badge v-if="unread" floating color="red" rounded>{{ unread }}</q-badge>
+                  <q-badge v-show="unread" floating color="red" rounded>{{ unread }}</q-badge>
                 </q-btn>
             </div>
         </div>
@@ -114,8 +114,15 @@
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div v-if="type === 'order'" class="row q-mt-none">
-                <!--TODO:-->
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
+                  {{
+                    $t(
+                      'ViewAmountInCurrency',
+                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
+                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
+                    )
+                  }}
+                </q-btn>
               </div>
             </div>
             <q-space/>
@@ -137,8 +144,15 @@
                 <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
               </div>
               <div class="row q-mt-none">
-                <!--TODO:-->
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat"> View amount in {{ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }}</q-btn>
+                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
+                  {{
+                    $t(
+                      'ViewAmountInCurrency',
+                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
+                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
+                    )
+                  }}
+                </q-btn>
               </div>
             </div>
             <div class="col-auto q-ml-md q-mr-sm text-right">
@@ -191,7 +205,7 @@ export default {
     bus.on('last-read-update', this.onLastReadUpdate)
   },
   async mounted () {
-    await this.loadChatInfo()
+    this.loadChatInfo()
   },
   computed: {
     completedOrder () {
@@ -224,9 +238,11 @@ export default {
       this.fetchChatUnread(this.chatRef)
     },
     async loadChatInfo () {
-      if (this.order) {
-        this.chatRef = generateChatRef(this.order.id, this.order.created_at)
-        await this.fetchChatUnread(this.chatRef)
+      const vm = this
+      if (vm.order) {
+        const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+        vm.chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+        vm.fetchChatUnread(vm.chatRef)
       }
     },
     async fetchChatUnread (chatRef) {
@@ -235,8 +251,10 @@ export default {
         const userMember = response?.filter(member => {
           return user.chat_identity_id === member.chat_identity.id
         })[0]
-        this.unread = userMember?.unread_count
-      }).catch(console.error)
+        this.unread = userMember?.unread_count || 0
+      }).catch(error => {
+        console.error(error?.response || error)
+      })
     },
     onViewAd () {
       this.$emit('view-ad')

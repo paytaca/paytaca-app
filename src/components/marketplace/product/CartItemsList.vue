@@ -154,8 +154,11 @@ export default defineComponent({
       const cart = props.cart
       $q.dialog({
         title: t('RemoveItem'),
-        // TODO:
-        message: `Remove item '${cartItem?.variant?.itemName}'. Are you sure?`,
+        message: t(
+          'RemoveItemPromptMsg',
+          { name: cartItem?.variant?.itemName },
+          `Remove item '${cartItem?.variant?.itemName}'. Are you sure?`
+        ),
         color: 'brandlue',
         ok: { label: t('RemoveItem'), noCaps: true, color: 'red' },
         cancel: { noCaps: true, flat: true },

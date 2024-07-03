@@ -19,14 +19,39 @@
                 </div>
                 <!-- User Stats -->
                 <div class="row justify-center q-px-sm">
-                  <!--TODO:-->
                     <q-rating readonly :model-value="user.rating ? user.rating : 0" :v-model="user.rating" size="1.2em" color="yellow-9" icon="star"/>
-                    <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating?.toFixed(1) : 0}} rating)</span>
+                    <span class="q-mx-sm sm-font-size">
+                      {{
+                        $t(
+                          'RatingValue',
+                          { rating: user.rating ? user.rating?.toFixed(1) : 0 },
+                          `(${ user.rating ? user.rating?.toFixed(1) : 0 } rating)`
+                        )
+                      }}
+                    </span>
                 </div>
                 <div class="text-center sm-font-size q-pt-sm">
-                    <span>{{ user.trade_count || 0 }} trades</span>&nbsp;&nbsp;
-                    <span>|</span>&nbsp;&nbsp;
-                    <span> {{ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }}% completion</span>
+                    <span>
+                      {{
+                        $t(
+                          'TradeCount',
+                          { count: user.trade_count },
+                          `${ user.trade_count || 0 } trades`
+                        )
+                      }}
+                    </span>
+                    &nbsp;&nbsp;
+                    <span>|</span>
+                    &nbsp;&nbsp;
+                    <span>
+                      {{
+                        $t(
+                          'CompletionPercentage',
+                          { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : 0 },
+                          `${ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }% completion`
+                        )
+                      }}
+                    </span>
                 </div>
             </div>
             <div class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode)" :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
@@ -82,7 +107,6 @@
                         <q-item-section>
                             <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                             <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
-                              <!--TODO:-->
                             <span
                                 class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                                 :class="getDarkModeClass(darkMode)">
@@ -100,8 +124,15 @@
                                 </div>
                             </div>
                             <div class="row sm-font-size q-gutter-md">
-                              <!--TODO:-->
-                                <span>Appealable in {{ appealCooldown(ad.appeal_cooldown).label }}</span>                                <span></span>
+                              <span>
+                                {{
+                                  $t(
+                                    'AppealableInCooldown',
+                                    { cooldown: appealCooldown(ad.appeal_cooldown).label },
+                                    `Appealable in ${ appealCooldown(ad.appeal_cooldown).label }`
+                                  )
+                                }}
+                              </span>
                             </div>
                             </div>
                         </q-item-section>

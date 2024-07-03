@@ -4,9 +4,16 @@
     :class="getDarkModeClass(darkMode)">
     <div class="text-center q-pb-sm">
       <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
-      <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} APPEAL</div>
-      <!--TODO:-->
-      <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
+      <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.type?.label?.toUpperCase() }} {{ $t('APPEAL') }}</div>
+      <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">
+        {{
+          $t(
+            'OrderIdNo',
+            { ID: appeal?.order?.id },
+            `ORDER #${ appeal?.order?.id }`
+          )
+        }}
+      </div>
     </div>
     <div class="q-mx-sm q-mb-sm">
       <TradeInfoCard

@@ -4,6 +4,25 @@ import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
 
+export function updateOrderChatSessionRef (orderId, chatRef) {
+  return new Promise((resolve, reject) => {
+    const payload = { chat_session_ref: chatRef }
+    backend.patch(`/ramp-p2p/order/${orderId}`, payload, { authorize: true })
+      .then(response => {
+        console.log('Updated order chat_session_ref:', response.data)
+        resolve(response)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to update order chat_session_ref:', error.response)
+        } else {
+          console.error('Failed to update order chat_session_ref:', error)
+        }
+        reject(error)
+      })
+  })
+}
+
 export async function updateChatIdentityId (userType, id) {
   return new Promise((resolve, reject) => {
     const payload = { chat_identity_id: id }
@@ -81,9 +100,9 @@ export async function updateChatIdentity (payload) {
   })
 }
 
-export async function createChatSession (orderId, createdAt) {
+export async function createChatSession (orderId, chatRef) {
   return new Promise((resolve, reject) => {
-    const chatRef = generateChatRef(orderId, createdAt)
+    // const chatRef = generateChatRef(orderId, createdAt, members)
     const payload = {
       ref: chatRef,
       title: `Ramp Order #${orderId} chat`
@@ -187,7 +206,7 @@ export async function updateLastRead (chatRef, messages) {
   }
   return chatBackend.post(`chat/sessions/${chatRef}/chat_member/`, data, { forceSign: true })
     .then(response => {
-      // console.log('Updated last read timestamp')
+      console.log('Updated last read timestamp:', data)
       return response
     })
 }
@@ -286,9 +305,14 @@ export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
   return keypair
 }
 
-export function generateChatRef (id, createdAt) {
-  const hashVal = id + createdAt
+export function generateChatRef (id, createdAt, members) {
+  if (!members) throw Error('Missing required value: members')
+  const hashVal = id + createdAt + members
   return sha256(hashVal)
+}
+
+export function generateChatIdentityRef (walletHash) {
+  return sha256(walletHash)
 }
 
 export {

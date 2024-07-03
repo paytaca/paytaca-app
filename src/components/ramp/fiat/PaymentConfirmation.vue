@@ -115,9 +115,9 @@
             </div>
           </div>
           <!-- Info messages -->
-          <div v-if="sendingBch" class="sm-font-size">
+          <!-- <div v-if="sendingBch" class="sm-font-size">
             <q-spinner class="q-mr-sm"/>{{ $t('SendingBchPleaseWait') }}
-          </div>
+          </div> -->
           <!-- <div v-else class="row justify-center sm-font-size" style="overflow-wrap: break-word;">
             <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
             <span class="col text-left q-ml-sm">{{ $t('PaymentConfirmationReleaseFundsMsg') }}</span>
@@ -130,7 +130,7 @@
           v-if="!sendingBch"
           flat
           no-caps
-          :disable="!data?.wsConnected || countDown !== ''"
+          :disable="countDown !== ''"
           :label="appealBtnLabel"
           color="blue-6"
           @click="onOpenAppealForm"
@@ -142,7 +142,7 @@
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <RampDragSlide
-  v-if="showDragSlide && data?.wsConnected"
+  v-if="showDragSlide"
   :key="dragSlideKey"
   :text="dragSlideTitle"
   :locked="lockDragSlide"
@@ -203,14 +203,18 @@ export default {
     AppealForm,
     ProgressLoader
   },
-  emits: ['back', 'verify-release'],
+  emits: ['back', 'verify-release', 'sending'],
   props: {
     data: Object
   },
+  watch: {
+    sendingBch (val) {
+      this.$emit('sending', val)
+    }
+  },
   computed: {
     appealBtnLabel () {
-      // TODO:
-      if (this.countDown) return `Appealable in ${this.countDown}`
+      if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countDown }, `Appealable in ${this.countDown}`)
       return this.$t('SubmitAnAppeal')
     },
     dragSlideTitle () {
@@ -306,6 +310,7 @@ export default {
     async releaseBch () {
       const vm = this
       vm.sendErrors = []
+      vm.sendingBch = true
       const feContractAddr = vm.data?.escrow.getAddress()
       const beContractAddr = vm.data?.contract.address
       if (feContractAddr !== beContractAddr) {
@@ -313,7 +318,7 @@ export default {
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
       const keypair = await this.wallet.keypair(sellerMember.address_path)
-      vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
+      await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {
             const txid = result.txInfo.txid
@@ -328,7 +333,6 @@ export default {
             vm.$emit('verify-release', txid)
           } else {
             vm.sendErrors = [result.reason]
-            vm.sendingBch = false
             vm.showDragSlide = true
           }
         })
@@ -393,7 +397,6 @@ export default {
     onSecurityOk () {
       this.showDragSlide = false
       this.dragSlideKey++
-      this.sendingBch = true
       this.completePayment()
     },
     onSecurityCancel () {

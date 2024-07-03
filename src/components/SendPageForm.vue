@@ -31,6 +31,14 @@
         icon="mdi-qrcode"
         @click="onQRScannerClick(true), onInputFocus(index)"
       />
+      <q-btn
+        round
+        size="lg"
+        class="q-ml-sm btn-scan button text-white bg-grad"
+        style="margin-bottom: 20px;"
+        icon="upload"
+        @click="onQRUploaderClick(), onInputFocus(index)"
+      />
     </div>
   </div>
   <div
@@ -43,7 +51,7 @@
 
   <template v-if="$store.state.global.online !== false">
     <div class="row" v-if="!isNFT">
-      <div class="col q-mt-md">
+      <div class="col q-mt-xs">
         <q-input
           type="text"
           inputmode="none"
@@ -83,7 +91,7 @@
     </div>
 
     <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
-      <div class="col q-mt-md">
+      <div class="col q-mt-xs">
         <q-input
           type="text"
           inputmode="none"
@@ -186,7 +194,8 @@ export default {
     'on-balance-exceeded',
     'on-recipient-input',
     'on-empty-recipient',
-    'on-selected-denomination-change'
+    'on-selected-denomination-change',
+    'on-qr-uploader-click'
   ],
 
   data () {
@@ -273,6 +282,9 @@ export default {
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
       this.$emit('on-empty-recipient', this.emptyRecipient)
+    },
+    onQRUploaderClick () {
+      this.$emit('on-qr-uploader-click')
     }
   },
 

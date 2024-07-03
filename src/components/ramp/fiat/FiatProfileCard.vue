@@ -13,75 +13,102 @@
     </div>
     <div v-else>
       <div v-if="state === 'initial'">
-        <div v-if="user" class="q-mb-lg">
-          <div class="text-center q-pt-none">
-            <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-            <div class="text-weight-bold lg-font-size q-pt-sm">
-              <span id="target-name">{{ user.name }}</span>
-              <q-icon
-                @click="editNickname = true"
-                v-if="user?.self"
-                size="sm"
-                name='o_edit'
-                class="button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
+        <q-pull-to-refresh @refresh="refreshData">
+          <div v-if="user" class="q-mb-lg">
+            <div class="text-center q-pt-none">
+              <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+              <div class="text-weight-bold lg-font-size q-pt-sm">
+                <span id="target-name">{{ user.name }}</span>
+                <q-icon
+                  @click="editNickname = true"
+                  v-if="user?.self"
+                  size="sm"
+                  name='o_edit'
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                />
+              </div>
+            </div>
+            <!-- Edit Payment Methods -->
+            <div class="row q-mx-lg q-px-md q-pt-md" v-if="user?.self">
+              <q-btn
+                rounded
+                no-caps
+                :label="$t('EditPaymentMethods')"
+                color="blue-8"
+                class="q-space q-mx-md button"
+                @click="() => {
+                  state= 'edit-pm'
+                  if (!userInfo) {
+                    pageName = state
+                  } else {
+                    $emit('updatePageName', state)
+                  }
+                }"
+                icon="o_payments"
+                >
+              </q-btn>
+            </div>
+
+            <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
+              <q-btn
+                rounded
+                no-caps
+                label="See User Ads"
+                color="blue-8"
+                class="q-space"
+                icon="sym_o_sell"
+                @click="fetchUserAds()"
+                >
+              </q-btn>
+            </div> -->
+
+            <!-- User Stats -->
+            <div class="row justify-center q-px-sm q-pt-sm">
+              <q-rating
+                readonly
+                :model-value="user.rating ? user.rating : 0"
+                :v-model="user.rating"
+                size="1.5em"
+                color="yellow-9"
+                icon="star"
+                icon-half="star_half"
               />
+                <span class="q-mx-sm sm-font-size">
+              {{
+                $t(
+                  'RatingValue',
+                  { rating: user.rating ? user.rating?.toFixed(1) : 0 },
+                  `(${ user.rating ? user.rating?.toFixed(1) : 0 } rating)`
+                )
+              }}
+            </span>
+            </div>
+            <div class="text-center sm-font-size q-pt-sm">
+                <span>
+                {{
+                  $t(
+                    'TradeCount',
+                    { count: user.trade_count },
+                    `${ user.trade_count || 0 } trades`
+                  )
+                }}
+              </span>
+              &nbsp;&nbsp;
+                <span>|</span>
+              &nbsp;&nbsp;
+                <span>
+                {{
+                  $t(
+                    'CompletionPercentage',
+                    { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : 0 },
+                    `${ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }% completion`
+                  )
+                }}
+              </span>
             </div>
           </div>
-          <!-- Edit Payment Methods -->
-          <div class="row q-mx-lg q-px-md q-pt-md" v-if="user?.self">
-            <q-btn
-              rounded
-              no-caps
-              :label="$t('EditPaymentMethods')"
-              color="blue-8"
-              class="q-space q-mx-md button"
-              @click="() => {
-                state= 'edit-pm'
-                if (!userInfo) {
-                  pageName = state
-                } else {
-                  $emit('updatePageName', state)
-                }
-              }"
-              icon="o_payments"
-              >
-            </q-btn>
-          </div>
-
-          <!-- <div class="row q-mx-lg q-px-md q-pt-md" v-if="type !== 'self'">
-            <q-btn
-              rounded
-              no-caps
-              label="See User Ads"
-              color="blue-8"
-              class="q-space"
-              icon="sym_o_sell"
-              @click="fetchUserAds()"
-              >
-            </q-btn>
-          </div> -->
-
-          <!-- User Stats -->
-          <div class="row justify-center q-px-sm q-pt-sm">
-            <q-rating
-              readonly
-              :model-value="user.rating ? user.rating : 0"
-              :v-model="user.rating"
-              size="1.5em"
-              color="yellow-9"
-              icon="star"
-              icon-half="star_half"
-            />
-            <!--TODO:-->
-            <span class="q-mx-sm sm-font-size">({{ user.rating ? user.rating?.toFixed(1) : 0}} rating)</span>
-          </div>
-          <div class="text-center sm-font-size q-pt-sm">
-              <span>{{ user.trade_count || 0 }} trades</span>&nbsp;&nbsp;
-              <span>|</span>&nbsp;&nbsp;
-              <span> {{ user.completion_rate ? user.completion_rate?.toFixed(1) : 0 }}% completion</span>
-          </div>
-        </div>
+        </q-pull-to-refresh>
         <div
           class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
           :class="getDarkModeClass(darkMode)"
@@ -150,9 +177,24 @@
                   <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
                     <div class="sm-font-size q-mr-sm">
-                      <!--TODO:-->
-                      <span class="q-mr-sm">{{ ad.trade_count }} trades </span>
-                      <span class="q-ml-sm">{{ formatCompletionRate(ad.completion_rate) }}% completion</span><br>
+                      <span class="q-mr-sm">
+                        {{
+                          $t(
+                            'TradeCount',
+                            { count: ad.trade_count },
+                            `${ ad.trade_count || 0 } trades`
+                          )
+                        }}
+                      </span>
+                      <span class="q-ml-sm">
+                        {{
+                          $t(
+                            'CompletionPercentage',
+                            { percentage: formatCompletionRate(ad.completion_rate) },
+                            `${ formatCompletionRate(ad.completion_rate) }% completion`
+                          )
+                        }}
+                      </span><br>
                     </div>
                     <span
                       class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
@@ -171,9 +213,15 @@
                       </div>
                     </div>
                     <div class="row sm-font-size q-gutter-md">
-                      <!--TODO:-->
-                      <span>Appealable in </span>
-                      <span>{{ appealCooldown(ad.appeal_cooldown).label }}</span>
+                      <span>
+                        {{
+                          $t(
+                            'AppealableInCooldown',
+                            { cooldown: appealCooldown(ad.appeal_cooldown).label },
+                            `Appealable in ${ appealCooldown(ad.appeal_cooldown).label }`
+                          )
+                        }}
+                      </span>
                     </div>
                   </div>
                 </q-item-section>
@@ -294,13 +342,17 @@ export default {
     if (!this.userInfo) {
       this.pageName = 'main'
     }
-
     this.processUserData()
     this.fetchReviews()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    refreshData (done) {
+      this.processUserData()
+      this.fetchReviews()
+      done()
+    },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
 

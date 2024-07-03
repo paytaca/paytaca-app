@@ -28,10 +28,9 @@
             <q-space/>
             <div class="text-right">
               <q-menu v-if="debugMode" class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
-                <!--TODO:-->
-                <div>StreamID: {{ manager?.localStream?.id }}</div>
-                <div>AudioTrackIDs: {{  manager?.localStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
-                <div>VideoTrackIDs: {{  manager?.localStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                <div>{{ $t('StreamID') }}: {{ manager?.localStream?.id }}</div>
+                <div>{{ $t('AudioTrackIDs') }}: {{  manager?.localStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                <div>{{ $t('VideoTrackIDs') }}: {{  manager?.localStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
               </q-menu>
               <AVMedia
                 v-if="manager?.localStream?.getAudioTracks?.().length"
@@ -148,11 +147,10 @@
                 />
                 <div v-if="member.name">{{ member.name }}</div>
                 <div v-else >#{{ member.id }}</div>
-                <!--TODO:-->
                 <q-menu v-if="debugMode" class="q-pa-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
-                  <div>StreamID: {{ member?.mediaStream?.id }}</div>
-                  <div>AudioTrackIDs: {{  member?.mediaStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
-                  <div>VideoTrackIDs: {{  member?.mediaStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                  <div>{{ $t('StreamID') }}: {{ member?.mediaStream?.id }}</div>
+                  <div>{{ $t('AudioTrackIDs') }}: {{  member?.mediaStream?.getAudioTracks?.()?.map(t => t.id)?.join(', ') }}</div>
+                  <div>{{ $t('VideoTrackIDs') }}: {{  member?.mediaStream?.getVideoTracks?.()?.map(t => t.id)?.join(', ') }}</div>
                 </q-menu>
               </div>
             </div>

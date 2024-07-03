@@ -179,8 +179,14 @@
         <!-- <div class="q-mt-md q-pl-md">
           <q-icon size="sm" name="close" v-close-popup @click="$emit('back')"/>&nbsp;
         </div> -->
-        <!--TODO:-->
-        <div class="q-mt-md text-center text-weight-bold lg-font-size">Filter {{ type === 'filterSellAd' ? 'Sell' : 'Buy' }} Ads</div>
+        <div class="q-mt-md text-center text-weight-bold lg-font-size">
+          <template v-if="type === 'filterSellAd'">
+            {{ $t('FilterSellAds') }}
+          </template>
+          <template v-else>
+            {{ $t('FilterBuyAds') }}
+          </template>
+        </div>
         <q-separator :dark="darkMode" class="q-mt-sm q-mx-lg"/>
 
         <div class="q-px-lg q-mx-sm">
@@ -635,11 +641,11 @@ export default {
       }
     },
     updateStoreFilters (filters) {
-      if (!filters) return
+      if (!filters || Object.keys(filters).length === 0) return
       this.storeFilters = filters
     },
     updateOrderFilters (filters) {
-      if (!filters) return
+      if (!filters || Object.keys(filters).length === 0) return
       this.orderFilters = filters
     },
     paymentTimeLimit (timeValue) {
