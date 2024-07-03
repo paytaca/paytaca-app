@@ -1,4 +1,5 @@
 <template>
+  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
   <div v-if="isloaded && escrowContract"
     class="q-mx-md q-px-none text-bow"
     :class="getDarkModeClass(darkMode)">
@@ -147,8 +148,11 @@ export default {
   },
   created () {
     bus.on('last-read-update', this.onLastReadUpdate)
-    this.previousRoute = this.$route
-    console.log('this.previousRoute:', this.$route)
+  },
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path
+    })
   },
   async mounted () {
     await this.loadData()
@@ -162,12 +166,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    onBack () {
-      console.log('previousRoute:', this.previousRoute)
-      console.log('fullpath:', this.previousRoute.fullPath)
-      // this.$router.push({ fullpath: this.previousRoute.fullpath })
-      this.$emit('back')
-    },
     openFeedback () {
       this.$q.dialog({
         component: AppealFeedbackDialog,
@@ -186,8 +184,8 @@ export default {
       this.loadData()
     },
     async loadData () {
-      const orderId = this.$route.params.id
-      await this.fetchAppeal(orderId)
+      console.log('route__:', this.$route.params)
+      await this.fetchAppeal()
       this.generateContract()
       this.reloadChildComponents()
       this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
@@ -214,10 +212,10 @@ export default {
           })
       })
     },
-    fetchAppeal (id) {
+    fetchAppeal () {
       const vm = this
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${id}/appeal`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal`, { authorize: true })
           .then(response => {
             vm.appeal = response.data.appeal
             vm.contract = response.data.contract
@@ -291,11 +289,11 @@ export default {
           break
       }
     },
-    fetchOrder (orderId) {
+    fetchOrder () {
       const vm = this
       return new Promise((resolve, reject) => {
         vm.loading = true
-        backend.get(`/ramp-p2p/order/${orderId}`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${vm.$route.params?.order}`, { authorize: true })
           .then(response => {
             vm.amount = response.data?.order?.crypto_amount
             resolve(response.data)
@@ -313,11 +311,11 @@ export default {
           })
       })
     },
-    fetchContract (orderId) {
+    fetchContract () {
       return new Promise((resolve, reject) => {
         const vm = this
         const url = '/ramp-p2p/order/contract'
-        backend.get(url, { params: { order_id: orderId }, authorize: true })
+        backend.get(url, { params: { order_id: vm.$route.params?.order }, authorize: true })
           .then(response => {
             vm.contract = response.data
             resolve(response.data)
@@ -391,7 +389,7 @@ export default {
         console.log('WebSocket data:', data)
         if (data) {
           if (data.success) {
-            this.fetchAppeal(this.$route.params.id).then(this.reloadChildComponents())
+            this.fetchAppeal().then(this.reloadChildComponents())
           } else if (data.error) {
             this.errorMessages.push(data.error)
             this.appealTransferKey++

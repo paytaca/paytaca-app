@@ -1,38 +1,24 @@
 <template>
-  <HeaderNav title="Ramp Appeals" :backnavpath="previousRoute" />
-  <div v-if="!$route.params?.id">
-    <div v-if="state === 'list'">
-      <Appeals :appeal-id="$route.params?.id" :tab="$route.query?.tab" :key="appealListKey"/>
-    </div>
-    <div v-if="state === 'profile'">
-      <AppealProfile :key="appealProfileKey"/>
-    </div>
-  </div>
-  <div v-else>
-    <AppealDetail :key="appealDetailKey"/>
-  </div>
-  <AppealFooterMenu v-if="showFooterMenu" :data="footerData" :tab="state" v-on:clicked="switchMenu"/>
+  <router-view :key="$route.path"></router-view>
+  <AppealFooterMenu v-if="showFooterMenu" :data="footerData" v-on:clicked="switchMenu"/>
   <RampLogin v-if="showLogin" @logged-in="onLoggedIn"/>
 </template>
 <script>
-import Appeals from './appeals.vue'
-import AppealDetail from './appeal.vue'
-import AppealProfile from './profile.vue'
 import AppealFooterMenu from 'src/components/ramp/appeal/AppealFooterMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
-import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { loadRampWallet } from 'src/wallet/ramp/wallet'
+// import {isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
-    Appeals,
-    AppealDetail,
-    AppealProfile,
+    // Appeals,
+    // AppealDetail,
+    // AppealProfile,
     AppealFooterMenu,
-    RampLogin,
-    HeaderNav
+    RampLogin
+    // HeaderNav
   },
   data () {
     return {
@@ -46,10 +32,13 @@ export default {
       appealListKey: 0,
       appealDetailKey: 0,
       appealProfileKey: 0,
-      previousRoute: null
+      previousRoute: null,
+      isLoading: true
     }
   },
   beforeRouteEnter (to, from, next) {
+    console.log('to.name:', to.name)
+    console.log('from.name:', from.name)
     next(vm => {
       vm.previousRoute = from.path
       if (from.name === 'exchange') {
@@ -58,17 +47,19 @@ export default {
     })
   },
   beforeRouteLeave (to, from, next) {
+    console.log('to.name__:', to.name)
+    console.log('from.name__:', from.name)
     switch (from.name) {
       case 'appeal-detail':
-        if (to.name === 'exchange-appeals') {
+        if (to.name === 'exchange-arbiter') {
           next()
         } else if (to.name === 'exchange') {
-          next('exchange-appeals')
+          next('exchange-arbiter')
         } else {
           next()
         }
         break
-      case 'exchange-appeals':
+      case 'exchange-arbiter':
         if (to.name === 'apps-dashboard') {
           next()
         } else if (to.name === 'exchange') {
@@ -87,21 +78,15 @@ export default {
     bus.on('show-footer-menu', this.onShowFooterMenu)
   },
   mounted () {
-    this.loadRouting()
+    this.isLoading = false
+    // this.loadRouting()
     this.setupWebsocket(40, 1000)
   },
   methods: {
+    // isNotDefaultTheme,
     loadRouting () {
-      // hide footer menu if viewing appeal detail from $route
-      if (this.$route.name === 'appeal-detail') {
-        this.showFooterMenu = false
-      }
-      // set state based on $route query
-      if (this.$route.query.tab === 'profile') {
-        this.state = 'profile'
-      } else {
-        this.state = 'list'
-      }
+      console.log('route???:', this.$route)
+      this.$router.push({ name: 'arbiter-appeals' })
     },
     onShowFooterMenu (show) {
       this.showFooterMenu = show
@@ -115,7 +100,9 @@ export default {
       this.appealProfileKey++
     },
     async switchMenu (tab) {
-      await this.$router.replace({ ...this.$route.query, query: { tab: tab === 'list' ? 'pending' : 'profile' } })
+      console.log('tab:', tab)
+      const routeName = tab === 'profile' ? 'arbiter-profile' : 'arbiter-appeals'
+      await this.$router.push({ name: routeName })
       this.state = tab
     },
     onSelectAppeal () {

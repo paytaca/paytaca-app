@@ -5,12 +5,12 @@
     :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('list')">
-          <q-icon class="mb-2" :class="isActive('list') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
+          <q-icon class="mb-2" :class="isActive('arbiter-appeals') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
           <q-badge v-if="data?.unreadAppealsCount > 0" rounded color="red" floating>{{ data?.unreadAppealsCount }}</q-badge>
         <span>Appeals</span>
       </q-btn>
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('profile')">
-          <q-icon class="mb-2" :class="isActive('profile') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
+          <q-icon class="mb-2" :class="isActive('arbiter-profile') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
         <span>Profile</span>
       </q-btn>
       <q-btn flat no-caps dense v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
@@ -47,7 +47,7 @@ export default {
       this.$emit('clicked', menu)
     },
     isActive (menu) {
-      return this.tab === menu
+      return menu === this.$route.name
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`

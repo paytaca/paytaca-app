@@ -1,122 +1,124 @@
 <template>
-    <div
-      class="q-mx-md q-mb-lg q-pb-lg text-bow"
-      :class="getDarkModeClass(darkMode)"
-      :style="`height: ${minHeight}px;`">
-      <div v-if="!isloaded">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-        </div>
-      </div>
-      <div v-else>
-        <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
-          <div class="q-mb-lg">
-            <div class="text-center q-pt-none">
-              <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-              <q-btn round flat icon="settings" style="position: fixed; right: 15px; top: 90px;" @click="openSettings=true"></q-btn>
-              <div class="text-weight-bold lg-font-size q-pt-sm">
-                <span id="target-name">{{ arbiter?.name }}</span>
-                <q-icon
-                  class="q-ml-xs"
-                  size="1em"
-                  :color="inactiveFor?.value <= 0 ? 'green' : 'grey'"
-                  name="circle"/>
-                <q-icon
-                  @click="editNickname = true"
-                  size="xs"
-                  name='edit_square'
-                  class="q-mx-xs button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                />
-              </div>
-            </div>
-            <div v-if="inactiveFor?.value > 0" class="row justify-center subtext">
-              <span>Inactive {{ inactiveTime }}</span>
-            </div>
-            <!-- Rating -->
-            <div class="row justify-center q-px-sm">
-              <q-rating
-                readonly
-                :model-value="arbiter?.rating ? Number(arbiter?.rating) : 0"
-                size="1.2em"
-                color="yellow-9"
-                icon="star"
-                icon-half="star_half"
-              />
-              <span class="q-mx-sm sm-font-size">({{ Number(arbiter?.rating).toFixed(1) }} rating)</span>
-            </div>
-            <!-- Currencies -->
-            <div v-if="arbiter?.fiat_currencies.length > 0" class="row justify-center q-mt-xs q-mb-sm q-gutter-xs">
-              <q-badge outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
-              <q-badge outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
-            </div>
-            <div v-else class="row justify-center subtext">
-              <span>No currency assigned</span>
-            </div>
-          </div>
-        </q-pull-to-refresh>
-        <div
-          class="row justify-center q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
-          :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
-          REVIEWS
-        </div>
-
-        <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;">
-          <div v-if="!loadingReviews">
-            <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
-              No Reviews Yet
-            </div>
-            <div v-else class="q-mx-lg q-px-md">
-              <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
-                <div class="text-weight-bold sm-font-size">{{ userNameView(review?.peer?.name) }}</div>
-                <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
-                <div class="sm-font-text">
-                  <q-rating
-                    readonly
-                    v-model="review.rating"
-                    size="1.5em"
-                    color="yellow-9"
-                    icon="star"
-                  />
-                  <span class="q-mx-sm sm-font-size">({{ review?.rating ? review?.rating?.toFixed(1) : 0}})</span>
-                </div>
-                <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
-                  {{ review.comment }}
-                </div>
-                <q-separator :dark="darkMode" class="q-mt-md"/>
-              </div>
-              <div class="row justify-center" v-if="loadingReviews">
-                <q-spinner-dots size="35px"/>
-              </div>
-              <div class="row" v-else-if="hasMoreReviewsData">
-                <q-btn
-                  dense
-                  flat
-                  class="col text-center text-blue sm-font-size"
-                  @click=loadMoreData>
-                  view more
-                </q-btn>
-              </div>
-            </div>
-          </div>
-        </q-scroll-area>
+  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
+  <div
+    class="q-mx-md q-mb-lg q-pb-lg text-bow"
+    :class="getDarkModeClass(darkMode)"
+    :style="`height: ${minHeight}px;`">
+    <div v-if="!isloaded">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
-    <ArbiterCurrenciesDialog v-if="viewCurrencies" :currencies="arbiter?.fiat_currencies" @back="viewCurrencies=false"/>
-    <AppealSettings v-if="openSettings" @set-inactive="onSetInactive" @back="openSettings=false"/>
-    <MiscDialogs
-      v-if="editNickname"
-      :type="'editNickname'"
-      v-on:back="editNickname = false"
-      v-on:submit="updateUserName"
-    />
-  </template>
+    <div v-else>
+      <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
+        <div class="q-mb-lg">
+          <div class="text-center q-pt-none">
+            <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
+            <q-btn round flat icon="settings" style="position: fixed; right: 15px; top: 90px;" @click="openSettings=true"></q-btn>
+            <div class="text-weight-bold lg-font-size q-pt-sm">
+              <span id="target-name">{{ arbiter?.name }}</span>
+              <q-icon
+                class="q-ml-xs"
+                size="1em"
+                :color="inactiveFor?.value <= 0 ? 'green' : 'grey'"
+                name="circle"/>
+              <q-icon
+                @click="editNickname = true"
+                size="xs"
+                name='edit_square'
+                class="q-mx-xs button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+              />
+            </div>
+          </div>
+          <div v-if="inactiveFor?.value > 0" class="row justify-center subtext">
+            <span>Inactive {{ inactiveTime }}</span>
+          </div>
+          <!-- Rating -->
+          <div class="row justify-center q-px-sm">
+            <q-rating
+              readonly
+              :model-value="arbiter?.rating ? Number(arbiter?.rating) : 0"
+              size="1.2em"
+              color="yellow-9"
+              icon="star"
+              icon-half="star_half"
+            />
+            <span class="q-mx-sm sm-font-size">({{ Number(arbiter?.rating).toFixed(1) }} rating)</span>
+          </div>
+          <!-- Currencies -->
+          <div v-if="arbiter?.fiat_currencies.length > 0" class="row justify-center q-mt-xs q-mb-sm q-gutter-xs">
+            <q-badge outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
+            <q-badge outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
+          </div>
+          <div v-else class="row justify-center subtext">
+            <span>No currency assigned</span>
+          </div>
+        </div>
+      </q-pull-to-refresh>
+      <div
+        class="row justify-center q-mb-sm br-15 text-center pt-card btn-transaction md-font-size"
+        :class="getDarkModeClass(darkMode)"
+        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
+        REVIEWS
+      </div>
+
+      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;">
+        <div v-if="!loadingReviews">
+          <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
+            No Reviews Yet
+          </div>
+          <div v-else class="q-mx-lg q-px-md">
+            <div class="q-pt-md" v-for="(review, index) in reviewsList" :key="index">
+              <div class="text-weight-bold sm-font-size">{{ userNameView(review?.peer?.name) }}</div>
+              <span class="row subtext">{{ formattedDate(review.created_at) }}</span>
+              <div class="sm-font-text">
+                <q-rating
+                  readonly
+                  v-model="review.rating"
+                  size="1.5em"
+                  color="yellow-9"
+                  icon="star"
+                />
+                <span class="q-mx-sm sm-font-size">({{ review?.rating ? review?.rating?.toFixed(1) : 0}})</span>
+              </div>
+              <div v-if="review.comment.length > 0" class="q-pt-sm q-px-xs sm-font-size">
+                {{ review.comment }}
+              </div>
+              <q-separator :dark="darkMode" class="q-mt-md"/>
+            </div>
+            <div class="row justify-center" v-if="loadingReviews">
+              <q-spinner-dots size="35px"/>
+            </div>
+            <div class="row" v-else-if="hasMoreReviewsData">
+              <q-btn
+                dense
+                flat
+                class="col text-center text-blue sm-font-size"
+                @click=loadMoreData>
+                view more
+              </q-btn>
+            </div>
+          </div>
+        </div>
+      </q-scroll-area>
+    </div>
+  </div>
+  <ArbiterCurrenciesDialog v-if="viewCurrencies" :currencies="arbiter?.fiat_currencies" @back="viewCurrencies=false"/>
+  <AppealSettings v-if="openSettings" @set-inactive="onSetInactive" @back="openSettings=false"/>
+  <MiscDialogs
+    v-if="editNickname"
+    :type="'editNickname'"
+    v-on:back="editNickname = false"
+    v-on:submit="updateUserName"
+  />
+</template>
 <script>
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AppealSettings from 'src/components/ramp/appeal/AppealSettings.vue'
 import ArbiterCurrenciesDialog from 'src/components/ramp/appeal/dialogs/ArbiterCurrenciesDialog.vue'
+import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/wallet/ramp/backend'
 import { formatDate } from 'src/wallet/ramp'
@@ -124,6 +126,13 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { updateChatIdentity } from 'src/wallet/ramp/chat'
 
 export default {
+  components: {
+    ProgressLoader,
+    MiscDialogs,
+    AppealSettings,
+    ArbiterCurrenciesDialog,
+    HeaderNav
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -159,12 +168,6 @@ export default {
       }
       return timeString
     }
-  },
-  components: {
-    ProgressLoader,
-    MiscDialogs,
-    AppealSettings,
-    ArbiterCurrenciesDialog
   },
   mounted () {
     this.fetchArbiter()

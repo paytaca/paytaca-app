@@ -222,14 +222,26 @@ const routes = [
             ]
           },
           {
-            path: 'appeal/',
-            name: 'exchange-appeals',
-            component: () => import('src/pages/apps/exchange/appeals/index.vue'),
+            path: 'arbiter/',
+            name: 'exchange-arbiter',
+            component: () => import('src/pages/apps/exchange/arbiter/index.vue'),
             children: [
               {
-                path: 'detail/:id',
-                name: 'appeal-detail',
-                component: () => import('src/pages/apps/exchange/appeals/index.vue')
+                path: 'appeals/',
+                name: 'arbiter-appeals',
+                component: () => import('src/pages/apps/exchange/arbiter/appeals.vue'),
+                children: [
+                  {
+                    path: ':order/',
+                    name: 'appeal-detail',
+                    component: () => import('src/pages/apps/exchange/arbiter/appeal.vue')
+                  }
+                ]
+              },
+              {
+                path: 'profile/',
+                name: 'arbiter-profile',
+                component: () => import('src/pages/apps/exchange/arbiter/profile.vue')
               }
             ]
           }

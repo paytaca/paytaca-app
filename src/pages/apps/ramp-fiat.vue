@@ -14,7 +14,7 @@
   </div>
 </template>
 <script>
-import AppealIndex from 'src/pages/apps/exchange/appeals/index.vue'
+import AppealIndex from 'src/pages/apps/exchange/arbiter/index.vue'
 // import AppealIndex from 'src/components/ramp/appeal/AppealIndex.vue'
 import FiatIndex from 'src/components/ramp/fiat/FiatIndex.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
