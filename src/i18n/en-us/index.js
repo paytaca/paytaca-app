@@ -332,6 +332,7 @@ export default {
   DeleteWalletDescription: "Are you sure you want to delete this wallet?",
   DeleteWalletNow: "Delete Wallet Now",
   DeletingReview: "Deleting review",
+  DeletingWallet: "Deleting wallet",
   Delivery: "Delivery",
   DeliveryFee: "Delivery fee",
   DeliveryFeeRecipient: "Delivery fee recipient",

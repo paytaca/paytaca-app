@@ -325,6 +325,7 @@ export default {
   #apps-page-container {
     background-color: #ECF3F3;
     min-height: 100vh;
+    padding-bottom: 30px;
   }
 
   .section-title {

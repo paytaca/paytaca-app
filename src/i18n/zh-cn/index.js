@@ -332,6 +332,7 @@ export default {
   DeleteWalletDescription: "您确定要删除这个钱包吗？",
   DeleteWalletNow: "现在删除钱包",
   DeletingReview: "删除评论",
+  DeletingWallet: "删除钱包",
   Delivery: "送货",
   DeliveryFee: "快递费",
   DeliveryFeeRecipient: "送货费收件人",

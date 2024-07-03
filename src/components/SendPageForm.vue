@@ -51,7 +51,7 @@
 
   <template v-if="$store.state.global.online !== false">
     <div class="row" v-if="!isNFT">
-      <div class="col q-mt-md">
+      <div class="col q-mt-xs">
         <q-input
           type="text"
           inputmode="none"
@@ -91,7 +91,7 @@
     </div>
 
     <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
-      <div class="col q-mt-md">
+      <div class="col q-mt-xs">
         <q-input
           type="text"
           inputmode="none"

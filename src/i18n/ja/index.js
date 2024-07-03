@@ -332,6 +332,7 @@ export default {
   DeleteWalletDescription: "この財布を削除したいですか？",
   DeleteWalletNow: "今すぐウォレットを削除します",
   DeletingReview: "レビューの削除",
+  DeletingWallet: "ウォレットの削除",
   Delivery: "配達",
   DeliveryFee: "配送料",
   DeliveryFeeRecipient: "配送料の受信者",

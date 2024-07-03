@@ -245,6 +245,8 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 
 export default {
   name: 'app-wallet-info',
@@ -337,6 +339,14 @@ export default {
           const wallet = new Wallet(mnemonic, 'BCH')
           vm.wallet = markRaw(wallet)
         })
+    },
+    deletingWalletDialog () {
+      return this.$q.dialog({
+        component: LoadingWalletDialog,
+        componentProps: {
+          loadingText: `${this.$t('DeletingWallet')}`
+        }
+      })
     },
     updateUtxoScanTasksStatus(nextUpdate=5*1000, age=0) {
       const bchWalletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()  
@@ -565,7 +575,8 @@ export default {
         seamless: true,
         ok: this.$t('Yes')
       }).onOk(() => {
-        vm.deleteWallet()
+        vm.deletingWalletDialog()
+        vm.deleteWallet(vm)
       }).onCancel(() => {
         vm.disableDeleteButton = false
       })
@@ -584,10 +595,32 @@ export default {
         })
       }
     },
-    deleteWallet () {
-      const vm = this
-      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
-      this.$store.dispatch('global/deleteWallet', currentWalletIndex).then(function () {
+    async deleteWallet (vm) {
+      if (!vm.wallet) await vm.loadWallet()
+      if (vm.$q.platform.is.mobile) {
+        const walletHashes = [
+          vm.wallet.BCH.walletHash,
+          vm.wallet.BCH_CHIP.walletHash,
+          vm.wallet.SLP.walletHash,
+          vm.wallet.SLP_TEST.walletHash,
+          vm.wallet.sBCH.walletHash,
+        ]
+        const marketplaceCustomerRef = await vm.$store.dispatch('marketplace/getCartRef')
+        console.log({ marketplaceCustomerRef })
+
+        const promises = [
+          vm.$pushNotifications.unsubscribe(walletHashes)?.catch(console.error)
+        ]
+        if (marketplaceCustomerRef) {
+          promises.push(
+            marketplacePushNotificationsManager.unsubscribe({ customerRef: marketplaceCustomerRef }),
+          )
+        }
+        await Promise.all(promises)
+      }
+      const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
+      vm.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
+      }).then(function () {
         const vault = vm.$store.state.global.vault
         const undeletedWallets = []
         const vaultCheck = vault.filter(function (wallet, index) {

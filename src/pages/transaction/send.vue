@@ -53,7 +53,7 @@
         <div
           v-else
           class="send-form-container"
-          :class="sent ? 'q-mt-md sent' : 'q-mt-xl'"
+          :class="sent ? 'q-mt-md sent' : 'q-mt-xs'"
         >
           <div class="q-pa-md enter-address-container">
             <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
@@ -207,10 +207,10 @@
 
               <div
                 class="row"
-                style="margin-top: -10px;"
+                style="margin-top: -15px;"
                 v-if="!sendDataMultiple[0].fixedAmount && !isNFT && asset.id === 'bch'"
               >
-                <div class="col q-mt-md">
+                <div class="col q-mt-xs">
                   <a
                     href="#"
                     class="button button-text-primary set-amount-button"
@@ -454,7 +454,7 @@ export default {
     },
     backPath: {
       type: String,
-      default: '/send/select-asset'
+      default: '/'
     }
   },
   data () {
@@ -1531,6 +1531,17 @@ export default {
 
         this.disableSending = false
         return true
+      } else {
+        const vm = this
+        const recipientAddress = value.split('?')[0]
+        if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
+          setTimeout(function () {
+            vm.setAmountInFiat = true
+            vm.customKeyboardState = 'show'
+          })
+        } else {
+          vm.customKeyboardState = 'show'
+        }
       }
 
       if (value && this.isNFT) {

@@ -261,7 +261,7 @@ export default {
           setTimeout(() => {
             loadingDialog.hide()
           }, 700)
-          if (value.includes('bitcoincash:q') || value.includes('bitcoincash:p')) {
+          if (value.includes('bitcoincash:q') || value.includes('bitcoincash:p') || value.includes('bitcoincash:?')) {
             const query = {
               assetId: vm.$store.getters['assets/getAssets'][0].id,
               tokenType: 1,
