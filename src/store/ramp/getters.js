@@ -1,4 +1,13 @@
-import { getCookie } from 'src/wallet/ramp'
+function getCookie (name) {
+  const cookieArr = document.cookie.split('; ')
+  for (let i = 0; i < cookieArr.length; i++) {
+    const cookiePair = cookieArr[i].split('=')
+    if (name === cookiePair[0]) {
+      return decodeURIComponent(cookiePair[1])
+    }
+  }
+  return null
+}
 
 export function ongoingOrderFilters (state) {
   return function (currency) {
