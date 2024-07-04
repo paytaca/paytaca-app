@@ -12,6 +12,7 @@ export const backend = (new Watchtower()).BCH._api
  * @param {Object} data 
  * @param {String} data.wallet_hash
  * @param {Number} data.posid
+ * @param {Number} [data.merchant_id]
  * @param {Number} [data.branch_id]
  * @param {Object} [data.linked_device]
  * @param {String} [data.linked_device.link_code]
@@ -31,6 +32,7 @@ export function parsePosDeviceData(data) {
     walletHash: data?.wallet_hash,
     posid: data?.posid,
     name: data?.name,
+    merchantId: data?.merchant_id,
     branchId: data?.branch_id,
     linkedDevice: {
       linkCode: data?.linked_device?.link_code,

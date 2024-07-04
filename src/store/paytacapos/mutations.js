@@ -1,5 +1,4 @@
 /**
- * 
  * @param {Object} state 
  * @param {Object} data
  * @param {Number} data.id
@@ -16,8 +15,8 @@
  * @param {String} data.location.latitude
  * 
  */
-export function updateMerchantInfo(state, data) {
-  state.merchantInfo = {
+function parseMerchantData(data) {
+  return {
     id: data?.id,
     walletHash: data?.wallet_hash,
     name: data?.name,
@@ -32,6 +31,51 @@ export function updateMerchantInfo(state, data) {
       latitude: data?.location?.latitude,
     },
   }
+}
+
+/**
+ * @param {Object} state 
+ * @param {Object} data 
+ */
+export function updateMerchantInfo(state, data) {
+  state.merchantInfo = parseMerchantData(data)
+  storeMerchantsListInfo(state, [data])
+}
+
+export function setActiveMerchant(state, merchantId) {
+  if (!Array.isArray(state.merchants)) return
+
+  const merchantData = state.merchants.find(_merchantData => _merchantData?.id == merchantId)
+  state.merchantInfo = merchantData
+}
+
+/**
+ * @param {Object} state 
+ * @param {Object[]} data
+ */
+export function storeMerchantsListInfo(state, data) {
+  data?.forEach(rawMerchantData => {
+    const merchantData = parseMerchantData(rawMerchantData)
+    console.log({ merchantData })
+    if (!merchantData.id || !merchantData.walletHash) return
+
+    const index = state?.merchants?.findIndex(_merchantData => _merchantData?.id == merchantData.id)
+    if (index >= 0) state.merchants[0] = merchantData
+    else state.merchants.push(merchantData)
+  })
+}
+
+/**
+ * @param {Object} state 
+ * @param {Number} merchantId 
+ */
+export function removeMerchantInfo(state, merchantId) {
+  if (!Array.isArray(state.merchants)) return
+  state.merchants = state.merchants.filter(merchantData => merchantData?.id !== merchantId)
+}
+
+export function clearMerchantsInfo(state) {
+  state.merchants = []
 }
 
 /**

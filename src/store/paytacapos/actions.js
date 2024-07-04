@@ -1,6 +1,8 @@
 import { backend as posBackend } from "src/wallet/pos"
 import { loadWallet } from "src/wallet"
 
+/* -------------------------Merchants----------------------------- */
+/* --------------------------------------------------------------- */
 /**
  * 
  * @param {Object} context 
@@ -25,11 +27,38 @@ export function refetchMerchantInfo(context, data) {
     })
 }
 
+/**
+ * @param {Object} context 
+ * @param {Object} data 
+ * @param {String} data.walletHash
+ */
+export function fetchMerchants(context, data) {
+  if (!data?.walletHash) return Promise.reject()
+  const params = {
+    wallet_hashes: data?.walletHash || '',
+    limit: 100,
+    order_by: 'id',
+  }
+
+  return posBackend.get(`paytacapos/merchants/`, { params })
+    .then(response => {
+      const results = response?.data?.results?.filter(
+        result => result?.wallet_hash === data?.walletHash
+      )
+      console.log({results, wh: data?.walletHash})
+
+      if (Array.isArray(!results)) return Promise.reject({ response })
+      context.commit('clearMerchantsInfo')
+      context.commit(`storeMerchantsListInfo`, results)
+      return response
+    })
+}
+
 
 /**
- * 
  * @param {Object} context 
  * @param {Object} data
+ * @param {String} data.data
  * @param {String} data.name
  * @param {String} data.walletHash
  * @param {String} data.primaryContactNumber
@@ -48,6 +77,7 @@ export async function updateMerchantInfo(context, data) {
   const payload = {
     wallet_hash: data?.walletHash,
     primary_contact_number: data?.primaryContactNumber,
+    allow_duplicates: true, // temporary field
   }
 
   const currentWalletIndex = context.rootGetters['global/getWalletIndex']
@@ -63,7 +93,11 @@ export async function updateMerchantInfo(context, data) {
     signer_pubkey,
   })
 
-  return posBackend.post(`paytacapos/merchants/`, payload)
+  const promise = data?.id
+    ? posBackend.patch(`paytacapos/merchants/${data?.id}/`, payload)
+    : posBackend.post(`paytacapos/merchants/`, payload)
+
+  return promise
     .then(response => {
       if (response?.data?.wallet_hash == data.walletHash) {
         context.commit('updateMerchantInfo', response.data)
@@ -73,6 +107,8 @@ export async function updateMerchantInfo(context, data) {
     })
 }
 
+/* -------------------------Branches------------------------------ */
+/* --------------------------------------------------------------- */
 /**
  * @param {Object} context 
  * @param {Object} data 
@@ -186,6 +222,9 @@ export function deleteBranch(context, data) {
     })
 }
 
+
+/* --------------------------Devices------------------------------ */
+/* --------------------------------------------------------------- */
 
 /**
  * @param {Object} context 

@@ -2,7 +2,12 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" no-backdrop-dismiss seamless>
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(350px, 90vw)">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">{{ $t('MerchantDetails', {}, 'Merchant details') }}</div>
+        <div class="text-h6 q-space q-mt-sm">
+          {{ $t('MerchantDetails', {}, 'Merchant details') }}
+          <span v-if="merchant?.id" class="text-grey">
+            #{{merchant?.id}}
+          </span>
+        </div>
         <q-btn
           flat
           padding="sm"
@@ -12,7 +17,7 @@
         />
       </div>
       <q-card-section class="q-gutter-y-sm">
-        <MerchantInfoForm @cancel="hide()"/>
+        <MerchantInfoForm :merchant="merchant" @cancel="hide()" @saved="hide()"/>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -31,6 +36,10 @@ defineEmits([
   // component will emit through useDialogPluginComponent()
   ...useDialogPluginComponent.emits
 ])
+
+const props = defineProps({
+  merchant: Object,
+})
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
 const $store = useStore()

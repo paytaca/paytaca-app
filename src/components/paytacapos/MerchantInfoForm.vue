@@ -138,7 +138,7 @@
       <q-btn
         no-caps
         :disable="loading"
-        :label="merchantInfo?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
+        :label="merchant?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
         class="col button"
         type="submit"
       />
@@ -154,9 +154,10 @@ import { useI18n } from 'vue-i18n'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
 
-defineEmits(['cancel'])
+const $emit = defineEmits(['cancel', 'saved'])
 const props = defineProps({
   walletHash: String,
+  merchant: Object,
   readOnly: Boolean,
 })
 
@@ -168,11 +169,12 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const loading = ref(false)
 
 const walletHash = computed(() => {
-  if (merchantInfo.value?.walletHash) return merchantInfo.value?.walletHash
+  if (props.merchant?.walletHash) return props.merchant?.walletHash
   return $store.getters['global/getWallet']('bch')?.walletHash
 })
 const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
 const merchantInfoForm = ref({
+  id: 0,
   name: '',
   showContactNumberCodeSelector: false,
   primaryContactNumber: '',
@@ -220,29 +222,20 @@ const validCoordinates = computed(() =>
 )
 onMounted(() => resetForm())
 function resetForm(opts={ clear: false }) {
-  if (opts?.clear) {
-    merchantInfoForm.value.name = ''
-    merchantInfoForm.value.primaryContactNumber = ''
-    merchantInfoForm.value.location.landmark = ''
-    merchantInfoForm.value.location.location = ''
-    merchantInfoForm.value.location.street = ''
-    merchantInfoForm.value.location.city = ''
-    merchantInfoForm.value.location.country = ''
-    merchantInfoForm.value.location.longitude = null
-    merchantInfoForm.value.location.langitude = null
-    return
-  }
-
-  merchantInfoForm.value.name = merchantInfo.value?.name || ''
-  merchantInfoForm.value.primaryContactNumber = merchantInfo.value?.primaryContactNumber || ''
-  merchantInfoForm.value.location.landmark = merchantInfo.value?.location?.landmark || ''
-  merchantInfoForm.value.location.location = merchantInfo.value?.location?.location || ''
-  merchantInfoForm.value.location.street = merchantInfo.value?.location?.street || ''
-  merchantInfoForm.value.location.city = merchantInfo.value?.location?.city || ''
-  merchantInfoForm.value.location.country = merchantInfo.value?.location?.country || ''
-  merchantInfoForm.value.location.longitude = Number(merchantInfo.value?.location?.longitude) || null
-  merchantInfoForm.value.location.latitude = Number(merchantInfo.value?.location?.latitude) || null
+  let merchantData = props.merchant
+  if (opts?.clear) merchantData = null
+  merchantInfoForm.value.id = merchantData?.id || 0
+  merchantInfoForm.value.name = merchantData?.name || ''
+  merchantInfoForm.value.primaryContactNumber = merchantData?.primaryContactNumber || ''
+  merchantInfoForm.value.location.landmark = merchantData?.location?.landmark || ''
+  merchantInfoForm.value.location.location = merchantData?.location?.location || ''
+  merchantInfoForm.value.location.street = merchantData?.location?.street || ''
+  merchantInfoForm.value.location.city = merchantData?.location?.city || ''
+  merchantInfoForm.value.location.country = merchantData?.location?.country || ''
+  merchantInfoForm.value.location.longitude = Number(merchantData?.location?.longitude) || null
+  merchantInfoForm.value.location.latitude = Number(merchantData?.location?.latitude) || null
 }
+
 function selectCoordinates() {
   $q.dialog({
     component: PinLocationDialog,
@@ -265,19 +258,23 @@ function updateMerchantInfo() {
     walletHash: walletHash.value,
   }, merchantInfoForm.value)
   $store.dispatch('paytacapos/updateMerchantInfo', data)
-    .then(() => {
+    .then(response => {
       $q.notify({
         icon: 'check',
         color: 'positive',
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
+      $emit('saved')
+      return response
     })
-    .then(() => {
+    .then(response => {
       if (!$store.getters['paytacapos/merchantBranches']?.length) {
         $store.dispatch('paytacapos/refetchBranches', {
-          walletHash: $store.getters['paytacapos/merchantInfo']?.walletHash,
+          walletHash: data?.walletHash,
+          merchantId: data?.response?.id,
         })
       }
+      return response
     })
     .finally(() => {
       loading.value = false
