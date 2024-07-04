@@ -140,7 +140,7 @@
           <VueJsonPretty :data="nft?.metadata?.type_metadata?.extensions" :deep="2"/>
         </q-tab-panel>
       </q-tab-panels>
-      <div class="q-px-md q-pb-md">
+      <div class="q-px-md q-pb-md q-mt-md">
         <q-btn-group spread>
           <q-btn
             :label="$t('Send')"
