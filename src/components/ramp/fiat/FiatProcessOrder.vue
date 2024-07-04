@@ -903,7 +903,7 @@ export default {
           const messageData = parsedData.data
           // RECEIVE MESSAGE
           console.log('Received a new message:', messageData)
-          bus.emit('last-read-update')
+          // bus.emit('last-read-update')
           if (this.openChat) {
             bus.emit('new-message', messageData)
           }
