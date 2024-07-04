@@ -899,6 +899,11 @@ export default {
       return computedBalance.toFixed(8)
     },
     setAmount (key) {
+      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
+        this.customKeyboardState = 'dismiss'
+        return console.warn('Custom keyboard input without target field, hiding keyboard', { key })
+      }
+
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       let currentSendAmount, currentAmount
@@ -954,6 +959,10 @@ export default {
       this.adjustWalletBalance()
     },
     makeKeyAction (action) {
+      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
+        this.customKeyboardState = 'dismiss'
+        return console.warn('Custom keyboard input without target field, hiding keyboard', { action })
+      }
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex] ?? ''
       const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
