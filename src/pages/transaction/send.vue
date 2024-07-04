@@ -732,7 +732,6 @@ export default {
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
-        console.error(error)
         if (error?.message === 'PaymentRequestIsExpired') {
           this.$q.notify({
             type: 'negative',
@@ -760,10 +759,8 @@ export default {
           })
           return
         }
+        console.error(error)
       }
-
-      // check for BIP21
-      this.onBIP21Amount(address)
 
       if (paymentUriData?.outputs?.[0]) {
         currency = paymentUriData.outputs[0].amount?.currency
@@ -781,6 +778,9 @@ export default {
 
       const valid = this.checkAddress(address)
       if (valid) {
+        // check for BIP21
+        this.onBIP21Amount(address)
+
         currentRecipient.recipientAddress = address
         currentRecipient.rawPaymentUri = rawPaymentUri
         currentInputExtras.scannedRecipientAddress = true
@@ -1540,7 +1540,7 @@ export default {
 
         this.disableSending = false
         return true
-      } else {
+      } else if (!this.isNFT) {
         const vm = this
         const recipientAddress = value.split('?')[0]
         if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
