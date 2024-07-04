@@ -401,12 +401,13 @@ const fetchingPosDevices = ref(false)
 onMounted(() => fetchPosDevices())
 watch(() => walletData.value.walletHash, () => fetchPosDevices())
 function fetchPosDevices(opts) {
-  if (!walletData.value?.walletHash) return
+  const walletHash = walletData.value?.walletHash
+  if (!walletHash) return
 
   const params = {
     limit: opts?.limit || 10,
     offset: opts?.offset || 0,
-    wallet_hash: walletData.value?.walletHash,
+    wallet_hash: walletHash,
     merchant_id: parseInt(props.merchantId),
   }
   fetchingPosDevices.value = true
@@ -430,7 +431,7 @@ function fetchPosDevices(opts) {
 
       missingBranchIds
         .filter((e,i,s) => s.indexOf(e) === i)
-        .forEach(branchId => $store.dispatch('paytacapos/refetchBranchInfo', { branchId }))
+        .forEach(branchId => $store.dispatch('paytacapos/refetchBranchInfo', { branchId, walletHash }))
     })
     .finally(() => {
       fetchingPosDevices.value = false

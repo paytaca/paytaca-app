@@ -103,6 +103,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const props = defineProps({
   newDevice: Boolean,
   posDevice: Object,
+  merchantId: [Number, String],
   branchOptions: Array,
 })
 
@@ -151,6 +152,7 @@ function savePosDevice() {
   const data = Object.assign({
     wallet_hash: props.posDevice?.walletHash || walletData?.value?.walletHash,
     branch_id: posDeviceForm.value.branchId,
+    merchant_id: props.posDevice?.merchantId || props.merchantId,
   }, posDeviceForm.value)
   if (!props.newDevice) data.posid = props.posDevice?.posid
   else data.posid = -1

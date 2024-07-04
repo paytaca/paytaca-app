@@ -113,11 +113,15 @@ export async function updateMerchantInfo(context, data) {
  * @param {Object} context 
  * @param {Object} data 
  * @param {String} data.walletHash
+ * @param {Number} [data.merchantId]
  */
 export function refetchBranches(context, data) {
   if (!data?.walletHash) return
 
-  const params = { wallet_hash: data.walletHash }
+  const params = { wallet_hash: data.walletHash, limit: 100 }
+  if (Number.isSafeInteger(data?.merchantId)) {
+    params.merchant_id = data?.merchantId
+  }
   return posBackend.get(`paytacapos/branches/`, { params })
     .then(response => {
       if (Array.isArray(response?.data?.results)) {
@@ -135,10 +139,11 @@ export function refetchBranches(context, data) {
  * @param {Object} context 
  * @param {Object} data 
  * @param {Number} data.branchId
+ * @param {Number} data.walletHash
  */
 export function refetchBranchInfo(context, data) {
   if (!data?.branchId) return
-  const merchantWalletHash = context.state.merchantInfo?.walletHash
+  const merchantWalletHash = data?.walletHash
 
   const params = { wallet_hash: merchantWalletHash, limit: 50 }
   return posBackend.get(`paytacapos/branches/${data.branchId}/`, { params })
@@ -164,7 +169,7 @@ export function refetchBranchInfo(context, data) {
  * @param {Number} [data.id]
  * @param {String} data.name
  * @param {Boolean} data.isMain
- * @param {String} data.merchantWalletHash
+ * @param {Number} data.merchantId
  * @param {Object} [data.location]
  * @param {String} data.location.landmark
  * @param {String} data.location.location
@@ -176,10 +181,12 @@ export function refetchBranchInfo(context, data) {
  */
 export function updateBranchInfo(context, data) {
   const payload = {
-    merchant_wallet_hash: data?.merchantWalletHash,
+    merchant_id: data?.merchantId,
     is_main: data?.isMain,
   }
   Object.assign(payload, data)
+  delete payload.merchantId
+  delete payload.isMain
 
   const update = Boolean(data?.id)
   let apiCall
@@ -191,14 +198,15 @@ export function updateBranchInfo(context, data) {
 
   return apiCall
     .then(response => {
-      if (!response?.data?.id) return Promise.resolve(response)
+      if (!response?.data?.id) return Promise.reject(response)
       context.commit('updateBranchInfo', response.data)
-      return Promise.reject({ response })
+      return Promise.resolve({ response })
     })
     .catch(error => {
       if (error?.response?.status === 404) {
         context.commit('removeBranchInfo', payload?.id)
       }
+      return Promise.reject(error)
     })
 }
 
@@ -207,10 +215,11 @@ export function updateBranchInfo(context, data) {
  * @param {Object} context 
  * @param {Object} data 
  * @param {Number} data.branchId
+ * @param {Number} data.walletHash
  */
 export function deleteBranch(context, data) {
   if (!data?.branchId) return
-  const merchantWalletHash = context.state.merchantInfo?.walletHash
+  const merchantWalletHash = data?.walletHash
 
   const params = { wallet_hash: merchantWalletHash }
   return posBackend.delete(`paytacapos/branches/${data.branchId}/`, { params })

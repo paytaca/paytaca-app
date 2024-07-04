@@ -85,6 +85,8 @@ export function clearMerchantsInfo(state) {
  * @param {String} data.name
  * @param {Boolean} data.is_main
  * @param {Object} data.merchant
+ * @param {Number} data.merchant.id
+ * @param {String} data.merchant.name
  * @param {String} data.merchant.wallet_hash
  * @param {Object} [data.location]
  * @param {String} data.location.landmark
@@ -101,6 +103,7 @@ export function clearMerchantsInfo(state) {
 
   const _branchInfo = {
     id: data?.id,
+    merchantId: data?.merchant?.id,
     merchantWalletHash: data?.merchant?.wallet_hash,
     isMain: data?.is_main,
     name: data?.name,

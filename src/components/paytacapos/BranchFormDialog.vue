@@ -185,14 +185,10 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const props = defineProps({
   newBranch: Boolean,
   readOnly: Boolean,
+  merchantId: [Number, String],
   branchId: Number,
 })
 
-const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
-const walletHash = computed(() => {
-  if (merchantInfo.value?.walletHash) return merchantInfo.value?.walletHash
-  return $store.getters['global/getWallet']('bch')?.walletHash
-})
 const branchInfo = computed(() => {
   if (props.newBranch) return
   return $store.getters['paytacapos/merchantBranches']
@@ -236,28 +232,17 @@ const validCoordinates = computed(() =>
 )
 onMounted(() => resetForm())
 function resetForm(opts={ clear: false }) {
-  if (opts?.clear) {
-    branchInfoForm.value.name = ''
-    branchInfoForm.value.isMain = false
-    branchInfoForm.value.location.landmark = ''
-    branchInfoForm.value.location.location = ''
-    branchInfoForm.value.location.street = ''
-    branchInfoForm.value.location.city = ''
-    branchInfoForm.value.location.country = ''
-    branchInfoForm.value.location.longitude = null
-    branchInfoForm.value.location.langitude = null
-    return
-  }
-
-  branchInfoForm.value.name = branchInfo.value?.name || ''
-  branchInfoForm.value.isMain = branchInfo.value?.isMain || false
-  branchInfoForm.value.location.landmark = branchInfo.value?.location?.landmark || ''
-  branchInfoForm.value.location.location = branchInfo.value?.location?.location || ''
-  branchInfoForm.value.location.street = branchInfo.value?.location?.street || ''
-  branchInfoForm.value.location.city = branchInfo.value?.location?.city || ''
-  branchInfoForm.value.location.country = branchInfo.value?.location?.country || ''
-  branchInfoForm.value.location.longitude = Number(branchInfo.value?.location?.longitude) || null
-  branchInfoForm.value.location.latitude = Number(branchInfo.value?.location?.latitude) || null
+  let branchData = branchInfo.value
+  if (opts?.clear) branchData = null
+  branchInfoForm.value.name = branchData?.name || ''
+  branchInfoForm.value.isMain = branchData?.isMain || false
+  branchInfoForm.value.location.landmark = branchData?.location?.landmark || ''
+  branchInfoForm.value.location.location = branchData?.location?.location || ''
+  branchInfoForm.value.location.street = branchData?.location?.street || ''
+  branchInfoForm.value.location.city = branchData?.location?.city || ''
+  branchInfoForm.value.location.country = branchData?.location?.country || ''
+  branchInfoForm.value.location.longitude = Number(branchData?.location?.longitude) || null
+  branchInfoForm.value.location.latitude = Number(branchData?.location?.latitude) || null
 }
 
 function selectCoordinates() {
@@ -281,9 +266,9 @@ function saveBranchInfo() {
   const data = Object.assign({}, branchInfoForm.value)
   if (!props.newBranch) {
     data.id = branchInfo.value?.id
-    data.merchantWalletHash = branchInfo.value?.merchantWalletHash
+    data.merchantId = branchInfo.value?.merchant?.id
   } else {
-    data.merchantWalletHash = walletHash.value
+    data.merchantId = props.merchantId
   }
 
   $store.dispatch('paytacapos/updateBranchInfo', data)
@@ -294,6 +279,13 @@ function saveBranchInfo() {
         message: $t('BranchDetailsSaved', {}, 'Branch details saved'),
       })
       onDialogOK({ new: !data.id, branch: response?.data })
+    })
+    .catch(() => {
+      $q.notify({
+        icon: 'error',
+        color: 'negative',
+        message: $t('UnknownErrorOccurred', {}, 'Unknown error occurred'),
+      })
     })
     .finally(() => {
       loading.value = false
@@ -310,7 +302,7 @@ function confirmDeleteBranch() {
     class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
   })
     .onOk(() => {
-      $store.dispatch('paytacapos/deleteBranch', { branchId: branchInfo.value?.id })
+      $store.dispatch('paytacapos/deleteBranch', { branchId: branchInfo.value?.id, walletHash: branchInfo.value?.merchantWalletHash })
         .then(() => {
           $q.dialog({
             message: $t('BranchRemoved', {}, 'Branch removed'),
