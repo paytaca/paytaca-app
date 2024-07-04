@@ -588,6 +588,10 @@ export default {
             const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
             newTokenData.balance = amount
 
+            if (!newTokenData?.decimals || newTokenData?.isNft) {
+              console.log('Not adding unrecognized token due to being an nft')
+            }
+
             vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, newTokenData)
             vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
           }
