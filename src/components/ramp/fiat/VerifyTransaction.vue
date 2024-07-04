@@ -55,7 +55,7 @@
       <div v-if="errorMessage" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
         <q-icon name="error" size="1.2em" class="q-pr-xs"/>{{ errorMessage }}
       </div>
-      <div v-if="txidLoaded && balanceLoaded && !hideBtn" class="row q-mb-md">
+      <div v-if="showRetryBtn" class="row q-mb-md">
         <q-btn
           rounded
           :loading="loading"
@@ -97,7 +97,6 @@ export default {
     }
   },
   emits: ['back', 'success', 'verifying'],
-  components: {},
   props: {
     data: Object
   },
@@ -111,6 +110,11 @@ export default {
     },
     verifyingTx (val) {
       this.$emit('verifying', val)
+    }
+  },
+  computed: {
+    showRetryBtn () {
+      return this.txidLoaded && this.balanceLoaded && !this.hideBtn
     }
   },
   async mounted () {
@@ -180,53 +184,47 @@ export default {
           })
       })
     },
-    verifyRelease () {
+    async verifyRelease () {
       const vm = this
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
-      backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release`, body, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release`, body, { authorize: true })
         .then(response => {
           console.log(response.data)
-          vm.verifyingTx = false
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            vm.errorMessage = error.response.data.error
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
+          console.error(error?.response || error)
+          vm.errorMessage = error.response?.data?.error
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
           }
-          vm.verifyingTx = false
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
         })
+      vm.verifyingTx = false
     },
-    verifyEscrow () {
+    async verifyEscrow () {
       const vm = this
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
-      backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow`, body, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow`, body, { authorize: true })
         .then(response => {
           console.log(response.data)
-          vm.verifyingTx = false
         })
         .catch(error => {
-          console.error(error.response)
+          console.error(error?.response || error)
           if (error.response?.data?.error === 'txid is required') {
             vm.errorMessage = 'Transaction ID is required for verification'
           }
           if (error.response.status === 403) {
             bus.emit('session-expired')
           }
-          vm.verifyingTx = false
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
         })
+      vm.verifyingTx = false
     },
     submitAction () {
       const vm = this
@@ -244,6 +242,7 @@ export default {
     },
     checkTransferStatus () {
       if (this.balanceLoaded && this.txidLoaded) {
+        this.verifyingTx = true
         switch (this.data?.action) {
           case 'RELEASE':
             if (this.contract.balance === 0) {
@@ -252,6 +251,7 @@ export default {
               }
               this.submitAction()
             } else {
+              this.verifyingTx = false
               // poll for balance with exponential backoff
               this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
             }
@@ -263,12 +263,14 @@ export default {
               }
               this.submitAction()
             } else {
+              this.verifyingTx = false
               // poll for balance with exponential backoff
               this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
             }
             break
+          default:
+            this.verifyingTx = false
         }
-        this.verifyingTx = true
         this.loading = false
       }
     },
