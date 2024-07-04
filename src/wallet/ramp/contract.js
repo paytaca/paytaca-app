@@ -86,7 +86,7 @@ export class RampContract {
     if (!address) address = this.contract.address
     try {
       const response = await backend.get(`/balance/bch/${address}`)
-      console.log(response)
+      // console.log(response)
       return response.data.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)
@@ -165,7 +165,7 @@ export class RampContract {
         txInfo
       }
     }
-    console.log('result:', JSON.stringify(result))
+    // console.log('result:', JSON.stringify(result))
     return result
   }
 
@@ -218,7 +218,7 @@ export class RampContract {
         txInfo: txInfo
       }
     }
-    console.log('result:', JSON.stringify(result))
+    // console.log('result:', JSON.stringify(result))
     return result
   }
 }
