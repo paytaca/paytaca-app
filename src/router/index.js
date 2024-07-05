@@ -37,6 +37,22 @@ export default function ({ store }) {
         // Check if first mnemonic exists
         const currentWalletIndex = store.getters['global/getWalletIndex']
         const mnemonic = await getMnemonic(currentWalletIndex)
+
+        // if mnemonic does not exist but not first wallet,
+        // check for other wallets with mnemonic
+        let _mnemonic = mnemonic
+        let walletIndex = currentWalletIndex
+
+        while (!_mnemonic && walletIndex > 0) {
+          walletIndex--;
+          _mnemonic = await getMnemonic(walletIndex)
+        }
+
+        if (_mnemonic && walletIndex !== currentWalletIndex) {
+          await store.dispatch(`global/switchWallet`, walletIndex).catch(console.error)
+          location.reload()
+        }
+
         if (mnemonic) {
           next()
         } else {
