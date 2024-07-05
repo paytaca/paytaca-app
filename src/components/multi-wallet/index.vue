@@ -173,28 +173,18 @@ export default {
     },
     switchWallet (index) {
       const vm = this
-      if (index !== this.currentIndex) {
-        const loadingDialog = this.$q.dialog({
-          component: LoadingWalletDialog
-        })
-        const asset = this.$store.getters['assets/getAllAssets']
+      if (index === this.currentIndex) return
 
-        vm.$store.commit('assets/updateVaultSnapshot', { index: vm.currentIndex, snapshot: asset })
-        vm.$store.commit('assets/updatedCurrentAssets', index)
+      const loadingDialog = this.$q.dialog({
+        component: LoadingWalletDialog
+      })
 
-        vm.$store.commit('ramp/resetUser')
-        vm.$store.commit('ramp/resetData')
-        vm.$store.commit('ramp/resetChatIdentity')
-        vm.$store.commit('ramp/resetPagination')
-        deleteAuthToken()
+      vm.$store.dispatch('global/switchWallet', index).then(function () {
+        vm.$router.push('/')
+        setTimeout(() => { location.reload() }, 500)
+      })
 
-        vm.$store.dispatch('global/switchWallet', index).then(function () {
-          vm.$router.push('/')
-          setTimeout(() => { location.reload() }, 500)
-        })
-
-        loadingDialog.hide()
-      }
+      loadingDialog.hide()
     },
     arrangeAddressText (wallet) {
       let address = ''
