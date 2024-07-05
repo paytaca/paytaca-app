@@ -6,12 +6,16 @@
         {{ loadingMsg }}
         <q-spinner/>
       </div>
+      <div v-else-if="errorMsg">
+        {{ errorMsg }}
+      </div>
       <q-btn v-else flat no-caps :label="$t('GoToHome')" to="/" class="text-underline" />
     </div>
   </div>
 </template>
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { getMnemonic } from 'src/wallet';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { computed, onMounted, ref } from 'vue';
@@ -24,11 +28,37 @@ const darkMode = computed(() => $store?.state?.darkmode?.darkmode)
 const openedNotification = computed(() => $store.getters['notification/openedNotification'])
 const loading = ref(false)
 const loadingMsg = ref(`${t('Loading')}...`)
+const errorMsg = ref('')
 
 const currentWalletIndex = computed(() => $store.getters['global/getWalletIndex'])
+
+async function hasValidMnemonicInWalletIndex(index) {
+  if (!Number.isSafeInteger(index)) return false
+
+  try {
+    const mnemonic = await getMnemonic(index)
+    if (typeof mnemonic !== 'string' || !mnemonic?.length) return false
+
+    const words = mnemonic.trim().split(' ')
+    if (words.length !== 12 && words.length !== 24) return false
+
+    return true
+  } catch(error) {
+    console.error(error)
+    return false
+  }
+}
+
 async function switchWallet(index) {
   if (!Number.isSafeInteger(index)) return
   if (index === currentWalletIndex.value) return
+  const canSwitchToWallet = await hasValidMnemonicInWalletIndex(index)
+  if (!canSwitchToWallet) {
+    const msg1 = t('UnableToSwitchWallet', {}, 'Unable to switch wallet.')
+    const msg2 = t('WalletIsNotInDevice', {}, 'Wallet is not in device')
+    errorMsg.value = `${msg1} ${msg2}`
+    return
+  }
   const asset = $store.getters['assets/getAllAssets']
 
   $store.commit('assets/updateVaultSnapshot', { index: currentWalletIndex.value, snapshot: asset })
@@ -65,6 +95,7 @@ async function handleOpenedNotification() {
 onMounted(async () => {
   try {
     loading.value = true
+    errorMsg.value = ''
     await handleOpenedNotification()
   } finally {
     loading.value = false
