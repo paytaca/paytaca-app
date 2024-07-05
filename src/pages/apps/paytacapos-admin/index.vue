@@ -5,7 +5,7 @@
     @refresh="refreshPage"
   >
     <HeaderNav
-      title="Merchant admin"
+      :title="$t('MerchantAdmin', {}, 'Merchant admin')"
       backnavpath="/apps"
       class="apps-header"
     />
@@ -46,7 +46,7 @@
               @click="() => setActiveMerchant(merchantData)"
             >
               <q-item-section>
-                <q-item-label>View</q-item-label>    
+                <q-item-label>{{ $t('View') }}</q-item-label>    
               </q-item-section>
             </q-item>
             <q-item
@@ -54,7 +54,7 @@
               @click="() => openMerchantInfoDialog(merchantData)"
             >
               <q-item-section>
-                <q-item-label>Edit</q-item-label>    
+                <q-item-label>{{ $t('Edit') }}</q-item-label>    
               </q-item-section>
             </q-item>
           </q-menu>

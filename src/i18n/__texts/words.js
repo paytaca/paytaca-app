@@ -94,6 +94,8 @@ const words = [
     Settings: "Settings",
     Setup: "Setup",
     Set: "Set",
+    Open: "Open",
+    View: "View",
     Skip: "Skip",
     Bytecode: "Bytecode",
     Slippage: "Slippage",
