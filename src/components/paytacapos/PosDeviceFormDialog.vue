@@ -81,6 +81,7 @@
 </template>
 <script setup>
 import { backend as posBackend, padPosId } from 'src/wallet/pos'
+import { bus } from 'src/wallet/event-bus';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
@@ -158,7 +159,11 @@ function savePosDevice() {
   else data.posid = -1
 
   loading.value = true
-  const apiRequest = posBackend.post(`/paytacapos/devices/`, data)
+  const apiRequest = posBackend.post(`/paytacapos/devices/`, data, { authorize: true })
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
     .finally(() => {
       loading.value = false
     })

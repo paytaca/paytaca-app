@@ -56,7 +56,6 @@ export function setActiveMerchant(state, merchantId) {
 export function storeMerchantsListInfo(state, data) {
   data?.forEach(rawMerchantData => {
     const merchantData = parseMerchantData(rawMerchantData)
-    console.log({ merchantData })
     if (!merchantData.id || !merchantData.walletHash) return
 
     const index = state?.merchants?.findIndex(_merchantData => _merchantData?.id == merchantData.id)

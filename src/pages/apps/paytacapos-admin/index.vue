@@ -18,10 +18,13 @@
           @click="() => openMerchantInfoDialog()"
         />
       </div>
-      <div v-if="fetchingMerchants" class="text-center q-my-xs">
-        <q-spinner size="lg" color="brandblue"/>
+
+      <div class="q-pt-sm">
+        <q-linear-progress v-if="fetchingMerchants" query reverse rounded color="brandblue"/>
+        <div v-else class="q-pb-xs"></div>
       </div>
-      <div v-else-if="!merchantsData?.length" class="text-center text-body1 text-grey">
+
+      <div v-if="!fetchingMerchants && !merchantsData?.length" class="text-center text-body1 text-grey">
         {{ $t('NoRecords', {}, 'No records') }}
       </div>
       <div
@@ -67,8 +70,10 @@
 </template>
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend as posBackend, authToken } from 'src/wallet/pos'
 import { loadWallet, Wallet } from 'src/wallet'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { computed, onMounted, ref } from 'vue'
@@ -78,8 +83,40 @@ import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue
 const $router = useRouter()
 const $store = useStore()
 const $q = useQuasar()
+const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 onMounted(() => refreshPage())
+
+const authWallet = ref({ walletHash: '', walletType: '' })
+async function fetchAuthWallet() {
+  return posBackend.get(`auth/wallet`, { authorize: true })
+    .finally(() => {
+      authWallet.value = { walletHash: '', walletType: '' }
+    })
+    .then(response => {
+      const data = response?.data
+      authWallet.value = {
+        walletHash: data?.wallet_hash,
+        walletType: data?.wallet_type,
+      }
+      return response
+    })
+    .catch(error => {
+      if(error)
+      return Promise.reject(error)
+    })
+}
+
+async function reLogin() {
+  const loadingKey = 'paytacapos-relogin'
+  try {
+    $q.loading.show({ group: loadingKey, message: $t('LoggingYouIn') })
+    await authToken.generate(wallet.value)
+    await fetchAuthWallet()
+  } finally {
+    $q.loading.hide(loadingKey)
+  }
+}
 
 const walletType = 'bch'
 const walletData = computed(() => {
@@ -145,6 +182,12 @@ function openMerchantInfoDialog(merchantData) {
 async function refreshPage(done=() => {}) {
   try {
     await initWallet()
+    await fetchAuthWallet()
+      .finally(() => {
+        if (authWallet.value.walletHash !== walletData.value.walletHash) {
+          return reLogin()
+        }
+      })
     await fetchMerchants()
   } finally {
     done?.()

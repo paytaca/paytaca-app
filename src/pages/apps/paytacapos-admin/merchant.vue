@@ -2,7 +2,6 @@
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('POSAdmin')"
-      backnavpath="/apps"
       class="apps-header"
     />
     <q-card
@@ -277,10 +276,11 @@
 </template>
 <script setup>
 import BCHJS from '@psf/bch-js';
-import { backend as posBackend, parsePosDeviceData, padPosId } from 'src/wallet/pos'
+import { backend as posBackend, parsePosDeviceData, padPosId, authToken } from 'src/wallet/pos'
+import { bus } from 'src/wallet/event-bus';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
 import BranchFormDialog from 'src/components/paytacapos/BranchFormDialog.vue'
@@ -849,14 +849,25 @@ function confirmRemovePosDevice(posDevice) {
  */
 function deletePosDevice(posDevice) {
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
-  return posBackend.delete(`paytacapos/devices/${handle}/`).then(() => fetchPosDevices())
+  return posBackend.delete(`paytacapos/devices/${handle}/`, { authorize: true }).then(() => fetchPosDevices())
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
 }
 
-onMounted(() => {
-  window.t = () => {
-    $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
+
+onMounted(() => bus.on('paytaca-pos-relogin', reLogin))
+onUnmounted(() => bus.off('paytaca-pos-relogin', reLogin))
+const reLogin = debounce(async () => {
+  const loadingKey = 'paytacapos-relogin'
+  try {
+    $q.loading.show({ group: loadingKey, message: $t('LoggingYouIn') })
+    await authToken.generate(wallet.value)
+  } finally {
+    $q.loading.hide(loadingKey)
   }
-})
+}, 500)
 
 /**
  * @param {Object} rpcResult

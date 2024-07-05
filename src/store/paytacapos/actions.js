@@ -1,5 +1,6 @@
 import { backend as posBackend } from "src/wallet/pos"
 import { loadWallet } from "src/wallet"
+import { bus } from "src/wallet/event-bus"
 
 /* -------------------------Merchants----------------------------- */
 /* --------------------------------------------------------------- */
@@ -45,7 +46,6 @@ export function fetchMerchants(context, data) {
       const results = response?.data?.results?.filter(
         result => result?.wallet_hash === data?.walletHash
       )
-      console.log({results, wh: data?.walletHash})
 
       if (Array.isArray(!results)) return Promise.reject({ response })
       context.commit('clearMerchantsInfo')
@@ -94,10 +94,14 @@ export async function updateMerchantInfo(context, data) {
   })
 
   const promise = data?.id
-    ? posBackend.patch(`paytacapos/merchants/${data?.id}/`, payload)
-    : posBackend.post(`paytacapos/merchants/`, payload)
+    ? posBackend.patch(`paytacapos/merchants/${data?.id}/`, payload, { authorize: true })
+    : posBackend.post(`paytacapos/merchants/`, payload, { authorize: true })
 
   return promise
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
     .then(response => {
       if (response?.data?.wallet_hash == data.walletHash) {
         context.commit('updateMerchantInfo', response.data)
@@ -191,12 +195,17 @@ export function updateBranchInfo(context, data) {
   const update = Boolean(data?.id)
   let apiCall
   if (update) {
-    apiCall = posBackend.put(`paytacapos/branches/${payload?.id}/`, payload)
+    apiCall = posBackend.put(`paytacapos/branches/${payload?.id}/`, payload, { authorize: true })
   } else {
-    apiCall = posBackend.post(`paytacapos/branches/`, payload)
+    apiCall = posBackend.post(`paytacapos/branches/`, payload, { authorize: true })
   }
 
   return apiCall
+    .catch(error => {
+      console.log(error)
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
     .then(response => {
       if (!response?.data?.id) return Promise.reject(response)
       context.commit('updateBranchInfo', response.data)
@@ -222,12 +231,16 @@ export function deleteBranch(context, data) {
   const merchantWalletHash = data?.walletHash
 
   const params = { wallet_hash: merchantWalletHash }
-  return posBackend.delete(`paytacapos/branches/${data.branchId}/`, { params })
+  return posBackend.delete(`paytacapos/branches/${data.branchId}/`, { params, authorize: true })
     .then(response => {
       const status = response.status
       if([404, 204].indexOf(status) < 0) return Promise.reject({ response })
       context.commit('removeBranchInfo', data.branchId)
       return Promise.resolve(response)
+    })
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
     })
 }
 
@@ -269,7 +282,7 @@ export function generateLinkCode(context, data) {
     encrypted_xpubkey: data?.encryptedData,
     signature: data?.signature,
   }
-  return posBackend.post('paytacapos/devices/generate_link_device_code/', _data)
+  return posBackend.post('paytacapos/devices/generate_link_device_code/', _data, { authorize: true })
     .then(response => {
       if (!response?.data?.code) return Promise.reject({ response })
 
@@ -282,5 +295,9 @@ export function generateLinkCode(context, data) {
         nonce: data?.nonce,
       })
       return Promise.resolve(response)
+    })
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
     })
 }
