@@ -664,11 +664,20 @@ export default {
         if (!this.selectedAssetMarketPrice) {
           this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
         }
-        if (this.payloadAmount && this.payloadAmount > 0) {
-          const finalAmount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
-          this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
-          this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
-          this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
+
+        for (var index = 0; index < this.sendDataMultiple.length; index++) {
+          const amount = this.sendDataMultiple[index]?.amount
+
+          if (!amount || amount <= 0) return
+          const amountInFiat = parseFloat(this.inputExtras[index].sendAmountInFiat)
+
+          // if set to input BCH or if fiat amount is none (happens sometimes)
+          if (!this.setAmountInFiat || !amountInFiat) {
+            const amountInFiat = this.convertToFiatAmount(amount)
+            this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
+          } else {
+            this.recomputeAmount(this.sendDataMultiple[index], this.inputExtras[index], amountInFiat)
+          }
         }
       }
     },
