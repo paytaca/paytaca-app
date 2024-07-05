@@ -1,4 +1,5 @@
 import Watchtower from "watchtower-cash-js"
+import { deleteAuthToken } from 'src/wallet/ramp/auth'
 
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
@@ -148,10 +149,24 @@ export async function switchWallet (context, index) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       try {
+        const currentIndex = context.getters.getWalletIndex
+        const asset = context.rootGetters['assets/getAllAssets']
+        context.commit(
+          'assets/updateVaultSnapshot',
+          { index: currentIndex, snapshot: asset },
+          { root: true },
+        )
+        context.commit('assets/updatedCurrentAssets', index, { root: true })
+
+        context.commit('ramp/resetUser', {}, { root: true })
+        context.commit('ramp/resetData', {}, { root: true })
+        context.commit('ramp/resetChatIdentity', {}, { root: true })
+        context.commit('ramp/resetPagination', {}, { root: true })
+        deleteAuthToken()
+
         const wallet = context.getters.getAllWalletTypes
         const chipnet = context.getters.getAllChipnetTypes
       
-        const currentIndex = context.getters.getWalletIndex
         const walletName = context.getters.getVault[currentIndex].name
       
         const info = {
