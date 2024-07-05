@@ -260,6 +260,8 @@ const phrases = {
       ShowTokens: "Show Tokens",
       SwitchWallet: "Switch Wallet",
       SwitchingWallet: "Switching wallet",
+      UnableToSwitchWallet: "Unable to switch wallet.",
+      WalletIsNotInDevice: "Wallet is not in device",
       SourceCodeRepo: "Source code repository",
       EnableSmartBCH: "Enable SmartBCH",
       UnlinkDeviceRequestCreated: "Unlink device request created",
