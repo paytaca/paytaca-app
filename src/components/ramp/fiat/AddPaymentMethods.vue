@@ -71,7 +71,7 @@
             <q-item-section>
               <div class="row">
                 <div class="col text-h5" style="font-size: 15px;">
-                  {{ method.payment_type?.name }}
+                  {{ method }}
                 </div>
                 <q-btn
                   outline
@@ -339,7 +339,7 @@ export default {
       this.openDialog = true
     },
     addMethodFromAd (data) {
-      const selectedType = this.paymentTypeOpts.filter(p => p?.id === data.payment_type?.id)[0]
+      const selectedType = this.paymentTypeOpts.filter(p => p?.short_name === data)[0]
       this.info = selectedType
       this.showPaymentMethodForm = true
       this.dialogType = 'addMethodFromAd'
@@ -392,14 +392,16 @@ export default {
     },
     filterPaymentMethod () {
       // filter ad payment methods to currency supported only
-      const paymentTypeOptIds = this.paymentTypeOpts.map(element => element.id)
-      const adCurrencyPaymentTypes = this.adPaymentMethods.filter(element => { return paymentTypeOptIds.includes(element.payment_type.id) })
+      const paymentTypeOptNames = this.paymentTypeOpts.map(element => element.short_name)
+      const adCurrencyPaymentTypes = this.adPaymentMethods.filter(element => {
+        return paymentTypeOptNames.includes(element)
+      })
       // find matching and creatable ad payment methods
       const match = this.paymentMethods.filter(function (method) {
-        return adCurrencyPaymentTypes.map(p => p.payment_type?.id).includes(method.payment_type.id)
+        return adCurrencyPaymentTypes.includes(method.payment_type.short_name)
       })
-      const temp = match.map(p => p.payment_type?.id)
-      this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method.payment_type.id))
+      const temp = match.map(p => p.payment_type?.short_name)
+      this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method))
       return match
     },
     async fetchPaymentTypes () {
@@ -409,8 +411,7 @@ export default {
           vm.paymentTypeOpts = response.data
         })
         .catch(error => {
-          console.error(error)
-          console.error(error.response)
+          console.error(error.response || error)
           if (error.response && error.response.status === 403) {
             bus.emit('session-expired')
           }
@@ -458,8 +459,7 @@ export default {
       vm.isloaded = false
       await backend.delete(`/ramp-p2p/payment-method/${index}`, { authorize: true })
         .catch(error => {
-          console.error(error)
-          console.error(error.response)
+          console.error(error.response || error)
           if (error.response && error.response.status === 403) {
             bus.emit('session-expired')
           }
@@ -494,8 +494,7 @@ export default {
               vm.openDialog = false
             })
             .catch(error => {
-              console.error(error)
-              console.error(error.response)
+              console.error(error.response || error)
               vm.openDialog = false
               if (error.response && error.response.status === 403) {
                 bus.emit('session-expired')
