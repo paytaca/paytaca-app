@@ -1,5 +1,9 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <q-pull-to-refresh
+    id="app-container"
+    :class="getDarkModeClass(darkMode)"
+    @refresh="refreshPage"
+  >
     <HeaderNav
       :title="$t('POSAdmin')"
       class="apps-header"
@@ -272,7 +276,7 @@
         </div>
       </q-card-section>
     </q-card>
-  </div>
+  </q-pull-to-refresh>
 </template>
 <script setup>
 import BCHJS from '@psf/bch-js';
@@ -319,12 +323,11 @@ const walletData = computed(() => {
 })
 
 const wallet = ref(null)
-onMounted(() => {
-  loadWallet('BCH', $store.getters['global/getWalletIndex']).then(_wallet => {
-    wallet.value = _wallet
-    checkWalletLinkData()
-  })
-})
+async function initWallet() {
+  const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+  wallet.value = _wallet
+  await checkWalletLinkData()
+}
 async function checkWalletLinkData() {
   if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
@@ -336,7 +339,26 @@ async function checkWalletLinkData() {
     $store.commit('global/updateWallet', newWalletData)
   }
 }
-onMounted(() => checkWalletLinkData())
+
+const authWallet = ref({ walletHash: '', walletType: '' })
+async function fetchAuthWallet() {
+  return posBackend.get(`auth/wallet`, { authorize: true })
+    .finally(() => {
+      authWallet.value = { walletHash: '', walletType: '' }
+    })
+    .then(response => {
+      const data = response?.data
+      authWallet.value = {
+        walletHash: data?.wallet_hash,
+        walletType: data?.wallet_type,
+      }
+      return response
+    })
+    .catch(error => {
+      if(error)
+      return Promise.reject(error)
+    })
+}
 
 const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])
 const merchantInfo = computed(() => merchantsList.value.find(merchant => merchant?.id == props.merchantId))
@@ -352,10 +374,12 @@ const merchantBranches = computed(() => {
   return $store.getters['paytacapos/merchantBranches']
     .filter(branch => branch?.merchant?.id == props.merchantId)
 })
-onMounted(() => $store.dispatch(
-  'paytacapos/refetchBranches',
-  { walletHash: walletData.value.walletHash, merchantId: parseInt(props?.merchantId) },
-))
+function fetchBranches() {
+  return $store.dispatch(
+    'paytacapos/refetchBranches',
+    { walletHash: walletData.value.walletHash, merchantId: parseInt(props?.merchantId) },
+  )
+}
 watch(
   () => walletData.value.walletHash,
   () => $store.dispatch(
@@ -398,7 +422,6 @@ const parsedPosDevicePagination = computed(() => {
   return data
 })
 const fetchingPosDevices = ref(false)
-onMounted(() => fetchPosDevices())
 watch(() => walletData.value.walletHash, () => fetchPosDevices())
 function fetchPosDevices(opts) {
   const walletHash = walletData.value?.walletHash
@@ -859,10 +882,12 @@ function deletePosDevice(posDevice) {
 
 onMounted(() => bus.on('paytaca-pos-relogin', reLogin))
 onUnmounted(() => bus.off('paytaca-pos-relogin', reLogin))
-const reLogin = debounce(async () => {
+const reLogin = debounce(async (opts = {silent: false }) => {
   const loadingKey = 'paytacapos-relogin'
   try {
-    $q.loading.show({ group: loadingKey, message: $t('LoggingYouIn') })
+    if (!opts?.silent) {
+      $q.loading.show({ group: loadingKey, message: $t('LoggingYouIn') })
+    }
     await authToken.generate(wallet.value)
   } finally {
     $q.loading.hide(loadingKey)
@@ -953,6 +978,26 @@ function connectRpcClient(opts) {
         console.log('Skipping reconnection')
       }
     })
+}
+
+onMounted(() => refreshPage())
+async function refreshPage(done=() => {}) {
+  try {
+    await initWallet()
+    await fetchAuthWallet()
+      .finally(() => {
+        if (walletData.value?.walletHash == authWallet.value?.walletHash) return
+        reLogin({ silent: true })
+      })
+
+    await Promise.all([
+      fetchPosDevices(),
+      fetchBranches(),
+    ])
+  } finally {
+    done?.()
+  }
+
 }
 </script>
 <style lang="scss" scoped>
