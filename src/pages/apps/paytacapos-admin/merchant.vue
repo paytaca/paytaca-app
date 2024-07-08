@@ -636,6 +636,7 @@ function displaySalesReportDialog() {
     component: SalesReportDialog,
     componentProps: {
       walletHash: walletData.value.walletHash,
+      merchant_id: props?.merchantId,
     }
   })
 }
