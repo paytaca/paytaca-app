@@ -5,6 +5,8 @@
  * @param {String} data.name
  * @param {String} data.wallet_hash
  * @param {String} data.primary_contact_number
+ * @param {String} data.branch_count
+ * @param {String} data.pos_device_count
  * @param {Object} [data.location]
  * @param {String} data.location.landmark
  * @param {String} data.location.location
@@ -21,6 +23,8 @@ function parseMerchantData(data) {
     walletHash: data?.wallet_hash,
     name: data?.name,
     primaryContactNumber: data?.primary_contact_number,
+    branchCount: data?.branch_count,
+    posDeviceCount: data?.pos_device_count,
     location: {
       landmark: data?.location?.landmark,
       location: data?.location?.location,
@@ -31,22 +35,6 @@ function parseMerchantData(data) {
       latitude: data?.location?.latitude,
     },
   }
-}
-
-/**
- * @param {Object} state 
- * @param {Object} data 
- */
-export function updateMerchantInfo(state, data) {
-  state.merchantInfo = parseMerchantData(data)
-  storeMerchantsListInfo(state, [data])
-}
-
-export function setActiveMerchant(state, merchantId) {
-  if (!Array.isArray(state.merchants)) return
-
-  const merchantData = state.merchants.find(_merchantData => _merchantData?.id == merchantId)
-  state.merchantInfo = merchantData
 }
 
 /**

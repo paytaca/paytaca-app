@@ -5,30 +5,6 @@ import { bus } from "src/wallet/event-bus"
 /* -------------------------Merchants----------------------------- */
 /* --------------------------------------------------------------- */
 /**
- * 
- * @param {Object} context 
- * @param {Object} data 
- * @param {String} data.walletHash
- */
-export function refetchMerchantInfo(context, data) {
-  if (!data?.walletHash) return Promise.reject()
-
-  return posBackend.get(`paytacapos/merchants/${data.walletHash}/`)
-    .then(response => {
-      if (response?.data?.wallet_hash == data.walletHash) {
-        context.commit('updateMerchantInfo', response.data)
-        return Promise.resolve(response)
-      }
-      return Promise.reject({ response })
-    })
-    .catch(error => {
-      if (error?.response.status === 404) {
-        context.commit('updateMerchantInfo', null)
-      }
-    })
-}
-
-/**
  * @param {Object} context 
  * @param {Object} data 
  * @param {String} data.walletHash
@@ -104,7 +80,7 @@ export async function updateMerchantInfo(context, data) {
     })
     .then(response => {
       if (response?.data?.wallet_hash == data.walletHash) {
-        context.commit('updateMerchantInfo', response.data)
+        context.commit('storeMerchantsListInfo', [response.data])
         return Promise.resolve(response)
       }
       return Promise.reject({ response })

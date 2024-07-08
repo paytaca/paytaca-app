@@ -8,11 +8,6 @@ function getFormattedLocation(location) {
 }
 
 
-export function merchantInfo(state) {
-  const formattedLocation = getFormattedLocation(state.merchantInfo?.location)
-  return Object.assign({ formattedLocation }, state.merchantInfo)
-}
-
 export function merchants(state) {
   if (!Array.isArray(state.merchants)) return []
 
@@ -24,15 +19,7 @@ export function merchants(state) {
 
 export function merchantBranches(state) {
   if (!Array.isArray(state.branches)) return []
-  const merchantWalletHash = state?.merchantInfo?.walletHash
-
-  if (!merchantWalletHash) return state.branches
   return state.branches
-    .filter(branchInfo => branchInfo?.merchantWalletHash === merchantWalletHash)
-    .map(branchInfo => {
-      const formattedLocation = getFormattedLocation(branchInfo?.location)
-      return Object.assign({ formattedLocation }, branchInfo)
-    })
 }
 
 export function linkCodes(state) {
