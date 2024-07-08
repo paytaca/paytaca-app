@@ -36,7 +36,7 @@
               @click="() => {
                 if (query_name) {
                   query_name = null
-                  receiveDialog(filters)
+                  receiveDialog(filters, 'search')
                   $refs.inputRef.focus()
                 } else {
                   searchState('blur')
@@ -405,14 +405,18 @@ export default {
           return Promise.reject(error)
         })
     },
-    receiveDialog (data) {
+    receiveDialog (data, type = 'filter') {
       const vm = this
-      const mutationName = (
-        vm.statusType === 'ONGOING'
-          ? 'ramp/updateOngoingOrderFilters'
-          : 'ramp/updateCompletedOrderFilters')
+
+      if (type === 'search') {
+        const mutationName = (
+          vm.statusType === 'ONGOING'
+            ? 'ramp/updateOngoingOrderFilters'
+            : 'ramp/updateCompletedOrderFilters')
+        vm.$store.commit(mutationName, { filter: data, currency: this.selectedCurrency || 'All' })
+      }
+
       vm.openDialog = false
-      vm.$store.commit(mutationName, data)
       vm.updateFilters()
       vm.resetAndRefetchListings()
     },

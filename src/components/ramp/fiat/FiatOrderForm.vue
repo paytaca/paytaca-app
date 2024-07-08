@@ -1,13 +1,9 @@
 <template>
-  <div
-    v-if="state === 'initial'"
-    class="q-mx-md q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+  <div v-if="state === 'initial'"
+    class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
     <!-- Form Body -->
     <div v-if="isloaded">
-      <div
-        class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
+      <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
         <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
         {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
       </div>
