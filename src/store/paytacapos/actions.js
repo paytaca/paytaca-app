@@ -57,17 +57,18 @@ export async function updateMerchantInfo(context, data) {
   }
 
   const currentWalletIndex = context.rootGetters['global/getWalletIndex']
-  const wallet = await loadWallet('BCH', currentWalletIndex)
-  const receivingPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/0'", true)
-  const signerPubkeys = await wallet.BCH.getPublicKey("0/0", "m/44'/145'/1'", true)
-  const receiving_pubkey = receivingPubkeys.receiving
-  const signer_pubkey = signerPubkeys.receiving
 
-  Object.assign(payload, {
-    ...data,
-    receiving_pubkey,
-    signer_pubkey,
-  })
+  if (data?.id === undefined) {
+    const response = await posBackend.post('paytacapos/merchants/latest_index/', { wallet_hash: payload.wallet_hash })
+    const wallet = await loadWallet('BCH', currentWalletIndex)
+    const receivingPubkeys = await wallet.BCH.getPublicKey(`0/${response.data.index}`, "m/44'/145'/0'", true)
+    const receiving_pubkey = receivingPubkeys.receiving
+    
+    Object.assign(payload, {
+      ...data,
+      receiving_pubkey,
+    })
+  }
 
   const promise = data?.id
     ? posBackend.patch(`paytacapos/merchants/${data?.id}/`, payload, { authorize: true })
