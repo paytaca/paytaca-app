@@ -187,6 +187,8 @@ const words = [
       Properties: "Properties",
       BranchSmall: "branch",
       Branches: "branches",
+      Merchants: "Merchants",
+      BranchesCapped: "Branches",
       Stabilize: "Stabilize",
       Leverage: "Leverage",
       Funding: "Funding",
