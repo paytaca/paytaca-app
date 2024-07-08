@@ -11,6 +11,8 @@
     />
     <div class="q-pa-md">
       <div class="row items-center justify-end">
+        <div class="text-h5">{{ $t('Merchants')}}</div>
+        <q-space/>
         <q-btn
           round
           icon="add"
@@ -43,7 +45,7 @@
           <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             <q-item
               clickable v-close-popup
-              @click="() => setActiveMerchant(merchantData)"
+              @click="() => openMerchantPage(merchantData)"
             >
               <q-item-section>
                 <q-item-label>{{ $t('View') }}</q-item-label>    
@@ -57,6 +59,14 @@
                 <q-item-label>{{ $t('Edit') }}</q-item-label>    
               </q-item-section>
             </q-item>
+            <q-item
+              clickable v-close-popup
+              @click="() => confirmDeleteMerchant(merchantData)"
+            >
+              <q-item-section>
+                <q-item-label>{{ $t('Delete') }}</q-item-label>    
+              </q-item-section>
+            </q-item>
           </q-menu>
         </q-btn>
         <div class="text-body1">
@@ -64,19 +74,28 @@
           <span v-if="merchantData?.id" class="text-grey">#{{ merchantData?.id }}</span>
         </div>
         <div class="text-body2">{{ merchantData?.formattedLocation }}</div>
+        <div class="text-grey text-caption">
+          <q-badge v-if="Number.isSafeInteger(merchantData?.branchCount)" rounded color="brandblue" class="q-mr-sm">
+            {{ $t('BranchesCapped', {}, 'Branches') }}: {{ merchantData?.branchCount }}
+          </q-badge>
+          <q-badge v-if="Number.isSafeInteger(merchantData?.posDeviceCount)" rounded color="brandblue" class="q-mr-sm">
+            {{ $t('Devices') }}: {{ merchantData?.posDeviceCount }}
+          </q-badge>
+        </div>
       </div>
     </div>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus'
 import { backend as posBackend, authToken } from 'src/wallet/pos'
 import { loadWallet, Wallet } from 'src/wallet'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import HeaderNav from 'src/components/header-nav'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
 
@@ -107,7 +126,9 @@ async function fetchAuthWallet() {
     })
 }
 
-async function reLogin() {
+onMounted(() => bus.on('paytaca-pos-relogin', reLogin))
+onUnmounted(() => bus.off('paytaca-pos-relogin', reLogin))
+const reLogin = debounce(async () => {
   const loadingKey = 'paytacapos-relogin'
   try {
     $q.loading.show({ group: loadingKey, message: $t('LoggingYouIn') })
@@ -116,7 +137,8 @@ async function reLogin() {
   } finally {
     $q.loading.hide(loadingKey)
   }
-}
+}, 500)
+
 
 const walletType = 'bch'
 const walletData = computed(() => {
@@ -165,19 +187,74 @@ function fetchMerchants() {
   })
 }
 
-function setActiveMerchant(merchantData) {
+function openMerchantPage(merchantData) {
   $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
 }
 
 function openMerchantInfoDialog(merchantData) {
+  const isEdit = Boolean(merchantData?.id)
   $q.dialog({
     component: MerchantInfoDialog,
     componentProps: {
       merchant: merchantData,
     }
   })
+    .onOk(_merchantData => {
+      if (!isEdit) openMerchantPage(_merchantData)
+    })
 }
 
+function confirmDeleteMerchant(merchantData) {
+  if (!merchantData?.id) return
+  $q.dialog({
+    title: $t(
+      'DeleteMerchantName',
+      { name: merchantData?.name },
+      `Delete merchant '${merchantData?.name}'`,
+    ),
+    message: $t('AreYouSure', {}, 'Are you sure?'),
+    ok: { label: $t('YesDelete', {}, 'Yes, Delete'), noCaps: true, color: 'red' },
+    cancel: { label: $t('Cancel'), noCaps: true, color: 'grey', flat: true },
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  })
+    .onOk(() => deleteMerchant(merchantData))
+}
+
+function deleteMerchant(merchantData) {
+  if (!merchantData?.id) return Promise.resolve()
+  const dialog = $q.dialog({
+    title: $t('DeletingMerchant', {} , 'Deleting Merchant'),
+    progress: true,
+    persistent: true,
+    ok: false,
+    color: 'brandblue',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  })
+  return posBackend.delete(`paytacapos/merchants/${merchantData?.id}/`, { authorize: true })
+    .catch(error => {
+      if (error?.response?.status === 404) return Promise.resolve()
+      return Promise.reject(error)
+    })
+    .then(() => {
+      $store.commit('paytacapos/removeMerchantInfo', merchantData?.id)
+      dialog.hide()
+    })
+    .catch(error => {
+      if (error?.response?.status === 403) reLogin()
+      let errorMsg = error?.response?.data?.detail ||
+        error?.response?.data?.[0]
+
+      dialog.update({
+        title: $t('Error'),
+        message: $t(errorMsg) || $t('UnknownErrorOccurred'),
+      })
+
+      return Promise.reject(error)
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false, ok: true })
+    })
+}
 
 async function refreshPage(done=() => {}) {
   try {

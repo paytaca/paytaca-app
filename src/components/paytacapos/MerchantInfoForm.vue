@@ -172,7 +172,6 @@ const walletHash = computed(() => {
   if (props.merchant?.walletHash) return props.merchant?.walletHash
   return $store.getters['global/getWallet']('bch')?.walletHash
 })
-const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
 const merchantInfoForm = ref({
   id: 0,
   name: '',
@@ -264,7 +263,7 @@ function updateMerchantInfo() {
         color: 'positive',
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
-      $emit('saved')
+      $emit('saved', response?.data)
       return response
     })
     .then(response => {

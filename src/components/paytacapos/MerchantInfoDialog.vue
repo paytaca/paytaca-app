@@ -17,7 +17,7 @@
         />
       </div>
       <q-card-section class="q-gutter-y-sm">
-        <MerchantInfoForm :merchant="merchant" @cancel="hide()" @saved="hide()"/>
+        <MerchantInfoForm :merchant="merchant" @cancel="onDialogCancel" @saved="onDialogOK"/>
       </q-card-section>
     </q-card>
   </q-dialog>
