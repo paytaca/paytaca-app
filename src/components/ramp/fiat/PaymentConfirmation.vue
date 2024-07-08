@@ -100,7 +100,7 @@
       style="overflow-wrap: break-word;">
         <span> Please release the funds if you have received fiat payment. </span>
     </div>
-    <div class="q-mb-sm">
+    <div class="q-mb-sm q-mt-sm">
       <div class="q-mx-md q-px-md">
         <div v-if="data?.type === 'seller'">
           <!-- Errors -->
@@ -332,13 +332,18 @@ export default {
             vm.$store.commit('ramp/saveTxid', txidData)
             vm.$emit('verify-release', txid)
           } else {
-            vm.sendErrors = [result.reason]
+            let errorMessage = result.reason
+            if (vm.contractBalance > 0 && result.reason.toLowerCase().includes('insufficient funds: available (0)')) {
+              errorMessage = 'Possible pending contract UTXO, please try again later.'
+            }
+            vm.sendErrors = [errorMessage]
             vm.showDragSlide = true
           }
         })
         .catch(error => {
           console.error(error)
         })
+      vm.sendingBch = false
     },
     fetchOrderDetail () {
       return new Promise((resolve, reject) => {

@@ -664,11 +664,20 @@ export default {
         if (!this.selectedAssetMarketPrice) {
           this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
         }
-        if (this.payloadAmount && this.payloadAmount > 0) {
-          const finalAmount = (this.payloadAmount / this.selectedAssetMarketPrice).toFixed(8)
-          this.inputExtras[this.currentActiveRecipientIndex].sendAmountInFiat = this.payloadAmount
-          this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = finalAmount
-          this.sendDataMultiple[this.currentActiveRecipientIndex].amount = finalAmount
+
+        for (var index = 0; index < this.sendDataMultiple.length; index++) {
+          const amount = this.sendDataMultiple[index]?.amount
+
+          if (!amount || amount <= 0) return
+          const amountInFiat = parseFloat(this.inputExtras[index].sendAmountInFiat)
+
+          // if set to input BCH or if fiat amount is none (happens sometimes)
+          if (!this.setAmountInFiat || !amountInFiat) {
+            const amountInFiat = this.convertToFiatAmount(amount)
+            this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
+          } else {
+            this.recomputeAmount(this.sendDataMultiple[index], this.inputExtras[index], amountInFiat)
+          }
         }
       }
     },
@@ -732,7 +741,6 @@ export default {
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
-        console.error(error)
         if (error?.message === 'PaymentRequestIsExpired') {
           this.$q.notify({
             type: 'negative',
@@ -760,10 +768,8 @@ export default {
           })
           return
         }
+        console.error(error)
       }
-
-      // check for BIP21
-      this.onBIP21Amount(address)
 
       if (paymentUriData?.outputs?.[0]) {
         currency = paymentUriData.outputs[0].amount?.currency
@@ -781,6 +787,9 @@ export default {
 
       const valid = this.checkAddress(address)
       if (valid) {
+        // check for BIP21
+        this.onBIP21Amount(content)
+
         currentRecipient.recipientAddress = address
         currentRecipient.rawPaymentUri = rawPaymentUri
         currentInputExtras.scannedRecipientAddress = true
@@ -899,6 +908,11 @@ export default {
       return computedBalance.toFixed(8)
     },
     setAmount (key) {
+      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
+        this.customKeyboardState = 'dismiss'
+        return console.warn('Custom keyboard input without target field, hiding keyboard', { key })
+      }
+
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
       let currentSendAmount, currentAmount
@@ -954,6 +968,10 @@ export default {
       this.adjustWalletBalance()
     },
     makeKeyAction (action) {
+      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
+        this.customKeyboardState = 'dismiss'
+        return console.warn('Custom keyboard input without target field, hiding keyboard', { action })
+      }
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex] ?? ''
       const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
@@ -1531,7 +1549,7 @@ export default {
 
         this.disableSending = false
         return true
-      } else {
+      } else if (!this.isNFT) {
         const vm = this
         const recipientAddress = value.split('?')[0]
         if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
@@ -1717,7 +1735,7 @@ export default {
     }
   }
   .send-form-container {
-    max-height: 65vh;
+    max-height: 100vh;
     overflow-y: scroll;
     &.sent {
       max-height: 80vh;

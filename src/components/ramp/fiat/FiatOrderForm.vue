@@ -1,13 +1,9 @@
 <template>
-  <div
-    v-if="state === 'initial'"
-    class="q-mx-md q-mx-none text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
+  <div v-if="state === 'initial'"
+    class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
     <!-- Form Body -->
     <div v-if="isloaded">
-      <div
-        class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
+      <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
         <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
         {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
       </div>
@@ -653,7 +649,44 @@ export default {
           amount = amount / price
         }
       }
+
       this.amount = parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
+
+      // check if valid amount
+      let temp = this.amount
+      let cont = true
+
+      if (this.byFiat) {
+        temp = this.equivalentAmount
+      }
+
+      if (temp < parseFloat(this.ad.trade_floor)) {
+        cont = false
+        temp = parseFloat(this.ad.trade_floor)
+
+        if (this.byFiat) {
+          temp = temp * this.ad.price
+          temp = parseFloat((Number(temp) + 0.01).toFixed(2))
+        } else {
+          temp = parseFloat((Number(temp) + 0.00000001).toFixed(8))
+        }
+      }
+
+      if ((temp > this.minTradeAmount(this.ad)) && cont) {
+        cont = false
+        temp = parseFloat(this.minTradeAmount(this.ad))
+
+        if (this.byFiat) {
+          temp = temp * this.ad.price
+          temp = parseFloat((Number(temp) - 0.01).toFixed(2))
+        } else {
+          temp = parseFloat((Number(temp) - 0.00000001).toFixed(8))
+        }
+      }
+
+      if (!cont) {
+        this.amount = temp
+      }
     },
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)

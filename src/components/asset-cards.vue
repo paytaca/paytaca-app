@@ -204,6 +204,7 @@ export default {
     .asset-symbol {
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
       color: #EAEEFF;
       font-size: 19px;
     }

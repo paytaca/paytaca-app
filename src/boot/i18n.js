@@ -3,7 +3,7 @@ import { createI18n } from 'vue-i18n'
 import messages from 'src/i18n'
 import { Store } from 'src/store'
 
-const locale = Store.getters['global/language'].value
+const locale = Store.getters['global/language']
 const i18n = createI18n({
   legacy: false, // you must set `false`, to use Composition API
   locale,
