@@ -158,6 +158,9 @@ export async function switchWallet (context, index) {
         )
         context.commit('assets/updatedCurrentAssets', index, { root: true })
 
+        context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
+        context.commit('paytacapos/clearBranchInfo', {}, { root: true })
+
         context.commit('ramp/resetUser', {}, { root: true })
         context.commit('ramp/resetData', {}, { root: true })
         context.commit('ramp/resetChatIdentity', {}, { root: true })
