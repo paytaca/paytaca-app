@@ -175,7 +175,10 @@ async function checkWalletLinkData() {
   }
 }
 
-const merchantsData = computed(() => $store.getters[`paytacapos/merchants`])
+const merchantsData = computed(() => {
+  return $store.getters[`paytacapos/merchants`]
+    .sort((merchant1, merchant2) => merchant2?.id - merchant1?.id)
+})
 const fetchingMerchants = ref(false)
 function fetchMerchants() {
   fetchingMerchants.value = true
