@@ -285,6 +285,27 @@ export default {
       this.resetAndRefetchListings()
     }
   },
+  beforeRouteLeave (to, from, next) {
+    console.log('from.name:', from.name)
+    console.log('to.name:', to.name)
+    switch (from.name) {
+      case 'p2p-store':
+      case 'p2p-ads':
+      case 'p2p-orders':
+      case 'p2p-profile':
+        switch (to.name) {
+          case 'p2p-order':
+          case 'exchange':
+            next('/apps')
+            break
+          default:
+            next()
+        }
+        break
+      default:
+        next()
+    }
+  },
   methods: {
     getDarkModeClass,
     userNameView (name) {

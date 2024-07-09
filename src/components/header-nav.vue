@@ -10,7 +10,7 @@
         class="pt-arrow-left-link"
         :class="{'text-grad': isNotDefaultTheme || darkMode}"
         :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-        <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
+        <span class="material-icons" @click="onClick">
             arrow_back
         </span>
       </router-link>
@@ -45,6 +45,7 @@ export default {
       default: ''
     }
   },
+  emits: ['click'],
   data() {
     return {
       addedBodyPadding: false
@@ -75,6 +76,16 @@ export default {
   },
   beforeUnmount() {
     if (this.addedBodyPadding) document.body.style.paddingTop = '';
+  },
+  methods: {
+    async onClick () {
+      if (this.backnavpath) {
+        await this.$router.push({ path: this.backnavpath })
+      } else {
+        this.$router.go(-1)
+      }
+      this.$emit('click')
+    }
   }
 }
 </script>

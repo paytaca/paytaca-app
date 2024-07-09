@@ -402,7 +402,6 @@ export default {
   },
   watch: {
     setTradeQuantityInFiat (value) {
-      console.log('setTradeQuantityInFiat:', value)
       if (this.loading) return
       if (value) {
         let amount = this.adData.tradeAmount * this.marketPrice
@@ -417,7 +416,6 @@ export default {
         }
         this.adData.tradeAmount = amount
       }
-      console.log('tradeAmount__:', this.adData.tradeAmount)
     },
     setTradeLimitsInFiat (value) {
       if (this.loading) return
@@ -512,7 +510,6 @@ export default {
       const data = { ...vm.adData }
       data.isTradeAmountFiat = this.setTradeQuantityInFiat
       data.isTradeLimitsFiat = this.setTradeLimitsInFiat
-      console.log('confirmationData:', data)
       return data
     }
   },
@@ -603,7 +600,6 @@ export default {
       const vm = this
       await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}`, { authorize: true })
         .then(response => {
-          console.log('response:', response)
           const data = response.data
           vm.adData.tradeType = data.trade_type
           vm.adData.priceType = data.price_type
@@ -752,7 +748,6 @@ export default {
     },
     async nextStep (data) {
       const currentStep = this.step
-      console.log('nextStep:', currentStep)
       if (currentStep === 2) {
         this.adData.paymentMethods = data
       }
@@ -843,7 +838,6 @@ export default {
         payment_methods: idList,
         is_public: data.isPublic
       }
-      console.log('payload:', payload)
       return payload
     },
     updatePriceValue (priceType) {

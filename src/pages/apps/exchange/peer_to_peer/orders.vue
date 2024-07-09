@@ -15,6 +15,25 @@ export default {
   components: {
     HeaderNav,
     OrderListings
+  },
+  beforeRouteLeave (to, from, next) {
+    switch (from.name) {
+      case 'p2p-store':
+      case 'p2p-ads':
+      case 'p2p-orders':
+      case 'p2p-profile':
+        switch (to.name) {
+          case 'p2p-order':
+          case 'exchange':
+            next('/apps')
+            break
+          default:
+            next()
+        }
+        break
+      default:
+        next()
+    }
   }
 }
 </script>

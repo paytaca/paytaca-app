@@ -1,18 +1,16 @@
 <template>
-  <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div>
-  <HeaderNav v-if="pageName" :title="`P2P Exchange`" backnavpath="/apps"/>
-  <div
-    v-if="!selectedListing && state === 'initial'"
-    class="q-mx-md q-mb-lg q-pb-lg text-bow"
-    :class="getDarkModeClass(darkMode)"
-    :style="`height: ${minHeight}px;`">
-    <div v-if="!isloaded">
-      <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+  <!-- <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div> -->
+  <div v-if="!$route.query?.edit">
+    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <div class="q-mx-md q-mb-lg q-pb-lg text-bow"
+      :class="getDarkModeClass(darkMode)"
+      :style="`height: ${minHeight}px;`">
+      <div v-if="!isloaded">
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        </div>
       </div>
-    </div>
-    <div v-else>
-      <div v-if="state === 'initial'">
+      <div v-else>
         <q-pull-to-refresh @refresh="refreshData">
           <div v-if="user" class="q-mb-lg">
             <div class="text-center q-pt-none">
@@ -37,14 +35,7 @@
                 :label="$t('EditPaymentMethods')"
                 color="blue-8"
                 class="q-space q-mx-md button"
-                @click="() => {
-                  state= 'edit-pm'
-                  if (!userInfo) {
-                    pageName = state
-                  } else {
-                    $emit('updatePageName', state)
-                  }
-                }"
+                @click="onEditPayments"
                 icon="o_payments"
                 >
               </q-btn>
@@ -244,18 +235,8 @@
       </div>
     </div>
   </div>
-  <AddPaymentMethods
-    ref="addPaymentMethods"
-    v-if="state === 'edit-pm'"
-    :type="'Profile'"
-    v-on:back="state = 'initial'"
-  />
-  <MiscDialogs
-    v-if="editNickname"
-    :type="'editNickname'"
-    v-on:back="editNickname = false"
-    v-on:submit="updateUserName"
-  />
+  <AddPaymentMethods ref="addPaymentMethods" v-if="$route.query?.edit === 'payments'" :type="'Profile'"/>
+  <MiscDialogs v-if="editNickname" :type="'editNickname'" v-on:back="editNickname = false" v-on:submit="updateUserName"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -270,6 +251,13 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { backend } from 'src/wallet/ramp/backend'
 
 export default {
+  components: {
+    MiscDialogs,
+    AddPaymentMethods,
+    ProgressLoader,
+    FeedbackDialog,
+    HeaderNav
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -293,20 +281,20 @@ export default {
       adsPageNumber: 1,
       loadingAds: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
-      pageName: null
+      pageName: null,
+      previousRoute: null
     }
   },
   props: {
     userInfo: Object
   },
-  emits: ['back', 'updatePageName', 'selectListing'],
-  components: {
-    MiscDialogs,
-    AddPaymentMethods,
-    ProgressLoader,
-    FeedbackDialog,
-    HeaderNav
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path
+      console.log('previousRoute:', vm.previousRoute)
+    })
   },
+  emits: ['back', 'updatePageName', 'selectListing'],
   watch: {
     activeTab (value) {
       if (value === 'ads') {
@@ -339,6 +327,21 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    onNavBack () {
+      const currentRoute = this.$route.path
+      if (currentRoute === this.previousRoute) {
+        this.previousRoute = '/apps/exchange/peer-to-peer/store/'
+      }
+    },
+    async onEditPayments () {
+      this.state = 'edit-pm'
+      if (!this.userInfo) {
+        this.pageName = this.state
+      } else {
+        this.$emit('updatePageName', this.state)
+      }
+      await this.$router.push({ query: { edit: 'payments' } })
+    },
     refreshData (done) {
       this.processUserData()
       this.fetchReviews()
