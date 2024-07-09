@@ -32,11 +32,20 @@
              <q-item-section class="q-py-sm">
                <div class="row q-mx-md">
                  <div class="col ib-text">
-                   <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" />
+                   <!-- <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" /> -->
                    <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
-                   <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="warning" label="New" class="q-mx-xs" />
-                   <div class="xs-font-size">{{ appeal.owner.name}}</div>
-                   <div class="row text-weight-bold" style="font-size: medium;">
+                   <!-- <div class="xs-font-size">{{ appeal.owner.name}}</div> -->
+                   <div class="text-weight-bold" style="font-size: medium;">
+                     {{
+                       $t(
+                         'AppealIdNo',
+                         { ID: appeal.id },
+                         `Appeal #${ appeal.id }`
+                       )
+                     }}
+                     <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="info" label="New" class="q-mx-xs" />
+                   </div>
+                   <div class="row" style="font-size: small;">
                      {{
                        $t(
                          'OrderIdNo',

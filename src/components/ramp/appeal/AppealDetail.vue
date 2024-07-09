@@ -8,7 +8,8 @@
         </div>
       </div>
       <div v-else>
-        <q-card class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+        <!-- Contract info -->
+        <div class="q-px-sm q-pt-sm q-ma-sm">
           <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractAddress') }}</div>
           <q-input
             class="q-pb-xs"
@@ -36,54 +37,11 @@
               <span class="sm-font-size">BCH</span>
             </template>
           </q-input>
-        </q-card>
-        <!-- <div class="q-mx-md q-my-sm"> -->
-          <q-card class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
-            <q-tabs
-              v-model="tab"
-              dense
-              class=""
-              active-color="primary"
-              indicator-color="primary"
-              align="justify"
-              narrow-indicator>
-              <q-tab name="status" :label="$t('Status')" />
-              <q-tab name="transaction" :label="$t('Transactions')" />
-            </q-tabs>
-            <q-separator class="q-mb-sm" :dark="darkMode"/>
-            <div v-if="tab === 'status'">
-              <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
-                <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span class="col">{{ formattedOrderStatus(status.status) }}</span>
-                  <span class="col text-nowrap q-ml-xs">
-                    {{ formattedDate(status.created_at) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div v-if="tab === 'transaction'">
-              <div class="row text-weight-bold sm-font-size">
-                <div class="col text-center">{{ $t('Action') }}</div>
-                <div class="col text-center">{{ $t('Txid') }}</div>
-                <div class="col text-center">{{ $t('Status') }}</div>
-                <div class="col text-center">{{ $t('Date') }}</div>
-              </div>
-              <q-separator class="q-my-sm" :dark="darkMode"/>
-              <div>
-                <div v-for="(transaction, index) in transactionHistory" :key=index>
-                  <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
-                  <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
-                    <div class="col text-center">{{ transaction.action }}</div>
-                    <span class="col text-blue text-center" @click="viewTxid(transaction.txid)"><u>{{ formattedTxid(transaction.txid) }}</u></span>
-                    <div class="col text-center">{{ transaction.valid ? 'Validated' : 'Not Validated'}}</div>
-                    <div class="col xs-font-size">{{ formattedDate(transaction.created_at, true)}}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </q-card>
-        <!-- </div> -->
+        </div>
+        <div class="row justify-end text-blue sm-font-size q-mx-md">
+          <q-btn class="col q-py-none" no-caps flat dense @click="showStatusHistory = true">View Status History</q-btn>
+          <q-btn class="col q-py-none" no-caps flat dense @click="showTransactionHistory = true">View Transactions</q-btn>
+        </div>
         <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
           <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
             <div class="text-center q-py-xs text-weight-bold text-uppercase">
@@ -158,8 +116,12 @@
     @cancel="onSecurityCancel"
     :text="$t('SwipeToConfirmLower')"
   />
+  <OrderStatusDialog v-if="showStatusHistory" :status-history="statusHistory" @back="showStatusHistory = false" />
+  <TransactionHistoryDialog v-if="showTransactionHistory" :transaction-history="transactionHistory" @back="showTransactionHistory = false" />
 </template>
 <script>
+import TransactionHistoryDialog from 'src/components/ramp/appeal/dialogs/TransactionHistoryDialog.vue'
+import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
@@ -169,6 +131,12 @@ import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
+  components: {
+    RampDragSlide,
+    ProgressLoader,
+    OrderStatusDialog,
+    TransactionHistoryDialog
+  },
   data () {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
@@ -192,7 +160,9 @@ export default {
       dragSlideKey: 0,
       sendingBch: false,
       sendError: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85,
+      showStatusHistory: false,
+      showTransactionHistory: false
     }
   },
   props: {
@@ -201,10 +171,6 @@ export default {
     state: String
   },
   emits: ['back', 'refresh', 'success', 'updatePageName', 'form-sending'],
-  components: {
-    RampDragSlide,
-    ProgressLoader
-  },
   watch: {
     sendError (value) {
       console.log('sendError:', value)
