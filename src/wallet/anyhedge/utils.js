@@ -116,6 +116,28 @@ export function txHexToHash(txHex='') {
     return binToHex(digest2.reverse())   
 }
 
+/**
+ * @param {*} value 
+ * @param {Object} opts
+ * @param {Number} opts.decimals
+ * @param {'floor' | 'ceil' | 'round' } opts.roundType
+ */
+export function roundBounded(value, opts={ roundType: '', decimals: 0 }) {
+    const decimals = parseInt(opts?.decimals || 0)
+    const roundType = opts?.roundType || 'round'
+    const multiplier = 10 ** decimals
+
+    let _val = Number(value) * multiplier
+    if (roundType === 'floor') {
+        _val = Math.floor(_val)
+    } else if (roundType === 'ceil') {
+        _val = Math.ceil(_val)
+    } else {
+        _val = Math.round(_val)
+    }
+    return _val / multiplier
+}
+
 
 export function castBigInt(value, radix) {
     try {
