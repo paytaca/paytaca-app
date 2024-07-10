@@ -60,8 +60,6 @@ export default {
     })
   },
   beforeRouteLeave (to, from, next) {
-    console.log('from.name:', from.name)
-    console.log('to.name:', to.name)
     switch (from.name) {
       case 'p2p-store':
       case 'p2p-ads':
