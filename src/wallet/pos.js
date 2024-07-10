@@ -6,6 +6,8 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { Store } from 'src/store'
 import { Wallet } from 'src/wallet'
 
+import packageInfo from '../../package.json'
+
 export const backend = axios.create({
   baseURL: process.env.MAINNET_WATCHTOWER_BASE_URL,
   // baseURL: 'http://localhost:8000/api',
@@ -13,6 +15,7 @@ export const backend = axios.create({
 
 backend.interceptors.request.use(async (config) => {
   const wallet = Store.getters['global/getWallet']('bch')
+  config.headers["X-Paytaca-App-Version"] = packageInfo.version
   config.headers['wallet-hash'] = wallet.walletHash
   if (config.authorize) {
     const token = await authToken.get()
