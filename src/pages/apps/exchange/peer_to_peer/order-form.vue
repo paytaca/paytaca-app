@@ -606,7 +606,6 @@ export default {
       }
     },
     updateInput (max = false, min = false) {
-      console.log('testing')
       if (!this.isloaded) return
       let amount = this.amount
       if (min) {
