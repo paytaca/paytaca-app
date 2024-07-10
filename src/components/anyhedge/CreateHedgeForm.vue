@@ -1,6 +1,6 @@
 <template>
-<TransitionGroup name="slide-group" tag="div" style="overflow:hidden;">
-  <div v-if="openLiquidityPoolOptsForm.show">
+<TransitionGroup name="slide-group" tag="div">
+  <div v-if="openLiquidityPoolOptsForm.show" key="create-hedge-form-pools">
     <div class="q-mx-sm text-subtitle1">{{ $t('SelectLiquidityPool') }}</div>
     <q-list class="q-my-sm" :dark="darkMode" separator>
       <q-item
@@ -53,6 +53,7 @@
   </div>
   <q-form
     v-else
+    key="create-hedge-form-main"
     @submit="createHedgePosition()"
     class="q-gutter-y-md" ref="form"
     @validation-error="alertError"
@@ -201,18 +202,18 @@
       :rules="[
         val => val >= 0 || $t('InvalidDuration'),
         (val, units, formatValue) =>
-          val >= createHedgeFormConstraints.minimumDuration
+          val >= createHedgeFormConstraints.minimumDurationInSeconds
             || `${$t(
               'MustAtLeastBe',
-              { amount: formatValue(createHedgeFormConstraints.minimumDuration) },
-              `Must at least be ${formatValue(createHedgeFormConstraints.minimumDuration)}`
+              { amount: formatValue(createHedgeFormConstraints.minimumDurationInSeconds) },
+              `Must at least be ${formatValue(createHedgeFormConstraints.minimumDurationInSeconds)}`
             )}`,
         (val, units, formatValue) =>
-          val <= createHedgeFormConstraints.maximumDuration
+          val <= createHedgeFormConstraints.maximumDurationInSeconds
             || `${$t(
               'MustAtMostBe',
-              { amount: formatValue(createHedgeFormConstraints.maximumDuration) },
-              `Must at most be ${formatValue(createHedgeFormConstraints.maximumDuration)}`
+              { amount: formatValue(createHedgeFormConstraints.maximumDurationInSeconds) },
+              `Must at most be ${formatValue(createHedgeFormConstraints.maximumDurationInSeconds)}`
             )}`,
       ]"
       @focus="readonlyState(true, 'duration')"
@@ -236,18 +237,18 @@
         reactive-rules
         :rules="[
           val =>
-            val/100 >= createHedgeFormConstraints.minimumLiquidationLimit
+            val/100 >= createHedgeFormConstraints.minimumLowLiquidationPriceMultiplier
               || `${$t(
                 'MustBeAtLeast',
-                { amount: createHedgeFormConstraints.minimumLiquidationLimit * 100 },
-                `Must be at least ${createHedgeFormConstraints.minimumLiquidationLimit * 100}`
+                { amount: createHedgeFormConstraints.minimumLowLiquidationPriceMultiplier * 100 },
+                `Must be at least ${createHedgeFormConstraints.minimumLowLiquidationPriceMultiplier * 100}`
               )}%`,
           val =>
-            val/100 <= createHedgeFormConstraints.maximumLiquidationLimit
+            val/100 <= createHedgeFormConstraints.maximumLowLiquidationPriceMultiplier
               || `${$t(
                 'MustBeAtMost',
-                { amount: createHedgeFormConstraints.maximumLiquidationLimit * 100 },
-                `Must be at most ${createHedgeFormConstraints.maximumLiquidationLimit * 100}`
+                { amount: createHedgeFormConstraints.maximumLowLiquidationPriceMultiplier * 100 },
+                `Must be at most ${createHedgeFormConstraints.maximumLowLiquidationPriceMultiplier * 100}`
               )}%`,
         ]"
         :readonly="inputState.lowLiquidationMultiplierPctg"
@@ -273,11 +274,23 @@
         dense
         :label="$t('High')"
         suffix="%"
-        :disable="loading"
+        :disable="loading || isSimpleLPContract"
         v-model="createHedgeForm.highLiquidationMultiplierPctg"
         :rules="[
-          val => (val > 100) || $t('GreaterThanHundredError'),
-          val => (val <= 1000) || $t('HigherThanThousandError')
+          val =>
+            val/100 >= createHedgeFormConstraints.minimumHighLiquidationPriceMultiplier
+              || `${$t(
+                'MustBeAtLeast',
+                { amount: createHedgeFormConstraints.minimumHighLiquidationPriceMultiplier * 100 },
+                `Must be at least ${createHedgeFormConstraints.minimumHighLiquidationPriceMultiplier * 100}`
+              )}%`,
+          val =>
+            val/100 <= createHedgeFormConstraints.maximumHighLiquidationPriceMultiplier
+              || `${$t(
+                'MustBeAtMost',
+                { amount: createHedgeFormConstraints.maximumHighLiquidationPriceMultiplier * 100 },
+                `Must be at most ${createHedgeFormConstraints.maximumHighLiquidationPriceMultiplier * 100}`
+              )}%`,
         ]"
         :readonly="inputState.highLiquidationMultiplierPctg"
       >
@@ -332,7 +345,7 @@
           ]"
           :readonly="inputState.match"
         >
-          <template v-slot:append>
+          <template v-slot:after>
             <q-icon name="help" :color="darkMode ? 'grey-7' : 'black'">
               <q-popup-proxy :breakpoint="0">
                 <div class="q-px-md q-py-sm pt-label pt-card-2" :class="getDarkModeClass(darkMode)">
@@ -375,10 +388,11 @@
 </template>
 <script setup>
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend';
+import { roundBounded } from 'src/wallet/anyhedge/utils';
 import { parseHedgePositionData, parseHedgePositionOffer, ellipsisText, formatTimestampToText } from '../../wallet/anyhedge/formatters'
 import { calculateGeneralProtocolsLPFee, createFundingProposal } from '../../wallet/anyhedge/funding'
 import { Wallet } from 'src/wallet';
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject, watchEffect } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar';
 import HedgePositionOfferSelectionDialog from './HedgePositionOfferSelectionDialog.vue';
@@ -588,6 +602,7 @@ const createHedgeForm = ref({
   lowLiquidationMultiplierPctg: 0.8 * 100,
   highLiquidationMultiplierPctg: 5 * 100,
   selectedAsset: oracles.value[0],
+  isSimpleHedge: true,
 
   autoMatch: true,
   autoMatchPoolTarget: '',
@@ -597,6 +612,7 @@ const createHedgeForm = ref({
 })
 const createHedgeFormMetadata = computed(() => {
   const data = {
+    isSimpleHedge: true,
     nominalAmount: 0, longNominalAmount: 0,
     lowLiquidationPrice: 0, highLiquidationPrice: 0,
     intentAmountBCH: 0,
@@ -688,21 +704,39 @@ const createHedgeFormConstraints = computed(() => {
   const data = {
     minimumNominalUnits: 0,
     maximumNominalUnits: Infinity,
-    minimumDuration: 0,
-    maximumDuration: Infinity,
-    minimumLiquidationLimit: 0,
-    maximumLiquidationLimit: Infinity,
+    minimumDurationInSeconds: 0,
+    maximumDurationInSminimumDurationInSeconds: Infinity,
+    minimumLowLiquidationPriceMultiplier: 0,
+    maximumLowLiquidationPriceMultiplier: Infinity,
+    minimumHighLiquidationPriceMultiplier: 0,
+    maximumHighLiquidationPriceMultiplier: Infinity,
     minimumAmount: 0,
-    maximumAmount: Infinity
+    maximumAmount: Infinity,
+    hedgeFixedHighLiquidationPriceMultiplier: NaN,
   }
 
   const { autoMatch, autoMatchPoolTarget, selectedAsset } = createHedgeForm.value
   if (autoMatch && autoMatchPoolTarget === 'anyhedge_LP' && selectedAsset) {
-    const constraints = liquidityServiceInfo.value?.liquidityParameters?.[selectedAsset?.oraclePubkey]?.[props.position == 'short' ? 'long' : 'short']
-    if (constraints) Object.assign(data, constraints, {
-      minimumDuration: constraints.minimumDuration || constraints.minimumDurationInSeconds,
-      maximumDuration: constraints.maximumDuration || constraints.maximumDurationInSeconds,
-    })
+    const constraints = liquidityServiceInfo.value?.liquidityParameters?.[selectedAsset?.oraclePubkey]
+    if (constraints) Object.assign(data, constraints)
+
+    if (isSimpleLPContract.value) {
+      data.minimumHighLiquidationPriceMultiplier = Math.min(
+        data.minimumHighLiquidationPriceMultiplier,
+        data.hedgeFixedHighLiquidationPriceMultiplier,
+      )
+      data.maximumHighLiquidationPriceMultiplier = Math.max(
+        data.maximumHighLiquidationPriceMultiplier,
+        data.hedgeFixedHighLiquidationPriceMultiplier,
+      )
+    }
+
+    // round multipliers to have less decimals
+    // rounded a `ceil` or `floor` to ensure not hitting the true bounds
+    data.minimumLowLiquidationPriceMultiplier = roundBounded(data.minimumLowLiquidationPriceMultiplier, { decimals: 4, roundType: 'ceil' })
+    data.maximumLowLiquidationPriceMultiplier = roundBounded(data.maximumLowLiquidationPriceMultiplier, { decimals: 4, roundType: 'floor' })
+    data.minimumHighLiquidationPriceMultiplier = roundBounded(data.minimumHighLiquidationPriceMultiplier, { decimals: 4, roundType: 'ceil' })
+    data.maximumHighLiquidationPriceMultiplier = roundBounded(data.maximumHighLiquidationPriceMultiplier, { decimals: 4, roundType: 'floor' })
 
     const priceValue = selectedAsset?.latestPrice?.priceValue
     if (priceValue) {
@@ -712,6 +746,21 @@ const createHedgeFormConstraints = computed(() => {
   }
 
   return data
+})
+
+
+const isSimpleLPContract = computed(() => {
+  return createHedgeFormMetadata.value?.isSimpleHedge &&
+        createHedgeForm.value.autoMatchPoolTarget === 'anyhedge_LP'
+})
+watchEffect(() => {
+  const simpleHighLiquidationPriceMultPctg = createHedgeFormConstraints.value.hedgeFixedHighLiquidationPriceMultiplier * 100
+  const currentMult = createHedgeForm.value.highLiquidationMultiplierPctg
+  if (isSimpleLPContract.value && Number.isFinite(simpleHighLiquidationPriceMultPctg)) {
+    if (currentMult === simpleHighLiquidationPriceMultPctg) return
+
+    createHedgeForm.value.highLiquidationMultiplierPctg = simpleHighLiquidationPriceMultPctg
+  }
 })
 
 const loading = ref(false)
