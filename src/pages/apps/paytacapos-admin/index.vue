@@ -120,15 +120,11 @@ async function fetchAuthWallet() {
       }
       return response
     })
-    .catch(error => {
-      if(error)
-      return Promise.reject(error)
-    })
 }
 
-onMounted(() => bus.on('paytaca-pos-relogin', reLogin))
-onUnmounted(() => bus.off('paytaca-pos-relogin', reLogin))
-const reLogin = debounce(async () => {
+onMounted(() => bus.on('paytaca-pos-relogin', reLoginDebounced))
+onUnmounted(() => bus.off('paytaca-pos-relogin', reLoginDebounced))
+const reLogin = async () => {
   const loadingKey = 'paytacapos-relogin'
   try {
     $q.loading.show({ group: loadingKey, message: $t('LoggingYouIn') })
@@ -137,7 +133,8 @@ const reLogin = debounce(async () => {
   } finally {
     $q.loading.hide(loadingKey)
   }
-}, 500)
+}
+const reLoginDebounced = debounce(reLogin, 500)
 
 
 const walletType = 'bch'
@@ -263,6 +260,10 @@ async function refreshPage(done=() => {}) {
   try {
     await initWallet()
     await fetchAuthWallet()
+      .catch(error => {
+        if (error.response?.status === 403) return reLogin()
+        return Promise.reject(error)
+      })
       .finally(() => {
         if (authWallet.value.walletHash !== walletData.value.walletHash) {
           return reLogin()
