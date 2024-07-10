@@ -56,21 +56,21 @@ class Translator {
     */
     const supportedLangs = [
       'en-us',
-      'es',
-      'zh-tw',
-      'zh-cn',
-      'de',
-      'ha',
-      'pt',
-      'af',
-      'ceb',
-      'nl',
-      'id',
-      'it',
-      'ja',
-      'ko',
-      'fr',
-      'tl',
+      // 'es',
+      // 'zh-tw',
+      // 'zh-cn',
+      // 'de',
+      // 'ha',
+      // 'pt',
+      // 'af',
+      // 'ceb',
+      // 'nl',
+      // 'id',
+      // 'it',
+      // 'ja',
+      // 'ko',
+      // 'fr',
+      // 'tl',
 
       /* 
         LANGUAGE BRANCH (variations)
@@ -238,7 +238,8 @@ class Translator {
 
   async getExistingTranslations(lang) {
     const fromPath = `./${lang}/${this.indexFile}`
-    const toPath = `./${lang}/temp.mjs`
+    const toPath = `./${lang}/temp-${Date.now()}.mjs`
+    if (!fs.existsSync(fromPath)) return {}
     fs.copyFileSync(fromPath, toPath)
     const data = await import(toPath)
     fs.unlinkSync(toPath)
