@@ -1,11 +1,12 @@
 /**
- * 
  * @param {Object} state 
  * @param {Object} data
  * @param {Number} data.id
  * @param {String} data.name
  * @param {String} data.wallet_hash
  * @param {String} data.primary_contact_number
+ * @param {String} data.branch_count
+ * @param {String} data.pos_device_count
  * @param {Object} [data.location]
  * @param {String} data.location.landmark
  * @param {String} data.location.location
@@ -16,12 +17,14 @@
  * @param {String} data.location.latitude
  * 
  */
-export function updateMerchantInfo(state, data) {
-  state.merchantInfo = {
+function parseMerchantData(data) {
+  return {
     id: data?.id,
     walletHash: data?.wallet_hash,
     name: data?.name,
     primaryContactNumber: data?.primary_contact_number,
+    branchCount: data?.branch_count,
+    posDeviceCount: data?.pos_device_count,
     location: {
       landmark: data?.location?.landmark,
       location: data?.location?.location,
@@ -36,11 +39,41 @@ export function updateMerchantInfo(state, data) {
 
 /**
  * @param {Object} state 
+ * @param {Object[]} data
+ */
+export function storeMerchantsListInfo(state, data) {
+  data?.forEach(rawMerchantData => {
+    const merchantData = parseMerchantData(rawMerchantData)
+    if (!merchantData.id || !merchantData.walletHash) return
+
+    const index = state?.merchants?.findIndex(_merchantData => _merchantData?.id == merchantData.id)
+    if (index >= 0) state.merchants[0] = merchantData
+    else state.merchants.push(merchantData)
+  })
+}
+
+/**
+ * @param {Object} state 
+ * @param {Number} merchantId 
+ */
+export function removeMerchantInfo(state, merchantId) {
+  if (!Array.isArray(state.merchants)) return
+  state.merchants = state.merchants.filter(merchantData => merchantData?.id !== merchantId)
+}
+
+export function clearMerchantsInfo(state) {
+  state.merchants = []
+}
+
+/**
+ * @param {Object} state 
  * @param {Object} data 
  * @param {Number} data.id
  * @param {String} data.name
  * @param {Boolean} data.is_main
  * @param {Object} data.merchant
+ * @param {Number} data.merchant.id
+ * @param {String} data.merchant.name
  * @param {String} data.merchant.wallet_hash
  * @param {Object} [data.location]
  * @param {String} data.location.landmark
@@ -57,6 +90,7 @@ export function updateMerchantInfo(state, data) {
 
   const _branchInfo = {
     id: data?.id,
+    merchantId: data?.merchant?.id,
     merchantWalletHash: data?.merchant?.wallet_hash,
     isMain: data?.is_main,
     name: data?.name,

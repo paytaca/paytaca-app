@@ -106,9 +106,9 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('POSAdmin'),
+          name: this.$t('MerchantAdmin', {}, 'Merchant admin'),
           iconName: 'point_of_sale',
-          path: '/apps/point-of-sale',
+          path: '/apps/pos-admin',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },

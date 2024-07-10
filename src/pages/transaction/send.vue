@@ -788,7 +788,7 @@ export default {
       const valid = this.checkAddress(address)
       if (valid) {
         // check for BIP21
-        this.onBIP21Amount(content)
+        this.onBIP21Amount(address)
 
         currentRecipient.recipientAddress = address
         currentRecipient.rawPaymentUri = rawPaymentUri

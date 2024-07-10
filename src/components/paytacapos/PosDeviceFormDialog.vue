@@ -81,6 +81,7 @@
 </template>
 <script setup>
 import { backend as posBackend, padPosId } from 'src/wallet/pos'
+import { bus } from 'src/wallet/event-bus';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
@@ -103,6 +104,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const props = defineProps({
   newDevice: Boolean,
   posDevice: Object,
+  merchantId: [Number, String],
   branchOptions: Array,
 })
 
@@ -151,12 +153,17 @@ function savePosDevice() {
   const data = Object.assign({
     wallet_hash: props.posDevice?.walletHash || walletData?.value?.walletHash,
     branch_id: posDeviceForm.value.branchId,
+    merchant_id: props.posDevice?.merchantId || props.merchantId,
   }, posDeviceForm.value)
   if (!props.newDevice) data.posid = props.posDevice?.posid
   else data.posid = -1
 
   loading.value = true
-  const apiRequest = posBackend.post(`/paytacapos/devices/`, data)
+  const apiRequest = posBackend.post(`/paytacapos/devices/`, data, { authorize: true })
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
     .finally(() => {
       loading.value = false
     })

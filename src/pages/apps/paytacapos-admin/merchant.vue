@@ -1,8 +1,11 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <q-pull-to-refresh
+    id="app-container"
+    :class="getDarkModeClass(darkMode)"
+    @refresh="refreshPage"
+  >
     <HeaderNav
       :title="$t('POSAdmin')"
-      backnavpath="/apps"
       class="apps-header"
     />
     <q-card
@@ -273,19 +276,19 @@
         </div>
       </q-card-section>
     </q-card>
-  </div>
+  </q-pull-to-refresh>
 </template>
 <script setup>
 import BCHJS from '@psf/bch-js';
-import { backend as posBackend, parsePosDeviceData, padPosId } from 'src/wallet/pos'
+import { backend as posBackend, parsePosDeviceData, padPosId, authToken } from 'src/wallet/pos'
+import { bus } from 'src/wallet/event-bus';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
 import BranchFormDialog from 'src/components/paytacapos/BranchFormDialog.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
-import PosDeviceDetailDialog from 'src/components/paytacapos/PosDeviceDetailDialog.vue'
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
 import { loadWallet } from 'src/wallet'
 import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.vue'
@@ -295,6 +298,10 @@ import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const bchjs = new BCHJS()
+
+const props = defineProps({
+  merchantId: [String, Number],
+})
 
 const $store = useStore()
 const $q = useQuasar()
@@ -316,12 +323,11 @@ const walletData = computed(() => {
 })
 
 const wallet = ref(null)
-onMounted(() => {
-  loadWallet('BCH', $store.getters['global/getWalletIndex']).then(_wallet => {
-    wallet.value = _wallet
-    checkWalletLinkData()
-  })
-})
+async function initWallet() {
+  const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+  wallet.value = _wallet
+  await checkWalletLinkData()
+}
 async function checkWalletLinkData() {
   if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
@@ -333,24 +339,53 @@ async function checkWalletLinkData() {
     $store.commit('global/updateWallet', newWalletData)
   }
 }
-onMounted(() => checkWalletLinkData())
 
-const merchantInfo = computed(() => $store.getters['paytacapos/merchantInfo'])
-onMounted(() => $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash }))
-watch(
-  () => walletData.value.walletHash,
-  () => $store.dispatch('paytacapos/refetchMerchantInfo', { walletHash: walletData.value.walletHash }),
-)
+const authWallet = ref({ walletHash: '', walletType: '' })
+async function fetchAuthWallet() {
+  return posBackend.get(`auth/wallet`, { authorize: true })
+    .finally(() => {
+      authWallet.value = { walletHash: '', walletType: '' }
+    })
+    .then(response => {
+      const data = response?.data
+      authWallet.value = {
+        walletHash: data?.wallet_hash,
+        walletType: data?.wallet_type,
+      }
+      return response
+    })
+    .catch(error => {
+      if(error)
+      return Promise.reject(error)
+    })
+}
+
+const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])
+const merchantInfo = computed(() => merchantsList.value.find(merchant => merchant?.id == props.merchantId))
 function openMerchantInfoDialog() {
   $q.dialog({
     component: MerchantInfoDialog,
+    componentProps: {
+      merchant: merchantInfo.value,
+    }
   })
 }
-const merchantBranches = computed(() => $store.getters['paytacapos/merchantBranches'])
-onMounted(() => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }))
+const merchantBranches = computed(() => {
+  return $store.getters['paytacapos/merchantBranches']
+    .filter(branch => branch?.merchant?.id == props.merchantId)
+})
+function fetchBranches() {
+  return $store.dispatch(
+    'paytacapos/refetchBranches',
+    { walletHash: walletData.value.walletHash, merchantId: parseInt(props?.merchantId) },
+  )
+}
 watch(
   () => walletData.value.walletHash,
-  () => $store.dispatch('paytacapos/refetchBranches', { walletHash: walletData.value.walletHash }),
+  () => $store.dispatch(
+    'paytacapos/refetchBranches',
+    { walletHash: walletData.value.walletHash, merchantId: props?.merchantId }
+  ),
 )
 function merchantBranch (branchId) {
   return merchantBranches.value.find(branchInfo => branchInfo?.id === branchId)
@@ -369,6 +404,7 @@ function openNewBranchForm() {
     component: BranchFormDialog,
     componentProps: {
       newBranch: true,
+      merchantId: props?.merchantId,
     }
   })
 }
@@ -386,15 +422,16 @@ const parsedPosDevicePagination = computed(() => {
   return data
 })
 const fetchingPosDevices = ref(false)
-onMounted(() => fetchPosDevices())
 watch(() => walletData.value.walletHash, () => fetchPosDevices())
 function fetchPosDevices(opts) {
-  if (!walletData.value?.walletHash) return
+  const walletHash = walletData.value?.walletHash
+  if (!walletHash) return
 
   const params = {
     limit: opts?.limit || 10,
     offset: opts?.offset || 0,
-    wallet_hash: walletData.value?.walletHash,
+    wallet_hash: walletHash,
+    merchant_id: parseInt(props.merchantId),
   }
   fetchingPosDevices.value = true
   return posBackend.get('paytacapos/devices/', { params })
@@ -417,7 +454,7 @@ function fetchPosDevices(opts) {
 
       missingBranchIds
         .filter((e,i,s) => s.indexOf(e) === i)
-        .forEach(branchId => $store.dispatch('paytacapos/refetchBranchInfo', { branchId }))
+        .forEach(branchId => $store.dispatch('paytacapos/refetchBranchInfo', { branchId, walletHash }))
     })
     .finally(() => {
       fetchingPosDevices.value = false
@@ -448,13 +485,6 @@ function syncPosDevice(posDevice, append=false) {
 
   if (index >= 0) posDevices.value[index] = posDevice
   else if (append) posDevices.value.push(posDevice)
-}
-
-function displayPosDeviceInDialog(posDevice) {
-  $q.dialog({
-    component: PosDeviceDetailDialog,
-    componentProps: { posId: posDevice?.posid, name: posDevice?.name }
-  })
 }
 
 function openLinkDeviceDialog(posDevice) {
@@ -606,6 +636,7 @@ function displaySalesReportDialog() {
     component: SalesReportDialog,
     componentProps: {
       walletHash: walletData.value.walletHash,
+      merchant_id: props?.merchantId,
     }
   })
 }
@@ -669,6 +700,7 @@ function addNewPosDevice() {
     component: PosDeviceFormDialog,
     componentProps: {
       newDevice: true,
+      merchantId: parseInt(props.merchantId),
       branchOptions: merchantBranches.value,
     }
   })
@@ -714,6 +746,7 @@ function addNewPosDevice() {
 }
 
 function updatePosDevice(posDevice) {
+  console.log({ props })
   const dialog = $q.dialog({
     component: PosDeviceFormDialog,
     componentProps: {
@@ -840,14 +873,27 @@ function confirmRemovePosDevice(posDevice) {
  */
 function deletePosDevice(posDevice) {
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
-  return posBackend.delete(`paytacapos/devices/${handle}/`).then(() => fetchPosDevices())
+  return posBackend.delete(`paytacapos/devices/${handle}/`, { authorize: true }).then(() => fetchPosDevices())
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
 }
 
-onMounted(() => {
-  window.t = () => {
-    $store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
+
+onMounted(() => bus.on('paytaca-pos-relogin', reLogin))
+onUnmounted(() => bus.off('paytaca-pos-relogin', reLogin))
+const reLogin = debounce(async (opts = {silent: false }) => {
+  const loadingKey = 'paytacapos-relogin'
+  try {
+    if (!opts?.silent) {
+      $q.loading.show({ group: loadingKey, message: $t('LoggingYouIn') })
+    }
+    await authToken.generate(wallet.value)
+  } finally {
+    $q.loading.hide(loadingKey)
   }
-})
+}, 500)
 
 /**
  * @param {Object} rpcResult
@@ -933,6 +979,26 @@ function connectRpcClient(opts) {
         console.log('Skipping reconnection')
       }
     })
+}
+
+onMounted(() => refreshPage())
+async function refreshPage(done=() => {}) {
+  try {
+    await initWallet()
+    await fetchAuthWallet()
+      .finally(() => {
+        if (walletData.value?.walletHash == authWallet.value?.walletHash) return
+        reLogin({ silent: true })
+      })
+
+    await Promise.all([
+      fetchPosDevices(),
+      fetchBranches(),
+    ])
+  } finally {
+    done?.()
+  }
+
 }
 </script>
 <style lang="scss" scoped>

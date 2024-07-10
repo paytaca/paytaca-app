@@ -1,23 +1,28 @@
 export default function () {
   return {
-    merchantInfo: {
-      id: 0,
-      walletHash: '',
-      name: '',
-      primaryContactNumber: '',
-      location: {
-        landmark: '',
-        location: '',
-        street: '',
-        city: '',
-        country: '',
-        longitude: null,
-        latitude: null,
-      },
-    },
+    merchants: [].map(() => {
+      return {
+        id: 0,
+        walletHash: '',
+        name: '',
+        primaryContactNumber: '',
+        branchCount: 0,
+        posDeviceCount: 0,
+        location: {
+          landmark: '',
+          location: '',
+          street: '',
+          city: '',
+          country: '',
+          longitude: null,
+          latitude: null,
+        },
+      }
+    }),
     branches: [
       {
         id: 0,
+        merchantId: 0,
         merchantWalletHash: '',
         name: '',
         isMain: false,
