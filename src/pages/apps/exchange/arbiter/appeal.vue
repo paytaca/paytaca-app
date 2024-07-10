@@ -3,66 +3,83 @@
   <div v-if="isloaded && escrowContract"
     class="q-mx-md q-px-none text-bow"
     :class="getDarkModeClass(darkMode)">
-    <div class="text-center q-pb-sm">
-      <div v-if="appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">{{ appeal?.order?.status?.label?.toUpperCase() }} </div>
-      <div v-if="!appeal?.resolved_at" class="text-weight-bold" style="font-size: large;">APPEAL</div>
-      <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">ORDER #{{ appeal?.order?.id }}</div>
-    </div>
-    <div :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
-      <div class="q-mx-sm q-mb-sm">
-        <TradeInfoCard
-          :order="appealDetailData.order"
-          :ad="appealDetailData.ad_snapshot"
-          type="appeal"
-          @view-ad="showAdSnapshot=true"
-          @view-peer="onViewPeer"
-          @view-reviews="showReviews=true"/>
+      <div class="text-center q-pb-sm">
+        <div class="text-weight-bold" style="font-size: large;">{{ !appeal?.resolved_at ? 'PENDING' : 'RESOLVED' }} {{ $t('APPEAL') }}</div>
+        <div class="sm-font-size" :class="darkMode ? 'text-grey-4' : 'text-grey-6'">
+          {{
+            $t(
+              'AppealIdNo',
+              { ID: appeal?.id },
+              `Appeal No. ${ appeal?.id }`
+            )
+          }}</div>
       </div>
-      <div class="q-mx-sm">
-        <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
-          <q-card-section>
-            <div class="row justify-end no-wrap">
-              <div class="col-9 q-mr-lg">
-                <div class="text-weight-bold md-font-size">Appeal reasons</div>
-                <q-badge v-for="(reason, index) in appeal.reasons" class="row q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
-              </div>
-              <q-space/>
-              <div class="col q-mt-sm">
-                <q-btn size="1.3em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="openChat=true">
-                  <q-badge v-if="unread" floating color="red" rounded>{{ unread }}</q-badge>
-                </q-btn>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-      <AppealDetail
-        v-if="state === 'form' || state === 'form-sending' || state === 'completed'"
-        ref="appealDetail"
-        :key="appealDetailKey"
-        :data="appealDetailData"
-        :escrowContract="escrowContract"
-        :state="state"
-        @back="$emit('back')"
-        @refresh="refreshData"
-        @update-page-name="(val) => {$emit('updatePageName', val)}"
-        @form-sending="state = 'form-sending'"
-      />
-      <AppealTransfer
-        v-if="state === 'tx-confirmation'"
-        :key="appealTransferKey"
-        :escrowContract="escrowContract"
-        :orderId="appeal?.order?.id"
-        :txid="txid"
-        :action="selectedAction"
-        @back="$emit('back')"
-        @update-page-name="(val) => {$emit('updatePageName', val)}"
-      />
+      <q-pull-to-refresh :scroll-target="scrollTarget" @refresh="refreshData">
+        <div ref="scrollTarget" :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
+          <div class="q-mx-sm q-mb-sm">
+            <TradeInfoCard
+              :order="appealDetailData.order"
+              :ad="appealDetailData.ad_snapshot"
+              type="appeal"
+              @view-ad="showAdSnapshot=true"
+              @view-peer="onViewPeer"
+              @view-reviews="showReviews=true"/>
+          </div>
+          <div class="q-mx-sm">
+            <q-card class="br-15 q-mt-xs" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+              <q-card-section>
+                <div class="row justify-end no-wrap">
+                  <div class="col-9 q-mr-lg">
+                    <div class="row text-weight-bold md-font-size">
+                      <span>{{ appeal?.type?.label }} Appeal</span>
+                    </div>
+                    <div class="row md-font-size">
+                      <span><u>Order No. {{ appeal?.order?.id }}</u></span>
+                    </div>
+                    <div class="row subtext md-font-size">
+                      <span>Submitted by {{ appeal?.owner?.name }}</span>
+                    </div>
+                    <div class="md-font-size">Reasons</div>
+                    <q-badge v-for="(reason, index) in appeal.reasons" class="row q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+                  </div>
+                  <q-space/>
+                  <div class="col q-mt-sm">
+                    <q-btn size="1.3em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="openChat=true">
+                      <q-badge v-if="unread" floating color="red" rounded>{{ unread }}</q-badge>
+                    </q-btn>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+          <AppealDetail
+            v-if="state === 'form' || state === 'form-sending' || state === 'completed'"
+            ref="appealDetail"
+            :key="appealDetailKey"
+            :data="appealDetailData"
+            :escrowContract="escrowContract"
+            :state="state"
+            @back="$emit('back')"
+            @refresh="refreshData"
+            @update-page-name="(val) => {$emit('updatePageName', val)}"
+            @update-state="updateState"
+          />
+          <AppealTransfer
+            v-if="state === 'tx-confirmation'"
+            :key="appealTransferKey"
+            :escrowContract="escrowContract"
+            :orderId="appeal?.order?.id"
+            :txid="txid"
+            :action="selectedAction"
+            @back="$emit('back')"
+            @update-page-name="(val) => {$emit('updatePageName', val)}"
+          />
 
-       <div v-if="completedOrder" class="text-center q-pb-sm">
-        <q-btn padding="none" flat no-caps color="primary" @click="openFeedback"> View my Feedback </q-btn>
-      </div>
-    </div>
+          <div v-if="completedOrder" class="text-center q-pb-sm">
+            <q-btn padding="none" flat no-caps color="primary" @click="openFeedback"> View my Feedback </q-btn>
+          </div>
+        </div>
+      </q-pull-to-refresh>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
     <ChatDialog v-if="openChat" :order="appealDetailData?.order" @close="openChat=false"/>
@@ -83,8 +100,15 @@ import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { fetchChatMembers } from 'src/wallet/ramp/chat'
 import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTarget = ref(null)
+    return {
+      scrollTarget
+    }
+  },
   components: {
     AppealDetail,
     AppealTransfer,
@@ -166,6 +190,13 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updateState (state) {
+      this.state = state
+    },
+    async refreshData (done) {
+      await this.loadData()
+      done()
+    },
     openFeedback () {
       this.$q.dialog({
         component: AppealFeedbackDialog,
@@ -180,11 +211,7 @@ export default {
     onSendSuccess (txid) {
       this.txid = txid
     },
-    refreshData () {
-      this.loadData()
-    },
     async loadData () {
-      console.log('route__:', this.$route.params)
       await this.fetchAppeal()
       this.generateContract()
       this.reloadChildComponents()
@@ -430,3 +457,8 @@ export default {
   }
 }
 </script>
+<style>
+.subtext {
+  opacity: .5;
+}
+</style>
