@@ -111,47 +111,47 @@ export function formatRelativeDate (date) {
   } else if (elapsedMinutes < 60) {
     dateString = elapsedMinutes.toString()
     if (elapsedMinutes > 1) {
-      dateString += t('MinutesAgo')
+      dateString += ` ${t('MinutesAgo')}`
     } else {
-      dateString += t('MinuteAgo')
+      dateString += ` ${t('MinuteAgo')}`
     }
   } else if (elapsedHours < 24) {
     dateString = elapsedHours.toString()
     if (elapsedHours > 1) {
-      dateString += t('HoursAgo')
+      dateString += ` ${t('HoursAgo')}`
     } else {
-      dateString += t('HourAgo')
+      dateString += ` ${t('HourAgo')}`
     }
   } else if (elapsedDays < 7) {
     dateString = elapsedDays.toString()
     if (elapsedDays > 1) {
-      dateString += t('DaysAgo')
+      dateString += ` ${t('DaysAgo')}`
     } else {
-      dateString += t('DayAgo')
+      dateString += ` ${t('DayAgo')}`
     }
   } else if (elapsedDays < 30) {
     const elapsedWeeks = Math.round(elapsedDays / 7)
     dateString = elapsedWeeks.toString()
     if (elapsedWeeks > 1) {
-      dateString += t('WeeksAgo')
+      dateString += ` ${t('WeeksAgo')}`
     } else {
-      dateString += t('WeekAgo')
+      dateString += ` ${t('WeekAgo')}`
     }
   } else if (elapsedDays < 365) {
     const elapsedMonths = Math.round(elapsedDays / 30)
     dateString = elapsedMonths.toString()
     if (elapsedMonths > 1) {
-      dateString += t('MonthsAgo')
+      dateString += ` ${t('MonthsAgo')}`
     } else {
-      dateString += t('MonthAgo')
+      dateString += ` ${t('MonthAgo')}`
     }
   } else {
     const elapsedYears = Math.round(elapsedDays / 365)
     dateString = elapsedYears.toString()
     if (elapsedYears === 1) {
-      dateString += t('YearAgo')
+      dateString += ` ${t('YearAgo')}`
     } else {
-      dateString += t('YearsAgo')
+      dateString += ` ${t('YearsAgo')}`
     }
   }
   return dateString

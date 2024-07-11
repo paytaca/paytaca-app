@@ -31,6 +31,11 @@ export default function ({ store }) {
     history: createHistory(process.env.MODE === 'ssr' ? void 0 : process.env.VUE_ROUTER_BASE)
   })
 
+  window.popStateDetected = false
+  window.addEventListener('popstate', () => {
+    window.popStateDetected = true
+  })
+
   Router.beforeEach(async (to, from, next) => {
     if (to.path === '/') {
       try {

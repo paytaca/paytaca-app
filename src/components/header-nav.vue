@@ -1,36 +1,31 @@
 <template>
-  <div>
-    <div
-      ref="header-nav"
-      class="pt-header row"
-      :style="{'padding-top': $q.platform.is.ios ? '60px' : '18px', 'height': $q.platform.is.ios ? '100px' : '70px'}"
-      :class="{'pt-card-3': darkMode}"
-    >
-      <div class="col-1">
-        <router-link
-          :to="{ path: backnavpath }"
-          class="pt-arrow-left-link"
-          :class="{'text-grad': isNotDefaultTheme || darkMode}"
-          :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-        >
-          <span class="material-icons" @click="backnavpath ?  $router.push({ path: backnavpath }): $router.go(-1)">
-              arrow_back
-          </span>
-        </router-link>
-      </div>
-      <div class="col-10">
-        <p
-          ref="header-title"
-          class="text-h5 text-uppercase text-center q-my-none"
-          :class="{'text-grad': isNotDefaultTheme || darkMode}"
-          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-        >
-          {{ title }}
-        </p>
-      </div>
-      <div class="col-1">
-        <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>      
-      </div>
+  <div
+    ref="header-nav"
+    class="pt-header row no-wrap"
+    :style="{'padding-top': $q.platform.is.ios ? '40px' : '18px', 'height': $q.platform.is.ios ? '85px' : '70px'}"
+    :class="{'pt-card-3': darkMode}">
+    <div class="col-1">
+      <router-link
+        :to="{ path: backnavpath }"
+        class="pt-arrow-left-link"
+        :class="{'text-grad': isNotDefaultTheme || darkMode}"
+        :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+        <span class="material-icons" @click="onClick">
+            arrow_back
+        </span>
+      </router-link>
+    </div>
+    <div class="col-10">
+      <p
+        ref="header-title"
+        class="text-h5 text-uppercase text-center q-my-none"
+        :class="{'text-grad': isNotDefaultTheme || darkMode}"
+        :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+        {{ title }}
+      </p>
+    </div>
+    <div class="col-1">
+      <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
     </div>
   </div>
 </template>
@@ -50,6 +45,7 @@ export default {
       default: ''
     }
   },
+  emits: ['click'],
   data() {
     return {
       addedBodyPadding: false
@@ -80,6 +76,16 @@ export default {
   },
   beforeUnmount() {
     if (this.addedBodyPadding) document.body.style.paddingTop = '';
+  },
+  methods: {
+    async onClick () {
+      if (this.backnavpath) {
+        await this.$router.push({ path: this.backnavpath })
+      } else {
+        this.$router.go(-1)
+      }
+      this.$emit('click')
+    }
   }
 }
 </script>

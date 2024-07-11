@@ -161,11 +161,90 @@ const routes = [
             path: 'profile/',
             name: 'ramp-fiat-profile',
             component: () => import('src/components/ramp/fiat/FiatProfileCard.vue')
+          }
+        ]
+      },
+      {
+        path: 'exchange/',
+        name: 'exchange',
+        component: () => import('src/pages/apps/exchange/index.vue'),
+        children: [
+          {
+            path: 'peer-to-peer/',
+            name: 'exchange-p2p',
+            component: () => import('src/pages/apps/exchange/peer_to_peer/index.vue'),
+            children: [
+              {
+                path: 'store/',
+                name: 'p2p-store',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/store.vue'),
+                children: [
+                  {
+                    path: 'form/:ad',
+                    name: 'p2p-store-form',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/order-form.vue')
+                  }
+                ]
+              },
+              {
+                path: 'ads/',
+                name: 'p2p-ads',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/ads.vue'),
+                children: [
+                  {
+                    path: 'form/:ad/edit',
+                    name: 'p2p-ads-edit-form',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/ad-form.vue')
+                  },
+                  {
+                    path: 'form/create',
+                    name: 'p2p-ads-create-form',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/ad-form.vue')
+                  }
+                ]
+              },
+              {
+                path: 'orders/',
+                name: 'p2p-orders',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/orders.vue'),
+                children: [
+                  {
+                    path: ':order/',
+                    name: 'p2p-order',
+                    component: () => import('src/pages/apps/exchange/peer_to_peer/order.vue')
+                  },
+                ]
+              },
+              {
+                path: 'profile/',
+                name: 'p2p-profile',
+                component: () => import('src/pages/apps/exchange/peer_to_peer/profile.vue')
+              }
+            ]
           },
           {
-            path: 'appeal/',
-            name: 'ramp-appeal',
-            component: () => import('src/components/ramp/appeal/AppealIndex.vue')
+            path: 'arbiter/',
+            name: 'exchange-arbiter',
+            component: () => import('src/pages/apps/exchange/arbiter/index.vue'),
+            children: [
+              {
+                path: 'appeals/',
+                name: 'arbiter-appeals',
+                component: () => import('src/pages/apps/exchange/arbiter/appeals.vue'),
+                children: [
+                  {
+                    path: ':order/',
+                    name: 'appeal-detail',
+                    component: () => import('src/pages/apps/exchange/arbiter/appeal.vue')
+                  }
+                ]
+              },
+              {
+                path: 'profile/',
+                name: 'arbiter-profile',
+                component: () => import('src/pages/apps/exchange/arbiter/profile.vue')
+              }
+            ]
           }
         ]
       }

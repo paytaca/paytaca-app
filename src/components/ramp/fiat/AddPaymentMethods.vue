@@ -1,6 +1,6 @@
 <template>
-  <div
-    class="q-mx-md q-mx-none text-bow"
+  <HeaderNav v-if="type === 'Profile'" :title="`P2P Exchange`" @click="onBack" />
+  <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
       <div class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size">
@@ -159,6 +159,7 @@
   </div>
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import MiscDialogs from './dialogs/MiscDialogs.vue'
 import PaymentMethodForm from './dialogs/PaymentMethodForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
@@ -172,7 +173,8 @@ export default {
     MiscDialogs,
     ProgressLoader,
     PaymentMethodForm,
-    SelectPaymentMethods
+    SelectPaymentMethods,
+    HeaderNav
   },
   props: {
     type: String,
@@ -217,6 +219,11 @@ export default {
     }
   },
   emits: ['submit', 'back'],
+  beforeUnmount () {
+    if (this.type === 'Profile') {
+      bus.emit('show-menu')
+    }
+  },
   async mounted () {
     const vm = this
     await vm.fetchPaymentTypes()
@@ -286,9 +293,6 @@ export default {
   methods: {
     getDarkModeClass,
     onBack () {
-      if (this.type === 'Profile') {
-        bus.emit('show-menu')
-      }
       this.$emit('back')
     },
     onPaymentMethodBack (data) {
@@ -316,6 +320,7 @@ export default {
           vm.removePaymentMethod(data)
           break
         case 'confirmPaymentMethod':
+
           if (vm.type === 'Ads') {
             vm.$emit('submit', vm.paymentMethods)
           }

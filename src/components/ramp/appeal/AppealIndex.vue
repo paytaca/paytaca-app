@@ -121,7 +121,7 @@ export default {
       pageName: 'main',
       notifType: null,
       showFooterMenu: true,
-      currentPage: 'Appeal',
+      currentPage: 'list',
       footerData: {
         unreadOrdersCount: 0
       },

@@ -1,4 +1,5 @@
 <template>
+  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
   <div v-if="step === 1"
     class="text-bow"
     :class="getDarkModeClass(darkMode)">
@@ -11,8 +12,8 @@
           {{
             $t(
               'PostAd',
-              { type: transactionType.toUpperCase() },
-              `POST ${ transactionType.toUpperCase() } AD`
+              { type: transactionType?.toUpperCase() },
+              `POST ${ transactionType?.toUpperCase() } AD`
             )
           }}
         </span>
@@ -238,7 +239,7 @@
               :label="$t('Next')"
               :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
               class="q-space"
-              @click="checkSubmitOption()"
+              @click="nextStep()"
             />
           </div>
         </q-scroll-area>
@@ -256,7 +257,7 @@
       :confirm-label="$t('Next')"
       :currency="adData.fiatCurrency.symbol"
       :currentPaymentMethods="adData.paymentMethods"
-      v-on:submit="appendPaymentMethods"
+      @submit="nextStep"
       @back="step--"
     />
   </div>
@@ -266,7 +267,7 @@
       :ptl="appealCooldown"
       :transaction-type="transactionType"
       v-on:back="step--"
-      @submit="onSubmit()"
+      @submit="nextStep"
     />
   </div>
   <div v-if="openDialog" >
@@ -279,17 +280,18 @@
   </div>
 </template>
 <script>
-import AddPaymentMethods from './AddPaymentMethods.vue'
-import DisplayConfirmation from './DisplayConfirmation.vue'
-import ProgressLoader from '../../ProgressLoader.vue'
-import MiscDialogs from './dialogs/MiscDialogs.vue'
-import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
-import { debounce } from 'quasar'
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
-import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { debounce } from 'quasar'
+import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import HeaderNav from 'src/components/header-nav.vue'
+import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
+import DisplayConfirmation from 'src/components/ramp/fiat/DisplayConfirmation.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
+import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
 
 export default {
   setup () {
@@ -306,7 +308,8 @@ export default {
     AddPaymentMethods,
     DisplayConfirmation,
     ProgressLoader,
-    MiscDialogs
+    MiscDialogs,
+    HeaderNav
   },
   emits: ['back', 'submit', 'updatePageName'],
   data () {
@@ -368,17 +371,6 @@ export default {
         (val) => !!val || this.$t('ThisIsRequired'),
         (val) => val > 0 || this.$t('CannotBeZero')
       ],
-      // tradeLimitValidation: [
-      //   (val) => !!val || this.$t('ThisIsRequired'),
-      //   (val) => val > 0 || this.$t('CannotBeZero'),
-      //   (val) => this.tradeLimitVsQuantityValid(val) || this.$t('FiatAdFormValidation1'),
-      //   () => Number(this.adData.tradeFloor) <= Number(this.adData.tradeCeiling) || this.$t('InvalidRange')
-      // ],
-      // tradeAmountValidation: [
-      //   (val) => !!val || this.$t('ThisIsRequired'),
-      //   (val) => val > 0 || this.$t('CannotBeZero'),
-      //   (val) => Number(this.adData.tradeFloor) <= Number(val) || this.$t('FiatAdFormValidation2')
-      // ],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       instruction: { // temp
         'price-setting': {
@@ -399,69 +391,18 @@ export default {
       readOnlyState: false,
       setTradeQuantityInFiat: false,
       setTradeLimitsInFiat: false,
-      arbiterOptions: []
+      arbiterOptions: [],
+      transactionType: null,
+      previousRoute: null,
+      adsState: null
     }
-  },
-  props: {
-    transactionType: String,
-    adsState: String,
-    selectedAdId: Number
   },
   created () {
     bus.emit('hide-menu')
-  },
-  computed: {
-    hasArbiters () {
-      return this.arbiterOptions.length > 0
-    },
-    hints () {
-      return {
-        priceValue: (
-          this.adData.priceType === 'FLOATING'
-          ? this.$t(
-            'FiatAdFormHint1',
-            { priceValue: this.priceValue },
-            `Price is ${this.priceValue}% of market price`
-          )
-          : this.$t('PriceValueHint')
-        ),
-        tradeAmount: this.$t(
-          'FiatAdFormHint2',
-          { type: this.transactionType.toLocaleLowerCase() },
-          `The total amount of BCH you want to ${this.transactionType.toLocaleLowerCase()}`
-        ),
-        minAmount: this.$t('MinAmountHint'),
-        maxAmount: this.$t('MaxAmountHint'),
-        appealCooldown: this.$t('AppealCooldownHint')
-      }
-    },
-    confirmationData () {
-      const vm = this
-      const data = { ...vm.adData }
-      data.isTradeAmountFiat = this.setTradeQuantityInFiat
-      data.isTradeLimitsFiat = this.setTradeLimitsInFiat
-      console.log('confirmationData:', data)
-      return data
-    }
-  },
-  async mounted () {
-    const vm = this
-    vm.loading = true
-    await vm.getInitialMarketPrice()
-    await vm.fetchAd()
-    await vm.fetchArbiters()
-    vm.updatePriceValue(vm.adData.priceType)
-    vm.loading = false
-    vm.setupWebsocket()
-    vm.adData.tradeType = vm.transactionType.toUpperCase()
-    await vm.getFiatCurrencies()
-  },
-  beforeUnmount () {
-    this.closeWSConnection()
+    bus.on('relogged', this.loadFormData)
   },
   watch: {
     setTradeQuantityInFiat (value) {
-      console.log('setTradeQuantityInFiat:', value)
       if (this.loading) return
       if (value) {
         let amount = this.adData.tradeAmount * this.marketPrice
@@ -476,7 +417,6 @@ export default {
         }
         this.adData.tradeAmount = amount
       }
-      console.log('tradeAmount__:', this.adData.tradeAmount)
     },
     setTradeLimitsInFiat (value) {
       if (this.loading) return
@@ -541,9 +481,75 @@ export default {
       }
     }
   },
+  computed: {
+    hasArbiters () {
+      return this.arbiterOptions.length > 0
+    },
+    hints () {
+      return {
+        priceValue: (
+          this.adData.priceType === 'FLOATING'
+            ? this.$t(
+              'FiatAdFormHint1',
+              { priceValue: this.priceValue },
+            `Price is ${this.priceValue}% of market price`
+            )
+            : this.$t('PriceValueHint')
+        ),
+        tradeAmount: this.$t(
+          'FiatAdFormHint2',
+          { type: this.transactionType?.toLocaleLowerCase() },
+          `The total amount of BCH you want to ${this.transactionType?.toLocaleLowerCase()}`
+        ),
+        minAmount: this.$t('MinAmountHint'),
+        maxAmount: this.$t('MaxAmountHint'),
+        appealCooldown: this.$t('AppealCooldownHint')
+      }
+    },
+    confirmationData () {
+      const vm = this
+      const data = { ...vm.adData }
+      data.isTradeAmountFiat = this.setTradeQuantityInFiat
+      data.isTradeLimitsFiat = this.setTradeLimitsInFiat
+      return data
+    }
+  },
+  async mounted () {
+    this.step = Number(this.$route.query?.step) || 1
+    this.loadFormData()
+  },
+  beforeUnmount () {
+    this.closeWSConnection()
+  },
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path
+    })
+  },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    async loadFormData () {
+      this.loading = true
+      // determine if form is edit or create
+      if (this.$route.name === 'p2p-ads-edit-form') {
+        await this.fetchAd()
+        this.transactionType = this.adData?.tradeType?.toUpperCase()
+        this.adsState = 'edit'
+      }
+      if (this.$route.name === 'p2p-ads-create-form') {
+        this.transactionType = this.$route.query?.type
+        this.adData.tradeType = this.transactionType?.toUpperCase()
+        this.adsState = 'create'
+      }
+
+      await this.fetchArbiters()
+      await this.getFiatCurrencies()
+      this.getInitialMarketPrice()
+      this.updatePriceValue(this.adData.priceType)
+      this.setupWebsocket()
+      this.loading = false
+    },
     tradeAmountValidation (val) {
       if (!val) return 'This is required'
       if (val <= 0) return 'Cannot be zero'
@@ -593,10 +599,8 @@ export default {
     },
     async fetchAd () {
       const vm = this
-      if (!vm.selectedAdId) return
-      await backend.get(`/ramp-p2p/ad/${vm.selectedAdId}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}`, { authorize: true })
         .then(response => {
-          console.log('response:', response)
           const data = response.data
           vm.adData.tradeType = data.trade_type
           vm.adData.priceType = data.price_type
@@ -606,7 +610,6 @@ export default {
           vm.adData.tradeAmount = parseFloat(data.trade_amount)
           vm.adData.tradeFloor = parseFloat(data.trade_floor)
           // vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
-          
           // if trade amount is lesser than trade_ceiling, set trade_amount as trade_ceiling
           let tradeAmount = parseFloat(data.trade_amount)
           let tradeCeiling = parseFloat(data.trade_ceiling)
@@ -653,39 +656,31 @@ export default {
           vm.handleRequestError(error)
         })
     },
-    createAd () {
+    async createAd () {
       const vm = this
-      return new Promise((resolve, reject) => {
-        const body = vm.transformPostData()
-        backend.post('/ramp-p2p/ad/', body, { authorize: true })
-          .then(response => {
-            vm.swipeStatus = true
-            vm.$emit('submit')
-            resolve(response.data)
-          })
-          .catch(error => {
-            vm.handleRequestError(error)
-            vm.swipeStatus = false
-            reject(error)
-          })
-      })
+      const body = vm.transformPostData()
+      await backend.post('/ramp-p2p/ad/', body, { authorize: true })
+        .then(() => {
+          vm.swipeStatus = true
+          // vm.$emit('submit')
+        })
+        .catch(error => {
+          vm.handleRequestError(error)
+          vm.swipeStatus = false
+        })
     },
-    updateAd () {
+    async updateAd () {
       const vm = this
-      return new Promise((resolve, reject) => {
-        const body = vm.transformPostData(false)
-        backend.put(`/ramp-p2p/ad/${vm.selectedAdId}`, body, { authorize: true })
-          .then(response => {
-            vm.swipeStatus = true
-            vm.$emit('submit')
-            resolve(response.data)
-          })
-          .catch(error => {
-            vm.handleRequestError(error)
-            vm.swipeStatus = false
-            reject(error)
-          })
-      })
+      const body = vm.transformPostData(false)
+      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}`, body, { authorize: true })
+        .then(() => {
+          vm.swipeStatus = true
+          // vm.$emit('submit')
+        })
+        .catch(error => {
+          vm.handleRequestError(error)
+          vm.swipeStatus = false
+        })
     },
     fetchArbiters () {
       return new Promise((resolve, reject) => {
@@ -703,18 +698,6 @@ export default {
             reject(error)
           })
       })
-    },
-    async onSubmit () {
-      const vm = this
-      vm.step++
-      switch (vm.adsState) {
-        case 'create':
-          vm.createAd()
-          break
-        case 'edit':
-          vm.updateAd()
-          break
-      }
     },
     async getInitialMarketPrice () {
       const vm = this
@@ -764,10 +747,40 @@ export default {
         }
       }
     },
-    async checkSubmitOption () {
-      const vm = this
-      vm.step++
+    async nextStep (data) {
+      const currentStep = this.step
+      if (currentStep === 2) {
+        this.adData.paymentMethods = data
+      }
+      if (currentStep === 3) {
+        this.onSubmit()
+        await this.$router.push({ name: 'p2p-ads' })
+      }
+      if (currentStep < 3) {
+        this.step++
+        await this.$router.replace({ query: { ...this.$route.query, step: this.step } })
+      }
     },
+    async onSubmit () {
+      const vm = this
+      switch (vm.adsState) {
+        case 'create':
+          await vm.createAd()
+          break
+        case 'edit':
+          await vm.updateAd()
+          break
+      }
+    },
+    // appendPaymentMethods (paymentMethods) {
+    //   const vm = this
+    //   vm.adData.paymentMethods = paymentMethods
+    //   vm.step++
+    // },
+    // async checkSubmitOption () {
+    //   this.step++
+    //   await this.$router.replace({ query: { step: vm.step } })
+    // },
     async updateFiatCurrency () {
       const vm = this
       // vm.priceValue = ''
@@ -810,7 +823,7 @@ export default {
       // if (vm.setTradeLimitsInFiat) {
       //   tradeCeiling = (tradeCeiling / vm.marketPrice).toFixed(8)
       // }
-      return {
+      const payload = {
         trade_type: data.tradeType,
         price_type: data.priceType,
         fiat_currency: create ? data.fiatCurrency.symbol : data.fiatCurrency.id,
@@ -826,6 +839,7 @@ export default {
         payment_methods: idList,
         is_public: data.isPublic
       }
+      return payload
     },
     updatePriceValue (priceType) {
       const vm = this
@@ -889,11 +903,6 @@ export default {
       this.websocket.onclose = () => {
         console.log('WebSocket connection closed.')
       }
-    },
-    appendPaymentMethods (paymentMethods) {
-      const vm = this
-      vm.adData.paymentMethods = paymentMethods
-      vm.step++
     },
     decPriceValue () {
       this.priceValue = Number((this.priceValue - 0.1).toFixed(2))

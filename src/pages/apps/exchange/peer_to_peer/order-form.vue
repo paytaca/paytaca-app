@@ -1,231 +1,233 @@
 <template>
-  <div v-if="state === 'initial'"
-    class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
-    <!-- Form Body -->
-    <div v-if="isloaded">
-      <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
-        <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
-        {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
-      </div>
-      <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
-        <div class="q-mx-lg q-px-xs q-mb-sm">
-          <TradeInfoCard
-            :order="order"
-            :ad="ad"
-            type="ad"
-            @view-peer="onViewPeer"
-            @view-reviews="showReviews=true"/>
+  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+  <div v-if="state !== 'order-process'">
+    <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
+      <!-- Form Body -->
+      <div v-if="isloaded">
+        <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
+          <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
+          {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
         </div>
-        <div class="q-mx-md">
-          <!-- Ad Info -->
-          <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>{{ $t('PriceType') }}</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ ad.price_type }}
-              </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>{{ $t('MinTradeLimit') }}</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ formatCurrency(ad?.trade_floor, tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
-              </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>{{ $t('MaxTradeLimit') }}</span>
-              <span class="text-nowrap q-ml-xs">
-                {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
-              </span>
-            </div>
-            <div class="row justify-between no-wrap q-mx-lg">
-              <span>
-                {{
-                  $t(
-                    'AppealableAfterCooldown',
-                    { cooldown: appealCooldown.label },
-                    `Appealable after ${ appealCooldown.label }`
-                  )
-                }}
-              </span>
-            </div>
+        <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
+          <div class="q-mx-lg q-px-xs q-mb-sm">
+            <TradeInfoCard
+              :order="order"
+              :ad="ad"
+              type="ad"
+              @view-peer="onViewPeer"
+              @view-reviews="showReviews=true"/>
           </div>
-
-          <!-- Input -->
-          <div class="q-mt-md q-mx-md" v-if="!isOwner">
-            <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
-            <q-input
-              class="q-pb-xs"
-              filled
-              dense
-              type="text"
-              inputmode="none"
-              :label="$t('Amount')"
-              :disable="!hasArbiters"
-              :dark="darkMode"
-              :rules="[isValidInputAmount]"
-              v-model="amount"
-              @blur="resetInput"
-              @focus="openCustomKeyboard(true)"
-              :readonly="readonlyState"
-              >
-              <template v-slot:append>
-                <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
-              </template>
-            </q-input>
-            <div class="row justify-between">
-              <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
-                {{ amountError }}
-              </div>
-              <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                = {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ formatCurrency(equivalentAmount.toFixed(!byFiat ? 2 : 8), ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ !byFiat ? '' : 'BCH' }}
-              </div>
-              <div class="justify-end q-gutter-sm q-pr-sm">
-                <q-btn
-                  class="sm-font-size button button-text-primary"
-                  padding="none"
-                  flat
-                  dense
-                  :disable="!hasArbiters"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('MIN')"
-                  @click="updateInput(max=false, min=true)"/>
-                <q-btn
-                  class="sm-font-size button button-text-primary"
-                  padding="none"
-                  flat
-                  :disable="!hasArbiters"
-                  :class="getDarkModeClass(darkMode)"
-                  :label="$t('MAX')"
-                  @click="updateInput(max=true, min=false)"/>
-              </div>
-            </div>
-            <div class="q-pl-sm">
-              <q-btn
-                class="sm-font-size button button-text-primary"
-                padding="none"
-                flat
-                no-caps
-                :disable="!hasArbiters"
-                :class="getDarkModeClass(darkMode)"
-                @click="byFiat = !byFiat">
-                {{
-                  $t(
-                    'SetAmountInCurrency',
-                    { currency: byFiat ? 'BCH' : ad?.fiat_currency?.symbol },
-                    `Set amount in ${ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }`
-                  )
-                }}
-              </q-btn>
-            </div>
-            <div v-if="ad.trade_type === 'BUY'">
-              <q-separator :dark="darkMode" class="q-mt-sm"/>
-              <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
-                <span>{{ $t('Balance') }}</span>
+          <div class="q-mx-md">
+            <!-- Ad Info -->
+            <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>{{ $t('PriceType') }}</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ balance }} BCH
+                  {{ ad.price_type }}
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>{{ $t('MinTradeLimit') }}</span>
+                <span class="text-nowrap q-ml-xs">
+                  {{ ad?.trade_limits_in_fiat ? Number(Number(ad?.trade_floor).toFixed(2)) : Number(Number(ad?.trade_floor).toFixed(8))  }} {{ tradeLimitsCurrency(ad) }}
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>{{ $t('MaxTradeLimit') }}</span>
+                <span class="text-nowrap q-ml-xs">
+                  {{ ad?.trade_limits_in_fiat ? Number(Number(minTradeAmount(ad)).toFixed(2)) : Number(Number(minTradeAmount(ad)).toFixed(8)) }} {{ tradeLimitsCurrency(ad) }}
+                </span>
+              </div>
+              <div class="row justify-between no-wrap q-mx-lg">
+                <span>
+                  {{
+                    $t(
+                      'AppealableAfterCooldown',
+                      { cooldown: appealCooldown.label },
+                      `Appealable after ${ appealCooldown.label }`
+                    )
+                  }}
                 </span>
               </div>
             </div>
-          </div>
 
-          <!-- create order btn -->
-          <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
-            <q-btn
-              :disabled="!isValidInputAmount(amount) || !hasArbiters"
-              rounded
-              no-caps
-              :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
-              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-              class="q-space"
-              @click="submit()">
-            </q-btn>
-          </div>
+            <!-- Input -->
+            <div class="q-mt-md q-mx-md" v-if="!isOwner">
+              <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
+              <q-input
+                class="q-pb-xs"
+                filled
+                dense
+                type="text"
+                inputmode="none"
+                :label="$t('Amount')"
+                :disable="!hasArbiters"
+                :dark="darkMode"
+                :rules="[isValidInputAmount]"
+                v-model="amount"
+                @blur="resetInput"
+                @focus="openCustomKeyboard(true)"
+                :readonly="readonlyState"
+                >
+                <template v-slot:append>
+                  <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
+                </template>
+              </q-input>
+              <div class="row justify-between">
+                <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
+                  {{ amountError }}
+                </div>
+                <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
+                  &asymp; {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ equivalentAmount }} {{ !byFiat ? '' : 'BCH' }}
+                </div>
+                <div class="justify-end q-gutter-sm q-pr-sm">
+                  <q-btn
+                    class="sm-font-size button button-text-primary"
+                    padding="none"
+                    flat
+                    dense
+                    :disable="!hasArbiters"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('MIN')"
+                    @click="updateInput(max=false, min=true)"/>
+                  <q-btn
+                    class="sm-font-size button button-text-primary"
+                    padding="none"
+                    flat
+                    :disable="!hasArbiters"
+                    :class="getDarkModeClass(darkMode)"
+                    :label="$t('MAX')"
+                    @click="updateInput(max=true, min=false)"/>
+                </div>
+              </div>
+              <div class="q-pl-sm">
+                <q-btn
+                  class="sm-font-size button button-text-primary"
+                  padding="none"
+                  flat
+                  no-caps
+                  :disable="!hasArbiters"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="byFiat = !byFiat">
+                  {{
+                    $t(
+                      'SetAmountInCurrency',
+                      { currency: byFiat ? 'BCH' : ad?.fiat_currency?.symbol },
+                      `Set amount in ${ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }`
+                    )
+                  }}
+                </q-btn>
+              </div>
+              <div v-if="ad.trade_type === 'BUY'">
+                <q-separator :dark="darkMode" class="q-mt-sm"/>
+                <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
+                  <span>{{ $t('Balance') }}</span>
+                  <span class="text-nowrap q-ml-xs">
+                    {{ balance }} BCH
+                  </span>
+                </div>
+              </div>
+            </div>
 
-          <!-- Warning message for when no currency arbiter is available for ad -->
-          <div v-if="!hasArbiters" class="warning-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
-            There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
-          </div>
+            <!-- create order btn -->
+            <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
+              <q-btn
+                :disabled="!isValidInputAmount(amount) || !hasArbiters"
+                rounded
+                no-caps
+                :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
+                :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+                class="q-space"
+                @click="submit()">
+              </q-btn>
+            </div>
 
-          <!-- edit ad button: For ad owners only -->
-          <div class="row q-mx-lg q-py-sm" v-if="isOwner">
-            <q-btn
-              rounded
-              no-caps
-              :label="$t('EditAd')"
-              :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-              class="q-space"
-              @click="() => {
-                state = 'edit-ad'
-                $emit('updatePageName', 'ad-form-1')
-                }">
-            </q-btn>
+            <!-- Warning message for when no currency arbiter is available for ad -->
+            <div v-if="!hasArbiters" class="warning-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+              There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+            </div>
+
+            <!-- edit ad button: For ad owners only -->
+            <div class="row q-mx-lg q-py-sm" v-if="isOwner">
+              <q-btn
+                rounded
+                no-caps
+                :label="$t('EditAd')"
+                :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+                class="q-space"
+                @click="() => {
+                  state = 'edit-ad'
+                  $emit('updatePageName', 'ad-form-1')
+                  }">
+              </q-btn>
+            </div>
           </div>
+        </q-scroll-area>
+      </div>
+      <!-- Progress Loader -->
+      <div v-else>
+        <div class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
-      </q-scroll-area>
-    </div>
-    <!-- Progress Loader -->
-    <div v-else>
-      <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+      <!-- Dialogs -->
+      <div v-if="openDialog">
+        <MiscDialogs
+          :type="'genericDialog'"
+          :title="title"
+          v-on:back="openDialog = false"
+          v-on:submit="recieveDialogsInfo"
+        />
       </div>
     </div>
-    <!-- Dialogs -->
-    <div v-if="openDialog">
-      <MiscDialogs
-        :type="'genericDialog'"
-        :title="title"
-        v-on:back="openDialog = false"
-        v-on:submit="recieveDialogsInfo"
+    <!-- Add payment method -->
+    <div v-if="state === 'add-payment-method'">
+      <AddPaymentMethods
+        :type="'General'"
+        :ad-payment-methods="ad?.payment_methods"
+        :currency="ad?.fiat_currency?.symbol"
+        v-on:back="state = 'initial'"
+        v-on:submit="recievePaymentMethods"
+      />
+    </div>
+    <!-- Edit Ad -->
+    <div v-if="state === 'edit-ad'">
+      <FiatAdsForm
+        ref="fiatAdsForm"
+        @back="onBackEditAds()"
+        :adsState="'edit'"
+        :transactionType="ad.trade_type"
+        :selectedAdId="ad.id"
+        @submit="onSubmitEditAds()"
+        @update-page-name="(val) => {
+          $emit('updatePageName', val)
+        }"
+      />
+    </div>
+    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+    <div style="position: fixed; z-index: 10;">
+      <customKeyboard
+        :custom-keyboard-state="customKeyboardState"
+        v-on:addKey="setAmount"
+        v-on:makeKeyAction="makeKeyAction"
       />
     </div>
   </div>
-  <!-- Add payment method -->
-  <div v-if="state === 'add-payment-method'">
-    <AddPaymentMethods
-      :type="'General'"
-      :ad-payment-methods="ad.payment_methods"
-      :currency="ad.fiat_currency?.symbol"
-      v-on:back="state = 'initial'"
-      v-on:submit="recievePaymentMethods"
-    />
-  </div>
-  <!-- Process Order -->
-  <div v-if="state === 'order-process'">
-    <FiatProcessOrder :order-data="order" @back="onBack"/>
-  </div>
-  <!-- Edit Ad -->
-  <div v-if="state === 'edit-ad'">
-    <FiatAdsForm
-      ref="fiatAdsForm"
-      @back="onBackEditAds()"
-      :adsState="'edit'"
-      :transactionType="ad.trade_type"
-      :selectedAdId="ad.id"
-      @submit="onSubmitEditAds()"
-      @update-page-name="(val) => {
-        $emit('updatePageName', val)
-      }"
-    />
-  </div>
-  <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-
-  <div style="position: fixed; z-index: 10;">
-    <customKeyboard
-      :custom-keyboard-state="customKeyboardState"
-      v-on:addKey="setAmount"
-      v-on:makeKeyAction="makeKeyAction"
-    />
+  <div v-else>
+    <!-- <FiatProcessOrder :order-data="order" @back="onBack"/> -->
+    <router-view :key=$route.path></router-view>
   </div>
 </template>
 <script>
-import ProgressLoader from '../../ProgressLoader.vue'
-import AddPaymentMethods from './AddPaymentMethods.vue'
-import FiatAdsForm from './FiatAdsForm.vue'
-import FiatProcessOrder from './FiatProcessOrder.vue'
-import MiscDialogs from './dialogs/MiscDialogs.vue'
-import TradeInfoCard from './TradeInfoCard.vue'
+import HeaderNav from 'src/components/header-nav.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
+import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
+import FiatAdsForm from 'src/components/ramp/fiat/FiatAdsForm.vue'
+import FiatProcessOrder from 'src/components/ramp/fiat/FiatProcessOrder.vue'
+import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
+import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
-import UserProfileDialog from './dialogs/UserProfileDialog.vue'
+import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -245,6 +247,17 @@ export default {
         }, 50)
       }
     }
+  },
+  components: {
+    CustomKeyboard,
+    ProgressLoader,
+    AddPaymentMethods,
+    FiatAdsForm,
+    FiatProcessOrder,
+    MiscDialogs,
+    TradeInfoCard,
+    UserProfileDialog,
+    HeaderNav
   },
   data () {
     return {
@@ -275,21 +288,14 @@ export default {
         is_posted: false
       },
       marketPrice: 0,
-      arbitersAvailable: []
+      arbitersAvailable: [],
+      previousRoute: null
     }
   },
-  props: {
-    adId: Number
-  },
-  components: {
-    CustomKeyboard,
-    ProgressLoader,
-    AddPaymentMethods,
-    FiatAdsForm,
-    FiatProcessOrder,
-    MiscDialogs,
-    TradeInfoCard,
-    UserProfileDialog
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path
+    })
   },
   emits: ['back', 'orderCanceled', 'updatePageName'],
   computed: {
@@ -303,11 +309,11 @@ export default {
       let amount = this.amount
       if (amount === '' || isNaN(amount)) return 0
       if (!this.byFiat) {
-        amount = Number(parseFloat(amount) * parseFloat(this.ad.price))
+        amount = Number((amount) * parseFloat(this.ad.price)).toFixed(2)
       } else {
-        amount = Number(parseFloat(amount) / parseFloat(this.ad.price))
+        amount = Number(parseFloat(amount) / parseFloat(this.ad.price)).toFixed(8)
       }
-      return amount
+      return Number(amount)
     },
     balance () {
       return this.$store.getters['assets/getAssets'][0].balance
@@ -342,12 +348,12 @@ export default {
       this.fetchAd()
     }
   },
+  async created () {
+    bus.on('relogged', this.loadData)
+  },
   async mounted () {
-    const vm = this
-    await vm.fetchAd()
-    await vm.fetchArbiters()
-    vm.setupWebsocket()
-    vm.isloaded = true
+    bus.emit('hide-menu')
+    await this.loadData()
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -356,6 +362,15 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
+    async loadData () {
+      const vm = this
+      vm.isloaded = false
+      await vm.fetchAd()
+      await vm.fetchArbiters()
+      vm.closeWSConnection()
+      vm.setupWebsocket()
+      vm.isloaded = true
+    },
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
       let proceed = false
@@ -449,14 +464,14 @@ export default {
       this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
-      await backend.get(`/ramp-p2p/ad/${this.adId}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}`, { authorize: true })
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {
-            this.amount = parseFloat(this.ad.trade_floor)
+            this.amount = Number(this.ad.trade_floor)
             this.byFiat = this.ad.trade_limits_in_fiat
             if (this.byFiat) {
-              this.amount = Number(this.amount).toFixed(2)
+              this.amount = Number(Number(this.amount).toFixed(2))
             }
           }
         })
@@ -482,29 +497,22 @@ export default {
         const temp = this.paymentMethods.map(p => p.id)
         body.payment_methods = temp
       }
-      backend.post('/ramp-p2p/order/', body, { authorize: true })
-        .then(response => {
-          vm.order = response.data.order
-          vm.state = 'order-process'
-          vm.$emit('updatePageName', 'order-process')
-          return vm.order.id
-        })
-        .then(orderId => {
-          vm.fetchOrderMembers(orderId)
-            .then(members => {
-              vm.createGroupChat(vm.order.id, members, vm.order.created_at)
-            })
-        })
-        .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-          }
-        })
+      try {
+        const response = await backend.post('/ramp-p2p/order/', body, { authorize: true })
+        vm.order = response.data.order
+        vm.state = 'order-process'
+        vm.$emit('updatePageName', 'order-process')
+        vm.fetchOrderMembers(vm.order.id)
+          .then(members => {
+            vm.createGroupChat(vm.order.id, members, vm.order.created_at)
+          })
+        vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
+      } catch (error) {
+        console.error(error.response || error)
+        if (error.response.status === 403) {
+          bus.emit('session-expired')
+        }
+      }
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
@@ -527,7 +535,6 @@ export default {
         const vm = this
         backend.get('ramp-p2p/arbiter', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
           .then(response => {
-            console.log('fetchArbiter:', response.data)
             vm.arbitersAvailable = response.data
             resolve(response.data)
           })
@@ -554,15 +561,17 @@ export default {
       let tradeFloor = Number(this.ad.trade_floor).toFixed(8)
       let tradeCeiling = Number(this.minTradeAmount(this.ad)).toFixed(8)
       let amount = Number(Number(value).toFixed(8))
+
       // if trade limits in fiat
       if (this.ad.trade_limits_in_fiat) {
         tradeFloor = Number(Number(tradeFloor).toFixed(2))
         tradeCeiling = Number(Number(tradeCeiling).toFixed(2))
-        // if input value is in fiat, limit decimals to 2
-        amount = Number(amount.toFixed(2))
         if (!this.byFiat) {
           // if input value is in BCH, convert to fiat first
           amount = Number((amount * this.ad.price).toFixed(2))
+        } else {
+          // if input value is in fiat, limit decimals to 2
+          amount = Number(amount.toFixed(2))
         }
       } else {
         // if trade limits in BCH
@@ -609,16 +618,20 @@ export default {
     updateInput (max = false, min = false) {
       if (!this.isloaded) return
       let amount = this.amount
+
+      const tradeFloor = Number(this.ad.trade_floor)
+      const tradeCeiling = this.minTradeAmount(this.ad)
+      const tradeLimitsInFiat = this.ad.trade_limits_in_fiat
+
       if (min) {
-        const tradeFloor = parseFloat(this.ad.trade_floor)
         if (this.byFiat) {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeFloor
           } else {
             amount = tradeFloor * this.ad.price
           }
         } else {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeFloor / this.ad.price
           } else {
             amount = tradeFloor
@@ -626,15 +639,14 @@ export default {
         }
       }
       if (max) {
-        const tradeCeiling = this.minTradeAmount(this.ad)
         if (this.byFiat) {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeCeiling
           } else {
             amount = tradeCeiling * this.ad.price
           }
         } else {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeCeiling / this.ad.price
           } else {
             amount = tradeCeiling
@@ -650,43 +662,34 @@ export default {
         }
       }
 
-      this.amount = parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
+      amount = this.byFiat ? this.roundOffToFloor(amount, 100) : amount.toFixed(8)
 
-      // check if valid amount
-      let temp = this.amount
-      let cont = true
-
-      if (this.byFiat) {
-        temp = this.equivalentAmount
+      const amountInFiat = this.byFiat ? amount : Number((amount * this.ad?.price).toFixed(2))
+      const amountInBch = this.byFiat ? Number((amount / this.ad?.price).toFixed(8)) : amount
+      let amountLessThanMin = false
+      let amountGreaterThanMax = false
+      if (tradeLimitsInFiat) {
+        amountLessThanMin = amountInFiat < tradeFloor
+        amountGreaterThanMax = amountInFiat > tradeCeiling
+      } else {
+        amountLessThanMin = amountInBch < tradeFloor
+        amountGreaterThanMax = amountInBch > tradeCeiling
       }
 
-      if (temp < parseFloat(this.ad.trade_floor)) {
-        cont = false
-        temp = parseFloat(this.ad.trade_floor)
+      const tradeFloorInFiat = tradeLimitsInFiat ? tradeFloor : Number((tradeFloor * this.ad.price).toFixed(2))
+      const tradeFloorInBch = !tradeLimitsInFiat ? tradeFloor : Number((tradeFloor / this.ad.price).toFixed(8))
+      const tradeCeilInFiat = tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling * this.ad.price).toFixed(2))
+      const tradeCeilInBch = !tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling / this.ad.price).toFixed(8))
 
-        if (this.byFiat) {
-          temp = temp * this.ad.price
-          temp = parseFloat((Number(temp) + 0.01).toFixed(2))
-        } else {
-          temp = parseFloat((Number(temp) + 0.00000001).toFixed(8))
-        }
+      if (amountLessThanMin) {
+        amount = this.byFiat ? tradeFloorInFiat : tradeFloorInBch
+      } else if (amountGreaterThanMax) {
+        amount = this.byFiat ? tradeCeilInFiat : tradeCeilInBch
       }
-
-      if ((temp > this.minTradeAmount(this.ad)) && cont) {
-        cont = false
-        temp = parseFloat(this.minTradeAmount(this.ad))
-
-        if (this.byFiat) {
-          temp = temp * this.ad.price
-          temp = parseFloat((Number(temp) - 0.01).toFixed(2))
-        } else {
-          temp = parseFloat((Number(temp) - 0.00000001).toFixed(8))
-        }
-      }
-
-      if (!cont) {
-        this.amount = temp
-      }
+      this.amount = Number(amount)
+    },
+    roundOffToFloor (amount, decimals) {
+      return Math.floor(amount * decimals) / decimals
     },
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
@@ -782,37 +785,37 @@ export default {
   }
 }
 </script>
-<style lang="scss" scoped>
-.sm-font-size {
-  font-size: small;
-}
-.md-font-size {
-  font-size: medium;
-}
+  <style lang="scss" scoped>
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
 
-.lg-font-size {
-  font-size: large;
-}
-.buy-color {
-  color: rgb(60, 100, 246);
-}
-.sell-color {
-  color: #ed5f59;
-}
-.subtext {
-  opacity: .5;
-}
-.warning-box {
-  padding: 10px;
-  border-radius: 5px;
-}
-.warning-box-light {
-  background-color: #fff9c4; /* Light yellow background */
-  border: 1px solid #fbc02d; /* Border color */
-}
-.warning-box-dark {
-  background-color: #333; /* Dark mode background color */
-  color: #fff; /* Text color for dark mode */
-  border: 1px solid #fbc02d; /* Border color */
-}
-</style>
+  .lg-font-size {
+    font-size: large;
+  }
+  .buy-color {
+    color: rgb(60, 100, 246);
+  }
+  .sell-color {
+    color: #ed5f59;
+  }
+  .subtext {
+    opacity: .5;
+  }
+  .warning-box {
+    padding: 10px;
+    border-radius: 5px;
+  }
+  .warning-box-light {
+    background-color: #fff9c4; /* Light yellow background */
+    border: 1px solid #fbc02d; /* Border color */
+  }
+  .warning-box-dark {
+    background-color: #333; /* Dark mode background color */
+    color: #fff; /* Text color for dark mode */
+    border: 1px solid #fbc02d; /* Border color */
+  }
+  </style>

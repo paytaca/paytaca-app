@@ -8,7 +8,8 @@
         </div>
       </div>
       <div v-else>
-        <q-card class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+        <!-- Contract info -->
+        <div class="q-px-sm q-pt-sm q-ma-sm">
           <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractAddress') }}</div>
           <q-input
             class="q-pb-xs"
@@ -36,91 +37,68 @@
               <span class="sm-font-size">BCH</span>
             </template>
           </q-input>
-        </q-card>
-        <!-- <div class="q-mx-md q-my-sm"> -->
-          <q-card class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
-            <q-tabs
-              v-model="tab"
-              dense
-              class=""
-              active-color="primary"
-              indicator-color="primary"
-              align="justify"
-              narrow-indicator>
-              <q-tab name="status" :label="$t('Status')" />
-              <q-tab name="transaction" :label="$t('Transactions')" />
-            </q-tabs>
-            <q-separator class="q-mb-sm" :dark="darkMode"/>
-            <div v-if="tab === 'status'">
-              <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
-                <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span class="col">{{ formattedOrderStatus(status.status) }}</span>
-                  <span class="col text-nowrap q-ml-xs">
-                    {{ formattedDate(status.created_at) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div v-if="tab === 'transaction'">
-              <div class="row text-weight-bold sm-font-size">
-                <div class="col text-center">{{ $t('Action') }}</div>
-                <div class="col text-center">{{ $t('Txid') }}</div>
-                <div class="col text-center">{{ $t('Status') }}</div>
-                <div class="col text-center">{{ $t('Date') }}</div>
-              </div>
-              <q-separator class="q-my-sm" :dark="darkMode"/>
-              <div>
-                <div v-for="(transaction, index) in transactionHistory" :key=index>
-                  <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
-                  <div class="row sm-font-size" :class="darkMode ? '' : 'text-grey-7'">
-                    <div class="col text-center">{{ transaction.action }}</div>
-                    <span class="col text-blue text-center" @click="viewTxid(transaction.txid)"><u>{{ formattedTxid(transaction.txid) }}</u></span>
-                    <div class="col text-center">{{ transaction.valid ? 'Validated' : 'Not Validated'}}</div>
-                    <div class="col xs-font-size">{{ formattedDate(transaction.created_at, true)}}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </q-card>
-        <!-- </div> -->
+        </div>
+        <div class="row justify-end text-blue sm-font-size q-mx-md">
+          <q-btn class="col q-py-none" no-caps flat dense @click="showStatusHistory = true">View Status History</q-btn>
+          <q-btn class="col q-py-none" no-caps flat dense @click="showTransactionHistory = true">View Transactions</q-btn>
+        </div>
         <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
-          <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-md q-ma-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+          <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
             <div class="text-center q-py-xs text-weight-bold text-uppercase">
               {{ $t('SelectAction') }}
             </div>
-            <q-separator class="q-my-sm" :dark="darkMode"/>
-              <div class="row justify-between no-wrap q-mx-lg">
-                <span class="sm-font-size">{{ $t('Release') }}</span>
-                <span class="text-nowrap q-ml-xs">
-                  <q-btn
-                    rounded
-                    size="sm"
-                    icon="done"
-                    :disable="sendingBch"
-                    :outline="selectedAction !== 'release'"
-                    :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
-                    class="q-ml-xs"
-                    @click="selectReleaseType('release')"
-                  />
-                </span>
-              </div>
-              <q-separator class="q-my-sm" :dark="darkMode"/>
-              <div class="row justify-between no-wrap q-mx-lg">
-                <span class="sm-font-size">{{ $t('Refund') }}</span>
-                <span class="text-nowrap q-ml-xs">
-                  <q-btn
-                    rounded
-                    size="sm"
-                    icon="done"
-                    :disable="sendingBch"
-                    :outline="selectedAction !== 'refund'"
-                    :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
-                    class="q-ml-xs"
-                    @click="selectReleaseType('refund')"
-                  />
-                </span>
-              </div>
+            <q-card-actions>
+                <q-btn
+                  class="col q-ml-xs"
+                  size="md"
+                  rounded
+                  :disable="sendingBch"
+                  :outline="selectedAction !== 'refund'"
+                  :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
+                  :label="$t('Refund')"
+                  @click="selectActionType('refund')"
+                />
+                <q-btn
+                  class="col q-ml-xs"
+                  size="md"
+                  rounded
+                  :disable="sendingBch"
+                  :outline="selectedAction !== 'release'"
+                  :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
+                  :label="$t('Release')"
+                  @click="selectActionType('release')"
+                />
+            </q-card-actions>
+          </q-card>
+        </div>
+        <div v-else>
+          <q-card class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+            <div class="text-center q-py-xs text-weight-bold text-uppercase">
+              SELECTED ACTION
+            </div>
+            <q-card-actions>
+              <q-btn
+                class="col q-ml-xs"
+                size="md"
+                rounded
+                disable
+                :outline="selectedAction !== 'refund'"
+                :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
+                :label="$t('Refund')"
+                @click="selectActionType('refund')"
+              />
+              <q-btn
+                class="col q-ml-xs"
+                size="md"
+                rounded
+                disable
+                :outline="selectedAction !== 'release'"
+                :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
+                :label="$t('Release')"
+                @click="selectActionType('release')"
+              />
+            </q-card-actions>
+            <div class="row justify-center text-center subtext">Resolved at {{ formatDate(appeal?.resolved_at) }}</div>
           </q-card>
         </div>
         <div class="q-mx-lg q-mt-md" v-if="sendingBch">
@@ -132,9 +110,8 @@
             {{ $t('RefundingBch') }}
           </template>
         </div>
-        <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto; max-width: 300px">
-          <q-card flat class="row pt-card-2 text-bow bg-red-1" :class="getDarkModeClass(darkMode)">
-            <q-icon name="error" left/>
+        <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto;">
+          <q-card flat class="row pt-card-2 bg-red-1 text-red q-pa-lg pp-text bg-red-1" :class="getDarkModeClass(darkMode)">
             {{ sendError }}
           </q-card>
         </div>
@@ -158,8 +135,12 @@
     @cancel="onSecurityCancel"
     :text="$t('SwipeToConfirmLower')"
   />
+  <OrderStatusDialog v-if="showStatusHistory" :status-history="statusHistory" @back="showStatusHistory = false" />
+  <TransactionHistoryDialog v-if="showTransactionHistory" :transaction-history="transactionHistory" @back="showTransactionHistory = false" />
 </template>
 <script>
+import TransactionHistoryDialog from 'src/components/ramp/appeal/dialogs/TransactionHistoryDialog.vue'
+import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
@@ -169,6 +150,12 @@ import { loadRampWallet } from 'src/wallet/ramp/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
+  components: {
+    RampDragSlide,
+    ProgressLoader,
+    OrderStatusDialog,
+    TransactionHistoryDialog
+  },
   data () {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
@@ -192,7 +179,9 @@ export default {
       dragSlideKey: 0,
       sendingBch: false,
       sendError: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85,
+      showStatusHistory: false,
+      showTransactionHistory: false
     }
   },
   props: {
@@ -200,18 +189,16 @@ export default {
     escrowContract: Object,
     state: String
   },
-  emits: ['back', 'refresh', 'success', 'updatePageName', 'form-sending'],
-  components: {
-    RampDragSlide,
-    ProgressLoader
-  },
+  emits: ['back', 'refresh', 'success', 'update-state', 'updatePageName'],
   watch: {
     sendError (value) {
       console.log('sendError:', value)
     },
     sendingBch (value) {
       if (value) {
-        this.$emit('form-sending')
+        this.$emit('update-state', 'form-sending')
+      } else {
+        this.$emit('update-state', 'form')
       }
     }
   },
@@ -234,7 +221,11 @@ export default {
     this.wallet = loadRampWallet()
   },
   methods: {
+    formatDate,
     getDarkModeClass,
+    updateState (state) {
+      this.$emit('update-state', state)
+    },
     loadTransactionId (orderId) {
       const rlsTxid = this.$store.getters['ramp/getOrderTxid'](orderId, 'RELEASE')
       const rfnTxid = this.$store.getters['ramp/getOrderTxid'](orderId, 'REFUND')
@@ -256,6 +247,8 @@ export default {
         vm.showDragSlide = true
       } else {
         vm.showDragSlide = false
+        const actionType = vm.order?.status?.value === 'RLS' ? 'release' : 'refund'
+        vm.selectActionType(actionType)
       }
       vm.loading = false
     },
@@ -281,9 +274,11 @@ export default {
       if (vm.selectedAction === 'refund') {
         txid = await vm.refundBch()
       }
-      vm.setOrderPending(txid, vm.selectedAction)
+      if (txid) {
+        vm.setOrderPending(vm.selectedAction)
+      }
     },
-    async setOrderPending (txid, action) {
+    async setOrderPending (action) {
       const vm = this
       const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-${action}`
       await backend.post(url, {}, { authorize: true })
@@ -298,82 +293,80 @@ export default {
         })
       vm.sendingBch = true
     },
-    releaseBch () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        vm.sendError = null
-        if (!vm.escrowContract) reject('escrow contract is null')
-        const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-        this.wallet.keypair(arbiterMember.address_path).then(keypair => {
-          vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.crypto_amount)
-            .then(result => {
-              console.log(result)
-              if (result.success) {
-                const txid = result.txInfo.txid
-                const txidData = {
-                  id: vm.order.id,
-                  txidInfo: {
-                    action: 'RELEASE',
-                    txid: txid
-                  }
-                }
-                vm.$store.commit('ramp/saveTxid', txidData)
-                resolve(txid)
-              } else {
-                vm.sendError = result.reason
-                vm.sendingBch = false
-                vm.showDragSlide = true
-                reject(vm.sendError)
+    async releaseBch () {
+      const vm = this
+      vm.sendError = null
+      if (!vm.escrowContract) return
+      const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+      const keypair = await this.wallet.keypair(arbiterMember.address_path)
+      let txid = null
+      await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.crypto_amount)
+        .then(result => {
+          console.log(result)
+          if (result.success) {
+            txid = result.txInfo.txid
+            const txidData = {
+              id: vm.order.id,
+              txidInfo: {
+                action: 'RELEASE',
+                txid: txid
               }
-            })
-            .catch(error => {
-              console.error(error)
-              reject(error)
-            })
+            }
+            vm.$store.commit('ramp/saveTxid', txidData)
+          } else {
+            vm.sendError = result.reason
+            vm.sendingBch = false
+            vm.showDragSlide = true
+          }
         })
-      })
+        .catch(error => {
+          console.error(error)
+          vm.sendError = error
+          vm.sendingBch = false
+          vm.showDragSlide = true
+        })
+      return txid
     },
-    refundBch () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        vm.sendError = null
-        if (!vm.escrowContract) reject('escrow contract is null')
-        const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-        this.wallet.privkey(null, arbiterMember.address_path).then(privateKeyWif => {
-          vm.escrowContract.refund(privateKeyWif, this.order.crypto_amount)
-            .then(result => {
-              console.log(result)
-              if (result.success) {
-                const txid = result.txInfo.txid
-                const txidData = {
-                  id: vm.order.id,
-                  txidInfo: {
-                    action: 'REFUND',
-                    txid: txid
-                  }
-                }
-                vm.$store.commit('ramp/saveTxid', txidData)
-                resolve(txid)
-              } else {
-                vm.sendError = result.reason
-                vm.sendingBch = false
-                vm.showDragSlide = true
-                reject(vm.sendError)
+    async refundBch () {
+      const vm = this
+      vm.sendError = null
+      if (!vm.escrowContract) return
+      const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+      const privateKey = await vm.wallet.privkey(null, arbiterMember.address_path)
+      let txid = null
+      await vm.escrowContract.refund(privateKey, this.order.crypto_amount)
+        .then(result => {
+          console.log(result)
+          if (result.success) {
+            txid = result.txInfo.txid
+            const txidData = {
+              id: vm.order.id,
+              txidInfo: {
+                action: 'REFUND',
+                txid: txid
               }
-              resolve(result)
-            })
-            .catch(error => {
-              console.error(error)
-              reject(error)
-            })
+            }
+            vm.$store.commit('ramp/saveTxid', txidData)
+          } else {
+            vm.sendError = result.reason
+            vm.sendingBch = false
+            vm.showDragSlide = true
+            console.log('state:', vm.state)
+          }
         })
-      })
+        .catch(error => {
+          console.error(error)
+          vm.sendError = error
+          vm.sendingBch = false
+          vm.showDragSlide = true
+        })
+      return txid
     },
     onSecurityCancel () {
       this.showDragSlide = true
       this.dragSlideKey++
     },
-    selectReleaseType (type) {
+    selectActionType (type) {
       if (this.selectedAction === type) {
         this.selectedAction = null
       } else {
@@ -396,20 +389,6 @@ export default {
     },
     formattedAddress (address) {
       return formatAddress(address, 20, 5)
-    },
-    formattedDate (value, numeric = false) {
-      if (numeric) {
-        const options = {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: 'numeric',
-          second: 'numeric'
-        }
-        return formatDate(value, false, options)
-      }
-      return formatDate(value, false)
     },
     formattedOrderStatus (value) {
       return formatOrderStatus(value)

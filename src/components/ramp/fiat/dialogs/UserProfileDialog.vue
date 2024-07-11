@@ -106,13 +106,10 @@
                         <q-item class="q-py-none" v-for="(ad, index) in adsList" :key="index" clickable @click="selectAd(ad)">
                         <q-item-section>
                             <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                            <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
-                            <span
-                                class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                                :class="getDarkModeClass(darkMode)">
-                                {{ ad?.fiat_currency?.symbol }} {{ formatCurrency(ad.price, ad?.fiat_currency?.symbol) }}
+                            <q-badge class="row" rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
+                            <span class="row text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                              {{ ad?.fiat_currency?.symbol }} {{ formatCurrency(ad.price, ad?.fiat_currency?.symbol) }}
                             </span>
-                            <span class="sm-font-size">/BCH</span><br>
                             <div class="sm-font-size">
                                 <div class="row">
                                 <span class="col-3">{{ $t('Quantity') }}</span>
@@ -381,7 +378,7 @@ export default {
       })
     },
     selectAd (ad) {
-      bus.emit('view-ad', ad.id)
+      this.$router.push({ name: 'p2p-store-form', params: { ad: ad?.id } })
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()

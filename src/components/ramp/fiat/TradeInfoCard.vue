@@ -163,7 +163,7 @@
                     :class="getDarkModeClass(darkMode)">
                     {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
-                <span class="sm-font-size">/BCH</span>
+                <!-- <span class="sm-font-size">/BCH</span> -->
               </div>
               <div class="row justify-end q-mt-none text-right">
                 <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="onViewAd"> {{ $t('ViewAd') }} </q-btn>
