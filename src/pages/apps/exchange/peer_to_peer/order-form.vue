@@ -349,6 +349,7 @@ export default {
     }
   },
   async mounted () {
+    bus.emit('hide-menu')
     const vm = this
     await vm.fetchAd()
     await vm.fetchArbiters()
@@ -653,7 +654,7 @@ export default {
         }
       }
 
-      amount = this.byFiat ? this.roundOffToFloor(amount, 10000) : amount.toFixed(8)
+      amount = this.byFiat ? this.roundOffToFloor(amount, 100) : amount.toFixed(8)
 
       const amountInFiat = this.byFiat ? amount : Number((amount * this.ad?.price).toFixed(2))
       const amountInBch = this.byFiat ? Number((amount / this.ad?.price).toFixed(8)) : amount

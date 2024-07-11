@@ -502,7 +502,6 @@ export default {
       vm.state = listing.trade_type
       vm.pageName = 'order-form'
       await this.$router.push({ name: 'p2p-store-form', params: { ad: listing.id } })
-      bus.emit('hide-menu')
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()

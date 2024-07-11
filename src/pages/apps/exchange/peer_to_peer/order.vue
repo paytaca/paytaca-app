@@ -1,5 +1,5 @@
 <template>
-    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps/exchange/peer-to-peer/orders"/>
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
@@ -180,8 +180,7 @@ export default {
       hideTradeInfo: false,
       hasArbiters: true,
       sendingBch: false,
-      verifyingTx: false,
-      previousRoute: null
+      verifyingTx: false
     }
   },
   components: {
@@ -358,11 +357,6 @@ export default {
     await this.loadData()
     this.setupWebsocket(20, 1000)
     this.setupChatWebsocket(20, 1000)
-  },
-  beforeRouteEnter (to, from, next) {
-    next(vm => {
-      vm.previousRoute = from.path
-    })
   },
   beforeUnmount () {
     this.autoReconWebSocket = false
