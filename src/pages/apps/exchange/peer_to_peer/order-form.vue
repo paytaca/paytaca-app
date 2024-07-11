@@ -29,13 +29,13 @@
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>{{ $t('MinTradeLimit') }}</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ formatCurrency(ad?.trade_floor, tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
+                  {{ ad?.trade_limits_in_fiat ? Number(Number(ad?.trade_floor).toFixed(2)) : Number(Number(ad?.trade_floor).toFixed(8))  }} {{ tradeLimitsCurrency(ad) }}
                 </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>{{ $t('MaxTradeLimit') }}</span>
                 <span class="text-nowrap q-ml-xs">
-                  {{ formatCurrency(minTradeAmount(ad), tradeLimitsCurrency(ad)) }} {{ tradeLimitsCurrency(ad) }}
+                  {{ ad?.trade_limits_in_fiat ? Number(Number(minTradeAmount(ad)).toFixed(2)) : Number(Number(minTradeAmount(ad)).toFixed(8)) }} {{ tradeLimitsCurrency(ad) }}
                 </span>
               </div>
               <div class="row justify-between no-wrap q-mx-lg">
@@ -78,7 +78,7 @@
                   {{ amountError }}
                 </div>
                 <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                  = {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ formatCurrency(equivalentAmount.toFixed(!byFiat ? 2 : 8), ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }} {{ !byFiat ? '' : 'BCH' }}
+                  &asymp; {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ equivalentAmount }} {{ !byFiat ? '' : 'BCH' }}
                 </div>
                 <div class="justify-end q-gutter-sm q-pr-sm">
                   <q-btn
@@ -309,11 +309,11 @@ export default {
       let amount = this.amount
       if (amount === '' || isNaN(amount)) return 0
       if (!this.byFiat) {
-        amount = Number(parseFloat(amount) * parseFloat(this.ad.price))
+        amount = Number((amount) * parseFloat(this.ad.price)).toFixed(2)
       } else {
-        amount = Number(parseFloat(amount) / parseFloat(this.ad.price))
+        amount = Number(parseFloat(amount) / parseFloat(this.ad.price)).toFixed(8)
       }
-      return amount
+      return Number(amount)
     },
     balance () {
       return this.$store.getters['assets/getAssets'][0].balance
@@ -459,10 +459,10 @@ export default {
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {
-            this.amount = parseFloat(this.ad.trade_floor)
+            this.amount = Number(this.ad.trade_floor)
             this.byFiat = this.ad.trade_limits_in_fiat
             if (this.byFiat) {
-              this.amount = Number(this.amount).toFixed(2)
+              this.amount = Number(Number(this.amount).toFixed(2))
             }
           }
         })
@@ -526,7 +526,6 @@ export default {
         const vm = this
         backend.get('ramp-p2p/arbiter', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
           .then(response => {
-            console.log('fetchArbiter:', response.data)
             vm.arbitersAvailable = response.data
             resolve(response.data)
           })
@@ -553,15 +552,17 @@ export default {
       let tradeFloor = Number(this.ad.trade_floor).toFixed(8)
       let tradeCeiling = Number(this.minTradeAmount(this.ad)).toFixed(8)
       let amount = Number(Number(value).toFixed(8))
+
       // if trade limits in fiat
       if (this.ad.trade_limits_in_fiat) {
         tradeFloor = Number(Number(tradeFloor).toFixed(2))
         tradeCeiling = Number(Number(tradeCeiling).toFixed(2))
-        // if input value is in fiat, limit decimals to 2
-        amount = Number(amount.toFixed(2))
         if (!this.byFiat) {
           // if input value is in BCH, convert to fiat first
           amount = Number((amount * this.ad.price).toFixed(2))
+        } else {
+          // if input value is in fiat, limit decimals to 2
+          amount = Number(amount.toFixed(2))
         }
       } else {
         // if trade limits in BCH
@@ -608,16 +609,20 @@ export default {
     updateInput (max = false, min = false) {
       if (!this.isloaded) return
       let amount = this.amount
+
+      const tradeFloor = Number(this.ad.trade_floor)
+      const tradeCeiling = this.minTradeAmount(this.ad)
+      const tradeLimitsInFiat = this.ad.trade_limits_in_fiat
+
       if (min) {
-        const tradeFloor = parseFloat(this.ad.trade_floor)
         if (this.byFiat) {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeFloor
           } else {
             amount = tradeFloor * this.ad.price
           }
         } else {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeFloor / this.ad.price
           } else {
             amount = tradeFloor
@@ -625,15 +630,14 @@ export default {
         }
       }
       if (max) {
-        const tradeCeiling = this.minTradeAmount(this.ad)
         if (this.byFiat) {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeCeiling
           } else {
             amount = tradeCeiling * this.ad.price
           }
         } else {
-          if (this.ad.trade_limits_in_fiat) {
+          if (tradeLimitsInFiat) {
             amount = tradeCeiling / this.ad.price
           } else {
             amount = tradeCeiling
@@ -649,43 +653,70 @@ export default {
         }
       }
 
-      this.amount = parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
+      amount = this.byFiat ? this.roundOffToFloor(amount, 10000) : amount.toFixed(8)
 
-      // check if valid amount
-      let temp = this.amount
-      let cont = true
-
-      if (this.byFiat) {
-        temp = this.equivalentAmount
+      const amountInFiat = this.byFiat ? amount : Number((amount * this.ad?.price).toFixed(2))
+      const amountInBch = this.byFiat ? Number((amount / this.ad?.price).toFixed(8)) : amount
+      let amountLessThanMin = false
+      let amountGreaterThanMax = false
+      if (tradeLimitsInFiat) {
+        amountLessThanMin = amountInFiat < tradeFloor
+        amountGreaterThanMax = amountInFiat > tradeCeiling
+      } else {
+        amountLessThanMin = amountInBch < tradeFloor
+        amountGreaterThanMax = amountInBch > tradeCeiling
       }
 
-      if (temp < parseFloat(this.ad.trade_floor)) {
-        cont = false
-        temp = parseFloat(this.ad.trade_floor)
+      const tradeFloorInFiat = tradeLimitsInFiat ? tradeFloor : Number((tradeFloor * this.ad.price).toFixed(2))
+      const tradeFloorInBch = !tradeLimitsInFiat ? tradeFloor : Number((tradeFloor / this.ad.price).toFixed(8))
+      const tradeCeilInFiat = tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling * this.ad.price).toFixed(2))
+      const tradeCeilInBch = !tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling / this.ad.price).toFixed(8))
 
-        if (this.byFiat) {
-          temp = temp * this.ad.price
-          temp = parseFloat((Number(temp) + 0.01).toFixed(2))
-        } else {
-          temp = parseFloat((Number(temp) + 0.00000001).toFixed(8))
-        }
+      if (amountLessThanMin) {
+        amount = this.byFiat ? tradeFloorInFiat : tradeFloorInBch
+      } else if (amountGreaterThanMax) {
+        amount = this.byFiat ? tradeCeilInFiat : tradeCeilInBch
       }
+      this.amount = Number(amount) // parseFloat(amount.toFixed(this.byFiat ? 2 : 8))
 
-      if ((temp > this.minTradeAmount(this.ad)) && cont) {
-        cont = false
-        temp = parseFloat(this.minTradeAmount(this.ad))
+      // // check if valid amount
+      // let temp = this.amount
+      // let cont = true
 
-        if (this.byFiat) {
-          temp = temp * this.ad.price
-          temp = parseFloat((Number(temp) - 0.01).toFixed(2))
-        } else {
-          temp = parseFloat((Number(temp) - 0.00000001).toFixed(8))
-        }
-      }
+      // if (this.byFiat) {
+      //   temp = this.equivalentAmount
+      // }
 
-      if (!cont) {
-        this.amount = temp
-      }
+      // if (temp < parseFloat(this.ad.trade_floor)) {
+      //   cont = false
+      //   temp = parseFloat(this.ad.trade_floor)
+
+      //   if (this.byFiat) {
+      //     temp = temp * this.ad.price
+      //     temp = parseFloat((Number(temp) + 0.01).toFixed(2))
+      //   } else {
+      //     temp = parseFloat((Number(temp) + 0.00000001).toFixed(8))
+      //   }
+      // }
+
+      // if ((temp > this.minTradeAmount(this.ad)) && cont) {
+      //   cont = false
+      //   temp = parseFloat(this.minTradeAmount(this.ad))
+
+      //   if (this.byFiat) {
+      //     temp = temp * this.ad.price
+      //     temp = parseFloat((Number(temp) - 0.01).toFixed(2))
+      //   } else {
+      //     temp = parseFloat((Number(temp) - 0.00000001).toFixed(8))
+      //   }
+      // }
+
+      // if (!cont) {
+      //   this.amount = temp
+      // }
+    },
+    roundOffToFloor (amount, decimals) {
+      return Math.floor(amount * decimals) / decimals
     },
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
