@@ -102,6 +102,7 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 const props = defineProps({
   posDevice: Object,
   walletHash: String,
+  merchantId: [Number, String],
 })
 
 const $q = useQuasar()
@@ -141,6 +142,7 @@ function fetchSalesReport(opts) {
     to: Number.isNaN(opts?.timestampTo) ? undefined : opts?.timestampTo,
     range: opts?.range,
     currency: opts?.currency,
+    merchant_id: props?.merchantId,
   }
   watchtower.BCH._api.get(`paytacapos/devices/sales_report/${walletHash}/`, { params })
     .then(response => {
