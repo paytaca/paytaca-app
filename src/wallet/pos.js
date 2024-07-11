@@ -1,17 +1,91 @@
+import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256 } from '@bitauth/libauth'
 import * as crypto from 'crypto'
-import Watchtower from 'watchtower-cash-js'
-// import axios from 'axios'
-// export const backend = axios.create({
-//   baseURL: 'http://localhost:8000/api',
-// })
+import axios from 'axios'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
-export const backend = (new Watchtower()).BCH._api
+import { Store } from 'src/store'
+import { Wallet } from 'src/wallet'
+
+import packageInfo from '../../package.json'
+
+export const backend = axios.create({
+  baseURL: process.env.MAINNET_WATCHTOWER_BASE_URL,
+  // baseURL: 'http://localhost:8000/api',
+})
+
+backend.interceptors.request.use(async (config) => {
+  const wallet = Store.getters['global/getWallet']('bch')
+  config.headers["X-Paytaca-App-Version"] = packageInfo.version
+  config.headers['wallet-hash'] = wallet.walletHash
+  if (config.authorize) {
+    const token = await authToken.get()
+    config.headers.Authorization = `Token ${token}`
+  }
+  return config
+})
+
+
+const AUTH_TOKEN_STORAGE_KEY = 'paytacapos-admin-auth-key'
+export const authToken = Object.freeze({
+  /**
+   * @param {Wallet} wallet 
+   */
+  async generate(wallet) {
+    wallet.BCH.getPrivateKey(`0/0`)
+    const response = await backend.get(`auth/otp/main`)
+    const otp = response?.data?.otp
+
+    const privkey = await wallet.BCH.getPrivateKey(`0/0`)
+    const pubkey = await wallet.BCH.getPublicKey(`0/0`)
+    const signature = await signMessage(privkey, otp)
+
+    const body = {
+      wallet_hash: wallet.BCH.walletHash,
+      signature: signature,
+      public_key: pubkey
+    }
+    const loginResponse = await backend.post(`/auth/login/main`, body)
+    await this.save(loginResponse.data.token)
+    return loginResponse.data.token
+  },
+  save(value) {
+    return SecureStoragePlugin
+      .set({ key: AUTH_TOKEN_STORAGE_KEY, value })
+      .then(success => { return success.value })
+  },
+  get() {
+    return SecureStoragePlugin.get({ key: AUTH_TOKEN_STORAGE_KEY })
+      .then(token => {
+        return token?.value
+      })
+      .catch(error => {
+        console.error('Item with specified key does not exist:', error)
+        return null
+      })
+  },
+  delete() {
+    return SecureStoragePlugin.remove({ AUTH_TOKEN_STORAGE_KEY })
+  },
+})
+
+export async function signMessage(wif, message) {
+  const messageHash = await sha256.hash(utf8ToBin(message))
+  const privateKeyBin = decodePrivateKeyWif(wif).privateKey
+  if (typeof privateKeyBin === 'string') throw new Error(privateKeyBin)
+
+  const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
+  if (typeof signatureBin === 'string') throw new Error(signatureBin)
+  const signature = binToHex(signatureBin)
+  return signature
+}
+
 
 /**
  * 
  * @param {Object} data 
  * @param {String} data.wallet_hash
  * @param {Number} data.posid
+ * @param {Number} [data.merchant_id]
  * @param {Number} [data.branch_id]
  * @param {Object} [data.linked_device]
  * @param {String} [data.linked_device.link_code]
@@ -31,6 +105,7 @@ export function parsePosDeviceData(data) {
     walletHash: data?.wallet_hash,
     posid: data?.posid,
     name: data?.name,
+    merchantId: data?.merchant_id,
     branchId: data?.branch_id,
     linkedDevice: {
       linkCode: data?.linked_device?.link_code,
@@ -52,58 +127,6 @@ export function parsePosDeviceData(data) {
   }
 
   return response
-}
-
-export class PosDeviceManager {
-  static DEFAULT_STORAGE_KEY = 'posDevices'
-  constructor(opts) {
-    this._STORAGE_KEY = opts?.STORAGE_KEY || PosDeviceManager.DEFAULT_STORAGE_KEY
-  }
-
-  get STORAGE_KEY() {
-    if (typeof this._STORAGE_KEY !== 'string') return PosDeviceManager.DEFAULT_STORAGE_KEY
-    return this._STORAGE_KEY
-  }
-
-  fetchPosDevices() {
-    const posDevices = []
-    try {
-      const data = JSON.parse(localStorage.getItem(this.STORAGE_KEY))
-      if (Array.isArray(data)) {
-        data.forEach(posDevice => {
-          if (Number.isInteger(posDevice?.posid)) {
-            posDevices.push({ posid: posDevice.posid, name: posDevice?.name || '' })
-          }
-        })
-      }
-    } catch(error) {
-      console.error(error)
-    }
-    return this.cleanPosDevicesData(posDevices)
-  }
-
-  /**
-   * 
-   * @param {{ posid: String, name: String }[]} posDevices
-   */
-  savePosDevices(posDevices) {
-    const cleanedData = this.cleanPosDevicesData(posDevices)
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cleanedData))
-  }
-
-  /**
-   * 
-   * @param {{ posid: String, name: String }[]} posDevices
-   */
-  cleanPosDevicesData(posDevices) {
-    if (!Array.isArray(posDevices)) return []
-    // 1st filter remove non integer posid
-    // 2nd filter remove duplicate posids
-    return posDevices
-      .filter(posDevice => Number.isInteger(posDevice?.posid))
-      .filter((e, i, s) => s.findIndex(e1 => e1?.posid === e?.posid) === i)
-      .filter(posDevice => posDevice?.posid >= 0)
-  }
 }
 
 /**

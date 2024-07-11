@@ -103,6 +103,7 @@ const phrases = {
       MnemonicBackupPhraseDescription2: "Write on paper or take a screenshot and keep it somewhere safe",
       SkipVerification: "Skip Verification",
       SkipVerificationMessage: "Are you sure you want to skip the verification step?",
+      MerchantAdmin: "Merchant admin",
       MerchantDetails: "Merchant details",
       MerchantDetailsRequired: "Merchant details required",
       MerchantDetailsSaved: "Merchant details saved",
@@ -163,6 +164,8 @@ const phrases = {
       RestoreFromSeedPhrase: "Restore From Seed Phrase",
       RemoveDeviceFailed: "Remove Device Failed",
       RemovePOSDevice: "Remove POS device",
+    },
+    {
       SalesReport: "Sales Report",
       SetCoordinates: "Set coordinates",
       SetName: "Set name",
@@ -492,6 +495,7 @@ const phrases = {
       DeletingWallet: "Deleting wallet",
       DeleteWallet: "Delete Wallet",
       DeleteWalletDescription: "Are you sure you want to delete this wallet?",
+      DeletingMerchant: "Deleting Merchant",
       UTXOScanComplete: "UTXO scan completed at",
       UTXOScanOngoing: "UTXO scan ongoing, started",
       InvalidAmount: "Invalid amount",
@@ -1129,6 +1133,7 @@ const phrases = {
     },
     {
       UnableToFindChatSessionOrderID: "Unable to find chat session for order #{ID}",
+      DeleteMerchantName: "Delete merchant {name}",
     }
   ]
 }
