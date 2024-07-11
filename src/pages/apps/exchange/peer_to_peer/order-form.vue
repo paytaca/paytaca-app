@@ -348,13 +348,12 @@ export default {
       this.fetchAd()
     }
   },
+  async created () {
+    bus.on('relogged', this.loadData)
+  },
   async mounted () {
     bus.emit('hide-menu')
-    const vm = this
-    await vm.fetchAd()
-    await vm.fetchArbiters()
-    vm.setupWebsocket()
-    vm.isloaded = true
+    await this.loadData()
   },
   beforeUnmount () {
     this.closeWSConnection()
@@ -363,6 +362,15 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
+    async loadData () {
+      const vm = this
+      vm.isloaded = false
+      await vm.fetchAd()
+      await vm.fetchArbiters()
+      vm.closeWSConnection()
+      vm.setupWebsocket()
+      vm.isloaded = true
+    },
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
       let proceed = false

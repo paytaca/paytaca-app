@@ -83,7 +83,7 @@ export default {
     bus.on('show-menu', this.showMenu)
     bus.on('update-unread-count', this.updateUnreadCount)
     bus.on('session-expired', this.handleSessionEvent)
-    bus.on('relogged', this.refreshChildren)
+    // bus.on('relogged', this.refreshPage)
   },
   async mounted () {
     this.isLoading = false
@@ -98,12 +98,7 @@ export default {
   },
   methods: {
     isNotDefaultTheme,
-    refreshChildren () {
-      // TODO: refreshChildren
-      console.log('refreshChildren')
-    },
     handleSessionEvent () {
-      console.log('handleSessionEvent')
       this.showLogin = true
     },
     fetchUser () {

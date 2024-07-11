@@ -291,7 +291,6 @@ export default {
   beforeRouteEnter (to, from, next) {
     next(vm => {
       vm.previousRoute = from.path
-      console.log('previousRoute:', vm.previousRoute)
     })
   },
   emits: ['back', 'updatePageName', 'selectListing'],
@@ -316,6 +315,9 @@ export default {
     hasMoreAdsData () {
       return this.adsPageNumber < this.adsTotalPages
     }
+  },
+  created () {
+    bus.on('relogged', this.refreshData)
   },
   mounted () {
     if (!this.userInfo) {
@@ -345,7 +347,7 @@ export default {
     refreshData (done) {
       this.processUserData()
       this.fetchReviews()
-      done()
+      if (done) done()
     },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
@@ -381,7 +383,6 @@ export default {
         this.user = user
         this.user.self = self
       })
-      // console.log('self: ', self)
     },
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
@@ -524,7 +525,6 @@ export default {
           }
 
           if (vm.retry) {
-            console.log('retrying')
             if (retries > 0) {
               return vm.delay(delayDuration)
                 .then(() => vm.exponentialBackoff(fn, retries - 1, delayDuration * 2, payload))

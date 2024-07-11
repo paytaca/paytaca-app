@@ -399,6 +399,7 @@ export default {
   },
   created () {
     bus.emit('hide-menu')
+    bus.on('relogged', this.loadFormData)
   },
   watch: {
     setTradeQuantityInFiat (value) {

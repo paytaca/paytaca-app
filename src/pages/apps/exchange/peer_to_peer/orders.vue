@@ -1,7 +1,7 @@
 <template>
     <div v-if="$route.name === 'p2p-orders'">
       <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
-      <OrderListings />
+      <OrderListings :key="orderListingsKey" />
     </div>
     <div v-else>
       <router-view :key="$route.path"></router-view>
@@ -10,11 +10,25 @@
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
 import OrderListings from 'src/components/ramp/fiat/OrderListings.vue'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   components: {
     HeaderNav,
     OrderListings
+  },
+  data () {
+    return {
+      orderListingsKey: 0
+    }
+  },
+  created () {
+    bus.on('relogged', this.refreshPage)
+  },
+  methods: {
+    refreshPage () {
+      this.orderListingsKey++
+    }
   },
   beforeRouteLeave (to, from, next) {
     switch (from.name) {

@@ -19,9 +19,10 @@
         </div>
       </div>
       <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow:auto;">
-        <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshContent">
+        <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
           <div class="q-mx-lg q-px-sm q-mb-sm">
             <TradeInfoCard
+              :key="tradeInfoCardKey"
               :order="order"
               :ad="ad"
               type="order"
@@ -64,7 +65,6 @@
               @send-feedback="sendFeedback"
               @submit-appeal="submitAppeal"
               @back="onBack"
-              @refresh="refreshContent"
               @cancel-order="cancellingOrder"
             />
           </div>
@@ -95,9 +95,9 @@
         v-on:submit="handleDialogResponse()"
       />
     </div>
-    <AdSnapshotDialog v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
-    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-    <ChatDialog v-if="openChat" :order="order" @close="openChat=false"/>
+    <AdSnapshotDialog :key="adSnapshotDialogKey" v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
+    <UserProfileDialog :key="userProfileDialogKey" v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+    <ChatDialog :key="chatDialogKey" v-if="openChat" :order="order" @close="openChat=false"/>
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
   </template>
 <script>
@@ -166,6 +166,9 @@ export default {
       escrowTransferKey: 0,
       verifyTransactionKey: 0,
       paymentConfirmationKey: 0,
+      tradeInfoCardKey: 0,
+      userProfileDialogKey: 0,
+      adSnapshotDialogKey: 0,
 
       errorMessages: [],
       selectedPaymentMethods: [],
@@ -352,6 +355,7 @@ export default {
   },
   created () {
     bus.emit('hide-menu')
+    bus.on('relogged', this.refreshPage)
   },
   async mounted () {
     await this.loadData()
@@ -366,6 +370,11 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    async refreshPage (done) {
+      await this.loadData()
+      this.reloadChildComponents()
+      if (done) done()
+    },
     async loadData () {
       const vm = this
       await vm.fetchOrder()
@@ -393,6 +402,9 @@ export default {
       this.escrowTransferKey++
       this.verifyTransactionKey++
       this.paymentConfirmationKey++
+      this.tradeInfoCardKey++
+      this.userProfileDialogKey++
+      this.adSnapshotDialogKey++
     },
     updateStatus (status) {
       const vm = this
@@ -689,7 +701,6 @@ export default {
       })
     },
     async generateContract () {
-      console.log('generating contract..')
       const vm = this
       const fees = await vm.fetchFees()
       await vm.fetchContract().then(async contract => {
@@ -966,13 +977,6 @@ export default {
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
-    },
-    refreshContent (done) {
-      if (done) {
-        this.$emit('refresh', done)
-      } else {
-        this.$refs.pullToRefresh.trigger()
-      }
     }
   }
 }
