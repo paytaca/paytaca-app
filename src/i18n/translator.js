@@ -43,12 +43,14 @@ class Translator {
         Home: '主頁',
         Send: '發送',
         Receive: '收取',
-        Apps: '應用程式'
+        Apps: '應用程式',
+        Points: '積分',
+        ButtonDEEM: '點心幣'
       }
     }
   }
 
-  async translate (opts = { ignoreExisting: false }) {
+  async translate (opts = { ignoreExisting: true }) {
     const ignoreExisting = opts?.ignoreExisting
     /*
       check for supported language codes here
