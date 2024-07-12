@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Transaksi Membangun",
   BusinessDetails: "Detail Bisnis",
   BusinessName: "Nama Bisnis",
+  ButtonDeem: "MENGANGGAP",
   BuyAds: "Beli iklan",
   BuyBCH: "Beli BCH",
   By: "oleh",

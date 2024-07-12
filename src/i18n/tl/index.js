@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Transaksyon sa Pagbuo",
   BusinessDetails: "Mga detalye ng negosyo",
   BusinessName: "Pangalan ng Negosyo",
+  ButtonDeem: "Itinuturing",
   BuyAds: "Bumili ng mga ad",
   BuyBCH: "Bumili ng BCH",
   By: "ni",

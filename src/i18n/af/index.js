@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Boutransaksie",
   BusinessDetails: "Besigheidsbesonderhede",
   BusinessName: "Besigheids naam",
+  ButtonDeem: "Beskou",
   BuyAds: "Koop advertensies",
   BuyBCH: "Koop BCH",
   By: "per",

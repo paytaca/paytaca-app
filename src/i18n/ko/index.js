@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "건물 거래",
   BusinessDetails: "비즈니스 세부 사항",
   BusinessName: "비즈니스 이름",
+  ButtonDeem: "간주합니다",
   BuyAds: "광고를 구매하십시오",
   BuyBCH: "BCH를 구입하십시오",
   By: "~에 의해",

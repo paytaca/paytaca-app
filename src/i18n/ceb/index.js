@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Transaksyon sa Pagtukod",
   BusinessDetails: "Mga Detalye sa Negosyo",
   BusinessName: "Ngalan sa negosyo",
+  ButtonDeem: "Usokon",
   BuyAds: "Pagpalit mga ad",
   BuyBCH: "Pagpalit BCH",
   By: "pinaagi sa",

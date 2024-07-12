@@ -50,7 +50,7 @@ class Translator {
     }
   }
 
-  async translate (opts = { ignoreExisting: true }) {
+  async translate (opts = { ignoreExisting: false }) {
     const ignoreExisting = opts?.ignoreExisting
     /*
       check for supported language codes here

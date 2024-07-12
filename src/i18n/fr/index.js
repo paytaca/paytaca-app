@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Transaction de construction",
   BusinessDetails: "Détails commerciaux",
   BusinessName: "Nom d'entreprise",
+  ButtonDeem: "CONSIDÉRER",
   BuyAds: "Acheter des publicités",
   BuyBCH: "Acheter BCH",
   By: "par",

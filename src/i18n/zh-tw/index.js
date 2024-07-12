@@ -146,6 +146,7 @@ export default {
   BusinessDetails: "業務詳細信息",
   BusinessName: "業務名稱",
   ButtonDEEM: "點心幣",
+  ButtonDeem: "認為",
   BuyAds: "購買廣告",
   BuyBCH: "購買BCH",
   By: "經過",

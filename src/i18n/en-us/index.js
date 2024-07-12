@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Building transaction",
   BusinessDetails: "Business details",
   BusinessName: "Business name",
+  ButtonDeem: "DEEM",
   BuyAds: "Buy Ads",
   BuyBCH: "Buy BCH",
   By: "by",

@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Ma'amala na gini",
   BusinessDetails: "Bayanan Kasuwanci",
   BusinessName: "Sunan Kasuwanci",
+  ButtonDeem: "Sumul",
   BuyAds: "Saya talla",
   BuyBCH: "Saya BCH",
   By: "da",

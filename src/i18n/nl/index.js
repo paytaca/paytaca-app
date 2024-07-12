@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "Bouwtransactie",
   BusinessDetails: "Zakelijke gegevens",
   BusinessName: "Bedrijfsnaam",
+  ButtonDeem: "ACHTEN",
   BuyAds: "Koop advertenties",
   BuyBCH: "Koop BCH",
   By: "door",

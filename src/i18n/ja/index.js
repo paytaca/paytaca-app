@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "建物の取引",
   BusinessDetails: "ビジネスの詳細",
   BusinessName: "商号",
+  ButtonDeem: "だと思う",
   BuyAds: "広告を購入します",
   BuyBCH: "BCHを購入します",
   By: "による",

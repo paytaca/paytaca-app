@@ -145,6 +145,7 @@ export default {
   BuildingTransaction: "建筑交易",
   BusinessDetails: "业务详细信息",
   BusinessName: "业务名称",
+  ButtonDeem: "认为",
   BuyAds: "购买广告",
   BuyBCH: "购买BCH",
   By: "经过",
