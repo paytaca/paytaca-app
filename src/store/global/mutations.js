@@ -110,12 +110,13 @@ export function setLanguage (state, language) {
   state.language = language
 }
 
-export function setCountry (state, country) {
-  state.country.name = country.name
-  state.country.code = country.code
-  if (country.code === 'HK') {
+export function setCountry (state, data) {
+  state.country.name = data.country.name
+  state.country.code = data.country.code
+
+  if (data.country.code === 'HK') {
     state.theme = 'payhero'
-    state.denomination = 'DEEM'
+    state.denomination = data.denomination
   } else {
     state.theme = 'default'
     state.denomination = 'BCH'

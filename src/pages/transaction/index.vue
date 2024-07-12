@@ -21,7 +21,7 @@
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
+                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
                 >
                   <q-tab
                     name="BCH"
@@ -45,7 +45,7 @@
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
                   style="margin-top: -15px;"
-                  :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+                  :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
                 >
                   <q-tab
                     :name="$t('DEEM')"

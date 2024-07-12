@@ -89,17 +89,19 @@ export default {
 
       this.defaultCountryOptions = this.defaultCountryOptions.filter((o, index) => {
         o.label = vm.countries[index].name
-        
+
         if (n.value === o.value) {
           const selectedCountry = vm.countries[index]
-          vm.$store.commit('global/setCountry', selectedCountry)
-
           let language = Object.keys(supportedLangs).filter(langCode => langCode === selectedCountry.language)
           if (language.length === 0) {
             language = ['en-us']
           }
           this.$i18n.locale = language[0]
           vm.$store.commit('global/setLanguage', language[0])
+          vm.$store.commit('global/setCountry', {
+            country: selectedCountry,
+            denomination: this.$t('DEEM')
+          })
 
           let currency = vm.currencyOptions.filter(o => o.symbol === selectedCountry.currency)
 
