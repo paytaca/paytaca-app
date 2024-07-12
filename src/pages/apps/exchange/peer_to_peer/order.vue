@@ -406,6 +406,7 @@ export default {
       this.tradeInfoCardKey++
       this.userProfileDialogKey++
       this.adSnapshotDialogKey++
+      this.chatDialogKey++
     },
     updateStatus (status) {
       const vm = this
