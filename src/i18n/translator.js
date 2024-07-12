@@ -38,6 +38,7 @@ class Translator {
         ManageIgnoredTokens: '管理被忽略幣種',
         ChineseTraditional: '中文繁體字',
         Ramp: 'Ramp',
+        CryptoSwap: "Ramp",
         Sweep: 'Sweep',
         Collectibles: 'NFT',
         Home: '主頁',

@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "現在、デバイスは中断されています",
   DeviceUnsuspended: "デバイスは懸濁されていません",
   Devices: "デバイス",
+  Disabled: "無効",
   Disconnected: "切断された",
   Dismiss: "却下する",
   Dispute: "紛争",

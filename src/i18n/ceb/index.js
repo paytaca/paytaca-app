@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "Ang aparato karon gisuspenso",
   DeviceUnsuspended: "Wala damha nga aparato",
   Devices: "Aparato",
+  Disabled: "may kabilinggan",
   Disconnected: "Ipaddkon",
   Dismiss: "Buhian",
   Dispute: "Maglantugi",

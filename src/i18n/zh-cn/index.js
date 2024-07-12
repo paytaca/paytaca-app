@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "设备当前已悬挂",
   DeviceUnsuspended: "设备无用",
   Devices: "设备",
+  Disabled: "禁用",
   Disconnected: "断开连接",
   Dismiss: "解雇",
   Dispute: "争议",

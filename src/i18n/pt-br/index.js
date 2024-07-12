@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "O dispositivo está atualmente suspenso",
   DeviceUnsuspended: "Dispositivo não suspenso",
   Devices: "Dispositivos",
+  Disabled: "desabilitada",
   Disconnected: "Desconectado",
   Dismiss: "Liberar",
   Dispute: "Disputa",

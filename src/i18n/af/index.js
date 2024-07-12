@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "Toestel is tans opgeskort",
   DeviceUnsuspended: "Toestel is nie toegewyd nie",
   Devices: "Toestelle",
+  Disabled: "gebreklik",
   Disconnected: "Ontkoppel",
   Dismiss: "Afdank",
   Dispute: "Dispuut",

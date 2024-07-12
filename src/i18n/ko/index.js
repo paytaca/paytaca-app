@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "장치가 현재 중단되었습니다",
   DeviceUnsuspended: "장치가 의무가 없습니다",
   Devices: "장치",
+  Disabled: "장애가 있는",
   Disconnected: "연결이 끊어졌습니다",
   Dismiss: "해고하다",
   Dispute: "논쟁",

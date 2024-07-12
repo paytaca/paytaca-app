@@ -336,7 +336,8 @@ const words = [
     Logout: "Logout",
     Reason: "Reason",
     Appeal: 'Appeal',
-    ButtonDeem: 'DEEM'
+    ButtonDeem: 'DEEM',
+    Disabled: 'disabled'
   }
 ]
 

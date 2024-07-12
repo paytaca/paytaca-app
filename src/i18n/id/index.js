@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "Perangkat saat ini ditangguhkan",
   DeviceUnsuspended: "Perangkat tidak ditanggung",
   Devices: "Perangkat",
+  Disabled: "dengan disabilitas",
   Disconnected: "Terputus",
   Dismiss: "Membubarkan",
   Dispute: "Sengketa",

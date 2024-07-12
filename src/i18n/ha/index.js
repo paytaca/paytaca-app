@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "A halin yanzu an dakatar da na'urar",
   DeviceUnsuspended: "Na'urar da ba ta dace ba",
   Devices: "Na'urori",
+  Disabled: "naƙasasshe",
   Disconnected: "Katse",
   Dismiss: "Tuɓe \\ sallama",
   Dispute: "Shawarwari",

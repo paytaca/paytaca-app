@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "Kasalukuyang nasuspinde ang aparato",
   DeviceUnsuspended: "Hindi nasuspinde ang aparato",
   Devices: "Aparato",
+  Disabled: "hindi pinagana",
   Disconnected: "Naka -disconnect",
   Dismiss: "Tanggalin",
   Dispute: "Alitan",

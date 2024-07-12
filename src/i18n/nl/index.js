@@ -355,6 +355,7 @@ export default {
   DeviceSuspendedPOS: "Apparaat is momenteel opgehangen",
   DeviceUnsuspended: "Apparaat niet wordt ondersteund",
   Devices: "Apparaten",
+  Disabled: "gehandicapt",
   Disconnected: "Losgekoppeld",
   Dismiss: "Afwijzen",
   Dispute: "Geschil",
