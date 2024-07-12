@@ -214,7 +214,7 @@ export default {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
     this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
-    this.selectedDenomination = this.denomination
+    this.selectedDenomination = this.inputExtras.selectedDenomination
     this.isLegacyAddress = this.inputExtras.isLegacyAddress
   },
 
@@ -278,6 +278,11 @@ export default {
     onSelectedDenomination (value) {
       this.selectedDenomination = value
       this.amountFormatted = this.customNumberFormatting(getAssetDenomination(value, this.amount || 0, true))
+
+      this.$emit('on-selected-denomination-change', {
+        denomination: this.selectedDenomination,
+        amountFormatted: this.amountFormatted
+      })
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
@@ -292,9 +297,6 @@ export default {
     amount: function (value) {
       this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
       this.$emit('on-balance-exceeded', this.balanceExceeded)
-    },
-    selectedDenomination: function (_value) {
-      this.$emit('on-selected-denomination-change', this.denomination)
     }
   }
 }
