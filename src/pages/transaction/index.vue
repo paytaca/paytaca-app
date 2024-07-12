@@ -1129,7 +1129,6 @@ export default {
     const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
     const walletIndex = vm.$store.getters['global/getWalletIndex']
     const vaultRemovedAssetIds = vm.$store.getters['assets/getRemovedAssetIds'][walletIndex].removedAssetIds ?? []
-    console.log('vaultRemovedAssetIds', vaultRemovedAssetIds)
 
     if (tokens.length > 0) {
       const assetsId = assets.map(a => a.id)
