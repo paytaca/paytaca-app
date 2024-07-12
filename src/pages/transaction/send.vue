@@ -1467,7 +1467,7 @@ export default {
           scannedRecipientAddress: false,
           setMax: false,
           emptyRecipient: true,
-          selectedDenomination: 'BCH',
+          selectedDenomination: this.denomination,
           isBip21: false,
           isLegacyAddress: false
         })
@@ -1614,8 +1614,9 @@ export default {
     onEmptyRecipient (value) {
       this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
     },
-    onSelectedDenomination (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
+    onSelectedDenomination(value) {
+      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value.denomination
+      this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = value.amountFormatted
     },
     async initWallet() {
       const walletIndex = this.$store.getters['global/getWalletIndex']
@@ -1684,6 +1685,10 @@ export default {
     // check query if address is not empty (from qr reader redirection)
     if (vm.$route.query.address !== '') {
       vm.onScannerDecode(vm.$route.query.address)
+    }
+
+    if (this.inputExtras.length === 1) {
+      this.inputExtras[0].selectedDenomination = this.denomination
     }
   },
 
