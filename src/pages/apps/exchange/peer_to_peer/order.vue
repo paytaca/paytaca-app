@@ -169,6 +169,7 @@ export default {
       tradeInfoCardKey: 0,
       userProfileDialogKey: 0,
       adSnapshotDialogKey: 0,
+      chatDialogKey: 0,
 
       errorMessages: [],
       selectedPaymentMethods: [],
