@@ -46,7 +46,8 @@ class Translator {
         Receive: '收取',
         Apps: '應用程式',
         Points: '積分',
-        ButtonDeem: '點心幣'
+        ButtonDeem: '點心幣',
+        DEEM: '點'
       }
     }
   }

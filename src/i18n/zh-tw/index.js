@@ -303,7 +303,7 @@ export default {
   CurrentPrice: "時價",
   CurrentTimeError: "必須是當前時間之後",
   Customer: "顧客",
-  DEEM: "認為",
+  DEEM: "點",
   Daily: "日常的",
   DarkMode: "黑暗模式",
   Data: "數據",
