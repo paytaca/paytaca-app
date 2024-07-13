@@ -637,7 +637,7 @@ export default {
   MaxTradeLimit: "Max Trade Limit",
   Maximum: "Maximum",
   Memo: "Memo",
-  MerchantAdmin: "Merchant admin",
+  MerchantAdmin: "Merchant Admin",
   MerchantDetails: "Merchant details",
   MerchantDetailsRequired: "Merchant details required",
   MerchantDetailsSaved: "Merchant details saved",

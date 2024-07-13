@@ -637,7 +637,7 @@ export default {
   MaxTradeLimit: "Limite commerciale massimo",
   Maximum: "Massimo",
   Memo: "Memo",
-  MerchantAdmin: "Amministratore commerciale",
+  MerchantAdmin: "Amministratore Commerciale",
   MerchantDetails: "Dettagli del commerciante",
   MerchantDetailsRequired: "Dettagli del commerciante richiesti",
   MerchantDetailsSaved: "Dettagli commerciali salvati",
