@@ -35,7 +35,12 @@
 </template>
 
 <script>
-import { supportedLangs } from '../../i18n'
+const localeOptionsLabels = [
+  'English', 'Cebuano', 'ChineseSimplified', 'ChineseTraditional', 'Dutch',
+  'French', 'German', 'Hausa', 'Indonesian', 'Italian',
+  'Japanese', 'Korean', 'Portuguese', 'BrazilianPortuguese', 'Spanish',
+  'ArgentinianSpanish', 'Tagalog'
+]
 
 export default {
   props: {
@@ -64,7 +69,7 @@ export default {
         { value: 'pt-br', label: this.$t('BrazilianPortuguese') },
         { value: 'es', label: this.$t('Spanish') },
         { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
-        { value: 'tl', label: this.$t('Tagalog') },
+        { value: 'tl', label: this.$t('Tagalog') }
       ],
       localeOptions: []
     }
@@ -90,6 +95,19 @@ export default {
       }
 
       update()
+    },
+    translateOptionsToCurrentLang () {
+      const vm = this
+      const tempOptions = []
+
+      vm.defaultLocaleOptions.forEach((option, index) => {
+        tempOptions.push({
+          value: option.value,
+          label: vm.$t(localeOptionsLabels[index])
+        })
+      })
+
+      vm.defaultLocaleOptions = tempOptions
     }
   },
   computed: {
@@ -111,6 +129,8 @@ export default {
           const translatedDenom = this.$t(denomination)
           this.$store.commit('global/setDenomination', translatedDenom)
         }
+
+        this.translateOptionsToCurrentLang()
       }
     }
   }
