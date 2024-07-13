@@ -55,7 +55,7 @@
                     <template v-slot:default>
                       <div class="q-tab__content">
                         <div class="q-tab__label">
-                          <span>{{ $t('ButtonDEEM') }}</span>
+                          <span>{{ $t('ButtonDeem') }}</span>
                         </div>
                         <div class="q-tab__icon">
                           <q-icon name="img:assets/img/theme/payhero/hk-flag.png" />
