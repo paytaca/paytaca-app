@@ -993,12 +993,22 @@ export default {
     },
     formatBCHCardBalance (currentDenomination, currentBalance = 0) {
       const balance = currentBalance || this.bchAsset?.balance || 0
-      this.parsedBCHBalance = parseAssetDenomination(currentDenomination, {
+      const parsedBCHBalance = parseAssetDenomination(currentDenomination, {
         id: '',
         balance,
         symbol: 'BCH',
         decimals: 0
       }, false, 10)
+
+      if (this.denomination === this.$t('DEEM')) {
+        const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        })
+        this.parsedBCHBalance = `${commaBalance} ${currentDenomination}`
+      } else {
+        this.parsedBCHBalance = parsedBCHBalance
+      }
     },
     onDenominationTabSelected (value) {
       this.denominationTabSelected = value
