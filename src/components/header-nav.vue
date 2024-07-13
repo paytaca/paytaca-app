@@ -3,7 +3,7 @@
     <div
       ref="header-nav"
       class="pt-header row no-wrap"
-      :style="{'padding-top': $q.platform.is.ios ? '40px' : '18px', 'height': $q.platform.is.ios ? '85px' : '70px'}"
+      :style="{'padding-top': $q.platform.is.ios ? '63px' : '18px', 'height': $q.platform.is.ios ? '85px' : '70px'}"
       :class="{'pt-card-3': darkMode}">
       <div class="col-1">
         <router-link
