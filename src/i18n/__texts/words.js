@@ -337,7 +337,9 @@ const words = [
     Reason: "Reason",
     Appeal: 'Appeal',
     ButtonDeem: 'DEEM',
-    Disabled: 'disabled'
+    Disabled: 'disabled',
+    French: 'French',
+    Portuguese: 'Portuguese'
   }
 ]
 
