@@ -98,9 +98,19 @@ export default {
         return this.$store.getters['global/language']
       },
       set (lang) {
-        console.log('LANG:', lang)
         this.$i18n.locale = lang.value
         this.$store.commit('global/setLanguage', lang.value)
+
+        const denomination = this.$store.getters['global/denomination']
+        if (lang.value !== 'zh-tw' &&
+            denomination !== this.$t('DEEM') &&
+            !['BCH', 'mBCH', 'Satoshis'].includes(denomination)
+        ) {
+          this.$store.commit('global/setDenomination', 'DEEM')
+        } else {
+          const translatedDenom = this.$t(denomination)
+          this.$store.commit('global/setDenomination', translatedDenom)
+        }
       }
     }
   }
