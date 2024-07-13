@@ -1000,7 +1000,7 @@ export default {
         decimals: 0
       }, false, 10)
 
-      if (this.denomination === this.$t('DEEM')) {
+      if (currentDenomination === this.$t('DEEM')) {
         const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {
           minimumFractionDigits: 0,
           maximumFractionDigits: 0
