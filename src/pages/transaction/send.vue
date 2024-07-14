@@ -536,6 +536,9 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     denomination () {
+      if (this.isSLP || this.isCashToken) {
+        return 'BCH'
+      }
       return this.$store.getters['global/denomination']
     },
     theme () {
