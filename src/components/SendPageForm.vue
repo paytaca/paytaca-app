@@ -214,8 +214,12 @@ export default {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
     this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
-    this.selectedDenomination = this.inputExtras.selectedDenomination
     this.isLegacyAddress = this.inputExtras.isLegacyAddress
+    if (this.inputExtras.isBip21) {
+      this.selectedDenomination = 'BCH'
+    } else {
+      this.selectedDenomination = this.inputExtras.selectedDenomination
+    }
   },
 
   computed: {

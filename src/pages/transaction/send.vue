@@ -1758,7 +1758,7 @@ export default {
     .send-form {
       font-size: 26px !important;
       margin-top: -100px;
-      padding-top: 20px;
+      padding-top: 30px;
       .remove-recipient-button {
         font-size: 14px;
         color: red;
