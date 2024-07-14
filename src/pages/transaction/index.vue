@@ -999,8 +999,16 @@ export default {
         symbol: 'BCH',
         decimals: 0
       }, false, 10)
-      
-      this.parsedBCHBalance = parsedBCHBalance
+
+      if (currentDenomination === this.$t('DEEM')) {
+        const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        })
+        this.parsedBCHBalance = `${commaBalance} ${currentDenomination}`
+      } else {
+        this.parsedBCHBalance = parsedBCHBalance
+      }
     },
     onDenominationTabSelected (value) {
       this.denominationTabSelected = value

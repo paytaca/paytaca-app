@@ -25,14 +25,22 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
     newBalance = String(customNumberFormatting(calculatedBalance)).substring(0, setSubStringMaxLength)
-    newBalance = parseFloat(newBalance).toLocaleString('en-US')
+    if (asset.thousandSeparator) {
+      newBalance = parseFloat(newBalance).toLocaleString('en-US', {
+        maximumFractionDigits: decimal
+      })
+    }
     completeAsset = `${newBalance} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     let newBalance = String(
       parseFloat(convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP))
     ).substring(0, setSubStringMaxLength)
-    newBalance = parseFloat(newBalance).toLocaleString('en-US')
+    if (asset.thousandSeparator) {
+      newBalance = parseFloat(newBalance).toLocaleString('en-US', {
+        maximumFractionDigits: decimal
+      })
+    }
     completeAsset = `${newBalance} ${asset.symbol}`
   }
   return completeAsset
