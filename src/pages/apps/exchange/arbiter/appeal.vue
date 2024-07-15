@@ -81,7 +81,7 @@
         </div>
       </q-pull-to-refresh>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
-    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" :clickable-ads="false" @back="showPeerProfile=false"/>
     <ChatDialog v-if="openChat" :order="appealDetailData?.order" @close="openChat=false"/>
   </div>
 </template>
@@ -149,20 +149,12 @@ export default {
       previousRoute: null
     }
   },
-  props: {
-    // orderId: String
-    // initWallet: Object,
-    // notifType: {
-    //   type: String,
-    //   default: ''
-    // }
-  },
   emits: ['back', 'updatePageName'],
   computed: {
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 140
       if (this.state === 'form') {
-        height = height - 90
+        height = height - 115
       }
       return height
     },

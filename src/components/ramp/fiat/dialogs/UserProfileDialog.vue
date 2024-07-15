@@ -189,7 +189,11 @@ export default {
     }
   },
   props: {
-    userInfo: Object
+    userInfo: Object,
+    clickableAds: {
+      type: Boolean,
+      default: true
+    }
   },
   emits: ['back'],
   components: {
@@ -378,7 +382,9 @@ export default {
       })
     },
     selectAd (ad) {
-      this.$router.push({ name: 'p2p-store-form', params: { ad: ad?.id } })
+      if (this.clickableAds) {
+        this.$router.push({ name: 'p2p-store-form', params: { ad: ad?.id } })
+      }
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
