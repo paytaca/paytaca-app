@@ -19,7 +19,8 @@
                 `${parseAssetDenomination(
                   denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                   ...asset,
-                  balance: transaction?.amount
+                  balance: transaction?.amount,
+                  thousandSeparator: true
                 })}`
               }}
             </div>
@@ -28,7 +29,8 @@
                 `${parseAssetDenomination(
                   denomination === $t('DEEM') ? denominationTabSelected : denomination, {
                   ...asset,
-                  balance: transaction?.amount
+                  balance: transaction?.amount,
+                  thousandSeparator: true
                 })}`
               }}
             </div>

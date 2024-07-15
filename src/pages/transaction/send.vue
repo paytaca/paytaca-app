@@ -536,6 +536,9 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     denomination () {
+      if (this.isSLP || this.isCashToken) {
+        return 'BCH'
+      }
       return this.$store.getters['global/denomination']
     },
     theme () {
@@ -788,7 +791,7 @@ export default {
       const valid = this.checkAddress(address)
       if (valid) {
         // check for BIP21
-        this.onBIP21Amount(address)
+        this.onBIP21Amount(content)
 
         currentRecipient.recipientAddress = address
         currentRecipient.rawPaymentUri = rawPaymentUri
@@ -1467,7 +1470,7 @@ export default {
           scannedRecipientAddress: false,
           setMax: false,
           emptyRecipient: true,
-          selectedDenomination: 'BCH',
+          selectedDenomination: this.denomination,
           isBip21: false,
           isLegacyAddress: false
         })
@@ -1614,8 +1617,9 @@ export default {
     onEmptyRecipient (value) {
       this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
     },
-    onSelectedDenomination (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value
+    onSelectedDenomination(value) {
+      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value.denomination
+      this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = value.amountFormatted
     },
     async initWallet() {
       const walletIndex = this.$store.getters['global/getWalletIndex']
@@ -1685,6 +1689,10 @@ export default {
     if (vm.$route.query.address !== '') {
       vm.onScannerDecode(vm.$route.query.address)
     }
+
+    if (this.inputExtras.length === 1) {
+      this.inputExtras[0].selectedDenomination = this.denomination
+    }
   },
 
   unmounted () {
@@ -1753,7 +1761,7 @@ export default {
     .send-form {
       font-size: 26px !important;
       margin-top: -100px;
-      padding-top: 20px;
+      padding-top: 30px;
       .remove-recipient-button {
         font-size: 14px;
         color: red;

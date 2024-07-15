@@ -21,7 +21,7 @@
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) && 'transparent'"
+                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
                 >
                   <q-tab
                     name="BCH"
@@ -45,7 +45,7 @@
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
                   style="margin-top: -15px;"
-                  :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+                  :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
                 >
                   <q-tab
                     :name="$t('DEEM')"
@@ -55,7 +55,7 @@
                     <template v-slot:default>
                       <div class="q-tab__content">
                         <div class="q-tab__label">
-                          <span>{{ `${$t('DEEM')}` }}</span>
+                          <span>{{ $t('ButtonDeem') }}</span>
                         </div>
                         <div class="q-tab__icon">
                           <q-icon name="img:assets/img/theme/payhero/hk-flag.png" />
@@ -993,12 +993,22 @@ export default {
     },
     formatBCHCardBalance (currentDenomination, currentBalance = 0) {
       const balance = currentBalance || this.bchAsset?.balance || 0
-      this.parsedBCHBalance = parseAssetDenomination(currentDenomination, {
+      const parsedBCHBalance = parseAssetDenomination(currentDenomination, {
         id: '',
         balance,
         symbol: 'BCH',
         decimals: 0
       }, false, 10)
+
+      if (currentDenomination === this.$t('DEEM')) {
+        const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        })
+        this.parsedBCHBalance = `${commaBalance} ${currentDenomination}`
+      } else {
+        this.parsedBCHBalance = parsedBCHBalance
+      }
     },
     onDenominationTabSelected (value) {
       this.denominationTabSelected = value
@@ -1128,11 +1138,11 @@ export default {
     // if not, then add it to the very first of the list
     const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
     const walletIndex = vm.$store.getters['global/getWalletIndex']
-    const vaultRemovedAssetIds = vm.$store.getters['assets/getRemovedAssetIds'][walletIndex].asset ?? []
+    const vaultRemovedAssetIds = vm.$store.getters['assets/getRemovedAssetIds'][walletIndex].removedAssetIds ?? []
 
     if (tokens.length > 0) {
       const assetsId = assets.map(a => a.id)
-      const newTokens = tokens.filter(b => !(assetsId.includes(b.id) || vaultRemovedAssetIds.includes(b.id)))
+      const newTokens = tokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
 
       newTokens.forEach(token => {
         vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, token)

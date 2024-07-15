@@ -5,7 +5,7 @@
     @refresh="refreshPage"
   >
     <HeaderNav
-      :title="$t('MerchantAdmin', {}, 'Merchant admin')"
+      :title="$t('MerchantAdmin', {}, 'Merchant Admin')"
       backnavpath="/apps"
       class="apps-header"
     />
