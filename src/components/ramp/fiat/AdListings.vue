@@ -193,8 +193,6 @@ export default {
       openMiscDialog: false,
       openDialog: false,
       dialogName: '',
-      selectedIndex: null,
-      editListing: {},
       transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
       loading: false,
@@ -376,9 +374,6 @@ export default {
       bus.emit('show-menu', 'ads')
     },
     onCreateAd () {
-      console.log('onCreateAd')
-      // this.state = 'create'
-      // this.pageName = 'ad-form-1'
       this.$router.push({ name: 'p2p-ads-create-form', query: { type: this.transactionType, step: 1 } })
     },
     onEditAd (id) {

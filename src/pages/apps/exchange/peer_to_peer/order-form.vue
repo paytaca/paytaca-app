@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps/exchange/peer-to-peer/store"/>
   <div v-if="state !== 'order-process'">
     <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
       <!-- Form Body -->
@@ -155,10 +155,7 @@
                 :label="$t('EditAd')"
                 :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
                 class="q-space"
-                @click="() => {
-                  state = 'edit-ad'
-                  $emit('updatePageName', 'ad-form-1')
-                  }">
+                @click="onEditAd">
               </q-btn>
             </div>
           </div>
@@ -190,20 +187,6 @@
         v-on:submit="recievePaymentMethods"
       />
     </div>
-    <!-- Edit Ad -->
-    <div v-if="state === 'edit-ad'">
-      <FiatAdsForm
-        ref="fiatAdsForm"
-        @back="onBackEditAds()"
-        :adsState="'edit'"
-        :transactionType="ad.trade_type"
-        :selectedAdId="ad.id"
-        @submit="onSubmitEditAds()"
-        @update-page-name="(val) => {
-          $emit('updatePageName', val)
-        }"
-      />
-    </div>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
     <div style="position: fixed; z-index: 10;">
       <customKeyboard
@@ -214,7 +197,6 @@
     </div>
   </div>
   <div v-else>
-    <!-- <FiatProcessOrder :order-data="order" @back="onBack"/> -->
     <router-view :key=$route.path></router-view>
   </div>
 </template>
@@ -222,8 +204,6 @@
 import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
-import FiatAdsForm from 'src/components/ramp/fiat/FiatAdsForm.vue'
-import FiatProcessOrder from 'src/components/ramp/fiat/FiatProcessOrder.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
@@ -252,8 +232,6 @@ export default {
     CustomKeyboard,
     ProgressLoader,
     AddPaymentMethods,
-    FiatAdsForm,
-    FiatProcessOrder,
     MiscDialogs,
     TradeInfoCard,
     UserProfileDialog,
@@ -362,6 +340,12 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
+    onEditAd () {
+      // state = 'edit-ad'
+      // $emit('updatePageName', 'ad-form-1')
+      console.log('editing ad:', this.ad)
+      this.$router.push({ name: 'p2p-ads-edit-form', params: { ad: this.ad.id }, query: { step: 1 } })
+    },
     async loadData () {
       const vm = this
       vm.isloaded = false
@@ -449,15 +433,15 @@ export default {
     customBackEditAds () {
       this.$refs.fiatAdsForm.step--
     },
-    onBackEditAds () {
-      this.state = 'initial'
-      bus.emit('show-menu', 'store')
-    },
-    onSubmitEditAds () {
-      this.$emit('back')
-      this.$emit('updatePageName', 'main')
-      bus.emit('show-menu', 'store')
-    },
+    // onBackEditAds () {
+    //   this.state = 'initial'
+    //   bus.emit('show-menu', 'store')
+    // },
+    // onSubmitEditAds () {
+    //   this.$emit('back')
+    //   this.$emit('updatePageName', 'main')
+    //   bus.emit('show-menu', 'store')
+    // },
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'
       this.openDialog = true
