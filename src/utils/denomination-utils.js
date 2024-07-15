@@ -12,6 +12,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
   const isBCH = asset.symbol === 'BCH' || asset.symbol === 'sBCH'
   const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
   let completeAsset = ''
+  let newBalance 
 
   if (isBCH) {
     // fallback condition for translated 'DEEM'
@@ -23,14 +24,23 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     } else {
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
-    const newBalance = String(customNumberFormatting(calculatedBalance)).substring(0, setSubStringMaxLength)
-
+    newBalance = String(customNumberFormatting(calculatedBalance)).substring(0, setSubStringMaxLength)
+    if (asset.thousandSeparator) {
+      newBalance = parseFloat(newBalance).toLocaleString('en-US', {
+        maximumFractionDigits: decimal
+      })
+    }
     completeAsset = `${newBalance} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
-    const newBalance = String(
+    let newBalance = String(
       parseFloat(convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP))
     ).substring(0, setSubStringMaxLength)
+    if (asset.thousandSeparator) {
+      newBalance = parseFloat(newBalance).toLocaleString('en-US', {
+        maximumFractionDigits: asset.decimal
+      })
+    }
     completeAsset = `${newBalance} ${asset.symbol}`
   }
   return completeAsset

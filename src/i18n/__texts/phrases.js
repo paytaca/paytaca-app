@@ -103,7 +103,7 @@ const phrases = {
       MnemonicBackupPhraseDescription2: "Write on paper or take a screenshot and keep it somewhere safe",
       SkipVerification: "Skip Verification",
       SkipVerificationMessage: "Are you sure you want to skip the verification step?",
-      MerchantAdmin: "Merchant admin",
+      MerchantAdmin: "Merchant Admin",
       MerchantDetails: "Merchant details",
       MerchantDetailsRequired: "Merchant details required",
       MerchantDetailsSaved: "Merchant details saved",

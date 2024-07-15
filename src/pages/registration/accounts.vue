@@ -750,10 +750,7 @@ export default {
 
     const vm = this
     setTimeout(function () {
-      // set country
-      vm.$store.commit('global/setCountry', ipGeoPreferences.country)
-
-      // set currency
+    // set currency
       const currencyOptions = vm.$store.getters['market/currencyOptions']
       const currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
       if (currency?.symbol) {
@@ -794,6 +791,12 @@ export default {
 
       this.setLanguage(finalLang)
     }
+
+    // set country
+    vm.$store.commit('global/setCountry', {
+      country: ipGeoPreferences.country,
+      denomination: this.$t('DEEM')
+    })
 
     this.$axios.get('https://watchtower.cash/api/status/', { timeout: 30000 }).then(response => {
       if (response.status !== 200) return Promise.reject()

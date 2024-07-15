@@ -11,7 +11,7 @@
     </div>
 
     <div v-else class="column items-center">
-      <div>
+      <div style="margin-top: 20px;">
         <q-img src="bch-logo.png" height="35px" width="35px" />
         &nbsp;BCH
         <q-toggle

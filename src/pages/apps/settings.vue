@@ -18,7 +18,7 @@
               <q-item :disable="!pinStatus" clickable v-ripple @click="setNewPin">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('ChangePin') }} {{ !pinStatus ? '(disabled)' : '' }}
+                        {{ $t('ChangePin') }} {{ !pinStatus ? $t('(disabled)') : '' }}
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
