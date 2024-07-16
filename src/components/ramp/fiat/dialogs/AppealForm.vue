@@ -38,9 +38,12 @@
                 <div class="q-gutter-sm q-pt-sm">
                     <q-badge
                       class="q-pa-sm"
-                      rounded :outline="!(selectedAppealType && appealType.value === selectedAppealType.value)" color="blue-grey-6"
+                      rounded
+                      :outline="!(selectedAppealType && appealType.value === selectedAppealType.value)"
+                      color="blue-grey-6"
                       @click="selectedAppealType = appealType"
-                      v-for="appealType in appealTypeOpts" :key="appealType.value" >
+                      v-for="appealType in appealTypeOpts"
+                      :key="appealType.value" >
                       {{ appealType.label }}
                     </q-badge>
                 </div>
@@ -91,7 +94,7 @@ export default {
       reasonOpts: [
         this.$t('AppealFormReasonOpt1'),
         this.$t('AppealFormReasonOpt2'),
-        this.$t('AppealFormReasonOpt3'),
+        this.$t('AppealFormReasonOpt3')
       ],
       appealTypeOpts: [
         {
@@ -106,7 +109,14 @@ export default {
     }
   },
   props: {
+    type: String,
     order: Object
+  },
+  mounted () {
+    if (this.type === 'seller') {
+      this.appealTypeOpts = [{ label: this.$t('Refund'), value: 'RFN' }]
+      this.selectedAppealType = { label: this.$t('Refund'), value: 'RFN' }
+    }
   },
   methods: {
     getDarkModeClass,

@@ -614,7 +614,7 @@ export default {
       })
         .catch(error => {
           console.error(error.response || error)
-          if (error.response.status === 403) {
+          if (error.response?.status === 403) {
             bus.emit('session-expired')
           }
         })

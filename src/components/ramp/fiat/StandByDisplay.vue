@@ -141,10 +141,7 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <AppealForm
-      :order="data?.order"
-      @back="openDialog = false"
-      />
+    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" />
     <!-- <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
@@ -192,7 +189,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      nickname: this.$store.getters['ramp/getUser'].name,
+      nickname: this.$store.getters['ramp/getUser']?.name,
       appeal: null,
       isloaded: false,
       appealCountdown: null,
@@ -233,6 +230,16 @@ export default {
     //       return null
     //   }
     // },
+    orderUserType () {
+      const vm = this
+      let userType = null
+      if (vm.data?.ad?.trade_type === 'SELL') {
+        userType = vm.data?.order.is_ad_owner ? 'seller' : 'buyer'
+      } else if (vm.data?.ad?.trade_type === 'BUY') {
+        userType = vm.data?.order.is_ad_owner ? 'buyer' : 'seller'
+      }
+      return userType
+    },
     appealBtnLabel () {
       if (this.appealCountdown) return this.$t('AppealableInSeconds', { countdown: this.appealCountdown }, `Appealable in ${this.appealCountdown}`)
       return this.$t('SubmitAnAppeal')
@@ -318,12 +325,12 @@ export default {
 
       switch (tradeType) {
         case 'SELL':
-          adOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
-          orderOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          adOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
+          orderOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
           break
         case 'BUY':
-          adOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
-          orderOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          adOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
+          orderOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
           break
       }
 
@@ -413,7 +420,6 @@ export default {
       this.$emit('submitAppeal', data)
     },
     onSubmitFeedback (feedback) {
-      console.log('onSubmitFeedback:', feedback)
       this.feedback = feedback
     },
     startAppealCountdown () {

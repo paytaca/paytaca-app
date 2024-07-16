@@ -155,11 +155,7 @@
   }"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
-  <AppealForm
-  v-if="showAppealForm"
-  :order="order"
-  @back="showAppealForm = false"
-  />
+  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'

@@ -249,7 +249,7 @@ export default {
       const user = this.$store.getters['ramp/getUser']
       await fetchChatMembers(chatRef).then(response => {
         const userMember = response?.filter(member => {
-          return user.chat_identity_id === member.chat_identity.id
+          return user?.chat_identity_id === member?.chat_identity?.id
         })[0]
         this.unread = userMember?.unread_count || 0
       }).catch(error => {
