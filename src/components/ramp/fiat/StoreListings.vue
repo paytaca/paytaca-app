@@ -320,6 +320,13 @@ export default {
             resolve(paymentTypes)
           })
           .catch(error => {
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            }
             reject(error)
           })
       })
