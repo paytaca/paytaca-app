@@ -117,7 +117,7 @@
                             )
                           }}
                         </span><br>
-                      </div>
+                      </div>item
                       <span
                         class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                         :class="getDarkModeClass(darkMode)">
@@ -285,16 +285,18 @@ export default {
       this.resetAndRefetchListings()
     },
     showCurrencySelect () {
-      this.$q.dialog({
-        component: CurrencyFilterDialog,
-        componentProps: {
-          fiatList: this.fiatCurrencies
-        }
-      })
-        .onOk(currency => {
-          const index = this.fiatCurrencies.indexOf(currency)
-          this.selectCurrency(index)
+      if (this.fiatCurrencies.length !== 0) {
+        this.$q.dialog({
+          component: CurrencyFilterDialog,
+          componentProps: {
+            fiatList: this.fiatCurrencies
+          }
         })
+          .onOk(currency => {
+            const index = this.fiatCurrencies.indexOf(currency)
+            this.selectCurrency(index)
+          })
+      }
     },
     searchState (state) {
       const vm = this
