@@ -105,6 +105,15 @@ export default {
       backend.get('ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
       })
+        .catch(error => {
+          if (error.response) {
+            if (error.response.status === 403) {
+              this.handleSessionEvent()
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     hideMenu () {
       this.showFooterMenu = false

@@ -691,9 +691,13 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error.response)
-            if (error.response && error.response.status === 403) {
-              bus.emit('session-expired')
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -708,9 +712,13 @@ export default {
           vm.updatePriceValue(vm.adData.priceType)
         }
       } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     },
@@ -731,8 +739,12 @@ export default {
           vm.selectedCurrency = vm.fiatCurrencies[0]
         }
 
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     },
@@ -741,9 +753,13 @@ export default {
         const { data } = await backend.get('/ramp-p2p/payment-method/', { authorize: true })
         return data
       } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     },
@@ -980,6 +996,7 @@ export default {
         }
       } else {
         console.error(error)
+        bus.emit('network-error')
       }
     }
   }
