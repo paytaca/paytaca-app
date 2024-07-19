@@ -368,6 +368,15 @@ export default {
         .then(response => {
           vm.appeal = response.data?.appeal
         })
+        .catch(error => {
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     fetchContractBalance () {
       const vm = this
@@ -412,6 +421,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },

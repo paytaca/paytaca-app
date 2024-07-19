@@ -16,7 +16,14 @@
         <q-icon name="wifi_off" size="100px" color="primary"/>
         <div :class="darkMode ? '' : 'text-grey-8'" style="font-size: large;">Server Cannot be Reached... ☹</div>
         <div class="q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-6'" style="font-size: medium;">Please Try Again Later</div>
+        <div class="q-mt-lg" v-if="loading">
+          <q-spinner
+            color="primary"
+            size="50px"
+          />
+        </div>
         <q-btn
+          v-else
           round
           unelevated
           ripple
@@ -40,13 +47,11 @@ export default {
     return {
       openDialog: true,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      screenHeight: (this.$q.screen.height / 2) - 100
+      screenHeight: (this.$q.screen.height / 2) - 100,
+      loading: false
     }
   },
   emits: ['retry'],
-  mounted () {
-    console.log('network error dialog')
-  },
   methods: {
     getDarkModeClass,
     close () {
@@ -54,9 +59,7 @@ export default {
       this.$router.push('/apps')
     },
     retry () {
-      this.openDialog = false
-      // this.$emit('retry')
-
+      this.loading = true
       this.$router.go()
     }
   }

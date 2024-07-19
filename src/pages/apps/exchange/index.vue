@@ -70,7 +70,6 @@ export default {
       }
     },
     openNetworkError () {
-      console.log('hello world')
       this.showLogin = false
       this.networkError = true
     }

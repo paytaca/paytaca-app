@@ -71,6 +71,7 @@ import { ref } from 'vue'
 import { formatDate } from 'src/wallet/ramp'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   setup () {
@@ -180,6 +181,13 @@ export default {
         })
         .catch(error => {
           console.log(error)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
         })
     }
   }

@@ -343,6 +343,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -371,8 +373,12 @@ export default {
           })
           .catch(error => {
             console.error(error.response)
-            if (error.response && error.response.status === 403) {
-              bus.emit('session-expired')
+            if (error.response) {
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             vm.loading = false
             reject(error)
@@ -395,8 +401,12 @@ export default {
           })
           .catch(error => {
             console.error(error.response)
-            if (error.response && error.response.status === 403) {
-              bus.emit('session-expired')
+            if (error.response) {
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             vm.loading = false
             reject(error)
@@ -468,6 +478,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -488,6 +499,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
