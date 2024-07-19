@@ -172,6 +172,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
@@ -197,6 +198,7 @@ export default {
               vm.errorMessage = error.response?.data?.error
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             vm.hideBtn = false
           })

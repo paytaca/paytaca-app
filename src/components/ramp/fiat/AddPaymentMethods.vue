@@ -381,8 +381,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response || error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -403,8 +407,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -429,8 +437,12 @@ export default {
       await backend.delete(`/ramp-p2p/payment-method/${index}`, { authorize: true })
         .catch(error => {
           console.error(error.response || error)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
       await vm.fetchPaymentMethods()
@@ -465,8 +477,12 @@ export default {
             .catch(error => {
               console.error(error.response || error)
               vm.openDialog = false
-              if (error.response && error.response.status === 403) {
-                bus.emit('session-expired')
+              if (error.response) {
+                if (error.response.status === 403) {
+                  bus.emit('session-expired')
+                }
+              } else {
+                bus.emit('network-error')
               }
             })
 
@@ -483,8 +499,12 @@ export default {
             .catch(error => {
               console.error(error.response)
               vm.savingPaymentMethod = false
-              if (error.response && error.response.status === 403) {
-                bus.emit('session-expired')
+              if (error.response) {
+                if (error.response.status === 403) {
+                  bus.emit('session-expired')
+                }
+              } else {
+                bus.emit('network-error')
               }
             })
           break

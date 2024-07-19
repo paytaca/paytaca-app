@@ -244,6 +244,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -292,6 +294,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -308,6 +312,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -376,8 +382,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -388,8 +398,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -405,6 +419,8 @@ export default {
             if (error.response.status === 400) {
               this.errorMessage = error.response.data.error
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     }

@@ -614,8 +614,12 @@ export default {
       })
         .catch(error => {
           console.error(error.response || error)
-          if (error.response?.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response?.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -630,6 +634,7 @@ export default {
               console.error(error.response)
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })

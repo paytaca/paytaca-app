@@ -262,16 +262,18 @@ export default {
       return limitedView
     },
     showCurrencySelect () {
-      this.$q.dialog({
-        component: CurrencyFilterDialog,
-        componentProps: {
-          fiatList: this.fiatCurrencies
-        }
-      })
-        .onOk(currency => {
-          const index = this.fiatCurrencies.indexOf(currency)
-          this.selectCurrency(index)
+      if (this.fiatCurrencies.length !== 0) {
+        this.$q.dialog({
+          component: CurrencyFilterDialog,
+          componentProps: {
+            fiatList: this.fiatCurrencies
+          }
         })
+          .onOk(currency => {
+            const index = this.fiatCurrencies.indexOf(currency)
+            this.selectCurrency(index)
+          })
+      }
     },
     searchState (state) {
       const vm = this

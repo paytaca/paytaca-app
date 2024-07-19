@@ -230,8 +230,12 @@ export default {
         console.log(response)
       } catch (error) {
         console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     }
