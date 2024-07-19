@@ -20,11 +20,8 @@
                           <div class="md-font-size q-mb-none pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
                               {{ option.payment_type.short_name || option.payment_type.full_name }}
                           </div>
-                          <div v-if="option.account_name" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
-                              {{ option.account_name }}
-                          </div>
-                          <div class="q-mb-none text-caption pt-label" :class="getDarkModeClass(darkMode)">
-                              {{ option.account_identifier }}
+                          <div v-for="(field, index) in option.values" :key="index" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
+                              {{ field.value }}
                           </div>
                       </div>
                       <q-checkbox v-model:model-value="option.selected" @update:model-value="updateSelectedPaymentMethods(option)" :color="option.alien ? 'red': 'cyan'" keep-color/>

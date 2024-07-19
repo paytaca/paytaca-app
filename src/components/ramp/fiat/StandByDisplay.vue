@@ -75,16 +75,15 @@
                     :default-opened=true
                     :label="method.payment_type"
                     expand-separator >
-                    <q-card>
-                      <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                          <div class="col q-pr-sm q-py-xs">
-                            <div>{{ method.account_name }}</div>
-                            <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
-                              {{ method.account_identifier }}
-                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
-                            </div>
+                    <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                      <div class="col q-pr-sm q-py-xs">
+                        <div class="text-weight-bold" v-for="(field, index) in method.values" :key="index">
+                          <div v-if="field.value">
+                            {{ field.value }}
+                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                           </div>
-                      </q-card>
+                        </div>
+                      </div>
                     </q-card>
                   </q-expansion-item>
                 </q-card>
