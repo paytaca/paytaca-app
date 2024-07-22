@@ -134,6 +134,11 @@
               </div>
             </div>
           </div>
+          <div class="q-px-lg">
+            <q-btn class="cash-in" padding="sm" @click="$router.push('/cash-in')">
+              Cash In
+            </q-btn>
+          </div>
           <div
             v-if="!showTokens"
             class="text-center button button-text-primary show-tokens-label"
@@ -1249,6 +1254,10 @@ export default {
     margin-top: 0px;
     font-size: 13px;
     padding-bottom: 15px;
+  }
+  .cash-in {
+    background-color: #0AC18E;
+    color: white;
   }
 </style>
 

@@ -77,6 +77,11 @@ const routes = [
         path: 'generate-qr',
         name: 'generate-qr',
         component: () => import('pages/qr/generate-qr.vue')
+      },
+      {
+        path: 'cash-in',
+        name: 'cash-in',
+        component: () => import('pages/cash-in/index.vue')
       }
     ]
   },
