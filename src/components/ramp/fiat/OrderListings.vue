@@ -89,7 +89,8 @@
                             `ORDER #${ listing?.id }`
                           )
                         }}
-                        <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
+                        <q-badge v-if="listing.is_cash_in" class="q-mr-xs" outline rounded size="sm" color="warning" label="Cash In" />
+                        <q-badge v-if="!listing.read_at" outline rounded size="sm" color="red" label="New"/>
                       </div>
                       <span
                         class=" pt-label md-font-size text-weight-bold"
@@ -146,7 +147,6 @@
 </template>
 <script>
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
-// import FilterDialog from 'src/components/ramp/fiat/dialogs/FilterDialog.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
 import { formatCurrency, formatDate } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
