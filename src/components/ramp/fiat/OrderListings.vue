@@ -64,122 +64,95 @@
       </div>
     </q-pull-to-refresh>
     <div class="q-mt-sm">
-      <!-- <q-pull-to-refresh @refresh="refreshData"> -->
-        <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+      <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+        <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+        <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+      </div>
+      <div v-else class="q-mb-none">
+        <div class="row justify-center" v-if="loading">
+          <q-spinner-dots color="primary" size="40px" />
         </div>
-        <div v-else class="q-mb-none">
-          <div class="row justify-center" v-if="loading">
-            <q-spinner-dots color="primary" size="40px" />
-          </div>
-          <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <div v-for="(listing, index) in listings" :key="index">
-              <q-item clickable @click="selectOrder(listing)">
-                <q-item-section>
-                  <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="row q-mx-md">
-                      <div class="col ib-text">
-                        <div
-                          class="q-mb-none pt-label sm-font-size"
-                          :class="getDarkModeClass(darkMode)">
-                          {{
-                            $t(
-                              'OrderIdNo',
-                              { ID: listing.id },
-                              `ORDER #${ listing.id }`
-                            )
-                          }}
-                          <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
-                        </div>
-                        <span
-                          class=" pt-label md-font-size text-weight-bold"
-                          :class="getDarkModeClass(darkMode)">
-                          {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing.owner.id === userInfo.id" rounded size="sm" color="grey" label="You" />
-                        </span>
-                        <div
-                          class="col-transaction text-uppercase pt-label lg-font-size"
-                          :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
-                          {{ listing.ad?.fiat_currency?.symbol }} {{ formattedCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
-                        </div>
-                        <div class="sm-font-size">
-                          {{ formattedCurrency(listing.crypto_amount, false) }} BCH</div>
-                        <div v-if="listing.created_at" class="sm-font-size subtext">{{ formattedDate(listing.created_at) }}</div>
+        <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+          <div v-for="(listing, index) in listings" :key="index">
+            <q-item clickable @click="selectOrder(listing)">
+              <q-item-section>
+                <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="row q-mx-md">
+                    <div class="col ib-text">
+                      <div
+                        class="q-mb-none pt-label sm-font-size"
+                        :class="getDarkModeClass(darkMode)">
+                        {{
+                          $t(
+                            'OrderIdNo',
+                            { ID: listing?.id },
+                            `ORDER #${ listing?.id }`
+                          )
+                        }}
+                        <q-badge v-if="!listing.read_at" rounded outline size="sm" color="red" label="New" />
                       </div>
-                      <div class="text-right">
-                        <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
-                          <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
-                        </span> -->
-                        <div
-                          v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
-                          class="text-weight-bold subtext sm-font-size text-blue">
-                          {{ $t('Appealable') }}
-                        </div>
-                        <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
-                          <q-rating
-                            readonly
-                            :model-value = "listing?.feedback?.rating || 0"
-                            size="1em"
-                            color="yellow-9"
-                            icon="star"
-                          />
-                        </div>
-                        <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
-                          {{ listing.status?.label }}
-                        </div>
-                        <div class="text-weight-bold subtext sm-font-size" v-else>
-                          {{ listing.status?.label }}
-                        </div>
+                      <span
+                        class=" pt-label md-font-size text-weight-bold"
+                        :class="getDarkModeClass(darkMode)">
+                        {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing?.owner?.id === userInfo?.id" rounded size="sm" color="grey" label="You" />
+                      </span>
+                      <div
+                        class="col-transaction text-uppercase pt-label lg-font-size"
+                        :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
+                        {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
+                      </div>
+                      <div class="sm-font-size">
+                        {{ formatCurrency(listing.crypto_amount) }} BCH</div>
+                      <div v-if="listing.created_at" class="sm-font-size subtext">{{ formatDate(listing.created_at, true) }}</div>
+                    </div>
+                    <div class="text-right">
+                      <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                        <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
+                      </span> -->
+                      <div
+                        v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
+                        class="text-weight-bold subtext sm-font-size text-blue">
+                        {{ $t('Appealable') }}
+                      </div>
+                      <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
+                        <q-rating
+                          readonly
+                          :model-value = "listing?.feedback?.rating || 0"
+                          size="1em"
+                          color="yellow-9"
+                          icon="star"
+                        />
+                      </div>
+                      <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
+                        {{ listing.status?.label }}
+                      </div>
+                      <div class="text-weight-bold subtext sm-font-size" v-else>
+                        {{ listing.status?.label }}
                       </div>
                     </div>
                   </div>
-                </q-item-section>
-              </q-item>
-            </div>
-            <div class="row justify-center">
-              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
-              <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
-            </div>
-          </q-list>
-        </div>
+                </div>
+              </q-item-section>
+            </q-item>
+          </div>
+          <div class="row justify-center">
+            <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+            <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+          </div>
+        </q-list>
+      </div>
     </div>
   </div>
-  <FiatProcessOrder
-    v-if="state === 'view-order'"
-    :key="fiatProcessOrderKey"
-    :order-data="selectedOrder"
-    :notif-type="notifType"
-    @back="returnOrderList()"
-    @refresh="refreshOrder"
-  />
-  <FiatProfileCard
-    ref="fiatProfileCard"
-    v-if="state === 'view-profile'"
-    :userInfo="selectedUser"
-    v-on:back="state = 'order-list'"
-    @update-page-name="updatePageName"
-  />
-  <FilterDialog
-    v-if="openDialog"
-    :type="dialogType"
-    :filters="filters"
-    @back="openDialog = false"
-    @submit="receiveDialog"
-  />
-  <FiatOrderForm v-if="state === 'order-form'" :ad-id="selectedUserAdId" @back="state = 'order-list'"/>
 </template>
 <script>
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
-import FiatProcessOrder from 'src/components/ramp/fiat/FiatProcessOrder.vue'
-import FiatProfileCard from 'src/components/ramp/fiat/FiatProfileCard.vue'
-import FilterDialog from 'src/components/ramp/fiat/dialogs/FilterDialog.vue'
-import FiatOrderForm from 'src/components/ramp/fiat/FiatOrderForm.vue'
+// import FilterDialog from 'src/components/ramp/fiat/dialogs/FilterDialog.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { formatCurrency, formatDate } from 'src/wallet/ramp'
+import { formatCurrency, formatDate } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   setup () {
@@ -189,37 +162,20 @@ export default {
     }
   },
   components: {
-    FiatProcessOrder,
-    FiatProfileCard,
-    FilterDialog,
-    FiatOrderForm,
+    // FilterDialog,
     FilterComponent
-  },
-  props: {
-    initStatusType: {
-      type: String,
-      default: 'ONGOING'
-    }
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: { symbol: this.$t('All') },
-      selectedOrder: null,
-      selectedUser: null,
       statusType: 'ONGOING',
       state: 'order-list',
-      transactionType: '',
       loading: false,
       totalPages: null,
       pageNumber: null,
       query_name: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
-      fiatProcessOrderKey: 0,
       filters: {},
-      openDialog: false,
-      dialogType: '',
-      selectedUserAdId: null,
       pageName: 'main',
       showSearch: false,
       filterComponentKey: 0,
@@ -245,6 +201,9 @@ export default {
     }
   },
   computed: {
+    minHeight () {
+      return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
+    },
     listings () {
       const vm = this
       switch (vm.statusType) {
@@ -270,24 +229,12 @@ export default {
       return this.$store.getters['ramp/getUser']
     }
   },
-  created () {
-    bus.on('view-ad', this.onViewAd)
-  },
   async mounted () {
-    console.log('order-params: ', this.$route.query)
-    if (Object.keys(this.$route.query).length > 0) {
-      this.notifType = this.$route.query.type
-      this.selectedOrder = { id: this.$route.query.order_id }
-      this.state = 'view-order'
-    } else {
-      this.updateFilters()
-      this.fetchFiatCurrencies()
-      this.resetAndRefetchListings()
-    }
+    this.updateFilters()
+    this.fetchFiatCurrencies()
+    this.resetAndRefetchListings()
   },
   beforeRouteLeave (to, from, next) {
-    console.log('from.name:', from.name)
-    console.log('to.name:', to.name)
     switch (from.name) {
       case 'p2p-store':
       case 'p2p-ads':
@@ -308,22 +255,25 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    formatDate,
+    formatCurrency,
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
-
       return limitedView
     },
     showCurrencySelect () {
-      this.$q.dialog({
-        component: CurrencyFilterDialog,
-        componentProps: {
-          fiatList: this.fiatCurrencies
-        }
-      })
-        .onOk(currency => {
-          const index = this.fiatCurrencies.indexOf(currency)
-          this.selectCurrency(index)
+      if (this.fiatCurrencies.length !== 0) {
+        this.$q.dialog({
+          component: CurrencyFilterDialog,
+          componentProps: {
+            fiatList: this.fiatCurrencies
+          }
         })
+          .onOk(currency => {
+            const index = this.fiatCurrencies.indexOf(currency)
+            this.selectCurrency(index)
+          })
+      }
     },
     searchState (state) {
       const vm = this
@@ -380,9 +330,9 @@ export default {
         this.isAllCurrencies = false
       }
     },
-    fetchFiatCurrencies () {
+    async fetchFiatCurrencies () {
       const vm = this
-      backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+      await backend.get('/ramp-p2p/currency/fiat', { authorize: true })
         .then(response => {
           vm.fiatCurrencies = response.data
           vm.fiatCurrencies.unshift(vm.$t('All'))
@@ -434,7 +384,6 @@ export default {
         vm.$store.commit(mutationName, { filter: data, currency: this.selectedCurrency || 'All' })
       }
 
-      vm.openDialog = false
       vm.updateFilters()
       vm.resetAndRefetchListings()
     },
@@ -462,10 +411,6 @@ export default {
       if (done) done()
       await this.resetAndRefetchListings()
     },
-    refreshOrder (done) {
-      this.fiatProcessOrderKey++
-      if (done) done()
-    },
     async resetAndRefetchListings () {
       this.$store.commit('ramp/resetOrdersPagination')
       this.loading = true
@@ -484,10 +429,6 @@ export default {
       }
     },
     selectOrder (data) {
-      this.selectedOrder = data
-      // this.state = 'view-order'
-      // this.pageName = 'order-process'
-      console.log('selectOrder:', data)
       this.$router.push({ name: 'p2p-order', params: { order: data?.id } })
     },
     getElapsedTime (targetTime) {
@@ -538,17 +479,6 @@ export default {
       if (status === 'Released' || status === 'Refunded' || status === 'Canceled') return true
       return false
     },
-    formattedDate (value) {
-      const relative = true
-      return formatDate(value, relative)
-    },
-    formattedCurrency (value, currency = null) {
-      if (currency) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
-      }
-    },
     orderFiatAmount (lockedPrice, cryptoAmount) {
       return lockedPrice * cryptoAmount
     },
@@ -557,12 +487,6 @@ export default {
       bus.emit('show-menu', 'orders')
       vm.state = 'order-list'
       await vm.resetAndRefetchListings()
-    },
-    onViewAd (adId) {
-      bus.emit('hide-menu')
-      this.state = 'order-form'
-      this.selectedUserAdId = adId
-      this.pageName = 'order-form'
     }
   }
 }
@@ -635,3 +559,4 @@ export default {
     left: 10px;
   }
   </style>
+src/exchangesrc/exchange/backend

@@ -1,3 +1,7 @@
+// export function websocket (state) {
+//   return state.websocket
+// }
+
 function getCookie (name) {
   const cookieArr = document.cookie.split('; ')
   for (let i = 0; i < cookieArr.length; i++) {

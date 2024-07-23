@@ -265,7 +265,7 @@
 </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/exchange/wallet'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import {
@@ -280,15 +280,15 @@ import {
   updateChatIdentity,
   updateLastRead,
   generateChatIdentityRef
-} from 'src/wallet/ramp/chat'
-import { ChatMessage } from 'src/wallet/ramp/chat/objects'
-import { formatDate } from 'src/wallet/ramp'
+} from 'src/exchange/chat'
+import { ChatMessage } from 'src/exchange/chat/objects'
+import { formatDate } from 'src/exchange'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
-import { getKeypair } from 'src/wallet/ramp/chat/keys'
+import { backend } from 'src/exchange/backend'
+import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -614,8 +614,12 @@ export default {
       })
         .catch(error => {
           console.error(error.response || error)
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response?.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -630,6 +634,7 @@ export default {
               console.error(error.response)
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -772,3 +777,4 @@ export default {
     }
   }
 </style>
+src/exchange/walletsrc/exchange/chatsrc/exchange/chat/objectssrc/exchangesrc/exchange/backendsrc/exchange/chat/keys

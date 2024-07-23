@@ -1,5 +1,5 @@
 import { Store } from '..'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export async function loadAuthHeaders (context) {
   if (!context.state.wallet) {

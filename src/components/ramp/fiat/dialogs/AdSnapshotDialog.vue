@@ -90,9 +90,9 @@
   </q-dialog>
 </template>
 <script>
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -167,6 +167,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     }
@@ -181,3 +183,4 @@ export default {
   opacity: .5;
 }
 </style>
+src/exchangesrc/exchange/backend

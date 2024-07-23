@@ -20,11 +20,8 @@
                           <div class="md-font-size q-mb-none pt-label text-weight-bold" :class="getDarkModeClass(darkMode)">
                               {{ option.payment_type.short_name || option.payment_type.full_name }}
                           </div>
-                          <div v-if="option.account_name" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
-                              {{ option.account_name }}
-                          </div>
-                          <div class="q-mb-none text-caption pt-label" :class="getDarkModeClass(darkMode)">
-                              {{ option.account_identifier }}
+                          <div v-for="(field, index) in option.values" :key="index" class="q-mb-none text-uppercase text-caption pt-label" :class="getDarkModeClass(darkMode)">
+                              {{ field.value }}
                           </div>
                       </div>
                       <q-checkbox v-model:model-value="option.selected" @update:model-value="updateSelectedPaymentMethods(option)" :color="option.alien ? 'red': 'cyan'" keep-color/>
@@ -66,7 +63,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import PaymentMethodForm from './PaymentMethodForm.vue'
 
@@ -136,6 +133,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
           vm.loading = false
         })
@@ -177,6 +176,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
           vm.loading = false
         })
@@ -222,3 +223,4 @@ export default {
     opacity: .5;
 }
 </style>
+src/exchange/backend

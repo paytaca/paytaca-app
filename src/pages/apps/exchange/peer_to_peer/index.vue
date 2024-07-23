@@ -14,7 +14,8 @@ import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { loadRampWallet } from 'src/exchange/wallet'
 
 export default {
   data () {
@@ -37,7 +38,8 @@ export default {
         unreadOrdersCount: 0
       },
       showLogin: false,
-      previousRoute: null
+      previousRoute: null,
+      reconnectWebsocket: true
     }
   },
   components: {
@@ -60,6 +62,7 @@ export default {
     })
   },
   beforeRouteLeave (to, from, next) {
+    // this.$store.getters['ramp/websocket'].close()
     switch (from.name) {
       case 'p2p-store':
       case 'p2p-ads':
@@ -85,6 +88,11 @@ export default {
     bus.on('session-expired', this.handleSessionEvent)
     // bus.on('relogged', this.refreshPage)
   },
+  watch: {
+    websocket (val) {
+      console.log('websocket:', val)
+    }
+  },
   async mounted () {
     this.isLoading = false
     // if (Object.keys(this.notif).length > 0) {
@@ -92,8 +100,14 @@ export default {
     //   this.currentPage = 'FiatOrders'
     // }
     this.fetchUser()
+    // this.websocket = this.$store.getters['ramp/websocket']
+    console.log('websocket:', this.websocket)
+    if (!this.websocket) {
+      this.setupWebsocket(40, 1000)
+    }
   },
   async beforeUnmount () {
+    console.log('index.vue unmounted')
     this.$store.commit('ramp/resetPaymentTypes')
   },
   methods: {
@@ -105,6 +119,15 @@ export default {
       backend.get('ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
       })
+        .catch(error => {
+          if (error.response) {
+            if (error.response.status === 403) {
+              this.handleSessionEvent()
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     hideMenu () {
       this.showFooterMenu = false
@@ -120,7 +143,40 @@ export default {
     },
     updateUnreadCount (count) {
       this.footerData.unreadOrdersCount = count
+    },
+    setupWebsocket (retries, delayDuration) {
+      const wsUrl = `${getBackendWsUrl()}general/${loadRampWallet().walletHash}/`
+      this.websocket = new WebSocket(wsUrl)
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established to ' + wsUrl)
+        this.$store.commit('ramp/updateWebsocket', this.websocket)
+      }
+      this.websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        this.updateUnreadCount(data.extra.unread_count)
+        if (data.type === 'NEW_APPEAL') {
+          this.handleNewAppeal(data)
+        }
+      }
+      this.websocket.onclose = () => {
+        console.log('General WebSocket connection closed.')
+        if (this.reconnectWebsocket && retries > 0) {
+          console.log(`General Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
+          return this.delay(delayDuration)
+            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
+        }
+      }
+    },
+    closeWSConnection () {
+      this.reconnectWebsocket = false
+      if (this.websocket) {
+        this.websocket.close()
+      }
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     }
   }
 }
 </script>
+src/exchange/backendsrc/exchange/wallet

@@ -19,7 +19,7 @@
     </q-dialog>
 </template>
 <script>
-import { formatOrderStatus, formatDate } from 'src/wallet/ramp'
+import { formatOrderStatus, formatDate } from 'src/exchange'
 
 export default {
   data () {
@@ -38,3 +38,4 @@ export default {
   }
 }
 </script>
+src/exchange

@@ -177,8 +177,8 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { formatCurrency } from 'src/wallet/ramp'
-import { generateChatRef, fetchChatMembers } from 'src/wallet/ramp/chat'
+import { formatCurrency } from 'src/exchange'
+import { generateChatRef, fetchChatMembers } from 'src/exchange/chat'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -249,7 +249,7 @@ export default {
       const user = this.$store.getters['ramp/getUser']
       await fetchChatMembers(chatRef).then(response => {
         const userMember = response?.filter(member => {
-          return user.chat_identity_id === member.chat_identity.id
+          return user?.chat_identity_id === member?.chat_identity?.id
         })[0]
         this.unread = userMember?.unread_count || 0
       }).catch(error => {
@@ -292,3 +292,4 @@ export default {
 }
 
 </style>
+src/exchangesrc/exchange/chat

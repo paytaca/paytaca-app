@@ -74,19 +74,18 @@
                 :default-opened=true
                 :label="method.payment_type"
                 expand-separator >
-                <q-card>
-                  <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                      <div class="col q-pr-sm q-py-xs">
-                        <div>{{ method.account_name }}</div>
-                        <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
-                          {{ method.account_identifier }}
-                          <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
-                        </div>
+                <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                  <div class="col q-pr-sm q-py-xs">
+                    <div class="text-weight-bold" v-for="(field, index) in method.values" :key="index">
+                      <div v-if="field.value">
+                        {{ field.value }}
+                        <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                       </div>
-                      <div v-if="data?.type !== 'seller'">
-                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
-                      </div>
-                  </q-card>
+                    </div>
+                  </div>
+                  <div v-if="data?.type !== 'seller'">
+                    <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
+                  </div>
                 </q-card>
               </q-expansion-item>
             </q-card>
@@ -155,18 +154,14 @@
   }"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
-  <AppealForm
-  v-if="showAppealForm"
-  :order="order"
-  @back="showAppealForm = false"
-  />
+  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
-import { formatCurrency } from 'src/wallet/ramp'
+import { backend } from 'src/exchange/backend'
+import { formatCurrency } from 'src/exchange'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -302,6 +297,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -382,8 +379,12 @@ export default {
           })
           .catch(error => {
             console.error(error.response)
-            if (error.response && error.response.status === 403) {
-              bus.emit('session-expired')
+            if (error.response) {
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -464,3 +465,4 @@ export default {
   opacity: .5;
 }
 </style>
+src/exchange/walletsrc/exchange/backendsrc/exchange

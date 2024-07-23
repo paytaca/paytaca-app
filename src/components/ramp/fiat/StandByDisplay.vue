@@ -75,16 +75,15 @@
                     :default-opened=true
                     :label="method.payment_type"
                     expand-separator >
-                    <q-card>
-                      <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                          <div class="col q-pr-sm q-py-xs">
-                            <div>{{ method.account_name }}</div>
-                            <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
-                              {{ method.account_identifier }}
-                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
-                            </div>
+                    <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                      <div class="col q-pr-sm q-py-xs">
+                        <div class="text-weight-bold" v-for="(field, index) in method.values" :key="index">
+                          <div v-if="field.value">
+                            {{ field.value }}
+                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                           </div>
-                      </q-card>
+                        </div>
+                      </div>
                     </q-card>
                   </q-expansion-item>
                 </q-card>
@@ -141,10 +140,7 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <AppealForm
-      :order="data?.order"
-      @back="openDialog = false"
-      />
+    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" />
     <!-- <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
@@ -183,16 +179,16 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackForm from './dialogs/FeedbackForm.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      nickname: this.$store.getters['ramp/getUser'].name,
+      nickname: this.$store.getters['ramp/getUser']?.name,
       appeal: null,
       isloaded: false,
       appealCountdown: null,
@@ -233,6 +229,16 @@ export default {
     //       return null
     //   }
     // },
+    orderUserType () {
+      const vm = this
+      let userType = null
+      if (vm.data?.ad?.trade_type === 'SELL') {
+        userType = vm.data?.order.is_ad_owner ? 'seller' : 'buyer'
+      } else if (vm.data?.ad?.trade_type === 'BUY') {
+        userType = vm.data?.order.is_ad_owner ? 'buyer' : 'seller'
+      }
+      return userType
+    },
     appealBtnLabel () {
       if (this.appealCountdown) return this.$t('AppealableInSeconds', { countdown: this.appealCountdown }, `Appealable in ${this.appealCountdown}`)
       return this.$t('SubmitAnAppeal')
@@ -318,12 +324,12 @@ export default {
 
       switch (tradeType) {
         case 'SELL':
-          adOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
-          orderOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          adOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
+          orderOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
           break
         case 'BUY':
-          adOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
-          orderOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          adOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
+          orderOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
           break
       }
 
@@ -360,6 +366,15 @@ export default {
       backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
         .then(response => {
           vm.appeal = response.data?.appeal
+        })
+        .catch(error => {
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
         })
     },
     fetchContractBalance () {
@@ -405,6 +420,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -413,7 +430,6 @@ export default {
       this.$emit('submitAppeal', data)
     },
     onSubmitFeedback (feedback) {
-      console.log('onSubmitFeedback:', feedback)
       this.feedback = feedback
     },
     startAppealCountdown () {
@@ -470,3 +486,4 @@ export default {
   opacity: .5;
 }
 </style>
+src/exchange/backendsrc/exchange

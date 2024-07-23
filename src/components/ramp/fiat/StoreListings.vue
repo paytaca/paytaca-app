@@ -1,6 +1,5 @@
 <template>
-    <div :class="getDarkModeClass(darkMode)" class="q-mx-md q-mb-lg text-bow" :style="`height: ${minHeight}px;`"
-    v-if="state === 'SELECT' && !viewProfile">
+  <div :class="getDarkModeClass(darkMode)" class="q-mx-md q-mb-lg text-bow" :style="`height: ${minHeight}px;`">
     <div class="q-mb-sm q-pb-sm">
       <q-pull-to-refresh @refresh="refreshData">
         <div class="row items-center q-px-sm" v-if="!showSearch">
@@ -33,7 +32,7 @@
                 @click="() => {
                   if (query_name) {
                     query_name = null
-                    receiveDialog(filters)
+                    receiveDialog()
                     $refs.inputRef.focus()
                   } else {
                     searchState('blur')
@@ -157,14 +156,13 @@
   </div>
 </template>
 <script>
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   setup () {
@@ -174,41 +172,25 @@ export default {
     }
   },
   components: {
-    ProgressLoader,
     FilterComponent
   },
   emits: ['orderCanceled'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      viewProfile: false,
       transactionType: 'SELL',
       loading: false,
       peerProfile: null,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       isAllCurrencies: false,
       state: 'SELECT',
-      selectedListing: null,
       selectedUser: null,
       fiatCurrencies: [],
       query_name: null,
       totalPages: null,
       pageNumber: null,
-      openDialog: false,
-      dialogType: '',
-      defaultFilters: {
-        currency: this.$store.getters['market/selectedCurrency']?.symbol,
-        sort_type: 'ascending',
-        price_type: {
-          fixed: true,
-          floating: true
-        },
-        payment_types: [], //
-        time_limits: [15, 30, 45, 60]
-      },
       filters: {},
       showSearch: false,
-      defaultFiltersOn: true,
       pageName: 'main',
       componentKey: 0,
       filterComponentKey: 0,
@@ -251,26 +233,19 @@ export default {
       return []
     },
     buyListings () {
-      const ads = this.$store.getters['ramp/getStoreBuyListings']
-      return ads
+      return this.$store.getters['ramp/getStoreBuyListings']
     },
     sellListings () {
-      const ads = this.$store.getters['ramp/getStoreSellListings']
-      return ads
+      return this.$store.getters['ramp/getStoreSellListings']
     },
     hasMoreData () {
       this.updatePaginationValues()
       return (this.pageNumber < this.totalPages)
-    },
-    isOwner () {
-      return this.selectedUser?.name === this.$store.getters['ramp/getUser']?.name
     }
-  },
-  created () {
-    bus.on('view-ad', this.onViewAd)
   },
   async mounted () {
     const vm = this
+    this.fetchCashinAds()
     vm.fetchPaymentTypes()
       .then(async () => {
         vm.fetchFiatCurrencies()
@@ -281,6 +256,29 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    fetchCashinAds () {
+      const params = {
+        currency: 'PHP',
+        payment_type: 13,
+        crypto_amount: 0.03,
+        fiat_amount: 500
+      }
+      backend.get('/ramp-p2p/cashin/ads', { params: params, authorize: true })
+        .then(response => {
+          console.log('fetchCashinAds:', response.data)
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
+    },
     minTradeAmount (ad) {
       let tradeAmount = parseFloat(ad.trade_amount)
       let tradeCeiling = parseFloat(ad.trade_ceiling)
@@ -304,7 +302,6 @@ export default {
     },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
-
       return limitedView
     },
     onFilterListings (filters) {
@@ -312,16 +309,18 @@ export default {
       this.resetAndRefetchListings()
     },
     showCurrencySelect () {
-      this.$q.dialog({
-        component: CurrencyFilterDialog,
-        componentProps: {
-          fiatList: this.fiatCurrencies
-        }
-      })
-        .onOk(currency => {
-          const index = this.fiatCurrencies.indexOf(currency)
-          this.selectCurrency(index)
+      if (this.fiatCurrencies.length !== 0) {
+        this.$q.dialog({
+          component: CurrencyFilterDialog,
+          componentProps: {
+            fiatList: this.fiatCurrencies
+          }
         })
+          .onOk(currency => {
+            const index = this.fiatCurrencies.indexOf(currency)
+            this.selectCurrency(index)
+          })
+      }
     },
     searchState (state) {
       const vm = this
@@ -337,41 +336,6 @@ export default {
     },
     searchUser () {
       this.resetAndRefetchListings()
-      // this.searchState('blur')
-    },
-    updatePageName (name) {
-      this.pageName = name
-    },
-    customBack () {
-      const vm = this
-      switch (vm.pageName) {
-        case 'order-process':
-        case 'order-form':
-          bus.emit('show-menu', 'store')
-          vm.state = 'SELECT'
-          vm.pageName = 'main'
-          break
-        case 'view-profile':
-          vm.viewProfile = false
-          vm.pageName = 'main'
-          break
-        case 'edit-pm':
-          vm.$refs.fiatProfileCard.onBackPM()
-          vm.pageName = 'view-profile'
-          break
-        case 'ad-form-1':
-          vm.$refs.orderForm.onBackEditAds()
-          vm.pageName = 'order-form'
-          break
-        case 'ad-form-2':
-          vm.$refs.orderForm.customBackEditAds()
-          vm.pageName = 'ad-form-1'
-          break
-        case 'ad-form-3':
-          vm.$refs.orderForm.customBackEditAds()
-          vm.pageName = 'ad-form-2'
-          break
-      }
     },
     fetchPaymentTypes () {
       const vm = this
@@ -379,10 +343,18 @@ export default {
         vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
           .then(() => {
             const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
-            vm.defaultFilters.payment_types = paymentTypes.map(paymentType => paymentType.id)
             resolve(paymentTypes)
           })
           .catch(error => {
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
+            }
             reject(error)
           })
       })
@@ -408,6 +380,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -434,14 +408,14 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
           })
       }
     },
     async receiveDialog (data) {
-      const vm = this
-      vm.openDialog = false
-      vm.resetAndRefetchListings()
+      this.resetAndRefetchListings()
     },
     async updateFilters () {
       const vm = this
@@ -483,9 +457,6 @@ export default {
         scrollElement.scrollTop = 0
       }
     },
-    onOrderCanceled () {
-      this.$emit('orderCanceled')
-    },
     selectCurrency (index) {
       if (index === 0) {
         this.isAllCurrencies = true
@@ -496,11 +467,6 @@ export default {
       }
     },
     async selectListing (listing) {
-      const vm = this
-      vm.viewProfile = false
-      vm.selectedListing = listing.id
-      vm.state = listing.trade_type
-      vm.pageName = 'order-form'
       await this.$router.push({ name: 'p2p-store-form', params: { ad: listing.id } })
     },
     formatCompletionRate (value) {
@@ -512,11 +478,6 @@ export default {
       } else {
         return parseFloat(tradeCeiling)
       }
-    },
-    onViewAd (adId) {
-      bus.emit('hide-menu')
-      this.selectedListing = adId
-      this.componentKey++
     }
   }
 }
@@ -579,3 +540,4 @@ export default {
     left: 10px;
   }
   </style>
+src/exchangesrc/exchange/backend

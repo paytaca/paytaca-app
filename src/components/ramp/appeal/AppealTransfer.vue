@@ -80,7 +80,7 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -172,6 +172,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
@@ -197,6 +198,7 @@ export default {
               vm.errorMessage = error.response?.data?.error
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             vm.hideBtn = false
           })
@@ -239,3 +241,4 @@ export default {
 }
 
 </style>
+src/exchange/backend

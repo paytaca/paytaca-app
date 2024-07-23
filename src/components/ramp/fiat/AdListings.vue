@@ -169,11 +169,11 @@
 <script>
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from 'src/components/ramp/fiat/dialogs/FiatAdsDialogs.vue'
-import { formatCurrency, formatDate, getAppealCooldown } from 'src/wallet/ramp'
+import { formatCurrency, formatDate, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   setup () {
@@ -193,8 +193,6 @@ export default {
       openMiscDialog: false,
       openDialog: false,
       dialogName: '',
-      selectedIndex: null,
-      editListing: {},
       transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
       loading: false,
@@ -298,6 +296,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -324,8 +324,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -376,9 +380,6 @@ export default {
       bus.emit('show-menu', 'ads')
     },
     onCreateAd () {
-      console.log('onCreateAd')
-      // this.state = 'create'
-      // this.pageName = 'ad-form-1'
       this.$router.push({ name: 'p2p-ads-create-form', query: { type: this.transactionType, step: 1 } })
     },
     onEditAd (id) {
@@ -484,3 +485,4 @@ export default {
     left: 10px;
   }
   </style>
+src/exchangesrc/exchange/backend

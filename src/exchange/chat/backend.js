@@ -1,6 +1,6 @@
 import BCHJS from '@psf/bch-js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
 
