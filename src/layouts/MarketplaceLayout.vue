@@ -166,6 +166,7 @@ export default {
             .then(() => {
               const customerId = $store.getters['marketplace/customer']?.id
               subscribePushNotifications(customerId)
+              attemptPromptUserDetails()
             })
 
           const signerData = await getSignerData()
@@ -219,16 +220,12 @@ export default {
       return response
     }
 
-    onMounted(() => setTimeout(async () => {
-      await loadAppPromise.value?.catch?.(console.error)
-      if (!window.$promptedMarketplaceCustomerDetails) {
-        promptUserDetails()
-          .then(response => {
-            console.log(response)
-            window.$promptedMarketplaceCustomerDetails = true
-          })
-      }
-    }, 100))
+    async function attemptPromptUserDetails() {
+      if (window.$promptedMarketplaceCustomerDetails) return
+      return promptUserDetails().then(() => {
+        window.$promptedMarketplaceCustomerDetails = true
+      })
+    }
 
     function promptUserDetails() {
       if (customer.value?.defaultLocation?.validCoordinates) return Promise.resolve('valid_coordinates')
