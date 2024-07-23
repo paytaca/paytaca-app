@@ -135,7 +135,7 @@
             </div>
           </div>
           <div class="q-px-lg">
-            <q-btn class="cash-in" padding="sm" @click="$router.push('/cash-in')">
+            <q-btn class="cash-in" padding="sm" @click="$router.push({ name: 'cashin-payment-method'})">
               Cash In
             </q-btn>
           </div>

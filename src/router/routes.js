@@ -81,7 +81,12 @@ const routes = [
       {
         path: 'cash-in',
         name: 'cash-in',
-        component: () => import('pages/cash-in/index.vue')
+        component: () => import('pages/cash-in/index.vue'),
+        children: [
+          { path: 'payment-method', component: () => import('pages/cash-in/payment-method-select.vue'), name: 'cashin-payment-method' },
+          { path: 'amount', component: () => import('pages/cash-in/amount-select.vue'), name: 'cashin-amount-select', props: route => route.query },
+          { path: 'order/:id', component: () => import('pages/cash-in/order.vue'), name: 'cashin-order' }
+        ]
       }
     ]
   },

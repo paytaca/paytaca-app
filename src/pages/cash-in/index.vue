@@ -2,28 +2,24 @@
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav title="Cash In"/>
 
-    <div v-if="step === 1">
-      <PaymentMethodOption @select-method="step++"/>
-    </div>
-    <div v-else-if="step === 2">
-      <SelectAmount/>
+    <div v-if="loading">
+      loading...
     </div>
     <div v-else>
-      continue
+      <router-view :key="$route.path"></router-view>
     </div>
   </div>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
-import PaymentMethodOption from 'src/components/cash-in/PaymentMethodOption.vue'
-import SelectAmount from 'src/components/cash-in/SelectAmount.vue'
 
 export default {
   data () {
     return {
       selectedPaymentMethod: null,
-      step: 1
+      step: 1,
+      loading: false
     }
   },
   computed: {
@@ -32,12 +28,13 @@ export default {
     }
   },
   components: {
-    HeaderNav,
-    PaymentMethodOption,
-    SelectAmount
+    HeaderNav
   },
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    goToPage (name) {
+      this.$router?.push({ name: name })
+    }
   }
 }
 </script>
