@@ -309,7 +309,7 @@
 </template>
 
 <script>
-import { getAppealCooldown } from 'src/wallet/ramp'
+import { getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { isProxy, toRaw } from 'vue'
 
@@ -729,3 +729,4 @@ export default {
     opacity: .5;
   }
   </style>
+src/exchange

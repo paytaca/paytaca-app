@@ -177,8 +177,8 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { formatCurrency } from 'src/wallet/ramp'
-import { generateChatRef, fetchChatMembers } from 'src/wallet/ramp/chat'
+import { formatCurrency } from 'src/exchange'
+import { generateChatRef, fetchChatMembers } from 'src/exchange/chat'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -292,3 +292,4 @@ export default {
 }
 
 </style>
+src/exchangesrc/exchange/chat

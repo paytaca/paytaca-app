@@ -120,10 +120,10 @@ import AppealSettings from 'src/components/ramp/appeal/AppealSettings.vue'
 import ArbiterCurrenciesDialog from 'src/components/ramp/appeal/dialogs/ArbiterCurrenciesDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
-import { formatDate } from 'src/wallet/ramp'
+import { backend } from 'src/exchange/backend'
+import { formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { updateChatIdentity } from 'src/wallet/ramp/chat'
+import { updateChatIdentity } from 'src/exchange/chat'
 
 export default {
   components: {
@@ -354,3 +354,4 @@ export default {
     left: 10px;
   }
   </style>
+src/exchange/backendsrc/exchangesrc/exchange/chat

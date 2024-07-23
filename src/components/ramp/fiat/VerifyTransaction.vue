@@ -74,7 +74,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
@@ -357,3 +357,4 @@ export default {
   border: 1px solid #fb672d; /* Border color */
 }
 </style>
+src/exchange/backend

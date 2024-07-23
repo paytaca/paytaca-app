@@ -114,7 +114,7 @@
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -427,3 +427,4 @@ export default {
   }
 }
 </script>
+src/exchange/backend

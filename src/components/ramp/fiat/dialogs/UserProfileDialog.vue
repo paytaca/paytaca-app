@@ -156,10 +156,10 @@
   </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
@@ -455,3 +455,4 @@ export default {
     font-weight: 500;
   }
   </style>
+src/exchangesrc/exchange/backend

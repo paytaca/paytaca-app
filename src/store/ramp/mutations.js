@@ -1,3 +1,7 @@
+// export function updateWebsocket (state, data) {
+//   state.websocket = data
+// }
+
 export function updateStoreBuyFilters (state, { filters = {}, currency = null }) {
   if (!currency) return (() => { state.storeBuyFilters = {} })()
   state.storeBuyFilters[currency] = filters

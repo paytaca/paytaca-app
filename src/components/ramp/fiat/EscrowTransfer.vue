@@ -129,11 +129,11 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
-import { backend } from 'src/wallet/ramp/backend'
+import { loadRampWallet } from 'src/exchange/wallet'
+import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import RampContract from 'src/wallet/ramp/contract'
+import RampContract from 'src/exchange/contract'
 
 export default {
   data () {
@@ -534,3 +534,4 @@ export default {
   border: 1px solid #fbc02d; /* Border color */
 }
 </style>
+src/exchange/walletsrc/exchange/backendsrc/exchange/contract

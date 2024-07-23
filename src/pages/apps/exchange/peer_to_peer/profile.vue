@@ -244,11 +244,11 @@ import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from 'src/components/ramp/fiat/dialogs/FeedbackDialog.vue'
-import { updateChatIdentity } from 'src/wallet/ramp/chat'
-import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { updateChatIdentity } from 'src/exchange/chat'
+import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   components: {

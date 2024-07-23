@@ -84,7 +84,7 @@
    </div>
  </template>
 <script>
-import { formatDate } from 'src/wallet/ramp'
+import { formatDate } from 'src/exchange'
 import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
@@ -306,3 +306,4 @@ export default {
      color: white;
    }
    </style>
+src/exchange

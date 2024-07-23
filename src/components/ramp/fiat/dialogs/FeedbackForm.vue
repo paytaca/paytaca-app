@@ -117,7 +117,7 @@
     </q-dialog>
 </template>
 <script>
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -361,3 +361,4 @@ export default {
   }
 }
 </script>
+src/exchange/backend

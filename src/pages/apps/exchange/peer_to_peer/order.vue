@@ -101,15 +101,15 @@
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
   </template>
 <script>
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
-import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/wallet/ramp/chat'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
+import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/exchange/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
-import RampContract from 'src/wallet/ramp/contract'
+import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
 import EscrowTransfer from 'src/components/ramp/fiat/EscrowTransfer.vue'
@@ -1015,3 +1015,4 @@ export default {
     opacity: .5;
   }
   </style>
+src/exchangesrc/exchange/backendsrc/exchange/chat/backendsrc/exchange/chatsrc/exchange/contract

@@ -89,7 +89,7 @@
     </q-card>
 </template>
 <script>
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -119,3 +119,4 @@ export default {
   }
 }
 </script>
+src/exchange

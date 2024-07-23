@@ -117,7 +117,7 @@
                             )
                           }}
                         </span><br>
-                      </div>item
+                      </div>
                       <span
                         class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                         :class="getDarkModeClass(darkMode)">
@@ -158,11 +158,11 @@
 <script>
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   setup () {
@@ -245,6 +245,7 @@ export default {
   },
   async mounted () {
     const vm = this
+    this.fetchCashinAds()
     vm.fetchPaymentTypes()
       .then(async () => {
         vm.fetchFiatCurrencies()
@@ -255,6 +256,29 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    fetchCashinAds () {
+      const params = {
+        currency: 'PHP',
+        payment_type: 13,
+        crypto_amount: 0.03,
+        fiat_amount: 500
+      }
+      backend.get('/ramp-p2p/cashin/ads', { params: params, authorize: true })
+        .then(response => {
+          console.log('fetchCashinAds:', response.data)
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
+    },
     minTradeAmount (ad) {
       let tradeAmount = parseFloat(ad.trade_amount)
       let tradeCeiling = parseFloat(ad.trade_ceiling)
@@ -516,3 +540,4 @@ export default {
     left: 10px;
   }
   </style>
+src/exchangesrc/exchange/backend

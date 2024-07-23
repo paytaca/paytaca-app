@@ -130,7 +130,7 @@ import ProgressLoader from '../../ProgressLoader.vue'
 import SelectPaymentMethods from './dialogs/SelectPaymentMethods.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   components: {

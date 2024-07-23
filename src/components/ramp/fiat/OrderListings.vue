@@ -148,11 +148,11 @@
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
 // import FilterDialog from 'src/components/ramp/fiat/dialogs/FilterDialog.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { formatCurrency, formatDate } from 'src/wallet/ramp'
+import { formatCurrency, formatDate } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   setup () {
@@ -559,3 +559,4 @@ export default {
     left: 10px;
   }
   </style>
+src/exchangesrc/exchange/backend

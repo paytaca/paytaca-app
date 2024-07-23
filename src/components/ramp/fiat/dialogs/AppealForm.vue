@@ -77,10 +77,10 @@
 </template>
 
 <script>
-import { generateChatRef, updateChatMembers } from 'src/wallet/ramp/chat'
+import { generateChatRef, updateChatMembers } from 'src/exchange/chat'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   emits: ['back', 'submit'],
@@ -204,3 +204,4 @@ export default {
   opacity: .5;
 }
 </style>
+src/exchange/chatsrc/exchange/backend

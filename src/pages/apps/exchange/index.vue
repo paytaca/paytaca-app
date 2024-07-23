@@ -15,7 +15,7 @@ import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
@@ -76,3 +76,4 @@ export default {
   }
 }
 </script>
+src/exchange/backend

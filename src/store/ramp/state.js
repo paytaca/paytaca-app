@@ -1,5 +1,6 @@
 export default function () {
   return {
+    // websocket: null,
     wallet: null,
     authHeaders: null,
     user: null,

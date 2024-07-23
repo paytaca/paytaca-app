@@ -283,8 +283,8 @@
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
@@ -1032,3 +1032,4 @@ export default {
   border: 1px solid #fbc02d; /* Border color */
 }
 </style>
+src/exchange/backendsrc/exchange

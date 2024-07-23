@@ -49,7 +49,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ConfirmationDialog from './ConfirmationDialog.vue'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
@@ -212,3 +212,4 @@ export default {
   -webkit-text-fill-color: #8ec351;
 }
 </style>
+src/exchange/backend

@@ -158,10 +158,10 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
-import { formatCurrency } from 'src/wallet/ramp'
+import { backend } from 'src/exchange/backend'
+import { formatCurrency } from 'src/exchange'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -465,3 +465,4 @@ export default {
   opacity: .5;
 }
 </style>
+src/exchange/walletsrc/exchange/backendsrc/exchange

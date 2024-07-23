@@ -212,11 +212,11 @@ import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { createChatSession, updateChatMembers, generateChatRef } from 'src/wallet/ramp/chat'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -824,3 +824,4 @@ export default {
     border: 1px solid #fbc02d; /* Border color */
   }
   </style>
+src/exchangesrc/exchange/chatsrc/exchange/backend
