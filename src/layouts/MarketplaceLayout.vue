@@ -93,6 +93,15 @@
               {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
             </div>
           </div>
+          <template v-if="activeStorefrontCart?.markupSubtotal && activeStorefront?.id == deliveryCalculation?.storefrontId && deliveryCalculation?.fee">
+            <div class="row items-center q-mx-xs q-pl-md">
+              <div class="q-space q-pr-xs">Delivery fee</div>
+              <div class="">
+                ~ {{ deliveryCalculation?.fee }}
+                {{ deliveryCalculation?.currencySymbol || getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
+              </div>
+            </div>
+          </template>
           <div v-if="activeStorefrontCart?.markupSubtotal" class="q-mt-sm">
             <q-btn
               v-close-popup
@@ -109,7 +118,7 @@
   </div>
 </template>
 <script>
-import { backend, getSignerData } from 'src/marketplace/backend'
+import { backend, cachedBackend, getSignerData } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { updateOrCreateKeypair } from 'src/marketplace/chat'
@@ -121,6 +130,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import CartItemFormDialog from 'src/components/marketplace/CartItemFormDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import CartItemsList from 'src/components/marketplace/product/CartItemsList.vue'
+import { bus } from 'src/wallet/event-bus'
 
 export default {
   name: 'MarketplaceLayout',
@@ -275,6 +285,43 @@ export default {
       $store.dispatch('marketplace/refreshActiveStorefrontCarts')
     })
 
+    const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
+    const deliveryCalculation = ref({
+      storefrontId: 0,
+      fee: 0,
+      currencySymbol: '',
+      distance: 0,
+      deliveryDuration: 0,
+      preparationDuration: 0,
+    })
+    watch(() => activeStorefront.value?.id, () => clearDeliveryCalculation())
+    watch(() => customerCoordinates, () => clearDeliveryCalculation(), { deep: true })
+    function clearDeliveryCalculation() {
+      deliveryCalculation.value = {
+        storefrontId: 0,
+        fee: 0,
+        currencySymbol: '',
+        distance: 0,
+        deliveryDuration: 0,
+        preparationDuration: 0,
+      }
+    }
+
+    onMounted(() => bus.on('marketplace-storefront-delivery-calculation', onDeliveryFeeUpdate))
+    onUnmounted(() => bus.off('marketplace-storefront-delivery-calculation', onDeliveryFeeUpdate))
+    /**
+     * @param {Object} data
+     * @param {Number} data.storefrontId
+     * @param {Number} data.fee
+     * @param {String} data.currencySymbol
+     * @param {Number} data.deliveryDuration
+     * @param {Number} data.preparationDuration
+     */
+    function onDeliveryFeeUpdate(data) {
+      if (!data) return
+      deliveryCalculation.value = {...data}
+    }
+
     const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
     function getStorefrontCurrency(storefrontId) {
       return $store.getters['marketplace/getStorefrontCurrency']?.(storefrontId)
@@ -317,6 +364,7 @@ export default {
       toggleShowCartsDialog,
 
       activeStorefront,
+      deliveryCalculation,
 
       activeStorefrontCart,
       activeStorefrontIsActive,
