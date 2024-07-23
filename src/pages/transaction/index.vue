@@ -135,7 +135,7 @@
             </div>
           </div>
           <div class="q-px-lg">
-            <q-btn class="cash-in" padding="sm" @click="$router.push({ name: 'cashin-payment-method'})">
+            <q-btn class="cash-in" padding="sm" @click="openCashIn">
               Cash In
             </q-btn>
           </div>
@@ -356,6 +356,7 @@ import connectedDialog from '../connect/connectedDialog.vue'
 import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
+import CashIn from 'src/components/cash-in/index.vue'
 
 const ago = require('s-ago')
 
@@ -375,7 +376,8 @@ export default {
     connectedDialog,
     PriceChart,
     AssetFilter,
-    MultiWalletDropdown
+    MultiWalletDropdown,
+    CashIn
   },
   directives: {
     dragscroll
@@ -530,6 +532,11 @@ export default {
     openPriceChart () {
       this.$q.dialog({
         component: PriceChart
+      })
+    },
+    openCashIn () {
+      this.$q.dialog({
+        component: CashIn
       })
     },
     async updateTokenMenuPosition () {

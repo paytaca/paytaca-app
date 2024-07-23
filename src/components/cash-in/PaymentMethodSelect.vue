@@ -1,6 +1,6 @@
 <template>
-  <div class="q-mt-lg q-mx-md">
-    <div class="text-center" style="font-size: 20px;">
+  <div class="q-mx-md">
+    <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
       Select Payment Method
     </div>
     <div class="q-px-lg q-pt-lg" @click="showCurrencySelect">
@@ -11,7 +11,7 @@
       <q-virtual-scroll
         class="q-px-md q-py-sm q-my-sm"
         :items="paymentMethods"
-        style="max-height: 50vh;"
+        style="max-height: 30vh;"
         separator
         >
         <template v-slot="{item: method, index}">
@@ -27,8 +27,6 @@
 </template>
 <script>
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { bus } from 'src/wallet/event-bus'
-import { inject } from 'vue'
 
 export default {
   data () {
@@ -68,7 +66,8 @@ export default {
         })
     },
     selectPaymentMethod (index) {
-      this.$router?.push({ name: 'cashin-amount-select', query: this.paymentMethods[index]})
+      this.$emit('selectMethod', this.paymentMethods[index])
+      // this.$router?.push({ name: 'cashin-amount-select', query: this.paymentMethods[index]})
     }
   }
 }
