@@ -122,7 +122,7 @@ export default defineComponent({
         message: t('AreYouSure'),
         ok: { color: 'red', noCaps: true, label: t('Delete'), outlined: true },
         cancel: { flat: true, color: 'grey', noCaps: true },
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => deleteLocation(locationId))
     }
 
@@ -132,7 +132,7 @@ export default defineComponent({
         progress: true,
         ok: false,
         cancel: false,
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       })
 
       return $store.dispatch('marketplace/deleteCustomerLocation', locationId)
