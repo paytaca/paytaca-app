@@ -36,14 +36,21 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     async getUser () {
-      await backend.get('auth').then((response) => {
-        this.showLogin = !response?.data?.is_authenticated
-        this.user = response.data
-        if (!this.showLogin) {
-          this.isloaded = true
-          this.goToMainPage()
-        }
-      })
+      await backend.get('auth')
+        .then((response) => {
+          this.showLogin = !response?.data?.is_authenticated
+          this.user = response.data
+          if (!this.showLogin) {
+            this.isloaded = true
+            this.goToMainPage()
+          }
+        })
+        .catch(error => {
+          console.log(error.response || error)
+          if (error.response?.status === 404) {
+            this.showLogin = true
+          }
+        })
     },
     onLoggedIn () {
       this.showLogin = false
