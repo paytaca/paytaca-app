@@ -676,20 +676,20 @@ export default {
 
       if (response?.data?.country_name) {
         result.country = {
-          name: response.data?.country_name,
-          code: response.data?.country_code2
+          name: response?.data?.country_name,
+          code: response?.data?.country_code2
         }
       }
 
-      if (response.data?.currency.code) {
+      if (response?.data?.currency.code) {
         result.currency = {
-          symbol: response.data?.currency.code,
-          name: response.data?.currency?.name
+          symbol: response?.data?.currency.code,
+          name: response?.data?.currency?.name
         }
       }
 
-      if (typeof response.data?.languages === 'string' && response.data?.languages) {
-        result.langs = response.data?.languages?.toLowerCase().split(',')
+      if (typeof response?.data?.languages === 'string' && response?.data?.languages) {
+        result.langs = response?.data?.languages?.toLowerCase().split(',')
       }
       return result
     },
