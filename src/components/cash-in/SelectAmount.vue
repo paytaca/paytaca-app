@@ -32,9 +32,9 @@
     </div>
 
     <!-- Proceed -->
-     <div class="row justify-center q-mt-lg">
-        <q-btn :disable="amount === 0" rounded color="blue-6" label="proceed" @click="selectAmount"/>
-     </div>
+    <div class="row justify-center q-mt-lg">
+      <q-btn :disable="amount === 0" rounded color="blue-6" label="proceed" @click="selectAmount"/>
+    </div>
   </div>
 </template>
 <script>

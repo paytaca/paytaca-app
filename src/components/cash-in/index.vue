@@ -1,21 +1,33 @@
 <template>
   <q-dialog persistent="" full-width position="bottom">
     <q-card class="cashin-card">
-
       <!-- Title -->
       <div class="q-pt-sm">
         <q-card-section class="row items-center q-pb-none">
-          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-close-popup />
+          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="!loading"/>
           <q-space />
           <q-btn flat icon="close" color="red" round dense v-close-popup />
         </q-card-section>
       </div>
 
       <!-- Body -->
-      <div>
+      <div v-if="loading" class="text-center" style="margin-top: 50px; font-size: 25px;">
+        <div>
+          Please Wait...
+        </div>
+        <q-spinner-dots class="q-pt-sm" color="blue-6" size="3em"/>
+      </div>
+      <div v-else>
+        <!-- Register -->
+        <register-user v-if="register"/>
+        <!-- Payment Method -->
         <payment-method-select :options="paymentTypeOpts" v-if="step === 1" @select="setPaymentType"/>
+
+        <!-- Select Amount -->
         <select-amount v-else-if="step === 2" @select-amount="setAmount"/>
-        <order v-else/>
+
+        <!-- Order Page -->
+        <order v-else-if="step === 3"/>
       </div>
     </q-card>
   </q-dialog>
@@ -23,13 +35,14 @@
 <script>
 import paymentMethodSelect from './PaymentMethodSelect.vue'
 import SelectAmount from './SelectAmount.vue'
+import registerUser from './register-user.vue'
 import Order from './order.vue'
 import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
     return {
-      step: 1,
+      step: 0,
       dialog: false,
       paymentTypeOpts: [],
       selectedPaymentType: null,
@@ -40,19 +53,42 @@ export default {
       cashinAdsParams: {
         currency: null,
         payment_type: null
-      }
+      },
+      register: false,
+      loading: true
     }
   },
   components: {
     paymentMethodSelect,
     SelectAmount,
-    Order
+    Order,
+    registerUser
   },
-  mounted () {
-    this.cashinAdsParams.currency = this.selectedCurrency?.symbol
-    this.fetchCashinAds()
+  async mounted () {
+    const vm = this
+
+    vm.fetchUser()
+    vm.cashinAdsParams.currency = vm.selectedCurrency?.symbol
+    vm.fetchCashinAds()
   },
   methods: {
+    async fetchUser () {
+      const vm = this
+      try {
+        const user = await backend.get('/auth/')
+        console.log('user: ', user)
+
+        vm.step++
+        vm.loading = false
+      } catch (error) {
+        console.log('error:', error)
+        if (error.response) {
+          if (error.response.status === 404) {
+            vm.register = true
+          }
+        }
+      }
+    },
     setPaymentType (paymentType) {
       this.selectedPaymentType = paymentType
       this.cashinAdsParams.payment_type = this.selectedPaymentType?.id
