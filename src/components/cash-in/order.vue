@@ -4,6 +4,7 @@
       Order #100
     </div>
 
+    <payment-confirmation v-if="confirm_payment"/>
     <div v-if="await_status" class="text-center" style="margin-top: 50px; font-size: 25px;">
       <div>
         {{ statusMessage}}
@@ -16,20 +17,25 @@
   </div>
 </template>
 <script>
+import PaymentConfirmation from './payment-confirmation.vue'
 
 export default {
   data () {
     return {
-      status: 'PD', //SBM, CNF, ESCRW_PN, ESCRW, PD_PN, PD, RFN, RLS
+      status: 'ESCRW', //SBM, CNF, ESCRW_PN, ESCRW, PD_PN, PD, RFN, RLS
       label: '',
       await_status: false,
-      statusMessage: ''
+      statusMessage: '',
+      confirm_payment: false
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     }
+  },
+  components: {
+    PaymentConfirmation
   },
   mounted () {
     this.checkStatus()
@@ -50,7 +56,7 @@ export default {
           break
         case 'ESCRW':
         case 'PD_PN':
-          // payment-confirmation
+          this.confirm_payment = true
           break
       }
     }
