@@ -74,6 +74,71 @@
         </div>
         <q-pull-to-refresh @refresh="refreshData">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+            <div v-if="statusType === 'ONGOING' && cashinOrders?.length > 0">
+              <div v-for="(listing, index) in cashinOrders" :key="index">
+                <q-item clickable @click="selectOrder(listing)">
+                  <q-item-section>
+                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                      <div class="row q-mx-md">
+                        <div class="col ib-text">
+                          <div
+                            class="q-mb-none pt-label sm-font-size"
+                            :class="getDarkModeClass(darkMode)">
+                            {{
+                              $t(
+                                'OrderIdNo',
+                                { ID: listing?.id },
+                                `ORDER #${ listing?.id }`
+                              )
+                            }}
+                            <q-badge v-if="listing.is_cash_in" class="q-mr-xs" outline rounded size="sm" color="warning" label="Cash In" />
+                            <q-badge v-if="!listing.read_at" outline rounded size="sm" color="red" label="New"/>
+                          </div>
+                          <span
+                            class=" pt-label md-font-size text-weight-bold"
+                            :class="getDarkModeClass(darkMode)">
+                            {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing?.owner?.id === userInfo?.id" rounded size="sm" color="grey" label="You" />
+                          </span>
+                          <div
+                            class="col-transaction text-uppercase pt-label lg-font-size"
+                            :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
+                            {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
+                          </div>
+                          <div class="sm-font-size">
+                            {{ formatCurrency(listing.crypto_amount) }} BCH</div>
+                          <div v-if="listing.created_at" class="sm-font-size subtext">{{ formatDate(listing.created_at, true) }}</div>
+                        </div>
+                        <div class="text-right">
+                          <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
+                            <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
+                          </span> -->
+                          <div
+                            v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
+                            class="text-weight-bold subtext sm-font-size text-blue">
+                            {{ $t('Appealable') }}
+                          </div>
+                          <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
+                            <q-rating
+                              readonly
+                              :model-value = "listing?.feedback?.rating || 0"
+                              size="1em"
+                              color="yellow-9"
+                              icon="star"
+                            />
+                          </div>
+                          <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
+                            {{ listing.status?.label }}
+                          </div>
+                          <div class="text-weight-bold subtext sm-font-size" v-else>
+                            {{ listing.status?.label }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </div>
+            </div>
             <div v-for="(listing, index) in listings" :key="index">
               <q-item clickable @click="selectOrder(listing)">
                 <q-item-section>
@@ -222,6 +287,9 @@ export default {
     completedOrders () {
       return this.$store.getters['ramp/getCompletedOrders']
     },
+    cashinOrders () {
+      return this.$store.getters['ramp/getCashinOrders']
+    },
     hasMoreData () {
       const vm = this
       vm.updatePaginationValues()
@@ -235,6 +303,7 @@ export default {
     this.updateFilters()
     this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
+    this.fetchCashinOrders(true)
   },
   beforeRouteLeave (to, from, next) {
     switch (from.name) {
@@ -360,6 +429,25 @@ export default {
           }
         })
     },
+    async fetchCashinOrders (overwrite = false) {
+      const vm = this
+      await vm.$store.dispatch('ramp/fetchCashinOrders', { overwrite: overwrite })
+        .then(response => {
+          console.log('fetchCashinOrders:', this.cashinOrders)
+          // vm.updatePaginationValues()
+          return Promise.resolve(response)
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          }
+          return Promise.reject(error)
+        })
+    },
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
@@ -427,6 +515,7 @@ export default {
     },
     async resetAndRefetchListings () {
       this.$store.commit('ramp/resetOrdersPagination')
+      this.$store.commit('ramp/resetCashinOrdersPagination')
       this.loading = true
       await this.fetchOrders(true)
       this.loading = false

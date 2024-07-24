@@ -132,6 +132,41 @@ export function fetchAds (context, { component = null, params = null, overwrite 
   })
 }
 
+export async function fetchCashinOrders (context, { params = null, overwrite = false }) {
+  return new Promise((resolve, reject) => {
+    const state = context.state
+
+    // Setup pagination parameters
+    let pageNumber = state.cashinOrdersPageNumber
+    const totalPages = state.cashinOrdersTotalPages
+    console.log('pageNumber:', pageNumber)
+    console.log('totalPages:', totalPages)
+    if (pageNumber <= totalPages || (!pageNumber && !totalPages)) {
+      // Increment page by 1 if not fetching data for the first time
+      if (pageNumber !== null) pageNumber++
+
+      const parameters = {
+        page: pageNumber,
+        limit: state.itemsPerPage
+      }
+
+      const apiURL = '/ramp-p2p/cashin/order'
+      backend.get(apiURL, { params: parameters, authorize: true })
+        .then((response) => {
+          console.log('cashin orders:', response.data)
+          context.commit('updateCashinOrders', { overwrite: overwrite, data: response.data })
+          context.commit('incCashinOrdersPage')
+          resolve(response.data)
+        })
+        .catch(error => {
+          reject(error)
+        })
+    } else {
+      resolve()
+    }
+  })
+}
+
 export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   return new Promise((resolve, reject) => {
     const state = context.state
@@ -217,7 +252,6 @@ export async function fetchOrders (context, { statusType = null, params = null, 
           resolve(response.data)
         })
         .catch(error => {
-          console.error('Error fetching user data:', error)
           reject(error)
         })
     } else {

@@ -37,6 +37,11 @@ export default function () {
     completedOrdersTotalPages: null,
     completedOrders: [],
 
+    // cashin orders
+    cashinOrdersPageNumber: null,
+    cashinOrdersTotalPages: null,
+    cashinOrders: [],
+
     // appeals pagination
     pendingAppealsPageNumber: null,
     pendingAppealsTotalPages: null,
