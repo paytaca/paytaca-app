@@ -10,12 +10,12 @@
     <q-card flat bordered class="br-15 q-mt-lg q-mx-lg">
       <q-virtual-scroll
         class="q-px-md q-py-sm q-my-sm"
-        :items="paymentMethods"
+        :items="options"
         style="max-height: 30vh;"
         separator
         >
-        <template v-slot="{item: method, index}">
-          <q-item clickable @click="selectPaymentMethod(index)">
+        <template v-slot="{item: method}">
+          <q-item clickable @click="selectPaymentType(method)">
             <q-item-section>
               {{ method.name }}
             </q-item-section>
@@ -48,9 +48,9 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
   },
-  emits: ['selectMethod'],
-  mounted () {
-    console.log('selected fiat: ', this.selectedCurrency)
+  emits: ['select'],
+  props: {
+    options: Array
   },
   methods: {
     showCurrencySelect () {
@@ -65,8 +65,8 @@ export default {
           this.selectedCurrency = currency
         })
     },
-    selectPaymentMethod (index) {
-      this.$emit('selectMethod', this.paymentMethods[index])
+    selectPaymentType (value) {
+      this.$emit('select', value)
       // this.$router?.push({ name: 'cashin-amount-select', query: this.paymentMethods[index]})
     }
   }
