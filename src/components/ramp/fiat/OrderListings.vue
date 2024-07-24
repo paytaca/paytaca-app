@@ -352,7 +352,7 @@ export default {
       const params = vm.filters
       params.query_name = vm.query_name
       params.currency = vm.selectedCurrency?.symbol !== vm.$t('All') ? vm.selectedCurrency?.symbol : null
-      await vm.$store.dispatch('ramp/fetchOrders',
+      const response = await vm.$store.dispatch('ramp/fetchOrders',
         {
           statusType: vm.statusType,
           params: params,
@@ -372,6 +372,7 @@ export default {
           }
           return Promise.reject(error)
         })
+      bus.emit('update-unread-count', response.unread_count)
     },
     receiveDialog (data, type = 'filter') {
       const vm = this
