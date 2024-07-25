@@ -725,7 +725,7 @@ export default {
     async getFiatCurrencies () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+        const response = await backend.get('/ramp-p2p/currency/fiat')
         vm.fiatCurrencies = response.data
         if (!vm.selectedCurrency) {
           vm.selectedCurrency = vm.fiatCurrencies[0]

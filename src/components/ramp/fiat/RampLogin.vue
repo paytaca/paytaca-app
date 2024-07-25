@@ -58,9 +58,9 @@
   </q-dialog>
 </template>
 <script>
+import * as chatUtils from 'src/exchange/chat'
 import { loadRampWallet } from 'src/exchange/wallet'
 import { getKeypair, getDeviceId } from 'src/exchange/chat/keys'
-import * as chatUtils from 'src/exchange/chat'
 import { updateSignerData, signRequestData } from 'src/exchange/chat/backend'
 import { backend } from 'src/exchange/backend'
 import { NativeBiometric } from 'capacitor-native-biometric'

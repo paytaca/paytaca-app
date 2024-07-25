@@ -1,12 +1,12 @@
 <template>
-  <q-dialog persistent="" full-width position="bottom">
-    <q-card class="cashin-card">
+  <q-dialog full-width position="bottom" transition-show="slide-up">
+    <q-card class="cashin-card br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
       <!-- Title -->
       <div class="q-pt-sm">
         <q-card-section class="row items-center q-pb-none">
-          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="!loading"/>
+          <q-btn flat icon="arrow_back" round dense v-close-popup />
           <q-space />
-          <q-btn flat icon="close" color="red" round dense v-close-popup />
+          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="!loading"/>
         </q-card-section>
       </div>
 
@@ -19,128 +19,215 @@
       </div>
       <div v-else>
         <!-- Register -->
-        <register-user v-if="register"/>
-        <!-- Payment Method -->
-        <payment-method-select :options="paymentTypeOpts" v-if="step === 1" @select="setPaymentType"/>
-
+        <Register v-if="register"/>
+        <!-- Payment Type -->
+        <SelectPaymentType
+          v-if="step === 1"
+          :options="paymentTypeOpts"
+          @select-currency="setCurrency"
+          @select-payment="setPaymentType"/>
         <!-- Select Amount -->
-        <select-amount v-else-if="step === 2" @select-amount="setAmount"/>
-
+        <SelectAmount
+          v-if="step === 2"
+          :amountAdCount="amountAdCount"
+          :currency="selectedCurrency"
+          :ads="cashinAds"
+          @select-amount="setAmount"/>
         <!-- Order Page -->
-        <order v-else-if="step === 3"/>
+        <order v-if="step === 3"/>
       </div>
     </q-card>
   </q-dialog>
 </template>
 <script>
-import paymentMethodSelect from './PaymentMethodSelect.vue'
+import SelectPaymentType from './SelectPaymentType.vue'
 import SelectAmount from './SelectAmount.vue'
-import registerUser from './register-user.vue'
+import Register from './register-user.vue'
 import Order from './order.vue'
-import { backend } from 'src/exchange/backend'
+import { backend, updatePubkeyAndAddress } from 'src/exchange/backend'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
+import { loadChatIdentity } from 'src/exchange/chat/objects'
+import { loadRampWallet } from 'src/exchange/wallet'
 
 export default {
+  components: {
+    SelectPaymentType,
+    SelectAmount,
+    Order,
+    Register
+  },
   data () {
     return {
+      darkMode: this.$store.getters['darkmode/getStatus'],
       step: 0,
       dialog: false,
       paymentTypeOpts: [],
       selectedPaymentType: null,
-      minAmount: null,
-      maxAmount: null,
+      minLimit: null,
+      maxLimit: null,
       amount: null,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       cashinAdsParams: {
         currency: null,
         payment_type: null
       },
+      cashinAds: [],
+      amountAdCount: [],
       register: false,
       loading: true
     }
   },
-  components: {
-    paymentMethodSelect,
-    SelectAmount,
-    Order,
-    registerUser
+  computed: {
+    cashinAd () {
+      return this.cashinAds.length > 0 ? this.cashinAds[0] : null
+    }
   },
-  async mounted () {
-    const vm = this
-
-    vm.fetchUser()
-    vm.cashinAdsParams.currency = vm.selectedCurrency?.symbol
-    vm.fetchCashinAds()
+  mounted () {
+    this.loaddata()
   },
   methods: {
+    getDarkModeClass,
+    async loaddata () {
+      this.loading = true
+      this.wallet = loadRampWallet()
+      this.cashinAdsParams.currency = this.selectedCurrency?.symbol
+      this.cashinAdsParams.wallet_hash = this.wallet.walletHash
+      // await this.fetchUser()
+      await this.fetchCashinAds()
+      this.step++
+      this.loading = false
+    },
     async fetchUser () {
       const vm = this
       try {
-        const user = await backend.get('/auth/')
+        const { data: user } = await backend.get('/auth/')
         console.log('user: ', user)
+        this.user = user
+        const payload = {
+          user_type: user.is_arbiter ? 'arbiter' : 'peer',
+          chat_identity_id: user.chat_identity_id,
+          name: user.name
+        }
+        let login = false
+        if (vm.user.is_authenticated) {
+          const token = await getAuthToken()
+          if (token) {
+            vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+            vm.$store.commit('ramp/updateUser', user)
+          } else {
+            login = true
+          }
+        } else {
+          deleteAuthToken()
+          login = true
+        }
 
-        vm.step++
-        vm.loading = false
+        if (login) {
+          await vm.login()
+        }
+
+        const chatIdentity = await loadChatIdentity(payload)
+        console.log('chatIdentity:', chatIdentity)
+        const resp = await updatePubkeyAndAddress(user)
+        console.log('updatePubkeyAndAddress:', resp)
       } catch (error) {
         console.log('error:', error)
-        if (error.response) {
-          if (error.response.status === 404) {
-            vm.register = true
-          }
+        if (error.response?.status === 404) {
+          vm.register = true
         }
       }
+    },
+    async login () {
+      const vm = this
+      // vm.hintMessage = null
+      // vm.errorMessage = null
+      try {
+        vm.loggingIn = true
+        const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
+        const keypair = await vm.wallet.keypair()
+        const signature = await vm.wallet.signMessage(keypair.privateKey, otp)
+        const body = {
+          wallet_hash: vm.wallet.walletHash,
+          signature: signature,
+          public_key: keypair.publicKey
+        }
+        const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
+        console.log('loginResponse:', loginResponse)
+        if (vm.user) {
+          saveAuthToken(loginResponse.data.token)
+          // const success = await vm.loadChatIdentity()
+          // if (!success) return
+          // vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
+          vm.$store.commit('ramp/updateUser', vm.user)
+        }
+      } catch (error) {
+        console.error(error.response || error)
+      }
+      vm.loggingIn = false
+    },
+    setCurrency (currency) {
+      this.selectedCurrency = currency
+      this.cashinAdsParams.currency = this.selectedCurrency.symbol
+      console.log('cashinAdsParams:', this.cashinAdsParams)
+      this.fetchCashinAds()
     },
     setPaymentType (paymentType) {
       this.selectedPaymentType = paymentType
       this.cashinAdsParams.payment_type = this.selectedPaymentType?.id
-      this.fetchCashinAds()
+      const presets = [0.02, 0.25, 0.5, 1]
+      let url = '/ramp-p2p/cashin/ad'
+      if (presets?.length > 0) {
+        const amounts = presets.join('&amounts=')
+        url = `${url}?amounts=${amounts}`
+      }
+      this.fetchCashinAds(url)
       this.step++
     },
     setAmount (amount) {
       this.amount = amount
-      this.step++
+      // this.step++
     },
-    fetchCashinAds () {
-      backend.get('/ramp-p2p/cashin/ad', { params: this.cashinAdsParams, authorize: true })
+    async fetchCashinAds (url) {
+      const apiUrl = url || '/ramp-p2p/cashin/ad'
+      await backend.get(apiUrl, { params: this.cashinAdsParams })
         .then(response => {
           console.log('fetchCashinAds:', response.data)
-          const paymentTypes = []
-          let minAmount = 0.00001
-          let maxAmount = 0.00001
-          this.paymentTypeOpts = response.data?.forEach((e) => {
-            // Get payment types
-            e.payment_methods.forEach(method => {
-              const dupe = paymentTypes.map(e => { return e.id }).includes(method.payment_type?.id)
-              if (!dupe) {
-                paymentTypes.push(method.payment_type)
-              }
-            })
+          this.cashinAds = response.data.ads
+          this.paymentTypeOpts = response.data.payment_types
+          this.amountAdCount = response.data.amount_ad_count
+          console.log('cashinAds:', this.cashinAds)
+          console.log('paymentTypeOpts:', this.paymentTypeOpts)
+          // let minAmount = 0.00001
+          // let maxAmount = 0.00001
+          // response.data?.ads?.forEach((e) => {
 
-            // Get min and max amount
-            let tradeFloor = Number(e.trade_floor)
-            let tradeCeiling = Number(e.trade_ceiling)
-            let tradeAmount = Number(e.trade_amount)
-            if (e.trade_limits_in_fiat) {
-              tradeFloor = tradeFloor / Number(e.price)
-              tradeCeiling = tradeCeiling / Number(e.price)
-            }
-            if (e.trade_amount_in_fiat) {
-              tradeAmount = tradeAmount / Number(e.price)
-            }
-            if (tradeAmount < tradeCeiling) {
-              tradeCeiling = tradeAmount
-            }
-            tradeFloor = Number(tradeFloor.toFixed(8))
-            tradeCeiling = Number(tradeCeiling.toFixed(8))
-            if (minAmount > 0.00001 && tradeFloor < minAmount) {
-              minAmount = tradeFloor
-            }
-            if (tradeCeiling > maxAmount) {
-              maxAmount = tradeCeiling
-            }
-          })
-          this.minAmount = minAmount
-          this.maxAmount = maxAmount
-          this.paymentTypeOpts = paymentTypes
+
+          //   // Get min and max amount
+          //   let tradeFloor = Number(e.trade_floor)
+          //   let tradeCeiling = Number(e.trade_ceiling)
+          //   let tradeAmount = Number(e.trade_amount)
+          //   if (e.trade_limits_in_fiat) {
+          //     tradeFloor = tradeFloor / Number(e.price)
+          //     tradeCeiling = tradeCeiling / Number(e.price)
+          //   }
+          //   if (e.trade_amount_in_fiat) {
+          //     tradeAmount = tradeAmount / Number(e.price)
+          //   }
+          //   if (tradeAmount < tradeCeiling) {
+          //     tradeCeiling = tradeAmount
+          //   }
+          //   tradeFloor = Number(tradeFloor.toFixed(8))
+          //   tradeCeiling = Number(tradeCeiling.toFixed(8))
+          //   if (minAmount > 0.00001 && tradeFloor < minAmount) {
+          //     minAmount = tradeFloor
+          //   }
+          //   if (tradeCeiling > maxAmount) {
+          //     maxAmount = tradeCeiling
+          //   }
+          // })
+          // this.minLimit = minAmount
+          // this.maxLimit = maxAmount
         })
         .catch(error => {
           console.error(error.response || error)
@@ -159,7 +246,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .cashin-card {
-  height: 500px;
+  height: 450px;
 }
 #exchange-logo {
   height: 30px;

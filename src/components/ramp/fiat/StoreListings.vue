@@ -337,7 +337,7 @@ export default {
     },
     fetchFiatCurrencies () {
       const vm = this
-      backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+      backend.get('/ramp-p2p/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {
