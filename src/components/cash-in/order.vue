@@ -5,6 +5,7 @@
     </div>
 
     <payment-confirmation v-if="confirm_payment"/>
+
     <div v-if="await_status" class="text-center" style="margin-top: 50px; font-size: 25px;">
       <div>
         {{ statusMessage}}

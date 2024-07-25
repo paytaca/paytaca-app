@@ -27,8 +27,8 @@
 
     <!-- Selection -->
     <div class="row q-gutter-md text-center q-mt-xs q-mx-md">
-      <div class="col-5" v-for="option in amountOption" :key="option">
-        <q-btn :disable="amountAdCount[option] === 0" rounded outline :color="darkMode ? 'blue-grey-2': 'blue-grey-8'" class="full-width q-py-sm" :label="option" @click="selectAmount(option)"></q-btn>
+      <div class="col-5" v-for="(option, index) in amountOption" :key="option">
+        <q-btn rounded :outline="index !== selectedOption" :disable="amountAdCount[option] === 0" :color="getButtonColor(index)" class="full-width q-py-sm" :label="option" @click="selectAmount(option, index)"></q-btn>
       </div>
     </div>
 
@@ -47,7 +47,8 @@ export default {
   data () {
     return {
       amount: 0,
-      amountOption: [0.02, 0.25, 0.5, 1]
+      amountOption: [0.02, 0.25, 0.5, 1],
+      selectedOption: null
     }
   },
   computed: {
@@ -91,7 +92,33 @@ export default {
       console.log('selectAmount:', option)
       this.amount = option
       this.$emit('select-amount', this.amount)
+    },
+    selectOption (option, index) {
+      this.amount = option
+
+      this.selectedOption = index
+    },
+    getButtonColor (index) {
+      if (index === this.selectedOption) {
+        return 'blue-6'
+      } else {
+        return this.darkMode ? 'blue-grey-2' : 'blue-grey-8'
+      }
     }
+    // computePresetAmount () {
+    //   this.amountOption[0] = this.minAmount
+    //   this.amountOption[this.presetCount - 1] = this.maxAmount
+
+    //   const gap = (this.maxAmount - this.minAmount) / this.presetCount
+
+    //   // set mid presets
+    //   for (let index = 0; index < this.presetCount - 2; index++) {
+    //     console.log(index)
+    //     this.amountOption[index + 1] = this.minAmount + ((index + 1) * gap)
+    //   }
+
+    //   console.log('amountOption: ', this.amountOption)
+    // }
     // selectAmount () {
     //   this.$emit('select-amount', this.amount)
     //   // this.$router?.push({ name: 'cashin-order', params: { id: orderId }})

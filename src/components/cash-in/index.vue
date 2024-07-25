@@ -1,12 +1,12 @@
 <template>
-  <q-dialog full-width position="bottom" transition-show="slide-up">
+  <q-dialog ref="dialog" full-width position="bottom" transition-show="slide-up">
     <q-card class="cashin-card br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
       <!-- Title -->
       <div class="q-pt-sm">
         <q-card-section class="row items-center q-pb-none">
           <q-btn flat icon="arrow_back" round dense v-close-popup />
           <q-space />
-          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="!loading"/>
+          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="showOrderListButton" @click="state = 'order-list'"/>
         </q-card-section>
       </div>
 
@@ -19,28 +19,35 @@
       </div>
       <div v-else>
         <!-- Register -->
-        <Register v-if="register"/>
-        <!-- Payment Type -->
-        <SelectPaymentType
-          v-if="step === 1"
-          :options="paymentTypeOpts"
-          @select-currency="setCurrency"
-          @select-payment="setPaymentType"/>
-        <!-- Select Amount -->
-        <SelectAmount
-          v-if="step === 2"
-          :amountAdCount="amountAdCount"
-          :currency="selectedCurrency"
-          :ads="cashinAds"
-          @select-amount="setAmount"/>
-        <!-- Order Page -->
-        <order v-if="step === 3"/>
+        <Register v-if="state === 'register'"/>
+
+        <div v-if="state === 'cashin-order'">
+          <!-- Payment Type -->
+          <SelectPaymentType
+            v-if="step === 1"
+            :options="paymentTypeOpts" :fiat="fiatCurrencies"
+            @select-currency="setCurrency"
+            @select-payment="setPaymentType" @update-fiat="updateSelectedCurrency"/>
+          <!-- Select Amount -->
+          <SelectAmount
+            v-if="step === 2"
+            :amountAdCount="amountAdCount"
+            :currency="selectedCurrency"
+            :ads="cashinAds"
+            @select-amount="setAmount"/>
+          <!-- Order Page -->
+          <Order v-if="step === 3"/>
+        </div>
+
+        <!-- Order List -->
+        <order-list v-if="state === 'order-list'" />
       </div>
     </q-card>
   </q-dialog>
 </template>
 <script>
 import SelectPaymentType from './SelectPaymentType.vue'
+import orderList from './order-list.vue'
 import SelectAmount from './SelectAmount.vue'
 import Register from './register-user.vue'
 import Order from './order.vue'
@@ -55,12 +62,14 @@ export default {
     SelectPaymentType,
     SelectAmount,
     Order,
-    Register
+    Register,
+    orderList
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       step: 0,
+      state: 'cashin-order', // order-list, register
       dialog: false,
       paymentTypeOpts: [],
       selectedPaymentType: null,
@@ -75,12 +84,14 @@ export default {
       cashinAds: [],
       amountAdCount: [],
       register: false,
-      loading: true
+      openorderList: false,
+      loading: true,
+      fiatCurrencies: null
     }
   },
   computed: {
-    cashinAd () {
-      return this.cashinAds.length > 0 ? this.cashinAds[0] : null
+    showOrderListButton () {
+      return !this.loading && this.state !== 'order-list'
     }
   },
   mounted () {
@@ -134,7 +145,8 @@ export default {
       } catch (error) {
         console.log('error:', error)
         if (error.response?.status === 404) {
-          vm.register = true
+          // vm.register = true
+          vm.state = 'register'
         }
       }
     },
@@ -187,6 +199,22 @@ export default {
     setAmount (amount) {
       this.amount = amount
       // this.step++
+    },
+    fetchFiatCurrencies () {
+      console.log('fetching currency')
+      const vm = this
+      backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+        .then(response => {
+          vm.fiatCurrencies = response.data
+          console.log('currency: ', vm.fiatCurrencies)
+        })
+        .catch(error => {
+          console.error(error)
+        })
+    },
+    updateSelectedCurrency (currency) {
+      this.selectedCurrency = currency
+      this.fetchCashinAds()
     },
     async fetchCashinAds (url) {
       const apiUrl = url || '/ramp-p2p/cashin/ad'
@@ -241,6 +269,13 @@ export default {
           // }
         })
     },
+    close () {
+      if (this.state === 'order-list') {
+        this.state = 'cashin-order'
+      } else {
+        this.$refs.dialog.hide()
+      }
+    }
   }
 }
 </script>
