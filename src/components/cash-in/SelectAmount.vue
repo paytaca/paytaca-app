@@ -25,8 +25,8 @@
     <!-- Selection -->
     <div class="text-center q-mt-lg q-px-lg">
       <div class="column">
-        <div class="col q-py-xs" v-for="option in amountOption" :key="option">
-          <q-btn rounded outline :color="darkMode ? 'blue-grey-2': 'blue-grey-8'" class="full-width q-py-sm" :label="option" @click="amount = option"></q-btn>
+        <div class="col q-py-xs" v-for="(option, index) in amountOption" :key="option">
+          <q-btn rounded :outline="index !== selectedOption" :color="getButtonColor(index)" class="full-width q-py-sm" :label="option" @click="selectOption(option, index)"></q-btn>
         </div>
       </div>
     </div>
@@ -43,8 +43,14 @@ export default {
   data () {
     return {
       amount: 0,
-      amountOption: [0.001, 0.02, 0.5, 1]
+      amountOption: [0.00001, 0.001, 0.5, 1],
+      presetCount: 4,
+      selectedOption: null
     }
+  },
+  props: {
+    minAmount: Number,
+    maxAmount: Number
   },
   computed: {
     darkMode () {
@@ -53,13 +59,40 @@ export default {
   },
   emits: ['select-amount'],
   mounted () {
+    // this.computePresetAmount()
     // console.log('method: ', this.$route.query)
   },
   methods: {
     selectAmount () {
       this.$emit('select-amount', this.amount)
       // this.$router?.push({ name: 'cashin-order', params: { id: orderId }})
+    },
+    selectOption (option, index) {
+      this.amount = option
+
+      this.selectedOption = index
+    },
+    getButtonColor (index) {
+      if (index === this.selectedOption) {
+        return 'blue-6'
+      } else {
+        return this.darkMode ? 'blue-grey-2' : 'blue-grey-8'
+      }
     }
+    // computePresetAmount () {
+    //   this.amountOption[0] = this.minAmount
+    //   this.amountOption[this.presetCount - 1] = this.maxAmount
+
+    //   const gap = (this.maxAmount - this.minAmount) / this.presetCount
+
+    //   // set mid presets
+    //   for (let index = 0; index < this.presetCount - 2; index++) {
+    //     console.log(index)
+    //     this.amountOption[index + 1] = this.minAmount + ((index + 1) * gap)
+    //   }
+
+    //   console.log('amountOption: ', this.amountOption)
+    // }
   }
 }
 </script>

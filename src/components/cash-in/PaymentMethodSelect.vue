@@ -27,47 +27,47 @@
 </template>
 <script>
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
     return {
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      fiatCurrencies: [
-        { symbol: 'PHP', name: 'Philippine Peso' },
-        { symbol: 'USD', name: 'United States Dollars' }
-      ],
+      fiatCurrencies: this.fiat,
       openCurrencyDialog: false,
-      paymentMethods: [
-        { id: 1, name: 'GCash' },
-        { id: 2, name: 'BPI' }
-      ]
+      paymentMethods: null,
+      selectedPaymentMethod: null
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
+    }
   },
-  emits: ['select'],
+  emits: ['select', 'update-fiat'],
   props: {
-    options: Array
+    options: Array,
+    fiat: {
+      type: Array,
+      default: null
+    }
   },
   methods: {
     showCurrencySelect () {
       this.$q.dialog({
         component: CurrencyFilterDialog,
         componentProps: {
-          fiatList: this.fiatCurrencies
+          fiatList: this.fiat
         }
       })
         .onOk(currency => {
           console.log('currency: ', currency)
           this.selectedCurrency = currency
+          this.$emit('update-fiat', currency)
         })
     },
     selectPaymentType (value) {
       this.$emit('select', value)
-      // this.$router?.push({ name: 'cashin-amount-select', query: this.paymentMethods[index]})
     }
   }
 }
