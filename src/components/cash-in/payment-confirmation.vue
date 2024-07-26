@@ -46,7 +46,7 @@
       </template>
     </q-file> -->
 
-    <div class="row justify-center q-mt-lg">
+    <div class="row justify-center q-mt-sm">
       <q-btn class="col q-mx-lg" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
     </div>
   </div>
