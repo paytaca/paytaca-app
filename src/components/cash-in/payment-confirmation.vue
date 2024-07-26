@@ -1,9 +1,9 @@
 <template>
-  <div class="text-center q-pt-sm" style="font-size: 15px;">
+  <div class="text-center" style="font-size: 15px;">
     <div>BCH Escrowed</div>
     <div>Please Pay</div>
   </div>
-  <div class="text-center q-mt-lg q-px-lg">
+  <div class="text-center q-mt-sm q-px-lg">
     <q-input
     dense
       type="text"
@@ -22,7 +22,7 @@
     </q-input>
   </div>
 
-  <div class="text-center q-my-sm">to</div>
+  <div class="text-center q-my-xs">to</div>
 
   <div class="q-mx-lg">
     <q-card flat bordered :dark="darkMode">
@@ -46,7 +46,7 @@
         </template>
       </q-file>
 
-      <div class="row justify-center q-mt-lg">
+      <div class="row justify-center q-mt-sm">
       <q-btn :disable="!attachment" rounded color="blue-6" label="I have Paid"/>
     </div>
   </div>

@@ -7,15 +7,16 @@
       {{ selectedCurrency.symbol }} <q-icon name="mdi-menu-down"/>
     </div>
 
-    <q-card flat bordered class="br-15 q-mt-lg q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <q-virtual-scroll :items="options">
-        <template v-slot="{ item: method }">
-          <q-item clickable @click="selectPaymentType(method)">
+    <q-card flat bordered class="q-mt-sm q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+      <q-virtual-scroll :items="options" style="max-height: 40vh;">
+        <template v-slot="{ item: method, index }">
+          <q-item clickable @click="selectPaymentType(method)" :key="index">
             <q-item-section>
               <div style="font-size: medium;">{{ method?.short_name }}</div>
               <div class="text-grey" style="font-size: small;">{{ method?.short_name !== method?.full_name ? method?.full_name : ''}}</div>
             </q-item-section>
           </q-item>
+          <q-separator class="q-mx-sm" v-if="index !== options.length - 1"/>
         </template>
       </q-virtual-scroll>
     </q-card>

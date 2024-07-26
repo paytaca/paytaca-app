@@ -4,7 +4,7 @@
       <!-- Title -->
       <div class="q-pt-sm">
         <q-card-section class="row items-center q-pb-none">
-          <q-btn flat icon="arrow_back" round dense v-close-popup />
+          <q-btn flat icon="arrow_back" color="blue-6" round dense v-close-popup />
           <q-space />
           <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="showOrderListButton" @click="state = 'order-list'"/>
         </q-card-section>
@@ -40,7 +40,10 @@
         </div>
 
         <!-- Order List -->
-        <order-list v-if="state === 'order-list'" />
+        <order-list v-if="state === 'order-list'" @open-order="openOrder"/>
+
+        <!-- Network Error -->
+        <NetworkError v-if="state === 'network-error'"/>
       </div>
     </q-card>
   </q-dialog>
@@ -51,6 +54,7 @@ import orderList from './order-list.vue'
 import SelectAmount from './SelectAmount.vue'
 import Register from './register-user.vue'
 import Order from './order.vue'
+import NetworkError from './network-error.vue'
 import { backend, updatePubkeyAndAddress } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
@@ -63,7 +67,8 @@ export default {
     SelectAmount,
     Order,
     Register,
-    orderList
+    orderList,
+    NetworkError
   },
   data () {
     return {
@@ -147,6 +152,8 @@ export default {
         if (error.response?.status === 404) {
           // vm.register = true
           vm.state = 'register'
+        } else {
+          this.state = 'network-error'
         }
       }
     },
@@ -175,6 +182,7 @@ export default {
         }
       } catch (error) {
         console.error(error.response || error)
+        this.state = 'network-error' // !error.response
       }
       vm.loggingIn = false
     },
@@ -210,6 +218,7 @@ export default {
         })
         .catch(error => {
           console.error(error)
+          this.state = 'network-error'
         })
     },
     updateSelectedCurrency (currency) {
@@ -275,6 +284,11 @@ export default {
       } else {
         this.$refs.dialog.hide()
       }
+    },
+    openOrder (orderId) {
+      console.log('order-id', orderId)
+      this.state = 'cashin-order'
+      this.step = 3
     }
   }
 }
