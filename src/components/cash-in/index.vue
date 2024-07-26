@@ -12,8 +12,8 @@
 
       <!-- Body -->
       <div v-if="loading" class="text-center" style="margin-top: 50px; font-size: 25px;">
-        <div>
-          Please Wait...
+        <div class="row justify-center q-mx-md">
+          Processing transaction<br>Please wait
         </div>
         <q-spinner-dots class="q-pt-sm" color="blue-6" size="3em"/>
       </div>
@@ -31,12 +31,14 @@
           <!-- Select Amount -->
           <SelectAmount
             v-if="step === 2"
-            :amountAdCount="amountAdCount"
+            :payment-type="selectedPaymentType"
+            :amount-ad-count="amountAdCount"
             :currency="selectedCurrency"
             :ads="cashinAds"
-            @select-amount="setAmount"/>
+            @select-amount="onSetAmount"
+            @submit-order="onSubmitOrder"/>
           <!-- Order Page -->
-          <Order v-if="step === 3"/>
+          <Order :order-id="order.id" v-if="step === 3" @confirm-payment="sendConfirmPayment"/>
         </div>
 
         <!-- Order List -->
@@ -82,11 +84,12 @@ export default {
         payment_type: null
       },
       cashinAds: [],
-      amountAdCount: [],
+      amountAdCount: {},
       register: false,
       openorderList: false,
       loading: true,
-      fiatCurrencies: null
+      fiatCurrencies: null,
+      order: null
     }
   },
   computed: {
@@ -196,9 +199,18 @@ export default {
       this.fetchCashinAds(url)
       this.step++
     },
-    setAmount (amount) {
+    onSetAmount (amount) {
+      console.log('onSetAmount:', amount)
       this.amount = amount
-      // this.step++
+    },
+    async onSubmitOrder (payload) {
+      // 1. login user (register if peer profile not existing)
+      this.loading = true
+      await this.fetchUser()
+      // 2. create order
+      await this.createOrder(payload)
+      this.loading = false
+      this.step++
     },
     fetchFiatCurrencies () {
       console.log('fetching currency')
@@ -226,47 +238,53 @@ export default {
           this.amountAdCount = response.data.amount_ad_count
           console.log('cashinAds:', this.cashinAds)
           console.log('paymentTypeOpts:', this.paymentTypeOpts)
-          // let minAmount = 0.00001
-          // let maxAmount = 0.00001
-          // response.data?.ads?.forEach((e) => {
-
-
-          //   // Get min and max amount
-          //   let tradeFloor = Number(e.trade_floor)
-          //   let tradeCeiling = Number(e.trade_ceiling)
-          //   let tradeAmount = Number(e.trade_amount)
-          //   if (e.trade_limits_in_fiat) {
-          //     tradeFloor = tradeFloor / Number(e.price)
-          //     tradeCeiling = tradeCeiling / Number(e.price)
-          //   }
-          //   if (e.trade_amount_in_fiat) {
-          //     tradeAmount = tradeAmount / Number(e.price)
-          //   }
-          //   if (tradeAmount < tradeCeiling) {
-          //     tradeCeiling = tradeAmount
-          //   }
-          //   tradeFloor = Number(tradeFloor.toFixed(8))
-          //   tradeCeiling = Number(tradeCeiling.toFixed(8))
-          //   if (minAmount > 0.00001 && tradeFloor < minAmount) {
-          //     minAmount = tradeFloor
-          //   }
-          //   if (tradeCeiling > maxAmount) {
-          //     maxAmount = tradeCeiling
-          //   }
-          // })
-          // this.minLimit = minAmount
-          // this.maxLimit = maxAmount
         })
         .catch(error => {
           console.error(error.response || error)
-          // if (error.response) {
-          //   console.error(error.response)
-          //   if (error.response.status === 403) {
-          //     bus.emit('session-expired')
-          //   }
-          // } else {
-          //   bus.emit('network-error')
-          // }
+          if (error.response) {
+            if (error.response?.status === 403) {
+              // bus.emit('session-expired')
+            }
+          } else {
+            // bus.emit('network-error')
+          }
+        })
+    },
+    async createOrder (payload) {
+      if (!payload) return
+      const vm = this
+      try {
+        const response = await backend.post('/ramp-p2p/order/', payload, { authorize: true })
+        vm.order = response.data.order
+      } catch (error) {
+        console.error(error.response || error)
+        if (error.response) {
+          if (error.response.status === 403) {
+            // bus.emit('session-expired')
+          }
+        } else {
+          console.error(error)
+          // bus.emit('network-error')
+        }
+      }
+    },
+    async sendConfirmPayment () {
+      console.log('sendConfirmPayment')
+      const vm = this
+      await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer`, null, { authorize: true })
+        .then(response => {
+          console.log('sendConfirmPayment:', response.data)
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              // bus.emit('session-expired')
+            }
+          } else {
+            // bus.emit('network-error')
+          }
         })
     },
     close () {

@@ -1,6 +1,6 @@
 import { WebSocketService } from './service'
 
-class WebSocketManager {
+export class WebSocketManager {
   constructor () {
     this.url = null
     this.retryCount = 0

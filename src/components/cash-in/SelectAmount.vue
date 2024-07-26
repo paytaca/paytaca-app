@@ -28,7 +28,14 @@
     <!-- Selection -->
     <div class="row q-gutter-md text-center q-mt-xs q-mx-md">
       <div class="col-5" v-for="(option, index) in amountOption" :key="option">
-        <q-btn rounded :outline="index !== selectedOption" :disable="amountAdCount[option] === 0" :color="getButtonColor(index)" class="full-width q-py-sm" :label="option" @click="selectAmount(option, index)"></q-btn>
+        <q-btn
+          rounded
+          :outline="index !== selectedOption"
+          :disable="amountAdCount[option] === 0"
+          :color="getButtonColor(index)"
+          :label="option"
+          class="full-width q-py-sm"
+          @click="selectOption(option, index)"/>
       </div>
     </div>
 
@@ -37,7 +44,7 @@
     </div>
     <!-- Proceed -->
     <div class="row justify-center q-mt-md">
-      <q-btn class="col q-mx-lg" :disable="disableProceedBtn" rounded color="blue-6" label="proceed" @click="selectAmount"/>
+      <q-btn class="col q-mx-lg" :disable="disableProceedBtn" rounded color="blue-6" label="proceed" @click="submitOrder"/>
     </div>
   </div>
 </template>
@@ -47,7 +54,7 @@ export default {
   data () {
     return {
       amount: 0,
-      amountOption: [0.02, 0.25, 0.5, 1],
+      amountOption: [0.00001, 0.25, 0.5, 1],
       selectedOption: null
     }
   },
@@ -79,23 +86,32 @@ export default {
     },
     disableProceedBtn () {
       return this.amount === 0 || !this.ad
+    },
+    selectedPaymentMethod () {
+      const paymentMethod = this.ad.payment_methods.filter(e => e.payment_type.id === this.paymentType.id)
+      if (paymentMethod?.length === 0) return null
+      return paymentMethod[0]
     }
   },
-  emits: ['select-amount'],
+  emits: ['select-amount', 'submit-order'],
   props: {
+    paymentType: Object,
     amountAdCount: Object,
     currency: Object,
     ads: Object
   },
   methods: {
-    selectAmount (option) {
-      console.log('selectAmount:', option)
-      this.amount = option
-      this.$emit('select-amount', this.amount)
+    submitOrder () {
+      const payload = {
+        ad: this.ad?.id,
+        crypto_amount: Number(this.amount)?.toFixed(8),
+        payment_methods: [this.selectedPaymentMethod?.id],
+        is_cash_in: true
+      }
+      this.$emit('submit-order', payload)
     },
     selectOption (option, index) {
       this.amount = option
-
       this.selectedOption = index
     },
     getButtonColor (index) {

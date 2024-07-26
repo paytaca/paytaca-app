@@ -1,33 +1,44 @@
 <template>
  <div class="q-mx-md">
     <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
-      Order #100
+      {{ order?.id ? `Order #${order?.id}` : ''}}
     </div>
-
-    <payment-confirmation v-if="confirm_payment"/>
-
-    <div v-if="await_status" class="text-center" style="margin-top: 50px; font-size: 25px;">
-      <div>
-        {{ statusMessage}}
+    <payment-confirmation :key="paymentConfirmationKey" v-if="state === 'confirm_payment'" :order="order" @confirm-payment="$emit('confirm-payment')"/>
+    <div v-else class="text-center" style="margin-top: 60px; font-size: 25px;">
+      <div class="row justify-center q-mx-md">
+        {{ statusTitle }}
       </div>
-      <div>
-        Please Wait...
+      <div class="row justify-center q-mx-lg">
+        {{ statusMessage }}
       </div>
-      <q-spinner-dots class="q-pt-sm" color="blue-6" size="3em"/>
     </div>
+    <q-spinner-dots v-if="state === 'await_status'" class="q-pt-sm" color="blue-6" size="3em"/>
   </div>
 </template>
 <script>
+import { WebSocketManager } from 'src/exchange/websocket/manager'
+import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import PaymentConfirmation from './payment-confirmation.vue'
 
 export default {
   data () {
     return {
-      status: 'ESCRW', //SBM, CNF, ESCRW_PN, ESCRW, PD_PN, PD, RFN, RLS
-      label: '',
-      await_status: false,
-      statusMessage: '',
-      confirm_payment: false
+      state: 'await_status',
+      statusTitle: 'Processing transaction',
+      statusMessage: 'Please wait',
+      websocket: null,
+      status: null,
+      paymentConfirmationKey: 0,
+      order: null
+    }
+  },
+  emits: ['confirm-payment'],
+  props: {
+    orderId: Number
+  },
+  watch: {
+    status (val) {
+      this.checkStatus(val)
     }
   },
   computed: {
@@ -38,27 +49,68 @@ export default {
   components: {
     PaymentConfirmation
   },
-  mounted () {
-    this.checkStatus()
+  async mounted () {
+    await this.loadData()
+  },
+  beforeUnmount () {
+    this.websocketManager.closeConnection()
   },
   methods: {
-    checkStatus () {
-      // const escrow_pending = ['SBM', 'CNF', 'ESCRW_PN']
-      switch (this.status) {
+    async loadData () {
+      await this.fetchOrder()
+      const url = `${getBackendWsUrl()}order/${this.orderId}/`
+      this.websocketManager = new WebSocketManager()
+      this.websocketManager.setWebSocketUrl(url)
+      this.websocketManager.subscribeToMessages((message) => {
+        if (message.status) {
+          this.status = message?.status?.status?.value
+        }
+      })
+    },
+    async fetchOrder () {
+      const vm = this
+      await backend.get(`/ramp-p2p/order/${vm.orderId}`, { authorize: true })
+        .then(response => {
+          vm.order = response.data
+          vm.status = vm.order?.status?.value
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response) {
+            if (error.response.status === 403) {
+              // bus.emit('session-expired')
+            }
+          } else {
+            // bus.emit('network-error')
+          }
+        })
+    },
+    checkStatus (status) {
+      if (status === 'ESCRW') {
+        this.paymentConfirmationKey++
+      }
+      switch (status) {
         case 'SBM':
         case 'CNF':
         case 'ESCRW_PN':
-          this.await_status = true
-          this.statusMessage = 'Escrowing Funds'
+          this.state = 'await_status'
+          this.statusTitle = 'Escrowing Funds'
           break
+        case 'PD_PN':
         case 'PD':
-          this.await_status = true
-          this.statusMessage = 'Releasing Funds'
+          this.state = 'await_status'
+          this.statusTitle = 'Releasing Funds'
           break
         case 'ESCRW':
-        case 'PD_PN':
-          this.confirm_payment = true
+          this.state = 'confirm_payment'
           break
+        case 'RLS': {
+          this.state = 'released'
+          this.statusTitle = 'Funds Released!'
+          const amount = Number(Number(this.order?.crypto_amount).toFixed(8))
+          this.statusMessage = `${amount} BCH has been sent to you`
+          break
+        }
       }
     }
   }
