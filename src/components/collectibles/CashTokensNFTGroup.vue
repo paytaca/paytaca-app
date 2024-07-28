@@ -130,7 +130,7 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
       wallet_hash: props.wallet.BCH.walletHash,
       category: props.category || undefined,
       has_group: typeof props.ungrouped ==='boolean' ? !Boolean(props.ungrouped) : undefined,
-      capabilityies: ['none', 'mutable'].join(','),
+      capabilities: ['none', 'mutable'].join(','),
       has_balance: true,
       limit: opts?.limit || 10,
       offset: opts?.offset || 0,
