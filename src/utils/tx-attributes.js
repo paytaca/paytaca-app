@@ -9,6 +9,7 @@ const TxAttribute = Object.freeze({
   VoucherClaim: /voucher_claim_\d+/,
   SpicebotTip: 'spicebot_tip',
   GiftClaim: 'gift_claim',
+  Cashback: 'cashback',
 
   /**
    * @param {String} key the key in the attribute
@@ -35,6 +36,7 @@ export function parseAttributeToBadge(attribute) {
   const icons = {
     anyhedge: 'img:anyhedge-logo.png',
     voucher_claim: 'mdi-ticket-confirmation',
+    cashback: 'img:marketplace.png'
   }
 
   const key = attribute?.key
@@ -79,6 +81,13 @@ export function parseAttributeToBadge(attribute) {
       custom: true,
       text: 'Gift',
       description: description || 'Gift Claim',
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.Cashback)) {
+    return {
+      custom: true,
+      text: 'Cashback',
+      icon: icons.cashback,
+      description: description || `Cashback from ${value}`
     }
   }
 
@@ -156,6 +165,14 @@ export function parseAttributeToDetails(attribute) {
     return {
       groupName: DEFAULT_GROUP_NAME,
       label: 'Gift Claim',
+      tooltip: description,
+      text: value,
+      actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.Cashback)) {
+    return {
+      groupName: 'Cashback',
+      label: 'Cashback received for transacting with:',
       tooltip: description,
       text: value,
       actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
