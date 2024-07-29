@@ -24,11 +24,30 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getBackendWsUrl, backend } from 'src/exchange/backend'
 
 export default {
   data () {
     return {
       orders: [
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
+        { id: 100, status: 'PENDING' },
+        { id: 102, status: 'PENDING' },
         { id: 100, status: 'PENDING' },
         { id: 102, status: 'PENDING' }
       ]
@@ -40,8 +59,24 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  async mounted () {
+    console.log('order-list')
+    this.fetchCashinOrders()
+  },
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    async fetchCashinOrders () {
+      console.log('fetching orders')
+
+      const vm = this
+      await vm.$store.dispatch('ramp/fetchCashinOrders', { overwrite: true})
+        .then(response => {
+          console.log('response: ', response)
+        })
+        .catch(error => {
+          console.log('Error: ', error)
+        })
+    }
   }
 }
 </script>

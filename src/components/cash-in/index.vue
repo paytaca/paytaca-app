@@ -4,7 +4,7 @@
       <!-- Title -->
       <div class="q-pt-sm">
         <q-card-section class="row items-center q-pb-none">
-          <q-btn flat icon="arrow_back" color="blue-6" round dense v-close-popup />
+          <q-btn flat icon="arrow_back" color="blue-6" round dense @click="previousView" />
           <q-space />
           <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="showOrderListButton" @click="state = 'order-list'"/>
         </q-card-section>
@@ -296,11 +296,24 @@ export default {
           }
         })
     },
-    close () {
-      if (this.state === 'order-list') {
-        this.state = 'cashin-order'
-      } else {
-        this.$refs.dialog.hide()
+    previousView () {
+      const vm = this
+
+      switch (vm.state) {
+        case 'register':
+        case 'order-list':
+          vm.state = 'cashin-order'
+          break
+        case 'cashin-order':
+          if (this.step === 1) {
+            vm.$refs.dialog.hide()
+          } else {
+            this.step--
+          }
+          break
+        default:
+          vm.$refs.dialog.hide()
+          break
       }
     },
     openOrder (orderId) {
