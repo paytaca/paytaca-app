@@ -12,7 +12,9 @@
         {{ statusMessage }}
       </div>
     </div>
-    <q-spinner-dots v-if="state === 'await_status'" class="q-pt-sm" color="blue-6" size="3em"/>
+    <div class="row justify-center q-mx-lg">
+      <q-spinner-dots v-if="state === 'await_status'" class="col q-pt-sm" color="blue-6" size="1.5em"/>
+    </div>
   </div>
 </template>
 <script>

@@ -7,12 +7,12 @@
     <q-card flat bordered class="q-mt-lg q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <q-virtual-scroll :items="orders" style="max-height: 35vh;">
         <template v-slot="{ item: order, index }">
-          <q-item clickable :key="index" @click="$emit('open-order', order.id)">
+          <q-item clickable :key="index" @click="$emit('open-order', order?.id)">
             <q-item-section>
               <div class="row">
-                <div style="font-size: medium;">Order # {{ order.id }}</div>
-                <q-space/>
-                <div class="text-grey" style="font-size: small;">{{ order.status }}</div>
+                <div class="col-grow">ORDER #{{ order?.id }}</div>
+                <div class="col-shrink text-center">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
+                <div class="col-4 text-center">{{ statusVal(order?.status?.value) }}</div>
               </div>
             </q-item-section>
           </q-item>
@@ -24,14 +24,12 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
     return {
-      orders: [
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' }
-      ]
+      orders: []
     }
   },
   emits: ['open-order'],
@@ -40,8 +38,43 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  mounted () {
+    this.fetchCashinOrders()
+  },
+  props: {
+    walletHash: String
+  },
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    async fetchCashinOrders () {
+      await backend.get('ramp-p2p/cashin/order', { params: { wallet_hash: this.walletHash } })
+        .then(response => {
+          this.orders = response.data?.orders
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
+    },
+    statusVal (status) {
+      switch (status) {
+        case 'SBM':
+        case 'CNF':
+          return 'Pending Escrow'
+        case 'ESCRW':
+          return 'Pending Payment'
+        case 'PD_PN':
+        case 'PD':
+          return 'Pending Release'
+        case 'RLS':
+          return 'Released'
+        case 'APL':
+        case 'CNCL':
+        case 'RFN':
+          return 'Canceled'
+        default:
+          return 'Pending'
+      }
+    }
   }
 }
 </script>

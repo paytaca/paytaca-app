@@ -19,7 +19,7 @@
       </div>
       <div v-else>
         <!-- Register -->
-        <Register v-if="state === 'register'"/>
+        <Register v-if="state === 'register'" @login="onSubmitOrder(orderPayload, false)" />
 
         <div v-if="state === 'cashin-order'">
           <!-- Payment Type -->
@@ -42,7 +42,7 @@
         </div>
 
         <!-- Order List -->
-        <order-list v-if="state === 'order-list'" @open-order="openOrder"/>
+        <order-list v-if="state === 'order-list'" :wallet-hash="wallet.walletHash" @open-order="openOrder"/>
 
         <!-- Network Error -->
         <NetworkError v-if="state === 'network-error'"/>
@@ -94,7 +94,8 @@ export default {
       openorderList: false,
       loading: true,
       fiatCurrencies: null,
-      order: null
+      order: null,
+      orderPayload: null
     }
   },
   computed: {
@@ -112,7 +113,6 @@ export default {
       this.wallet = loadRampWallet()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = this.wallet.walletHash
-      // await this.fetchUser()
       await this.fetchCashinAds()
       this.step++
       this.loading = false
@@ -151,13 +151,15 @@ export default {
         const resp = await updatePubkeyAndAddress(user)
         console.log('updatePubkeyAndAddress:', resp)
       } catch (error) {
-        console.log('error:', error)
+        vm.loading = false
+        console.error(error.response || error)
+        console.log(error.response?.status)
         if (error.response?.status === 404) {
-          // vm.register = true
           vm.state = 'register'
         } else {
           this.state = 'network-error'
         }
+        console.log('state:', vm.state)
       }
     },
     async login () {
@@ -211,14 +213,16 @@ export default {
       console.log('onSetAmount:', amount)
       this.amount = amount
     },
-    async onSubmitOrder (payload) {
+    async onSubmitOrder (payload, nextStep = true) {
       // 1. login user (register if peer profile not existing)
       this.loading = true
+      this.orderPayload = payload
+      this.state = 'cashin-order'
       await this.fetchUser()
       // 2. create order
-      await this.createOrder(payload)
+      await this.createOrder()
       this.loading = false
-      this.step++
+      if (nextStep) this.step++
     },
     fetchFiatCurrencies () {
       console.log('fetching currency')
@@ -259,11 +263,11 @@ export default {
           }
         })
     },
-    async createOrder (payload) {
-      if (!payload) return
+    async createOrder () {
+      if (!this.orderPayload) return
       const vm = this
       try {
-        const response = await backend.post('/ramp-p2p/order/', payload, { authorize: true })
+        const response = await backend.post('/ramp-p2p/order/', this.orderPayload, { authorize: true })
         vm.order = response.data.order
       } catch (error) {
         console.error(error.response || error)
@@ -305,6 +309,7 @@ export default {
     },
     openOrder (orderId) {
       console.log('order-id', orderId)
+      this.order = { id: orderId }
       this.state = 'cashin-order'
       this.step = 3
     }
