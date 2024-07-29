@@ -9,7 +9,7 @@
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width:min(500px, 75vw);">
       <q-card-section>
         <div class="row no-wrap items-center justify-center">
-          <div class="text-h6">{{ translatedTitle }}</div>
+          <div class="text-h6">{{ title }}</div>
           <q-space/>
           <q-btn
             flat
@@ -106,7 +106,7 @@
             {{ formErrors?.images }}
           </div>
           <q-btn
-            :disable="loading"
+            :disable="loading || !formData.rating"
             :loading="loading"
             no-caps
             :label="$t('Submit')"
@@ -140,7 +140,9 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import PhotoSelector from 'src/components/marketplace/PhotoSelector.vue'
-import { useI18n } from "vue-i18n"
+import { i18n } from 'src/boot/i18n'
+
+const { t: $t } = i18n.global
 
 export default defineComponent({
   name: 'ReviewFormDialog',
@@ -158,7 +160,7 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
-    title: { type: String, default: 'Review' },
+    title: { type: String, default: $t('Review') },
     review: Review,
     orderId: [Number, String],
     productId: [Number, String],
@@ -167,11 +169,9 @@ export default defineComponent({
   setup(props, { emit: $emit }) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
-    const { t } = useI18n()
     const $q = useQuasar()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-    const translatedTitle = computed(() => t(title))
 
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
@@ -280,7 +280,7 @@ export default defineComponent({
             if (data?.detail) formErrors.value.detail = [data?.detail]
           }
           if (!formErrors.value.detail?.length) formErrors.value.detail = [
-            t('UnableToCreateReview')
+            $innerValt('UnableToCreateReview')
           ]
         })
         .finally(() => {
@@ -291,17 +291,17 @@ export default defineComponent({
     function deleteReview() {
       if (!props.review?.id) return
       $q.dialog({
-        title: t('DeleteReview'),
-        message: t('AreYouSure'),
+        title: $t('DeleteReview'),
+        message: $t('AreYouSure'),
         color: 'brandblue',
-        cancel: { noCaps: true, label: t('Cancel'), flat: true, color: 'grey' },
-        ok: { noCaps: true, label: t('Delete'), flat: true, color: 'red' },
+        cancel: { noCaps: true, label: $t('Cancel'), flat: true, color: 'grey' },
+        ok: { noCaps: true, label: $t('Delete'), flat: true, color: 'red' },
         class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
         .onOk(() => {
           const dialog = $q.dialog({
-            title: t('DeleteReview'),
-            message: t('DeletingReview'),
+            title: $t('DeleteReview'),
+            message: $t('DeletingReview'),
             persistent: true, progress: true,
             ok: false,
             color:'brandblue',
@@ -317,9 +317,9 @@ export default defineComponent({
             })
             .catch(error => {
               let msg
-              if (error?.response?.status == 404) msg = t('NotFound')
-              if (error?.response?.status == 403) msg = t('NoPermissions')
-              dialog.update({ message: msg || t('EncounteredError') })
+              if (error?.response?.status == 404) msg = $t('NotFound')
+              if (error?.response?.status == 403) msg = $t('NoPermissions')
+              dialog.update({ message: msg || $t('EncounteredError') })
               return Promise.reject(error)
             })
             .finally(() => {

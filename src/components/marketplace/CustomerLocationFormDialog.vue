@@ -269,7 +269,7 @@ export default defineComponent({
             message: t('AutoFillFieldFromPinLocation'),
             ok: { class: 'button' },
             cancel: { flat: true, color: 'grey' },
-            class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`
+            class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
           }).onOk(() => reverseGeocodeFormData())
         })
     }
