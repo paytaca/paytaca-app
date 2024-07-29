@@ -4,9 +4,17 @@
       Cash In Orders
     </div>
 
-    <q-card flat bordered class="q-mt-lg q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <q-virtual-scroll :items="orders" style="max-height: 35vh;">
-        <template v-slot="{ item: order, index }">
+    <div ref="scrollTargetRef" class="q-mt-lg q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;">
+      <q-infinite-scroll
+        @load="loadMoreData"
+        :scroll-target="scrollTargetRef"
+        :offset="0">
+        <template v-slot:loading>
+          <div class="row justify-center q-my-md">
+            <q-spinner-dots color="primary" size="40px" />
+          </div>
+        </template>
+        <div v-for="(order,index) in orders" :key="index">
           <q-item clickable :key="index" @click="$emit('open-order', order.id)">
             <q-item-section>
               <div class="row">
@@ -17,39 +25,33 @@
             </q-item-section>
           </q-item>
           <q-separator class="q-mx-sm" v-if="index !== orders.length - 1"/>
-        </template>
-      </q-virtual-scroll>
-    </q-card>
+        </div>
+      </q-infinite-scroll>
+    </div>
   </div>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
+import { ref } from 'vue'
 
 export default {
+  setup () {
+    const scrollTargetRef = ref(null)
+
+    return {
+      scrollTargetRef
+    }
+  },
   data () {
     return {
+      page: 0,
+      totalPage: 0,
       orders: [
         { id: 100, status: 'PENDING' },
         { id: 102, status: 'PENDING' },
         { id: 100, status: 'PENDING' },
         { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' },
-        { id: 100, status: 'PENDING' },
-        { id: 102, status: 'PENDING' }
       ]
     }
   },
@@ -61,13 +63,12 @@ export default {
   },
   async mounted () {
     console.log('order-list')
+    await this.$store.commit('ramp/resetCashinOrdersPagination')
     this.fetchCashinOrders()
   },
   methods: {
     getDarkModeClass,
     async fetchCashinOrders () {
-      console.log('fetching orders')
-
       const vm = this
       await vm.$store.dispatch('ramp/fetchCashinOrders', { overwrite: true})
         .then(response => {
@@ -76,6 +77,17 @@ export default {
         .catch(error => {
           console.log('Error: ', error)
         })
+    },
+    loadMoreData (index, done) {
+      // update page/totalpage to fetch
+      if (this.page < this.totalPage) {
+        setTimeout(() => {
+          this.fetchCashinOrders()
+          done()
+        }, 2000)
+      } else {
+        done()
+      }
     }
   }
 }
