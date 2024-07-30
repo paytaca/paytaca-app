@@ -74,11 +74,11 @@
         </div>
         <q-pull-to-refresh @refresh="refreshData">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <div v-if="statusType === 'ONGOING' && cashinOrders?.length > 0">
+            <q-card bordered flat v-if="statusType === 'ONGOING' && cashinOrders?.length > 0" class="q-mx-xs q-my-xs text-bow" :class="getDarkModeClass(darkMode)">
               <div v-for="(listing, index) in cashinOrders" :key="index">
                 <q-item clickable @click="selectOrder(listing)">
                   <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                    <div class="q-pt-sm q-pb-sm" :style="index < cashinOrders.length-1 ? darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7' : ''">
                       <div class="row q-mx-md">
                         <div class="col ib-text">
                           <div
@@ -91,7 +91,7 @@
                                 `ORDER #${ listing?.id }`
                               )
                             }}
-                            <q-badge v-if="listing.is_cash_in" class="q-mr-xs" outline rounded size="sm" color="warning" label="Cash In" />
+                            <q-badge v-if="listing.is_cash_in" class="q-mr-xs text-weight-bold" outline rounded size="sm" color="warning" label="Cash In" />
                             <q-badge v-if="!listing.read_at" outline rounded size="sm" color="red" label="New"/>
                           </div>
                           <span
@@ -109,9 +109,6 @@
                           <div v-if="listing.created_at" class="sm-font-size subtext">{{ formatDate(listing.created_at, true) }}</div>
                         </div>
                         <div class="text-right">
-                          <!-- <span class="row subtext" v-if="!isCompleted(listing.status?.label) && listing.expires_at != null">
-                            <span v-if="!isExpired(listing.expires_at)" class="q-mr-xs">Expires in {{ formatExpiration(listing.expires_at) }}</span>
-                          </span> -->
                           <div
                             v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
                             class="text-weight-bold subtext sm-font-size text-blue">
@@ -138,7 +135,7 @@
                   </q-item-section>
                 </q-item>
               </div>
-            </div>
+            </q-card>
             <div v-for="(listing, index) in listings" :key="index">
               <q-item clickable @click="selectOrder(listing)">
                 <q-item-section>
@@ -220,6 +217,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
+import { loadRampWallet } from 'src/exchange/wallet'
 
 export default {
   setup () {
@@ -249,7 +247,8 @@ export default {
       isAllCurrencies: true,
       fiatCurrencies: [],
       notifType: null,
-      loadingMoreData: false
+      loadingMoreData: false,
+      wallet: null
     }
   },
   watch: {
@@ -300,6 +299,7 @@ export default {
     }
   },
   async mounted () {
+    this.wallet = loadRampWallet()
     this.updateFilters()
     this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
@@ -431,7 +431,10 @@ export default {
     },
     async fetchCashinOrders (overwrite = false) {
       const vm = this
-      await vm.$store.dispatch('ramp/fetchCashinOrders', { overwrite: overwrite })
+      const params = {
+        wallet_hash: this.wallet.walletHash
+      }
+      await vm.$store.dispatch('ramp/fetchCashinOrders', { params: params, overwrite: overwrite })
         .then(response => {
           console.log('fetchCashinOrders:', this.cashinOrders)
           // vm.updatePaginationValues()
