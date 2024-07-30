@@ -5,11 +5,20 @@
     </div>
     <payment-confirmation :key="paymentConfirmationKey" v-if="state === 'confirm_payment'" :order="order" @confirm-payment="$emit('confirm-payment')"/>
     <div v-else class="text-center" style="margin-top: 60px; font-size: 25px;">
-      <div class="row justify-center q-mx-md">
-        {{ statusTitle }}
+      <!-- Order Info -->
+      <div v-if="state === 'canceled'">
+        <div class="row justify-center">
+          Order Canceled
+        </div>
       </div>
-      <div class="row justify-center q-mx-lg">
-        {{ statusMessage }}
+
+      <div v-if="state === 'await_status'">
+        <div class="row justify-center q-mx-md">
+          {{ statusTitle }}
+        </div>
+        <div class="row justify-center q-mx-lg">
+          {{ statusMessage }}
+        </div>
       </div>
     </div>
     <div class="row justify-center q-mx-lg">
@@ -20,6 +29,7 @@
 <script>
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
+import { bus } from 'src/wallet/event-bus'
 import PaymentConfirmation from './payment-confirmation.vue'
 
 export default {
@@ -70,7 +80,6 @@ export default {
       })
     },
     async fetchOrder () {
-      console.log('fetching order')
       const vm = this
       await backend.get(`/ramp-p2p/order/${vm.orderId}`, { authorize: true })
         .then(response => {
@@ -86,6 +95,7 @@ export default {
             }
           } else {
             // bus.emit('network-error')
+            bus.emit('network-error')
           }
         })
     },
@@ -115,6 +125,9 @@ export default {
           this.statusMessage = `${amount} BCH has been sent to you`
           break
         }
+        case 'CNCL':
+          this.state = 'canceled'
+          break
       }
     }
   }

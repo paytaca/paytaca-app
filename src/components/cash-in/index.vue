@@ -62,6 +62,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat/objects'
 import { loadRampWallet } from 'src/exchange/wallet'
+import { bus } from 'src/wallet/event-bus'
 
 export default {
   components: {
@@ -104,6 +105,9 @@ export default {
       return !this.loading && this.state !== 'order-list'
     }
   },
+  created () {
+    bus.on('network-error', this.dislayNetworkError)
+  },
   mounted () {
     this.loaddata()
   },
@@ -114,6 +118,7 @@ export default {
       this.wallet = loadRampWallet()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = this.wallet.walletHash
+      await this.fetchUser()
       await this.fetchCashinAds()
       this.step++
       this.loading = false
@@ -158,7 +163,8 @@ export default {
         if (error.response?.status === 404) {
           vm.state = 'register'
         } else {
-          this.state = 'network-error'
+          // this.state = 'network-error'
+          this.dislayNetworkError()
         }
         console.log('state:', vm.state)
       }
@@ -188,7 +194,8 @@ export default {
         }
       } catch (error) {
         console.error(error.response || error)
-        this.state = 'network-error' // !error.response
+        // this.state = 'network-error' // !error.response
+        this.dislayNetworkError()
       }
       vm.loggingIn = false
     },
@@ -226,16 +233,15 @@ export default {
       if (nextStep) this.step++
     },
     fetchFiatCurrencies () {
-      console.log('fetching currency')
       const vm = this
       backend.get('/ramp-p2p/currency/fiat', { authorize: true })
         .then(response => {
           vm.fiatCurrencies = response.data
-          console.log('currency: ', vm.fiatCurrencies)
         })
         .catch(error => {
           console.error(error)
-          this.state = 'network-error'
+          // this.state = 'network-error'
+          this.dislayNetworkError()
         })
     },
     updateSelectedCurrency (currency) {
@@ -261,6 +267,7 @@ export default {
             }
           } else {
             // bus.emit('network-error')
+            this.dislayNetworkError()
           }
         })
     },
@@ -279,6 +286,7 @@ export default {
         } else {
           console.error(error)
           // bus.emit('network-error')
+          this.dislayNetworkError()
         }
       }
     },
@@ -298,6 +306,7 @@ export default {
             }
           } else {
             // bus.emit('network-error')
+            this.dislayNetworkError()
           }
         })
     },
@@ -331,6 +340,9 @@ export default {
       this.state = 'cashin-order'
       this.step = 3
       this.openOrderPage = true
+    },
+    dislayNetworkError () {
+      this.state = 'network-error'
     }
   }
 }

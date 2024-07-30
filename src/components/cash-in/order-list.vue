@@ -43,6 +43,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
+import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
 
 export default {
@@ -81,6 +82,9 @@ export default {
         })
         .catch(error => {
           console.error(error.response || error)
+          if (!error.response) {
+            bus.emit('network-error')
+          }
         })
     },
     statusVal (status) {
