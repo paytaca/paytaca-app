@@ -26,6 +26,7 @@
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus'
 
 export default {
   data () {
@@ -59,7 +60,6 @@ export default {
         }
       })
         .onOk(currency => {
-          console.log('currency: ', currency)
           this.selectedCurrency = currency
         })
     },
@@ -81,6 +81,8 @@ export default {
               // bus.emit('session-expired')
               console.log('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     }
