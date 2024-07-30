@@ -117,6 +117,10 @@ export default {
       this.appealTypeOpts = [{ label: this.$t('Refund'), value: 'RFN' }]
       this.selectedAppealType = { label: this.$t('Refund'), value: 'RFN' }
     }
+    if (this.type === 'buyer') {
+      this.appealTypeOpts = [{ label: this.$t('Release'), value: 'RLS' }]
+      this.selectedAppealType = { label: this.$t('Release'), value: 'RLS' }
+    }
   },
   methods: {
     getDarkModeClass,

@@ -57,7 +57,7 @@
         </q-input>
       </div>
     </div>
-    <div class="q-mx-md q-px-sm q-pt-sm">
+    <div class="q-mx-md q-px-xs q-pt-sm">
       <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
         <div class="text-center sm-font-size q-mx-md q-mb-sm">
         <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
@@ -66,7 +66,7 @@
       </div>
       <div class="full-width">
         <div v-for="(method, index) in paymentMethods" :key="index">
-          <div class="q-px-sm q-py-xs">
+          <div class="q-py-xs">
             <q-card flat bordered :dark="darkMode">
               <q-expansion-item
                 class="pt-card text-bow"

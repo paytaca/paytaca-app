@@ -738,7 +738,7 @@ const phrases = {
       ReleasingBch: 'Releasing BCH, please wait.',
       RefundingBch: 'Refunding BCH, please wait.',
       PaymentConfirmationReleaseFundsMsg: 'Please release the funds if you have received the fiat payment.',
-      ConfirmPayment: 'ConfirmPayment',
+      ConfirmPayment: 'Confirm Payment',
       SearchUser: 'Search User...',
       BuyBCH: 'Buy BCH',
       SellBCH: 'Sell BCH',
