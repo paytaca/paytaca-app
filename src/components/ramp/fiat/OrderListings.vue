@@ -94,14 +94,15 @@
                             <q-badge v-if="listing.is_cash_in" class="q-mr-xs text-weight-bold" outline rounded size="sm" color="warning" label="Cash In" />
                             <q-badge v-if="!listing.read_at" outline rounded size="sm" color="red" label="New"/>
                           </div>
+                          <div class="pt-label text-weight-bold" style="font-size: x-small; opacity: .7;">{{ tradeTypeLabel(listing) }}</div>
                           <span
                             class=" pt-label md-font-size text-weight-bold"
                             :class="getDarkModeClass(darkMode)">
-                            {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing?.owner?.id === userInfo?.id" rounded size="sm" color="grey" label="You" />
+                            {{ userNameView(counterparty(listing)) }}
                           </span>
                           <div
                             class="col-transaction text-uppercase pt-label lg-font-size"
-                            :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
+                            :class="[getDarkModeClass(darkMode), amountColor(listing)]">
                             {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                           </div>
                           <div class="sm-font-size">
@@ -141,7 +142,7 @@
                 <q-item-section>
                   <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <div class="row q-mx-md">
-                      <div class="col ib-text">
+                      <div class="col">
                         <div
                           class="q-mb-none pt-label sm-font-size"
                           :class="getDarkModeClass(darkMode)">
@@ -155,14 +156,15 @@
                           <q-badge v-if="listing.is_cash_in" class="q-mr-xs" outline rounded size="sm" color="warning" label="Cash In" />
                           <q-badge v-if="!listing.read_at" outline rounded size="sm" color="red" label="New"/>
                         </div>
+                        <div class="pt-label text-weight-bold" style="font-size: x-small; opacity: .7;">{{ tradeTypeLabel(listing) }}</div>
                         <span
-                          class=" pt-label md-font-size text-weight-bold"
+                          class="pt-label md-font-size text-weight-bold"
                           :class="getDarkModeClass(darkMode)">
-                          {{ userNameView(listing.owner?.name) }}<q-badge class="q-ml-xs" v-if="listing?.owner?.id === userInfo?.id" rounded size="sm" color="grey" label="You" />
+                          {{ userNameView(counterparty(listing)) }}
                         </span>
                         <div
                           class="col-transaction text-uppercase pt-label lg-font-size"
-                          :class="[getDarkModeClass(darkMode), amountColor(listing.trade_type)]">
+                          :class="[getDarkModeClass(darkMode), amountColor(listing)]">
                           {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                         </div>
                         <div class="sm-font-size">
@@ -328,6 +330,28 @@ export default {
     getDarkModeClass,
     formatDate,
     formatCurrency,
+    tradeTypeLabel (order) {
+      switch (order.trade_type) {
+        case 'BUY':
+          if (order.owner.name === this.userInfo.name) {
+            return 'BUYING FROM'
+          } else {
+            return 'SELLING TO'
+          }
+        case 'SELL':
+          if (order.owner.name === this.userInfo.name) {
+            return 'SELLING TO'
+          } else {
+            return 'BUYING FROM'
+          }
+      }
+    },
+    counterparty (order) {
+      if (order?.owner?.name === this.userInfo?.name) {
+        return order?.ad?.owner?.name
+      }
+      return order?.owner?.name
+    },
     preventPull (e) {
       let parent = e.target
       // eslint-disable-next-line no-void
@@ -340,6 +364,7 @@ export default {
       }
     },
     userNameView (name) {
+      if (!name) return
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
       return limitedView
     },
@@ -436,7 +461,6 @@ export default {
       }
       await vm.$store.dispatch('ramp/fetchCashinOrders', { params: params, overwrite: overwrite })
         .then(response => {
-          console.log('fetchCashinOrders:', this.cashinOrders)
           // vm.updatePaginationValues()
           return Promise.resolve(response)
         })
@@ -548,11 +572,20 @@ export default {
 
       return [days, hours, minutes]
     },
-    amountColor (tradeType) {
-      if (tradeType === 'BUY') {
-        return 'text-blue'
-      } else {
-        return 'text-red'
+    amountColor (order) {
+      switch (order.trade_type) {
+        case 'BUY':
+          if (order.owner.name === this.userInfo.name) {
+            return 'text-blue'
+          } else {
+            return 'text-red'
+          }
+        case 'SELL':
+          if (order.owner.name === this.userInfo.name) {
+            return 'text-red'
+          } else {
+            return 'text-blue'
+          }
       }
     },
     formatExpiration (expirationDate) {

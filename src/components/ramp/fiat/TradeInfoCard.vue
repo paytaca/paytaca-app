@@ -2,7 +2,8 @@
   <q-card flat bordered :dark="darkMode" class="text-bow br-15">
     <q-card-section bordered class="pt-card" :class="getDarkModeClass(darkMode)" style="overflow-x: auto;">
       <div v-if="type !== 'appeal'">
-        <div class="xs-font-size">{{ $t('TradingWith') }}</div>
+        <!-- <div class="xs-font-size">{{ $t('TradingWith') }}</div> -->
+        <div class="xs-font-size">{{ tradeTypeLabel() }}</div>
         <div class="row justify-end">
             <div class="col q-py-none">
                 <div style="overflow-x: auto; max-width: 125px;">
@@ -107,7 +108,7 @@
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
               <div v-if="type === 'order'">
-                <div class="xs-font-size">{{ $t('TradeAmount') }}</div>
+                <!-- <div class="xs-font-size">{{ $t('TradeAmount') }}</div> -->
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}{{ tradeAmount }}
                 </span>
@@ -133,7 +134,7 @@
         <div v-else>
           <div class="row no-wrap justify-between">
             <div class="col-auto">
-              <div class="row xs-font-size">{{ $t('TradeAmount') }}</div>
+              <!-- <div class="row xs-font-size">{{ $t('TradeAmount') }}</div> -->
               <div class="q-mb-none">
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}
@@ -208,6 +209,9 @@ export default {
     this.loadChatInfo()
   },
   computed: {
+    userInfo () {
+      return this.$store.getters['ramp/getUser']
+    },
     completedOrder () {
       return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
     },
@@ -236,6 +240,24 @@ export default {
     getDarkModeClass,
     onLastReadUpdate () {
       this.fetchChatUnread(this.chatRef)
+    },
+    tradeTypeLabel () {
+      const order = this.order
+      if (!order) return this.$t('TradingWith')
+      switch (order.trade_type) {
+        case 'BUY':
+          if (order.owner.name === this.userInfo.name) {
+            return 'BUYING FROM'
+          } else {
+            return 'SELLING TO'
+          }
+        case 'SELL':
+          if (order.owner.name === this.userInfo.name) {
+            return 'SELLING TO'
+          } else {
+            return 'BUYING FROM'
+          }
+      }
     },
     async loadChatInfo () {
       const vm = this
