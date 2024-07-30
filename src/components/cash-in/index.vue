@@ -11,11 +11,14 @@
       </div>
 
       <!-- Body -->
-      <div v-if="loading" class="text-center" style="margin-top: 50px; font-size: 25px;">
-        <div class="row justify-center q-mx-md">
-          Processing transaction<br>Please wait
+      <div v-if="loading" class="text-center" style="margin-top: 70px;">
+        <div class="row justify-center q-mx-md" style="font-size: 25px;">
+          Processing transaction
         </div>
-        <q-spinner-dots class="q-pt-sm" color="blue-6" size="3em"/>
+        <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
+          Please wait a moment
+        </div>
+        <q-spinner-hourglass class="col q-pt-sm" color="blue-6" size="3em"/>
       </div>
       <div v-else>
         <!-- Register -->
@@ -121,7 +124,6 @@ export default {
       const vm = this
       try {
         const { data: user } = await backend.get('/auth/')
-        console.log('user: ', user)
         this.user = user
         const payload = {
           user_type: user.is_arbiter ? 'arbiter' : 'peer',
@@ -146,26 +148,20 @@ export default {
           await vm.login()
         }
 
-        const chatIdentity = await loadChatIdentity(payload)
-        console.log('chatIdentity:', chatIdentity)
-        const resp = await updatePubkeyAndAddress(user)
-        console.log('updatePubkeyAndAddress:', resp)
+        await loadChatIdentity(payload)
+        await updatePubkeyAndAddress(user)
       } catch (error) {
         vm.loading = false
         console.error(error.response || error)
-        console.log(error.response?.status)
         if (error.response?.status === 404) {
           vm.state = 'register'
         } else {
           this.state = 'network-error'
         }
-        console.log('state:', vm.state)
       }
     },
     async login () {
       const vm = this
-      // vm.hintMessage = null
-      // vm.errorMessage = null
       try {
         vm.loggingIn = true
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
@@ -177,24 +173,19 @@ export default {
           public_key: keypair.publicKey
         }
         const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
-        console.log('loginResponse:', loginResponse)
         if (vm.user) {
           saveAuthToken(loginResponse.data.token)
-          // const success = await vm.loadChatIdentity()
-          // if (!success) return
-          // vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
           vm.$store.commit('ramp/updateUser', vm.user)
         }
       } catch (error) {
         console.error(error.response || error)
-        this.state = 'network-error' // !error.response
+        this.state = 'network-error'
       }
       vm.loggingIn = false
     },
     setCurrency (currency) {
       this.selectedCurrency = currency
       this.cashinAdsParams.currency = this.selectedCurrency.symbol
-      console.log('cashinAdsParams:', this.cashinAdsParams)
       this.fetchCashinAds()
     },
     setPaymentType (paymentType) {
@@ -210,7 +201,6 @@ export default {
       this.step++
     },
     onSetAmount (amount) {
-      console.log('onSetAmount:', amount)
       this.amount = amount
     },
     async onSubmitOrder (payload, nextStep = true) {
@@ -225,12 +215,10 @@ export default {
       if (nextStep) this.step++
     },
     fetchFiatCurrencies () {
-      console.log('fetching currency')
       const vm = this
       backend.get('/ramp-p2p/currency/fiat', { authorize: true })
         .then(response => {
           vm.fiatCurrencies = response.data
-          console.log('currency: ', vm.fiatCurrencies)
         })
         .catch(error => {
           console.error(error)
@@ -245,12 +233,9 @@ export default {
       const apiUrl = url || '/ramp-p2p/cashin/ad'
       await backend.get(apiUrl, { params: this.cashinAdsParams })
         .then(response => {
-          console.log('fetchCashinAds:', response.data)
           this.cashinAds = response.data.ads
           this.paymentTypeOpts = response.data.payment_types
           this.amountAdCount = response.data.amount_ad_count
-          console.log('cashinAds:', this.cashinAds)
-          console.log('paymentTypeOpts:', this.paymentTypeOpts)
         })
         .catch(error => {
           console.error(error.response || error)
@@ -282,12 +267,8 @@ export default {
       }
     },
     async sendConfirmPayment () {
-      console.log('sendConfirmPayment')
       const vm = this
       await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer`, null, { authorize: true })
-        .then(response => {
-          console.log('sendConfirmPayment:', response.data)
-        })
         .catch(error => {
           console.error(error)
           if (error.response) {
@@ -321,7 +302,6 @@ export default {
       }
     },
     openOrder (orderId) {
-      console.log('order-id', orderId)
       this.order = { id: orderId }
       this.state = 'cashin-order'
       this.step = 3

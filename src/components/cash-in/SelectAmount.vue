@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div v-if="unavailableDenoms" class="row justify-center q-pt-md" style="font-size: small; color: red;">
+    <div v-if="unavailableDenoms" class="row justify-center q-pt-md" style="font-size: small; opacity: .5">
       <div class="col-shrink text-center" style="font-style: italic">Some denominations are currently not available</div>
     </div>
     <!-- Proceed -->
