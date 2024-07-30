@@ -3,30 +3,41 @@
     <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
       Cash In Orders
     </div>
-    <div ref="scrollTargetRef" class="q-mt-lg q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;">
-      <q-infinite-scroll
-        @load="loadMoreData"
-        :scroll-target="scrollTargetRef"
-        :offset="0">
-        <template v-slot:loading>
-          <div class="row justify-center q-my-md">
-            <q-spinner-dots color="primary" size="40px" />
-          </div>
-        </template>
-        <div v-for="(order,index) in orders" :key="index">
-          <q-item clickable :key="index" @click="$emit('open-order', order?.id)">
-            <q-item-section>
-              <div class="row">
-                <div class="col-grow">ORDER #{{ order?.id }}</div>
-                <div class="col-shrink text-center">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
-                <div class="col-4 text-center">{{ statusVal(order?.status?.value) }}</div>
+    <!-- <q-card flat bordered class="q-mx-md "> -->
+      <div ref="scrollTargetRef" class="q-mt-lg q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;">
+        <!-- <q-card flat bordered> -->
+          <q-infinite-scroll
+            @load="loadMoreData"
+            :scroll-target="scrollTargetRef"
+            :offset="0">
+            <template v-slot:loading>
+              <div class="row justify-center q-my-md">
+                <q-spinner-dots color="primary" size="40px" />
               </div>
-            </q-item-section>
-          </q-item>
-          <q-separator class="q-mx-sm" v-if="index !== orders.length - 1"/>
-        </div>
-      </q-infinite-scroll>
-    </div>
+            </template>
+
+            <q-list bordered class="br-15">
+              <div v-for="(order,index) in orders" :key="index">
+                <q-item clickable :key="index" @click="$emit('open-order', order?.id)">
+                  <q-item-section>
+                    <div class="row">
+                      <div class="col-grow">
+                        <div class="text-bold" style="font-size: medium;">
+                          ORDER #{{ order?.id }}
+                        </div>
+                        <div class="text-grey-6">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
+                      </div>
+                      <div class="col-4 text-center text-bold" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">{{ statusVal(order?.status?.value) }}</div>
+                    </div>
+                  </q-item-section>
+                </q-item>
+                <q-separator class="q-mx-sm" v-if="index !== orders.length - 1"/>
+              </div>
+            </q-list>
+          </q-infinite-scroll>
+        <!-- </q-card> -->
+      </div>
+    <!-- </q-card> -->
   </div>
 </template>
 <script>

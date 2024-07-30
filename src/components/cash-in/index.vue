@@ -95,7 +95,8 @@ export default {
       loading: true,
       fiatCurrencies: null,
       order: null,
-      orderPayload: null
+      orderPayload: null,
+      openOrderPage: false
     }
   },
   computed: {
@@ -311,6 +312,10 @@ export default {
         case 'cashin-order':
           if (this.step === 1) {
             vm.$refs.dialog.hide()
+          } else if (this.step === 3 && this.openOrderPage) {
+            this.state = 'order-list'
+            this.openOrderPage = false
+            this.step = 1
           } else {
             this.step--
           }
@@ -325,6 +330,7 @@ export default {
       this.order = { id: orderId }
       this.state = 'cashin-order'
       this.step = 3
+      this.openOrderPage = true
     }
   }
 }
