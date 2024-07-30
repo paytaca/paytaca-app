@@ -121,7 +121,7 @@ export function fetchAds (context, { component = null, params = null, overwrite 
               }
               break
           }
-          resolve(response.data)
+          resolve(response.data.ads)
         })
         .catch(error => {
           reject(error)
@@ -139,21 +139,19 @@ export async function fetchCashinOrders (context, { params = null, overwrite = f
     // Setup pagination parameters
     let pageNumber = state.cashinOrdersPageNumber
     const totalPages = state.cashinOrdersTotalPages
-    console.log('pageNumber:', pageNumber)
-    console.log('totalPages:', totalPages)
     if (pageNumber <= totalPages || (!pageNumber && !totalPages)) {
       // Increment page by 1 if not fetching data for the first time
       if (pageNumber !== null) pageNumber++
 
       const parameters = {
+        wallet_hash: params.wallet_hash,
         page: pageNumber,
-        limit: state.itemsPerPage
+        limit: state.itemsPerPage,
+        status_type: 'ONGOING'
       }
-
       const apiURL = '/ramp-p2p/cashin/order'
-      backend.get(apiURL, { params: parameters, authorize: true })
+      backend.get(apiURL, { params: parameters })
         .then((response) => {
-          console.log('cashin orders:', response.data)
           context.commit('updateCashinOrders', { overwrite: overwrite, data: response.data })
           context.commit('incCashinOrdersPage')
           resolve(response.data)
@@ -238,7 +236,6 @@ export async function fetchOrders (context, { statusType = null, params = null, 
 
       backend.get(apiURL, { params: parameters, authorize: true })
         .then((response) => {
-          console.log('orders:', response.data)
           switch (statusType) {
             case 'ONGOING':
               context.commit('updateOngoingOrders', { overwrite: overwrite, data: response.data })

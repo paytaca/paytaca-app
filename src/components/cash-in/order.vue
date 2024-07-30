@@ -1,6 +1,6 @@
 <template>
  <div class="q-mx-md">
-    <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
+    <div class="text-center q-mt-lg q-pt-lg" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
       {{ order?.id ? `Order #${order?.id}` : ''}}
     </div>
     <payment-confirmation :key="paymentConfirmationKey" v-if="state === 'confirm_payment'" :order="order" @confirm-payment="$emit('confirm-payment')"/>
@@ -13,16 +13,16 @@
       </div>
 
       <div v-if="state === 'await_status'">
-        <div class="row justify-center q-mx-md">
+        <div class="row justify-center q-mx-md" style="font-size: 25px;">
           {{ statusTitle }}
         </div>
-        <div class="row justify-center q-mx-lg">
+        <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
           {{ statusMessage }}
         </div>
       </div>
     </div>
-    <div class="row justify-center q-mx-lg">
-      <q-spinner-dots v-if="state === 'await_status'" class="col q-pt-sm" color="blue-6" size="1.5em"/>
+    <div class="row justify-center q-mx-lg q-mt-md">
+      <q-spinner-hourglass v-if="state === 'await_status'" class="col q-pt-sm" color="blue-6" size="3em"/>
     </div>
   </div>
 </template>
@@ -37,7 +37,7 @@ export default {
     return {
       state: 'await_status',
       statusTitle: 'Processing transaction',
-      statusMessage: 'Please wait',
+      statusMessage: 'Please wait a moment',
       websocket: null,
       status: null,
       paymentConfirmationKey: 0,
@@ -112,6 +112,7 @@ export default {
           break
         case 'PD_PN':
         case 'PD':
+        case 'APL':
           this.state = 'await_status'
           this.statusTitle = 'Releasing Funds'
           break
@@ -119,7 +120,7 @@ export default {
           this.state = 'confirm_payment'
           break
         case 'RLS': {
-          this.state = 'released'
+          this.state = 'completed'
           this.statusTitle = 'Funds Released!'
           const amount = Number(Number(this.order?.crypto_amount).toFixed(8))
           this.statusMessage = `${amount} BCH has been sent to you`
@@ -128,6 +129,11 @@ export default {
         case 'CNCL':
           this.state = 'canceled'
           break
+        case 'RFN':
+        case 'RFN_PN':
+          this.state = 'completed'
+          this.statusTitle = 'Transaction Failed'
+          this.statusMessage = 'We\'re unable to fulfill this transaction. Please try again.'
       }
     }
   }
