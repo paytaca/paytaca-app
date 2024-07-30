@@ -22,12 +22,12 @@
                   <q-item-section>
                     <div class="row">
                       <div class="col-grow">
-                        <div class="text-bold" style="font-size: medium;">
+                        <div style="font-size: medium;">
                           ORDER #{{ order?.id }}
                         </div>
                         <div class="text-grey-6">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
                       </div>
-                      <div class="col-4 text-center text-bold" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">{{ statusVal(order?.status?.value) }}</div>
+                      <div class="col-grow text-center" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">{{ statusVal(order?.status?.value) }}</div>
                     </div>
                   </q-item-section>
                 </q-item>

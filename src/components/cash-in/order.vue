@@ -1,25 +1,19 @@
 <template>
  <div class="q-mx-md">
-    <div class="text-center q-mt-lg q-pt-lg" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
+    <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-lg q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
       {{ order?.id ? `Order #${order?.id}` : ''}}
     </div>
-    <payment-confirmation :key="paymentConfirmationKey" v-if="state === 'confirm_payment'" :order="order" @confirm-payment="$emit('confirm-payment')"/>
-    <div v-else class="text-center" style="margin-top: 60px; font-size: 25px;">
+    <payment-confirmation v-if="state === 'confirm_payment'" :key="paymentConfirmationKey" :order="order" @confirm-payment="$emit('confirm-payment')"/>
+    <div v-else class="text-center" style="font-size: 25px;">
       <!-- Order Info -->
-      <div v-if="state === 'canceled'">
-        <div class="row justify-center">
-          Order Canceled
-        </div>
-      </div>
-
-      <div v-if="state === 'await_status'">
+      <!-- <div v-if="state === 'await_status'"> -->
         <div class="row justify-center q-mx-md" style="font-size: 25px;">
           {{ statusTitle }}
         </div>
         <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
           {{ statusMessage }}
         </div>
-      </div>
+      <!-- </div> -->
     </div>
     <div class="row justify-center q-mx-lg q-mt-md">
       <q-spinner-hourglass v-if="state === 'await_status'" class="col q-pt-sm" color="blue-6" size="3em"/>
@@ -127,13 +121,11 @@ export default {
           break
         }
         case 'CNCL':
-          this.state = 'canceled'
-          break
         case 'RFN':
         case 'RFN_PN':
           this.state = 'completed'
           this.statusTitle = 'Transaction Failed'
-          this.statusMessage = 'We\'re unable to fulfill this transaction. Please try again.'
+          this.statusMessage = 'We\'re unable to fulfill this transaction \n Please try again with a new order'
       }
     }
   }

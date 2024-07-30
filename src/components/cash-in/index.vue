@@ -121,7 +121,6 @@ export default {
       this.wallet = loadRampWallet()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = this.wallet.walletHash
-      await this.fetchUser()
       await this.fetchCashinAds()
       this.step++
       this.loading = false
