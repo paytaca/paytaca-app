@@ -65,7 +65,6 @@ export default {
     },
     selectPaymentType (value) {
       this.$emit('select-payment', value)
-      // this.$router?.push({ name: 'cashin-amount-select', query: this.paymentMethods[index]})
     },
     async fetchFiatCurrencies () {
       const vm = this
