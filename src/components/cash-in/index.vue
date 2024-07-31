@@ -121,27 +121,28 @@ export default {
       this.wallet = loadRampWallet()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = this.wallet.walletHash
-      await this.getUser()
+      // await this.getUser()
+      await this.fetchUser()
       await this.fetchCashinAds()
       this.step++
       this.loading = false
     },
-    async getUser () {
-      await backend.get('auth')
-        .then((response) => {
-          const loggedIn = response?.data?.is_authenticated
-          // this.user = response.data
-          if (!loggedIn) {
-            this.fetchUser()
-          }
-        })
-        .catch(error => {
-          console.log(error.response || error)
-          if (!error.response) {
-            this.dislayNetworkError()
-          }
-        })
-    },
+    // async getUser () {
+    //   await backend.get('auth')
+    //     .then((response) => {
+    //       const loggedIn = response?.data?.is_authenticated
+    //       console.log('loggedin: ', loggedIn)
+    //       if (!loggedIn) {
+    //         this.fetchUser()
+    //       }
+    //     })
+    //     .catch(error => {
+    //       console.log(error.response || error)
+    //       if (!error.response) {
+    //         this.dislayNetworkError()
+    //       }
+    //     })
+    // },
     async fetchUser () {
       const vm = this
       try {
