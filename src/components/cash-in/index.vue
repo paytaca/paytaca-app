@@ -13,7 +13,7 @@
       <!-- Body -->
       <div v-if="loading" class="text-center" style="margin-top: 70px;">
         <div class="row justify-center q-mx-md" style="font-size: 25px;">
-          Processing transaction
+          Processing
         </div>
         <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
           Please wait a moment
