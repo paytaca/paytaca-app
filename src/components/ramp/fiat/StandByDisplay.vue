@@ -59,7 +59,7 @@
           </q-input>
         </div>
         <!-- Payment methods -->
-        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-mx-md q-px-sm q-pt-sm">
+        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-px-xs q-pt-sm">
           <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
             <div class="text-center sm-font-size q-mx-md q-mb-sm">
             <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
@@ -77,12 +77,20 @@
                     expand-separator >
                     <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
                       <div class="col q-pr-sm q-py-xs">
-                        <div class="text-weight-bold" v-for="(field, index) in method.values" :key="index">
-                          <div v-if="field.value">
+                        <div v-for="(field, index) in method.values" :key="index">
+                          <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                          <div v-if="field.value" class="q-ml-sm text-weight-bold">
                             {{ field.value }}
                             <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                           </div>
                         </div>
+                        <div v-for="(field, index) in method.dynamic_values" :key="index">
+                          {{ field.fieldname }}
+                          <div class="q-ml-sm text-weight-bold">
+                            {{ dynamicVal(field) }}
+                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
+                          </div>
+                      </div>
                       </div>
                     </q-card>
                   </q-expansion-item>
@@ -93,7 +101,7 @@
         </div>
         <!-- Instruction message -->
         <div
-          class="row q-mx-md q-px-md q-pt-sm text-center sm-font-size"
+          class="row q-px-md q-pt-sm text-center sm-font-size"
           style="overflow-wrap: break-word;">
           <div v-if="hasLabel" class="row">
             <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
@@ -219,16 +227,6 @@ export default {
     arbiterName () {
       return this.data?.arbiter?.name
     },
-    // instructionMessage () {
-    //   const status = this.data?.order?.status?.value
-    //   if (!status) return
-    //   switch (status) {
-    //     case 'SBM':
-    //       return 'Please wait for the order to be confirmed.'
-    //     default:
-    //       return null
-    //   }
-    // },
     orderUserType () {
       const vm = this
       let userType = null
@@ -360,6 +358,16 @@ export default {
       this.fetchContractBalance()
       this.lockedPrice = this.formatCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
       this.feedback = this.data.feedback
+    },
+    dynamicVal (field) {
+      if (field.model_ref === 'order') {
+        if (field.field_ref === 'id') {
+          return this.data?.order?.id
+        }
+        if (field.field_ref === 'tracking_id') {
+          return this.data?.order?.tracking_id
+        }
+      }
     },
     fetchAppeal () {
       const vm = this

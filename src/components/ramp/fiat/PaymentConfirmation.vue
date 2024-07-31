@@ -76,11 +76,19 @@
                 expand-separator >
                 <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
                   <div class="col q-pr-sm q-py-xs">
-                    <div class="text-weight-bold" v-for="(field, index) in method.values" :key="index">
-                      <div v-if="field.value">
+                    <div v-for="(field, index) in method.values" :key="index">
+                      <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                      <div v-if="field.value" class="q-ml-sm text-weight-bold">
                         {{ field.value }}
                         <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                       </div>
+                    </div>
+                    <div v-for="(field, index) in method.dynamic_values" :key="index">
+                        {{ field.fieldname }}
+                        <div class="q-ml-sm text-weight-bold">
+                          {{ dynamicVal(field) }}
+                          <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
+                        </div>
                     </div>
                   </div>
                   <div v-if="data?.type !== 'seller'">
@@ -248,6 +256,16 @@ export default {
       })
       vm.fetchContractBalance()
       vm.lockedPrice = this.formatCurrency(vm.data.order?.locked_price, vm.data.order?.ad?.fiat_currency?.symbol)
+    },
+    dynamicVal (field) {
+      if (field.model_ref === 'order') {
+        if (field.field_ref === 'id') {
+          return this.order.id
+        }
+        if (field.field_ref === 'tracking_id') {
+          return this.order.tracking_id
+        }
+      }
     },
     fetchContractBalance () {
       const vm = this
