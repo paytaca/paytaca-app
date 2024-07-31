@@ -152,10 +152,10 @@ export default {
 
         if (login) {
           await vm.login()
-        }
 
-        await loadChatIdentity(payload)
-        await updatePubkeyAndAddress(user)
+          await loadChatIdentity(payload)
+          await updatePubkeyAndAddress(user)
+        }
       } catch (error) {
         vm.loading = false
         console.error(error.response || error)
