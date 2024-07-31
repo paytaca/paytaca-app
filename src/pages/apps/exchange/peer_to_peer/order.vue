@@ -4,7 +4,7 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="q-pt-sm text-center text-weight-bold">
+      <div class="text-center text-weight-bold">
         <div class="lg-font-size">
           <span>{{ headerTitle.toUpperCase() }}</span>
         </div>
