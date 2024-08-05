@@ -147,8 +147,10 @@ export async function fetchCashinOrders (context, { params = null, overwrite = f
         wallet_hash: params.wallet_hash,
         page: pageNumber,
         limit: state.itemsPerPage,
-        status_type: 'ONGOING'
+        status_type: 'ONGOING',
+        owned: params.owned
       }
+
       const apiURL = '/ramp-p2p/cashin/order'
       backend.get(apiURL, { params: parameters })
         .then((response) => {
