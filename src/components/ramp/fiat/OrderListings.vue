@@ -305,7 +305,6 @@ export default {
     this.updateFilters()
     this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
-    this.fetchCashinOrders(true)
   },
   beforeRouteLeave (to, from, next) {
     switch (from.name) {
@@ -457,7 +456,8 @@ export default {
     async fetchCashinOrders (overwrite = false) {
       const vm = this
       const params = {
-        wallet_hash: this.wallet.walletHash
+        wallet_hash: this.wallet.walletHash,
+        owned: false
       }
       await vm.$store.dispatch('ramp/fetchCashinOrders', { params: params, overwrite: overwrite })
         .then(response => {
@@ -544,6 +544,7 @@ export default {
       this.$store.commit('ramp/resetOrdersPagination')
       this.$store.commit('ramp/resetCashinOrdersPagination')
       this.loading = true
+      await this.fetchCashinOrders(true)
       await this.fetchOrders(true)
       this.loading = false
     },

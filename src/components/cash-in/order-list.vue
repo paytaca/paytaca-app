@@ -76,7 +76,11 @@ export default {
   methods: {
     getDarkModeClass,
     async fetchCashinOrders () {
-      await backend.get('ramp-p2p/cashin/order', { params: { wallet_hash: this.walletHash } })
+      const params = {
+        wallet_hash: this.walletHash,
+        owned: true
+      }
+      await backend.get('ramp-p2p/cashin/order', { params: params })
         .then(response => {
           this.orders = response.data?.orders
         })
