@@ -309,6 +309,9 @@
                   </a>
                 </template>
               </div>
+              <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-sm">
+                {{ formattedTxTimestamp }}
+              </div>
 
               <div v-if="sendDataMultiple[0].paymentAckMemo" class="row justify-center">
                 <div
@@ -511,6 +514,7 @@ export default {
       sent: false,
       sending: false,
       txid: '',
+      txTimestamp: Date.now(),
       amountInputState: false,
       customKeyboardState: 'dismiss',
       sliderStatus: false,
@@ -543,6 +547,17 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    formattedTxTimestamp() {
+      const dateObj = new Date(this.txTimestamp)
+
+      if (!dateObj.getTime()) return ''
+
+      const langs = [this.$store.getters['global/language'], 'en-US']
+      return new Intl.DateTimeFormat(langs, {
+        dateStyle: 'medium',
+        timeStyle: 'full',
+      }).format(dateObj)
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
@@ -873,10 +888,12 @@ export default {
       this.txid = this.jpp?.txids?.[0]
       const jppAmount = this.jpp.total / 10 ** 8
       this.totalAmountSent = jppAmount
+      this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
       this.sendDataMultiple[0].amount = jppAmount
       this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
       this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
+      this.txTimestamp = Date.now()
       this.sending = false
       this.sent = true
     },
@@ -1256,6 +1273,8 @@ export default {
           .map(a => Number(a.sendAmountInFiat))
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(2)
+      } else {
+        vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
       }
 
       let token // bch token
@@ -1338,6 +1357,7 @@ export default {
                 ])
                 vm.txid = txId
                 vm.sent = true
+                vm.txTimestamp = Date.now()
                 vm.playSound(true)
               } catch (e) {
                 vm.raiseNotifyError(e.message)
@@ -1406,6 +1426,7 @@ export default {
 
       if (result.success) {
         vm.txid = result.txid
+        vm.txTimestamp = Date.now()
         vm.playSound(true)
         vm.sending = false
         vm.sent = true
