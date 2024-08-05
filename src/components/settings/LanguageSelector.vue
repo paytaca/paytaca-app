@@ -120,7 +120,7 @@ export default {
         this.$store.commit('global/setLanguage', lang.value)
 
         const denomination = this.$store.getters['global/denomination']
-        if (lang.value !== 'zh-tw' &&
+        if (!['zh-tw', 'zh-cn'].includes(lang.value) &&
             denomination !== this.$t('DEEM') &&
             !['BCH', 'mBCH', 'Satoshis'].includes(denomination)
         ) {
