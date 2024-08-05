@@ -17,7 +17,7 @@
             </template>
 
             <q-list bordered class="br-15">
-              <div v-for="(order,index) in orders" :key="index">
+              <div v-for="(order,index) in orders" :key="index" class="q-pt-sm">
                 <q-item clickable :key="index" @click="$emit('open-order', order?.id)">
                   <q-item-section>
                     <div class="row">

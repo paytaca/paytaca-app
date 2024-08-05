@@ -22,7 +22,7 @@
       </div>
       <div v-else>
         <!-- Register -->
-        <Register v-if="state === 'register'" @login="onSubmitOrder(orderPayload, false)" />
+        <Register v-if="state === 'register'" @login="onSubmitOrder(orderPayload, false)" :key="registerKey"/>
 
         <div v-if="state === 'cashin-order'">
           <!-- Payment Type -->
@@ -30,7 +30,9 @@
             v-if="step === 1"
             :options="paymentTypeOpts" :fiat="fiatCurrencies"
             @select-currency="setCurrency"
-            @select-payment="setPaymentType" @update-fiat="updateSelectedCurrency"/>
+            @select-payment="setPaymentType" @update-fiat="updateSelectedCurrency"
+            :key="selectPaymentTypeKey"
+            />
           <!-- Select Amount -->
           <SelectAmount
             v-if="step === 2"
@@ -39,16 +41,18 @@
             :currency="selectedCurrency"
             :ads="cashinAds"
             @select-amount="onSetAmount"
-            @submit-order="onSubmitOrder"/>
+            @submit-order="onSubmitOrder"
+            :key="selectAmountKey"
+            />
           <!-- Order Page -->
-          <Order :order-id="order.id" v-if="step === 3" @confirm-payment="sendConfirmPayment"/>
+          <Order :order-id="order.id" v-if="step === 3" @confirm-payment="sendConfirmPayment" :key="orderKey"/>
         </div>
 
         <!-- Order List -->
-        <order-list v-if="state === 'order-list'" :wallet-hash="wallet.walletHash" @open-order="openOrder"/>
+        <order-list v-if="state === 'order-list'" :wallet-hash="wallet.walletHash" @open-order="openOrder" :key="orderListKey"/>
 
         <!-- Network Error -->
-        <NetworkError v-if="state === 'network-error'"/>
+        <NetworkError v-if="state === 'network-error'" @retry="refreshPage"/>
       </div>
     </q-card>
   </q-dialog>
@@ -100,7 +104,12 @@ export default {
       fiatCurrencies: null,
       order: null,
       orderPayload: null,
-      openOrderPage: false
+      openOrderPage: false,
+      registerKey: 0,
+      selectPaymentTypeKey: 0,
+      selectAmountKey: 0,
+      orderKey: 0,
+      orderListKey: 0
     }
   },
   computed: {
@@ -329,6 +338,19 @@ export default {
     },
     dislayNetworkError () {
       this.state = 'network-error'
+    },
+    async refreshPage () {
+      this.step = 0
+      this.state = 'cashin-order'
+      await this.loaddata()
+      this.reloadChildComponents()
+    },
+    reloadChildComponents () {
+      this.registerKey++
+      this.selectPaymentTypeKey++
+      this.selectAmountKey++
+      this.orderKey++
+      this.orderListKey++
     }
   }
 }

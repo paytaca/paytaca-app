@@ -42,7 +42,6 @@ export default {
   methods: {
     getDarkModeClass,
     retry () {
-      console.log('retrying')
       this.$emit('retry')
     }
   }
