@@ -888,6 +888,7 @@ export default {
       this.txid = this.jpp?.txids?.[0]
       const jppAmount = this.jpp.total / 10 ** 8
       this.totalAmountSent = jppAmount
+      this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
       this.sendDataMultiple[0].amount = jppAmount
       this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
       this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
@@ -1272,6 +1273,8 @@ export default {
           .map(a => Number(a.sendAmountInFiat))
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(2)
+      } else {
+        vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
       }
 
       let token // bch token
