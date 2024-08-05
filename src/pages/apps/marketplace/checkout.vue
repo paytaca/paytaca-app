@@ -499,7 +499,7 @@
               @click="() => bchPaymentState.tab = 'qrcode'"
             />
           </template>
-          <div v-else-if="!(checkout.balanceToPay > 0)" class="q-mt-sm">
+          <div v-if="!(checkout.balanceToPay > 0) || forceShowReview" class="q-mt-sm">
             <q-btn
               :disable="loading"
               no-caps
@@ -801,6 +801,16 @@ import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDi
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 
+const forceShowReview = ref(false)
+onMounted(() => {
+  window.$c = {
+    toggleForceShowReview: () => forceShowReview.value = !forceShowReview.value,
+  }
+})
+onUnmounted(() => {
+  delete window.$c
+})
+
 const props = defineProps({
   checkoutId: [String, Number],
   cartId: [String, Number],
@@ -879,6 +889,10 @@ async function resetTabs() {
 
   await asyncSleep(10)
   if (!validCoordinates.value) return
+
+  const hasName = Boolean(formData.value.delivery?.firstName && formData.value.delivery?.lastName)
+  if (!formData.value.delivery?.phoneNumber || !hasName) return
+ 
   if (!checkout.value.deliveryAddress?.distance) await updateDeliveryFee().catch(console.error)
   await suggestStorePickup()
   await findRider({ replaceExisting: false, displayDialog: true })

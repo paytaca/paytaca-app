@@ -293,6 +293,7 @@ import { backend, cachedBackend } from 'src/marketplace/backend'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
 import { formatDateRelative, formatDuration, roundRating, round } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffect } from 'vue'
@@ -449,6 +450,11 @@ const updateDeliveryCalculation = debounce(() => {
         deliveryDuration: parseInt(response?.data?.delivery_duration),
         preparationDuration: parseInt(response?.data?.preparation_duration),
       }
+
+      bus.emit('marketplace-storefront-delivery-calculation', {
+        storefrontId: parseInt(params.storefront_id),
+        ...deliveryCalculation.value,
+      })
       return response
     })
 }, 500)
