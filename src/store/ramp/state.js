@@ -1,5 +1,6 @@
 export default function () {
   return {
+    // websocket: null,
     wallet: null,
     authHeaders: null,
     user: null,
@@ -35,6 +36,11 @@ export default function () {
     completedOrdersPageNumber: null,
     completedOrdersTotalPages: null,
     completedOrders: [],
+
+    // cashin orders
+    cashinOrdersPageNumber: null,
+    cashinOrdersTotalPages: null,
+    cashinOrders: [],
 
     // appeals pagination
     pendingAppealsPageNumber: null,

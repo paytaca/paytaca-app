@@ -49,7 +49,8 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ConfirmationDialog from './ConfirmationDialog.vue'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   data () {
@@ -123,7 +124,16 @@ export default {
             this.inactiveFor = inactiveFor
             resolve(response.data)
           })
-          .catch((error) => { reject(error) })
+          .catch((error) => {
+            if (error.response) {
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
+            }
+             reject(error)
+            })
       })
     },
     onSetActive () {
@@ -161,7 +171,16 @@ export default {
           this.$emit('setInactive')
           this.$emit('back')
         })
-        .catch((error) => { console.error(error?.response) })
+        .catch((error) => {
+          console.error(error?.response)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     editName () {
       this.readOnlyState = false
@@ -193,3 +212,4 @@ export default {
   -webkit-text-fill-color: #8ec351;
 }
 </style>
+src/exchange/backend

@@ -1,5 +1,5 @@
 import Watchtower from "watchtower-cash-js"
-import { deleteAuthToken } from 'src/wallet/ramp/auth'
+import { deleteAuthToken } from 'src/exchange/auth'
 
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()

@@ -281,18 +281,15 @@ async function getKeypairSeed () {
 }
 
 export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
-  console.log('Updating chat keypair [opts]:', opts)
+  console.log('Updating chat encryption keypair')
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed: seed })
 
   if (opts?.updatePubkey) {
     await updatePubkey(keypair.pubkey)
       .catch(error => {
-        console.error(error)
-        if (error.response) {
-          console.error(error.response)
-        }
-        return Promise.reject('Failed to save chat pubkey to server')
+        console.error(error.response || error)
+        return Promise.reject('Failed to create/update chat pubkey to server')
       })
   }
 
