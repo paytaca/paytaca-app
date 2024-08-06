@@ -73,6 +73,7 @@ import { QrcodeStream } from 'vue-qrcode-reader'
 import HeaderNav from 'src/components/header-nav'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 import QRUploader from 'src/components/QRUploader'
+import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 
 export default {
   name: 'QRReader',
@@ -237,6 +238,7 @@ export default {
       const vm = this
 
       if (content) {
+
         const value = content[0].rawValue
 
         vm.paused = true
@@ -278,6 +280,15 @@ export default {
               query: { address: value }
             })
           }
+        } else if (parseWalletConnectUri(value)) {
+          const loadingDialog = vm.loadingDialog()
+          setTimeout(() => {
+            loadingDialog.hide()
+          }, 700)
+          vm.$router.push({
+            name: 'app-wallet-connect',
+            query: { uri: value }
+          })
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
