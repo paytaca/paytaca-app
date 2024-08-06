@@ -415,9 +415,9 @@ async function connectNewSession(value='', prompt=true) {
     })
       .onOk(val => pairUrl(val))
   } else {
-    setTimeout(function() {
-      pairUrl(value)
-    }, 1000)
+    setTimeout(async () => {
+      await pairUrl(value)
+    }, 2000)
   }
 }
 
@@ -432,6 +432,9 @@ async function pairUrl(uri, opts={ showDialog: true }) {
     class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   try {
+    if (!web3Wallet.value) {
+      await loadWeb3Wallet()
+    }
     await web3Wallet.value.pair({ uri: uri })
   } finally {
     dialog?.hide?.()
@@ -651,11 +654,16 @@ function statusUpdate() {
 
 const web3Wallet = ref()
 const web3WalletPromise = ref()
-onMounted(async () => {
+
+async function loadWeb3Wallet () {
   web3WalletPromise.value = initWeb3Wallet()
   const _web3Wallet = await web3WalletPromise.value
   web3Wallet.value = _web3Wallet
   window.w3w = _web3Wallet
+}
+
+onMounted(async () => {
+  await loadWeb3Wallet()
 })
 watch(web3Wallet, () => {
   statusUpdate()
