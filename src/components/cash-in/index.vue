@@ -340,8 +340,7 @@ export default {
       this.state = 'network-error'
     },
     async refreshPage () {
-      this.step = 0
-      this.state = 'cashin-order'
+      this.resetData()
       await this.loaddata()
       this.reloadChildComponents()
     },
@@ -351,6 +350,13 @@ export default {
       this.selectAmountKey++
       this.orderKey++
       this.orderListKey++
+    },
+    resetData () {
+      this.step = 0
+      this.state = 'cashin-order'
+      this.selectedCurrency = this.$store.getters['market/selectedCurrency']
+      this.cashinAdsParams.payment_type = null
+      this.cashinAdsParams.currency = null
     }
   }
 }
