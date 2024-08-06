@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "Sekuriteitskontrole het misluk",
   SeeBasicWalletInfo: "Sien basiese inligting oor die beursie",
   SeedPhraseShards: "Saadfrase skerwe",
-  SeelectAddresses: "Kies die adresse wat op hierdie webwerf gebruik moet word",
+  SelectAddresses: "Kies die adresse wat op hierdie webwerf gebruik moet word",
   Select: "Uitkies",
   SelectAction: "Kies aksie",
   SelectActiveSession: "Kies aktiewe sessie",

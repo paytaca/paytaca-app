@@ -48,6 +48,10 @@ class Translator {
         Points: '積分',
         ButtonDeem: '點心幣',
         DEEM: '點'
+      },
+      'zh-cn': {
+        ButtonDeem: '點心幣',
+        DEEM: '點'
       }
     }
   }

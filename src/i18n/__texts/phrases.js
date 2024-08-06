@@ -971,7 +971,7 @@ const phrases = {
       UpdateSessionMsg: 'Input wallet index or WIF',
       NoProducts: 'No products',
       FungibleAmount: 'Fungible amount',
-      SeelectAddresses: 'Select the addresses to use on this site',
+      SelectAddresses: 'Select the addresses to use on this site',
       Permissions: 'Permissions: see address, account balance, activity and suggest transactions to approve',
       OnlyConnect: 'Only connect with sites you trust.',
       ConnectedAddress: 'Connected Addresses',
