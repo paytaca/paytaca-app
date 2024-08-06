@@ -1,5 +1,4 @@
 import { backend as posBackend } from "src/wallet/pos"
-import { loadWallet } from "src/wallet"
 import { bus } from "src/wallet/event-bus"
 
 /* -------------------------Merchants----------------------------- */
@@ -55,20 +54,6 @@ export async function updateMerchantInfo(context, data) {
     primary_contact_number: data?.primaryContactNumber,
     allow_duplicates: true, // temporary field
     ...data,
-  }
-
-  const currentWalletIndex = context.rootGetters['global/getWalletIndex']
-  if (!data?.id) {
-    const response = await posBackend.post('paytacapos/merchants/latest_index/', { wallet_hash: payload.wallet_hash })
-    const receiving_index = response.data.index + 1
-    const wallet = await loadWallet('BCH', currentWalletIndex)
-    const receivingPubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true, receiving_index)
-    const receiving_pubkey = receivingPubkeys.receiving
-    
-    Object.assign(payload, {
-      receiving_pubkey,
-      receiving_index,
-    })
   }
 
   const promise = data?.id

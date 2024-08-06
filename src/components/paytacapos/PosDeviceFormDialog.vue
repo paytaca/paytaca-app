@@ -87,6 +87,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { loadWallet } from "src/wallet"
 
 // dialog plugins requirement
 const emit = defineEmits([
@@ -149,13 +150,27 @@ const defaultBranch = computed(() => {
   return
 })
 
-function savePosDevice() {
+async function getFirstPosPubkeys (posid) {
+  const currentWalletIndex = $store.getters['global/getWalletIndex']
+  const wallet = await loadWallet('BCH', currentWalletIndex)
+  const posFirstIndex = '1' + padPosId(data.posid)
+  const pubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true, posFirstIndex)
+  return pubkeys
+}
+
+async function savePosDevice() {
   const data = Object.assign({
     wallet_hash: props.posDevice?.walletHash || walletData?.value?.walletHash,
     branch_id: posDeviceForm.value.branchId,
     merchant_id: props.posDevice?.merchantId || props.merchantId,
   }, posDeviceForm.value)
-  if (!props.newDevice) data.posid = props.posDevice?.posid
+
+  if (!props.newDevice) {
+    data.posid = props.posDevice?.posid
+
+    const receivingPubkey = await getFirstPosPubkeys(data.posid)
+    data.vault_pubkey = receivingPubkey.receiving
+  }
   else data.posid = -1
 
   loading.value = true
