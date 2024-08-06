@@ -56,7 +56,7 @@ export default {
   },
   data () {
     return {
-      page: 0,
+      page: 1,
       totalPage: 0,
       orders: []
     }
@@ -78,11 +78,14 @@ export default {
     async fetchCashinOrders () {
       const params = {
         wallet_hash: this.walletHash,
+        limit: 15,
+        page: this.page,
         owned: true
       }
       await backend.get('ramp-p2p/cashin/order', { params: params })
         .then(response => {
-          this.orders = response.data?.orders
+          this.orders.push(...response.data?.orders)
+          this.totalPage = response?.data?.total_pages
         })
         .catch(error => {
           console.error(error.response || error)
@@ -114,6 +117,7 @@ export default {
     loadMoreData (index, done) {
       // update page/totalpage to fetch
       if (this.page < this.totalPage) {
+        this.page++
         setTimeout(() => {
           this.fetchCashinOrders()
           done()
