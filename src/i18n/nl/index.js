@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "Beveiligingscontrole is mislukt",
   SeeBasicWalletInfo: "Zie Basis Wallet Info",
   SeedPhraseShards: "Zaadzinscherven",
-  SeelectAddresses: "Selecteer de adressen die u op deze site kunt gebruiken",
+  SelectAddresses: "Selecteer de adressen die u op deze site kunt gebruiken",
   Select: "Uitkiezen",
   SelectAction: "Selecteer actie",
   SelectActiveSession: "Selecteer Actieve sessie",
