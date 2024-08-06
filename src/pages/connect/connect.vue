@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="" :class="{'card-3dark': darkMode}">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       backnavpath="/"
       :title="$t('Connect to Paytaca')"
@@ -10,6 +10,10 @@
           <p class="text-lg">{{$t('Origin')}}:</p><textarea readonly class="ro-text" v-text="origin"></textarea>
 
           <p>{{$t('SelectAddresses')}}</p>
+          <ProgressLoader
+            v-if="!addresses?.length && loadingAddresses"
+            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+          />
           <div v-for="(address, index) in addresses" :key="index">
             <input type="radio" v-model="connectedAddressIndex" :id="address" name="connectedAddressIndex" :value="index">
             <label style="padding-left: 5px" :for="address">{{ address.split(':')[1] }}</label>
@@ -29,14 +33,17 @@
 </template>
 
 <script>
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   name: 'connect',
   components: {
-    HeaderNav
+    HeaderNav,
+    ProgressLoader,
   },
   props: {
     origin: {
@@ -58,6 +65,7 @@ export default {
       addresses: [],
       assetId: "bch",
       connectedAddressIndex: 0,
+      loadingAddresses: false,
     }
   },
 
@@ -68,6 +76,9 @@ export default {
   },
 
   methods: {
+    getDarkModeClass,
+    isNotDefaultTheme,
+
     async cancel () {
       this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: false, eventResponseKey: this.eventResponseKey})
       window.close()
@@ -77,6 +88,24 @@ export default {
       this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: true, address: this.addresses[this.connectedAddressIndex], addressIndex: '0/' + this.connectedAddressIndex, eventResponseKey: this.eventResponseKey})
       window.close()
     },
+
+    async loadAddresses() {
+      // Load wallets
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
+      const wallet = new Wallet(mnemonic, network)
+      this.wallet = markRaw(wallet)
+      if (this.assetId === 'sbch') {
+        await this.wallet.sBCH.getOrInitWallet();
+        this.addresses = [this.wallet.sBCH._wallet.address]
+      } else {
+        const addresses = [];
+        for (let i = 0; i <= this.lastAddressIndex; i++) {
+          addresses.push((await this.wallet.BCH.getAddressSetAt(i)).receiving);
+        }
+        this.addresses = [...addresses];
+      }
+    }
   },
 
   async mounted () {
@@ -86,21 +115,11 @@ export default {
       this.lastAddressIndex = lastAddressIndex
     }
 
-    // Load wallets
-    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-    const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
-    const wallet = new Wallet(mnemonic, network)
-    this.wallet = markRaw(wallet)
-    if (this.assetId === 'sbch') {
-      await this.wallet.sBCH.getOrInitWallet();
-      this.addresses = [this.wallet.sBCH._wallet.address]
-    } else {
-      const addresses = [];
-      for (let i = 0; i <= this.lastAddressIndex; i++) {
-        addresses.push((await this.wallet.BCH.getAddressSetAt(i)).receiving);
-      }
-      this.addresses = [...addresses];
-    }
+    this.loadingAddresses = true
+    await this.loadAddresses().finally(() => {
+      this.loadingAddresses = false
+    })
+
   },
 }
 </script>
