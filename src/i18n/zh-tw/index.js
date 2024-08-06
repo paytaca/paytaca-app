@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "安全檢查失敗",
   SeeBasicWalletInfo: "查看基本錢包信息",
   SeedPhraseShards: "種子短語碎片",
-  SeelectAddresses: "選擇要在此網站上使用的地址",
+  SelectAddresses: "選擇要在此網站上使用的地址",
   Select: "選擇",
   SelectAction: "選擇動作",
   SelectActiveSession: "選擇活動會話",
