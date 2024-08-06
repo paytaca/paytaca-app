@@ -45,7 +45,7 @@
             :key="selectAmountKey"
             />
           <!-- Order Page -->
-          <Order :order-id="order.id" v-if="step === 3" @confirm-payment="sendConfirmPayment" :key="orderKey"/>
+          <Order :order-id="order.id" v-if="step === 3" @confirm-payment="sendConfirmPayment" @new-order="refreshPage" :key="orderKey"/>
         </div>
 
         <!-- Order List -->

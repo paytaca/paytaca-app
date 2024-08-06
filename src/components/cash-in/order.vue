@@ -15,6 +15,9 @@
         </div>
       <!-- </div> -->
     </div>
+    <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline" :class=" darkMode ? 'text-blue-6' : 'text-blue-8'" v-if="newOrder" style="font-size: medium;">
+      Create Order
+    </div>
     <div class="row justify-center q-mx-lg q-mt-md">
       <q-spinner-hourglass v-if="state === 'await_status'" class="col q-pt-sm" color="blue-6" size="3em"/>
     </div>
@@ -35,10 +38,11 @@ export default {
       websocket: null,
       status: null,
       paymentConfirmationKey: 0,
-      order: null
+      order: null,
+      newOrder: false
     }
   },
-  emits: ['confirm-payment'],
+  emits: ['confirm-payment', 'new-order'],
   props: {
     orderId: Number
   },
@@ -126,6 +130,7 @@ export default {
           this.state = 'completed'
           this.statusTitle = 'Transaction Failed'
           this.statusMessage = 'We\'re unable to fulfill this transaction \n Please try again with a new order'
+          this.newOrder = true
       }
     }
   }
