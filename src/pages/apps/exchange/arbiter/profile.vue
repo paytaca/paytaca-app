@@ -200,6 +200,16 @@ export default {
           vm.arbiter.rating = Number(vm.arbiter?.rating)
           vm.parseInactiveTime(vm.arbiter.inactive_until)
         })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     parseInactiveTime (inactiveUntil) {
       const providedTimestamp = new Date(inactiveUntil).getTime()
@@ -245,6 +255,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => {
@@ -264,6 +275,13 @@ export default {
           })
       } catch (error) {
         console.error(error?.response || error)
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
+        }
       }
       this.editNickname = false
     },

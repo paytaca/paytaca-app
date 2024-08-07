@@ -399,6 +399,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.isloaded = true
             reject(error)
@@ -446,6 +448,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.loadingReviews = false
             reject(error)
@@ -481,6 +485,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.loadingAds = false
             reject(error)
@@ -507,6 +513,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
 

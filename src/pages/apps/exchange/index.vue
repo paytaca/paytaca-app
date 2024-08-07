@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!networkError">
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
@@ -8,17 +8,21 @@
     </div>
     <RampLogin v-if="showLogin" @logged-in="onLoggedIn"/>
   </div>
+  <NetworkError v-else/>
 </template>
 <script>
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/ramp/backend'
+import { bus } from 'src/wallet/event-bus.js'
 
 export default {
   components: {
     RampLogin,
-    ProgressLoader
+    ProgressLoader,
+    NetworkError
   },
   data () {
     return {
@@ -26,8 +30,12 @@ export default {
       theme: this.$store.getters['global/theme'],
       user: null,
       showLogin: false,
-      isloaded: false
+      isloaded: false,
+      networkError: false
     }
+  },
+  async created () {
+    bus.on('network-error', this.openNetworkError)
   },
   async mounted () {
     await this.getUser()
@@ -47,8 +55,12 @@ export default {
         })
         .catch(error => {
           console.log(error.response || error)
-          if (error.response?.status === 404) {
-            this.showLogin = true
+          if (error.response) {
+            if (error.response?.status === 404) {
+              this.showLogin = true
+            }
+          } else {
+            this.networkError = true
           }
         })
     },
@@ -63,6 +75,10 @@ export default {
       } else {
         this.$router?.push({ name: 'p2p-store' })
       }
+    },
+    openNetworkError () {
+      this.showLogin = false
+      this.networkError = true
     }
   }
 }
