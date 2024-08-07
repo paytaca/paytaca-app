@@ -312,16 +312,18 @@ export default {
       this.resetAndRefetchListings()
     },
     showCurrencySelect () {
-      this.$q.dialog({
-        component: CurrencyFilterDialog,
-        componentProps: {
-          fiatList: this.fiatCurrencies
-        }
-      })
-        .onOk(currency => {
-          const index = this.fiatCurrencies.indexOf(currency)
-          this.selectCurrency(index)
+      if (this.fiatCurrencies.length !== 0) {
+        this.$q.dialog({
+          component: CurrencyFilterDialog,
+          componentProps: {
+            fiatList: this.fiatCurrencies
+          }
         })
+          .onOk(currency => {
+            const index = this.fiatCurrencies.indexOf(currency)
+            this.selectCurrency(index)
+          })
+      }
     },
     searchState (state) {
       const vm = this
@@ -383,13 +385,22 @@ export default {
             resolve(paymentTypes)
           })
           .catch(error => {
+            console.error(error)
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
+            }
             reject(error)
           })
       })
     },
     fetchFiatCurrencies () {
       const vm = this
-      backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+      backend.get('/ramp-p2p/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {
@@ -408,6 +419,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -434,6 +447,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
           })
       }

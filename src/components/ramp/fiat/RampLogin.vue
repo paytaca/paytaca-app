@@ -153,6 +153,7 @@ export default {
           }
         } else {
           console.error(error)
+          bus.emit('network-error')
         }
         vm.isLoading = false
       }
@@ -250,6 +251,7 @@ export default {
                   }
                 } else {
                   console.error('Failed to update pubkey and address:', error)
+                  bus.emit('network-error')
                 }
                 reject(error)
               })
@@ -288,6 +290,9 @@ export default {
             vm.errorMessage = vm.$t('ThisAccountIsDisabled')
           }
           console.log('error:', vm.errorMessage)
+        } else {
+          console.log(error)
+          bus.emit('network-error')
         }
       }
       vm.loggingIn = false
@@ -330,6 +335,7 @@ export default {
         // This is a network error (server down, no response)
         console.error('Network error:', error.message)
         vm.errorMessage = `${error.message}${message ? `: ${message}` : ''}`
+        bus.emit('network-error')
       } else if (error.response) {
         // Handle other types of errors (e.g., 400, 404, etc.)
         console.error('Error status:', error.response.status)
@@ -349,8 +355,12 @@ export default {
       try {
         await backend.post(url, null, { authorize: true })
       } catch (error) {
-        console.error(error)
-        console.error(error.response)
+        if (error.response) {
+          console.error(error.response)
+        } else {
+          console.error(error)
+          bus.emit('network-error')
+        }
       }
     },
     async checkSecurity (securityType) {

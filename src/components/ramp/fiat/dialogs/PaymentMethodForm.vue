@@ -246,6 +246,15 @@ export default {
         this.paymentMethod.identifier_format = data.formats[0]
       }
       this.paymentMethod.account_identifier = ''
+      // const paymentFields = {}
+      // data.fields.forEach(field => {
+      //   paymentFields[field.id] = {
+      //     fieldname: field.fieldname,
+      //     required: field.required,
+      //     value: null
+      //   }
+      // })
+      // this.paymentMethod.fields = paymentFields
     },
     filterPaymentTypes () {
       let currentMethods = null
@@ -268,6 +277,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -284,6 +295,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -301,6 +314,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -353,8 +368,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -365,8 +384,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -382,6 +405,8 @@ export default {
             if (error.response.status === 400) {
               this.errorMessage = error.response.data.error
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     }

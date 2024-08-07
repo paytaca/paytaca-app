@@ -483,6 +483,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
@@ -509,8 +510,13 @@ export default {
         vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
       } catch (error) {
         console.error(error.response || error)
-        if (error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          console.error(error)
+          bus.emit('network-error')
         }
       }
     },
@@ -523,8 +529,12 @@ export default {
           .catch(error => {
             if (error.response) {
               console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -539,9 +549,14 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error.response)
-            if (error.response && error.response.status === 403) {
-              bus.emit('session-expired')
+            console.error(error)
+            if (error.response) {
+              if (error.response.status === 403) {
+                console.error(error.response)
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             reject(error)
           })

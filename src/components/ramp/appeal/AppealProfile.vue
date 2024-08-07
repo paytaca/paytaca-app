@@ -242,6 +242,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => {
@@ -260,7 +261,11 @@ export default {
             await vm.$store.dispatch('ramp/fetchUser')
           })
       } catch (error) {
-        console.error(error?.response || error)
+        if (error.response) {
+          console.error(error?.response)
+        } else {
+          bus.emit('network-error')
+        }
       }
       this.editNickname = false
     },
