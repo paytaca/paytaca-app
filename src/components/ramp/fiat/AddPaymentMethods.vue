@@ -20,11 +20,10 @@
                 <div class="md-font-size">
                   {{ method.payment_type?.short_name || method.payment_type?.full_name }}
                 </div>
-                <div class="subtext">
-                  {{ method.account_name }}
-                </div>
-                <div class="subtext">
-                  {{ method.account_identifier }}
+                <div v-for="(field, index) in method.values" :key="index">
+                  <div class="subtext">
+                    {{ field.value }}
+                  </div>
                 </div>
                 <div v-if="method.alien" class="xs-font-size" style="color: red">{{ currency }} does not support this payment type</div>
               </div>
@@ -73,17 +72,7 @@
                 <div class="col text-h5" style="font-size: 15px;">
                   {{ method }}
                 </div>
-                <q-btn
-                  outline
-                  rounded
-                  dense
-                  padding="xs"
-                  size="md"
-                  icon="add"
-                  class="col-auto"
-                  color="blue-6"
-                  @click="addMethodFromAd(method, index)"
-                />
+                <q-btn outline rounded dense padding="xs" size="md" icon="add" class="col-auto" color="blue-6" @click="addMethodFromAd(method, index)"/>
               </div>
               <q-separator :dark="darkMode" class="q-my-md"/>
             </q-item-section>
@@ -92,38 +81,13 @@
       </q-card-section>
       <div class="q-mt-md">
         <div class="row q-mx-md" v-if="type === 'Ads'">
-          <q-btn
-            outline
-            rounded
-            no-caps
-            label="Select Methods"
-            class="q-space text-white"
-            color="blue-6"
-            @click="addMethod">
-          </q-btn>
+          <q-btn outline rounded no-caps label="Select Methods" class="q-space text-white" color="blue-6" @click="addMethod"></q-btn>
         </div>
         <div class="row q-pt-xs q-mx-md" v-if="type !== 'Profile'">
-          <q-btn
-            :disable="disableSubmit"
-            rounded
-            no-caps
-            :label="confirmLabel"
-            class="q-space text-white"
-            color="blue-6"
-            @click="submitPaymentMethod()"
-          />
+          <q-btn :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white" color="blue-6" @click="submitPaymentMethod()" />
         </div>
         <div class="row q-mx-md q-py-md" v-if="type === 'Profile'">
-          <q-btn
-            v-if="paymentMethods.length - paymentTypeOpts.length !== 0"
-            outline
-            rounded
-            no-caps
-            label='Add Method'
-            class="q-space button button-icon"
-            :class="getDarkModeClass(darkMode)"
-            @click="createMethod"
-          />
+          <q-btn v-if="paymentMethods.length - paymentTypeOpts.length !== 0" outline rounded no-caps label='Add Method' class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod"/>
         </div>
       </div>
     </div>
