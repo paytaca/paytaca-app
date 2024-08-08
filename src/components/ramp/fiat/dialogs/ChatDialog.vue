@@ -539,8 +539,12 @@ export default {
       let createSession = false
       await fetchChatSession(vm.chatRef)
         .catch(error => {
-          if (error.response?.status === 404) {
-            createSession = true
+          if (error.response) {
+            if (error.response?.status === 404) {
+              createSession = true
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
       await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
