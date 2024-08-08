@@ -4,7 +4,7 @@
       Cash In Orders
     </div>
     <!-- <q-card flat bordered class="q-mx-md "> -->
-      <div ref="scrollTargetRef" class="q-mt-lg q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;">
+      <div ref="scrollTargetRef" class="q-mt-lg q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;" v-if="!loading">
         <!-- <q-card flat bordered> -->
           <q-infinite-scroll
             @load="loadMoreData"
@@ -37,6 +37,15 @@
           </q-infinite-scroll>
         <!-- </q-card> -->
       </div>
+      <div v-else class="text-center" style="margin-top: 70px;">
+        <div class="row justify-center q-mx-md" style="font-size: 25px;">
+          Processing
+        </div>
+        <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
+          Please wait a moment
+        </div>
+        <q-spinner-hourglass class="col q-pt-sm" color="blue-6" size="3em"/>
+      </div>
     <!-- </q-card> -->
   </div>
 </template>
@@ -58,7 +67,8 @@ export default {
     return {
       page: 1,
       totalPage: 0,
-      orders: []
+      orders: [],
+      loading: false
     }
   },
   emits: ['open-order'],
@@ -68,6 +78,7 @@ export default {
     }
   },
   mounted () {
+    this.loading = true
     this.fetchCashinOrders()
   },
   props: {
@@ -86,6 +97,7 @@ export default {
         .then(response => {
           this.orders.push(...response.data?.orders)
           this.totalPage = response?.data?.total_pages
+          this.loading = false
         })
         .catch(error => {
           console.error(error.response || error)
