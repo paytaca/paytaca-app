@@ -174,7 +174,7 @@ export default {
       let hasEmptyValue = false
       const fields = this.paymentMethod?.fields
       for (const [, field] of Object.entries(fields)) {
-        if (field.required && !field.value) {
+        if (!field.value) {// if (field.required && !field.value) {
           hasEmptyValue = true
           break
         }
