@@ -13,7 +13,7 @@
 
 @each $name, $spacing in $spaces 
   .q-r-ml-#{$name}, .q-r-mx-#{$name}, .q-r-ma-#{$name} 
-    margin-left: map-get($spacing, 'x') * 0.5
+    margin-left: map-get($spacing, 'x') * -0.5
   
   .q-r-mr-#{$name}, .q-r-mx-#{$name}, .q-r-ma-#{$name} 
     margin-right: (map-get($spacing, 'x')) * -0.5

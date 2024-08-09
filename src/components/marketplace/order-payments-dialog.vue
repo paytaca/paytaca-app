@@ -13,6 +13,17 @@
               <q-item-label>
                 {{ capitalize(payment?.status).replaceAll('_', ' ') }}
               </q-item-label>
+              <template v-if="Array.isArray(payment?.pendingAppealTypes) && payment?.pendingAppealTypes?.length">
+                <q-item-label v-if="payment?.pendingAppealTypes?.includes?.('release')" caption>
+                  Payment settlement appealed
+                </q-item-label>
+                <q-item-label v-else-if="payment?.pendingAppealTypes?.includes?.('refund')" caption>
+                  Refund appealed
+                </q-item-label>
+                <q-item-label v-else-if="payment?.pendingAppealTypes?.includes?.('full_refund')" caption>
+                  Full refund appealed
+                </q-item-label>
+              </template>
               <q-item-label class="text-caption">
                 {{ formatDateRelative(payment?.createdAt) }}
               </q-item-label>
