@@ -1207,6 +1207,9 @@ export class Order {
   }
 
   get formattedStatus() {
+    if (!this.isStorePickup && this.isReadyForPickup) {
+      return formatOrderStatus('order_prepared')
+    }
     return formatOrderStatus(this.status)
   }
 
