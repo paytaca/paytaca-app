@@ -8,7 +8,6 @@
     ]"
   >
     <div>
-      <!-- <q-linear-progress :color="order?.statusColor" :value="1"/> -->
       <div class="text-subtitle1 text-weight-medium">{{ statusMessage }}</div>
       <div v-if="order?.isCancelled && order?.cancelReason">
         <div><i>{{ order?.cancelReason }}</i></div>
@@ -32,26 +31,6 @@ const props = defineProps({
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-
-const progressMarkers = computed(() => {
-  const result = [
-    { status: 'confirmed', color: parseOrderStatusColor('confirmed') },
-    { status: 'preparing', color: parseOrderStatusColor('preparing') },
-    { status: 'ready_for_pickup', color: parseOrderStatusColor('ready_for_pickup') },
-  ]
-
-  if (props?.order?.isStorePickup) {
-    return result
-  }
-
-  result.push(
-    { status: 'on_delivery', color: parseOrderStatusColor('on_delivery') },
-    { status: 'delivered', color: parseOrderStatusColor('delivered') },
-  )
-
-  return result
-})
-
 
 const statusMessage = computed(() => {
   switch(props.order.status) {
