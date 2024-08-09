@@ -154,4 +154,3 @@ export default {
   }
 }
 </script>
-src/exchange/backendsrc/exchange/wallet

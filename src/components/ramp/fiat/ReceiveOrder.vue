@@ -110,4 +110,3 @@ export default {
   font-size: large;
 }
 </style>
-src/exchange

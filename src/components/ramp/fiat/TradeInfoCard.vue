@@ -314,4 +314,3 @@ export default {
 }
 
 </style>
-src/exchangesrc/exchange/chat

@@ -483,4 +483,3 @@ export default {
   opacity: .5;
 }
 </style>
-src/exchange/walletsrc/exchange/backendsrc/exchange

@@ -704,5 +704,4 @@ export default {
     z-index: 1;
     left: 10px;
   }
-  </style>
-src/exchangesrc/exchange/backend
+</style>

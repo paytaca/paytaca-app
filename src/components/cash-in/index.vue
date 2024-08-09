@@ -119,6 +119,7 @@ export default {
   },
   created () {
     bus.on('network-error', this.dislayNetworkError)
+    bus.on('session-expired', this.handleSessionEvent)
   },
   mounted () {
     this.loaddata()
@@ -357,6 +358,11 @@ export default {
       this.selectedCurrency = this.$store.getters['market/selectedCurrency']
       this.cashinAdsParams.payment_type = null
       this.cashinAdsParams.currency = null
+    },
+    handleSessionEvent () {
+      console.log('handle session event')
+      this.fetchUser()
+      return 'hi'
     }
   }
 }
