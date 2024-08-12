@@ -15,7 +15,7 @@
       <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 
-    <div class="q-px-sm q-py-sm">
+    <div class="q-px-md q-py-md">
       <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
     </div>
 

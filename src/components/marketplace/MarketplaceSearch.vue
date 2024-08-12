@@ -4,10 +4,10 @@
       outlined
       dense
       :loading="loading"
-      :disable="loading"
       clearable
       v-model="inputVal"
-      placeholder="Search"
+      autocomplete="off"
+      placeholder="Search product / shop"
       color="brandblue"
       debounce="500"
       @update:model-value="() => search()"
@@ -71,8 +71,15 @@
                   v-html="highlightSearch(product?.name, lastSearch)"
                 ></div>
                 <q-space/>
-                <div v-if="product?.categories?.includes?.(lastSearch)">
-                  <q-chip color="brandblue" dense>{{ lastSearch }}</q-chip>
+                <div
+                  v-if="product?.categories?.some?.(category => category?.toLowerCase?.().includes(lastSearch?.toLowerCase()))"
+                  class="q-gutter-xs"
+                >
+                  <q-badge v-for="category in product?.categories"
+                    dense color="brandblue" rounded
+                  >
+                    {{ category }}
+                  </q-badge>
                 </div>
               </div>
               <div v-if="storefronts?.[product?.storefrontId]" class="row items-center">
@@ -119,6 +126,10 @@ const storefronts = ref([].map(Storefront.parse))
 
 const filteredStorefronts = computed(() => {
   return storefronts.value.filter(storefront => {
+    if (products.value.find(product => product?.storefrontId == storefront?.id )) {
+      return true
+    }
+
     return storefront?.name?.toLowerCase()?.includes?.(inputVal.value?.toLowerCase())
   })
 })
