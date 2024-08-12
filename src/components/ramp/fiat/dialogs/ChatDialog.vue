@@ -576,14 +576,7 @@ export default {
           .then(members => {
             // if mismatched name
             vm.chatMembers = members.map(member => {
-              // const name = this.$store.getters['ramp/getUser'].name
-              // if ((name !== member.chat_identity.name) && (member.chat_identity.ref === vm.chatIdentity.ref)) {
-              //   const payload = {
-              //     id: vm.chatIdentity.id,
-              //     name: name
-              //   }
-              //   updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
-              // }
+              const name = this.$store.getters['ramp/getUser'].name
 
               return {
                 id: member.chat_identity.id,
