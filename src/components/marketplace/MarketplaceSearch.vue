@@ -57,11 +57,11 @@
             $router.push({ name: 'app-marketplace-product', params: { productId: product?.id }})
           }"
         >
-          <div class="row items-center">
+          <div class="row items-start no-wrap">
             <img
               v-if="product?.displayImageUrl"
               :src="product?.displayImageUrl"
-              class="rounded-borders q-mr-sm"
+              class="rounded-borders q-mr-sm q-mt-sm"
               style="width:35px"
             />
             <div class="q-space">
@@ -109,7 +109,7 @@ const props = defineProps({
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const inputVal = ref('Test')
+const inputVal = ref('')
 const lastSearch = ref('')
 const loading = ref(false)
 

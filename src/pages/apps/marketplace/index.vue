@@ -11,7 +11,7 @@
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm">
+    <div class="q-mx-sm q-mt-md">
       <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 
