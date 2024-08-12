@@ -11,8 +11,12 @@
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm q-pt-md">
+    <div class="q-mx-sm">
       <SessionLocationWidget ref="sessionLocationWidget" />
+    </div>
+
+    <div class="q-px-sm q-py-sm">
+      <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -208,6 +212,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
 import MarketplaceHeaderMenu from 'src/components/marketplace/MarketplaceHeaderMenu.vue'
+import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
 
 
 const $q = useQuasar()
