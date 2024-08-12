@@ -33,8 +33,21 @@
         disable
         expand-separator >
           <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-            <div v-for="(field, index) in paymentMethod.values" :key="index" class="row q-pr-sm">
-              {{ field.value }}
+            <div class="col q-pr-sm q-py-xs">
+              <div v-for="(field, index) in paymentMethod.values" :key="index">
+                <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                  {{ field.value }}
+                  <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
+                </div>
+              </div>
+              <div v-for="(field, index) in paymentMethod.dynamic_values" :key="index">
+                  {{ field.fieldname }}
+                  <div class="q-ml-sm text-weight-bold">
+                    {{ dynamicVal(field) }}
+                    <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
+                  </div>
+              </div>
             </div>
           </q-card>
       </q-expansion-item>
@@ -72,13 +85,29 @@ export default {
       return Number((Number(this.order?.crypto_amount) * Number(this.order?.locked_price)).toFixed(2)).toLocaleString()
     }
   },
-  mounted () {
-    console.log('order:', this.order)
-  },
   methods: {
     getDarkModeClass,
     onPaid () {
       this.$emit('confirm-payment')
+    },
+    dynamicVal (field) {
+      if (field.model_ref === 'order') {
+        if (field.field_ref === 'id') {
+          return this.order?.id
+        }
+        if (field.field_ref === 'tracking_id') {
+          return this.order?.tracking_id
+        }
+      }
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
     }
   }
 }
