@@ -100,7 +100,7 @@
 <script setup>
 import { backend } from "src/marketplace/backend";
 import { Product, Storefront } from "src/marketplace/objects";
-import { round } from "src/marketplace/utils";
+import { getISOWithTimezone, round } from "src/marketplace/utils";
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { useStore } from "vuex";
 import { computed, ref } from "vue";
@@ -136,8 +136,11 @@ const filteredStorefronts = computed(() => {
 
 function search() {
   if (!inputVal.value) return
+
+  const openAtTimestamp = Date.now() + 10 * 60 * 1000 // filter stores open in the next 10 minutes
   const data = {
     search: inputVal.value,
+    is_open_at: getISOWithTimezone(new Date(openAtTimestamp)),
     storefront_distance: ($store.getters['marketplace/shopListOpts']?.radius || 30) * 1000,
     delivery_location: {
       lat: props.customerCoordinates.latitude,
