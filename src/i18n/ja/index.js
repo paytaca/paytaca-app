@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "セキュリティチェックに失敗しました",
   SeeBasicWalletInfo: "基本的なウォレット情報を参照してください",
   SeedPhraseShards: "シードフレーズシャード",
-  SeelectAddresses: "このサイトで使用するアドレスを選択します",
+  SelectAddresses: "このサイトで使用するアドレスを選択します",
   Select: "選択する",
   SelectAction: "[アクション]を選択します",
   SelectActiveSession: "アクティブセッションを選択します",

@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "A verificação de segurança falhou",
   SeeBasicWalletInfo: "Veja informações básicas da carteira",
   SeedPhraseShards: "Frase de sementes",
-  SeelectAddresses: "Selecione os endereços a serem usados ​​neste site",
+  SelectAddresses: "Selecione os endereços a serem usados ​​neste site",
   Select: "Selecione",
   SelectAction: "Selecionar ação",
   SelectActiveSession: "Selecione sessão ativa",

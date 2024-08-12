@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "Nabigo ang Security Check",
   SeeBasicWalletInfo: "Tingnan ang pangunahing impormasyon sa pitaka",
   SeedPhraseShards: "Mga shards ng parirala ng binhi",
-  SeelectAddresses: "Piliin ang mga address na gagamitin sa site na ito",
+  SelectAddresses: "Piliin ang mga address na gagamitin sa site na ito",
   Select: "Piliin",
   SelectAction: "Piliin ang Aksyon",
   SelectActiveSession: "Piliin ang Aktibong Session",

@@ -260,7 +260,7 @@ export default {
             this.contractBalance = balance
             resolve(balance)
           })
-          .catch(error => reject(error))
+          .catch(error => { reject(error) })
       })
     },
     async onSubmit () {

@@ -105,6 +105,7 @@ export default {
   methods: {
     isNotDefaultTheme,
     handleSessionEvent () {
+      console.log('handlind session')
       this.showLogin = true
     },
     fetchUser () {

@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "Pemeriksaan keamanan gagal",
   SeeBasicWalletInfo: "Lihat Info Dompet Dasar",
   SeedPhraseShards: "Ungkapan ungkapan benih",
-  SeelectAddresses: "Pilih alamat yang akan digunakan di situs ini",
+  SelectAddresses: "Pilih alamat yang akan digunakan di situs ini",
   Select: "Pilih",
   SelectAction: "Pilih Tindakan",
   SelectActiveSession: "Pilih Sesi Aktif",

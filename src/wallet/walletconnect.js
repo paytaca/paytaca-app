@@ -142,7 +142,7 @@ export function parseWalletConnectUri (uri) {
   }
 
   const matchV1 = String(uri).match(/^wc:([0-9a-f-]{36})@(\d*)(\?(bridge=.*)|(key=[0-9a-f]*))?$/i)
-  const matchV2 = String(uri).match(/^wc:([0-9a-f-]{64})@(\d*)(\?(relay-protocol=.*)|(symKey=[0-9a-f]*))?$/i)
+  const matchV2 = String(uri).match(/^wc:([0-9a-fA-F]{64})@(\d+)\?([a-zA-Z0-9\-._~%!$&'()*+,;=:@/?=&]*)$/i)
   const match = matchV1 || matchV2
 
   if (!match) return

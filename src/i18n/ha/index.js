@@ -1032,7 +1032,7 @@ export default {
   SecurityCheckFailed: "Binciken Tsaro ya gaza",
   SeeBasicWalletInfo: "Dubi ainihin bayanan walat",
   SeedPhraseShards: "Lambar iri Shards",
-  SeelectAddresses: "Zaɓi adiresoshin don amfani akan wannan rukunin yanar gizon",
+  SelectAddresses: "Zaɓi adiresoshin don amfani akan wannan rukunin yanar gizon",
   Select: "Zaɓa",
   SelectAction: "Zaɓi Aiki",
   SelectActiveSession: "Zabi wani taro",

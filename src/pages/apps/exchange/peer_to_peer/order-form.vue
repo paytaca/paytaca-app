@@ -499,7 +499,7 @@ export default {
           })
         vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
       } catch (error) {
-        // console.error(error.response || error)
+        console.error(error.response || error)
         if (error.response) {
           if (error.response.status === 403) {
             bus.emit('session-expired')

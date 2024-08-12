@@ -101,38 +101,34 @@ function changeNetwork(newNetwork = 'BCH') {
 }
 
 onMounted(async () => {
-  if (selectedNetwork.value !== 'BCH') return console.log('Not bch')
-  if (!walletConnectV2.value) return console.log('No v2 component')
-
-  const uriData = parseWalletConnectUri(props.uri)
-  if (uriData?.uri && uriData?.version == '2') {
-    walletConnectV2.value?.connectNewSession?.(uriData.uri)
-  }
-})
-
-onMounted(() => {
-  if (selectedNetwork.value !== 'sBCH') return console.log('Not sbch')
-  if (!walletConnectV1.value) return console.log('No v1 component')
-
-  const uriData = parseWalletConnectUri(props.uri)
-  console.log(uriData)
-  if (uriData?.handshakeTopic && uriData?.key && uriData?.bridge) {
-    if (walletConnectV1.value?.connector?.handshakeTopic !== uriData?.handshakeTopic) {
-      walletConnectV1.value?.disconnectConnector?.()
-    }
-
-    if (!walletConnectV1.value?.connector) {
-      walletConnectV1.value.handshakeUrl = uriData.uri
-      walletConnectV1.value.initHandshake(true)
+  if (selectedNetwork.value === 'BCH') {
+    const uriData = parseWalletConnectUri(props.uri)
+    if (uriData?.uri && uriData?.version == '2') {
+      walletConnectV2.value?.connectNewSession?.(uriData.uri, prompt=false)
     }
   }
 
-  setTimeout(() => {
-    const firstCallRequest = walletConnectV1.value?.callRequests?.[0]
-    if (firstCallRequest && !walletConnectV1.value?.callRequestDialog?.show) {
-      walletConnectV1.value?.showCallRequestInDialog?.(firstCallRequest)
+  if (selectedNetwork.value === 'sBCH') {
+    const uriData = parseWalletConnectUri(props.uri)
+    console.log(uriData)
+    if (uriData?.handshakeTopic && uriData?.key && uriData?.bridge) {
+      if (walletConnectV1.value?.connector?.handshakeTopic !== uriData?.handshakeTopic) {
+        walletConnectV1.value?.disconnectConnector?.()
+      }
+
+      if (!walletConnectV1.value?.connector) {
+        walletConnectV1.value.handshakeUrl = uriData.uri
+        walletConnectV1.value.initHandshake(true)
+      }
     }
-  }, 250)
+
+    setTimeout(() => {
+      const firstCallRequest = walletConnectV1.value?.callRequests?.[0]
+      if (firstCallRequest && !walletConnectV1.value?.callRequestDialog?.show) {
+        walletConnectV1.value?.showCallRequestInDialog?.(firstCallRequest)
+      }
+    }, 250)
+  }
 })
 
 async function refreshPage(done=() => {}) {
