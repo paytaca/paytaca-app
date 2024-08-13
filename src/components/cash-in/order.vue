@@ -18,8 +18,8 @@
     <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline" :class=" darkMode ? 'text-blue-6' : 'text-blue-8'" v-if="newOrder" style="font-size: medium;">
       Create Order
     </div>
-    <div class="row justify-center q-mx-lg q-mt-md">
-      <q-spinner-hourglass v-if="state === 'await_status'" class="col q-pt-sm" color="blue-6" size="3em"/>
+    <div class="row justify-center q-mx-lg q-mt-md" v-if="state === 'await_status'">
+      <q-spinner-hourglass  class="col q-pt-sm" color="blue-6" size="3em"/>
     </div>
   </div>
 </template>
