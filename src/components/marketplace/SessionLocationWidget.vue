@@ -11,10 +11,10 @@
       </q-item-section>
       <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
         <q-item-label v-if="sessionLocation?.name" caption>{{ sessionLocation?.name }}</q-item-label>
-        <!-- <q-item-label v-else caption><i>Set Location</i></q-item-label> -->
-        <q-item-label >
+        <q-item-label v-if="sessionLocation?.formatted && sessionLocation?.validCoordinates">
           {{ sessionLocation?.formatted }}
         </q-item-label>
+        <q-item-label v-else class="text-grey">Set delivery location</q-item-label>
       </q-item-section>
     </q-item>
     <q-dialog v-model="openLocationSelector" position="bottom">
@@ -208,6 +208,7 @@ function setCurrentLocation(opts={ keepSelectorOpen: false, hideDialogOnError: f
     })
     .catch(error => {
       console.error(error)
+      if (typeof error === 'string') error = { errorMessage: error }
       if (opts?.hideDialogOnError) dialog.hide()
       dialog.update({
         title: 'Device location error',

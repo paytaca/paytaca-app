@@ -22,6 +22,7 @@ export async function updateLocation(context, opts={ maxAge: 86400 * 1000, exclu
 
   await geolocationManager.openLocationSettingsIfGpsDisabled().catch(console.error)
   await geolocationManager.updateGeolocationPermission({ request: true, geolocateOnGrant: false})
+  if (geolocationManager.permissionState.value.denied) return Promise.reject('Permission denied')
 
   if (geolocationManager.isGpsStatusEnabled.value == false) return Promise.reject('GPS status is not enabled')
 

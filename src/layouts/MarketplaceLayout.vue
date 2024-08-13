@@ -188,7 +188,7 @@ export default {
               return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
             })
           }
-          $store.dispatch('marketplace/refetchCustomerLocations')
+          await $store.dispatch('marketplace/refetchCustomerLocations')?.catch(console.error)
         } catch(error) {
           reject(error)
         } finally {
@@ -196,6 +196,7 @@ export default {
         }
       })
 
+      bus.emit('marketplace-init-promise', loadAppPromise.value)
       return loadAppPromise.value
         .then(() => {
           initialized.value = true
