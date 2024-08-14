@@ -70,6 +70,7 @@ import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat/objects'
 import { loadRampWallet } from 'src/exchange/wallet'
 import { bus } from 'src/wallet/event-bus'
+import chat from 'src/store/chat'
 
 export default {
   components: {
@@ -163,7 +164,9 @@ export default {
         if (login) {
           await vm.login()
 
-          await loadChatIdentity(payload)
+          const chatIdentity = await loadChatIdentity(payload)
+          vm.$store.commit('ramp/updateChatIdentity', { ref: chatIdentity.ref, chatIdentity: chatIdentity })
+
           await updatePubkeyAndAddress(user)
         }
       } catch (error) {
@@ -362,7 +365,6 @@ export default {
     handleSessionEvent () {
       console.log('handle session event')
       this.fetchUser()
-      return 'hi'
     }
   }
 }
