@@ -171,12 +171,13 @@
 </template>
 <script setup>
 import countriesJson from 'src/assets/countries.json'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { computed, ref, onMounted } from 'vue'
-import { useStore } from 'vuex'
-import { useI18n } from 'vue-i18n'
-import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { geolocationManager } from 'src/boot/geolocation'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
+import { useStore } from 'vuex'
+import { computed, ref, onMounted } from 'vue'
+import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 // dialog plugins requirement
 const emit = defineEmits([
@@ -254,7 +255,34 @@ function resetForm(opts={ clear: false }) {
   branchInfoForm.value.location.latitude = Number(branchData?.location?.latitude) || null
 }
 
-function selectCoordinates(opts={ autoFocusSearch: false }) {
+onMounted(() => {
+  geolocationManager.getOrUpdateGeoIp()
+})
+async function selectCoordinates(opts={ autoFocusSearch: false }) {
+  const initLocation = {
+    latitude: branchInfoForm.value.location.latitude,
+    longitude: branchInfoForm.value.location.longitude,
+    zoom: 18,
+  }
+  if (!initLocation.latitude || !initLocation.longitude) { 
+    const deviceLocation = geolocationManager.location.value?.position
+    if (!deviceLocation?.longitude || !deviceLocation?.latitude) {
+      await geolocationManager.geolocate({ timeout: 3000 }).catch(console.error)
+    }
+    initLocation.latitude = deviceLocation?.latitude
+    initLocation.longitude = deviceLocation?.longitude
+    initLocation.zoom = 16
+  }
+
+  if (!initLocation.latitude || !initLocation.longitude) {
+    initLocation.latitude = geolocationManager.geoip.value?.latitude
+    initLocation.longitude = geolocationManager.geoip.value?.longitude
+    initLocation.zoom = 13
+  }
+
+  if (!initLocation.latitude || !initLocation.longitude) {
+    initLocation.zoom = 12
+  }
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
@@ -264,10 +292,7 @@ function selectCoordinates(opts={ autoFocusSearch: false }) {
         autofocus: opts?.autoFocusSearch,
         forceResults: true,
       },
-      initLocation: {
-        latitude: branchInfoForm.value.location.latitude,
-        longitude: branchInfoForm.value.location.longitude,
-      }
+      initLocation: initLocation,
     }
   })
     .onOk(coordinates => {

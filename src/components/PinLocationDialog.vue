@@ -113,7 +113,7 @@ function initMap() {
   if (Number.isFinite(props.initLocation?.latitude) && Number.isFinite(props.initLocation?.longitude)) {
     mapOptions.center[0] = props.initLocation?.latitude
     mapOptions.center[1] = props.initLocation?.longitude
-    mapOptions.zoom = 18
+    mapOptions.zoom = parseInt(props.initLocation?.zoom) || 18
     autoLocate = false
   }
 
