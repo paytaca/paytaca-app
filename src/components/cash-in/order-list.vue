@@ -5,11 +5,15 @@
     </div>
     <!-- <q-card flat bordered class="q-mx-md "> -->
       <div ref="scrollTargetRef" class="q-mt-lg q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;" v-if="!loading">
+        <div class="text-center" v-if="orders.length === 0">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+        </div>
         <!-- <q-card flat bordered> -->
           <q-infinite-scroll
             @load="loadMoreData"
             :scroll-target="scrollTargetRef"
-            :offset="0">
+            :offset="0" v-else>
             <template v-slot:loading>
               <div class="row justify-center q-my-md">
                 <q-spinner-dots color="primary" size="40px" />

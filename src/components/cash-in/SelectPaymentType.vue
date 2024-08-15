@@ -7,7 +7,11 @@
       {{ selectedCurrency.symbol }} <q-icon name="mdi-menu-down"/>
     </div>
 
-    <q-card flat bordered class="q-mt-sm q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+    <div class="text-center q-pt-md" v-if="options.length === 0">
+      <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+      <p style="font-size: medium;">No Payment Type<br>Available... ☹</p>
+    </div>
+    <q-card flat bordered class="q-mt-sm q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" v-else>
       <q-virtual-scroll :items="options" style="max-height: 40vh;">
         <template v-slot="{ item: method, index }">
           <q-item clickable @click="selectPaymentType(method)" :key="index">
