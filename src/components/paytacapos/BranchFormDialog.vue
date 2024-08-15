@@ -214,7 +214,7 @@ const branchInfoForm = ref({
     city: '',
     country: '',
     longitude: null,
-    langitude: null,
+    longitude: null,
   }
 })
 const countriesOpts = computed(() => {
@@ -279,10 +279,10 @@ function selectCoordinates(opts={ autoFocusSearch: false }) {
       const components = coordinates.components
       const current = branchInfoForm.value.location
 
-      const emptyOrNotEqual = (initialVal, newVal) => !initialVal || initialVal != newVal
-      const replaceAddressDetails = emptyOrNotEqual(current?.country, components?.country) ||
-                                    emptyOrNotEqual(current?.city, components?.city) ||
-                                    emptyOrNotEqual(current?.street, components?.street)
+      const emptyOrEqual = (initialVal, newVal) => !initialVal || initialVal == newVal
+      const replaceAddressDetails = emptyOrEqual(current?.country, components?.country) &&
+                                    emptyOrEqual(current?.city, components?.city) &&
+                                    emptyOrEqual(current?.street, components?.street)
 
       if (!replaceAddressDetails) return
 

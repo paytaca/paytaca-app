@@ -99,6 +99,7 @@ const computedInnerVal = computed(() => {
 const mapUid = computed(() => `leaflet-map-${uid.value}`)
 const map = ref(null)
 const pin = ref(null)
+const moved = ref(false)
 onMounted(() => {
   setTimeout(() => initMap(), 250)
 })
@@ -130,9 +131,12 @@ function initMap() {
   pin.value = markRaw(_pin)
   map.value = markRaw(_map)
 
-  _map.on('move', () => updateCoordinates())
+  _map.on('move', () => {
+    moved.value = true
+    updateCoordinates()
+  })
   if (!props.disableGeolocate && autoLocate && !props.static) {
-    _map.locate({setView: true, maxZoom: 16})
+    _map.locate({setView: true, maxZoom: 16, timeout: 3000 })
     _map.on('locationfound', () => updateCoordinates())
   }
 
@@ -163,7 +167,11 @@ function updateCoordinates() {
   coordinates.value.lng = Number(newCoordinates.lng.toFixed(6))
   pin.value.setLatLng(newCoordinates)
 
-  if (props.search?.enable && props.search?.forceResults && !searchResultValid.value) {
+  if (moved.value &&
+      props.search?.enable &&
+      props.search?.forceResults &&
+      !searchResultValid.value
+  ) {
     reverseGeocode()
   }
 }
