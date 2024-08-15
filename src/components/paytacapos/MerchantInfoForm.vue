@@ -50,7 +50,16 @@
         :dark="darkMode"
         :label="$t('Address', {}, 'Address')"
         v-model="merchantInfoForm.location.location"
-      />
+      >
+        <template v-slot:append>
+          <q-btn
+            flat
+            padding="sm"
+            icon="search"
+            @click="() => selectCoordinates({ autoFocusSearch: true })"
+          />
+        </template>
+      </q-input>
       <q-input
         outlined
         dense
@@ -235,12 +244,15 @@ function resetForm(opts={ clear: false }) {
   merchantInfoForm.value.location.latitude = Number(merchantData?.location?.latitude) || null
 }
 
-function selectCoordinates() {
+function selectCoordinates(opts={ autoFocusSearch: false }) {
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
-      withSearch: true,
       disableGeolocate: true,
+      search: {
+        enable: true,
+        autofocus: opts?.autoFocusSearch,
+      },
       initLocation: {
         latitude: merchantInfoForm.value.location.latitude,
         longitude: merchantInfoForm.value.location.longitude,

@@ -11,11 +11,12 @@
           class="close-button"
         />
       </div>
-      <div :id="mapUid" class="leaflet-map" style="height:75vh;width:100%;">
+      <div :id="mapUid" class="leaflet-map" style="height:70vh;width:100%;">
       </div>
       <div v-if="searchResultValid && searchResult?.label" class="text-center ellipsis q-px-md">
         {{ searchResult?.label }}
       </div>
+      <div v-else>&nbsp;</div>
       <div class="text-center row items-center justify-center text-subtitle1 ellipsis">
         <q-icon name="location_on"/> {{ coordinates?.lat }}, {{ coordinates?.lng }}
       </div>
@@ -46,6 +47,7 @@ import { useDialogPluginComponent } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex';
 import { computed, getCurrentInstance, inject, markRaw, onMounted, ref, watch } from 'vue';
+import { geolocationManager } from 'src/boot/geolocation';
 
 // dialog plugins requirement
 defineEmits([
@@ -67,8 +69,16 @@ const props = defineProps({
   static: Boolean,
   hideCancel: Boolean,
   markerIcon: Object,
-  withSearch: Boolean,
-  focusSearch: Boolean,
+  search: {
+    default: () => {
+      return {
+        enable: false,
+        autofocus: false,
+        limitPanToSearchResult: true,
+        forceResults: false,
+      }
+    }
+  },
   disableGeolocate: Boolean,
 })
 
@@ -128,10 +138,9 @@ function initMap() {
   }
   updateCoordinates()
 
-  console.log({ props })
-  if(!props.static && props.withSearch) {
+  if(!props.static && props.search?.enable) {
     addSearch()
-    if (props.focusSearch) {
+    if (props.search?.autofocus) {
       document.getElementsByClassName('pin-dialog-search-input')?.item(0)?.focus?.()
     }
   }
@@ -152,6 +161,8 @@ function updateCoordinates() {
   pin.value.setLatLng(newCoordinates)
 }
 
+
+const searchControl = ref()
 function addSearch() {
   const search = new GeoSearchControl({
     provider: new OpenStreetMapProvider({
@@ -159,20 +170,21 @@ function addSearch() {
         'accept-language': $store.getters['global/language'],
         countrycodes: $store.getters['global/country']?.code, // limit search results to the Netherlands
         addressdetails: 1,
+        featureType: 'settlement',
       }
     }),
-    // provider: new GoogleProvider({
-    //   apiKey: 'asdfasd',
-    //   language: $store.getters['global/language'],
-    //   // region: $store.getters['global/country']?.code, // limit search results to the Netherlands
-    // }),
-    notFoundMessage: 'Sorry, that address could not be found.',
+    searchLabel: $t('SearchAddress', {}, 'Search address'),
+    clearSearchLabel: $t('ClearSearch', {}, 'Clear search'),
+    notFoundMessage: $t('AddressCouldNotBeFound', {}, 'Sorry, that address could not be found.'),
     style: 'bar',
     showMarker: false,
     classNames: {
       input: 'pin-dialog-search-input',
+      item: 'pin-dialog-search-result-item ellipsis-2-lines',
+      notfound: 'pin-dialog-search-not-found',
     }
   });
+  searchControl.value = search
 
   map.value.addControl(search);
   map.value.on('geosearch/showlocation', handleSearchResult);
@@ -246,5 +258,20 @@ function handleSearchResult(result) {
 ::v-deep .leaflet-map .leaflet-control-geosearch input.pin-dialog-search-input {
   background-color: white;
   color: black;
+}
+
+::v-deep .leaflet-map .leaflet-control-geosearch .pin-dialog-search-result-item {
+  white-space: normal;
+  border-left: 2px solid currentColor;
+  margin-bottom: 4px;
+  // overflow: unset;
+  // text-overflow: unset;
+  // border-bottom: 2px solid black;
+}
+::v-deep .leaflet-map .leaflet-control-geosearch .pin-dialog-search-not-found {
+  color: grey;
+  white-space: normal;
+  overflow: unset;
+  text-overflow: unset;
 }
 </style>

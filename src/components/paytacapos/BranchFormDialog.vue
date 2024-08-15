@@ -62,7 +62,16 @@
               :dark="darkMode"
               :label="$t('Address', {}, 'Address')"
               v-model="branchInfoForm.location.location"
-            />
+            >
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  padding="sm"
+                  icon="search"
+                  @click="() => selectCoordinates({ autoFocusSearch: true })"
+                />
+              </template>
+            </q-input>
             <q-input
               outlined
               dense
@@ -245,12 +254,15 @@ function resetForm(opts={ clear: false }) {
   branchInfoForm.value.location.latitude = Number(branchData?.location?.latitude) || null
 }
 
-function selectCoordinates() {
+function selectCoordinates(opts={ autoFocusSearch: false }) {
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
-      withSearch: true,
       disableGeolocate: true,
+      search: {
+        enable: true,
+        autofocus: opts?.autoFocusSearch,
+      },
       initLocation: {
         latitude: branchInfoForm.value.location.latitude,
         longitude: branchInfoForm.value.location.longitude,
