@@ -183,9 +183,9 @@ function addSearch() {
     provider: new OpenStreetMapProvider({
       params: {
         'accept-language': $store.getters['global/language'],
-        countrycodes: $store.getters['global/country']?.code, // limit search results to the Netherlands
+        // countrycodes: $store.getters['global/country']?.code,
         addressdetails: 1,
-        featureType: 'settlement',
+        featureType: 'road',
       }
     }),
     searchLabel: $t('SearchAddress', {}, 'Search address'),
