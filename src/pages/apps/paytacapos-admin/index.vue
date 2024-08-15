@@ -35,14 +35,12 @@
         class="pos-merchant-list-item"
         style="position:relative;"
       >
-        <q-btn
-          flat
-          padding="sm"
-          icon="more_vert"
-          class="float-right"
-          @click.stop
+        <q-menu
+          class="pt-card-2 text-bow"
+          :class="getDarkModeClass(darkMode)"
+          touch-position
         >
-          <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+          <div style="min-width:min(35vw, 150px);">
             <q-item
               clickable v-close-popup
               @click="() => openMerchantPage(merchantData)"
@@ -67,8 +65,8 @@
                 <q-item-label>{{ $t('Delete') }}</q-item-label>    
               </q-item-section>
             </q-item>
-          </q-menu>
-        </q-btn>
+          </div>
+        </q-menu>
         <div class="text-body1">
           {{ merchantData?.name }}
           <span v-if="merchantData?.id" class="text-grey">#{{ merchantData?.id }}</span>
