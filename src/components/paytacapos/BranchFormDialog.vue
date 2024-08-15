@@ -262,6 +262,7 @@ function selectCoordinates(opts={ autoFocusSearch: false }) {
       search: {
         enable: true,
         autofocus: opts?.autoFocusSearch,
+        forceResults: true,
       },
       initLocation: {
         latitude: branchInfoForm.value.location.latitude,

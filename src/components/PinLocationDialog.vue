@@ -16,6 +16,9 @@
       <div v-if="searchResultValid && searchResult?.label" class="text-center ellipsis q-px-md">
         {{ searchResult?.label }}
       </div>
+      <div v-else-if="reverseGeocoding" class="text-grey text-center">
+        <q-spinner/>
+      </div>
       <div v-else>&nbsp;</div>
       <div class="text-center row items-center justify-center text-subtitle1 ellipsis">
         <q-icon name="location_on"/> {{ coordinates?.lat }}, {{ coordinates?.lng }}
@@ -43,7 +46,7 @@
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { OpenStreetMapProvider, GeoSearchControl } from 'leaflet-geosearch';
-import { useDialogPluginComponent } from 'quasar'
+import { debounce, useDialogPluginComponent } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex';
 import { computed, getCurrentInstance, inject, markRaw, onMounted, ref, watch } from 'vue';
@@ -75,7 +78,7 @@ const props = defineProps({
         enable: false,
         autofocus: false,
         limitPanToSearchResult: true,
-        forceResults: false,
+        forceResults: true,
       }
     }
   },
@@ -159,6 +162,10 @@ function updateCoordinates() {
   coordinates.value.lat = Number(newCoordinates.lat.toFixed(6))
   coordinates.value.lng = Number(newCoordinates.lng.toFixed(6))
   pin.value.setLatLng(newCoordinates)
+
+  if (props.search?.enable && props.search?.forceResults && !searchResultValid.value) {
+    reverseGeocode()
+  }
 }
 
 
@@ -234,6 +241,7 @@ const searchResultAddressDetails = computed(() => {
 })
 
 const searchResult = ref({
+  isReverseGeocode: false,
   lat: 0,
   lng: 0,
   bounds: [ [0, 0], [0,0] ],
@@ -242,6 +250,7 @@ const searchResult = ref({
 })
 function handleSearchResult(result) {
   searchResult.value = {
+    isReverseGeocode: result?.isReverseGeocode,
     bounds: result?.location?.bounds,
     lat: result?.location?.y,
     lng: result?.location?.x,
@@ -249,6 +258,28 @@ function handleSearchResult(result) {
     raw: result?.location?.raw,
   }
 }
+
+const reverseGeocoding = ref(false)
+async function reverseGeocode() {
+  if (searchResultValid.value) return
+
+  const provider = searchControl.value?.options?.provider
+  if (!provider) return
+
+  try {
+    reverseGeocoding.value = true
+  
+    const _searchResult = await provider.search({
+      query: `${coordinates.value.lat},${coordinates.value.lng}`,
+      limit: 1,
+    })
+    const result = _searchResult?.[0]
+    handleSearchResult({ location: result, isReverseGeocode: true })
+  } finally {
+    reverseGeocoding.value = false
+  }
+}
+reverseGeocode = debounce(reverseGeocode, 500)
 </script>
 <style lang="scss" scoped>
 ::v-deep .leaflet-map .leaflet-control-geosearch {
