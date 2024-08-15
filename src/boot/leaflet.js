@@ -1,6 +1,7 @@
 import { boot } from 'quasar/wrappers'
 
 export default boot(({ app }) => { 
+  require('leaflet-geosearch/dist/geosearch.css');
   require('leaflet/dist/leaflet.css')
   app.config.globalProperties.$leaflet = require('leaflet')
   app.provide('$leaflet', app.config.globalProperties.$leaflet)

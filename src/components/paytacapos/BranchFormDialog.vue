@@ -249,6 +249,8 @@ function selectCoordinates() {
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
+      withSearch: true,
+      disableGeolocate: true,
       initLocation: {
         latitude: branchInfoForm.value.location.latitude,
         longitude: branchInfoForm.value.location.longitude,
@@ -258,6 +260,24 @@ function selectCoordinates() {
     .onOk(coordinates => {
       branchInfoForm.value.location.longitude = coordinates.lng
       branchInfoForm.value.location.latitude = coordinates.lat
+
+      if (!coordinates?.components) return console.log('No components')
+
+      const components = coordinates.components
+      const current = branchInfoForm.value.location
+
+      const emptyOrNotEqual = (initialVal, newVal) => !initialVal || initialVal != newVal
+      const replaceAddressDetails = emptyOrNotEqual(current?.country, components?.country) ||
+                                    emptyOrNotEqual(current?.city, components?.city) ||
+                                    emptyOrNotEqual(current?.street, components?.street)
+
+      if (!replaceAddressDetails) return
+
+      branchInfoForm.value.location.location = components.address1
+      branchInfoForm.value.location.landmark = components.address2
+      branchInfoForm.value.location.street = components.street
+      branchInfoForm.value.location.city = components.city
+      branchInfoForm.value.location.country = components.country
     })
 }
 
