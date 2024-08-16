@@ -1,5 +1,5 @@
 <template>
- <div class="q-mx-md">
+ <div class="q-mx-md" v-if="!confirmCancel">
     <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-lg q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
       {{ order?.id ? `Order #${order?.id}` : ''}}
     </div>
@@ -26,8 +26,20 @@
     <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline" :class=" darkMode ? 'text-blue-6' : 'text-blue-8'" v-if="newOrder" style="font-size: medium;">
       Create Order
     </div>
-    <div class="row justify-center q-mx-lg q-mt-md" v-if="state === 'await_status'">
+    <div class="row justify-center q-mx-lg q-mt-xs" v-if="state === 'await_status'">
       <q-spinner-hourglass  class="col q-pt-sm" color="blue-6" size="3em"/>
+    </div>
+    <div v-if="hasCancel" class="row justify-center q-pt-md">
+      <q-btn rounded outline dense label="Cancel" color="primary" class="q-px-lg" @click="confirmCancel = true"/>
+    </div>
+  </div>
+  <div v-if="confirmCancel">
+    <div class="row justify-center q-mx-md q-mt-lg q-pt-lg" style="font-size: 25px;">
+      Cancel this Order?
+    </div>
+    <div class="row q-pt-sm q-mx-lg q-px-lg">
+      <q-btn outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="confirmCancel = false"/>
+      <q-btn outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
     </div>
   </div>
 </template>
@@ -48,6 +60,7 @@ export default {
       paymentConfirmationKey: 0,
       order: null,
       newOrder: false,
+      confirmCancel: false,
       uploading: false
     }
   },
@@ -63,6 +76,10 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    hasCancel () {
+      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'PD_PN']
+      return stat.includes(this.order?.status.value)
     }
   },
   components: {
