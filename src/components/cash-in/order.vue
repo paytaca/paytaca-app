@@ -3,7 +3,15 @@
     <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-lg q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
       {{ order?.id ? `Order #${order?.id}` : ''}}
     </div>
-    <payment-confirmation v-if="state === 'confirm_payment'" :key="paymentConfirmationKey" :order="order" @confirm-payment="$emit('confirm-payment')"/>
+    <payment-confirmation
+      v-if="state === 'confirm_payment'"
+      :key="paymentConfirmationKey"
+      :order="order"
+      :uploading="uploading"
+      @upload="uploadAttachment"
+      @delete="deleteAttachment"
+      @confirm-payment="$emit('confirm-payment')"
+      @refetch-order="fetchOrder"/>
     <div v-else class="text-center" style="font-size: 25px;">
       <!-- Order Info -->
       <!-- <div v-if="state === 'await_status'"> -->
@@ -39,7 +47,8 @@ export default {
       status: null,
       paymentConfirmationKey: 0,
       order: null,
-      newOrder: false
+      newOrder: false,
+      uploading: false
     }
   },
   emits: ['confirm-payment', 'new-order'],
@@ -92,7 +101,6 @@ export default {
               // bus.emit('session-expired')
             }
           } else {
-            // bus.emit('network-error')
             bus.emit('network-error')
           }
         })
@@ -132,6 +140,34 @@ export default {
           this.statusMessage = 'We\'re unable to fulfill this transaction \n Please try again with a new order'
           this.newOrder = true
       }
+    },
+    async deleteAttachment (attachmentId) {
+      console.log('onDeleteAttachment')
+      await backend.post(
+        '/ramp-p2p/order/payment/attachment/delete', { attachment_id: attachmentId }, { authorize: true })
+        .then(response => {
+          console.log(response)
+          this.fetchOrder()
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
+    },
+    async uploadAttachment (data) {
+      this.uploading = true
+      await backend.post(
+        '/ramp-p2p/order/payment/attachment/upload',
+        data, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
+        .then(response => {
+          console.log(response)
+          this.fetchOrder()
+          // refetch order
+          // this.attachment.url = response.data.image?.url
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
+      this.uploading = false
     }
   }
 }
