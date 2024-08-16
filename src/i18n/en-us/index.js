@@ -235,7 +235,7 @@ export default {
   ConfirmCheckboxText: "I confirm that I already saved the screenshots to my device.",
   ConfirmMutualRedemptionProposal: "Confirm mutual redemption proposal",
   ConfirmOrder: "Confirm Order?",
-  ConfirmPayment: "ConfirmPayment",
+  ConfirmPayment: "Confirm Payment",
   ConfirmPin: "Confirm PIN",
   ConfirmSwap: "Confirm Swap",
   Confirmation: "Confirmation",

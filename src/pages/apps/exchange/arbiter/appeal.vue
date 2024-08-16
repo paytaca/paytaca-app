@@ -81,12 +81,12 @@
         </div>
       </q-pull-to-refresh>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
-    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" :clickable-ads="false" @back="showPeerProfile=false"/>
     <ChatDialog v-if="openChat" :order="appealDetailData?.order" @close="openChat=false"/>
   </div>
 </template>
 <script>
-import RampContract from 'src/wallet/ramp/contract'
+import RampContract from 'src/exchange/contract'
 import AppealDetail from 'src/components/ramp/appeal/AppealDetail.vue'
 import AppealTransfer from 'src/components/ramp/appeal/AppealTransfer.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
@@ -96,10 +96,10 @@ import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.
 import ChatDialog from 'src/components/ramp/fiat/dialogs/ChatDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { fetchChatMembers } from 'src/wallet/ramp/chat'
-import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
+import { fetchChatMembers } from 'src/exchange/chat'
+import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { ref } from 'vue'
 
 export default {
@@ -149,20 +149,12 @@ export default {
       previousRoute: null
     }
   },
-  props: {
-    // orderId: String
-    // initWallet: Object,
-    // notifType: {
-    //   type: String,
-    //   default: ''
-    // }
-  },
   emits: ['back', 'updatePageName'],
   computed: {
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 140
       if (this.state === 'form') {
-        height = height - 90
+        height = height - 115
       }
       return height
     },

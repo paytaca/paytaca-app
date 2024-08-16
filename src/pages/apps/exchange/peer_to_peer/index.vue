@@ -14,14 +14,15 @@ import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { loadRampWallet } from 'src/exchange/wallet'
+import { mainWebSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      websocket: null,
       network: 'BCH',
       menu: 'store',
       isLoading: true,
@@ -37,7 +38,8 @@ export default {
         unreadOrdersCount: 0
       },
       showLogin: false,
-      previousRoute: null
+      previousRoute: null,
+      reconnectWebsocket: true
     }
   },
   components: {
@@ -60,6 +62,9 @@ export default {
     })
   },
   beforeRouteLeave (to, from, next) {
+    if (to.name === 'apps-dashboard') {
+      mainWebSocketManager.closeConnection(false)
+    }
     switch (from.name) {
       case 'p2p-store':
       case 'p2p-ads':
@@ -68,6 +73,7 @@ export default {
         switch (to.name) {
           case 'p2p-order':
           case 'exchange':
+            mainWebSocketManager.closeConnection(false)
             next('/apps')
             break
           default:
@@ -83,7 +89,6 @@ export default {
     bus.on('show-menu', this.showMenu)
     bus.on('update-unread-count', this.updateUnreadCount)
     bus.on('session-expired', this.handleSessionEvent)
-    // bus.on('relogged', this.refreshPage)
   },
   async mounted () {
     this.isLoading = false
@@ -92,6 +97,7 @@ export default {
     //   this.currentPage = 'FiatOrders'
     // }
     this.fetchUser()
+    this.setupWebsocket()
   },
   async beforeUnmount () {
     this.$store.commit('ramp/resetPaymentTypes')
@@ -130,6 +136,47 @@ export default {
     },
     updateUnreadCount (count) {
       this.footerData.unreadOrdersCount = count
+    },
+    handleNewOrder (order) {
+      const currency = this.$store.getters['ramp/ordersCurrency']
+      const filters = this.$store.getters['ramp/ongoingOrderFilters'](currency || 'All')
+      // filter the new order
+      let filterCheck = false
+      if ((currency === 'All' || order.ad.fiat_currency.symbol === currency) &&
+              filters.not_appealable && filters.ownership.notOwned && !filters.queryname) {
+        filterCheck = true
+      }
+      let tradeTypeCheck = false
+      if ((order.ad.trade_type === 'BUY' && filters.trade_type.buy) || (order.ad.trade_type === 'SELL' && filters.trade_type.sell)) {
+        tradeTypeCheck = true
+      }
+      const statusCheck = filters.status.includes(order.status.value)
+      const timeLimitCheck = filters.time_limits.includes(Number(order.ad.appeal_cooldown))
+
+      let addToList = false
+      if (filterCheck && tradeTypeCheck && statusCheck && timeLimitCheck) {
+        addToList = true
+      }
+      // NB: this does not filter by payment types
+      if (addToList) {
+        const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
+        if (filters.sort_type === 'descending') {
+          ongoingOrders.unshift(order)
+        } else {
+          ongoingOrders.push(order)
+        }
+        this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
+      }
+    },
+    setupWebsocket () {
+      const wsUrl = `${getBackendWsUrl()}general/${loadRampWallet().walletHash}/`
+      mainWebSocketManager.setWebSocketUrl(wsUrl)
+      mainWebSocketManager.subscribeToMessages((message) => {
+        bus.emit('update-unread-count', message?.extra?.unread_count)
+        if (message.type === 'NEW_ORDER') {
+          this.handleNewOrder(message?.extra?.order)
+        }
+      })
     }
   }
 }

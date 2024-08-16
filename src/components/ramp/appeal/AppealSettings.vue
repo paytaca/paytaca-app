@@ -49,7 +49,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ConfirmationDialog from './ConfirmationDialog.vue'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
@@ -132,8 +132,8 @@ export default {
             } else {
               bus.emit('network-error')
             }
-            reject(error)
-          })
+             reject(error)
+            })
       })
     },
     onSetActive () {

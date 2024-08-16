@@ -265,7 +265,7 @@
 </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/exchange/wallet'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import {
@@ -280,15 +280,15 @@ import {
   updateChatIdentity,
   updateLastRead,
   generateChatIdentityRef
-} from 'src/wallet/ramp/chat'
-import { ChatMessage } from 'src/wallet/ramp/chat/objects'
-import { formatDate } from 'src/wallet/ramp'
+} from 'src/exchange/chat'
+import { ChatMessage } from 'src/exchange/chat/objects'
+import { formatDate } from 'src/exchange'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
-import { getKeypair } from 'src/wallet/ramp/chat/keys'
+import { backend } from 'src/exchange/backend'
+import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -539,8 +539,12 @@ export default {
       let createSession = false
       await fetchChatSession(vm.chatRef)
         .catch(error => {
-          if (error.response?.status === 404) {
-            createSession = true
+          if (error.response) {
+            if (error.response?.status === 404) {
+              createSession = true
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
       await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
@@ -572,14 +576,7 @@ export default {
           .then(members => {
             // if mismatched name
             vm.chatMembers = members.map(member => {
-              // const name = this.$store.getters['ramp/getUser'].name
-              // if ((name !== member.chat_identity.name) && (member.chat_identity.ref === vm.chatIdentity.ref)) {
-              //   const payload = {
-              //     id: vm.chatIdentity.id,
-              //     name: name
-              //   }
-              //   updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
-              // }
+              const name = this.$store.getters['ramp/getUser'].name
 
               return {
                 id: member.chat_identity.id,

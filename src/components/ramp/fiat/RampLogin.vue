@@ -58,14 +58,14 @@
   </q-dialog>
 </template>
 <script>
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
-import { getKeypair, getDeviceId } from 'src/wallet/ramp/chat/keys'
-import * as chatUtils from 'src/wallet/ramp/chat'
-import { updateSignerData, signRequestData } from 'src/wallet/ramp/chat/backend'
-import { backend } from 'src/wallet/ramp/backend'
+import * as chatUtils from 'src/exchange/chat'
+import { loadRampWallet } from 'src/exchange/wallet'
+import { getKeypair, getDeviceId } from 'src/exchange/chat/keys'
+import { updateSignerData, signRequestData } from 'src/exchange/chat/backend'
+import { backend } from 'src/exchange/backend'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
-import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/wallet/ramp/auth'
+import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'

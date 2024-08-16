@@ -59,7 +59,7 @@
           </q-input>
         </div>
         <!-- Payment methods -->
-        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-mx-md q-px-sm q-pt-sm">
+        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-px-xs q-pt-sm">
           <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
             <div class="text-center sm-font-size q-mx-md q-mb-sm">
             <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
@@ -75,16 +75,23 @@
                     :default-opened=true
                     :label="method.payment_type"
                     expand-separator >
-                    <q-card>
-                      <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                          <div class="col q-pr-sm q-py-xs">
-                            <div>{{ method.account_name }}</div>
-                            <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
-                              {{ method.account_identifier }}
-                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
-                            </div>
+                    <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                      <div class="col q-pr-sm q-py-xs">
+                        <div v-for="(field, index) in method.values" :key="index">
+                          <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                          <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                            {{ field.value }}
+                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                           </div>
-                      </q-card>
+                        </div>
+                        <div v-for="(field, index) in method.dynamic_values" :key="index">
+                          {{ field.fieldname }}
+                          <div class="q-ml-sm text-weight-bold">
+                            {{ dynamicVal(field) }}
+                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
+                          </div>
+                      </div>
+                      </div>
                     </q-card>
                   </q-expansion-item>
                 </q-card>
@@ -94,7 +101,7 @@
         </div>
         <!-- Instruction message -->
         <div
-          class="row q-mx-md q-px-md q-pt-sm text-center sm-font-size"
+          class="row q-px-md q-pt-sm text-center sm-font-size"
           style="overflow-wrap: break-word;">
           <div v-if="hasLabel" class="row">
             <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
@@ -141,10 +148,7 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <AppealForm
-      :order="data?.order"
-      @back="openDialog = false"
-      />
+    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" />
     <!-- <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
@@ -183,16 +187,16 @@ import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackForm from './dialogs/FeedbackForm.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      nickname: this.$store.getters['ramp/getUser'].name,
+      nickname: this.$store.getters['ramp/getUser']?.name,
       appeal: null,
       isloaded: false,
       appealCountdown: null,
@@ -223,16 +227,16 @@ export default {
     arbiterName () {
       return this.data?.arbiter?.name
     },
-    // instructionMessage () {
-    //   const status = this.data?.order?.status?.value
-    //   if (!status) return
-    //   switch (status) {
-    //     case 'SBM':
-    //       return 'Please wait for the order to be confirmed.'
-    //     default:
-    //       return null
-    //   }
-    // },
+    orderUserType () {
+      const vm = this
+      let userType = null
+      if (vm.data?.ad?.trade_type === 'SELL') {
+        userType = vm.data?.order.is_ad_owner ? 'seller' : 'buyer'
+      } else if (vm.data?.ad?.trade_type === 'BUY') {
+        userType = vm.data?.order.is_ad_owner ? 'buyer' : 'seller'
+      }
+      return userType
+    },
     appealBtnLabel () {
       if (this.appealCountdown) return this.$t('AppealableInSeconds', { countdown: this.appealCountdown }, `Appealable in ${this.appealCountdown}`)
       return this.$t('SubmitAnAppeal')
@@ -318,12 +322,12 @@ export default {
 
       switch (tradeType) {
         case 'SELL':
-          adOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
-          orderOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          adOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
+          orderOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
           break
         case 'BUY':
-          adOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
-          orderOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          adOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
+          orderOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
           break
       }
 
@@ -354,6 +358,16 @@ export default {
       this.fetchContractBalance()
       this.lockedPrice = this.formatCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
       this.feedback = this.data.feedback
+    },
+    dynamicVal (field) {
+      if (field.model_ref === 'order') {
+        if (field.field_ref === 'id') {
+          return this.data?.order?.id
+        }
+        if (field.field_ref === 'tracking_id') {
+          return this.data?.order?.tracking_id
+        }
+      }
     },
     fetchAppeal () {
       const vm = this
@@ -424,7 +438,6 @@ export default {
       this.$emit('submitAppeal', data)
     },
     onSubmitFeedback (feedback) {
-      console.log('onSubmitFeedback:', feedback)
       this.feedback = feedback
     },
     startAppealCountdown () {

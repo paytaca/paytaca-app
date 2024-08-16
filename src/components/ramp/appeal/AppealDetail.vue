@@ -143,10 +143,10 @@ import TransactionHistoryDialog from 'src/components/ramp/appeal/dialogs/Transac
 import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
-import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/wallet/ramp'
+import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { backend } from 'src/exchange/backend'
+import { loadRampWallet } from 'src/exchange/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {

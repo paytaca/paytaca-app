@@ -1,3 +1,7 @@
+// export function updateWebsocket (state, data) {
+//   state.websocket = data
+// }
+
 export function updateStoreBuyFilters (state, { filters = {}, currency = null }) {
   if (!currency) return (() => { state.storeBuyFilters = {} })()
   state.storeBuyFilters[currency] = filters
@@ -331,6 +335,26 @@ export function resetOrdersData (state) {
 }
 
 // ~ orders mutations ~ //
+
+/** cashin orders */
+export function updateCashinOrders (state, { overwrite = false, data }) {
+  if (overwrite) state.cashinOrders = []
+  state.cashinOrders.push(...data.orders)
+  state.cashinOrdersTotalPages = data.total_pages
+}
+
+export function incCashinOrdersPage (state) {
+  state.cashinOrdersPageNumber++
+}
+
+export function resetCashinOrdersPagination (state) {
+  state.cashinOrdersPageNumber = null
+  state.cashinOrdersTotalPages = null
+}
+
+export function resetCashinOrdersData (state) {
+  state.cashinOrders = []
+}
 
 // ~ appeals mutations ~ //
 export function updatePendingAppeals (state, { overwrite = false, data }) {

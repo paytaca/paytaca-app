@@ -57,7 +57,7 @@
         </q-input>
       </div>
     </div>
-    <div class="q-mx-md q-px-sm q-pt-sm">
+    <div class="q-mx-md q-px-xs q-pt-sm">
       <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
         <div class="text-center sm-font-size q-mx-md q-mb-sm">
         <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
@@ -66,7 +66,7 @@
       </div>
       <div class="full-width">
         <div v-for="(method, index) in paymentMethods" :key="index">
-          <div class="q-px-sm q-py-xs">
+          <div class="q-py-xs">
             <q-card flat bordered :dark="darkMode">
               <q-expansion-item
                 class="pt-card text-bow"
@@ -74,19 +74,26 @@
                 :default-opened=true
                 :label="method.payment_type"
                 expand-separator >
-                <q-card>
-                  <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                      <div class="col q-pr-sm q-py-xs">
-                        <div>{{ method.account_name }}</div>
-                        <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
-                          {{ method.account_identifier }}
-                          <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
+                <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                  <div class="col q-pr-sm q-py-xs">
+                    <div v-for="(field, index) in method.values" :key="index">
+                      <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                      <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                        {{ field.value }}
+                        <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
+                      </div>
+                    </div>
+                    <div v-for="(field, index) in method.dynamic_values" :key="index">
+                        {{ field.fieldname }}
+                        <div class="q-ml-sm text-weight-bold">
+                          {{ dynamicVal(field) }}
+                          <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
                         </div>
-                      </div>
-                      <div v-if="data?.type !== 'seller'">
-                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
-                      </div>
-                  </q-card>
+                    </div>
+                  </div>
+                  <div v-if="data?.type !== 'seller'">
+                    <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
+                  </div>
                 </q-card>
               </q-expansion-item>
             </q-card>
@@ -155,18 +162,14 @@
   }"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
-  <AppealForm
-  v-if="showAppealForm"
-  :order="order"
-  @back="showAppealForm = false"
-  />
+  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
-import { formatCurrency } from 'src/wallet/ramp'
+import { backend } from 'src/exchange/backend'
+import { formatCurrency } from 'src/exchange'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -253,6 +256,16 @@ export default {
       })
       vm.fetchContractBalance()
       vm.lockedPrice = this.formatCurrency(vm.data.order?.locked_price, vm.data.order?.ad?.fiat_currency?.symbol)
+    },
+    dynamicVal (field) {
+      if (field.model_ref === 'order') {
+        if (field.field_ref === 'id') {
+          return this.order.id
+        }
+        if (field.field_ref === 'tracking_id') {
+          return this.order.tracking_id
+        }
+      }
     },
     fetchContractBalance () {
       const vm = this

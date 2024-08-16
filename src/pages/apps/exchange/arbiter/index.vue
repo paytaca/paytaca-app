@@ -7,8 +7,8 @@
 import AppealFooterMenu from 'src/components/ramp/appeal/AppealFooterMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { getBackendWsUrl } from 'src/exchange/backend'
+import { loadRampWallet } from 'src/exchange/wallet'
 // import {isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
