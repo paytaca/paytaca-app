@@ -78,7 +78,18 @@
       </div>
       <div v-else class="text-center q-mt-md" style="font-style: italic; color: red">Please upload your proof of payment</div>
 
-      <q-file v-if="!url" :clearable="!uploading" class="q-pt-sm" filled dense outlined color="blue-12" v-model="attachment" label="Select Image">
+      <q-file v-if="!url"
+        :max-file-size="maxFileSize"
+        :clearable="!uploading"
+        v-model="attachment"
+        accept=".jpg, image/*"
+        class="q-pt-sm"
+        filled
+        dense
+        outlined
+        color="blue-12"
+        label="Select Image"
+        @rejected="onRejectedFilePick">
         <template v-slot:prepend>
           <q-icon name="image" />
         </template>
@@ -117,6 +128,9 @@ export default {
     }
   },
   computed: {
+    maxFileSize () {
+      return 5 * 1024 * 1024
+    },
     amount () {
       return Number((Number(this.order?.crypto_amount) * Number(this.order?.locked_price)).toFixed(2)).toLocaleString()
     },
@@ -126,6 +140,17 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onRejectedFilePick (rejectedEntries) {
+      console.log('onRejectedFilePick:', rejectedEntries)
+      let message = 'File did not pass validation constraints'
+      if (rejectedEntries.length > 0 && rejectedEntries[0]?.failedPropValidation === 'max-file-size') {
+        message = 'File size should not exceed 5MB'
+      }
+      this.$q.notify({
+        type: 'negative',
+        message: message
+      })
+    },
     async onDeleteAttachment () {
       const attachmentId = this.order?.payment_methods_selected[0]?.attachments[0]?.id
       this.$emit('delete', attachmentId)
