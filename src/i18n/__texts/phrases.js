@@ -1072,6 +1072,11 @@ const phrases = {
       FirstName: "First name",
       LastName: "Last name",
       PhoneNumber: "Phone Number",
+    },
+    {
+      SearchAddress: 'Search address',
+      ClearSearch: 'Clear search',
+      AddressCouldNotBeFound: 'Sorry, that address could not be found.',
     }
   ],
   dynamic: [

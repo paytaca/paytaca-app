@@ -50,7 +50,16 @@
         :dark="darkMode"
         :label="$t('Address', {}, 'Address')"
         v-model="merchantInfoForm.location.location"
-      />
+      >
+        <template v-slot:append>
+          <q-btn
+            flat
+            padding="sm"
+            icon="search"
+            @click="() => selectCoordinates({ autoFocusSearch: true })"
+          />
+        </template>
+      </q-input>
       <q-input
         outlined
         dense
@@ -147,6 +156,7 @@
 </template>
 <script setup>
 import countriesJson from 'src/assets/countries.json'
+import { geolocationManager } from 'src/boot/geolocation';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
@@ -184,7 +194,7 @@ const merchantInfoForm = ref({
     city: '',
     country: '',
     longitude: null,
-    langitude: null,
+    longitude: null,
   }
 })
 const countriesOpts = computed(() => {
@@ -235,19 +245,67 @@ function resetForm(opts={ clear: false }) {
   merchantInfoForm.value.location.latitude = Number(merchantData?.location?.latitude) || null
 }
 
-function selectCoordinates() {
+onMounted(() => {
+  geolocationManager.getOrUpdateGeoIp()
+})
+async function selectCoordinates(opts={ autoFocusSearch: false }) {
+  const initLocation = {
+    latitude: merchantInfoForm.value.location.latitude,
+    longitude: merchantInfoForm.value.location.longitude,
+    zoom: 18,
+  }
+  if (!initLocation.latitude || !initLocation.longitude) {
+    const deviceLocation = geolocationManager.location.value?.position
+    if (!deviceLocation?.longitude || !deviceLocation?.latitude) {
+      await geolocationManager.geolocate({ timeout: 3000 }).catch(console.error)
+    }
+    initLocation.latitude = deviceLocation?.latitude
+    initLocation.longitude = deviceLocation?.longitude
+    initLocation.zoom = 16
+  }
+
+  if (!initLocation.latitude || !initLocation.longitude) {
+    initLocation.latitude = geolocationManager.geoip.value?.latitude
+    initLocation.longitude = geolocationManager.geoip.value?.longitude
+    initLocation.zoom = 13
+  }
+
+  if (!initLocation.latitude || !initLocation.longitude) {
+    initLocation.zoom = 12
+  }
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
-      initLocation: {
-        latitude: merchantInfoForm.value.location.latitude,
-        longitude: merchantInfoForm.value.location.longitude,
-      }
+      disableGeolocate: true,
+      search: {
+        enable: true,
+        autofocus: opts?.autoFocusSearch,
+        forceResults: true,
+      },
+      initLocation: initLocation,
     }
   })
     .onOk(coordinates => {
       merchantInfoForm.value.location.longitude = coordinates.lng
       merchantInfoForm.value.location.latitude = coordinates.lat
+
+      if (!coordinates?.components) return console.log('No components')
+
+      const components = coordinates.components
+      const current = merchantInfoForm.value.location
+
+      const emptyOrEqual = (initialVal, newVal) => !initialVal || initialVal == newVal
+      const replaceAddressDetails = emptyOrEqual(current?.country, components?.country) &&
+                                    emptyOrEqual(current?.city, components?.city) &&
+                                    emptyOrEqual(current?.street, components?.street)
+
+      if (!replaceAddressDetails) return
+
+      merchantInfoForm.value.location.location = components.address1
+      merchantInfoForm.value.location.landmark = components.address2
+      merchantInfoForm.value.location.street = components.street
+      merchantInfoForm.value.location.city = components.city
+      merchantInfoForm.value.location.country = components.country
     })
 }
 
