@@ -185,6 +185,29 @@ export default {
           console.error(error.response || error)
         })
       this.uploading = false
+    },
+    cancelOrder () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      backend.post(url, {}, { authorize: true })
+        .then(response => {
+          if (response.data && response.data.status.value === 'CNCL') {
+            vm.status = response.data.status.value
+            this.checkStatus()
+            this.confirmCancel = false
+          }
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              // bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     }
   }
 }
