@@ -294,15 +294,18 @@ export default {
         }
       }
     },
-    async sendConfirmPayment () {
+    async sendConfirmPayment (retries = 1) {
       const vm = this
       await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer`, null, { authorize: true })
-        .catch(error => {
+        .catch(async (error) => {
           console.error(error)
           if (error.response) {
             console.error(error.response)
-            if (error.response.status === 403) {
-              // bus.emit('session-expired')
+            if (error.response.status === 403 && retries > 0) {
+              this.loading = true
+              await this.fetchUser()
+              this.sendConfirmPayment(retries - 1)
+              this.loading = false
             }
           } else {
             this.dislayNetworkError()
