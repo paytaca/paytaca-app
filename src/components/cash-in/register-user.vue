@@ -1,6 +1,7 @@
 <template>
-  <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 25px; margin-top: 40px;">
-    Peer-to-Peer<br>Exchange
+  <div class="text-center" style="margin-top: 40px;">
+    <div class="text-bow" style="font-size: large;">Sign up to</div>
+    <div :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 25px;">P2P Exchange</div>
   </div>
   <div>
     <q-input
@@ -11,7 +12,7 @@
       hide-bottom-space
       bottom-slots
       v-model="username"
-      placeholder="Enter Nickname...."
+      placeholder="Enter Username"
       :error="!!errorMessage"
       :loading="loggingIn">
       <template v-slot:append>
