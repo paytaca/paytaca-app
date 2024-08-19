@@ -2,6 +2,8 @@ const BCHJS = require('@psf/bch-js')
 const bchjs = new BCHJS()
 const axios = require('axios')
 import Watchtower from 'watchtower-cash-js'
+import { convertCashAddress } from './chipnet'
+import { CashNonFungibleToken } from './cashtokens'
 
 export class SweepPrivateKey {
   constructor (wif) {
@@ -9,6 +11,7 @@ export class SweepPrivateKey {
     const ecpair = bchjs.ECPair.fromWIF(this.wif)
     this.bchAddress = bchjs.ECPair.toCashAddress(ecpair)
     this.slpAddress = bchjs.SLP.Address.toSLPAddress(this.bchAddress)
+    this.tokenAddress = convertCashAddress(this.bchAddress, false, true)
   }
 
   async getBchBalance () {
@@ -43,6 +46,68 @@ export class SweepPrivateKey {
       }
       return tokens
     }
+  }
+
+  async getFungibleCashTokens(opts={ subscribe: true }) {
+    if (opts?.subscribe) {
+      const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
+        address: this.bchAddress,
+      })
+      if (!subscribeResp.data.success) return
+    }
+
+    const url = `https://watchtower.cash/api/cts/balances/${encodeURIComponent(this.tokenAddress)}/fts`
+    const params = { limit: 100 }
+    const resp = await axios.get(url, { params })
+    const tokenDataPromises = await Promise.allSettled(
+      resp.data.results
+        .map(token => token?.tokenId)
+        .filter(Boolean)
+        .filter((element, index, array) => array.indexOf(element) === index)
+        .map(tokenId => axios.get(`https://watchtower.cash/api/cashtokens/fungible/${tokenId}/`))
+    )
+
+    const tokenDataResults = tokenDataPromises
+      .map(result => result?.value?.data)
+      .filter(Boolean)
+
+    const tokens = resp.data.results
+    const result = tokens.map(token => {
+      const tokenDetails = tokenDataResults.find(tokenData => 
+        tokenData?.id?.includes(token?.tokenId)
+      )
+      return {
+        category: token?.tokenId,
+        balance: token?.balance,
+        info: {
+          name: tokenDetails?.name,
+          symbol: tokenDetails?.symbol,
+          decimals: tokenDetails?.decimals,
+          imageUrl: tokenDetails?.image_url,
+        },
+      }
+    })
+    return result
+  }
+
+  async getNftCashTokens(opts={ subscribe: true }) {
+    if (opts?.subscribe) {
+      const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
+        address: this.bchAddress,
+      })
+      if (!subscribeResp.data.success) return
+    }
+
+    const url = `https://watchtower.cash/api/cashtokens/nft/`
+    const params = {
+      address: this.bchAddress,
+      has_balance: true,
+      limit: 100,
+    }
+    const resp = await axios.get(url, { params })
+    const results = resp?.data?.results.map(CashNonFungibleToken.parse)
+    await Promise.allSettled(results.map(nft => nft?.fetchMetadata()))
+    return results
   }
 
   sweepToken (slpAddress, slpWif, tokenId, balance, feeFunder, recipient) {
