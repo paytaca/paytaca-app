@@ -5,88 +5,110 @@
       @decode="onScannerDecode"
     />
     <div id="app-container" :class="getDarkModeClass(darkMode)">
-      <div>
-        <header-nav :title="$t('Sweep')" backnavpath="/apps" />
-        <div :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}">
-          <div id="app" ref="app" class="text-bow" :class="getDarkModeClass(darkMode)">
-            <div class="text-center" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
-              <p>{{ $t('Scanning') }}...</p>
-              <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+      <header-nav :title="$t('Sweep')" backnavpath="/apps" />
+      <div
+        id="app"
+        ref="app"
+        class="text-bow"
+        :class="getDarkModeClass(darkMode)"
+        :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}"
+      >
+        <div class="text-center" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
+          <p>{{ $t('Scanning') }}...</p>
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </div>
+        <q-form v-if="!submitted" class="text-center" style="margin-top: 85px;">
+          <textarea
+            v-if="tokens.length === 0"
+            v-model="wif"
+            class="sweep-input"
+            rows="2"
+            :placeholder="$t('SweepInputPlaceholder')"
+          >
+          </textarea>
+          <br>
+          <template v-if="!wif">
+            <div class="text-uppercase or-label">
+              {{ $t('or') }}
             </div>
-            <q-form v-if="!submitted" class="text-center" style="margin-top: 85px;">
-              <textarea
-                v-if="tokens.length === 0"
-                v-model="wif"
-                class="sweep-input"
-                rows="2"
-                :placeholder="$t('SweepInputPlaceholder')"
-              >
-              </textarea>
-              <br>
-              <template v-if="!wif">
-                <div class="text-uppercase or-label">
-                  {{ $t('or') }}
-                </div>
-                <q-btn round size="lg" class="button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
-              </template>
-              <div style="margin-top: 20px; ">
-                <q-btn
-                  class="button"
-                  color="primary"
-                  v-if="tokens.length === 0 && wif"
-                  @click.prevent="getTokens"
-                >
-                  {{ $t('Scan') }}
-                </q-btn>
-                <p v-if="wif && error" style="color: red;">
-                  {{ error }}
-                </p>
+            <q-btn round size="lg" class="button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
+          </template>
+          <div style="margin-top: 20px; ">
+            <q-btn
+              class="button"
+              color="primary"
+              v-if="tokens.length === 0 && wif"
+              @click.prevent="getTokens"
+            >
+              {{ $t('Scan') }}
+            </q-btn>
+            <p v-if="wif && error" style="color: red;">
+              {{ error }}
+            </p>
+          </div>
+        </q-form>
+        <div>
+          <div v-if="sweeper && Number.isFinite(bchBalance)">
+            <div class="q-mb-sm">
+              <div class="text-subtitle1 text-weight-medium">BCH</div>
+              <div>
+                {{ ellipsisText(sweeper.bchAddress) }}
+                <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
               </div>
-            </q-form>
-            <div>
-              <div v-if="sweeper && Number.isFinite(bchBalance)">
-                <div class="q-mb-sm">
-                  <div class="text-subtitle1 text-weight-medium">BCH</div>
-                  <div>
-                    {{ ellipsisText(sweeper.bchAddress) }}
-                    <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
-                  </div>
-                </div>
+            </div>
 
-                <div class="bch-balance">
-                  <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
-                  <template v-if="bchBalance > 0">
-                    <q-btn
-                      v-if="selectedToken !== 'bch'"
-                      @click.prevent="sweepBch"
-                      :label="$t('Sweep')"
-                      class="button"
-                      :class="getDarkModeClass(darkMode)"
-                      :disabled="(totalTokensCount - skippedTokens.length) > 0"
-                    />
-                    <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red">
-                      <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
-                    </span>
-                    <div v-if="sweeping && selectedToken === 'bch'">
-                      <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
-                    </div>
-                  </template>
-                  <span v-else class="text-red">
-                    <template v-if="totalTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
-                    <i v-else>{{ $t('SweepErrMsg2') }}</i>
-                  </span>
+            <div class="bch-balance">
+              <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
+              <template v-if="bchBalance > 0">
+                <q-btn
+                  v-if="selectedToken !== 'bch'"
+                  @click.prevent="sweepBch"
+                  :label="$t('Sweep')"
+                  class="button"
+                  :class="getDarkModeClass(darkMode)"
+                  :disabled="(totalTokensCount - skippedTokens.length) > 0"
+                />
+                <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red">
+                  <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
+                </span>
+                <div v-if="sweeping && selectedToken === 'bch'">
+                  <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+                </div>
+              </template>
+              <span v-else class="text-red">
+                <template v-if="totalTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
+                <i v-else>{{ $t('SweepErrMsg2') }}</i>
+              </span>
+            </div>
+          </div>
+          <div v-if="totalTokensCount > 0" class="q-my-md">
+            <q-select
+              filled
+              v-model="payFeeFrom"
+              :options="feeOptions"
+              behavior="menu"
+              :label="$t('PayTransactionFeeFrom')"
+            />
+          </div>
+          <div v-if="fungibleCashTokens?.length || nonFungibleCashTokens?.length" class="q-mt-md">
+            <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandCashTokens = !expandCashTokens">
+              <div class="q-space">
+                <div class="text-subtitle1 text-weight-medium">
+                  {{ $t('CashTokens') }} ({{ cashTokensCount }})
+                </div>
+                <div>
+                  {{ ellipsisText(sweeper.tokenAddress) }}
+                  <q-icon name="mdi-content-copy" @click.stop="copyToClipboard(sweeper.tokenAddress)" />
                 </div>
               </div>
-              <div v-if="fungibleCashTokens?.length || nonFungibleCashTokens?.length" class="q-mt-md">
-                <div class="q-mb-sm">
-                  <div class="text-subtitle1 text-weight-medium">
-                    {{ $t('CashTokens') }} ({{ cashTokensCount }})
-                  </div>
-                  <div>
-                    {{ ellipsisText(sweeper.tokenAddress) }}
-                    <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.tokenAddress)" />
-                  </div>
-                </div>
+              <q-icon
+                size="1.75rem"
+                name="expand_less"
+                :class="['toggle-expand', expandCashTokens ? '' : 'flipped']"
+              />
+            </div>
+            <q-slide-transition>
+              <div v-if="expandCashTokens">
                 <div v-for="(fungibleToken, index) in fungibleCashTokens" :key="index" class="token-details">
                   <img
                     v-if="fungibleToken?.parsedMetadata?.fungible && fungibleToken?.parsedMetadata?.imageUrl"
@@ -110,7 +132,7 @@
                       @click.prevent="sweepCashTokenFungible(fungibleToken)"
                       :disabled="sweeping || skippedTokens.includes(fungibleToken.category)"
                     />
-                    <span class="text-uppercase q-mx-md">{{ $t('or') }}</span>
+                    <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
                     <q-checkbox
                       :label="$t('Skip')"
                       v-model="skippedTokens"
@@ -148,7 +170,7 @@
                       @click.prevent="sweepCashTokenNonFungible(nft)"
                       :disabled="sweeping || skippedTokens.includes(`${nft.category}|${nft.commitment}`)"
                     />
-                    <span class="text-uppercase q-mx-md">{{ $t('or') }}</span>
+                    <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
                     <q-checkbox
                       :label="$t('Skip')"
                       v-model="skippedTokens"
@@ -157,20 +179,27 @@
                   </div>
                 </div>
               </div>
-              <div v-if="tokens.length > 0" class="q-mt-md">
+            </q-slide-transition>
+          </div>
+          <div v-if="tokens.length > 0" class="q-mt-md">
+            <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandSlpTokens = !expandSlpTokens">
+              <div class="q-space">
                 <div class="text-subtitle1 text-weight-medium">
                   {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }} ({{ tokens.length }})
                 </div>
-                <div class="q-mb-sm">
-                  <div class="text-subtitle2">SLP</div>
-                  <div>
-                    {{ ellipsisText(sweeper.slpAddress) }}
-                    <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.slpAddress)" />
-                  </div>
+                <div>
+                  {{ ellipsisText(sweeper.slpAddress) }}
+                  <q-icon name="mdi-content-copy" @click.stop="copyToClipboard(sweeper.slpAddress)" />
                 </div>
-                <div v-if="tokens.length > 0" class="q-mb-lg">
-                  <q-select filled v-model="payFeeFrom" :options="feeOptions" :label="$t('PayTransactionFeeFrom')" />
-                </div>
+              </div>
+              <q-icon
+                size="1.75rem"
+                name="expand_less"
+                :class="['toggle-expand', expandSlpTokens ? '' : 'flipped']"
+              />
+            </div>
+            <q-slide-transition>
+              <div v-if="expandSlpTokens">
                 <div v-for="(token, index) in tokens" :key="index" class="token-details">
                   <p>
                     {{ $t(isHongKong(currentCountry) ? 'PointId' : 'TokenId') }}: {{ ellipsisText(token.token_id) }}
@@ -182,14 +211,16 @@
                   <template v-if="selectedToken !== token.token_id">
                     <q-btn color="primary" @click.prevent="sweepToken(token)" :disabled="sweeping || skippedTokens.includes(token.token_id)">
                       {{ $t('Sweep') }}
-                    </q-btn>&nbsp;&nbsp;&nbsp; <span class="text-uppercase">{{ $t('or') }}</span> <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
+                    </q-btn>
+                    <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
+                    <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
                   </template>
                   <div v-if="sweeping && selectedToken === token.token_id">
                     <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
                   </div>
                 </div>
               </div>
-            </div>
+            </q-slide-transition>
           </div>
         </div>
       </div>
@@ -252,6 +283,8 @@ export default {
       fetching: false,
       sweeping: false,
       selectedToken: null,
+      expandCashTokens: true,
+      expandSlpTokens: true,
       showQrScanner: false,
       error: null,
       feeOptions: [
@@ -511,6 +544,14 @@ export default {
   .token-details {
     border: 1px solid black;
     padding: 10px;
-    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  .toggle-expand {
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .toggle-expand.flipped {
+    transform: rotate(180deg);
   }
 </style>
