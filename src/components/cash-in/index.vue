@@ -29,7 +29,8 @@
           <SelectPaymentType
             v-if="step === 1"
             :key="selectPaymentTypeKey"
-            :options="paymentTypeOpts" :fiat="fiatCurrencies"
+            :options="paymentTypeOpts"
+            :fiat="fiatCurrencies"
             @select-currency="setCurrency"
             @select-payment="setPaymentType"
             @update-fiat="updateSelectedCurrency"
