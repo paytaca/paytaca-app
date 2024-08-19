@@ -5,7 +5,7 @@
     </div>
 
     <!-- Amount Input -->
-    <div class="text-center q-mt-lg q-px-lg">
+    <div class="text-center q-mt-md q-px-lg">
       <q-input
         type="text"
         inputmode="none"
@@ -26,7 +26,7 @@
     </div>
 
     <!-- Selection -->
-    <div class="row q-gutter-md text-center q-mt-xs q-mx-md">
+    <div class="row q-gutter-x-md q-gutter-y-sm text-center q-mt-xs q-mx-md">
       <div class="col-5" v-for="(option, index) in amountOption" :key="option">
         <q-btn
           rounded
@@ -43,7 +43,7 @@
       <div class="col-shrink text-center" style="font-style: italic">Some denominations are currently not available</div>
     </div>
     <!-- Proceed -->
-    <div class="row justify-center q-mt-md">
+    <div class="row justify-center q-mt-sm">
       <q-btn class="col q-mx-lg" :disable="disableProceedBtn" rounded color="blue-6" label="proceed" @click="submitOrder"/>
     </div>
   </div>
