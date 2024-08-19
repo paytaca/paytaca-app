@@ -54,7 +54,7 @@ export default {
   data () {
     return {
       amount: 0,
-      amountOption: [0.02, 0.25, 0.5, 1],
+      amountOption: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
       selectedOption: null
     }
   },

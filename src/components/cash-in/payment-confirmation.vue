@@ -98,11 +98,11 @@
         </template>
       </q-file>
     </div>
-    <div class="row justify-center q-mt-md q-mb-sm">
-      <q-btn :disable="!url" class="col q-mx-lg" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
-    </div>
-    <AttachmentDialog :show="showImageDialog" :url="url" @back="showImageDialog=false"/>
   </q-scroll-area>
+  <div class="row justify-center q-mt-md q-mb-sm">
+    <q-btn :disable="!url" class="col q-mx-lg" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
+  </div>
+  <AttachmentDialog :show="showImageDialog" :url="url" @back="showImageDialog=false"/>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
