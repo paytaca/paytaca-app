@@ -100,7 +100,7 @@ const routes = [
       { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
       { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
-      { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep' },
+      { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
       { path: 'chat', component: () => import('src/pages/apps/chat/index.vue'), name: 'app-chats-list' },
       { path: 'chat/conversation', component: () => import('src/pages/apps/chat/chat.vue'), name: 'app-chat-conversation', props: route => route.query },
