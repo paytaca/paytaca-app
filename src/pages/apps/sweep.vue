@@ -158,7 +158,7 @@
                   <div class="q-mb-sm">
                     <img
                       :src="nft?.parsedMetadata?.imageUrl || generateFallbackImage(nft)"
-                      style="width: min(100%, 200px); max-height:200px;"
+                      style="width: min(100%, 200px);"
                       class="rounded-borders"
                     />
                   </div>
