@@ -91,6 +91,18 @@
                         </div>
                     </div>
                   </div>
+                  <div v-if="method.attachments?.length > 0" class="col q-py-xs">
+                    <div class="row justify-end q-mr-md">
+                      <q-img
+                        :src="method.attachments[0].image?.url"
+                        style="max-height: 80px; max-width: 150px;"
+                        @click="viewPaymentAttachment(method.attachments[0].image?.url)">
+                        <div class="absolute-full text-subtitle2 flex flex-center text-bow" style="font-style: italic">
+                          {{ method.attachments?.length }} attachment(s)
+                        </div>
+                      </q-img>
+                    </div>
+                  </div>
                   <div v-if="data?.type !== 'seller'">
                     <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
                   </div>
@@ -163,6 +175,7 @@
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
   <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false"/>
+  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
@@ -173,6 +186,7 @@ import { formatCurrency } from 'src/exchange'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
 export default {
   data () {
@@ -198,13 +212,16 @@ export default {
       showPeerProfile: false,
       openChat: false,
       peerInfo: {},
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      showAttachmentDialog: false,
+      attachmentUrl: null
     }
   },
   components: {
     RampDragSlide,
     AppealForm,
-    ProgressLoader
+    ProgressLoader,
+    AttachmentDialog
   },
   emits: ['back', 'verify-release', 'sending'],
   props: {
@@ -266,6 +283,10 @@ export default {
           return this.order.tracking_id
         }
       }
+    },
+    viewPaymentAttachment (url) {
+      this.showAttachmentDialog = true
+      this.attachmentUrl = url
     },
     fetchContractBalance () {
       const vm = this
