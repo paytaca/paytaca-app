@@ -100,12 +100,6 @@
                         <div style="margin-top: -15px;">
                           {{ getAssetMarketBalance(bchAsset) }}
                         </div>
-                        <!-- <div>
-                          <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
-                            <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
-                            <div style="padding-right: 10px;">Cash In</div>
-                          </q-btn>
-                        </div> -->
                         <q-badge
                           rounded
                           class="flex justify-start items-center yield-container"
