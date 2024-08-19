@@ -138,6 +138,9 @@ export default {
     ProgressLoader,
     QrScanner
   },
+  props: {
+    w: String,
+  },
   data () {
     return {
       wallet: null,
@@ -283,6 +286,13 @@ export default {
       this.wif = content
     }
   },
+  watch: {
+    w() {
+      if (this.wif || this.sweeper) return
+      this.wif = this.w
+      this.getTokens(true)
+    }
+  },
   mounted () {
     const vm = this
     const divHeight = screen.availHeight - 120
@@ -291,6 +301,11 @@ export default {
     getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       vm.wallet = markRaw(new Wallet(mnemonic))
     })
+
+    if (vm.w) {
+      vm.wif = vm.w
+      vm.getTokens(true)
+    }
   }
 }
 </script>
@@ -307,6 +322,8 @@ export default {
     font-size: 18px;
     color: black;
     background: white;
+    padding: map-get($space-xs, 'y') map-get($space-sm, 'x');
+    border-radius: map-get($space-sm, 'x');
   }
   .or-label {
     margin: 20px 0;

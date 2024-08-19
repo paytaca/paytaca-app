@@ -86,4 +86,8 @@ export class SweepPrivateKey {
   }
 }
 
+export function isValidWif(value='') {
+  return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(value)
+}
+
 export default SweepPrivateKey
