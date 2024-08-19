@@ -79,7 +79,8 @@ export class SweepPrivateKey {
       return {
         category: token?.tokenId,
         balance: token?.balance,
-        info: {
+        parsedMetadata: {
+          fungible: true,
           name: tokenDetails?.name,
           symbol: tokenDetails?.symbol,
           decimals: tokenDetails?.decimals,
