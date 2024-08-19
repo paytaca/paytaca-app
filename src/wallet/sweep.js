@@ -132,6 +132,33 @@ export class SweepPrivateKey {
     return watchtower.SLP.Type1.send(data)
   }
 
+  /**
+   * @param {Object} param0
+   * @param {String} param0.tokenAddress 
+   * @param {String} param0.bchWif 
+   * @param {Object} param0.token
+   * @param {String} param0.token.tokenId
+   * @param {String} [param0.token.capability]
+   * @param {String} [param0.token.commitment]
+   * @param {String} [param0.token.txid]
+   * @param {Number} [param0.token.vout]
+   * @param {Number} param0.tokenAmount
+   * @param {String} param0.recipient
+   */
+  sweepCashToken({ tokenAddress, bchWif, token, tokenAmount, recipient }) {
+    const watchtower = new Watchtower()
+    const data = {
+      sender: { address: tokenAddress, wif: bchWif },
+      recipients: [
+        { address: recipient, tokenAmount: tokenAmount },
+      ],
+      token,
+      broadcast: true,
+    }
+
+    return watchtower.BCH.send(data)
+  }
+
   sweepBch (bchAddress, bchWif, spendableBalance, recipient) {
     const watchtower = new Watchtower()
     const data = {
