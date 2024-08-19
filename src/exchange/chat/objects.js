@@ -235,35 +235,3 @@ export class ChatIdentityManager {
     await chatUtils.updateOrCreateKeypair()
   }
 }
-
-const chatIdentityManager = new ChatIdentityManager()
-export async function loadChatIdentity (payload = { user_type: null, chat_identity_id: null, name: null }) {
-  if (!payload.name || !payload.chat_identity_id || !payload.user_type) return
-
-  const rampWallet = loadRampWallet()
-  const chatIdentityRef = chatUtils.generateChatIdentityRef(rampWallet.walletHash)
-
-  // fetch chat identity if existing
-  let identity = await chatUtils.fetchChatIdentity(chatIdentityRef)
-  if (identity) {
-    identity = chatIdentityManager.setIdentity(identity)
-    console.log('identity:', identity)
-  }
-
-  // update verifying and encryption keypairs
-  await chatIdentityManager._updateSignerData()
-  await chatIdentityManager._updateEncryptionKeypair()
-
-  // create identity if not existing
-  if (!identity) {
-    payload.ref = chatIdentityRef
-    await chatIdentityManager.create(payload)
-  }
-
-  // Update chat identity id if null or mismatch
-  if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
-    chatUtils.updateChatIdentityId(payload.user_type, identity.id)
-  }
-
-  return identity
-}

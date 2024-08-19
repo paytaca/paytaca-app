@@ -28,28 +28,38 @@
           <!-- Payment Type -->
           <SelectPaymentType
             v-if="step === 1"
+            :key="selectPaymentTypeKey"
             :options="paymentTypeOpts" :fiat="fiatCurrencies"
             @select-currency="setCurrency"
-            @select-payment="setPaymentType" @update-fiat="updateSelectedCurrency"
-            :key="selectPaymentTypeKey"
+            @select-payment="setPaymentType"
+            @update-fiat="updateSelectedCurrency"
             />
           <!-- Select Amount -->
           <SelectAmount
             v-if="step === 2"
+            :key="selectAmountKey"
             :payment-type="selectedPaymentType"
             :amount-ad-count="amountAdCount"
             :currency="selectedCurrency"
             :ads="cashinAds"
             @select-amount="onSetAmount"
             @submit-order="onSubmitOrder"
-            :key="selectAmountKey"
             />
           <!-- Order Page -->
-          <Order :order-id="order.id" v-if="step === 3" @confirm-payment="sendConfirmPayment" @new-order="refreshPage" :key="orderKey"/>
+          <Order
+            v-if="step === 3"
+            :key="orderKey"
+            :order-id="order?.id"
+            @confirm-payment="sendConfirmPayment"
+            @new-order="refreshPage"/>
         </div>
 
         <!-- Order List -->
-        <order-list v-if="state === 'order-list'" :wallet-hash="wallet.walletHash" @open-order="openOrder" :key="orderListKey"/>
+        <OrderList
+          v-if="state === 'order-list'"
+          :key="orderListKey"
+          :wallet-hash="wallet.walletHash"
+          @open-order="openOrder"/>
 
         <!-- Network Error -->
         <NetworkError v-if="state === 'network-error'" @retry="refreshPage"/>
@@ -59,7 +69,7 @@
 </template>
 <script>
 import SelectPaymentType from './SelectPaymentType.vue'
-import orderList from './order-list.vue'
+import OrderList from './order-list.vue'
 import SelectAmount from './SelectAmount.vue'
 import Register from './register-user.vue'
 import Order from './order.vue'
@@ -67,10 +77,9 @@ import NetworkError from './network-error.vue'
 import { backend, updatePubkeyAndAddress } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
-import { loadChatIdentity } from 'src/exchange/chat/objects'
+import { loadChatIdentity } from 'src/exchange/chat'
 import { loadRampWallet } from 'src/exchange/wallet'
 import { bus } from 'src/wallet/event-bus'
-import chat from 'src/store/chat'
 
 export default {
   components: {
@@ -78,7 +87,7 @@ export default {
     SelectAmount,
     Order,
     Register,
-    orderList,
+    OrderList,
     NetworkError
   },
   data () {
@@ -132,7 +141,6 @@ export default {
       this.wallet = loadRampWallet()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = this.wallet.walletHash
-      await this.fetchUser()
       await this.fetchCashinAds()
       this.step++
       this.loading = false
@@ -163,10 +171,7 @@ export default {
 
         if (login) {
           await vm.login()
-
-          const chatIdentity = await loadChatIdentity(payload)
-          vm.$store.commit('ramp/updateChatIdentity', { ref: chatIdentity.ref, chatIdentity: chatIdentity })
-
+          await loadChatIdentity(payload)
           await updatePubkeyAndAddress(user)
         }
       } catch (error) {
@@ -175,7 +180,6 @@ export default {
         if (error.response?.status === 404) {
           vm.state = 'register'
         } else {
-          // this.state = 'network-error'
           this.dislayNetworkError()
         }
       }
@@ -290,18 +294,20 @@ export default {
         }
       }
     },
-    async sendConfirmPayment () {
+    async sendConfirmPayment (retries = 1) {
       const vm = this
       await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer`, null, { authorize: true })
-        .catch(error => {
+        .catch(async (error) => {
           console.error(error)
           if (error.response) {
             console.error(error.response)
-            if (error.response.status === 403) {
-              // bus.emit('session-expired')
+            if (error.response.status === 403 && retries > 0) {
+              this.loading = true
+              await this.fetchUser()
+              this.sendConfirmPayment(retries - 1)
+              this.loading = false
             }
           } else {
-            // bus.emit('network-error')
             this.dislayNetworkError()
           }
         })
@@ -334,7 +340,10 @@ export default {
           break
       }
     },
-    openOrder (orderId) {
+    async openOrder (orderId) {
+      this.loading = true
+      await this.fetchUser()
+      this.loading = false
       this.order = { id: orderId }
       this.state = 'cashin-order'
       this.step = 3

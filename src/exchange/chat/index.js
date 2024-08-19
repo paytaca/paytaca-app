@@ -3,6 +3,41 @@ import { loadWallet } from 'src/wallet'
 import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
+import { loadRampWallet } from 'src/exchange/wallet'
+import { ChatIdentityManager } from './objects'
+
+export const chatIdentityManager = new ChatIdentityManager()
+export async function loadChatIdentity (payload = { user_type: null, chat_identity_id: null, name: null }) {
+  if (!payload.name || !payload.chat_identity_id || !payload.user_type) return
+
+  const rampWallet = loadRampWallet()
+  const chatIdentityRef = generateChatIdentityRef(rampWallet.walletHash)
+
+  // fetch chat identity if existing
+  let identity = await fetchChatIdentity(chatIdentityRef)
+  if (identity) {
+    identity = chatIdentityManager.setIdentity(identity)
+    console.log('identity:', identity)
+  }
+
+  // update verifying and encryption keypairs
+  await chatIdentityManager._updateSignerData()
+  await chatIdentityManager._updateEncryptionKeypair()
+
+  // create identity if not existing
+  if (!identity) {
+    payload.ref = chatIdentityRef
+    identity = await chatIdentityManager.create(payload)
+  }
+
+  // Update chat identity id if null or mismatch
+  if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
+    updateChatIdentityId(payload.user_type, identity.id)
+  }
+
+  Store.commit('ramp/updateChatIdentity', { ref: chatIdentityRef, chatIdentity: identity })
+  return identity
+}
 
 export function updateOrderChatSessionRef (orderId, chatRef) {
   return new Promise((resolve, reject) => {
