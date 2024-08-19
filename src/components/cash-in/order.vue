@@ -1,6 +1,6 @@
 <template>
  <div class="q-mx-md" v-if="!confirmCancel">
-    <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-lg q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
+    <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-md q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
       {{ order?.id ? `Order #${order?.id}` : ''}}
     </div>
     <payment-confirmation
@@ -40,6 +40,12 @@
     <div class="row q-pt-sm q-mx-lg q-px-lg">
       <q-btn outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="confirmCancel = false"/>
       <q-btn outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
+    </div>
+  </div>
+  <div v-if="state !== 'confirm_payment'" class="text-center row q-mx-lg" style="position: fixed; bottom: 40px; left: 0; right: 0; margin: auto;">
+    <div class="col" style="opacity: .55;">
+      <div class="row justify-center text-bow" style="font-size: medium;">Powered by</div>
+      <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 23px;">P2P Exchange</div>
     </div>
   </div>
 </template>
@@ -154,7 +160,7 @@ export default {
         case 'RFN_PN':
           this.state = 'completed'
           this.statusTitle = 'Transaction Failed'
-          this.statusMessage = 'We\'re unable to fulfill this transaction \n Please try again with a new order'
+          this.statusMessage = 'We\'re unable to fulfill this transaction. Please try again.'
           this.newOrder = true
       }
     },
