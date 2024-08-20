@@ -156,6 +156,7 @@
 </template>
 <script setup>
 import countriesJson from 'src/assets/countries.json'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { geolocationManager } from 'src/boot/geolocation';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
@@ -193,7 +194,7 @@ const merchantInfoForm = ref({
     street: '',
     city: '',
     country: '',
-    longitude: null,
+    latitude: null,
     longitude: null,
   }
 })
@@ -248,31 +249,76 @@ function resetForm(opts={ clear: false }) {
 onMounted(() => {
   geolocationManager.getOrUpdateGeoIp()
 })
-async function selectCoordinates(opts={ autoFocusSearch: false }) {
+
+const attemptedGeolocation = ref(false)
+async function getInitialSelectCoordinatePosition() {
+  let dialog
+  let showDialogTimeout = 0
+  let dialogPromise
   const initLocation = {
     latitude: merchantInfoForm.value.location.latitude,
     longitude: merchantInfoForm.value.location.longitude,
     zoom: 18,
   }
-  if (!initLocation.latitude || !initLocation.longitude) {
-    const deviceLocation = geolocationManager.location.value?.position
-    if (!deviceLocation?.longitude || !deviceLocation?.latitude) {
-      await geolocationManager.geolocate({ timeout: 3000 }).catch(console.error)
+
+  try {
+    dialogPromise = new Promise((resolve, reject) => {
+      showDialogTimeout = setTimeout(() => {
+        dialog = $q.dialog({
+          title: 'Getting location',
+          progress: true,
+          ok: false,
+          cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
+          persistent: true,
+          color: 'brandblue',
+          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        }).onCancel(() => {
+          reject('cancelled')
+        }).onDismiss(resolve)
+
+        // to prevent memory leak from unresolved promise
+        setTimeout(resolve, 30 * 1000)
+      }, 250)
+    })
+
+    if (!initLocation.latitude || !initLocation.longitude) {
+      const deviceLocation = geolocationManager.location.value?.position
+      if ((!deviceLocation?.longitude || !deviceLocation?.latitude) && !attemptedGeolocation.value) {
+        attemptedGeolocation.value = true
+        await Promise.race([
+          geolocationManager.geolocate({ timeout: 5000 }).catch(console.error),
+          dialogPromise,
+        ])
+      }
+      initLocation.latitude = deviceLocation?.latitude
+      initLocation.longitude = deviceLocation?.longitude
+      initLocation.zoom = 16
     }
-    initLocation.latitude = deviceLocation?.latitude
-    initLocation.longitude = deviceLocation?.longitude
-    initLocation.zoom = 16
-  }
 
-  if (!initLocation.latitude || !initLocation.longitude) {
-    initLocation.latitude = geolocationManager.geoip.value?.latitude
-    initLocation.longitude = geolocationManager.geoip.value?.longitude
-    initLocation.zoom = 13
-  }
+    if (!initLocation.latitude || !initLocation.longitude) {
+      initLocation.latitude = geolocationManager.geoip.value?.latitude
+      initLocation.longitude = geolocationManager.geoip.value?.longitude
+      initLocation.zoom = 11
+    }
 
-  if (!initLocation.latitude || !initLocation.longitude) {
-    initLocation.zoom = 12
+    if (!initLocation.latitude || !initLocation.longitude) {
+      initLocation.zoom = 10
+    }
+
+  } catch(error) {
+    console.log('Error', error)
+    if (error === 'cancelled') return initLocation
+    throw error
+  } finally {
+    clearTimeout(showDialogTimeout)
+    try { dialog?.hide?.() } catch {}
+    dialogPromise = undefined
   }
+  return initLocation
+}
+
+async function selectCoordinates(opts={ autoFocusSearch: false }) {
+  const initLocation = await getInitialSelectCoordinatePosition()
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
