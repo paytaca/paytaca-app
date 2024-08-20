@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Questo indirizzo è vuoto",
   SweepErrMsg2: "Avrai bisogno di un saldo BCH sufficiente per poter spazzare il token / i di seguito",
   SweepInputPlaceholder: "Incolla qui la chiave privata in formato WIF",
+  SweepSuccessMessage: "Beni rivendicati con successo",
   SweepThePointsFirst: "Spazza prima i punti",
   SweepTheTokensFirst: "Spazza prima i token",
   SwipeToConfirm: "Scorri per confermare",

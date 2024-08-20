@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Diese Adresse ist leer",
   SweepErrMsg2: "Sie benötigen eine ausreichende BCH -Balance, um das unten stehende Token zu fegen",
   SweepInputPlaceholder: "Fügen Sie hier den privaten Schlüssel im WIF -Format ein",
+  SweepSuccessMessage: "Vermögenswerte erfolgreich beansprucht",
   SweepThePointsFirst: "Fegen Sie zuerst die Punkte",
   SweepTheTokensFirst: "Fegen Sie zuerst die Token",
   SwipeToConfirm: "Wischen, um zu bestätigen",

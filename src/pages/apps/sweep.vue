@@ -17,7 +17,7 @@
           <p>{{ $t('Scanning') }}...</p>
           <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
         </div>
-        <q-form v-if="!submitted" class="text-center" style="margin-top: 85px;">
+        <q-form v-if="!submitted" class="text-center wide-margin-top">
           <textarea
             v-if="tokens.length === 0"
             v-model="wif"
@@ -47,7 +47,24 @@
             </p>
           </div>
         </q-form>
-        <div>
+        <div v-else-if="emptyAssets && showSuccess" class="text-center wide-margin-top">
+          <q-icon
+            name="check_circle" size="150px"
+            color="green"
+          />
+          <div class="text-h5">{{ $t('Success') }}</div>
+          <div class="text-body1">{{ $t('SweepSuccessMessage', {}, 'Assets claimed successfully') }}</div>
+          <q-btn
+            flat
+            no-caps :label="$t('Home')"
+            class="button wide-margin-top"
+            to="/"
+          />
+        </div>
+        <div
+          v-else
+          :class="totalTokensCount <= 0 ? 'wide-margin-top' : ''"
+        >
           <div v-if="sweeper && Number.isFinite(bchBalance)">
             <div class="q-mb-sm">
               <div class="text-subtitle1 text-weight-medium">BCH</div>
@@ -285,8 +302,13 @@ export default {
       selectedToken: null,
       expandCashTokens: true,
       expandSlpTokens: true,
+      showSuccess: false,
       showQrScanner: false,
       error: null,
+      sweepTxidMap: {
+        'bch': '',
+        /** 'token-id-and-commitment': '', */
+      },
       feeOptions: [
         { label: this.$t('Wallet'), value: 'wallet' },
         { label: this.$t('Address'), value: 'address' }
@@ -322,6 +344,10 @@ export default {
     totalTokensCount() {
       const slpTokens = parseInt(this.tokens?.length) || 0
       return slpTokens + this.cashTokensCount
+    },
+    emptyAssets() {
+      const DUST = 546 / 10 ** 8
+      return this.bchBalance < DUST && this.totalTokensCount == 0
     },
     feeFunder () {
       let funder
@@ -371,7 +397,7 @@ export default {
     validatePrivateKey (value) {
       return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
     },
-    getTokens (signalFetch) {
+    async getTokens (signalFetch) {
       if (!this.validatePrivateKey(this.wif)) {
         this.error = this.$t('InvalidPrivateKey')
         return
@@ -383,21 +409,22 @@ export default {
       if (this.wif.length <= 0) return
       this.sweeper = new SweepPrivateKey(this.wif)
 
-      this.sweeper.getNftCashTokens().then(results => {
-        this.nonFungibleCashTokens = results
-      })
-      this.sweeper.getFungibleCashTokens().then(results => {
-        this.fungibleCashTokens = results
-      })
+      await Promise.allSettled([
+        this.sweeper.getNftCashTokens().then(results => {
+          this.nonFungibleCashTokens = results
+        }),
+        this.sweeper.getFungibleCashTokens().then(results => {
+          t,his.fungibleCashTokens = results
+        }),
+        this.sweeper.getTokensList().then((tokens) => {
+          this.tokens = tokens.filter(token => token.spendable)
+        }),
+      ])
 
-      this.sweeper.getTokensList().then((tokens) => {
-        this.tokens = tokens.filter(token => token.spendable)
-
-        this.sweeper.getBchBalance().then((data) => {
-          this.bchBalance = data.spendable || 0
-          this.fetching = false
-          this.sweeping = false
-        })
+      await this.sweeper.getBchBalance().then((data) => {
+        this.bchBalance = data.spendable || 0
+        this.fetching = false
+        this.sweeping = false
       })
     },
     sweepToken (token) {
@@ -446,6 +473,9 @@ export default {
           this.selectedToken = null
         }
         this.getTokens()
+          .then(() => {
+            if (this.emptyAssets) this.showSuccess = true
+          })
       })
     },
     sweepCashTokenNonFungible(token=CashNonFungibleToken.parse()) {
@@ -475,6 +505,9 @@ export default {
           this.selectedToken = null
         }
         this.getTokens()
+          .then(() => {
+            if (this.emptyAssets) this.showSuccess = true
+          })
       })
     },
     sweepBch () {
@@ -487,6 +520,9 @@ export default {
         this.$store.getters['global/getAddress']('bch')
       )
       this.getTokens(false)
+          .then(() => {
+            if (this.emptyAssets) this.showSuccess = true
+          })
     },
     onScannerDecode (content) {
       this.showQrScanner = false
@@ -553,5 +589,9 @@ export default {
 
   .toggle-expand.flipped {
     transform: rotate(180deg);
+  }
+
+  .wide-margin-top {
+    margin-top: 85px;
   }
 </style>

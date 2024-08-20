@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Cette adresse est vide",
   SweepErrMsg2: "Vous aurez besoin d'un équilibre BCH suffisant pour pouvoir balayer les jeton ci-dessous",
   SweepInputPlaceholder: "Collez ici la clé privée au format WIF",
+  SweepSuccessMessage: "Les actifs revendiqués avec succès",
   SweepThePointsFirst: "Balayer les points en premier",
   SweepTheTokensFirst: "Balayer les jetons en premier",
   SwipeToConfirm: "Swipe pour confirmer",

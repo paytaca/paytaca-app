@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "이 주소는 비어 있습니다",
   SweepErrMsg2: "아래의 토큰을 청소할 수있는 충분한 BCH 잔액이 필요합니다.",
   SweepInputPlaceholder: "여기에 개인 키를 WIF 형식으로 붙여 넣으십시오",
+  SweepSuccessMessage: "자산은 성공적으로 청구되었습니다",
   SweepThePointsFirst: "포인트를 먼저 쓸어냅니다",
   SweepTheTokensFirst: "먼저 토큰을 청소하십시오",
   SwipeToConfirm: "확인하기 위해 스 와이프하십시오",

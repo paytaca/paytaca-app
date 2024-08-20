@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "这个地址为空",
   SweepErrMsg2: "您将需要足够的BCH平衡才能扫除下面的令牌",
   SweepInputPlaceholder: "在这里粘贴WIF格式的私钥",
+  SweepSuccessMessage: "资产声称成功",
   SweepThePointsFirst: "首先扫点",
   SweepTheTokensFirst: "首先扫描令牌",
   SwipeToConfirm: "滑动以确认",

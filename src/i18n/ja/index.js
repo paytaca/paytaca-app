@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "このアドレスは空です",
   SweepErrMsg2: "以下のトークンをスイープできるようにするには、十分なBCHバランスが必要です",
   SweepInputPlaceholder: "ここには、WIF形式の秘密鍵を貼り付けます",
+  SweepSuccessMessage: "資産は正常に請求されました",
   SweepThePointsFirst: "最初にポイントをスイープします",
   SweepTheTokensFirst: "最初にトークンをスイープします",
   SwipeToConfirm: "スワイプして確認します",

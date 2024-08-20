@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Alamat ini kosong",
   SweepErrMsg2: "Anda akan membutuhkan saldo BCH yang cukup untuk dapat menyapu token di bawah ini",
   SweepInputPlaceholder: "Tempel di sini kunci pribadi dalam format WIF",
+  SweepSuccessMessage: "Aset berhasil diklaim",
   SweepThePointsFirst: "Sapu poin terlebih dahulu",
   SweepTheTokensFirst: "Sapu token terlebih dahulu",
   SwipeToConfirm: "Geser untuk mengonfirmasi",

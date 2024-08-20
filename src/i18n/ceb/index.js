@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Kini nga adres walay sulod",
   SweepErrMsg2: "Kinahanglan nimo ang igo nga balanse sa BCH aron mapugngan ang mga token (s) sa ubos",
   SweepInputPlaceholder: "I-paste dinhi ang pribado nga yawi sa format sa Wif",
+  SweepSuccessMessage: "Ang mga Asset nga Malampuson nga Giangkon",
   SweepThePointsFirst: "Pag-una sa mga puntos",
   SweepTheTokensFirst: "Pag-una sa mga token",
   SwipeToConfirm: "Pag-swipe aron kumpirmahon",

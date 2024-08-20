@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Hierdie adres is leeg",
   SweepErrMsg2: "U benodig voldoende BCH -balans om die teken (s) hieronder te kan vee",
   SweepInputPlaceholder: "Plak hier die privaat sleutel in WIF -formaat",
+  SweepSuccessMessage: "Bates word suksesvol geëis",
   SweepThePointsFirst: "Vee eers die punte",
   SweepTheTokensFirst: "Vee eers die tekens",
   SwipeToConfirm: "Vee om te bevestig",

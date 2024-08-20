@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Wannan adireshin babu komai",
   SweepErrMsg2: "Kuna buƙatar isasshen ma'aunin BCH don ya iya share alama (s) a ƙasa",
   SweepInputPlaceholder: "Manna a nan maɓallin keɓaɓɓen a cikin Wif Tsarin",
+  SweepSuccessMessage: "Kadarorin da aka yi da'awar su cikin nasara",
   SweepThePointsFirst: "Share maki da farko",
   SweepTheTokensFirst: "Share alamu na farko",
   SwipeToConfirm: "Swipe don tabbatarwa",

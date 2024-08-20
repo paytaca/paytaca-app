@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Dit adres is leeg",
   SweepErrMsg2: "U hebt voldoende BCH -balans nodig om de token (en) hieronder te kunnen vegen",
   SweepInputPlaceholder: "Plak hier de privésleutel in WIF -indeling",
+  SweepSuccessMessage: "Activa claimden met succes",
   SweepThePointsFirst: "Veeg eerst de punten",
   SweepTheTokensFirst: "Veeg eerst de tokens",
   SwipeToConfirm: "Veeg om te bevestigen",

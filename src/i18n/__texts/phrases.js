@@ -1140,6 +1140,7 @@ const phrases = {
     {
       UnableToFindChatSessionOrderID: "Unable to find chat session for order #{ID}",
       DeleteMerchantName: "Delete merchant {name}",
+      SweepSuccessMessage: "Assets claimed successfully",
     }
   ]
 }

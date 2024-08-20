@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "This address is empty",
   SweepErrMsg2: "You will need sufficient BCH balance to be able to sweep the token(s) below",
   SweepInputPlaceholder: "Paste here the private key in WIF format",
+  SweepSuccessMessage: "Assets claimed successfully",
   SweepThePointsFirst: "Sweep the points first",
   SweepTheTokensFirst: "Sweep the tokens first",
   SwipeToConfirm: "SWIPE TO CONFIRM",

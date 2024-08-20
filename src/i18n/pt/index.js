@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Este endereço está vazio",
   SweepErrMsg2: "Você precisará de um equilíbrio de BCH suficiente para poder varrer os token (s) abaixo",
   SweepInputPlaceholder: "Cole aqui a chave privada no formato WIF",
+  SweepSuccessMessage: "Ativos reivindicados com sucesso",
   SweepThePointsFirst: "Varre os pontos primeiro",
   SweepTheTokensFirst: "Varre os tokens primeiro",
   SwipeToConfirm: "Deslizar para confirmar",

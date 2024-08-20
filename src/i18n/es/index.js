@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Esta dirección está vacía",
   SweepErrMsg2: "Necesitará suficiente equilibrio BCH para poder barrer los token (s) a continuación",
   SweepInputPlaceholder: "Pega aquí la clave privada en formato WIF",
+  SweepSuccessMessage: "Activos reclamados con éxito",
   SweepThePointsFirst: "Primero barrido los puntos",
   SweepTheTokensFirst: "Primero barrido las fichas",
   SwipeToConfirm: "Deslice para confirmar",

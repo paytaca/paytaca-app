@@ -1207,6 +1207,7 @@ export default {
   SweepErrMsg1: "Walang laman ang address na ito",
   SweepErrMsg2: "Kakailanganin mo ng sapat na balanse ng BCH upang maalis ang mga token (s) sa ibaba",
   SweepInputPlaceholder: "I -paste dito ang pribadong susi sa format na WIF",
+  SweepSuccessMessage: "Matagumpay na inaangkin ng mga assets",
   SweepThePointsFirst: "Pawisan muna ang mga puntos",
   SweepTheTokensFirst: "Pawisan muna ang mga token",
   SwipeToConfirm: "Mag -swipe upang kumpirmahin",
