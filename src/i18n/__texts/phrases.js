@@ -181,6 +181,7 @@ const phrases = {
       SelectAssetToSend: "Select Asset to Send",
       SelectAssetToBeReceived: "Select Asset to be Received",
       SendToAnotherAddress: "Send to another address",
+      SendTo: "Send to",
       SendTransaction: "Send Transaction",
       SignTransaction: "Sign Transaction",
       SelectCustomToken: "Select custom token",

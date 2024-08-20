@@ -1073,6 +1073,7 @@ export default {
   SendBeforeTimerEnds: "타이머가 끝나기 전에 금액을 보내십시오 ...",
   SendPageOffline: "오프라인 동안 자금을 보낼 수 없습니다.인터넷에 연결하십시오.",
   SendPayment: "지불을 보내십시오",
+  SendTo: "보내십시오",
   SendToAnotherAddress: "다른 주소로 보내십시오",
   SendTransaction: "트랜잭션을 보냅니다",
   Sender: "보내는 사람",

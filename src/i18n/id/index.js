@@ -1073,6 +1073,7 @@ export default {
   SendBeforeTimerEnds: "Kirim Jumlah Sebelum Timer Berakhir ...",
   SendPageOffline: "Anda tidak dapat mengirim dana saat offline.Harap terhubung ke internet.",
   SendPayment: "Kirim pembayaran",
+  SendTo: "Kirim ke",
   SendToAnotherAddress: "Kirim ke alamat lain",
   SendTransaction: "Kirim transaksi",
   Sender: "Pengirim",

@@ -1073,6 +1073,7 @@ export default {
   SendBeforeTimerEnds: "Pagpadala og kantidad sa wala pa matapos ang timer ...",
   SendPageOffline: "Dili ka makapadala mga pondo samtang offline.Palihug pagkonektar sa Internet.",
   SendPayment: "Magpadala bayad",
+  SendTo: "Ipadala sa",
   SendToAnotherAddress: "Ipadala sa lain nga adres",
   SendTransaction: "Pagpadala Transaksyon",
   Sender: "Tigpadala",

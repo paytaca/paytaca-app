@@ -1073,6 +1073,7 @@ export default {
   SendBeforeTimerEnds: "Aika adadin kafin lokacin ya ƙare ...",
   SendPageOffline: "Ba za ku iya aiko da kuɗi ba yayin layi.Da fatan za a haɗa zuwa Intanet.",
   SendPayment: "Aika biya",
+  SendTo: "Aika zuwa",
   SendToAnotherAddress: "Aika zuwa wani adireshin",
   SendTransaction: "Aika ma'amala",
   Sender: "Mai aikawa",

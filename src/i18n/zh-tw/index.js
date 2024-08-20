@@ -1073,6 +1073,7 @@ export default {
   SendBeforeTimerEnds: "在計時器結束之前發送金額...",
   SendPageOffline: "離線時，您不能匯款。請連接到互聯網。",
   SendPayment: "發送付款",
+  SendTo: "發送",
   SendToAnotherAddress: "發送到另一個地址",
   SendTransaction: "發送交易",
   Sender: "發件人",

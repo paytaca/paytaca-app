@@ -1073,6 +1073,7 @@ export default {
   SendBeforeTimerEnds: "Send amount before the timer ends...",
   SendPageOffline: "You cannot send funds while offline. Please connect to the internet.",
   SendPayment: "Send payment",
+  SendTo: "Send to",
   SendToAnotherAddress: "Send to another address",
   SendTransaction: "Send Transaction",
   Sender: "Sender",
