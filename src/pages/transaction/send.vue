@@ -99,6 +99,20 @@
                 :class="getDarkModeClass(darkMode)"
                 v-html="$t('LegacyAddressWarning')"
               />
+              <q-slide-transition :duration="750">
+                <div v-if="manualAddress && validateAddress(manualAddress)?.valid" class="text-center">
+                  <q-btn
+                    no-caps
+                    class="button q-mb-lg q-mt-sm"
+                    @click="() => onScannerDecode(manualAddress)"
+                  >
+                    <div class="ellipsis" style="max-width:min(200px, 75vw)">
+                      {{ $t('SendTo', {}, 'Send to') }}
+                      {{ manualAddress }}
+                    </div>
+                  </q-btn>
+                </div>
+              </q-slide-transition>
               <div class="col-12 text-uppercase text-center or-label">
                 {{ $t('or') }}
               </div>
