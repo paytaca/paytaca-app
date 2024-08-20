@@ -52,7 +52,6 @@ export default {
   },
   watch: {
     selectedCurrency (value) {
-      console.log('_selectedCurrency:', value)
       this.$emit('select-currency', value)
     }
   },

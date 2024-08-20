@@ -21,6 +21,17 @@
         <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
           {{ statusMessage }}
         </div>
+
+        <div v-if="txid" class="text-center">
+          <a
+            style="text-decoration: none; font-size: medium;"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
+            :href="explorerLink"
+          >
+            {{ $t('ViewInExplorer') }}
+          </a>
+        </div>
       <!-- </div> -->
     </div>
     <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline" :class=" darkMode ? 'text-blue-6' : 'text-blue-8'" v-if="newOrder" style="font-size: medium;">
@@ -52,6 +63,7 @@
 <script>
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import PaymentConfirmation from './payment-confirmation.vue'
 
@@ -67,7 +79,8 @@ export default {
       order: null,
       newOrder: false,
       confirmCancel: false,
-      uploading: false
+      uploading: false,
+      txid: null
     }
   },
   emits: ['confirm-payment', 'new-order'],
@@ -86,6 +99,21 @@ export default {
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN', 'PD_PN']
       return stat.includes(this.order?.status.value)
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    explorerLink () {
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+
+      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
+      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      // }
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/tx/'
+      }
+      return `${url}${this.txid}`
     }
   },
   components: {
@@ -93,11 +121,13 @@ export default {
   },
   async mounted () {
     await this.loadData()
+    // this.getContract()
   },
   beforeUnmount () {
     this.websocketManager.closeConnection()
   },
   methods: {
+    getDarkModeClass,
     async loadData () {
       await this.fetchOrder()
       const url = `${getBackendWsUrl()}order/${this.orderId}/`
@@ -153,6 +183,7 @@ export default {
           this.statusTitle = 'Funds Released!'
           const amount = Number(Number(this.order?.crypto_amount).toFixed(8))
           this.statusMessage = `${amount} BCH has been sent to you`
+          this.txid = this.$store.getters['ramp/getOrderTxid'](this.orderId, 'RELEASE')
           break
         }
         case 'CNCL':
