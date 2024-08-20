@@ -47,7 +47,8 @@ export default {
   },
   emits: ['select-payment', 'select-currency'],
   props: {
-    options: Array
+    options: Array,
+    fiat: Object
   },
   watch: {
     selectedCurrency (value) {
@@ -57,6 +58,7 @@ export default {
   },
   mounted () {
     this.fetchFiatCurrencies()
+    this.selectedCurrency = this.fiat
   },
   methods: {
     getDarkModeClass,
