@@ -1,7 +1,5 @@
 <template>
-  <q-scroll-area
-  style="height: 275px;"
-  >
+  <q-scroll-area class="q-mx-md" style="height: 275px;">
     <div class="q-mt-xs" style="font-size: 20px;">
       <div class="text-center">BCH Escrowed</div>
     </div>
@@ -99,8 +97,11 @@
       </q-file>
     </div>
   </q-scroll-area>
-  <div class="row justify-center q-mt-md q-mb-sm">
-    <q-btn :disable="!url" class="col q-mx-lg" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
+  <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
+    <q-btn :disable="!url" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
+  </div>
+  <div class="row justify-center q-mx-lg q-px-md">
+    <q-btn rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="$emit('appeal')"/>
   </div>
   <AttachmentDialog :show="showImageDialog" :url="url" @back="showImageDialog=false"/>
 </template>
@@ -119,7 +120,7 @@ export default {
       showImageDialog: false
     }
   },
-  emits: ['confirm-payment', 'refetch-order', 'upload', 'delete'],
+  emits: ['confirm-payment', 'refetch-order', 'upload', 'delete', 'appeal'],
   props: {
     order: Object,
     uploading: {

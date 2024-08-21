@@ -19,7 +19,7 @@
               <div style="font-size: medium;">{{ method?.short_name }}</div>
               <div style="font-size: small;">
                 <div style="opacity: .5;">{{ method?.short_name !== method?.full_name ? method?.full_name : ''}}</div>
-                <div v-if="method.online_ads_count > 0" :class="darkMode ? 'text-green-6' : 'text-green-8'">{{ method.online_ads_count }} {{ method.online_ads_count == 1 ? 'seller' : 'sellers'}} recently active</div>
+                <div v-if="method.online_ads_count > 0" :class="darkMode ? 'text-green-6' : 'text-green-8'">{{ method.online_ads_count }} {{ method.online_ads_count == 1 ? 'seller' : 'sellers'}} active</div>
                 <div v-if="method.online_ads_count === 0" style="opacity: .5;">{{ method.online_ads_count }} {{ method.online_ads_count == 1 ? 'seller' : 'sellers'}} recently active</div>
               </div>
             </q-item-section>
