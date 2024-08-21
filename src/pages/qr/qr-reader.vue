@@ -68,6 +68,7 @@
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { isValidWif } from 'src/wallet/sweep'
 
 import { QrcodeStream } from 'vue-qrcode-reader'
 import HeaderNav from 'src/components/header-nav'
@@ -289,6 +290,12 @@ export default {
             name: 'app-wallet-connect',
             query: { uri: value }
           })
+          
+        } else if(isValidWif(value)) {
+          vm.$router.push({
+            name: 'app-sweep',
+            query: { w: value },
+          })
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
@@ -324,6 +331,7 @@ export default {
     if (vm.isMobile) {
       vm.prepareScanner()
     }
+    window.scan = val => vm.onQRDecode([{ rawValue: val }])
   },
 
   deactivated () {

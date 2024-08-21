@@ -62,7 +62,16 @@
               :dark="darkMode"
               :label="$t('Address', {}, 'Address')"
               v-model="branchInfoForm.location.location"
-            />
+            >
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  padding="sm"
+                  icon="search"
+                  @click="() => selectCoordinates({ autoFocusSearch: true })"
+                />
+              </template>
+            </q-input>
             <q-input
               outlined
               dense
@@ -162,12 +171,13 @@
 </template>
 <script setup>
 import countriesJson from 'src/assets/countries.json'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { computed, ref, onMounted } from 'vue'
-import { useStore } from 'vuex'
-import { useI18n } from 'vue-i18n'
-import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { geolocationManager } from 'src/boot/geolocation'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
+import { useStore } from 'vuex'
+import { computed, ref, onMounted } from 'vue'
+import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 // dialog plugins requirement
 const emit = defineEmits([
@@ -205,7 +215,7 @@ const branchInfoForm = ref({
     city: '',
     country: '',
     longitude: null,
-    langitude: null,
+    longitude: null,
   }
 })
 const countriesOpts = computed(() => {
@@ -245,19 +255,112 @@ function resetForm(opts={ clear: false }) {
   branchInfoForm.value.location.latitude = Number(branchData?.location?.latitude) || null
 }
 
-function selectCoordinates() {
+onMounted(() => {
+  geolocationManager.getOrUpdateGeoIp()
+})
+
+const attemptedGeolocation = ref(false)
+async function getInitialSelectCoordinatePosition() {
+  let dialog
+  let showDialogTimeout = 0
+  let dialogPromise
+  const initLocation = {
+    latitude: branchInfoForm.value.location.latitude,
+    longitude: branchInfoForm.value.location.longitude,
+    zoom: 18,
+  }
+
+  try {
+    dialogPromise = new Promise((resolve, reject) => {
+      showDialogTimeout = setTimeout(() => {
+        dialog = $q.dialog({
+          title: 'Getting location',
+          progress: true,
+          ok: false,
+          cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
+          persistent: true,
+          color: 'brandblue',
+          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        }).onCancel(() => {
+          reject('cancelled')
+        }).onDismiss(resolve)
+
+        // to prevent memory leak from unresolved promise
+        setTimeout(resolve, 30 * 1000)
+      }, 250)
+    })
+
+    if (!initLocation.latitude || !initLocation.longitude) {
+      const deviceLocation = geolocationManager.location.value?.position
+      if ((!deviceLocation?.longitude || !deviceLocation?.latitude) && !attemptedGeolocation.value) {
+        attemptedGeolocation.value = true
+        await Promise.race([
+          geolocationManager.geolocate({ timeout: 5000 }).catch(console.error),
+          dialogPromise,
+        ])
+      }
+      initLocation.latitude = deviceLocation?.latitude
+      initLocation.longitude = deviceLocation?.longitude
+      initLocation.zoom = 16
+    }
+
+    if (!initLocation.latitude || !initLocation.longitude) {
+      initLocation.latitude = geolocationManager.geoip.value?.latitude
+      initLocation.longitude = geolocationManager.geoip.value?.longitude
+      initLocation.zoom = 11
+    }
+
+    if (!initLocation.latitude || !initLocation.longitude) {
+      initLocation.zoom = 10
+    }
+
+  } catch(error) {
+    console.log('Error', error)
+    if (error === 'cancelled') return initLocation
+    throw error
+  } finally {
+    clearTimeout(showDialogTimeout)
+    try { dialog?.hide?.() } catch {}
+    dialogPromise = undefined
+  }
+  return initLocation
+}
+
+async function selectCoordinates(opts={ autoFocusSearch: false }) {
+  const initLocation = await getInitialSelectCoordinatePosition()
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
-      initLocation: {
-        latitude: branchInfoForm.value.location.latitude,
-        longitude: branchInfoForm.value.location.longitude,
-      }
+      disableGeolocate: true,
+      search: {
+        enable: true,
+        autofocus: opts?.autoFocusSearch,
+        forceResults: true,
+      },
+      initLocation: initLocation,
     }
   })
     .onOk(coordinates => {
       branchInfoForm.value.location.longitude = coordinates.lng
       branchInfoForm.value.location.latitude = coordinates.lat
+
+      if (!coordinates?.components) return console.log('No components')
+
+      const components = coordinates.components
+      const current = branchInfoForm.value.location
+
+      const emptyOrEqual = (initialVal, newVal) => !initialVal || initialVal == newVal
+      const replaceAddressDetails = emptyOrEqual(current?.country, components?.country) &&
+                                    emptyOrEqual(current?.city, components?.city) &&
+                                    emptyOrEqual(current?.street, components?.street)
+
+      if (!replaceAddressDetails) return
+
+      branchInfoForm.value.location.location = components.address1
+      branchInfoForm.value.location.landmark = components.address2
+      branchInfoForm.value.location.street = components.street
+      branchInfoForm.value.location.city = components.city
+      branchInfoForm.value.location.country = components.country
     })
 }
 

@@ -11,8 +11,15 @@
           class="close-button"
         />
       </div>
-      <div :id="mapUid" style="height:75vh;width:100%;">
+      <div :id="mapUid" class="leaflet-map" style="height:70vh;width:100%;">
       </div>
+      <div v-if="searchResultValid && searchResult?.label" class="text-center ellipsis q-px-md">
+        {{ searchResult?.label }}
+      </div>
+      <div v-else-if="reverseGeocoding" class="text-grey text-center">
+        <q-spinner/>
+      </div>
+      <div v-else>&nbsp;</div>
       <div class="text-center row items-center justify-center text-subtitle1 ellipsis">
         <q-icon name="location_on"/> {{ coordinates?.lat }}, {{ coordinates?.lng }}
       </div>
@@ -30,18 +37,20 @@
           no-caps
           label="OK"
           class="col button"
-          @click="onDialogOK(coordinates)"
+          @click="onDialogOK(computedInnerVal)"
         />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 <script setup>
-import { computed, getCurrentInstance, inject, markRaw, onMounted, ref, watch } from 'vue';
-import { useStore } from 'vuex';
-import { useDialogPluginComponent } from 'quasar'
-import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { OpenStreetMapProvider, GeoSearchControl } from 'leaflet-geosearch';
+import { debounce, useDialogPluginComponent } from 'quasar'
+import { useI18n } from 'vue-i18n'
+import { useStore } from 'vuex';
+import { computed, getCurrentInstance, inject, markRaw, onMounted, ref, watch } from 'vue';
+import { geolocationManager } from 'src/boot/geolocation';
 
 // dialog plugins requirement
 defineEmits([
@@ -63,11 +72,34 @@ const props = defineProps({
   static: Boolean,
   hideCancel: Boolean,
   markerIcon: Object,
+  search: {
+    default: () => {
+      return {
+        enable: false,
+        autofocus: false,
+        limitPanToSearchResult: true,
+        forceResults: true,
+      }
+    }
+  },
+  disableGeolocate: Boolean,
+})
+
+const computedInnerVal = computed(() => {
+  if (!searchResultValid.value) return coordinates.value
+  return {
+    lat: coordinates.value?.lat,
+    lng: coordinates.value?.lng,
+    bounds: searchResult.value.bounds,
+    label: searchResult.value.label,
+    components: searchResultAddressDetails.value,
+  }
 })
 
 const mapUid = computed(() => `leaflet-map-${uid.value}`)
 const map = ref(null)
 const pin = ref(null)
+const moved = ref(false)
 onMounted(() => {
   setTimeout(() => initMap(), 250)
 })
@@ -81,7 +113,7 @@ function initMap() {
   if (Number.isFinite(props.initLocation?.latitude) && Number.isFinite(props.initLocation?.longitude)) {
     mapOptions.center[0] = props.initLocation?.latitude
     mapOptions.center[1] = props.initLocation?.longitude
-    mapOptions.zoom = 18
+    mapOptions.zoom = parseInt(props.initLocation?.zoom) || 18
     autoLocate = false
   }
 
@@ -99,9 +131,12 @@ function initMap() {
   pin.value = markRaw(_pin)
   map.value = markRaw(_map)
 
-  _map.on('move', () => updateCoordinates())
-  if (autoLocate && !props.static) {
-    _map.locate({setView: true, maxZoom: 16})
+  _map.on('move', () => {
+    moved.value = true
+    updateCoordinates()
+  })
+  if (!props.disableGeolocate && autoLocate && !props.static) {
+    _map.locate({setView: true, maxZoom: 16, timeout: 3000 })
     _map.on('locationfound', () => updateCoordinates())
   }
 
@@ -109,6 +144,13 @@ function initMap() {
    _map.off('move') 
   }
   updateCoordinates()
+
+  if(!props.static && props.search?.enable) {
+    addSearch()
+    if (props.search?.autofocus) {
+      document.getElementsByClassName('pin-dialog-search-input')?.item(0)?.focus?.()
+    }
+  }
 }
 watch(() => [props.static], () => {
   if (props.static) map.value.off('move')
@@ -124,5 +166,151 @@ function updateCoordinates() {
   coordinates.value.lat = Number(newCoordinates.lat.toFixed(6))
   coordinates.value.lng = Number(newCoordinates.lng.toFixed(6))
   pin.value.setLatLng(newCoordinates)
+
+  if (moved.value &&
+      props.search?.enable &&
+      props.search?.forceResults &&
+      !searchResultValid.value
+  ) {
+    reverseGeocode()
+  }
 }
+
+
+const searchControl = ref()
+function addSearch() {
+  const search = new GeoSearchControl({
+    provider: new OpenStreetMapProvider({
+      params: {
+        'accept-language': $store.getters['global/language'],
+        // countrycodes: $store.getters['global/country']?.code,
+        addressdetails: 1,
+        featureType: 'road',
+      }
+    }),
+    searchLabel: $t('SearchAddress', {}, 'Search address'),
+    clearSearchLabel: $t('ClearSearch', {}, 'Clear search'),
+    notFoundMessage: $t('AddressCouldNotBeFound', {}, 'Sorry, that address could not be found.'),
+    style: 'bar',
+    showMarker: false,
+    classNames: {
+      input: 'pin-dialog-search-input',
+      item: 'pin-dialog-search-result-item ellipsis-2-lines',
+      notfound: 'pin-dialog-search-not-found',
+    }
+  });
+  searchControl.value = search
+
+  map.value.addControl(search);
+  map.value.on('geosearch/showlocation', handleSearchResult);
+  console.log('Added search control')
+}
+
+
+const searchResultValid = computed(() => {
+  if (Number.isNaN(searchResult.value.lat) || Number.isNaN(searchResult.value.lng)) {
+    return false
+  }
+
+  const down = searchResult.value.bounds?.[0]?.[0]
+  const up = searchResult.value.bounds?.[1]?.[0]
+  const left = searchResult.value.bounds?.[0]?.[1]
+  const right = searchResult.value.bounds?.[1]?.[1]
+  // console.log({ down, up, left, right })
+
+  const lat = coordinates.value?.lat
+  const lng = coordinates.value?.lng
+  // console.log({ lat, lng })
+
+  const validLat = lat >= down && lat <= up
+  const validLng = lng >= left && lng <= right
+  // console.log({ validLat, validLng })
+
+  return validLat && validLng
+})
+const searchResultAddressDetails = computed(() => {
+  const addressDetails = searchResult.value?.raw?.address
+  const address1 = [
+    addressDetails?.amenity || addressDetails?.shop || '',
+    addressDetails?.village || addressDetails?.neighbourhood || addressDetails?.suburb || '',
+  ].filter(Boolean).join(', ')
+
+  const data = {
+    address1: address1,
+    address2: '',
+    street: addressDetails?.road,
+    city: addressDetails?.city,
+    state: addressDetails?.state || addressDetails?.province || '',
+    country: addressDetails?.country || '',
+    latitude: parseFloat(searchResult.value.lat),
+    longitude: parseFloat(searchResult.value.lng),
+  }
+  return data
+})
+
+const searchResult = ref({
+  isReverseGeocode: false,
+  lat: 0,
+  lng: 0,
+  bounds: [ [0, 0], [0,0] ],
+  label: '',
+  raw: {},
+})
+function handleSearchResult(result) {
+  searchResult.value = {
+    isReverseGeocode: result?.isReverseGeocode,
+    bounds: result?.location?.bounds,
+    lat: result?.location?.y,
+    lng: result?.location?.x,
+    label: result?.location?.label,
+    raw: result?.location?.raw,
+  }
+}
+
+const reverseGeocoding = ref(false)
+async function reverseGeocode() {
+  if (searchResultValid.value) return
+
+  const provider = searchControl.value?.options?.provider
+  if (!provider) return
+
+  try {
+    reverseGeocoding.value = true
+  
+    const _searchResult = await provider.search({
+      query: `${coordinates.value.lat},${coordinates.value.lng}`,
+      limit: 1,
+    })
+    const result = _searchResult?.[0]
+    handleSearchResult({ location: result, isReverseGeocode: true })
+  } finally {
+    reverseGeocoding.value = false
+  }
+}
+reverseGeocode = debounce(reverseGeocode, 500)
 </script>
+<style lang="scss" scoped>
+::v-deep .leaflet-map .leaflet-control-geosearch {
+  color: black;
+}
+
+::v-deep .leaflet-map .leaflet-control-geosearch input.pin-dialog-search-input {
+  background-color: white;
+  color: black;
+}
+
+::v-deep .leaflet-map .leaflet-control-geosearch .pin-dialog-search-result-item {
+  white-space: normal;
+  border-left: 2px solid currentColor;
+  margin-bottom: 4px;
+  // overflow: unset;
+  // text-overflow: unset;
+  // border-bottom: 2px solid black;
+}
+::v-deep .leaflet-map .leaflet-control-geosearch .pin-dialog-search-not-found {
+  color: grey;
+  white-space: normal;
+  overflow: unset;
+  text-overflow: unset;
+}
+</style>
