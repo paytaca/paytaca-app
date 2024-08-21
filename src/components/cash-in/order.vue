@@ -230,7 +230,6 @@ export default {
         .then(response => {
           if (response.data && response.data.status.value === 'CNCL') {
             vm.status = response.data.status.value
-            this.checkStatus()
             this.confirmCancel = false
           }
         })
