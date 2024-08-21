@@ -114,30 +114,33 @@
                             {{ `${walletYield} ${selectedMarketCurrency}` }}
                           </span>
                         </q-badge>
+                        <div>
+                          <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
+                            <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
+                            <div style="padding-right: 10px;">Cash In</div>
+                          </q-btn>
+                        </div>
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
-                      <img
-                        :src="
-                          selectedNetwork === 'sBCH'
-                            ? 'sep20-logo.png'
-                            : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
-                              ? 'assets/img/theme/payhero/deem-logo.png'
-                              : 'bch-logo.png'
-                        "
-                        alt=""
-                        style="height: 75px;"
-                      />
+                      <div>
+                        <img
+                          :src="
+                            selectedNetwork === 'sBCH'
+                              ? 'sep20-logo.png'
+                              : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
+                                ? 'assets/img/theme/payhero/deem-logo.png'
+                                : 'bch-logo.png'
+                          "
+                          alt=""
+                          style="height: 75px;"
+                        />
+                      </div>
                     </q-card-section>
                   </q-card-section>
                 </q-card>
               </div>
             </div>
-          </div>
-          <div class="q-px-lg">
-            <q-btn class="cash-in" padding="sm" @click="openCashIn">
-              Cash In
-            </q-btn>
           </div>
           <div
             v-if="!showTokens"
@@ -1263,8 +1266,8 @@ export default {
     padding-bottom: 15px;
   }
   .cash-in {
-    background-color: #0AC18E;
-    color: white;
+    background-color: #ECF3F3;
+    color: #3b7bf6;
   }
 </style>
 

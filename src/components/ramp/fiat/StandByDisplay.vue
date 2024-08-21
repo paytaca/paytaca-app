@@ -75,7 +75,7 @@
                     :default-opened=true
                     :label="method.payment_type"
                     expand-separator >
-                    <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                    <q-card class="row no-wrap q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
                       <div class="col q-pr-sm q-py-xs">
                         <div v-for="(field, index) in method.values" :key="index">
                           <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
@@ -90,7 +90,19 @@
                             {{ dynamicVal(field) }}
                             <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
                           </div>
+                        </div>
                       </div>
+                      <div v-if="method.attachments?.length > 0" class="col q-py-md">
+                        <div class="row justify-end q-mr-md">
+                          <q-img
+                            :src="method.attachments[0].image?.url"
+                            style="max-height: 80px; max-width: 80px;"
+                            @click="viewPaymentAttachment(method.attachments[0].image?.url)">
+                            <div class="absolute-full text-subtitle2 flex flex-center text-center" style="font-style: italic">
+                              {{ method.attachments?.length }} image(s)
+                            </div>
+                          </q-img>
+                        </div>
                       </div>
                     </q-card>
                   </q-expansion-item>
@@ -180,6 +192,7 @@
     :arbiter="data.order?.arbiter"
     @back="openReviewForm = false"
     @submit="onSubmitFeedback"/>
+  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
 import AppealForm from './dialogs/AppealForm.vue'
@@ -190,6 +203,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
+import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
 export default {
   data () {
@@ -210,7 +224,9 @@ export default {
       contractBalance: null,
       lockedPrice: '',
       byFiat: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      showAttachmentDialog: false,
+      attachmentUrl: null
     }
   },
   props: {
@@ -221,7 +237,8 @@ export default {
     FeedbackDialog,
     AppealForm,
     ProgressLoader,
-    FeedbackForm
+    FeedbackForm,
+    AttachmentDialog
   },
   computed: {
     arbiterName () {
@@ -368,6 +385,10 @@ export default {
           return this.data?.order?.tracking_id
         }
       }
+    },
+    viewPaymentAttachment (url) {
+      this.showAttachmentDialog = true
+      this.attachmentUrl = url
     },
     fetchAppeal () {
       const vm = this

@@ -17,7 +17,11 @@
           <q-item clickable @click="selectPaymentType(method)" :key="index">
             <q-item-section>
               <div style="font-size: medium;">{{ method?.short_name }}</div>
-              <div class="text-grey" style="font-size: small;">{{ method?.short_name !== method?.full_name ? method?.full_name : ''}}</div>
+              <div style="font-size: small;">
+                <div style="opacity: .5;">{{ method?.short_name !== method?.full_name ? method?.full_name : ''}}</div>
+                <div v-if="method.online_ads_count > 0" :class="darkMode ? 'text-green-6' : 'text-green-8'">{{ method.online_ads_count }} {{ method.online_ads_count == 1 ? 'seller' : 'sellers'}} recently active</div>
+                <div v-if="method.online_ads_count === 0" style="opacity: .5;">{{ method.online_ads_count }} {{ method.online_ads_count == 1 ? 'seller' : 'sellers'}} recently active</div>
+              </div>
             </q-item-section>
           </q-item>
           <q-separator class="q-mx-sm" v-if="index !== options.length - 1"/>
@@ -43,16 +47,17 @@ export default {
   },
   emits: ['select-payment', 'select-currency'],
   props: {
-    options: Array
+    options: Array,
+    fiat: Object
   },
   watch: {
     selectedCurrency (value) {
-      console.log('_selectedCurrency:', value)
       this.$emit('select-currency', value)
     }
   },
   mounted () {
     this.fetchFiatCurrencies()
+    this.selectedCurrency = this.fiat
   },
   methods: {
     getDarkModeClass,

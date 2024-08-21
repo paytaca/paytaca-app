@@ -64,7 +64,7 @@
       </div>
     </q-pull-to-refresh>
     <div class="q-mt-sm">
-      <div v-if="listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="listings.length == 0 && cashinOrders.length == 0" class="relative text-center" style="margin-top: 50px;">
         <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
         <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
       </div>
