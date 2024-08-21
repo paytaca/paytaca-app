@@ -129,6 +129,7 @@ export default {
         case 'RLS':
           return 'Released'
         case 'APL':
+          return 'Appealed'
         case 'CNCL':
         case 'RFN':
           return 'Canceled'

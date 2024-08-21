@@ -181,6 +181,7 @@ const phrases = {
       SelectAssetToSend: "Select Asset to Send",
       SelectAssetToBeReceived: "Select Asset to be Received",
       SendToAnotherAddress: "Send to another address",
+      SendTo: "Send to",
       SendTransaction: "Send Transaction",
       SignTransaction: "Sign Transaction",
       SelectCustomToken: "Select custom token",
@@ -1072,6 +1073,11 @@ const phrases = {
       FirstName: "First name",
       LastName: "Last name",
       PhoneNumber: "Phone Number",
+    },
+    {
+      SearchAddress: 'Search address',
+      ClearSearch: 'Clear search',
+      AddressCouldNotBeFound: 'Sorry, that address could not be found.',
     }
   ],
   dynamic: [
@@ -1134,6 +1140,7 @@ const phrases = {
     {
       UnableToFindChatSessionOrderID: "Unable to find chat session for order #{ID}",
       DeleteMerchantName: "Delete merchant {name}",
+      SweepSuccessMessage: "Assets claimed successfully",
     }
   ]
 }
