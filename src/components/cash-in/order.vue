@@ -40,7 +40,7 @@
           Cancel this Order?
         </div>
         <div class="row q-pt-sm q-mx-lg q-px-lg">
-          <q-btn outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="confirmCancel = false"/>
+          <q-btn v-if="confirmCancel || confirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="confirmCancel = false"/>
           <q-btn v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
           <q-btn v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder"/>
         </div>
@@ -91,9 +91,6 @@ export default {
     orderId: Number
   },
   watch: {
-    confirmAppeal (val) {
-      console.log(val)
-    },
     status (val) {
       this.checkStatus(val)
     }
@@ -164,7 +161,6 @@ export default {
         })
     },
     async checkStatus (status) {
-      console.log('checkStatus: ', status)
       if (status === 'ESCRW') {
         this.paymentConfirmationKey++
       }
@@ -227,11 +223,9 @@ export default {
       }
     },
     async deleteAttachment (attachmentId) {
-      console.log('onDeleteAttachment')
       await backend.post(
         '/ramp-p2p/order/payment/attachment/delete', { attachment_id: attachmentId }, { authorize: true })
         .then(response => {
-          console.log(response)
           this.fetchOrder()
         })
         .catch(error => {
@@ -244,10 +238,7 @@ export default {
         '/ramp-p2p/order/payment/attachment/upload',
         data, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
         .then(response => {
-          console.log(response)
           this.fetchOrder()
-          // refetch order
-          // this.attachment.url = response.data.image?.url
         })
         .catch(error => {
           console.error(error.response || error)
@@ -313,7 +304,6 @@ export default {
       const url = `/ramp-p2p/order/${vm.order.id}/cancel`
       backend.post(url, {}, { authorize: true })
         .then(response => {
-          console.log(response.data)
           if (response.data.status?.value === 'CNCL') {
             vm.status = response.data.status?.value
             this.checkStatus(vm.status)
