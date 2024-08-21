@@ -53,10 +53,10 @@
       <q-btn outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
     </div>
   </div>
-  <div v-if="state !== 'confirm_payment'" class="text-center row q-mx-lg" style="position: fixed; bottom: 40px; left: 0; right: 0; margin: auto;">
+  <div v-if="state !== 'confirm_payment'" class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
     <div class="col" style="opacity: .55;">
-      <div class="row justify-center text-bow" style="font-size: medium;">Powered by</div>
-      <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 23px;">P2P Exchange</div>
+      <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
+      <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
     </div>
   </div>
 </template>
@@ -98,7 +98,7 @@ export default {
     },
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN', 'PD_PN']
-      return stat.includes(this.order?.status.value)
+      return stat.includes(this.status)
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
