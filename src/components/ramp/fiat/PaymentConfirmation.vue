@@ -75,36 +75,37 @@
                 :label="method.payment_type"
                 expand-separator >
                 <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                  <div class="col q-pr-sm q-py-xs">
-                    <div v-for="(field, index) in method.values" :key="index">
-                      <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
-                      <div v-if="field.value" class="q-ml-sm text-weight-bold">
-                        {{ field.value }}
-                        <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
+                  <div class="col">
+                    <div class="row">
+                      <div class="col q-pr-sm q-py-xs">
+                        <div v-for="(field, index) in method.values" :key="index">
+                          <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                          <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                            {{ field.value }}
+                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
+                          </div>
+                        </div>
+                        <div v-for="(field, index) in method.dynamic_values" :key="index">
+                            {{ field.fieldname }}
+                            <div class="q-ml-sm text-weight-bold">
+                              {{ dynamicVal(field) }}
+                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
+                            </div>
+                        </div>
+                      </div>
+                      <div v-if="data?.type !== 'seller'">
+                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
                       </div>
                     </div>
-                    <div v-for="(field, index) in method.dynamic_values" :key="index">
-                        {{ field.fieldname }}
-                        <div class="q-ml-sm text-weight-bold">
-                          {{ dynamicVal(field) }}
-                          <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
-                        </div>
+                    <div v-if="method.attachments?.length > 0" class="row">
+                      <q-btn
+                        flat dense no-caps
+                        icon="image"
+                        class="row button button-text-primary q-my-none q-py-none"
+                        label="View Proof of Payment"
+                        style="font-size: small;"
+                        @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
                     </div>
-                  </div>
-                  <div v-if="method.attachments?.length > 0" class="col q-py-xs">
-                    <div class="row justify-end q-mr-md">
-                      <q-img
-                        :src="method.attachments[0].image?.url"
-                        style="max-height: 80px; max-width: 150px;"
-                        @click="viewPaymentAttachment(method.attachments[0].image?.url)">
-                        <div class="absolute-full text-subtitle2 flex flex-center text-bow" style="font-style: italic">
-                          {{ method.attachments?.length }} attachment(s)
-                        </div>
-                      </q-img>
-                    </div>
-                  </div>
-                  <div v-if="data?.type !== 'seller'">
-                    <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
                   </div>
                 </q-card>
               </q-expansion-item>

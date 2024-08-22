@@ -9,7 +9,7 @@
 
     <div class="text-center q-pt-md" v-if="options.length === 0">
       <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-      <p style="font-size: medium;">No Payment Type<br>Available... ☹</p>
+      <p style="font-size: medium;">No ads available ☹ <br>Please try again later</p>
     </div>
     <q-card flat bordered class="q-mt-sm q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" v-else>
       <q-virtual-scroll :items="options" style="max-height: 40vh;">
@@ -41,14 +41,15 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      currencyOpts: [],
+      // currencyOpts: [],
       openCurrencyDialog: false
     }
   },
   emits: ['select-payment', 'select-currency'],
   props: {
     options: Array,
-    fiat: Object
+    fiat: Object,
+    fiatOption: Array
   },
   watch: {
     selectedCurrency (value) {
@@ -56,7 +57,6 @@ export default {
     }
   },
   mounted () {
-    this.fetchFiatCurrencies()
     this.selectedCurrency = this.fiat
   },
   methods: {
@@ -65,7 +65,7 @@ export default {
       this.$q.dialog({
         component: CurrencyFilterDialog,
         componentProps: {
-          fiatList: this.currencyOpts
+          fiatList: this.fiatOption
         }
       })
         .onOk(currency => {
@@ -74,25 +74,6 @@ export default {
     },
     selectPaymentType (value) {
       this.$emit('select-payment', value)
-    },
-    async fetchFiatCurrencies () {
-      const vm = this
-      await backend.get('/ramp-p2p/currency/fiat')
-        .then(response => {
-          vm.currencyOpts = response.data
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              // bus.emit('session-expired')
-              console.log('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
-        })
     }
   }
 }

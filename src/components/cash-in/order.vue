@@ -71,7 +71,7 @@ export default {
   data () {
     return {
       state: 'await_status',
-      statusTitle: 'Processing transaction',
+      statusTitle: 'Processing',
       statusMessage: 'Please wait a moment',
       websocket: null,
       status: null,
@@ -100,7 +100,7 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     hasCancel () {
-      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'PD_PN']
+      const stat = ['SBM', 'CNF', 'ESCRW_PN']
       return stat.includes(this.status)
     },
     isChipnet () {
@@ -139,6 +139,9 @@ export default {
       this.websocketManager.subscribeToMessages((message) => {
         if (message.status) {
           this.status = message?.status?.status?.value
+          if (this.status === 'RLS') {
+            this.txid = message?.txdata?.txid
+          }
         }
       })
     },

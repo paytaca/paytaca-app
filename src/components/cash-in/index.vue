@@ -37,6 +37,7 @@
             :key="selectPaymentTypeKey"
             :options="paymentTypeOpts"
             :fiat="selectedCurrency"
+            :fiat-option="fiatCurrencies"
             @select-currency="setCurrency"
             @select-payment="setPaymentType"
             @update-fiat="updateSelectedCurrency"
@@ -97,6 +98,9 @@ export default {
     OrderList,
     NetworkError
   },
+  props: {
+    fiatCurrencies: Array
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -118,7 +122,7 @@ export default {
       register: false,
       openorderList: false,
       loading: true,
-      fiatCurrencies: null,
+      // fiatCurrencies: null,
       order: null,
       orderPayload: null,
       openOrderPage: false,
@@ -246,18 +250,18 @@ export default {
       this.loading = false
       if (nextStep) this.step++
     },
-    fetchFiatCurrencies () {
-      const vm = this
-      backend.get('/ramp-p2p/currency/fiat', { authorize: true })
-        .then(response => {
-          vm.fiatCurrencies = response.data
-        })
-        .catch(error => {
-          console.error(error)
-          // this.state = 'network-error'
-          this.dislayNetworkError()
-        })
-    },
+    // fetchFiatCurrencies () {
+    //   const vm = this
+    //   backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+    //     .then(response => {
+    //       vm.fiatCurrencies = response.data
+    //     })
+    //     .catch(error => {
+    //       console.error(error)
+    //       // this.state = 'network-error'
+    //       this.dislayNetworkError()
+    //     })
+    // },
     updateSelectedCurrency (currency) {
       this.selectedCurrency = currency
       this.fetchCashinAds()
