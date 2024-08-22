@@ -87,12 +87,10 @@
         outlined
         color="blue-12"
         label="Select Image"
+        @update:model-value="onUploadAttachment"
         @rejected="onRejectedFilePick">
         <template v-slot:prepend>
           <q-icon name="image" />
-        </template>
-        <template v-slot:append>
-          <q-btn flat dense :disable="!attachment" :loading="uploading" padding="none" icon="cloud_upload" color="blue" @click="onUploadAttachment" />
         </template>
       </q-file>
     </div>
