@@ -114,7 +114,7 @@
                             {{ `${walletYield} ${selectedMarketCurrency}` }}
                           </span>
                         </q-badge>
-                        <div>
+                        <div v-if="hasCashin">
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
                             <div style="padding-right: 10px;">Cash In</div>
@@ -346,6 +346,7 @@ import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { backend } from 'src/exchange/backend'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
@@ -418,7 +419,10 @@ export default {
       assetsCloseButtonColor: 'color: #3B7BF6;',
       denominationTabSelected: this.$t('DEEM'),
       parsedBCHBalance: '0',
-      walletYield: null
+      walletYield: null,
+      hasCashin: false,
+      availableCashinFiat: null
+
     }
   },
 
@@ -539,8 +543,24 @@ export default {
     },
     openCashIn () {
       this.$q.dialog({
-        component: CashIn
+        component: CashIn,
+        componentProps: {
+          fiatCurrencies: this.availableCashinFiat
+        }
       })
+    },
+    checkCashinAvailable () {
+      backend.get('/ramp-p2p/currency/fiat')
+        .then(response => {
+          this.availableCashinFiat = response.data
+          const selectedFiat = this.$store.getters['market/selectedCurrency']
+          const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
+
+          this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
+        })
+        .catch(error => {
+          console.error(error)
+        })
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()
@@ -1086,6 +1106,7 @@ export default {
 
   async mounted () {
     const vm = this
+    this.checkCashinAvailable()
     bus.on('handle-push-notification', this.handleOpenedNotification)
 
     if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
