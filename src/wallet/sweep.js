@@ -145,7 +145,7 @@ export class SweepPrivateKey {
    * @param {Number} param0.tokenAmount
    * @param {String} param0.recipient
    */
-  sweepCashToken({ tokenAddress, bchWif, token, tokenAmount, recipient }) {
+  sweepCashToken({ tokenAddress, bchWif, token, tokenAmount, feeFunder, recipient }) {
     const watchtower = new Watchtower()
     const data = {
       sender: { address: tokenAddress, wif: bchWif },
@@ -153,9 +153,9 @@ export class SweepPrivateKey {
         { address: recipient, tokenAmount: tokenAmount },
       ],
       token,
+      feeFunder: feeFunder,
       broadcast: true,
     }
-
     return watchtower.BCH.send(data)
   }
 
