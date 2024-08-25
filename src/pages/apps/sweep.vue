@@ -375,7 +375,7 @@ export default {
       if (!decimals) return value
 
       const multiplier = 10 ** decimals
-      return Math.round(value * multiplier) / multiplier
+      return Math.round(value / multiplier)
     },
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
@@ -414,7 +414,7 @@ export default {
           this.nonFungibleCashTokens = results
         }),
         this.sweeper.getFungibleCashTokens().then(results => {
-          t,his.fungibleCashTokens = results
+          this.fungibleCashTokens = results
         }),
         this.sweeper.getTokensList().then((tokens) => {
           this.tokens = tokens.filter(token => token.spendable)
