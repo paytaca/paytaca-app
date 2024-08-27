@@ -26,11 +26,11 @@ export async function updatePubkeyAndAddress (user) {
   const pubkey = await wallet.pubkey()
 
   // TODO: make address path fixed at 0/0
-  const addressPath = await wallet.addressPath()
+  const addressPath = wallet.addressPath()
 
   const payload = {
     public_key: pubkey,
-    address: wallet.address,
+    address: (await wallet.address()).receiving,
     address_path: addressPath
   }
 

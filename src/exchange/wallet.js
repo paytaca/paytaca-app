@@ -5,12 +5,20 @@ import { markRaw } from 'vue'
 import { Store } from 'src/store'
 
 export class RampWallet {
-  constructor (walletIndex, walletHash, addressIndex, address, isChipnet = false) {
+  constructor (walletIndex, walletHash, addressIndex, isChipnet = false) {
     this.walletHash = walletHash
     this.walletIndex = walletIndex
     this.addressIndex = addressIndex
-    this.address = address
     this.isChipnet = isChipnet
+
+    const data = {
+      walletHash: walletHash,
+      walletIndex: walletIndex,
+      addressIndex: addressIndex,
+      // address: address,
+      isChipnet: isChipnet
+    }
+    console.log('RampWallet: ', data)
   }
 
   async raw () {
@@ -29,28 +37,25 @@ export class RampWallet {
     }
   }
 
-  async addressPath (wallet = null, addressIndex = '') {
+  async address (wallet = null, addressIndex = this.addressIndex) {
     if (!wallet) wallet = await this.raw()
-    if (!addressIndex) addressIndex = this.addressIndex
-    const { receiving, change } = await wallet.getAddressSetAt(addressIndex)
+    return await wallet.getAddressSetAt(addressIndex)
+  }
 
-    let addressPath = `/${addressIndex}`
-    if (this.address === receiving) addressPath = `0${addressPath}`
-    if (this.address === change) addressPath = `1${addressPath}`
-
-    return addressPath
+  addressPath (addressIndex = this.addressIndex) {
+    return `0/${addressIndex}`
   }
 
   async pubkey (wallet = null, addressPath = '') {
     if (!wallet) wallet = await this.raw()
-    if (!addressPath) addressPath = await this.addressPath(wallet)
+    if (!addressPath) addressPath = this.addressPath()
     const publicKey = await wallet.getPublicKey(addressPath)
     return publicKey
   }
 
   async privkey (wallet = null, addressPath = '') {
     if (!wallet) wallet = await this.raw()
-    if (!addressPath) addressPath = await this.addressPath()
+    if (!addressPath) addressPath = this.addressPath()
     const privateKeyWif = await wallet.getPrivateKey(addressPath)
     return privateKeyWif
   }
@@ -75,6 +80,7 @@ export function loadRampWallet () {
   const walletIndex = Store.getters['global/getWalletIndex']
   const wallet = Store.getters['global/getWallet']('bch')
   const address = Store.getters['global/getAddress']('bch')
-  rampWallet = new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
+  const addressIndex = 0
+  rampWallet = new RampWallet(walletIndex, wallet.walletHash, addressIndex, isChipnet)
   return new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
 }

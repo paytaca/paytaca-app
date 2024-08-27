@@ -61,8 +61,8 @@ export default {
         }
         const body = {
           name: vm.username,
-          address: wallet.address,
-          address_path: await wallet.addressPath()
+          address: (await wallet.address()).receiving,
+          address_path: wallet.addressPath()
         }
         await backend.post('/ramp-p2p/peer/create', body, { headers: headers })
           .then((response) => {

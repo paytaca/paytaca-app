@@ -209,9 +209,10 @@ export default {
         vm.rampWallet.pubkey().then(async pubkey => {
           const payload = {
             public_key: pubkey,
-            address: vm.rampWallet.address,
-            address_path: await vm.rampWallet.addressPath()
+            address: (await vm.rampWallet.address()).receiving,
+            address_path: vm.rampWallet.addressPath()
           }
+          console.log('payload:', payload)
           if (payload.public_key === vm.user.public_key &&
               payload.address === vm.user.address &&
               payload.address_path === vm.user.address_path) {
@@ -259,8 +260,8 @@ export default {
       }
       const body = {
         name: vm.usernickname,
-        address: vm.rampWallet.address,
-        address_path: await vm.rampWallet.addressPath()
+        address: (await vm.rampWallet.address()).receiving,
+        address_path: vm.rampWallet.addressPath()
       }
       await backend.post('/ramp-p2p/peer/create', body, { headers: headers })
         .then((response) => {
