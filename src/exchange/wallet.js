@@ -58,7 +58,7 @@ export class RampWallet {
   async signMessage (wif, message, timestamp) {
     // hash the message
     message = timestamp ? [message, timestamp].join('::') : message
-    const messageHash = await sha256.hash(utf8ToBin(message))
+    const messageHash = sha256.hash(utf8ToBin(message))
     const privateKeyBin = decodePrivateKeyWif(wif).privateKey
     if (typeof privateKeyBin === 'string') throw (new IncorrectWIFError(wif))
     // sign
@@ -69,10 +69,12 @@ export class RampWallet {
   }
 }
 
+export let rampWallet = new RampWallet()
 export function loadRampWallet () {
   const isChipnet = Store.getters['global/isChipnet']
   const walletIndex = Store.getters['global/getWalletIndex']
   const wallet = Store.getters['global/getWallet']('bch')
   const address = Store.getters['global/getAddress']('bch')
+  rampWallet = new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
   return new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
 }

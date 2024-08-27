@@ -134,7 +134,7 @@
         <div v-else>
           <div class="row no-wrap justify-between">
             <div class="col-auto">
-              <!-- <div class="row xs-font-size">{{ $t('TradeAmount') }}</div> -->
+              <div class="row xs-font-size">{{ $t('TradeAmount') }}</div>
               <div class="q-mb-none">
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}

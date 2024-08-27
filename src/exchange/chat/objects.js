@@ -206,7 +206,7 @@ export class ChatIdentityManager {
     // Handle null encrypting pubkey
     if (!encryptingPubkey) {
       console.error(`Error: getKeypair returned pubkey: "${encryptingPubkey}". Recreating keypair without updating server pubkey..`)
-      encryptingPubkey = (await chatUtils.updateOrCreateKeypair({ updatePubkey: false })).pubkey
+      encryptingPubkey = (await chatUtils.updateOrCreateKeypair(false)).pubkey
     }
     const deviceId = await getDeviceId()
     const wallet = loadRampWallet()
@@ -231,7 +231,7 @@ export class ChatIdentityManager {
     await updateSignerData()
   }
 
-  async _updateEncryptionKeypair () {
-    await chatUtils.updateOrCreateKeypair()
+  async _updateEncryptionKeypair (update) {
+    await chatUtils.updateOrCreateKeypair(update)
   }
 }

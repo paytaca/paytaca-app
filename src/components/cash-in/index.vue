@@ -161,11 +161,6 @@ export default {
       try {
         const { data: user } = await backend.get('/auth/')
         this.user = user
-        const payload = {
-          user_type: user.is_arbiter ? 'arbiter' : 'peer',
-          chat_identity_id: user.chat_identity_id,
-          name: user.name
-        }
         let login = false
         if (vm.user.is_authenticated) {
           const token = await getAuthToken()
@@ -182,7 +177,12 @@ export default {
 
         if (login) {
           await vm.login()
-          await loadChatIdentity(payload)
+          const usertype = user.is_arbiter ? 'arbiter' : 'peer'
+          const params = {
+            name: user.name,
+            chat_identity_id: user.chat_identity_id
+          }
+          await loadChatIdentity(usertype, params)
           await updatePubkeyAndAddress(user)
         }
       } catch (error) {
