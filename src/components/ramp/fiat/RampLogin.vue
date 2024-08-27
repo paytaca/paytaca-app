@@ -1,11 +1,23 @@
 <template>
-  <!-- <HeaderNav :title="`${user?.is_arbiter ? 'Appeal Ramp' : 'P2P Exchange'}`" backnavpath="/apps"/> -->
   <q-dialog v-model="show" persistent maximized no-shake transition-show="slide-up">
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
-        <p class="text-h5 text-uppercase text-center q-my-none" :class="{'text-grad': isNotDefaultTheme || darkMode}">
-          {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
-        </p>
+        <div class="col-auto q-py-xs">
+          <router-link
+            :to="{ path: '/apps' }"
+            class="pt-arrow-left-link"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            <span class="material-icons">
+              arrow_back
+            </span>
+          </router-link>
+        </div>
+        <div col="col">
+          <p class="text-h5 text-uppercase text-center q-my-none" :class="{'text-grad': isNotDefaultTheme || darkMode}">
+            {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
+          </p>
+        </div>
       </div>
       <div
       class="q-mb-lg text-bow">
