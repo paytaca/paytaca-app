@@ -1,6 +1,9 @@
 <template>
   <q-dialog v-model="show" persistent maximized no-shake transition-show="slide-up">
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
+      <!-- <div class="q-pt-md q-pl-sm">
+        <q-btn flat icon="close" :color="darkMode ? 'grey-5' : 'grey-8'" @click="$router?.push('/apps')"/>
+      </div> -->
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
         <div class="col-auto q-py-xs">
           <router-link
