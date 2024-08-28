@@ -10,12 +10,12 @@ export class RampWallet {
     this.walletIndex = walletIndex
     this.addressIndex = addressIndex
     this.isChipnet = isChipnet
+    this.raw()
 
     const data = {
       walletHash: walletHash,
       walletIndex: walletIndex,
       addressIndex: addressIndex,
-      // address: address,
       isChipnet: isChipnet
     }
     console.log('RampWallet: ', data)
@@ -23,40 +23,44 @@ export class RampWallet {
 
   async raw () {
     const rawWallet = await markRaw(loadWallet('BCH', this.walletIndex))
-    if (this.isChipnet) return rawWallet.BCH_CHIP
-    return rawWallet.BCH
+    if (this.isChipnet) {
+      this.wallet = rawWallet.BCH_CHIP
+    } else {
+      this.wallet = rawWallet.BCH
+    }
+    return this.wallet
   }
 
   async keypair (addressPath = '') {
-    const wallet = await this.raw()
-    const privateKeyWif = await this.privkey(wallet, addressPath)
-    const publicKey = await this.pubkey(wallet, addressPath)
+    const privateKeyWif = await this.privkey(addressPath)
+    const publicKey = await this.pubkey(addressPath)
     return {
       privateKey: privateKeyWif,
       publicKey: publicKey
     }
   }
 
-  async address (wallet = null, addressIndex = this.addressIndex) {
-    if (!wallet) wallet = await this.raw()
-    return await wallet.getAddressSetAt(addressIndex)
+  async address (addressIndex = this.addressIndex) {
+    if (!this.wallet) await this.raw()
+    const { receiving } = await this.wallet.getAddressSetAt(addressIndex)
+    return receiving
   }
 
   addressPath (addressIndex = this.addressIndex) {
     return `0/${addressIndex}`
   }
 
-  async pubkey (wallet = null, addressPath = '') {
-    if (!wallet) wallet = await this.raw()
+  async pubkey (addressPath = '') {
+    if (!this.wallet) await this.raw()
     if (!addressPath) addressPath = this.addressPath()
-    const publicKey = await wallet.getPublicKey(addressPath)
+    const publicKey = await this.wallet.getPublicKey(addressPath)
     return publicKey
   }
 
-  async privkey (wallet = null, addressPath = '') {
-    if (!wallet) wallet = await this.raw()
+  async privkey (addressPath = '') {
+    if (!this.wallet) await this.raw()
     if (!addressPath) addressPath = this.addressPath()
-    const privateKeyWif = await wallet.getPrivateKey(addressPath)
+    const privateKeyWif = await this.wallet.getPrivateKey(addressPath)
     return privateKeyWif
   }
 
@@ -74,13 +78,12 @@ export class RampWallet {
   }
 }
 
-export let rampWallet = new RampWallet()
+const ADDRESS_INDEX = 0
+export let wallet = new RampWallet()
 export function loadRampWallet () {
   const isChipnet = Store.getters['global/isChipnet']
   const walletIndex = Store.getters['global/getWalletIndex']
-  const wallet = Store.getters['global/getWallet']('bch')
-  const address = Store.getters['global/getAddress']('bch')
-  const addressIndex = 0
-  rampWallet = new RampWallet(walletIndex, wallet.walletHash, addressIndex, isChipnet)
-  return new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
+  const globalWallet = Store.getters['global/getWallet']('bch')
+  wallet = new RampWallet(walletIndex, globalWallet.walletHash, ADDRESS_INDEX, isChipnet)
+  return wallet
 }

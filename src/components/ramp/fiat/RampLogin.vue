@@ -144,6 +144,8 @@ export default {
 
         // login user if not authenticated
         vm.hintMessage = vm.$t('LoggingYouIn')
+        const token = await getAuthToken()
+        if (!token) forceLogin = true
         if (!user.is_authenticated || forceLogin) {
           await vm.login()
         }
@@ -212,7 +214,7 @@ export default {
         vm.rampWallet.pubkey().then(async pubkey => {
           const payload = {
             public_key: pubkey,
-            address: (await vm.rampWallet.address()).receiving,
+            address: await vm.rampWallet.address(),
             address_path: vm.rampWallet.addressPath()
           }
           console.log('payload:', payload)
@@ -263,7 +265,7 @@ export default {
       }
       const body = {
         name: vm.usernickname,
-        address: (await vm.rampWallet.address()).receiving,
+        address: await vm.rampWallet.address(),
         address_path: vm.rampWallet.addressPath()
       }
       await backend.post('/ramp-p2p/peer/create', body, { headers: headers })
