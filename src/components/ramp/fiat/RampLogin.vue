@@ -1,16 +1,13 @@
 <template>
   <q-dialog v-model="show" persistent maximized no-shake transition-show="slide-up">
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
-      <!-- <div class="q-pt-md q-pl-sm">
-        <q-btn flat icon="close" :color="darkMode ? 'grey-5' : 'grey-8'" @click="$router?.push('/apps')"/>
-      </div> -->
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
-        <div class="col-auto q-py-xs">
+        <div class="col-auto q-pb-xs">
           <router-link
             :to="{ path: '/apps' }"
             class="pt-arrow-left-link"
             :class="{'text-grad': isNotDefaultTheme || darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons">
               arrow_back
             </span>
