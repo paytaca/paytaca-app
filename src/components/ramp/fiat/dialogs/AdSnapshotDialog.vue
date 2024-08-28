@@ -12,6 +12,18 @@
         <q-separator class="q-my-sm" :dark="darkMode"/>
         <div class="sm-font-size q-px-md q-py-sm q-mb-lg">
           <div class="row justify-between no-wrap q-mx-lg">
+            <span>{{ $t('Owner', 'Owner') }}</span>
+            <span class="text-nowrap q-ml-xs">
+              {{ snapshot?.owner?.name }}
+            </span>
+          </div>
+          <div class="row justify-between no-wrap q-mx-lg">
+            <span>{{ $t('TradeType', 'Trade Type') }}</span>
+            <span class="text-nowrap q-ml-xs">
+              {{ snapshot?.trade_type }}
+            </span>
+          </div>
+          <div class="row justify-between no-wrap q-mx-lg">
             <span>{{ $t('PriceType') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ snapshot?.price_type }}
