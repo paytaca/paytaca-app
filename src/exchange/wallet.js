@@ -11,14 +11,6 @@ export class RampWallet {
     this.addressIndex = addressIndex
     this.isChipnet = isChipnet
     this.raw()
-
-    const data = {
-      walletHash: walletHash,
-      walletIndex: walletIndex,
-      addressIndex: addressIndex,
-      isChipnet: isChipnet
-    }
-    console.log('RampWallet: ', data)
   }
 
   async raw () {
