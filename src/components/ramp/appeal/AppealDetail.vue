@@ -336,7 +336,7 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const privateKey = await vm.wallet.privkey(null, arbiterMember.address_path)
+      const privateKey = await vm.wallet.privkey(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.refund(privateKey, this.order.crypto_amount)
         .then(result => {

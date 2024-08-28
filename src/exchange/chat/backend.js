@@ -86,8 +86,8 @@ export async function updateSignerData () {
 
   // fetches the verifying keypair at adress path 0/0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
-  const privkey = await wallet.privkey(null, `0/${verifyingPubkeyIndex}`)
-  const verifyingPubkey = await wallet.pubkey(null, `0/${verifyingPubkeyIndex}`)
+  const privkey = await wallet.privkey(`0/${verifyingPubkeyIndex}`)
+  const verifyingPubkey = await wallet.pubkey(`0/${verifyingPubkeyIndex}`)
 
   // generate message and signature to verify
   const message = `${Date.now()}`

@@ -210,7 +210,7 @@ export class ChatIdentityManager {
     }
     const deviceId = await getDeviceId()
     const wallet = loadRampWallet()
-    const verifyingPubkey = await wallet.pubkey(null, '0/0')
+    const verifyingPubkey = await wallet.pubkey('0/0')
     const hexRef = Buffer.from(String(data.ref)).toString('hex')
     const signatureData = await signRequestData(hexRef)
 
