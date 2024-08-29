@@ -94,7 +94,7 @@
                         </div>
                       </div>
                       <div v-if="data?.type !== 'seller'">
-                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method)" :dark="darkMode"/>
+                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method, index)" :dark="darkMode"/>
                       </div>
                     </div>
                     <div v-if="method.attachments?.length > 0" class="row">
@@ -105,6 +105,44 @@
                         label="View Proof of Payment"
                         style="font-size: small;"
                         @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
+                    </div>
+                    <div v-if="data?.type !== 'seller'" class="row">
+                      <q-btn
+                        v-if="!!method.attachment"
+                        flat dense
+                        icon="cancel"
+                        size="sm"
+                        color="red"
+                        @click="cancelAttachment(method)"/>
+                      <q-btn
+                        flat dense no-caps no-wrap
+                        class="row button button-text-primary q-my-none q-py-none"
+                        style="font-size: small;"
+                        :disable="!method.selected"
+                        @click="onClickUpload(index)">
+                        <!-- <template v-slot:prepend> -->
+                          <q-icon v-if="!method.attachment" name="upload" class="q-mr-sm"/>
+                          <span style="max-width: 200px; overflow-x: scroll; text-align: left;">
+                            {{ method.attachment?.name || 'Upload Proof of Payment' }}
+                          </span>
+                        <!-- </template> -->
+                      </q-btn>
+                      <q-file
+                        ref="filePickerRef"
+                        :max-file-size="maxFileSize"
+                        clearable
+                        accept=".jpg, image/*"
+                        dense
+                        color="blue-12"
+                        label="Upload Proof of Payment"
+                        style="display: none"
+                        v-model="method.attachment"
+                        @update:model-value="onSelectAttachment(index, method.id)"
+                        @rejected="onRejectedFilePick">
+                        <template v-slot:prepend>
+                          <q-icon name="upload" />
+                        </template>
+                      </q-file>
                     </div>
                   </div>
                 </q-card>
@@ -179,6 +217,7 @@
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
+import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -190,6 +229,12 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
 export default {
+  setup () {
+    const filePickerRef = ref(null)
+    return {
+      filePickerRef
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -234,6 +279,9 @@ export default {
     }
   },
   computed: {
+    maxFileSize () {
+      return 5 * 1024 * 1024
+    },
     appealBtnLabel () {
       if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countDown }, `Appealable in ${this.countDown}`)
       return this.$t('SubmitAnAppeal')
@@ -265,15 +313,60 @@ export default {
     formatCurrency,
     isNotDefaultTheme,
     getDarkModeClass,
-    loadData () {
+    async loadData () {
       const vm = this
       vm.wallet = loadRampWallet()
-      vm.fetchOrderDetail().then((response) => {
-        vm.appealCountdown()
-        vm.isloaded = true
-      })
+      await vm.fetchOrderDetail()
+      vm.appealCountdown()
+      vm.isloaded = true
       vm.fetchContractBalance()
       vm.lockedPrice = this.formatCurrency(vm.data.order?.locked_price, vm.data.order?.ad?.fiat_currency?.symbol)
+    },
+    cancelAttachment (method) {
+      method.attachment = null
+      const index = this.selectedPaymentMethods.map(e => e.id).indexOf(method.id)
+      if (index > -1) {
+        this.selectedPaymentMethods[index].attachment = null
+      }
+    },
+    onClickUpload (index) {
+      this.$refs.filePickerRef[index].pickFiles()
+    },
+    onRejectedFilePick (rejectedEntries) {
+      console.log('onRejectedFilePick:', rejectedEntries)
+      let message = 'File did not pass validation constraints'
+      if (rejectedEntries.length > 0 && rejectedEntries[0]?.failedPropValidation === 'max-file-size') {
+        message = 'File size should not exceed 5MB'
+      }
+      this.$q.notify({
+        type: 'negative',
+        message: message
+      })
+    },
+    onSelectAttachment (methodIndex, methodId) {
+      const index = this.selectedPaymentMethods.map(e => e.id).indexOf(methodId)
+      this.selectedPaymentMethods[index].attachment = this.paymentMethods[methodIndex].attachment
+    },
+    async uploadAttachments (orderPaymentMethods) {
+      this.selectedPaymentMethods.forEach(async paymentMethod => {
+        const index = orderPaymentMethods.map(e => e.payment_method).indexOf(paymentMethod.id)
+        console.log(`Uploading ${orderPaymentMethods[index].id}: ${paymentMethod.attachment.name}`)
+        const formData = new FormData()
+        formData.append('payment_id', orderPaymentMethods[index].id)
+        formData.append('image', paymentMethod.attachment)
+        await this.uploadAttachment(formData)
+      })
+    },
+    async uploadAttachment (data) {
+      await backend.post(
+        '/ramp-p2p/order/payment/attachment/upload',
+        data, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
+        .then(response => {
+          console.log(response.data)
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
     },
     dynamicVal (field) {
       if (field.model_ref === 'order') {
@@ -301,48 +394,53 @@ export default {
           })
       }
     },
-    completePayment () {
+    async completePayment () {
       const vm = this
       const status = vm.order.status.value
       vm.sendErrors = []
-      if (status === 'ESCRW') {
-        vm.sendConfirmPayment(vm.data?.type)
-      }
-      if (status === 'PD_PN') {
-        vm.sendConfirmPayment(vm.data?.type)
-          .then(data => {
-            if (data && data.status.value === 'PD') {
+      try {
+        switch (status) {
+          case 'ESCRW': {
+            const resp = await vm.sendConfirmPayment(vm.data?.type)
+            await vm.uploadAttachments(resp.order_payment_methods)
+            await this.fetchOrderDetail()
+            break
+          }
+          case 'PD_PN': {
+            const resp = await vm.sendConfirmPayment(vm.data?.type)
+            if (resp?.status?.value === 'PD') {
               vm.releaseBch()
             }
-          })
-      }
-      if (status === 'PD') {
-        vm.releaseBch()
+            break
+          }
+          case 'PD':
+            vm.releaseBch()
+            break
+        }
+      } catch (error) {
+        console.error(error)
+        vm.sendErrors.push(error)
       }
     },
-    sendConfirmPayment (type) {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const body = {
-          payment_methods: this.selectedPaymentMethods
-        }
-        backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}`, body, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
+    async sendConfirmPayment (type) {
+      const vm = this
+      const selectedPaymentMethodIds = vm.selectedPaymentMethods.map(e => e.id)
+      const body = {
+        payment_methods: selectedPaymentMethodIds
+      }
+      const response = await backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}`, body, { authorize: true })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            bus.emit('network-error')
+          }
+        })
+      return response.data
     },
     async releaseBch () {
       const vm = this
@@ -382,61 +480,58 @@ export default {
         })
       vm.sendingBch = false
     },
-    fetchOrderDetail () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        backend.get(`/ramp-p2p/order/${vm.data.order.id}`, { authorize: true })
-          .then(response => {
-            vm.order = response.data
-            vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-            // Find the payment methods of seller
-            let orderPaymentTypes = []
-            if (vm.order?.payment_methods_selected?.length > 0) {
-              orderPaymentTypes = vm.order.payment_methods_selected.map(method => {
-                const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
-                return { ...method, selected: selected }
-              })
-            } else {
-              orderPaymentTypes = vm.order.payment_method_opts.map(method => {
-                const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
-                return { ...method, selected: selected }
-              })
-            }
-            const adPaymentTypes = vm.order.ad.payment_methods.map(method => {
-              return { ...method, selected: false }
+    async fetchOrderDetail () {
+      const vm = this
+      await backend.get(`/ramp-p2p/order/${vm.data.order.id}`, { authorize: true })
+        .then(response => {
+          vm.order = response.data
+          vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
+          // Find the payment methods of seller
+          let orderPaymentTypes = []
+          if (vm.order?.payment_methods_selected?.length > 0) {
+            orderPaymentTypes = vm.order.payment_methods_selected.map(method => {
+              const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
+              return { ...method, selected: selected }
             })
+          } else {
+            orderPaymentTypes = vm.order.payment_method_opts.map(method => {
+              const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
+              return { ...method, selected: selected }
+            })
+          }
+          const adPaymentTypes = vm.order.ad.payment_methods.map(method => {
+            return { ...method, selected: false }
+          })
 
-            if (vm.data.type === 'buyer') {
-              if (vm.data?.order?.is_ad_owner) {
-                vm.paymentMethods = orderPaymentTypes
-              } else {
-                vm.paymentMethods = adPaymentTypes
-              }
-            } else {
+          if (vm.data.type === 'buyer') {
+            if (vm.data?.order?.is_ad_owner) {
               vm.paymentMethods = orderPaymentTypes
-            }
-            resolve(response)
-          })
-          .catch(error => {
-            console.error(error.response)
-            if (error.response) {
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
             } else {
-              bus.emit('network-error')
+              vm.paymentMethods = adPaymentTypes
             }
-            reject(error)
-          })
-      })
+          } else {
+            vm.paymentMethods = orderPaymentTypes
+          }
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
-    selectPaymentMethod (method) {
+    selectPaymentMethod (method, methodIndex) {
       if (method.selected) {
-        this.selectedPaymentMethods.push(method.id)
+        this.selectedPaymentMethods.push({ id: method.id })
       } else {
-        const index = this.selectedPaymentMethods.indexOf(method.id)
+        const index = this.selectedPaymentMethods.map(e => e.id).indexOf(method.id)
         if (index > -1) {
           this.selectedPaymentMethods.splice(index, 1)
+          this.paymentMethods[methodIndex].attachment = null
         }
       }
     },
@@ -483,7 +578,7 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
-    },
+    }
   }
 }
 </script>
