@@ -140,6 +140,29 @@
       </a>
     </div>
   </div>
+
+  <q-card
+    class="row text-center q-pa-sm q-my-sm text-subtitle2 pt-card"
+    :class="getDarkModeClass(darkMode)"
+    v-if="inputExtras.cashbackData"
+  >
+    <span v-if="inputExtras.cashbackData.message === ''">
+      Congratulations!<br/>
+      You are eligible for a cashback for transacting with
+      <span class="text-bold">{{ inputExtras.cashbackData.merchant_name }}.</span>
+      You will receive<br/>
+      <span class="text-bold text-subtitle1">
+        {{ inputExtras.cashbackData.cashback_amount }} BCH or
+        {{ `${parseFiatCurrency(
+              convertToFiatAmount(inputExtras.cashbackData.cashback_amount), currentSendPageCurrency()
+            )}`}}
+      </span><br/>
+      after this transaction is successful.
+    </span>
+    <span v-else>
+      {{ inputExtras.cashbackData.message }}
+    </span>
+  </q-card>
 </template>
 
 <script>
