@@ -2,21 +2,28 @@
   <q-dialog v-model="show" persistent maximized no-shake transition-show="slide-up">
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
-        <div class="col-auto q-pb-xs">
+        <div class="col-1">
           <router-link
             :to="{ path: '/apps' }"
             class="pt-arrow-left-link"
             :class="{'text-grad': isNotDefaultTheme || darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons">
-              arrow_back
+                arrow_back
             </span>
           </router-link>
         </div>
-        <div class="col">
-          <p class="text-h5 text-uppercase text-center q-my-none" :class="{'text-grad': isNotDefaultTheme || darkMode}">
+        <div class="col-10">
+          <p
+            ref="header-title"
+            class="text-h5 text-uppercase text-center q-my-none"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
           </p>
+        </div>
+        <div class="col-1">
+          <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
         </div>
       </div>
       <div
