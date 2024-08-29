@@ -19,6 +19,7 @@
     "@capacitor/core": "^5.0.0",
     "@capacitor/device": "^5.0.0",
     "@capacitor/geolocation": "^5.0.0",
+    "@capacitor/keyboard": "^5.0.9",
     "@capacitor/preferences": "^5.0.0",
     "@capacitor/push-notifications": "^5.0.0",
     "@electron/remote": "^1.2.0",

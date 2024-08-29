@@ -1407,7 +1407,7 @@ export default {
             .then(result => vm.promiseResponseHandler(result, vm.walletType))
         } else {
           const changeAddress = vm.getChangeAddress('bch')
-          vm.wallet.BCH
+          getWalletByNetwork(vm.wallet, 'bch')
             .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
             .then(result => vm.promiseResponseHandler(result, vm.walletType))
         }
@@ -1429,7 +1429,7 @@ export default {
             slp: vm.getChangeAddress('slp'),
           }
 
-          vm.wallet.SLP
+          getWalletByNetwork(vm.wallet, 'slp')
             .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
             .then(result => vm.promiseResponseHandler(result, vm.walletType))
         }
