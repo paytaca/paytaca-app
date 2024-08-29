@@ -15,6 +15,7 @@
     "@capacitor/device": "^5.0.0",
     "@capacitor/geolocation": "^5.0.0",
     "@capacitor/ios": "^5.0.0",
+    "@capacitor/keyboard": "^5.0.9",
     "@capacitor/push-notifications": "^5.0.0",
     "capacitor-native-biometric": "^4.2.2"
   },
