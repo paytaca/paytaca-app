@@ -294,6 +294,14 @@ export default {
       let lock = false
       if (vm.data?.type === 'buyer') {
         lock = vm.selectedPaymentMethods.length === 0
+        if (!lock) {
+          for (let i = 0; i < vm.selectedPaymentMethods.length; i++) {
+            if (!vm.selectedPaymentMethods[i].attachment) {
+              lock = true
+              break
+            }
+          }
+        }
       }
       return lock
     },
