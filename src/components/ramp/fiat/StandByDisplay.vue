@@ -148,6 +148,16 @@
             />
           </div>
         </div>
+        <div class="q-pt-none q-mx-md md-font-size text-right" v-if="data?.order?.status?.value === 'RLS'">
+          <a
+            style="text-decoration: none; font-size: small;"
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
+            :href="explorerLink"
+          >
+            {{ $t('ViewInExplorer') }}
+          </a>
+        </div>
         <!-- Feedback -->
         <div class="q-pt-none q-mx-md md-font-size text-center" v-if="hasReview">
           <q-btn no-caps flat color="primary" @click="openReviewForm = true">{{ feedback ? $t('ViewMyFeedback') : $t('SubmitFeedback') }}</q-btn>
@@ -350,6 +360,31 @@ export default {
       }
 
       return this.data.order?.is_ad_owner ? adOwner : orderOwner
+    },
+    explorerLink () {
+      console.log('txid: ', this.txid)
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+
+      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
+      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      // }
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/tx/'
+      }
+      return `${url}${this.txid}`
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    txid () {
+      let txId = null
+      this.data?.order?.transactions?.forEach((tx) => {
+        if (tx.action === 'RELEASE') {
+          txId = tx.txid
+        }
+      })
+      return txId
     }
   },
   async mounted () {

@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+  <HeaderNav :title="`Ramp Appeals`" :backnavpath="previousRoute"/>
   <div v-if="isloaded && escrowContract"
     class="q-mx-md q-px-none text-bow"
     :class="getDarkModeClass(darkMode)">
