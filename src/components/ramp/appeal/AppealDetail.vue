@@ -42,6 +42,59 @@
           <q-btn class="col q-py-none" no-caps flat dense @click="showStatusHistory = true">View Status History</q-btn>
           <q-btn class="col q-py-none" no-caps flat dense @click="showTransactionHistory = true">View Transactions</q-btn>
         </div>
+        <!-- Payment Methods -->
+        <div v-if="order?.payment_methods_selected?.length > 0" class="q-px-sm q-pt-sm q-ma-sm">
+          <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
+          <div class="text-center sm-font-size q-mx-md q-mb-sm">
+            The buyer selected the following payment methods.
+          </div>
+          <div class="full-width">
+            <div v-for="(method, index) in order?.payment_methods_selected" :key="index">
+              <div class="q-px-sm q-py-xs">
+                <q-card flat bordered :dark="darkMode">
+                  <q-expansion-item
+                    class="pt-card text-bow"
+                    :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
+                    :default-opened=true
+                    :label="method.payment_type"
+                    expand-separator >
+                    <q-card class="row no-wrap q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                      <div class="col">
+                        <div class="row">
+                          <div class="col q-pr-sm q-py-xs">
+                            <div v-for="(field, index) in method.values" :key="index">
+                              <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                              <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                                {{ field.value }}
+                                <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
+                              </div>
+                            </div>
+                            <div v-for="(field, index) in method.dynamic_values" :key="index">
+                              {{ field.fieldname }}
+                              <div class="q-ml-sm text-weight-bold">
+                                {{ dynamicVal(field) }}
+                                <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div v-if="method.attachments?.length > 0" class="row">
+                          <q-btn
+                            flat dense no-caps
+                            icon="image"
+                            class="row button button-text-primary q-my-none q-py-none"
+                            label="View Proof of Payment"
+                            style="font-size: small;"
+                            @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
+                        </div>
+                      </div>
+                    </q-card>
+                  </q-expansion-item>
+                </q-card>
+              </div>
+            </div>
+          </div>
+        </div>
         <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
           <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
             <div class="text-center q-py-xs text-weight-bold text-uppercase">
@@ -137,6 +190,7 @@
   />
   <OrderStatusDialog v-if="showStatusHistory" :status-history="statusHistory" @back="showStatusHistory = false" />
   <TransactionHistoryDialog v-if="showTransactionHistory" :transaction-history="transactionHistory" @back="showTransactionHistory = false" />
+  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
 import TransactionHistoryDialog from 'src/components/ramp/appeal/dialogs/TransactionHistoryDialog.vue'
@@ -148,13 +202,15 @@ import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { loadRampWallet } from 'src/exchange/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
 export default {
   components: {
     RampDragSlide,
     ProgressLoader,
     OrderStatusDialog,
-    TransactionHistoryDialog
+    TransactionHistoryDialog,
+    AttachmentDialog
   },
   data () {
     return {
@@ -181,7 +237,10 @@ export default {
       sendError: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85,
       showStatusHistory: false,
-      showTransactionHistory: false
+      showTransactionHistory: false,
+
+      showAttachmentDialog: false,
+      attachmentUrl: null
     }
   },
   props: {
@@ -414,6 +473,10 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
+    },
+    viewPaymentAttachment (url) {
+      this.showAttachmentDialog = true
+      this.attachmentUrl = url
     }
   }
 }
