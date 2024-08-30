@@ -142,26 +142,11 @@
   </div>
 
   <q-card
-    class="row text-center q-pa-sm q-my-sm text-subtitle2 pt-card"
+    class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
     :class="getDarkModeClass(darkMode)"
     v-if="inputExtras.cashbackData"
   >
-    <span v-if="inputExtras.cashbackData.message === ''">
-      Congratulations!<br/>
-      You are eligible for a cashback for transacting with
-      <span class="text-bold">{{ inputExtras.cashbackData.merchant_name }}.</span>
-      You will receive<br/>
-      <span class="text-bold text-subtitle1">
-        {{ inputExtras.cashbackData.cashback_amount }} BCH or
-        {{ `${parseFiatCurrency(
-              convertToFiatAmount(inputExtras.cashbackData.cashback_amount), currentSendPageCurrency()
-            )}`}}
-      </span><br/>
-      after this transaction is successful.
-    </span>
-    <span v-else>
-      {{ inputExtras.cashbackData.message }}
-    </span>
+    <span v-html="cashbackAmountText()"></span>
   </q-card>
 </template>
 
@@ -176,6 +161,7 @@ import {
   customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseCashbackMessage } from 'src/utils/cashback-utils'
 
 export default {
   components: {
@@ -317,6 +303,17 @@ export default {
     },
     onQRUploaderClick () {
       this.$emit('on-qr-uploader-click')
+    },
+    cashbackAmountText () {
+      const message = this.inputExtras.cashbackData.message
+      const amountBch = this.inputExtras.cashbackData.cashback_amount
+      const amountFiat = parseFiatCurrency(
+        this.convertToFiatAmount(this.inputExtras.cashbackData.cashback_amount),
+        this.currentSendPageCurrency()
+      )
+      const merchantName = this.inputExtras.cashbackData.merchant_name
+
+      return parseCashbackMessage(message, amountBch, amountFiat, merchantName)
     }
   },
 
@@ -360,6 +357,14 @@ export default {
     .q-field__label,
     .q-field__control.text-negative {
       color: #e57373 !important
+    }
+  }
+  .cashback-text {
+    color: #ed5f59;
+    font-weight: bold;
+
+    &.amount {
+      font-size: 18px;
     }
   }
 </style>
