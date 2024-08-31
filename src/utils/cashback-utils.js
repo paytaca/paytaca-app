@@ -21,10 +21,10 @@ const FALLBACK_CASHBACK_LIMIT_MESSAGES = {
     'But since it falls within the set customer limit, you will only receive<br/>' +
     '<span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
   MERCHANT_LIMIT_REACHED:
-    'But since it falls within the set customer limit, you will only receive<br/>' +
+    'But since it falls within the set merchant limit, you will only receive<br/>' +
     '<span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
   TRANSACTION_LIMIT_REACHED:
-    'But since it falls within the set customer limit, you will only receive<br/>' +
+    'But since it falls within the set transaction limit, you will only receive<br/>' +
     '<span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.'
 }
 
