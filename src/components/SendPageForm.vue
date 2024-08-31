@@ -146,7 +146,10 @@
     :class="getDarkModeClass(darkMode)"
     v-if="inputExtras.cashbackData"
   >
-    <span v-html="cashbackAmountText()"></span>
+    <span
+      v-if="inputExtras.cashbackData.cashback_amount > -1"
+      v-html="cashbackAmountText()"
+    ></span>
   </q-card>
 </template>
 
