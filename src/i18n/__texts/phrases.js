@@ -1078,6 +1078,9 @@ const phrases = {
       SearchAddress: 'Search address',
       ClearSearch: 'Clear search',
       AddressCouldNotBeFound: 'Sorry, that address could not be found.',
+      SweepSuccessMessage: "Assets claimed successfully",
+      AllLimitsReachedMessage: 'Sorry, this transaction did not qualify for a cashback as it exceeds limits stated in the campaign.',
+      CashbackAttribute: 'Cashback received for transacting with'
     }
   ],
   dynamic: [
@@ -1140,7 +1143,11 @@ const phrases = {
     {
       UnableToFindChatSessionOrderID: "Unable to find chat session for order #{ID}",
       DeleteMerchantName: "Delete merchant {name}",
-      SweepSuccessMessage: "Assets claimed successfully",
+      WithLimitMerchantNameMessage: 'Congratulations! You qualify for a cashback for transacting with <span class="cashback-text">{merchantName}</span>.',
+      NoLimitsReachedMessage: 'You will receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
+      CustomerLimitReachedMessage: 'But since it falls within the set customer limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
+      MerchantLimitReachedMessage: 'But since it falls within the set merchant limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
+      TransactionLimitReachedMessage: 'But since it falls within the set transaction limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.'
     }
   ]
 }

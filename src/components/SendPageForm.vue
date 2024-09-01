@@ -140,6 +140,17 @@
       </a>
     </div>
   </div>
+
+  <q-card
+    class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
+    :class="getDarkModeClass(darkMode)"
+    v-if="inputExtras.cashbackData"
+  >
+    <span
+      v-if="inputExtras.cashbackData.cashback_amount > -1"
+      v-html="cashbackAmountText()"
+    ></span>
+  </q-card>
 </template>
 
 <script>
@@ -153,6 +164,7 @@ import {
   customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseCashbackMessage } from 'src/utils/cashback-utils'
 
 export default {
   components: {
@@ -294,6 +306,17 @@ export default {
     },
     onQRUploaderClick () {
       this.$emit('on-qr-uploader-click')
+    },
+    cashbackAmountText () {
+      const message = this.inputExtras.cashbackData.message
+      const amountBch = this.inputExtras.cashbackData.cashback_amount
+      const amountFiat = parseFiatCurrency(
+        this.convertToFiatAmount(this.inputExtras.cashbackData.cashback_amount),
+        this.currentSendPageCurrency()
+      )
+      const merchantName = this.inputExtras.cashbackData.merchant_name
+
+      return parseCashbackMessage(message, amountBch, amountFiat, merchantName)
     }
   },
 
@@ -337,6 +360,14 @@ export default {
     .q-field__label,
     .q-field__control.text-negative {
       color: #e57373 !important
+    }
+  }
+  .cashback-text {
+    color: #ed5f59;
+    font-weight: bold;
+
+    &.amount {
+      font-size: 18px;
     }
   }
 </style>

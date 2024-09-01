@@ -1,5 +1,8 @@
 import { ellipsisText } from "src/wallet/anyhedge/formatters"
 import { capitalize } from "vue"
+import { i18n } from 'src/boot/i18n'
+
+const { t: $t } = i18n.global
 
 const TxAttribute = Object.freeze({
   AnyhedgeFundingTx: 'anyhedge_funding_tx',
@@ -172,7 +175,10 @@ export function parseAttributeToDetails(attribute) {
   } else if (TxAttribute.isMatch(key, TxAttribute.Cashback)) {
     return {
       groupName: 'Cashback',
-      label: 'Cashback received for transacting with:',
+      label: `${$t(
+        'CashbackAttribute',
+        'Cashback received for transacting with'
+      )}:`,
       tooltip: description,
       text: value,
       actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
