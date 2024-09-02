@@ -44,6 +44,21 @@
               </div>
             </template>
           </q-input>
+          <div v-if="data?.order?.status?.value === 'RLS'">
+            <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('TransactionId') }}</div>
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="txid">
+              <template v-slot:append>
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(txid)"/>
+              </template>
+            </q-input>
+          </div>
           <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
           <q-input
             class="q-pb-xs md-font-size"
@@ -148,16 +163,6 @@
             />
           </div>
         </div>
-        <div class="q-pt-none q-mx-md md-font-size text-right" v-if="data?.order?.status?.value === 'RLS'">
-          <a
-            style="text-decoration: none; font-size: small;"
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            :href="explorerLink"
-          >
-            {{ $t('ViewInExplorer') }}
-          </a>
-        </div>
         <!-- Feedback -->
         <div class="q-pt-none q-mx-md md-font-size text-center" v-if="hasReview">
           <q-btn no-caps flat color="primary" @click="openReviewForm = true">{{ feedback ? $t('ViewMyFeedback') : $t('SubmitFeedback') }}</q-btn>
@@ -210,6 +215,7 @@ import AppealForm from './dialogs/AppealForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackForm from './dialogs/FeedbackForm.vue'
+import { openURL } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -402,6 +408,7 @@ export default {
     formatCurrency,
     getDarkModeClass,
     isNotDefaultTheme,
+    openURL,
     loadData () {
       if (this.isAppealed) {
         this.fetchAppeal()
