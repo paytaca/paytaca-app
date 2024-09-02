@@ -874,7 +874,7 @@ export default {
           token: 'bch',
           txid: '-',
           recipient: currentRecipient.recipientAddress,
-          sender_0: 'bitcoincash:qr8trvgndpet64wgt7tnhfn4r7qnpm98pgdpcgmkzm',
+          sender_0: this.$store.getters['global/getWallet']('bch')?.walletHash,
           decimals: 8,
           value: payloadAmount,
           device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
