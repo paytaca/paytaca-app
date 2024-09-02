@@ -54,7 +54,7 @@
             @submit-order="onSubmitOrder"
             />
           <!-- Order Page -->
-          <Order
+          <CashinOrder
             v-if="step === 3"
             :key="orderKey"
             :order-id="order?.id"
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Order List -->
-        <OrderList
+        <CashinOrderList
           v-if="state === 'order-list'"
           :key="orderListKey"
           :wallet-hash="wallet.walletHash"
@@ -77,11 +77,11 @@
 </template>
 <script>
 import SelectPaymentType from './SelectPaymentType.vue'
-import OrderList from './order-list.vue'
+import CashinOrderList from './CashinOrderList.vue'
+import CashinOrder from './CashinOrder.vue'
 import SelectAmount from './SelectAmount.vue'
-import Register from './register-user.vue'
-import Order from './order.vue'
-import NetworkError from './network-error.vue'
+import Register from './CashinRegister.vue'
+import NetworkError from './CashinNetworkError.vue'
 import { backend, updatePubkeyAndAddress } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
@@ -93,9 +93,9 @@ export default {
   components: {
     SelectPaymentType,
     SelectAmount,
-    Order,
+    CashinOrder,
     Register,
-    OrderList,
+    CashinOrderList,
     NetworkError
   },
   props: {
