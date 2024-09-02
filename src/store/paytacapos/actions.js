@@ -91,11 +91,11 @@ export async function updateMerchantInfo(context, data) {
             .post(`${process.env.ENGAGEMENT_HUB_URL}cashback/merchantlocation/update_merchant_location/`, payload)
             .then(_response2 => {
               // updated merchant location in engagement hub successfully
-              return Promise.resolve(response)
             })
             .catch(_error => {
               // failed updating merchant location in engagement hub
             })
+          return Promise.resolve(response)
         }
       }
       return Promise.reject({ response })
