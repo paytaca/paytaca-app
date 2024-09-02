@@ -388,6 +388,7 @@ import SingleWallet from 'src/wallet/single-wallet'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import QRUploader from 'src/components/QRUploader'
+import { pushNotificationsManager } from 'src/boot/push-notifications'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -873,9 +874,10 @@ export default {
           token: 'bch',
           txid: '-',
           recipient: currentRecipient.recipientAddress,
-          sender_0: 'bitcoincash:qr8trvgndpet64wgt7tnhfn4r7qnpm98pgdpcgmkzm',
+          sender_0: this.$store.getters['global/getWallet']('bch')?.walletHash,
           decimals: 8,
-          value: payloadAmount
+          value: payloadAmount,
+          device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
         }
         const response = await getCashbackAmount(payload)
         currentInputExtras.cashbackData = response

@@ -144,10 +144,9 @@
   <q-card
     class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
     :class="getDarkModeClass(darkMode)"
-    v-if="inputExtras.cashbackData"
+    v-if="inputExtras.cashbackData && inputExtras.cashbackData.cashback_amount > -1"
   >
     <span
-      v-if="inputExtras.cashbackData.cashback_amount > -1"
       v-html="cashbackAmountText()"
     ></span>
   </q-card>
