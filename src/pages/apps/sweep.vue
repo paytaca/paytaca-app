@@ -85,7 +85,7 @@
                   :class="getDarkModeClass(darkMode)"
                   :disabled="(totalTokensCount - skippedTokens.length) > 0"
                 />
-                <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red">
+                <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red" style="margin-left: 10px;">
                   <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
                 </span>
                 <div v-if="sweeping && selectedToken === 'bch'">
@@ -348,22 +348,6 @@ export default {
     emptyAssets() {
       const DUST = 546 / 10 ** 8
       return this.bchBalance < DUST && this.totalTokensCount == 0
-    },
-    feeFunder () {
-      let funder
-      if (this.payFeeFrom.value === 'address') {
-        funder = {
-          address: this.sweeper.bchAddress,
-          wif: this.wif
-        }
-      } else if (this.payFeeFrom.value === 'wallet') {
-        funder = {
-          walletHash: this.wallet.BCH.walletHash,
-          mnemonic: this.wallet.mnemonic,
-          derivationPath: this.wallet.BCH.derivationPath
-        }
-      }
-      return funder
     }
   },
   methods: {
@@ -375,7 +359,7 @@ export default {
       if (!decimals) return value
 
       const multiplier = 10 ** decimals
-      return Math.round(value * multiplier) / multiplier
+      return Math.round(value / multiplier)
     },
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
@@ -397,6 +381,22 @@ export default {
     validatePrivateKey (value) {
       return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
     },
+    getFeeFunder () {
+      let funder
+      if (this.payFeeFrom.value === 'address') {
+        funder = {
+          address: this.sweeper.bchAddress,
+          wif: this.wif
+        }
+      } else if (this.payFeeFrom.value === 'wallet') {
+        funder = {
+          walletHash: this.wallet.BCH.walletHash,
+          mnemonic: this.wallet.mnemonic,
+          derivationPath: this.wallet.BCH.derivationPath
+        }
+      }
+      return funder
+    },
     async getTokens (signalFetch) {
       if (!this.validatePrivateKey(this.wif)) {
         this.error = this.$t('InvalidPrivateKey')
@@ -414,7 +414,7 @@ export default {
           this.nonFungibleCashTokens = results
         }),
         this.sweeper.getFungibleCashTokens().then(results => {
-          t,his.fungibleCashTokens = results
+          this.fungibleCashTokens = results
         }),
         this.sweeper.getTokensList().then((tokens) => {
           this.tokens = tokens.filter(token => token.spendable)
@@ -436,7 +436,7 @@ export default {
         vm.wif,
         token.token_id,
         token.spendable,
-        vm.feeFunder,
+        vm.getFeeFunder(),
         vm.$store.getters['global/getAddress']('slp')
       ).then(function (result) {
         if (!result.success) {
@@ -462,6 +462,7 @@ export default {
           tokenId: token?.category,
         },
         tokenAmount: token.balance,
+        feeFunder: this.getFeeFunder(),
         recipient: tokenAddress,
       }).then(result => {
         if (!result.success) {
@@ -494,6 +495,7 @@ export default {
           txid: token?.currentTxid,
           vout: token?.currentIndex,
         },
+        feeFunder: this.getFeeFunder(),
         recipient: tokenAddress,
       }).then(result => {
         if (!result.success) {

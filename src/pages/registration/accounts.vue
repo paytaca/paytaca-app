@@ -563,7 +563,7 @@ export default {
         wallet.SLP_TEST.walletHash,
         wallet.sBCH.walletHash,
       ]
-      this.$pushNotifications?.subscribe?.(walletHashes)
+      this.$pushNotifications?.subscribe?.(walletHashes, true)
       this.newWalletHash = wallet.BCH.walletHash
     },
     choosePreferedSecurity () {
