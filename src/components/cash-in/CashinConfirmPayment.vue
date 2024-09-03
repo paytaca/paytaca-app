@@ -1,5 +1,5 @@
 <template>
-  <q-scroll-area class="q-mx-md" style="height: 275px;">
+  <q-scroll-area class="q-mx-md" style="height: 320px;">
     <div class="q-mt-xs" style="font-size: 20px;">
       <div class="text-center">BCH Escrowed</div>
     </div>
@@ -94,13 +94,13 @@
         </template>
       </q-file>
     </div>
+    <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
+      <q-btn :disable="!url" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
+    </div>
+    <div class="row justify-center q-mx-lg q-px-md">
+      <q-btn rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="$emit('appeal')"/>
+    </div>
   </q-scroll-area>
-  <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
-    <q-btn :disable="!url" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
-  </div>
-  <div class="row justify-center q-mx-lg q-px-md">
-    <q-btn rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="$emit('appeal')"/>
-  </div>
   <AttachmentDialog :show="showImageDialog" :url="url" @back="showImageDialog=false"/>
 </template>
 <script>

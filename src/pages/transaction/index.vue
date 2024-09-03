@@ -360,7 +360,7 @@ import connectedDialog from '../connect/connectedDialog.vue'
 import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
-import CashIn from 'src/components/cash-in/index.vue'
+import CashIn from 'src/components/cash-in/CashinIndex.vue'
 
 const ago = require('s-ago')
 

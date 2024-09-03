@@ -381,12 +381,14 @@ import {
 } from 'src/utils/denomination-utils'
 import { getNetworkTimeDiff } from 'src/utils/time'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getCashbackAmount } from 'src/utils/cashback-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
 import SingleWallet from 'src/wallet/single-wallet'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import QRUploader from 'src/components/QRUploader'
+import { pushNotificationsManager } from 'src/boot/push-notifications'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -522,7 +524,8 @@ export default {
         emptyRecipient: false,
         selectedDenomination: 'BCH',
         isBip21: false,
-        isLegacyAddress: false
+        isLegacyAddress: false,
+        cashbackData: null
       }],
 
       sent: false,
@@ -863,6 +866,21 @@ export default {
           }
           currentRecipient.fixedAmount = true
         }
+
+        // call cashback API to check if merchant is part of campaign
+        // and check and compute if customer is eligible for cashback
+        const payloadAmount = parseFloat(parseFloat(`${currentRecipient.amount}`) * (10 ** 8)).toFixed(2)
+        const payload = {
+          token: 'bch',
+          txid: '-',
+          recipient: currentRecipient.recipientAddress,
+          sender_0: this.$store.getters['global/getWallet']('bch')?.walletHash,
+          decimals: 8,
+          value: payloadAmount,
+          device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
+        }
+        const response = await getCashbackAmount(payload)
+        currentInputExtras.cashbackData = response
       }
     },
     handleJPP(paymentUri) {
@@ -1407,7 +1425,7 @@ export default {
             .then(result => vm.promiseResponseHandler(result, vm.walletType))
         } else {
           const changeAddress = vm.getChangeAddress('bch')
-          vm.wallet.BCH
+          getWalletByNetwork(vm.wallet, 'bch')
             .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
             .then(result => vm.promiseResponseHandler(result, vm.walletType))
         }
@@ -1429,7 +1447,7 @@ export default {
             slp: vm.getChangeAddress('slp'),
           }
 
-          vm.wallet.SLP
+          getWalletByNetwork(vm.wallet, 'slp')
             .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
             .then(result => vm.promiseResponseHandler(result, vm.walletType))
         }
@@ -1507,7 +1525,8 @@ export default {
           emptyRecipient: true,
           selectedDenomination: this.denomination,
           isBip21: false,
-          isLegacyAddress: false
+          isLegacyAddress: false,
+          cashbackData: null
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false

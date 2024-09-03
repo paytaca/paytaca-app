@@ -3,8 +3,8 @@
     <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-md q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
       {{ order?.id ? `Order #${order?.id}` : ''}}
     </div>
-    <payment-confirmation v-if="state === 'confirm_payment'"
-      :key="paymentConfirmationKey"
+    <CashinConfirmPayment v-if="state === 'confirm_payment'"
+      :key="confirmPaymentKey"
       :order="order"
       :uploading="uploading"
       @upload="uploadAttachment"
@@ -65,9 +65,12 @@ import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
-import PaymentConfirmation from './payment-confirmation.vue'
+import CashinConfirmPayment from './CashinConfirmPayment.vue'
 
 export default {
+  components: {
+    CashinConfirmPayment
+  },
   data () {
     return {
       state: 'await_status',
@@ -75,7 +78,7 @@ export default {
       statusMessage: 'Please wait a moment',
       websocket: null,
       status: null,
-      paymentConfirmationKey: 0,
+      confirmPaymentKey: 0,
       order: null,
       newOrder: false,
       confirmCancel: false,
@@ -118,9 +121,6 @@ export default {
       }
       return `${url}${this.txid}`
     }
-  },
-  components: {
-    PaymentConfirmation
   },
   async mounted () {
     await this.loadData()
@@ -165,7 +165,7 @@ export default {
     },
     async checkStatus (status) {
       if (status === 'ESCRW') {
-        this.paymentConfirmationKey++
+        this.confirmPaymentKey++
       }
       switch (status) {
         case 'SBM':

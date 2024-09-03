@@ -16,26 +16,43 @@
         style="font-size: large;">
         <template v-slot:append>
           <div class="q-pr-sm">
-            BCH
+            {{ byFiat ? currency.symbol: 'BCH'}}
           </div>
         </template>
       </q-input>
-      <div class="row justify-end text-right subtext q-pr-sm q-pt-xs" style="font-size: 14px">
-        You will pay {{ currency?.symbol }} {{ equivalentAmount ? equivalentAmount?.toLocaleString() : 0 }}
+      <div class="row justify-between text-right subtext q-pr-sm q-pt-xs" style="font-size: 14px">
+        <div class="col-auto">
+          <q-btn
+            class="sm-font-size"
+            padding="none"
+            flat no-caps
+            :class="darkMode ? 'text-blue-6' : 'text-blue-8'"
+            @click="byFiat = !byFiat">
+            {{
+              $t(
+                'SetAmountInCurrency',
+                { currency: byFiat ? 'BCH' :  currency.symbol },
+                `Set amount in ${ byFiat ? 'BCH' : currency.symbol }`
+              )
+            }}
+          </q-btn>
+        </div>
+        <div class="col">You {{ byFiat? 'get' : 'pay'}}{{ byFiat && equivalentAmount > 0 ? ' &asymp;' : ' '}}{{ equivalentAmount ? equivalentAmount?.toLocaleString() : 0 }} {{  !byFiat ? currency?.symbol : 'BCH'}}</div>
       </div>
     </div>
 
     <!-- Selection -->
     <div class="row q-gutter-x-md q-gutter-y-sm text-center q-mt-xs q-mx-md">
-      <div class="col-5" v-for="(option, index) in amountOption" :key="option">
+      <div class="col-5" v-for="(option, index) in presetOptions" :key="option">
         <q-btn
           rounded
           :outline="index !== selectedOption"
-          :disable="amountAdCount[option] === 0"
+          :disable="denomAvailable(index)"
           :color="getButtonColor(index)"
-          :label="option"
           class="full-width q-py-sm"
-          @click="selectOption(option, index)"/>
+          @click="selectOption(option, index)">
+          {{ option.toLocaleString() }}
+          </q-btn>
       </div>
     </div>
 
@@ -43,7 +60,7 @@
       <div class="col-shrink text-center" style="font-style: italic">Some denominations are currently not available</div>
     </div>
     <!-- Proceed -->
-    <div class="row justify-center q-mt-sm">
+    <div class="row justify-center q-mt-md">
       <q-btn class="col q-mx-lg" :disable="disableProceedBtn" rounded color="blue-6" label="proceed" @click="submitOrder"/>
     </div>
   </div>
@@ -51,19 +68,35 @@
 <script>
 
 export default {
+  props: {
+    paymentType: Object,
+    amountAdCount: Object,
+    currency: Object,
+    ads: Object
+  },
+  emits: ['select-amount', 'submit-order', 'update-presets'],
   data () {
     return {
       amount: 0,
-      amountOption: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
-      selectedOption: null
+      amountBchOptions: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
+      amountFiatOptions: [],
+      amountFiatEqOptions: [],
+      selectedOption: null,
+      byFiat: true
     }
   },
   computed: {
+    presetOptions () {
+      return this.byFiat ? this.amountFiatOptions : this.amountBchOptions
+    },
+    bchPresetOptions () {
+      return this.byFiat ? this.amountFiatEqOptions : this.amountBchOptions
+    },
     unavailableDenoms () {
       let hasUnavailables = false
       if (this.amountAdCount) {
-        for (let i = 0; i < this.amountOption.length; i++) {
-          if (this.amountAdCount[this.amountOption[i]] === 0) {
+        for (let i = 0; i < this.bchPresetOptions.length; i++) {
+          if (this.amountAdCount[this.bchPresetOptions[i]] === 0) {
             hasUnavailables = true
             break
           }
@@ -77,7 +110,11 @@ export default {
     equivalentAmount () {
       let amount = this.amount
       if (amount === '' || isNaN(amount)) return 0
-      amount = Number((amount) * parseFloat(this.ad?.price)).toFixed(2)
+      if (!this.byFiat) {
+        amount = Number((amount) * parseFloat(this.ad?.price)).toFixed(2)
+      } else {
+        amount = Number((amount) / parseFloat(this.ad?.price)).toFixed(2)
+      }
       return Number(amount)
     },
     ad () {
@@ -93,18 +130,91 @@ export default {
       return paymentMethod[0]
     }
   },
-  emits: ['select-amount', 'submit-order'],
-  props: {
-    paymentType: Object,
-    amountAdCount: Object,
-    currency: Object,
-    ads: Object
+  watch: {
+    amount (val) {
+      this.computePresetFiatAmount(val)
+    },
+    byFiat () {
+      this.amount = 0
+      this.selectedOption = null
+      this.computeFiatPresets()
+      this.updatePresets()
+    }
+  },
+  mounted () {
+    this.computeFiatPresets()
+    this.updatePresets()
   },
   methods: {
+    denomAvailable (index) {
+      return this.amountAdCount[this.bchPresetOptions[index]] === 0
+    },
+    updatePresets () {
+      this.$emit('update-presets', this.bchPresetOptions)
+    },
+    computeFiatPresets () {
+      const fiatPresets = []
+      const eqBchPresets = []
+      this.amountBchOptions.forEach((bchAmount, index) => {
+        const roundUp = index === 0
+        fiatPresets.push(this.computePresetFiatAmount(bchAmount, !roundUp, roundUp))
+      })
+      fiatPresets.forEach(fiatAmount => {
+        if (!fiatAmount.isNaN) {
+          const bchAmount = Number(Number((fiatAmount) / parseFloat(this.ad?.price)).toFixed(2))
+          eqBchPresets.push(bchAmount)
+        }
+      })
+      this.amountFiatOptions = fiatPresets
+      this.amountFiatEqOptions = eqBchPresets
+    },
+    computePresetFiatAmount (bchAmount, roundDown = true, roundUp = false) {
+      if (bchAmount === '' || isNaN(bchAmount)) return 0
+      let fiatAmount = Number(Number((bchAmount) * parseFloat(this.ad?.price)).toFixed(2))
+      const digits = fiatAmount.toFixed(0).length
+      if (Number(fiatAmount.toString().split('.')[0]) > 0) {
+        let digitFactor = 1
+        if (digits > 1) {
+          digitFactor = 10
+          const max = digits - 2
+          for (let i = 0; i < max; i++) {
+            digitFactor = digitFactor * 10
+          }
+        }
+        const remainder = fiatAmount % digitFactor
+        if (remainder > 0) {
+          if (digits >= 2) {
+            if (roundUp) {
+              const remDigits = remainder.toFixed(0).length
+              let remDigitFactor = 1
+              let offsetAmount = 0
+              if (remDigits > 1) {
+                remDigitFactor = 10
+              } else {
+                remDigitFactor = 5
+              }
+              offsetAmount = Number((remainder / remDigitFactor).toFixed(0)) * remDigitFactor
+              fiatAmount = fiatAmount - remainder + offsetAmount
+            }
+            if (roundDown) fiatAmount = fiatAmount - remainder
+          } else {
+            fiatAmount = fiatAmount + 1 - remainder
+          }
+        }
+        fiatAmount = Number(fiatAmount.toFixed(0))
+      } else {
+        fiatAmount = Number(fiatAmount.toFixed(2))
+      }
+      return fiatAmount
+    },
     submitOrder () {
+      let amount = this.amount
+      if (this.byFiat) {
+        amount = Number((amount) / parseFloat(this.ad?.price)).toFixed(8)
+      }
       const payload = {
         ad: this.ad?.id,
-        crypto_amount: Number(this.amount)?.toFixed(8),
+        crypto_amount: amount,
         payment_methods: [this.selectedPaymentMethod?.id],
         is_cash_in: true
       }
@@ -121,24 +231,6 @@ export default {
         return this.darkMode ? 'blue-grey-2' : 'blue-grey-8'
       }
     }
-    // computePresetAmount () {
-    //   this.amountOption[0] = this.minAmount
-    //   this.amountOption[this.presetCount - 1] = this.maxAmount
-
-    //   const gap = (this.maxAmount - this.minAmount) / this.presetCount
-
-    //   // set mid presets
-    //   for (let index = 0; index < this.presetCount - 2; index++) {
-    //     console.log(index)
-    //     this.amountOption[index + 1] = this.minAmount + ((index + 1) * gap)
-    //   }
-
-    //   console.log('amountOption: ', this.amountOption)
-    // }
-    // selectAmount () {
-    //   this.$emit('select-amount', this.amount)
-    //   // this.$router?.push({ name: 'cashin-order', params: { id: orderId }})
-    // }
   }
 }
 </script>

@@ -234,15 +234,19 @@ class PushNotificationsManager {
   /**
    * @param {String[]} walletHashes 
    * @param {Number} [multiWalletIndex]
+   * @param {Boolean} isCreateOrImport
    */
-  async subscribe(walletHashes, multiWalletIndex) {
+  async subscribe(walletHashes, multiWalletIndex, isCreateOrImport = false) {
     if (!this.deviceId) await this.fetchDeviceId()
     if (!this.registrationToken) await this.fetchRegistrationToken()
 
-    if (this.permissionStatus !== 'granted') await this.requestPermission()
-    if (this.permissionStatus !== 'granted') {
-      console.warn('Aborting push notification subscribe due to permission status:', this.permissionStatus)
-      return
+    // do not ask for permission to save device ID during wallet creation/import
+    if (!isCreateOrImport) {
+      if (this.permissionStatus !== 'granted') await this.requestPermission()
+      if (this.permissionStatus !== 'granted') {
+        console.warn('Aborting push notification subscribe due to permission status:', this.permissionStatus)
+        return
+      }
     }
 
     const data = {
