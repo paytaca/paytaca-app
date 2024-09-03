@@ -7,8 +7,15 @@ import { loadRampWallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
 
 export const chatIdentityManager = new ChatIdentityManager()
-export async function loadChatIdentity (payload = { user_type: null, chat_identity_id: null, name: null }) {
-  if (!payload.name || !payload.chat_identity_id || !payload.user_type) return
+export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
+  if (!usertype) throw new Error('missing required parameter: usertype')
+  if (!params.name) throw new Error('missing required parameter: params.name')
+
+  const payload = {
+    user_type: usertype,
+    name: params.name,
+    chat_identity_id: params.chat_identity_id
+  }
 
   const rampWallet = loadRampWallet()
   const chatIdentityRef = generateChatIdentityRef(rampWallet.walletHash)
@@ -22,7 +29,7 @@ export async function loadChatIdentity (payload = { user_type: null, chat_identi
 
   // update verifying and encryption keypairs
   await chatIdentityManager._updateSignerData()
-  await chatIdentityManager._updateEncryptionKeypair()
+  await chatIdentityManager._updateEncryptionKeypair(!!identity)
 
   // create identity if not existing
   if (!identity) {
@@ -30,7 +37,7 @@ export async function loadChatIdentity (payload = { user_type: null, chat_identi
     identity = await chatIdentityManager.create(payload)
   }
 
-  // Update chat identity id if null or mismatch
+  // Update chat identity id (in watchtower) if currently unset (null) or mismatch
   if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
     updateChatIdentityId(payload.user_type, identity.id)
   }
@@ -315,12 +322,12 @@ async function getKeypairSeed () {
   return privkey
 }
 
-export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
+export async function updateOrCreateKeypair (update = true) {
   console.log('Updating chat encryption keypair')
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed: seed })
 
-  if (opts?.updatePubkey) {
+  if (update) {
     await updatePubkey(keypair.pubkey)
       .catch(error => {
         console.error(error.response || error)

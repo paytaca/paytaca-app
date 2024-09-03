@@ -5,60 +5,61 @@ import { markRaw } from 'vue'
 import { Store } from 'src/store'
 
 export class RampWallet {
-  constructor (walletIndex, walletHash, addressIndex, address, isChipnet = false) {
+  constructor (walletIndex, walletHash, addressIndex, isChipnet = false) {
     this.walletHash = walletHash
     this.walletIndex = walletIndex
     this.addressIndex = addressIndex
-    this.address = address
     this.isChipnet = isChipnet
+    this.raw()
   }
 
   async raw () {
     const rawWallet = await markRaw(loadWallet('BCH', this.walletIndex))
-    if (this.isChipnet) return rawWallet.BCH_CHIP
-    return rawWallet.BCH
+    if (this.isChipnet) {
+      this.wallet = rawWallet.BCH_CHIP
+    } else {
+      this.wallet = rawWallet.BCH
+    }
+    return this.wallet
   }
 
   async keypair (addressPath = '') {
-    const wallet = await this.raw()
-    const privateKeyWif = await this.privkey(wallet, addressPath)
-    const publicKey = await this.pubkey(wallet, addressPath)
+    const privateKeyWif = await this.privkey(addressPath)
+    const publicKey = await this.pubkey(addressPath)
     return {
       privateKey: privateKeyWif,
       publicKey: publicKey
     }
   }
 
-  async addressPath (wallet = null, addressIndex = '') {
-    if (!wallet) wallet = await this.raw()
-    if (!addressIndex) addressIndex = this.addressIndex
-    const { receiving, change } = await wallet.getAddressSetAt(addressIndex)
-
-    let addressPath = `/${addressIndex}`
-    if (this.address === receiving) addressPath = `0${addressPath}`
-    if (this.address === change) addressPath = `1${addressPath}`
-
-    return addressPath
+  async address (addressIndex = this.addressIndex) {
+    if (!this.wallet) await this.raw()
+    const { receiving } = await this.wallet.getAddressSetAt(addressIndex)
+    return receiving
   }
 
-  async pubkey (wallet = null, addressPath = '') {
-    if (!wallet) wallet = await this.raw()
-    if (!addressPath) addressPath = await this.addressPath(wallet)
-    const publicKey = await wallet.getPublicKey(addressPath)
+  addressPath (addressIndex = this.addressIndex) {
+    return `0/${addressIndex}`
+  }
+
+  async pubkey (addressPath = '') {
+    if (!this.wallet) await this.raw()
+    if (!addressPath) addressPath = this.addressPath()
+    const publicKey = await this.wallet.getPublicKey(addressPath)
     return publicKey
   }
 
-  async privkey (wallet = null, addressPath = '') {
-    if (!wallet) wallet = await this.raw()
-    if (!addressPath) addressPath = await this.addressPath()
-    const privateKeyWif = await wallet.getPrivateKey(addressPath)
+  async privkey (addressPath = '') {
+    if (!this.wallet) await this.raw()
+    if (!addressPath) addressPath = this.addressPath()
+    const privateKeyWif = await this.wallet.getPrivateKey(addressPath)
     return privateKeyWif
   }
 
   async signMessage (wif, message, timestamp) {
     // hash the message
     message = timestamp ? [message, timestamp].join('::') : message
-    const messageHash = await sha256.hash(utf8ToBin(message))
+    const messageHash = sha256.hash(utf8ToBin(message))
     const privateKeyBin = decodePrivateKeyWif(wif).privateKey
     if (typeof privateKeyBin === 'string') throw (new IncorrectWIFError(wif))
     // sign
@@ -69,10 +70,12 @@ export class RampWallet {
   }
 }
 
+const ADDRESS_INDEX = 0
+export let wallet = new RampWallet()
 export function loadRampWallet () {
   const isChipnet = Store.getters['global/isChipnet']
   const walletIndex = Store.getters['global/getWalletIndex']
-  const wallet = Store.getters['global/getWallet']('bch')
-  const address = Store.getters['global/getAddress']('bch')
-  return new RampWallet(walletIndex, wallet.walletHash, wallet.lastAddressIndex, address, isChipnet)
+  const globalWallet = Store.getters['global/getWallet']('bch')
+  wallet = new RampWallet(walletIndex, globalWallet.walletHash, ADDRESS_INDEX, isChipnet)
+  return wallet
 }

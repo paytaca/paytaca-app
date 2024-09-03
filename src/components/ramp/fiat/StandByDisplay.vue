@@ -44,6 +44,21 @@
               </div>
             </template>
           </q-input>
+          <div v-if="data?.order?.status?.value === 'RLS'">
+            <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('TransactionId') }}</div>
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="txid">
+              <template v-slot:append>
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(txid)"/>
+              </template>
+            </q-input>
+          </div>
           <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
           <q-input
             class="q-pb-xs md-font-size"
@@ -200,6 +215,7 @@ import AppealForm from './dialogs/AppealForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackForm from './dialogs/FeedbackForm.vue'
+import { openURL } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -350,6 +366,30 @@ export default {
       }
 
       return this.data.order?.is_ad_owner ? adOwner : orderOwner
+    },
+    explorerLink () {
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+
+      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
+      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      // }
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/tx/'
+      }
+      return `${url}${this.txid}`
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    txid () {
+      let txId = null
+      this.data?.order?.transactions?.forEach((tx) => {
+        if (tx.action === 'RELEASE') {
+          txId = tx.txid
+        }
+      })
+      return txId
     }
   },
   async mounted () {
@@ -367,6 +407,7 @@ export default {
     formatCurrency,
     getDarkModeClass,
     isNotDefaultTheme,
+    openURL,
     loadData () {
       if (this.isAppealed) {
         this.fetchAppeal()

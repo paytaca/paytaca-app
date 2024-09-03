@@ -38,7 +38,7 @@
       <div v-else>
         <div class="row justify-between no-wrap">
           <div class="col-auto">
-            <div class="sm-font-size">{{ $t('SELLER') }}</div>
+            <div class="sm-font-size">{{ ad?.trade_type === 'SELL'? $t('BUYER') : $t('SELLER') }}</div>
             <div class="row justify-end">
                 <div class="col q-py-none">
                     <div style="max-width: 125px; overflow-x: auto;">
@@ -46,26 +46,26 @@
                           padding="none"
                           color="primary"
                           class="q-py-none q-my-none row lg-font-size text-weight-bold"
-                          @click="onViewPeer(order?.members?.seller?.id)">
-                          {{ order?.members?.seller?.name }}
+                          @click="onViewPeer(orderOwner.id)">
+                          {{ orderOwner.name }}
                       </q-btn>
                     </div>
                     <div class="row">
                         <q-rating
                         readonly
-                        :model-value="order?.members?.seller?.rating || 0"
-                        :v-model="order?.members?.seller?.rating || 0"
+                        :model-value="orderOwner.rating || 0"
+                        :v-model="orderOwner.rating || 0"
                         size="1em"
                         color="yellow-9"
                         icon="star"
                         @click="onViewReviews"/>
-                        <span class="q-mx-xs sm-font-size">({{ order?.members?.seller?.rating?.toFixed(1) || 0 }})</span>
+                        <span class="q-mx-xs sm-font-size">({{ orderOwner.rating?.toFixed(1) || 0 }})</span>
                     </div>
                 </div>
             </div>
           </div>
           <div class="col-auto text-right">
-            <div class="sm-font-size">{{ $t('BUYER') }}</div>
+            <div class="sm-font-size">{{ ad.trade_type === 'SELL' ? $t('SELLER') : $t('BUYER') }}</div>
             <div class="row justify-end q-py-none">
               <div style="max-width: 125px; overflow-x: auto;">
                 <q-btn
@@ -75,21 +75,21 @@
                     padding="none"
                     color="primary"
                     class="row lg-font-size text-weight-bold"
-                    @click="onViewPeer(order?.members?.buyer?.id)">
-                    {{ order?.members?.buyer?.name }}
+                    @click="onViewPeer(adOwner.id)">
+                    {{ adOwner.name }}
                 </q-btn>
               </div>
             </div>
             <div class="row justify-end text-right">
                 <q-rating
                 readonly
-                :model-value="order?.members?.buyer?.rating || 0"
-                :v-model="order?.members?.buyer?.rating || 0"
+                :model-value="adOwner.rating || 0"
+                :v-model="adOwner.rating || 0"
                 size="1em"
                 color="yellow-9"
                 icon="star"
                 @click="onViewReviews"/>
-                <span class="q-ml-xs sm-font-size">({{ order?.members?.buyer?.rating?.toFixed(1) || 0 }})</span>
+                <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@
         <div v-else>
           <div class="row no-wrap justify-between">
             <div class="col-auto">
-              <!-- <div class="row xs-font-size">{{ $t('TradeAmount') }}</div> -->
+              <div class="row xs-font-size">{{ $t('TradeAmount') }}</div>
               <div class="q-mb-none">
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}
@@ -209,6 +209,18 @@ export default {
     this.loadChatInfo()
   },
   computed: {
+    orderOwner () {
+      if (this.ad?.trade_type === 'SELL') {
+        return this.order?.members?.buyer
+      }
+      return this.order?.members?.seller
+    },
+    adOwner () {
+      if (this.ad?.trade_type === 'SELL') {
+        return this.order?.members?.seller
+      }
+      return this.order?.members?.buyer
+    },
     userInfo () {
       return this.$store.getters['ramp/getUser']
     },

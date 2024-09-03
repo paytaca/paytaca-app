@@ -549,18 +549,22 @@ export default {
         }
       })
     },
-    checkCashinAvailable () {
-      backend.get('/ramp-p2p/currency/fiat')
-        .then(response => {
-          this.availableCashinFiat = response.data
-          const selectedFiat = this.$store.getters['market/selectedCurrency']
-          const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
+    async checkCashinAvailable () {
+      const { data: user } = await backend.get('/auth/')
 
-          this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
-        })
-        .catch(error => {
-          console.error(error)
-        })
+      if (!user?.is_arbiter) {
+        backend.get('/ramp-p2p/currency/fiat')
+          .then(response => {
+            this.availableCashinFiat = response.data
+            const selectedFiat = this.$store.getters['market/selectedCurrency']
+            const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
+
+            this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
+          })
+          .catch(error => {
+            console.error(error)
+          })
+      }
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()

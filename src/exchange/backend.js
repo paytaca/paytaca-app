@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { Store } from 'src/store'
 import { getAuthToken } from './auth'
-import { loadRampWallet } from './wallet'
+import { wallet } from './wallet'
 
 export const backend = axios.create()
 backend.interceptors.request.use(async (config) => {
@@ -21,16 +21,15 @@ export function getBackendWsUrl () {
 }
 
 export async function updatePubkeyAndAddress (user) {
-  const wallet = loadRampWallet()
   const userType = user.is_arbiter ? 'arbiter' : 'peer'
   const pubkey = await wallet.pubkey()
 
-  // TODO: make address path fixed at 0/0
-  const addressPath = await wallet.addressPath()
+  // Default address path is 0/0
+  const addressPath = wallet.addressPath()
 
   const payload = {
     public_key: pubkey,
-    address: wallet.address,
+    address: await wallet.address(),
     address_path: addressPath
   }
 

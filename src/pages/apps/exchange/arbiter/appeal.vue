@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+  <HeaderNav :title="`Ramp Appeals`" :backnavpath="previousRoute"/>
   <div v-if="isloaded && escrowContract"
     class="q-mx-md q-px-none text-bow"
     :class="getDarkModeClass(darkMode)">
@@ -30,11 +30,14 @@
               <q-card-section>
                 <div class="row justify-end no-wrap">
                   <div class="col-9 q-mr-lg">
+                    <q-badge v-if="order?.is_cash_in" class="row md-font-size" outline color="warning">
+                      <span>Cash-in</span>
+                    </q-badge>
                     <div class="row text-weight-bold md-font-size">
                       <span>{{ appeal?.type?.label }} Appeal</span>
                     </div>
                     <div class="row md-font-size">
-                      <span><u>Order No. {{ appeal?.order?.id }}</u></span>
+                      <span>Order ID: {{ order?.tracking_id}}</span>
                     </div>
                     <div class="row subtext md-font-size">
                       <span>Submitted by {{ appeal?.owner?.name }}</span>
@@ -129,8 +132,11 @@ export default {
       unread: 0,
       state: 'form',
       actionState: 'verifying',
+
       appeal: null,
       contract: null,
+      order: null,
+
       fees: null,
       status: null,
       isloaded: false,
@@ -243,6 +249,7 @@ export default {
             vm.appeal = response.data.appeal
             vm.contract = response.data.contract
             vm.fees = response.data.fees
+            vm.order = response.data.order
             vm.appealDetailData = response.data
             vm.updateStatus(response.data.order?.status)
             vm.loading = false
