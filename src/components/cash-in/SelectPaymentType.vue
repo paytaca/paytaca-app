@@ -32,16 +32,13 @@
 </template>
 <script>
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { bus } from 'src/wallet/event-bus'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      // currencyOpts: [],
       openCurrencyDialog: false
     }
   },

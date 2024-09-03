@@ -51,10 +51,11 @@
             :currency="selectedCurrency"
             :ads="cashinAds"
             @select-amount="onSetAmount"
+            @update-presets="onUpdatePresets"
             @submit-order="onSubmitOrder"
             />
           <!-- Order Page -->
-          <Order
+          <CashinOrder
             v-if="step === 3"
             :key="orderKey"
             :order-id="order?.id"
@@ -63,7 +64,7 @@
         </div>
 
         <!-- Order List -->
-        <OrderList
+        <CashinOrderList
           v-if="state === 'order-list'"
           :key="orderListKey"
           :wallet-hash="wallet.walletHash"
@@ -77,11 +78,11 @@
 </template>
 <script>
 import SelectPaymentType from './SelectPaymentType.vue'
-import OrderList from './order-list.vue'
+import CashinOrderList from './CashinOrderList.vue'
+import CashinOrder from './CashinOrder.vue'
 import SelectAmount from './SelectAmount.vue'
-import Register from './register-user.vue'
-import Order from './order.vue'
-import NetworkError from './network-error.vue'
+import Register from './CashinRegister.vue'
+import NetworkError from './CashinNetworkError.vue'
 import { backend, updatePubkeyAndAddress } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
@@ -93,9 +94,9 @@ export default {
   components: {
     SelectPaymentType,
     SelectAmount,
-    Order,
+    CashinOrder,
     Register,
-    OrderList,
+    CashinOrderList,
     NetworkError
   },
   props: {
@@ -109,9 +110,8 @@ export default {
       dialog: false,
       paymentTypeOpts: [],
       selectedPaymentType: null,
-      minLimit: null,
-      maxLimit: null,
       amount: null,
+      amountPresets: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
       cashinAdsParams: {
         currency: null,
@@ -122,7 +122,6 @@ export default {
       register: false,
       openorderList: false,
       loading: true,
-      // fiatCurrencies: null,
       order: null,
       orderPayload: null,
       openOrderPage: false,
@@ -227,13 +226,7 @@ export default {
     setPaymentType (paymentType) {
       this.selectedPaymentType = paymentType
       this.cashinAdsParams.payment_type = this.selectedPaymentType?.id
-      const presets = [0.02, 0.25, 0.5, 1]
-      let url = '/ramp-p2p/cashin/ad'
-      if (presets?.length > 0) {
-        const amounts = presets.join('&amounts=')
-        url = `${url}?amounts=${amounts}`
-      }
-      this.fetchCashinAds(url)
+      this.fetchCashinAds()
       this.step++
     },
     onSetAmount (amount) {
@@ -250,21 +243,17 @@ export default {
       this.loading = false
       if (nextStep) this.step++
     },
-    // fetchFiatCurrencies () {
-    //   const vm = this
-    //   backend.get('/ramp-p2p/currency/fiat', { authorize: true })
-    //     .then(response => {
-    //       vm.fiatCurrencies = response.data
-    //     })
-    //     .catch(error => {
-    //       console.error(error)
-    //       // this.state = 'network-error'
-    //       this.dislayNetworkError()
-    //     })
-    // },
     updateSelectedCurrency (currency) {
       this.selectedCurrency = currency
       this.fetchCashinAds()
+    },
+    onUpdatePresets (presets) {
+      let url = '/ramp-p2p/cashin/ad'
+      if (presets?.length > 0) {
+        const amounts = presets.join('&amounts=')
+        url = `${url}?amounts=${amounts}`
+      }
+      this.fetchCashinAds(url)
     },
     async fetchCashinAds (url) {
       const apiUrl = url || '/ramp-p2p/cashin/ad'
@@ -278,10 +267,9 @@ export default {
           console.error(error.response || error)
           if (error.response) {
             if (error.response?.status === 403) {
-              // bus.emit('session-expired')
+              bus.emit('session-expired')
             }
           } else {
-            // bus.emit('network-error')
             this.dislayNetworkError()
           }
         })
