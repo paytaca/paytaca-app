@@ -3,15 +3,10 @@
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
         <div class="col-1">
-          <router-link
-            :to="{ path: '/apps' }"
-            class="pt-arrow-left-link"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-            <span class="material-icons">
-                arrow_back
-            </span>
-          </router-link>
+           <q-icon
+            size="md" name="arrow_back" class="text-grad"
+            @click="$router.push('/apps')"
+            :style="`margin-top: ${$q.platform.is.ios ? '-5px' : '0'}`"/>
         </div>
         <div class="col-10">
           <p
@@ -385,5 +380,8 @@ export default {
     width: 100%;
     font-weight: 300;
     bottom: 0;
+  }
+  .header-grad {
+    color: -webkit-linear-gradient(red, yellow);
   }
 </style>

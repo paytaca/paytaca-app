@@ -368,7 +368,6 @@ export default {
       return this.data.order?.is_ad_owner ? adOwner : orderOwner
     },
     explorerLink () {
-      console.log('txid: ', this.txid)
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
       // if (this.transaction.asset.id.split('/')[0] === 'ct') {
