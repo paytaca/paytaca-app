@@ -367,6 +367,7 @@ export default {
 
     &.amount {
       font-size: 18px;
+      color: $green-7;
     }
   }
 </style>
