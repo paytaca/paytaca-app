@@ -153,12 +153,8 @@ export default {
       this.$emit('update-presets', this.bchPresetOptions)
     },
     computeFiatPresets () {
-      const fiatPresets = []
+      const fiatPresets = [250, 500, 1000, 2000, 5000, 10000]
       const eqBchPresets = []
-      this.amountBchOptions.forEach((bchAmount, index) => {
-        const roundUp = index === 0
-        fiatPresets.push(this.computePresetFiatAmount(bchAmount, !roundUp, roundUp))
-      })
       fiatPresets.forEach(fiatAmount => {
         if (!fiatAmount.isNaN) {
           const bchAmount = Number(Number((fiatAmount) / parseFloat(this.ad?.price)).toFixed(2))
