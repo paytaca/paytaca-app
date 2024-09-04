@@ -77,5 +77,6 @@ export function loadRampWallet () {
   const walletIndex = Store.getters['global/getWalletIndex']
   const globalWallet = Store.getters['global/getWallet']('bch')
   wallet = new RampWallet(walletIndex, globalWallet.walletHash, ADDRESS_INDEX, isChipnet)
+  console.log('Loaded wallet:', wallet)
   return wallet
 }

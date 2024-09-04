@@ -64,7 +64,7 @@ export default {
           address: await wallet.address(),
           address_path: wallet.addressPath()
         }
-        await backend.post('/ramp-p2p/peer/create', body, { headers: headers })
+        await backend.post('/ramp-p2p/peer/', body, { headers: headers })
           .then((response) => {
             vm.user = response.data
             vm.$store.commit('ramp/updateUser', vm.user)

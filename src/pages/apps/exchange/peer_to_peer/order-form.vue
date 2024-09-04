@@ -533,7 +533,7 @@ export default {
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('ramp-p2p/arbiter', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
+        backend.get('ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
           .then(response => {
             vm.arbitersAvailable = response.data
             resolve(response.data)

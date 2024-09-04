@@ -281,7 +281,7 @@ export default {
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('/ramp-p2p/peer/detail', { params: { id: userId }, authorize: true })
+        backend.get(`/ramp-p2p/peer/${userId}/`, { authorize: true })
           .then(response => {
             vm.isloaded = true
             resolve(response.data)

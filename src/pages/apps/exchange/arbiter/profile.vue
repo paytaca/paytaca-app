@@ -124,6 +124,7 @@ import { backend } from 'src/exchange/backend'
 import { formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { updateChatIdentity } from 'src/exchange/chat'
+import { wallet } from 'src/exchange/wallet'
 
 export default {
   components: {
@@ -170,6 +171,7 @@ export default {
     }
   },
   mounted () {
+    console.log('wallet:', wallet)
     this.fetchArbiter()
     this.fetchFeedback()
   },
@@ -190,12 +192,11 @@ export default {
     },
     async fetchArbiter () {
       const vm = this
-      const url = '/ramp-p2p/arbiter/detail'
+      const url = `/ramp-p2p/arbiter/${wallet.walletHash}`
 
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.arbiter = response.data
-          console.log('vm.arbiter:', vm.arbiter)
           vm.currencies = vm.arbiter.fiat_currencies.slice(0, 5)
           vm.arbiter.rating = Number(vm.arbiter?.rating)
           vm.parseInactiveTime(vm.arbiter.inactive_until)
@@ -265,7 +266,7 @@ export default {
     },
     async updateUserName (data) {
       const vm = this
-      const url = '/ramp-p2p/arbiter/detail'
+      const url = '/ramp-p2p/arbiter/'
       try {
         await updateChatIdentity({ id: vm.arbiter.chat_identity_id, name: data.nickname })
         await backend.patch(url, { name: data.nickname }, { authorize: true })

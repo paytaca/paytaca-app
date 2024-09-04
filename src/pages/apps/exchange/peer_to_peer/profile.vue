@@ -387,7 +387,7 @@ export default {
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('/ramp-p2p/peer/detail', { params: { id: userId }, authorize: true })
+        backend.get(`/ramp-p2p/peer/${userId}/`, { params: { id: userId }, authorize: true })
           .then(response => {
             vm.isloaded = true
             resolve(response.data)
@@ -495,7 +495,7 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      backend.patch('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
+      backend.patch('/ramp-p2p/peer/', { name: info.nickname }, { authorize: true })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
