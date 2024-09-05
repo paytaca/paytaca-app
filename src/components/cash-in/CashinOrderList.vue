@@ -103,7 +103,7 @@ export default {
         page: this.page,
         owned: true
       }
-      await backend.get('ramp-p2p/cashin/order', { params: params })
+      await backend.get('ramp-p2p/order/cash-in/', { params: params })
         .then(response => {
           this.orders.push(...response.data?.orders)
           this.totalPage = response?.data?.total_pages

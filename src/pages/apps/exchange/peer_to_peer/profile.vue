@@ -466,7 +466,7 @@ export default {
           owner_id: vm.user.id
         }
         params.to_peer = this.userId
-        backend.get('/ramp-p2p/ad', {
+        backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true
         })

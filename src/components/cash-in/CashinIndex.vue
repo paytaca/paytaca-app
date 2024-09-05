@@ -248,7 +248,7 @@ export default {
       this.fetchCashinAds()
     },
     onUpdatePresets (presets) {
-      let url = '/ramp-p2p/cashin/ad'
+      let url = '/ramp-p2p/ad/cash-in/'
       if (presets?.length > 0) {
         const amounts = presets.join('&amounts=')
         url = `${url}?amounts=${amounts}`
@@ -256,7 +256,7 @@ export default {
       this.fetchCashinAds(url)
     },
     async fetchCashinAds (url) {
-      const apiUrl = url || '/ramp-p2p/cashin/ad'
+      const apiUrl = url || '/ramp-p2p/ad/cash-in/'
       await backend.get(apiUrl, { params: this.cashinAdsParams })
         .then(response => {
           this.cashinAds = response.data.ads

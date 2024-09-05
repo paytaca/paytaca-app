@@ -599,7 +599,7 @@ export default {
     },
     async fetchAd () {
       const vm = this
-      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, { authorize: true })
         .then(response => {
           const data = response.data
           vm.adData.tradeType = data.trade_type
@@ -672,7 +672,7 @@ export default {
     async updateAd () {
       const vm = this
       const body = vm.transformPostData(false)
-      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}`, body, { authorize: true })
+      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, body, { authorize: true })
         .then(() => {
           vm.swipeStatus = true
           // vm.$emit('submit')

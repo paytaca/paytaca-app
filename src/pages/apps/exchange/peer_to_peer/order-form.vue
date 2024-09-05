@@ -454,7 +454,7 @@ export default {
       this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
-      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}/`, { authorize: true })
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {

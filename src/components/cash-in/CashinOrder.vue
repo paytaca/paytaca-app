@@ -147,7 +147,7 @@ export default {
     },
     async fetchOrder () {
       const vm = this
-      await backend.get(`/ramp-p2p/order/${vm.orderId}`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${vm.orderId}/`, { authorize: true })
         .then(response => {
           vm.order = response.data
           vm.status = vm.order?.status?.value

@@ -524,7 +524,7 @@ export default {
     fetchOrder () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `/ramp-p2p/order/${this.$route.params?.order}`
+        const url = `/ramp-p2p/order/${this.$route.params?.order}/`
         backend.get(url, { authorize: true })
           .then(response => {
             vm.order = response.data
@@ -597,7 +597,7 @@ export default {
     fetchAd () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `/ramp-p2p/ad/${vm.order.ad.id}`
+        const url = `/ramp-p2p/ad/${vm.order.ad.id}/`
         backend.get(url, { authorize: true })
           .then(response => {
             vm.ad = response.data

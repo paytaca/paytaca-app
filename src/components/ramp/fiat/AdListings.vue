@@ -317,7 +317,7 @@ export default {
     },
     async toggleAdVisibility (ad, index) {
       if (!ad) return
-      await backend.put(`ramp-p2p/ad/${ad.id}`, { is_public: !ad.is_public }, { authorize: true })
+      await backend.put(`ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
         .then(response => {
           // this.resetListings()
           this.listings[index] = response.data
@@ -340,7 +340,7 @@ export default {
     },
     deleteAd () {
       const vm = this
-      backend.delete(`/ramp-p2p/ad/${vm.selectedAdId}`, { authorize: true })
+      backend.delete(`/ramp-p2p/ad/${vm.selectedAdId}/`, { authorize: true })
         .then(() => {
           setTimeout(() => {
             vm.dialogName = 'notifyDeleteAd'

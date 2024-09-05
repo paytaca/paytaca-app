@@ -490,7 +490,7 @@ export default {
     },
     async fetchOrderDetail () {
       const vm = this
-      await backend.get(`/ramp-p2p/order/${vm.data.order.id}`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${vm.data.order.id}/`, { authorize: true })
         .then(response => {
           vm.order = response.data
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
