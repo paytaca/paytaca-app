@@ -131,7 +131,7 @@
                         ref="filePickerRef"
                         :max-file-size="maxFileSize"
                         clearable
-                        accept=".jpg, image/*"
+                        accept="image/jpg, image/png, image/jpeg"
                         dense
                         color="blue-12"
                         label="Upload Proof of Payment"
