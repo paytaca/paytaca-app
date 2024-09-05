@@ -575,7 +575,7 @@ export default {
       const vm = this
       if (vm.order?.read_at) return
       return new Promise((resolve, reject) => {
-        const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members`
+        const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
         backend.patch(url, null, { authorize: true })
           .then(response => {
             resolve(response.data)
@@ -620,7 +620,7 @@ export default {
     },
     confirmOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/confirm`
+      const url = `/ramp-p2p/order/${vm.order.id}/confirm/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           vm.updateStatus(response.data.status)
@@ -639,7 +639,7 @@ export default {
     },
     cancelOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           if (response.data && response.data.status.value === 'CNCL') {
@@ -819,7 +819,7 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
           })

@@ -622,7 +622,7 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
           })

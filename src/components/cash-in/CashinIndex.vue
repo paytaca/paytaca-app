@@ -295,7 +295,7 @@ export default {
     },
     async sendConfirmPayment (retries = 1) {
       const vm = this
-      await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer`, null, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer/`, null, { authorize: true })
         .catch(async (error) => {
           console.error(error)
           if (error.response) {

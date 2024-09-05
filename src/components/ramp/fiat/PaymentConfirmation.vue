@@ -436,7 +436,7 @@ export default {
       const body = {
         payment_methods: selectedPaymentMethodIds
       }
-      const response = await backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}`, body, { authorize: true })
+      const response = await backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}/`, body, { authorize: true })
         .catch(error => {
           console.error(error)
           if (error.response) {

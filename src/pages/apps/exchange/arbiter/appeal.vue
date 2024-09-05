@@ -223,7 +223,7 @@ export default {
       const vm = this
       if (vm.appeal.read_at) return
       return new Promise((resolve, reject) => {
-        const url = `/ramp-p2p/order/${vm.appeal?.order?.id}/members`
+        const url = `/ramp-p2p/order/${vm.appeal?.order?.id}/members/`
         backend.patch(url, null, { authorize: true })
           .then(response => {
             resolve(response.data)

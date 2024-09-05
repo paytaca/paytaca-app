@@ -304,7 +304,7 @@ export default {
     },
     cancelOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           if (response.data.status?.value === 'CNCL') {
