@@ -151,9 +151,8 @@ const defaultBranch = computed(() => {
 })
 
 async function getFirstPosPubkeys (posid) {
-  const currentWalletIndex = $store.getters['global/getWalletIndex']
-  const wallet = await loadWallet('BCH', currentWalletIndex)
-  const posFirstIndex = '1' + padPosId(data.posid)
+  const wallet = await loadWallet('BCH')
+  const posFirstIndex = '1' + padPosId(posid)
   const pubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true, posFirstIndex)
   return pubkeys
 }
@@ -165,15 +164,14 @@ async function savePosDevice() {
     merchant_id: props.posDevice?.merchantId || props.merchantId,
   }, posDeviceForm.value)
 
-  if (!props.newDevice) {
-    data.posid = props.posDevice?.posid
+  const receivingPubkey = await getFirstPosPubkeys(props.posDevice?.posid)
+  data.pubkey = receivingPubkey.receiving
 
-    const receivingPubkey = await getFirstPosPubkeys(data.posid)
-    data.vault_pubkey = receivingPubkey.receiving
-  }
+  if (!props.newDevice) data.posid = props.posDevice?.posid
   else data.posid = -1
 
   loading.value = true
+
   const apiRequest = posBackend.post(`/paytacapos/devices/`, data, { authorize: true })
     .catch(error => {
       if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')

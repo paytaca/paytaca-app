@@ -1,4 +1,5 @@
 import { backend as posBackend } from "src/wallet/pos"
+import { loadWallet } from 'src/wallet'
 import { bus } from "src/wallet/event-bus"
 
 /* -------------------------Merchants----------------------------- */
@@ -55,6 +56,12 @@ export async function updateMerchantInfo(context, data) {
     allow_duplicates: true, // temporary field
     ...data,
   }
+
+  const wallet = await loadWallet('BCH')
+  const receivingPubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true, 0)
+  const pubkey = receivingPubkeys.receiving
+
+  Object.assign(payload, { pubkey })
 
   const promise = data?.id
     ? posBackend.patch(`paytacapos/merchants/${data?.id}/`, payload, { authorize: true })
