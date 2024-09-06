@@ -166,6 +166,7 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 const aesjs = require('aes-js')
 const short = require('short-uuid')
 const pbkdf2 = require('pbkdf2')
+const sss = require('shamirs-secret-sharing')
 
 export default {
   name: 'Gifts',
@@ -259,16 +260,9 @@ export default {
       const password = short.generate()
       const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
       const textBytes = aesjs.utils.utf8.toBytes(shard)
-      
       const aesCtr = new aesjs.ModeOfOperation.ctr(key)
       const encryptedBytes = aesCtr.encrypt(textBytes)
       const encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes)
-
-      // const encryptedBytes2 = aesjs.utils.hex.toBytes(encryptedHex)
-      // const aesCtr2 = new aesjs.ModeOfOperation.ctr(key)
-      // const decryptedBytes = aesCtr2.decrypt(encryptedBytes2)
-      // var decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes)
-      // console.log(decryptedText)
       return {
         code: password,
         encryptedHex: encryptedHex
@@ -302,9 +296,6 @@ export default {
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
       const address = bchjs.ECPair.toCashAddress(pair)
-      console.log(address)
-
-      const sss = require('shamirs-secret-sharing')
       const secret = Buffer.from(wif)
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
