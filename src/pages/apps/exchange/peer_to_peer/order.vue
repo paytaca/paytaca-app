@@ -661,7 +661,7 @@ export default {
     fetchFees () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/contract/fees'
+        const url = '/ramp-p2p/order/contract/fees/'
         backend.get(url, { authorize: true })
           .then(response => {
             vm.fees = response.data
@@ -684,13 +684,8 @@ export default {
     fetchContract () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/contract'
-        backend.get(url, {
-          params: {
-            order_id: vm.order?.id
-          },
-          authorize: true
-        })
+        const url = `/ramp-p2p/order/${vm.order?.id}/contract/`
+        backend.get(url, { authorize: true })
           .then(response => {
             vm.contract = response.data
             resolve(response.data)

@@ -274,7 +274,7 @@ export default {
     this.fetchContractBalance().then((balance) => {
       if (balance === 0 && this.order.status.value === 'APL') {
         const result = this.loadTransactionId(this.order.id)
-        if (result.txid) this.setOrderPending(result.txid, result.action)
+        if (result.txid) this.setOrderPending(result.action)
       }
     })
     this.wallet = loadRampWallet()

@@ -153,7 +153,7 @@ export default {
     fetchContract () {
       const vm = this
       vm.loading = true
-      backend.get('/ramp-p2p/order/contract', { params: { order_id: vm.orderId }, authorize: true })
+      backend.get(`/ramp-p2p/order/${vm.orderId}/contract/`, { authorize: true })
         .then(response => {
           console.log(response.data)
           vm.contract = response.data
@@ -179,7 +179,7 @@ export default {
     async verify () {
       const vm = this
       let url = `/ramp-p2p/order/${vm.orderId}/`
-      url = vm.action === 'RELEASE' ? `${url}verify-release` : `${url}verify-refund`
+      url = vm.action === 'RELEASE' ? `${url}verify-release/` : `${url}verify-refund/`
       vm.state = 'verifying'
       const body = {
         txid: this.transactionId
