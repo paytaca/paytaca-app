@@ -365,7 +365,9 @@
               {{ formErrors?.payment?.deliveryFee }}
             </div>
           </q-banner>
-
+          <q-banner v-if="cashback?.parsedMessage" rounded class="bg-grad q-mb-md">
+            {{ cashback?.parsedMessage }}
+          </q-banner>
           <q-input
             dense
             outlined
@@ -778,6 +780,7 @@ import { Checkout, Rider, Payment, Location } from 'src/marketplace/objects'
 import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { errorParser, formatTimestampToText, getISOWithTimezone, round } from 'src/marketplace/utils'
 import { Wallet, loadWallet } from 'src/wallet'
+import { Device } from '@capacitor/device';
 import { debounce, useQuasar } from 'quasar'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
@@ -800,6 +803,7 @@ import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDi
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
+import { parseCashbackMessage } from 'src/utils/cashback-utils'
 
 const forceShowReview = ref(false)
 onMounted(() => {
@@ -1861,6 +1865,42 @@ async function openRefundPaymentsDialog() {
     .filter(payment => ['sent', 'received'].includes(payment?.status))
 
   // setTimeout(() => refundPaymentsDialogRef.value?.refundPayments?.(), 250)
+}
+
+
+const cashback = ref({ amountBch: 0, fiatAmount: 0, message: '', merchantName: '', parsedMessage: '' })
+watch(() => [
+  payment.value?.escrowContract?.buyerAddress,
+  payment.value?.escrowContract?.sellerAddress,
+], () => updateCashbackAmount())
+async function updateCashbackAmount() {
+  const deviceId = await Device.getId()
+  const data = {
+    merchant_address: payment.value?.escrowContract?.sellerAddress,
+    customer_address: payment.value?.escrowContract?.buyerAddress,
+    satoshis: payment.value.escrowContract?.amountSats,
+    device_id: deviceId.uuid || deviceId.identifier,
+  }
+  cashback.value = { amountBch: 0, fiatAmount: 0, message: '', merchantName: '', parsedMessage: '' }
+  if (!data.merchant_address || !data.customer_address || !data.satoshis) return
+
+  return backend.post(`cashback/calculate_cashback/`, data)
+    .then(response => {
+      const bch = parseFloat(response?.data?.cashback_amount)
+      const fiatAmount = round(payment.value.bchPrice.price * bch, 3)
+      cashback.value = {
+        amountBch: bch,
+        fiatAmount: fiatAmount,
+        merchantName: response?.data?.merchant_name,
+        message: response?.data?.message,
+      }
+      cashback.value.parsedMessage = parseCashbackMessage(
+        response?.data.message,
+        bch, fiatAmount,
+        response?.data?.merchantName,
+      )
+      return response
+    })
 }
 
 function updateCheckout(data) {
