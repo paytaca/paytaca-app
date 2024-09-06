@@ -161,12 +161,7 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         vm.loading = true
-        backend.get('/ramp-p2p/order/contract', {
-          params: {
-            order_id: vm.data?.orderId
-          },
-          authorize: true
-        })
+        backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true })
           .then(response => {
             vm.contract = response.data
             resolve(response.data)
@@ -189,7 +184,7 @@ export default {
       const vm = this
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release`, body, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
         .then(response => {
           console.log(response.data)
         })
@@ -213,7 +208,7 @@ export default {
       const vm = this
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow`, body, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
         .then(response => {
           console.log(response.data)
         })

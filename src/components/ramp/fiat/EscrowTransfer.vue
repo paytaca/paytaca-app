@@ -393,7 +393,7 @@ export default {
           arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
-        backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
+        backend.post('/ramp-p2p/order/contract/', body, { authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
             vm.loading = false
@@ -465,8 +465,8 @@ export default {
     },
     fetchContract (orderId) {
       return new Promise((resolve, reject) => {
-        const url = '/ramp-p2p/order/contract'
-        backend.get(url, { params: { order_id: orderId }, authorize: true })
+        const url = `/ramp-p2p/order/${orderId}/contract/`
+        backend.get(url, { authorize: true })
           .then(response => {
             resolve(response.data)
           })
@@ -486,7 +486,7 @@ export default {
     },
     fetchFees () {
       return new Promise((resolve, reject) => {
-        const url = '/ramp-p2p/order/contract/fees'
+        const url = '/ramp-p2p/order/contract/fees/'
         backend.get(url, { authorize: true })
           .then(response => {
             resolve(response.data)
