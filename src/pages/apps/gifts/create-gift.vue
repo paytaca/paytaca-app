@@ -6,7 +6,6 @@
         backnavpath="/apps/gifts"
         class="q-px-sm apps-header gift-app-header"
       />
-      <button @click="encryptShard()">Generate Key</button>
       <div class="q-pa-lg" style="width: 100%; color: black;">
         <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >{{ $t('CreatingGift') }}</p>
@@ -299,25 +298,16 @@ export default {
       const secret = Buffer.from(wif)
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
-      // console.log(shares)
       const encryptedShard = this.encryptShard(shares[0])
 
-      // vm.giftCodeHash = sha256(shares[0])
-      // const payload = {
-      //   gift_code_hash: vm.giftCodeHash,
-      //   address: address,
-      //   share: shares[1],
-      //   amount: parseFloat(vm.amountBCH)
-      // }
       vm.giftCodeHash = sha256(encryptedShard.code)
       const payload = {
         gift_code_hash: vm.giftCodeHash,
-        encryptedShare: encryptedShard.encryptedHex,
+        encrypted_share: encryptedShard.encryptedHex,
         address: address,
         share: shares[1],
         amount: parseFloat(vm.amountBCH),
       }
-      console.log(payload)
       if (vm.selectedCampaign) {
         if (vm.createNewCampaign) {
           payload.campaign = {
@@ -403,15 +393,12 @@ export default {
 
 <style lang="scss" scoped>
     .col-qr-code {
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 10px;
+    margin: 10px;
     text-align: center;
-    width: 500px;
-    height: 310px;
+    width: 23em;
+    height: 23em;
     border-radius: 16px;
     border: 4px solid #ed5f59;
-    padding: 22px 10px 32px 10px;
     background: white;
   }
   .fontStyle {

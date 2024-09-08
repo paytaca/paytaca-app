@@ -79,6 +79,9 @@ import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import QRUploader from 'src/components/QRUploader'
 
+const aesjs = require('aes-js')
+const pbkdf2 = require('pbkdf2')
+
 export default {
   name: 'sweep',
   props: {
@@ -158,8 +161,8 @@ export default {
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
         const share1 = resp.data.share
         let share2
-        if (resp.data.encryptedShare) {
-          share2 = this.decryptShard(resp.data.encryptedShare, giftCode)
+        if (resp.data.encrypted_share) {
+          share2 = this.decryptShard(resp.data.encrypted_share, giftCode)
         } else {
           share2 = giftCode
         }
@@ -193,6 +196,7 @@ export default {
           vm.processing = false
         })
       }).catch((error) => {
+        console.log(error)
         vm.error = error.response.data.message
         vm.processing = false
       })
