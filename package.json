@@ -76,6 +76,7 @@
     "rpc-websocket-client": "^1.1.4",
     "s-ago": "^2.2.0",
     "shamirs-secret-sharing": "^1.0.1",
+    "short-uuid": "^5.2.0",
     "slp-mdm": "0.0.7",
     "tls": "^0.0.1",
     "translate-google": "^1.5.0",
