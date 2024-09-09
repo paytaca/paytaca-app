@@ -123,6 +123,52 @@
           </template>
         </q-input>
       </div>
+      <q-banner
+        v-if="cashbackCampaign?.id"
+        rounded
+        class="q-my-md q-mx-sm bg-grad"
+      >
+        <div class="text-h6" style="line-height:1.2">
+          {{
+            $t(
+              'MarketplaceCashbackMsg1',
+              {
+                min: parseInt(cashbackCampaign?.succeedingCashbackPercentage * 100),
+                max: parseInt(cashbackCampaign?.firstCashbackPercentage * 100)
+              },
+              `Get ${parseInt(cashbackCampaign?.succeedingCashbackPercentage * 100)}` +  
+              ` - ${parseInt(cashbackCampaign?.firstCashbackPercentage * 100)}% ` +
+              'cashback!'
+            )
+          }}
+        </div>
+        <div >{{ cashbackCampaign?.name }}</div>
+        <q-slide-transition>
+          <div v-if="showCashbackCampaignDetails" class="text-caption" style="line-height:1.3">
+            <div>{{ cashbackCampaign?.description }}</div>
+            <div v-if="cashbackLimitFiat">
+              {{
+                $t(
+                  'MarketplaceCashbackMsg2',
+                  { amount: cashbackLimitFiat, currency: currency },
+                  `Get upto ${cashbackLimitFiat} ${currency}` +  
+                  ' on your order'
+                )
+              }}
+            </div>
+          </div>
+        </q-slide-transition>
+        <template v-slot:action>
+          <q-btn
+            v-if="cashbackLimitFiat || cashbackCampaign?.description"
+            flat
+            padding="xs md"
+            no-caps :label="$t('MoreInfo', {}, 'More info')"
+            class="q-r-mr-md"
+            @click="() => showCashbackCampaignDetails = !showCashbackCampaignDetails"
+          />
+        </template>
+      </q-banner>
       <div class="row items-center justify-center">
         <q-spinner v-if="!initialized && fetchingStorefront" size="4em" color="brandblue"/>
       </div>
@@ -290,6 +336,7 @@
 <script setup>
 import noImage from 'src/assets/no-image.svg'
 import { backend, cachedBackend } from 'src/marketplace/backend'
+import { parseCashbackCampaign, getCashbackCampaign } from 'src/marketplace/cashback'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
 import { formatDateRelative, formatDuration, roundRating, round } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -586,9 +633,51 @@ function fetchProducts(opts={ limit: 0, offset: 0 }) {
     })
 }
 
+const currency = computed(() => getStorefrontCurrency(props.storefrontId))
 function getStorefrontCurrency(storefrontId) {
   return $store.getters['marketplace/getStorefrontCurrency']?.(storefrontId)
 }
+
+
+const showCashbackCampaignDetails = ref(false)
+const cashbackCampaign = ref(parseCashbackCampaign())
+watch(() => props.storefrontId, () => updateCashbackCampaign({ clearFirst: true }))
+async function updateCashbackCampaign(opts= { clearFirst: false }) {
+  if (opts?.clearFirst) {
+    cashbackCampaign.value = parseCashbackCampaign()
+  }
+  // const resp = await backend.get('https://engagementhub.paytaca.com/api/cashback/campaign/1/')
+  // cashbackCampaign.value = parseCashbackCampaign(resp?.data)
+  cashbackCampaign.value = await getCashbackCampaign({ storefrontId: props.storefrontId })
+}
+const currentBchPrice = ref({ value: 0, timestamp: 0 })
+watch(currency, () => updateBchPrice())
+onMounted(() => updateBchPrice())
+async function updateBchPrice() {
+  const params = { currencies: currency.value }
+  return backend.get('https://watchtower.cash/api/bch-prices/', { params })
+    .then(response => {
+      currentBchPrice.value = {
+        value: Number(response?.data?.[0]?.price_value),
+        timestamp: new Date(response?.data?.[0]?.timestamp).getTime(),
+      }
+      return response
+    })
+}
+
+const cashbackLimitFiat = computed(() => {
+  if (!cashbackCampaign.value?.id) return
+  cashbackCampaign.value.firstCashbackPercentage
+  cashbackCampaign.value.succeedingCashbackPercentage
+  const limit = Math.min(
+    cashbackCampaign.value.perCustomerCashbackLimit || 0,
+    cashbackCampaign.value.perMerchantCashbackLimit || 0,
+    cashbackCampaign.value.perTransansactionCashbackLimit || 0,
+  )
+
+  const cashbackLimit = round(currentBchPrice.value.value * (limit / 10 ** 8), 3)
+  return cashbackLimit
+})
 
 async function refreshPage(done=() => {}) {
   try {
@@ -600,6 +689,7 @@ async function refreshPage(done=() => {}) {
       fetchCollections(),
       updateDeliveryCalculation(),
       reviewsListDialog.value?.fetchReviews?.(),
+      updateCashbackCampaign(),
     ])
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', storefront.value?.id)

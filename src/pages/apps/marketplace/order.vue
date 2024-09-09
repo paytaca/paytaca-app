@@ -524,6 +524,10 @@
       </div>
 
       <div class="q-px-xs q-pt-sm q-pb-md" @click="toggleAmountsDisplay">
+        <q-banner v-if="aggregatedCashback?.parsedMessage" rounded class="bg-grad q-mb-md">
+          {{ aggregatedCashback?.parsedMessage }}
+        </q-banner>
+
         <div class="row items-start text-subtitle2">
           <div class="q-space">Subtotal</div>
           <div v-if="displayBch">{{ orderAmounts.subtotal.bch }} BCH</div>
@@ -694,6 +698,7 @@ import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Storefront } from 'src/marketplace/objects'
+import { parseCashbackMessage } from 'src/utils/cashback-utils'
 import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor, round } from 'src/marketplace/utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -1514,6 +1519,91 @@ async function rateOrder() {
     orderReview.value = newOrderReview
   })
 }
+
+const cashbacks = ref([].map(() => {
+  return { paymentId: 0, amountBch: 0, fiatAmount: 0, message: '', merchantName: '', parsedMessage: '' }
+}))
+const paymentsForCashback = computed(() => payments.value.filter(payment => {
+  if (!payment.escrowContractAddress) return false
+  return payment.status === 'sent'
+}))
+watch(paymentsForCashback, () => updateCashbackAmounts())
+async function updateCashbackAmounts() {
+  const deviceId = await Device.getId()
+
+  await Promise.all(paymentsForCashback.value
+    .map(payment => {
+      if (payment.escrowContract) return Promise.resolve()
+      return payment.fetchEscrowContract()
+    })
+  )
+
+  paymentsForCashback.value = []
+  return await Promise.all(paymentsForCashback.value
+    .map(payment => {
+      const data = {
+        merchant_address: payment.value?.escrowContract?.sellerAddress,
+        customer_address: payment.value?.escrowContract?.buyerAddress,
+        satoshis: payment.value.escrowContract?.amountSats,
+        device_id: deviceId.uuid || deviceId.identifier,
+      }
+      if (!data.merchant_address || !data.customer_address || !data.satoshis) return
+
+      return backend.post(`cashback/calculate_cashback/`, data)
+        .then(response => {
+          const bch = parseFloat(response?.data?.cashback_amount)
+          const fiatAmount = round(payment.bchPrice.price * bch, 3)
+          const cashback = {
+            paymentId: payment?.id,
+            amountBch: bch,
+            fiatAmount: fiatAmount,
+            merchantName: response?.data?.merchant_name,
+            message: response?.data?.message,
+          }
+          cashback.parsedMessage = parseCashbackMessage(
+            response?.data.message,
+            bch, fiatAmount,
+            response?.data?.merchantName,
+          )
+          cashbacks.value.push(cashback)
+          return response
+        })
+    })
+  )
+}
+
+const aggregatedCashback = computed(() => {
+  if (cashbacks.value?.length === 1) return cashbacks.value[0]
+
+  const totalBch = round(
+    cashbacks.value.reduce((subtotal, cashback) => subtotal + cashback.amountBch, 0), 8
+  )
+  const totalFiat = round(
+    cashbacks.value.reduce((subtotal, cashback) => subtotal + cashback.fiatAmount, 0), 3
+  )
+
+  const mostFrequent = arr => arr.reduce((a, b, i, arr) =>
+    arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
+  );
+
+  const merchantName = mostFrequent(
+    cashbacks.value.map(cashback => cashback.merchantName).filter(Boolean)
+  )
+  const message = mostFrequent(
+    cashbacks.value.map(cashback => cashback.message).filter(Boolean)
+  )
+  const parsedMessage = parseCashbackMessage(
+    message, totalBch, totalFiat, merchantName,
+  )
+
+  return {
+    amountBch: totalBch,
+    fiatAmount: totalFiat,
+    merchantName: merchantName,
+    message: message,
+    parsedMessage: parsedMessage,
+  }
+})
 
 const rpcEventNames = Object.freeze({
   orderUpdate: 'order_updates',
