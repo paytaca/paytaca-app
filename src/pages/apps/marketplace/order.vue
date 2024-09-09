@@ -80,26 +80,69 @@
           {{ formatTimestampToText(order?.createdAt) }}
         </div>
       </div>
-      <template v-if="order?.inProgress">
-        <q-banner
-          v-if="!order.isStorePickup && ['ready_for_pickup', 'on_delivery'].includes(order?.status) && orderDeadlines.delivery.text"
-          class="q-mx-xs q-my-sm pt-card text-bow"
-          :class="getDarkModeClass(darkMode)"
-        >
-          {{ orderDeadlines.delivery.text }}
-        </q-banner>
-        <q-banner
-          v-else-if="['confirmed', 'preparing'].includes(order?.status) && orderDeadlines.preparation.text"
-          class="q-mx-xs q-my-sm pt-card text-bow"
-          :class="getDarkModeClass(darkMode)"
-        >
-          {{ orderDeadlines.preparation.text }}
-        </q-banner>
-      </template>
-      <q-banner v-if="order?.isCancelled && order?.cancelReason" class="text-white bg-red q-ma-sm rounded-borders">
-        <div class="text-caption top">Cancel reason:</div>
-        <div class="q-mt-xs">{{ order?.cancelReason }}</div>
-      </q-banner>
+      <div class="q-mx-xs q-my-sm">
+        <OrderProgressPanel v-if="order?.status !== 'completed'" :order="order">
+          <template v-slot:bottom>
+            <div v-if="order?.isStorePickup && order?.isReadyForPickup">
+              <q-btn
+                v-if="storefront?.location?.gmapsDirectionUrl"
+                padding="xs sm"
+                no-caps
+                target="_blank"
+                color="brandblue"
+                class="float-right q-mt-sm q-mx-sm"
+                :href="storefront?.location?.gmapsDirectionUrl"
+              >
+                <q-icon name="directions" size="1.1em" class="q-mr-xs"/>
+                <span>Directions</span>
+                <q-icon name="open_in_new" size="0.7em" color="grey-3" class="q-ml-sm"/>
+              </q-btn>
+            </div>
+            <div v-else-if="order?.status === 'on_delivery'" class="row items-center justify-end">
+              <q-btn
+                padding="xs sm"
+                no-caps
+                color="brandblue"
+                class="q-mt-sm q-mx-sm"
+                @click="() => showMap = true"
+              >
+                <q-icon name="map" size="1.1em" class="q-mr-xs"/>
+                <span>Open Map</span>
+              </q-btn>
+            </div>
+            <div v-if="order?.isDelivered || (order?.isStorePickup && order?.isPickedUp)">
+              <div v-if="autoCompleteTimeRemaining && autoCompleteTimeRemainingText" class="">
+                <q-separator :dark="darkMode" class="q-mb-xs"/>
+                Order will be marked completed in {{ autoCompleteTimeRemainingText }} seconds
+              </div>
+
+              <div class="row items-center justify-between q-mt-sm">
+                <q-btn
+                  outline
+                  rounded
+                  no-caps
+                  :color="disputeButtonOpts.color"
+                  padding="1px sm"
+                  @click="() => showOrderDisputeDialog()"
+                >
+                  Dispute
+                  <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+                </q-btn>
+                <q-btn
+                  rounded
+                  no-caps
+                  :disable="hasOngoingDispute"
+                  :loading="completingOrder"
+                  label="Mark as Complete"
+                  class="button"
+                  padding="1px sm"
+                  @click="() => completeOrder()"
+                />
+              </div>
+            </div>
+          </template>
+        </OrderProgressPanel>
+      </div>
       <template v-if="order?.balanceToPay > 0 && !order?.isCancelled">
         <q-banner
           class="q-mx-xs q-my-sm pt-card text-bow"
@@ -127,92 +170,6 @@
           </div>
         </q-banner>
       </template>
-      <q-banner
-        v-if="order.isStorePickup && order.isReadyForPickup"
-        class="q-mx-xs q-my-sm pt-card text-bow"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <div>
-          <q-btn
-            v-if="storefront?.location?.gmapsDirectionUrl"
-            padding="none sm"
-            no-caps
-            target="_blank"
-            color="brandblue"
-            class="float-right q-mt-sm q-mx-sm"
-            :href="storefront?.location?.gmapsDirectionUrl"
-          >
-            <q-icon name="directions" size="1.1em" class="q-mr-xs"/>
-            <span>Directions</span>
-            <q-icon name="open_in_new" size="0.7em" color="grey-3" class="q-ml-sm"/>
-          </q-btn>
-          <q-btn
-            v-else
-            padding="none sm"
-            no-caps
-            color="brandblue"
-            class="float-right q-mt-sm q-mx-sm"
-            @click="() => showMap = true"
-          >
-            <q-icon name="map" size="1.1em" class="q-mr-xs"/>
-            <span>Open Map</span>
-          </q-btn>
-          <div class="text-subtitle1">
-            Order is ready for pickup!
-            <q-spinner v-if="completingOrder"/>
-          </div>
-          <div class="row items-center">
-            <div class="text-caption text-grey q-space">
-              Pickup your order from the store and mark the order as completed.
-            </div>
-          </div>
-        </div>
-      </q-banner>
-      <q-banner
-        v-if="order?.isDelivered || (order?.isStorePickup && order?.isPickedUp)" rounded
-        class="q-mx-xs q-my-sm pt-card text-bow"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
-          <div class="q-space">
-            <div class="text-subtitle1">
-              <template v-if="order?.isStorePickup && order?.isPickedUp">
-                Order picked up!
-              </template>
-              <template v-else>
-                Order delivered!
-              </template>
-              <q-spinner v-if="completingOrder"/>
-            </div>
-            <div class="text-caption text-grey">Review your order and mark completed if there are no problems</div>
-            <div v-if="autoCompleteTimeRemaining && autoCompleteTimeRemainingText" class="">
-              <q-separator :dark="darkMode" class="q-mb-xs"/>
-              Order will be marked completed in {{ autoCompleteTimeRemainingText }} seconds
-            </div>
-          </div>
-          <q-btn
-            outline
-            rounded
-            no-caps
-            :color="disputeButtonOpts.color"
-            padding="1px sm"
-            @click="() => showOrderDisputeDialog()"
-          >
-            Dispute
-            <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
-          </q-btn>
-          <q-btn
-            rounded
-            no-caps
-            :disable="hasOngoingDispute"
-            :loading="completingOrder"
-            label="Mark as Complete"
-            class="button"
-            padding="1px sm"
-            @click="() => completeOrder()"
-          />
-        </div>
-      </q-banner>
       <q-banner
         v-else-if="hasOngoingDispute" rounded
         class="q-mx-xs q-my-sm pt-card text-bow"
@@ -356,7 +313,7 @@
           <LeafletMapDialog ref="mapDialog" v-model="showMap" :locations="mapLocations"/>
           <q-card
             v-if="order?.isStorePickup"
-            class="q-px-md q-py-sm pt-card text-bow"
+            class="q-px-md q-py-sm q-mb-sm pt-card text-bow"
             :class="getDarkModeClass(darkMode)"
           >
             <div class="text-subtitle1">Store pickup</div>
@@ -759,6 +716,7 @@ import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.pn
 import ReviewFormDialog from 'src/components/marketplace/reviews/ReviewFormDialog.vue'
 import ReviewsListPanel from 'src/components/marketplace/reviews/ReviewsListPanel.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
+import OrderProgressPanel from 'src/components/marketplace/order/OrderProgressPanel.vue'
 
 const props = defineProps({
   orderId: [String, Number],  
@@ -879,38 +837,6 @@ function formatFiatAmount(value) {
   return `${fiatToBch(value)} BCH`
 }
 
-/**
- * @param {Date} timestamp
- */
-function parseDeadlineTimestamp(timestamp) {
-  const response = { actual: 0, min: 0, max: 0, text: '' }
-  if (!timestamp) return response
-  const delta = timestamp - Date.now()
-  const minutes = delta / (60 * 1000)
-  response.actual = minutes
-  response.min = Math.floor(minutes / 5) * 5
-  response.max = Math.ceil(minutes / 5) * 5
-  response.text = `${response.min}-${response.max} minutes`
-  if (response.min >= 60) response.text = `${Math.ceil(response.min/60)} hour${response.min>60 ? 's' : ''}`
-  else if (response.actual <= 5) response.text = `less than 5 minutes`
-  else if (response.min == response.max) response.text = `${response.max} minutes`
-  return response
-}
-const orderDeadlines = computed(() => {
-  const data = {
-    preparation: parseDeadlineTimestamp(order.value.preparationDeadline),
-    delivery: parseDeadlineTimestamp(order.value.deliveryDeadline),
-  }
-  if (data.preparation.text) {
-    data.preparation.text = `Your order will be ready for pickup in ${data.preparation.text}`
-  }
-  if (data.delivery.text) {
-    data.delivery.text = `Your order will be delivered in ${data.delivery.text}`
-  }
-
-  return data
-})
-
 const displayBch = ref(false)
 function toggleAmountsDisplay() {
   if (isNaN(orderBchPrice.value)) {
@@ -919,8 +845,6 @@ function toggleAmountsDisplay() {
   }
   displayBch.value = !displayBch.value
 }
-
-
 
 const storefront = ref(Storefront.parse())
 watch(storefrontId, () => fetchStorefront())

@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+  <HeaderNav :title="`Ramp Appeals`" :backnavpath="previousRoute"/>
   <div v-if="isloaded && escrowContract"
     class="q-mx-md q-px-none text-bow"
     :class="getDarkModeClass(darkMode)">
@@ -30,11 +30,14 @@
               <q-card-section>
                 <div class="row justify-end no-wrap">
                   <div class="col-9 q-mr-lg">
+                    <q-badge v-if="order?.is_cash_in" class="row md-font-size" outline color="warning">
+                      <span>Cash-in</span>
+                    </q-badge>
                     <div class="row text-weight-bold md-font-size">
                       <span>{{ appeal?.type?.label }} Appeal</span>
                     </div>
                     <div class="row md-font-size">
-                      <span><u>Order No. {{ appeal?.order?.id }}</u></span>
+                      <span>Order ID: {{ order?.tracking_id}}</span>
                     </div>
                     <div class="row subtext md-font-size">
                       <span>Submitted by {{ appeal?.owner?.name }}</span>
@@ -81,12 +84,12 @@
         </div>
       </q-pull-to-refresh>
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
-    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+    <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" :clickable-ads="false" @back="showPeerProfile=false"/>
     <ChatDialog v-if="openChat" :order="appealDetailData?.order" @close="openChat=false"/>
   </div>
 </template>
 <script>
-import RampContract from 'src/wallet/ramp/contract'
+import RampContract from 'src/exchange/contract'
 import AppealDetail from 'src/components/ramp/appeal/AppealDetail.vue'
 import AppealTransfer from 'src/components/ramp/appeal/AppealTransfer.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
@@ -96,10 +99,10 @@ import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.
 import ChatDialog from 'src/components/ramp/fiat/dialogs/ChatDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { fetchChatMembers } from 'src/wallet/ramp/chat'
-import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
+import { fetchChatMembers } from 'src/exchange/chat'
+import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { ref } from 'vue'
 
 export default {
@@ -129,8 +132,11 @@ export default {
       unread: 0,
       state: 'form',
       actionState: 'verifying',
+
       appeal: null,
       contract: null,
+      order: null,
+
       fees: null,
       status: null,
       isloaded: false,
@@ -149,20 +155,12 @@ export default {
       previousRoute: null
     }
   },
-  props: {
-    // orderId: String
-    // initWallet: Object,
-    // notifType: {
-    //   type: String,
-    //   default: ''
-    // }
-  },
   emits: ['back', 'updatePageName'],
   computed: {
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 140
       if (this.state === 'form') {
-        height = height - 90
+        height = height - 115
       }
       return height
     },
@@ -232,8 +230,12 @@ export default {
           })
           .catch(error => {
             console.error(error?.response)
-            if (error?.response?.status === 403) {
-              bus.emit('session-expired')
+            if (error.response) {
+              if (error?.response?.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -247,6 +249,7 @@ export default {
             vm.appeal = response.data.appeal
             vm.contract = response.data.contract
             vm.fees = response.data.fees
+            vm.order = response.data.order
             vm.appealDetailData = response.data
             vm.updateStatus(response.data.order?.status)
             vm.loading = false
@@ -254,8 +257,12 @@ export default {
           })
           .catch(error => {
             console.error(error.response)
-            if (error.response && error.response.status === 403) {
-              bus.emit('session-expired')
+            if (error.response) {
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             this.loading = false
             reject(error)
@@ -333,6 +340,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -355,6 +363,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -377,6 +386,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })

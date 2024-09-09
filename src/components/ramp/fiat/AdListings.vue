@@ -126,12 +126,12 @@
                           <q-btn
                             outline
                             rounded
-                            disable
                             padding="xs sm"
                             size="sm"
                             class="q-ml-xs text-weight-bold"
                             :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
-                            :icon="listing.is_public ? 'visibility' : 'visibility_off'">
+                            :icon="listing.is_public ? 'visibility' : 'visibility_off'"
+                            @click="onToggleAdVisibility(listing, index)">
                             <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
                           </q-btn>
                         </div>
@@ -169,11 +169,11 @@
 <script>
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from 'src/components/ramp/fiat/dialogs/FiatAdsDialogs.vue'
-import { formatCurrency, formatDate, getAppealCooldown } from 'src/wallet/ramp'
+import { formatCurrency, formatDate, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   setup () {
@@ -193,8 +193,6 @@ export default {
       openMiscDialog: false,
       openDialog: false,
       dialogName: '',
-      selectedIndex: null,
-      editListing: {},
       transactionType: 'BUY',
       state: 'selection', // 'create' 'edit'
       loading: false,
@@ -203,7 +201,8 @@ export default {
       selectedAdId: null,
       pageName: 'main',
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
-      loadingMoreData: false
+      loadingMoreData: false,
+      listings: []
     }
   },
   watch: {
@@ -219,16 +218,6 @@ export default {
     }
   },
   computed: {
-    listings () {
-      const vm = this
-      switch (vm.transactionType) {
-        case 'BUY':
-          return vm.buyListings
-        case 'SELL':
-          return vm.sellListings
-      }
-      return []
-    },
     buyListings () {
       return this.$store.getters['ramp/getAdsBuyListings']
     },
@@ -243,10 +232,32 @@ export default {
   },
   mounted () {
     this.resetAndRefetchListings()
+    this.resetListings()
   },
   methods: {
     getDarkModeClass,
     formatCurrency,
+    resetListings (append = false, newData = []) {
+      const vm = this
+      switch (vm.transactionType) {
+        case 'BUY':
+          if (!append) {
+            vm.listings = [...vm.buyListings]
+          } else {
+            vm.listings = [...vm.listings, ...newData]
+          }
+          break
+        case 'SELL':
+          if (!append) {
+            vm.listings = [...vm.sellListings]
+          } else {
+            vm.listings = [...vm.listings, ...newData]
+          }
+      }
+    },
+    onToggleAdVisibility (ad, index) {
+      this.toggleAdVisibility(ad, index)
+    },
     tradeAmountCurrency (ad) {
       return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
@@ -288,8 +299,9 @@ export default {
         overwrite: overwrite
       }
       await vm.$store.dispatch('ramp/fetchAds', args)
-        .then(() => {
+        .then(response => {
           vm.updatePaginationValues()
+          vm.resetListings(this.loadingMoreData, response)
         })
         .catch(error => {
           console.error(error)
@@ -298,7 +310,20 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
+        })
+    },
+    async toggleAdVisibility (ad, index) {
+      if (!ad) return
+      await backend.put(`ramp-p2p/ad/${ad.id}`, { is_public: !ad.is_public }, { authorize: true })
+        .then(response => {
+          // this.resetListings()
+          this.listings[index] = response.data
+        })
+        .catch(error => {
+          console.error(error.response || error)
         })
     },
     async loadMoreData () {
@@ -324,8 +349,12 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -376,9 +405,6 @@ export default {
       bus.emit('show-menu', 'ads')
     },
     onCreateAd () {
-      console.log('onCreateAd')
-      // this.state = 'create'
-      // this.pageName = 'ad-form-1'
       this.$router.push({ name: 'p2p-ads-create-form', query: { type: this.transactionType, step: 1 } })
     },
     onEditAd (id) {

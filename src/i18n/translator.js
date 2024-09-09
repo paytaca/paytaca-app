@@ -26,7 +26,7 @@ class Translator {
       ...phrases.dynamic,
     ]
     this.regex = {
-      interpolatedStrRegex: /\{(\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+\}/gu,
+      interpolatedStrRegex: /\{(\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+\}|<(.|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+>/gu,
       htmlClassRegex: /[“|"](\s|\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+[”|"]/gu,
     }
     this.hardcodedTranslations = {

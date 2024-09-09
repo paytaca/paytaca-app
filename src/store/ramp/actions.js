@@ -1,5 +1,5 @@
 import { Store } from '..'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export async function loadAuthHeaders (context) {
   if (!context.state.wallet) {
@@ -121,6 +121,41 @@ export function fetchAds (context, { component = null, params = null, overwrite 
               }
               break
           }
+          resolve(response.data.ads)
+        })
+        .catch(error => {
+          reject(error)
+        })
+    } else {
+      resolve()
+    }
+  })
+}
+
+export async function fetchCashinOrders (context, { params = null, overwrite = false }) {
+  return new Promise((resolve, reject) => {
+    const state = context.state
+
+    // Setup pagination parameters
+    let pageNumber = state.cashinOrdersPageNumber
+    const totalPages = state.cashinOrdersTotalPages
+    if (pageNumber <= totalPages || (!pageNumber && !totalPages)) {
+      // Increment page by 1 if not fetching data for the first time
+      if (pageNumber !== null) pageNumber++
+
+      const parameters = {
+        wallet_hash: params.wallet_hash,
+        page: pageNumber,
+        limit: state.itemsPerPage,
+        status_type: 'ONGOING',
+        owned: params.owned
+      }
+
+      const apiURL = '/ramp-p2p/cashin/order'
+      backend.get(apiURL, { params: parameters })
+        .then((response) => {
+          context.commit('updateCashinOrders', { overwrite: overwrite, data: response.data })
+          context.commit('incCashinOrdersPage')
           resolve(response.data)
         })
         .catch(error => {
@@ -203,7 +238,6 @@ export async function fetchOrders (context, { statusType = null, params = null, 
 
       backend.get(apiURL, { params: parameters, authorize: true })
         .then((response) => {
-          console.log('orders:', response.data)
           switch (statusType) {
             case 'ONGOING':
               context.commit('updateOngoingOrders', { overwrite: overwrite, data: response.data })
@@ -217,7 +251,6 @@ export async function fetchOrders (context, { statusType = null, params = null, 
           resolve(response.data)
         })
         .catch(error => {
-          console.error('Error fetching user data:', error)
           reject(error)
         })
     } else {

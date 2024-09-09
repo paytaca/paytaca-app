@@ -38,9 +38,12 @@
                 <div class="q-gutter-sm q-pt-sm">
                     <q-badge
                       class="q-pa-sm"
-                      rounded :outline="!(selectedAppealType && appealType.value === selectedAppealType.value)" color="blue-grey-6"
+                      rounded
+                      :outline="!(selectedAppealType && appealType.value === selectedAppealType.value)"
+                      color="blue-grey-6"
                       @click="selectedAppealType = appealType"
-                      v-for="appealType in appealTypeOpts" :key="appealType.value" >
+                      v-for="appealType in appealTypeOpts"
+                      :key="appealType.value" >
                       {{ appealType.label }}
                     </q-badge>
                 </div>
@@ -74,10 +77,10 @@
 </template>
 
 <script>
-import { generateChatRef, updateChatMembers } from 'src/wallet/ramp/chat'
+import { generateChatRef, updateChatMembers } from 'src/exchange/chat'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   emits: ['back', 'submit'],
@@ -91,7 +94,7 @@ export default {
       reasonOpts: [
         this.$t('AppealFormReasonOpt1'),
         this.$t('AppealFormReasonOpt2'),
-        this.$t('AppealFormReasonOpt3'),
+        this.$t('AppealFormReasonOpt3')
       ],
       appealTypeOpts: [
         {
@@ -106,7 +109,18 @@ export default {
     }
   },
   props: {
+    type: String,
     order: Object
+  },
+  mounted () {
+    if (this.type === 'seller') {
+      this.appealTypeOpts = [{ label: this.$t('Refund'), value: 'RFN' }]
+      this.selectedAppealType = { label: this.$t('Refund'), value: 'RFN' }
+    }
+    if (this.type === 'buyer') {
+      this.appealTypeOpts = [{ label: this.$t('Release'), value: 'RLS' }]
+      this.selectedAppealType = { label: this.$t('Release'), value: 'RLS' }
+    }
   },
   methods: {
     getDarkModeClass,
@@ -129,6 +143,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
@@ -151,6 +166,13 @@ export default {
           })
           .catch(error => {
             console.error(error.response)
+            if (error.response) {
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
+            }
             reject(error)
           })
       })

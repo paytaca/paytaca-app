@@ -117,7 +117,7 @@
     </q-dialog>
 </template>
 <script>
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -188,11 +188,16 @@ export default {
         })
         .catch(error => {
           console.log(error.response)
-
-          if (error.response.status === 400) {
-            if (error.response?.data?.error.includes('no appeal')) {
-              vm.appealed = false
+          if (error.response) {
+            if (error.response.status === 400) {
+              if (error.response?.data?.error.includes('no appeal')) {
+                vm.appealed = false
+              }
+            } else if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -222,6 +227,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => {
@@ -256,6 +262,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
           })
           .finally(() => { vm.loading = false })
@@ -296,6 +303,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => {
@@ -329,6 +337,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
           })
           .finally(() => {

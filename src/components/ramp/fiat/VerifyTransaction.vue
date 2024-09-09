@@ -74,7 +74,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
@@ -179,6 +179,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -195,8 +196,12 @@ export default {
         .catch(error => {
           console.error(error?.response || error)
           vm.errorMessage = error.response?.data?.error
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
           vm.hideBtn = false
           vm.disableBtn = false
@@ -217,8 +222,12 @@ export default {
           if (error.response?.data?.error === 'txid is required') {
             vm.errorMessage = 'Transaction ID is required for verification'
           }
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
           vm.hideBtn = false
           vm.disableBtn = false

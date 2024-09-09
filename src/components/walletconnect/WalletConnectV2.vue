@@ -109,15 +109,6 @@
             <q-btn class="button" icon="mdi-qrcode" no-caps :label="$t('Scan')" @click="() => $emit('request-scanner')"/>
             <q-btn class="button" icon="link" no-caps :label="$t('PasteURL')" @click="() => connectNewSession()"/>
           </q-btn-group>
-          <!-- <q-form @submit="() => pairUrlInInput()">
-            <q-input
-              dense outlined
-              label="Paste URL"
-              v-model="walletConnectUriInput"
-              bottom-slots
-            />
-            <q-btn color="brandblue" no-caps label="Connect" type="submit" class="full-width"/>
-          </q-form> -->
         </div>
       </q-item-section>
     </q-item>
@@ -394,42 +385,40 @@ const selectedActiveSession = computed(() => activeSessions.value?.[selectedActi
 const showSessionProposalsDialog = ref(false)
 const sessionProposals = ref()
 
-async function connectNewSession(value='') {
-  $q.dialog({
-    title: $t('NewSession'),
-    prompt: {
-      label: $t('SessionURL'),
-      placeholder: $t('PasteURL'),
-      color: 'brandblue',
-      model: value,
-    },
-    ok: {
-      flat: true,
-      noCaps: true,
-      label: $t('Add'),
-      color: 'brandblue',
-      class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
-    },
-    cancel: {
-      flat: true,
-      noCaps: true,
-      label: $t('Close'),
-      color: 'brandblue',
-      class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
-    },
-    position: 'bottom',
-    seamless: true,
-    class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-  })
-    .onOk(val => pairUrl(val))
-}
-
-async function pairUrlInInput() {
-  console.log(walletConnectUriInput.value)
-  return pairUrl(walletConnectUriInput.value)
-    .finally(() => {
-      walletConnectUriInput.value = ''
+async function connectNewSession(value='', prompt=true) {
+  if (prompt) {
+    $q.dialog({
+      title: $t('NewSession'),
+      prompt: {
+        label: $t('SessionURL'),
+        placeholder: $t('PasteURL'),
+        color: 'brandblue',
+        model: value,
+      },
+      ok: {
+        flat: true,
+        noCaps: true,
+        label: $t('Add'),
+        color: 'brandblue',
+        class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
+      },
+      cancel: {
+        flat: true,
+        noCaps: true,
+        label: $t('Close'),
+        color: 'brandblue',
+        class: `button button-text-primary ${getDarkModeClass(darkMode.value)}`
+      },
+      position: 'bottom',
+      seamless: true,
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
     })
+      .onOk(val => pairUrl(val))
+  } else {
+    setTimeout(async () => {
+      await pairUrl(value)
+    }, 2000)
+  }
 }
 
 async function pairUrl(uri, opts={ showDialog: true }) {
@@ -443,6 +432,9 @@ async function pairUrl(uri, opts={ showDialog: true }) {
     class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   try {
+    if (!web3Wallet.value) {
+      await loadWeb3Wallet()
+    }
     await web3Wallet.value.pair({ uri: uri })
   } finally {
     dialog?.hide?.()
@@ -662,11 +654,16 @@ function statusUpdate() {
 
 const web3Wallet = ref()
 const web3WalletPromise = ref()
-onMounted(async () => {
+
+async function loadWeb3Wallet () {
   web3WalletPromise.value = initWeb3Wallet()
   const _web3Wallet = await web3WalletPromise.value
   web3Wallet.value = _web3Wallet
   window.w3w = _web3Wallet
+}
+
+onMounted(async () => {
+  await loadWeb3Wallet()
 })
 watch(web3Wallet, () => {
   statusUpdate()

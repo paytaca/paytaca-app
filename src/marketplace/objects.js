@@ -1207,6 +1207,9 @@ export class Order {
   }
 
   get formattedStatus() {
+    if (!this.isStorePickup && this.isReadyForPickup) {
+      return formatOrderStatus('order_prepared')
+    }
     return formatOrderStatus(this.status)
   }
 
@@ -1523,6 +1526,7 @@ export class Payment {
    * @param {String} data.transaction_timestamp
    * @param {String} data.created_at
    * @param {String} data.escrow_contract_address
+   * @param {String[]} [data.pending_appeal_types]
   */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1541,6 +1545,7 @@ export class Payment {
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.escrowContractAddress = data?.escrow_contract_address
+    this.pendingAppealTypes = data?.pending_appeal_types
 
     if (data?.order?.id) this.order = Order.parse(data?.order)
     else if (data?.order?.id != this?.order?.id) delete this.order

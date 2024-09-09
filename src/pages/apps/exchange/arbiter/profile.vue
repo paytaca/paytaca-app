@@ -120,10 +120,10 @@ import AppealSettings from 'src/components/ramp/appeal/AppealSettings.vue'
 import ArbiterCurrenciesDialog from 'src/components/ramp/appeal/dialogs/ArbiterCurrenciesDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
-import { formatDate } from 'src/wallet/ramp'
+import { backend } from 'src/exchange/backend'
+import { formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { updateChatIdentity } from 'src/wallet/ramp/chat'
+import { updateChatIdentity } from 'src/exchange/chat'
 
 export default {
   components: {
@@ -200,6 +200,16 @@ export default {
           vm.arbiter.rating = Number(vm.arbiter?.rating)
           vm.parseInactiveTime(vm.arbiter.inactive_until)
         })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     parseInactiveTime (inactiveUntil) {
       const providedTimestamp = new Date(inactiveUntil).getTime()
@@ -245,6 +255,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => {
@@ -264,6 +275,13 @@ export default {
           })
       } catch (error) {
         console.error(error?.response || error)
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
+        }
       }
       this.editNickname = false
     },

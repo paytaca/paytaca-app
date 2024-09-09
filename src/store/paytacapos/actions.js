@@ -1,9 +1,11 @@
 import { backend as posBackend } from "src/wallet/pos"
 import { loadWallet } from 'src/wallet'
 import { bus } from "src/wallet/event-bus"
+
 import { VerificationTokenMinter } from "src/vouchers/verification_token_minter"
 import { ElectrumNetworkProvider } from "cashscript";
 
+import axios from 'axios'
 
 /* -------------------------Merchants----------------------------- */
 /* --------------------------------------------------------------- */
@@ -106,7 +108,19 @@ export async function updateMerchantInfo(context, data) {
     .then(response => {
       if (response?.data?.wallet_hash == data.walletHash) {
         context.commit('storeMerchantsListInfo', [response.data])
-        return Promise.resolve(response)
+
+        // update merchant location when updating merchant details
+        if (data?.id) {
+          axios
+            .post(`${process.env.ENGAGEMENT_HUB_URL}cashback/merchantlocation/update_merchant_location/`, payload)
+            .then(_response2 => {
+              // updated merchant location in engagement hub successfully
+            })
+            .catch(_error => {
+              // failed updating merchant location in engagement hub
+            })
+          return Promise.resolve(response)
+        }
       }
       return Promise.reject({ response })
     })

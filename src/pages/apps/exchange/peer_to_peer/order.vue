@@ -4,7 +4,7 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="q-pt-sm text-center text-weight-bold">
+      <div class="text-center text-weight-bold">
         <div class="lg-font-size">
           <span>{{ headerTitle.toUpperCase() }}</span>
         </div>
@@ -101,15 +101,15 @@
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
   </template>
 <script>
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
-import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/wallet/ramp/chat'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
+import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/exchange/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
-import RampContract from 'src/wallet/ramp/contract'
+import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
 import EscrowTransfer from 'src/components/ramp/fiat/EscrowTransfer.vue'
@@ -169,6 +169,7 @@ export default {
       tradeInfoCardKey: 0,
       userProfileDialogKey: 0,
       adSnapshotDialogKey: 0,
+      chatDialogKey: 0,
 
       errorMessages: [],
       selectedPaymentMethods: [],
@@ -405,6 +406,7 @@ export default {
       this.tradeInfoCardKey++
       this.userProfileDialogKey++
       this.adSnapshotDialogKey++
+      this.chatDialogKey++
     },
     updateStatus (status) {
       const vm = this
@@ -554,6 +556,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -585,6 +588,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -607,6 +611,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -628,6 +633,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
@@ -648,6 +654,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
@@ -668,6 +675,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -695,6 +703,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -732,6 +741,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
@@ -762,6 +772,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
       vm.isloaded = true
@@ -800,6 +811,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -814,8 +826,12 @@ export default {
           .catch(error => {
             if (error.response) {
               console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })

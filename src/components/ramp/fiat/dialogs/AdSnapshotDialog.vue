@@ -12,6 +12,18 @@
         <q-separator class="q-my-sm" :dark="darkMode"/>
         <div class="sm-font-size q-px-md q-py-sm q-mb-lg">
           <div class="row justify-between no-wrap q-mx-lg">
+            <span>{{ $t('Owner', 'Owner') }}</span>
+            <span class="text-nowrap q-ml-xs">
+              {{ snapshot?.owner?.name }}
+            </span>
+          </div>
+          <div class="row justify-between no-wrap q-mx-lg">
+            <span>{{ $t('TradeType', 'Trade Type') }}</span>
+            <span class="text-nowrap q-ml-xs">
+              {{ snapshot?.trade_type }}
+            </span>
+          </div>
+          <div class="row justify-between no-wrap q-mx-lg">
             <span>{{ $t('PriceType') }}</span>
             <span class="text-nowrap q-ml-xs">
               {{ snapshot?.price_type }}
@@ -90,9 +102,9 @@
   </q-dialog>
 </template>
 <script>
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -167,6 +179,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     }
