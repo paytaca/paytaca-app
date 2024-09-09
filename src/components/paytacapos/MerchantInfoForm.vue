@@ -151,6 +151,7 @@ import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
+import { loadWallet } from 'src/wallet'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
 
@@ -251,11 +252,36 @@ function selectCoordinates() {
     })
 }
 
-function updateMerchantInfo() {
+async function hasEnoughBalance () {
+  const wallet = await loadWallet('BCH')
+  const response = await wallet.BCH.getBalance()
+  const enough = response.balance >= 0.00003
+
+  if (!enough) {
+    $q.notify({
+      icon: 'warning',
+      color: 'warning',
+      message: $t('MerchantVerificationMintingFeeMsg'),
+    })
+  }
+  return enough
+}
+
+async function updateMerchantInfo() {
+  const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
+
+  if (data?.id) {
+    const merchant = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
+    if (!merchant?.minter) {
+      const enoughBal = await hasEnoughBalance()
+      if (!enoughBal) return
+    }
+  } else {
+    const enoughBal = await hasEnoughBalance()
+    if (!enoughBal) return
+  }
+  
   loading.value = true
-  const data = Object.assign({
-    walletHash: walletHash.value,
-  }, merchantInfoForm.value)
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {
       $q.notify({
@@ -263,6 +289,7 @@ function updateMerchantInfo() {
         color: 'positive',
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
+      $store.dispatch('paytacapos/mintVerificationMintingNft', { merchantId: response?.data?.id })
       $emit('saved', response?.data)
       return response
     })

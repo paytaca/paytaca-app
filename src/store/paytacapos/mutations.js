@@ -3,6 +3,16 @@
  * @param {Object} data
  * @param {Number} data.id
  * @param {String} data.name
+ * @param {Object} [data.minter]
+ * @param {Number} data.minter.merchant = id
+ * @param {String} data.minter.category
+ * @param {String} data.minter.address
+ * @param {String} data.minter.token_address
+ * @param {Object} [data.vault]
+ * @param {String} data.vault.merchant = id
+ * @param {String} data.vault.address
+ * @param {String} data.vault.token_address
+ * @param {String} data.vault.pubkey
  * @param {String} data.wallet_hash
  * @param {String} data.primary_contact_number
  * @param {String} data.branch_count
@@ -22,6 +32,7 @@ function parseMerchantData(data) {
     id: data?.id,
     walletHash: data?.wallet_hash,
     name: data?.name,
+    verificationTokenCategory: data?.minter?.category,
     primaryContactNumber: data?.primary_contact_number,
     branchCount: data?.branch_count,
     posDeviceCount: data?.pos_device_count,
