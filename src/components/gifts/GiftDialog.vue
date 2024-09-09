@@ -11,14 +11,14 @@
         />
       </div>
       <q-card-section style="max-height:calc(90vh - 3.5rem);overflow-y:auto" class="q-pt-sm">
-        <div class="text-center text-h5">{{ $t('Amount') }}: {{ amount }} BCH</div>
-        <div class="row justify-center">
+        <div class="text-center text-h5 q-mb-md">{{ $t('Amount') }}: {{ amount }} BCH</div>
+        <div class="row justify-center q-mb-md">
           <div class="col-qr-code">
             <qr-code :text="qrCodeContents"/>
           </div>
         </div>
         <div
-          class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders"
+          class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders q-mb-sm"
           style="border:1px solid grey; position:relative"
           v-ripple
           @click="() => copyToClipboard(qrCodeContents)"

@@ -81,7 +81,6 @@
                 class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
               >
                 <q-card
-                  v-if="getGiftShare(gift?.gift_code_hash) || gift?.date_claimed !== 'None'"
                   class="q-py-sm q-px-md pt-card"
                   :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
                 >
@@ -117,6 +116,9 @@
                         icon="mdi-cash-refund"
                         @click="() => confirmRecoverGift(gift)"
                       />
+                    </div>
+                    <div v-else>
+                      <span style="color: red;">Gift code not found on this device</span>
                     </div>
                     <q-separator v-if="getGiftShare(gift?.gift_code_hash) && getQrShare(gift?.gift_code_hash)" vertical :dark="darkMode"/>
                     <template v-if="getQrShare(gift?.gift_code_hash)">
@@ -266,6 +268,7 @@ export default {
       this.fetchingGifts = true
       axios.get(url, { params: query })
         .then(response => {
+          console.log(response)
           if (!Array.isArray(response?.data?.gifts)) return Promise.reject({ response })
 
           this.gifts = response.data.gifts.filter(gift => {
