@@ -253,3 +253,12 @@ export function removeOldPaymentOTPCache(state, age=86400) {
     if (cutoffTimestamp > timestamp || !Number.isSafeInteger(timestamp)) delete state.paymentOTPCache?.[txid]
   }
 }
+
+
+export function setVerificationTokenMinter (state, data) {
+  state.verificationTokenMinter = data
+}
+
+export function clearVerificationTokenMinter (state) {
+  state.verificationTokenMinter = undefined
+}

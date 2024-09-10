@@ -268,20 +268,29 @@ async function hasEnoughBalance () {
 }
 
 async function updateMerchantInfo() {
+  loading.value = true
+  
   const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
-
-  if (data?.id) {
-    const merchant = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
-    if (!merchant?.minter) {
+  const minterDetails = $store.getters['paytacapos/verificationTokenMinter']
+  
+  if (!minterDetails) {
+      if (data?.id) {
+        const merchant = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
+      if (!merchant?.minter) {
+        const enoughBal = await hasEnoughBalance()
+        if (!enoughBal) return
+      }
+    } else {
       const enoughBal = await hasEnoughBalance()
       if (!enoughBal) return
     }
-  } else {
-    const enoughBal = await hasEnoughBalance()
-    if (!enoughBal) return
+
+    minterDetails = await $store.dispatch('paytacapos/mintVerificationMintingNft')
   }
-  
-  loading.value = true
+
+  data.minter_category = minterDetails.category
+  data.minter_address = minterDetails.address
+
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {
       $q.notify({
@@ -289,7 +298,7 @@ async function updateMerchantInfo() {
         color: 'positive',
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
-      $store.dispatch('paytacapos/mintVerificationMintingNft', { merchantId: response?.data?.id })
+      $store.commit('paytacapos/clearVerificationTokenMinter')
       $emit('saved', response?.data)
       return response
     })
