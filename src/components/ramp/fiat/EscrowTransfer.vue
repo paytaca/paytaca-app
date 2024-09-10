@@ -243,7 +243,7 @@ export default {
       vm.escrowBalance = await vm.escrowContract.getBalance()
       if (vm.escrowBalance > 0) {
         if (vm.order?.status?.value === 'CNF') {
-          vm.escrowPendingOrder()
+          await vm.escrowPendingOrder()
         }
       }
     },
@@ -279,6 +279,9 @@ export default {
       console.log('Contract address matched. Sending BCH...')
       vm.sendingBch = true
       try {
+        if (vm.order?.status?.value === 'CNF') {
+          await vm.escrowPendingOrder()
+        }
         const wallet = await vm.wallet.raw()
         const utxos = await vm.escrowContract.getUtxos()
         if (vm.escrowBalance === 0 && utxos.length === 0) {
@@ -298,9 +301,6 @@ export default {
             vm.$store.commit('ramp/saveTxid', txidData)
             vm.escrowBalance = await vm.escrowContract.getBalance()
             vm.$emit('success', vm.txid)
-            if (vm.order?.status?.value === 'CNF') {
-              vm.escrowPendingOrder()
-            }
           } else {
             vm.sendErrors = []
             if (result) {
@@ -328,27 +328,21 @@ export default {
       }
       vm.sendingBch = false
     },
-    escrowPendingOrder () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        vm.loading = true
-        backend.post(`/ramp-p2p/order/${vm.order?.id}/escrow/`, null, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
+    async escrowPendingOrder () {
+      const vm = this
+      vm.loading = true
+      await backend.post(`/ramp-p2p/order/${vm.order?.id}/pending-escrow/`, null, { authorize: true })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     fetchArbiters () {
       return new Promise((resolve, reject) => {

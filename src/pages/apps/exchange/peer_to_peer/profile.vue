@@ -429,7 +429,7 @@ export default {
           page: vm.reviewsPageNumber,
           to_peer: this.user?.id
         }
-        backend.get('/ramp-p2p/order/feedback/peer', {
+        backend.get('/ramp-p2p/order/feedback/peer/', {
           params: params,
           authorize: true
         })

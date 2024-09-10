@@ -339,7 +339,7 @@ export default {
     },
     async setOrderPending (action) {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-${action}`
+      const url = `/ramp-p2p/appeal/${vm.appeal.id}/pending-${action}/`
       await backend.post(url, {}, { authorize: true })
         .then(response => {
           console.log(response.data)

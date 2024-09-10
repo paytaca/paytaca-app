@@ -127,10 +127,11 @@ export default {
     async submitAppeal () {
       const vm = this
       const data = {
+        order_id: vm.order.id,
         type: vm.selectedAppealType?.value,
         reasons: vm.selectedReasons
       }
-      await backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
+      await backend.post('/ramp-p2p/appeal/', data, { authorize: true })
         .then(vm.addArbiterToChat())
         .then(response => {
           vm.$emit('update-status', response.data.status?.status)

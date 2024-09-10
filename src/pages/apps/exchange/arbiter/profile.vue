@@ -234,7 +234,7 @@ export default {
     async fetchFeedback () {
       const vm = this
       vm.loadingReviews = true
-      const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+      const arbiterUrl = '/ramp-p2p/order/feedback/arbiter/'
       const arbiterParams = {
         limit: 20,
         page: vm.reviewsPageNumber

@@ -276,12 +276,14 @@ export default {
       return this.$t('SubmitAnAppeal')
     },
     showAppealBtn () {
-      const stat = ['ESCRW', 'PD_PN', 'PD']
-      return stat.includes(this.data?.order?.status.value) && this.data?.order?.appealable_at && !this.appealCountdownLoading
+      const stat = ['ESCRW', 'PD_PN', 'PD', 'CNCL']
+      const statusAppealable = stat.includes(this.data?.order?.status.value)
+      const hasFundedContract = !!this.data?.contractAddress && this.contractBalance > 0
+      return statusAppealable && (hasFundedContract || (!!this.data?.order?.appealable_at && !this.appealCountdownLoading))
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
-      return status !== 'SBM' && status !== 'CNF' && status !== 'CNCL'
+      return (this.data?.contractAddress && status !== 'SBM' && status !== 'CNF')
     },
     isAppealed () {
       return this.data?.order?.status?.value === 'APL'
@@ -434,7 +436,7 @@ export default {
     },
     fetchAppeal () {
       const vm = this
-      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
+      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: true })
         .then(response => {
           vm.appeal = response.data?.appeal
         })

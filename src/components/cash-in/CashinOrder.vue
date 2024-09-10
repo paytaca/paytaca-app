@@ -258,7 +258,7 @@ export default {
     },
     async fetchAppeal () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/appeal`
+      const url = `/ramp-p2p/order/${vm.order.id}/appeal/`
       await backend.get(url, { authorize: true })
         .then(response => {
           this.appeal = response.data.appeal
@@ -277,8 +277,9 @@ export default {
     },
     appealOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/appeal`
+      const url = '/ramp-p2p/order/appeal/'
       const data = {
+        order_id: vm.order.id,
         type: 'RFN',
         reasons: this.appealReasons
       }
