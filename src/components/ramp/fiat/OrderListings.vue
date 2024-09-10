@@ -65,8 +65,15 @@
     </q-pull-to-refresh>
     <div class="q-mt-sm">
       <div v-if="listings.length == 0 && cashinOrders.length == 0" class="relative text-center" style="margin-top: 50px;">
-        <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-        <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+        <div v-if="displayEmptyList">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+        </div>
+        <div v-else>
+          <div class="row justify-center" v-if="loading">
+            <q-spinner-dots color="primary" size="40px" />
+          </div>
+        </div>
       </div>
       <div v-else class="q-mb-none">
         <div class="row justify-center" v-if="loading">
@@ -250,12 +257,14 @@ export default {
       fiatCurrencies: [],
       notifType: null,
       loadingMoreData: false,
-      wallet: null
+      wallet: null,
+      displayEmptyList: false
     }
   },
   watch: {
     statusType () {
       const vm = this
+      vm.displayEmptyList = false
       vm.filterComponentKey++
       vm.updateFilters()
       vm.scrollToTop()
@@ -552,6 +561,11 @@ export default {
       this.loading = true
       await this.fetchCashinOrders(true)
       await this.fetchOrders(true)
+
+      setTimeout(() =>{
+        this.displayEmptyList = true
+      }, 150)
+
       this.loading = false
     },
     updatePaginationValues () {

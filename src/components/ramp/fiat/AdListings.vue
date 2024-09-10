@@ -37,8 +37,15 @@
       </q-pull-to-refresh>
       <div class="q-mt-md q-mx-md">
         <div v-if="listings.length == 0"  class="relative text-center" style="margin-top: 50px;">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
+          <div v-if="displayEmptyList">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
+          </div>
+          <div v-else>
+            <div class="row justify-center" v-if="loading">
+              <q-spinner-dots color="primary" size="40px" />
+            </div>
+          </div>
         </div>
         <div v-else>
           <div class="row justify-center" v-if="loading">
@@ -202,7 +209,8 @@ export default {
       pageName: 'main',
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       loadingMoreData: false,
-      listings: []
+      listings: [],
+      displayEmptyList: false
     }
   },
   watch: {
@@ -213,6 +221,7 @@ export default {
     },
     transactionType () {
       const vm = this
+      vm.displayEmptyList = false
       vm.scrollToTop()
       vm.resetAndRefetchListings()
     }
@@ -364,9 +373,15 @@ export default {
     },
     async resetAndRefetchListings () {
       const vm = this
+      vm.displayEmptyList = false
       vm.$store.commit('ramp/resetAdsPagination')
       vm.loading = true
       await vm.fetchAds(true)
+
+      setTimeout(() =>{
+        vm.displayEmptyList = true
+      }, 150)
+
       vm.loading = false
     },
     updatePaginationValues () {
