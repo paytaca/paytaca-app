@@ -723,7 +723,8 @@ export default {
     },
     submitAppeal (data) {
       const vm = this
-      backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
+      data.order_id = vm.order.id
+      backend.post('/ramp-p2p/appeal/', data, { authorize: true })
         .then(response => {
           vm.updateStatus(response.data.status.status)
         })
@@ -743,7 +744,7 @@ export default {
     sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = '/ramp-p2p/order/feedback/peer/'
       const body = {
         order_id: vm.order.id,
         rating: feedback.rating,
@@ -775,7 +776,7 @@ export default {
     fetchFeedback () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/feedback/peer'
+        const url = '/ramp-p2p/order/feedback/peer/'
         backend.get(url, {
           params: {
             limit: 7,

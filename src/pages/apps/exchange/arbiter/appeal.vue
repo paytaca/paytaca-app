@@ -244,7 +244,7 @@ export default {
     fetchAppeal () {
       const vm = this
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal/`, { authorize: true })
           .then(response => {
             vm.appeal = response.data.appeal
             vm.contract = response.data.contract

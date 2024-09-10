@@ -282,7 +282,7 @@ export function fetchAppeals (context, { appealState = null, params = null, over
       if (pageNumber !== null) pageNumber++
       params.page = pageNumber
       params.limit = state.itemsPerPage
-      backend.get('/ramp-p2p/appeal', { params: params, authorize: true })
+      backend.get('/ramp-p2p/appeal/', { params: params, authorize: true })
         .then(response => {
           switch (appealState) {
             case 'PENDING':

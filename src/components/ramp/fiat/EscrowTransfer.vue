@@ -332,7 +332,7 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         vm.loading = true
-        backend.post(`/ramp-p2p/order/${vm.order?.id}/escrow/`, null, { authorize: true })
+        backend.post(`/ramp-p2p/order/${vm.order?.id}/pending-escrow/`, null, { authorize: true })
           .then(response => {
             resolve(response.data)
           })

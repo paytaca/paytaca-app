@@ -434,7 +434,7 @@ export default {
     },
     fetchAppeal () {
       const vm = this
-      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
+      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: true })
         .then(response => {
           vm.appeal = response.data?.appeal
         })
