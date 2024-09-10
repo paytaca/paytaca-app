@@ -217,7 +217,7 @@ export default {
       this.$emit('submit-order', payload)
     },
     selectOption (option, index) {
-      this.amount = option
+      this.amount = option.toString()
       this.selectedOption = index
     },
     getButtonColor (index) {
