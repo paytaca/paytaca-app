@@ -474,7 +474,7 @@ export default {
     async deletePaymentMethod (index) {
       const vm = this
       vm.isloaded = false
-      await backend.delete(`/ramp-p2p/payment-method/${index}`, { authorize: true })
+      await backend.delete(`/ramp-p2p/payment-method/${index}/`, { authorize: true })
         .catch(error => {
           console.error(error.response || error)
           if (error.response) {
@@ -530,7 +530,7 @@ export default {
         }
         case 'editPaymentMethod': {
           // editing payment method
-          backend.put(url, body, { authorize: true })
+          backend.patch(url, body, { authorize: true })
             .then(() => {
               vm.dialogType = ''
               vm.openDialog = false
