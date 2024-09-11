@@ -48,8 +48,8 @@
           </div>
           <!-- Currencies -->
           <div v-if="arbiter?.fiat_currencies.length > 0" class="row justify-center q-mt-xs q-mb-sm q-gutter-xs">
-            <q-badge outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
-            <q-badge outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
+            <q-badge :color="darkMode ? 'blue-grey-2' : 'primary'" outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
+            <q-badge :color="darkMode ? 'blue-grey-2' : 'primary'" outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
           </div>
           <div v-else class="row justify-center subtext">
             <span>No currency assigned</span>
