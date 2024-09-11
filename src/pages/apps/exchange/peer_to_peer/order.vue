@@ -955,6 +955,7 @@ export default {
         console.log('WebSocket data:', data)
         if (data?.txdata) {
           this.verifyingTx = false
+          this.sendingBch = false
         }
         this.fetchOrder()
           .then(() => {
