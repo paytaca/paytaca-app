@@ -156,9 +156,8 @@ export default {
     },
     async onUploadAttachment () {
       const formData = new FormData()
-      formData.append('payment_id', this.order?.payment_methods_selected[0]?.order_payment_id)
       formData.append('image', this.attachment)
-      this.$emit('upload', formData)
+      this.$emit('upload', formData, this.order?.payment_methods_selected[0]?.order_payment_id)
     },
     onPaid () {
       this.$emit('confirm-payment')
