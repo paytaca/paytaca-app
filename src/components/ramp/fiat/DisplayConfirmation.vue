@@ -225,7 +225,7 @@ export default {
     async fetchMarketPrice () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/utils/market-price', { params: { currency: vm.adData?.fiatCurrency?.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency: vm.adData?.fiatCurrency?.symbol } })
         vm.marketPrice = parseFloat(response.data.price)
         console.log(response)
       } catch (error) {

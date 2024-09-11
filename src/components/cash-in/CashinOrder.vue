@@ -225,9 +225,9 @@ export default {
           this.newOrder = true
       }
     },
-    async deleteAttachment (attachmentId) {
-      await backend.post(
-        '/ramp-p2p/order/payment/attachment/delete', { attachment_id: attachmentId }, { authorize: true })
+    async deleteAttachment (orderPaymentId) {
+      await backend.delete(
+        `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`, { authorize: true })
         .then(response => {
           this.fetchOrder()
         })
@@ -235,11 +235,11 @@ export default {
           console.error(error.response || error)
         })
     },
-    async uploadAttachment (data) {
+    async uploadAttachment (formdata, orderPaymentId) {
       this.uploading = true
       await backend.post(
-        '/ramp-p2p/order/payment/attachment/upload',
-        data, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
+        `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`,
+        formdata, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
         .then(response => {
           this.fetchOrder()
         })

@@ -360,15 +360,14 @@ export default {
         const index = orderPaymentMethods.map(e => e.payment_method).indexOf(paymentMethod.id)
         console.log(`Uploading ${orderPaymentMethods[index].id}: ${paymentMethod.attachment.name}`)
         const formData = new FormData()
-        formData.append('payment_id', orderPaymentMethods[index].id)
         formData.append('image', paymentMethod.attachment)
-        await this.uploadAttachment(formData)
+        await this.uploadAttachment(formData, orderPaymentMethods[index].id)
       })
     },
-    async uploadAttachment (data) {
+    async uploadAttachment (formdata, orderPaymentId) {
       await backend.post(
-        '/ramp-p2p/order/payment/attachment/upload',
-        data, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
+        `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`,
+        formdata, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
         .then(response => {
           console.log(response.data)
         })
