@@ -219,7 +219,7 @@
 <script>
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { formatCurrency } from 'src/exchange'
@@ -239,7 +239,6 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      wallet: null,
       contractBalance: null,
       order: null,
       txid: null,
@@ -323,7 +322,6 @@ export default {
     getDarkModeClass,
     async loadData () {
       const vm = this
-      vm.wallet = loadRampWallet()
       await vm.fetchOrderDetail()
       vm.appealCountdown()
       vm.isloaded = true
@@ -459,7 +457,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
-      const keypair = await this.wallet.keypair(sellerMember.address_path)
+      const keypair = await wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {

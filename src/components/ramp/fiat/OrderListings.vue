@@ -226,7 +226,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 
 export default {
   setup () {
@@ -236,7 +236,6 @@ export default {
     }
   },
   components: {
-    // FilterDialog,
     FilterComponent
   },
   data () {
@@ -257,7 +256,6 @@ export default {
       fiatCurrencies: [],
       notifType: null,
       loadingMoreData: false,
-      wallet: null,
       displayEmptyList: false
     }
   },
@@ -310,7 +308,6 @@ export default {
     }
   },
   async mounted () {
-    this.wallet = loadRampWallet()
     this.updateFilters()
     this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
@@ -467,7 +464,7 @@ export default {
     async fetchCashinOrders (overwrite = false) {
       const vm = this
       const params = {
-        wallet_hash: this.wallet.walletHash,
+        wallet_hash: wallet.walletHash,
         owned: false
       }
       await vm.$store.dispatch('ramp/fetchCashinOrders', { params: params, overwrite: overwrite })

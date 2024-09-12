@@ -129,7 +129,7 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -139,7 +139,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wallet: null,
       loading: false,
       order: null,
       adData: null,
@@ -210,7 +209,6 @@ export default {
     vm.loading = true
     vm.loadData()
     vm.loadContract()
-    vm.wallet = loadRampWallet()
   },
   methods: {
     getDarkModeClass,
@@ -279,15 +277,11 @@ export default {
       console.log('Contract address matched. Sending BCH...')
       vm.sendingBch = true
       try {
-        if (vm.order?.status?.value === 'CNF') {
-          await vm.escrowPendingOrder()
-        }
-        const wallet = await vm.wallet.raw()
         const utxos = await vm.escrowContract.getUtxos()
         if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
-          const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
+          const result = await (await wallet.raw()).sendBch(vm.transferAmount, vm.contractAddress)
           console.log('sendBch:', result)
           if (result?.success) {
             vm.txid = result.txid
@@ -301,6 +295,9 @@ export default {
             vm.$store.commit('ramp/saveTxid', txidData)
             vm.escrowBalance = await vm.escrowContract.getBalance()
             vm.$emit('success', vm.txid)
+            if (vm.order?.status?.value === 'CNF') {
+              await vm.escrowPendingOrder()
+            }
           } else {
             vm.sendErrors = []
             if (result) {
