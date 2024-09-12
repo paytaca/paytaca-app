@@ -361,6 +361,9 @@ const phrases = {
       ResolvingRoute: "Resolving route",
       AddPaymentMethod: "Add Payment Method",
       EditPaymentMethod: "Edit Payment Method",
+      MintingDeviceMintingNft: 'Minting verification minting NFT to device vault',
+      MerchantVerificationMintingFeeMsg: 'Need at least 0.00003 BCH for minting merchant verification token minter',
+      DeviceVerificationMintingFeeMsg: 'Need at least 0.00002 BCH for minting device verification token minter',
     },
     {
       ReferenceId: "Reference ID",

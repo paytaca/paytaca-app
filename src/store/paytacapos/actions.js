@@ -1,6 +1,10 @@
 import { backend as posBackend } from "src/wallet/pos"
-import { loadWallet } from "src/wallet"
+import { loadWallet } from 'src/wallet'
 import { bus } from "src/wallet/event-bus"
+
+import { VerificationTokenMinter } from "src/vouchers/verification_token_minter"
+import { ElectrumNetworkProvider } from "cashscript";
+
 import axios from 'axios'
 
 /* -------------------------Merchants----------------------------- */
@@ -33,6 +37,35 @@ export function fetchMerchants(context, data) {
 
 
 /**
+ * 
+ * @param {Object} context 
+ * @param {Number} id 
+ */
+export async function getMerchant (context, id) {
+  const url = `paytacapos/merchants/${id}/`
+  return posBackend.get(url)
+    .then(response => Promise.resolve(response))
+    .catch(err => Promise.reject(err))
+}
+
+
+/**
+ * 
+ * @param {Object} context 
+ * @param {Object} data 
+ * @param {Number} data.merchant = id
+ * @param {String} data.address
+ * @param {String} data.token_address
+ * @param {String} data.category
+ */
+export async function createVerificationTokenMinter (context, data) {
+  return posBackend.post('vouchers/verification-token-minter', data)
+    .then(response => Promise.resolve(response))
+    .catch(error => Promise.reject(error))
+}
+
+
+/**
  * @param {Object} context 
  * @param {Object} data
  * @param {String} data.data
@@ -58,19 +91,10 @@ export async function updateMerchantInfo(context, data) {
     ...data,
   }
 
-  const currentWalletIndex = context.rootGetters['global/getWalletIndex']
-  if (!data?.id) {
-    const response = await posBackend.post('paytacapos/merchants/latest_index/', { wallet_hash: payload.wallet_hash })
-    const receiving_index = response.data.index + 1
-    const wallet = await loadWallet('BCH', currentWalletIndex)
-    const receivingPubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true, receiving_index)
-    const receiving_pubkey = receivingPubkeys.receiving
-    
-    Object.assign(payload, {
-      receiving_pubkey,
-      receiving_index,
-    })
-  }
+  const wallet = await loadWallet('BCH')
+  const receivingPubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true)
+  const pubkey = receivingPubkeys.receiving
+  Object.assign(payload, { pubkey })
 
   const promise = data?.id
     ? posBackend.patch(`paytacapos/merchants/${data?.id}/`, payload, { authorize: true })
@@ -291,4 +315,59 @@ export function generateLinkCode(context, data) {
       if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
       return Promise.reject(error)
     })
+}
+
+
+async function getZerothAddressAndWif () {
+  const wallet = await loadWallet('BCH')
+  const address = await wallet.BCH.getAddressSetAt(0)
+  const wif = await wallet.BCH.getPrivateKey(undefined, undefined, true)
+  return {
+    address: address.receiving,
+    wif: wif.receiving,
+  }
+}
+
+/**
+ * 
+ * @param {Object} context 
+ * @param {Number} merchantId
+ */
+export async function mintVerificationMintingNft (context, merchantId) {
+  const network = context.rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'
+  const provider = new ElectrumNetworkProvider(network)
+  const funder = await getZerothAddressAndWif()
+
+  const utxos = await provider.getUtxos(funder.address)
+  let mintingUtxo = utxos.find(utxo => !utxo?.token && utxo.vout === 0)
+  let category = mintingUtxo?.txid
+
+  if (mintingUtxo === undefined) {
+    const wallet = await loadWallet('BCH')
+    let result = undefined
+    while (!result?.success) {
+      result = await wallet.sendBch(0.00001, funder.address)
+    }
+    mintingUtxo = utxos.find(utxo => !utxo?.token && utxo.vout === 0)
+  }
+ 
+  const opts = {
+    params: { merchant: { category: mintingUtxo.txid } },
+    options: {
+      network,
+    }
+  }
+  const minter = new VerificationTokenMinter(opts)
+  const contract = minter.getContract()
+
+  // TODO: mint genesis minting NFT here
+
+  // create minter model on watchtower
+  const payload = {
+    merchant: merchantId,
+    address: contract.address,
+    token_address: contract.tokenAddress,
+    category,
+  }
+  context.dispatch('createVerificationTokenMinter', payload)
 }

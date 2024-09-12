@@ -746,7 +746,6 @@ function addNewPosDevice() {
 }
 
 function updatePosDevice(posDevice) {
-  console.log({ props })
   const dialog = $q.dialog({
     component: PosDeviceFormDialog,
     componentProps: {

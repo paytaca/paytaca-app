@@ -5,6 +5,7 @@ export default function () {
         id: 0,
         walletHash: '',
         name: '',
+        verificationTokenCategory: '',
         primaryContactNumber: '',
         branchCount: 0,
         posDeviceCount: 0,
