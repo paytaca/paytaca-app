@@ -8,7 +8,7 @@ import AppealFooterMenu from 'src/components/ramp/appeal/AppealFooterMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getBackendWsUrl } from 'src/exchange/backend'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
 // import {isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -78,6 +78,7 @@ export default {
     bus.on('show-footer-menu', this.onShowFooterMenu)
   },
   mounted () {
+    loadRampWallet()
     this.isLoading = false
     // this.loadRouting()
     this.setupWebsocket(40, 1000)
@@ -121,7 +122,7 @@ export default {
       this.$store.commit('ramp/updatePendingAppeals', { overwrite: true, data: { appeals: ongoingAppeals } })
     },
     setupWebsocket (retries, delayDuration) {
-      const wsUrl = `${getBackendWsUrl()}general/${loadRampWallet().walletHash}/`
+      const wsUrl = `${getBackendWsUrl()}general/${wallet.walletHash}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
         console.log('WebSocket connection established to ' + wsUrl)

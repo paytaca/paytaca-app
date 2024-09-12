@@ -372,6 +372,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     async refreshPage (done) {
+      if (this.sendingBch || this.verifyingTx) {
+        if (done) done()
+        return
+      }
       await this.loadData()
       this.reloadChildComponents()
       if (done) done()

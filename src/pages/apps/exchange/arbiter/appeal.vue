@@ -56,7 +56,7 @@
             </q-card>
           </div>
           <AppealDetail
-            v-if="state === 'form' || state === 'form-sending' || state === 'completed'"
+            v-if="state === 'form' || state === 'completed'"
             ref="appealDetail"
             :key="appealDetailKey"
             :data="appealDetailData"
@@ -65,7 +65,7 @@
             @back="$emit('back')"
             @refresh="refreshData"
             @update-page-name="(val) => {$emit('updatePageName', val)}"
-            @update-state="updateState"
+            @sending-bch="onSendingBch"
           />
           <AppealTransfer
             v-if="state === 'tx-confirmation'"
@@ -76,6 +76,7 @@
             :action="selectedAction"
             @back="$emit('back')"
             @update-page-name="(val) => {$emit('updatePageName', val)}"
+            @verifying-tx="onVerifyingTx"
           />
 
           <div v-if="completedOrder" class="text-center q-pb-sm">
@@ -86,9 +87,11 @@
     <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" :clickable-ads="false" @back="showPeerProfile=false"/>
     <ChatDialog v-if="openChat" :order="appealDetailData?.order" @close="openChat=false"/>
+    <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
   </div>
 </template>
 <script>
+import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractProgressDialog.vue'
 import RampContract from 'src/exchange/contract'
 import AppealDetail from 'src/components/ramp/appeal/AppealDetail.vue'
 import AppealTransfer from 'src/components/ramp/appeal/AppealTransfer.vue'
@@ -119,7 +122,8 @@ export default {
     UserProfileDialog,
     AdSnapshotDialog,
     ChatDialog,
-    HeaderNav
+    HeaderNav,
+    ContractProgressDialog
   },
   data () {
     return {
@@ -152,14 +156,30 @@ export default {
       showAdSnapshot: false,
       showPeerProfile: false,
       peerInfo: {},
-      previousRoute: null
+      previousRoute: null,
+      sendingBch: false,
+      verifyingTx: false
     }
   },
   emits: ['back', 'updatePageName'],
   computed: {
+    showContractProgDialog () {
+      return this.sendingBch || this.verifyingTx
+    },
+    contractProgMsg () {
+      if (this.sendingBch) {
+        return this.$t('SendingBchPleaseWait')
+      }
+      if (this.verifyingTx) {
+        return this.$t('VerifyingPleaseWait')
+      }
+      return ''
+    },
     scrollHeight () {
       let height = this.$q.platform.is.ios ? this.$q.screen.height - 150 : this.$q.screen.height - 140
-      if (this.state === 'form') {
+      if (this.sendingBch || this.verifyingTx) {
+        height = height - 70
+      } else if (this.state === 'form') {
         height = height - 115
       }
       return height
@@ -181,19 +201,27 @@ export default {
     this.updateOrderReadAt()
     this.setupWebsocket()
     this.isloaded = true
-    if (this.notifType === 'new_message') { this.openChat = true}
+    if (this.notifType === 'new_message') { this.openChat = true }
   },
   beforeUnmount () {
     this.closeWSConnection()
   },
   methods: {
     getDarkModeClass,
-    updateState (state) {
-      this.state = state
+    onSendingBch (sending) {
+      this.sendingBch = sending
+    },
+    onVerifyingTx (verifying) {
+      this.verifyingTx = verifying
     },
     async refreshData (done) {
+      console.log('refreshData')
+      if (this.sendingBch || this.verifyingTx) {
+        if (done) done()
+        return
+      }
       await this.loadData()
-      done()
+      if (done) done()
     },
     openFeedback () {
       this.$q.dialog({

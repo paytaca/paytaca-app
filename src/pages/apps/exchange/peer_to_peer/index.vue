@@ -15,7 +15,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { mainWebSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
@@ -169,7 +169,7 @@ export default {
       }
     },
     setupWebsocket () {
-      const wsUrl = `${getBackendWsUrl()}general/${loadRampWallet().walletHash}/`
+      const wsUrl = `${getBackendWsUrl()}general/${wallet.walletHash}/`
       mainWebSocketManager.setWebSocketUrl(wsUrl)
       mainWebSocketManager.subscribeToMessages((message) => {
         bus.emit('update-unread-count', message?.extra?.unread_count)

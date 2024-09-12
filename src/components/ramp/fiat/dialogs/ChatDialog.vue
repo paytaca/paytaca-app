@@ -265,7 +265,7 @@
 </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import {
@@ -277,7 +277,6 @@ import {
   sendChatMessage,
   fetchChatMessages,
   generateChatRef,
-  updateChatIdentity,
   updateLastRead,
   generateChatIdentityRef
 } from 'src/exchange/chat'
@@ -457,8 +456,6 @@ export default {
   },
   computed: {
     userName () {
-      // const vm = this
-      // return vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
       return this.chatIdentity?.name
     },
     theme () {
@@ -504,7 +501,6 @@ export default {
           resolve(decMes)
         })
           .then(item => {
-            // const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
             this.addingNewMessage = false
             const ref = this.chatIdentity?.ref
             item.chatIdentity.is_user = item.chatIdentity.ref === ref
@@ -534,7 +530,7 @@ export default {
     },
     async loadChatSession () {
       const vm = this
-      const chatIdentityRef = generateChatIdentityRef(loadRampWallet().walletHash)
+      const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
       vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
       let createSession = false
       await fetchChatSession(vm.chatRef)
@@ -721,7 +717,6 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          // const ref = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
           const ref = vm.chatIdentity?.ref
           const temp = decryptedMessages
           temp.map(item => {

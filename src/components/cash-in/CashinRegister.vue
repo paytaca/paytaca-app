@@ -27,7 +27,7 @@
 <script>
 import { backend } from 'src/exchange/backend'
 import { deleteAuthToken } from 'src/exchange/auth'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 
 export default {
   data () {
@@ -46,7 +46,6 @@ export default {
   methods: {
     async registerUser () {
       const vm = this
-      const wallet = loadRampWallet()
       const timestamp = Date.now()
       vm.errorMessage = null
       vm.loggingIn = true

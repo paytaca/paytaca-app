@@ -1,5 +1,5 @@
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from 'src/marketplace/chat/encryption'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { updateSignerData, signRequestData } from 'src/exchange/chat/backend'
 import { getKeypair, getDeviceId } from 'src/exchange/chat/keys'
 import * as chatUtils from 'src/exchange/chat'
@@ -202,6 +202,7 @@ export class ChatIdentityManager {
   }
 
   async _buildPayload (data) {
+    if (!wallet) loadRampWallet()
     let encryptingPubkey = (await getKeypair()).pubkey
     // Handle null encrypting pubkey
     if (!encryptingPubkey) {
@@ -209,7 +210,6 @@ export class ChatIdentityManager {
       encryptingPubkey = (await chatUtils.updateOrCreateKeypair(false)).pubkey
     }
     const deviceId = await getDeviceId()
-    const wallet = loadRampWallet()
     const verifyingPubkey = await wallet.pubkey('0/0')
     const hexRef = Buffer.from(String(data.ref)).toString('hex')
     const signatureData = await signRequestData(hexRef)

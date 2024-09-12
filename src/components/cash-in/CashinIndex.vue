@@ -87,7 +87,7 @@ import { backend, updatePubkeyAndAddress } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -142,15 +142,15 @@ export default {
     bus.on('session-expired', this.handleSessionEvent)
   },
   mounted () {
+    loadRampWallet()
     this.loaddata()
   },
   methods: {
     getDarkModeClass,
     async loaddata () {
       this.loading = true
-      this.wallet = loadRampWallet()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
-      this.cashinAdsParams.wallet_hash = this.wallet.walletHash
+      this.cashinAdsParams.wallet_hash = wallet.walletHash
       await this.fetchCashinAds()
       this.step++
       this.loading = false

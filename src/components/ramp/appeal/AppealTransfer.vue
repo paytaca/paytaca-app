@@ -59,8 +59,8 @@
           class="col q-mx-lg q-mb-md q-my-sm button"
           @click="submitAction">
         </q-btn>
-        <div v-if="hideBtn && !errorMessage">
-          <span v-if="state === 'verifying'">
+        <!-- <div v-if="hideBtn && !errorMessage"> -->
+          <!-- <span v-if="verifyingTx">
             <q-spinner class="q-mr-sm"/>
             <span v-if="waitSeconds">
               {{
@@ -72,8 +72,8 @@
               }}
             </span>
             <span v-else>{{ $t('VerifyingPleaseWait2') }}</span>
-          </span>
-        </div>
+          </span> -->
+        <!-- </div> -->
       </div>
     </div>
   </div>
@@ -103,10 +103,11 @@ export default {
       btnLabel: '',
       txidLoaded: false,
       balanceLoaded: false,
-      disableTxidInput: true
+      disableTxidInput: true,
+      verifyingTx: false
     }
   },
-  emits: ['back', 'updatePageName'],
+  emits: ['back', 'updatePageName', 'verifying-tx'],
   props: {
     escrowContract: Object,
     orderId: Number,
@@ -119,6 +120,9 @@ export default {
     },
     balanceLoaded () {
       this.checkTransferStatus()
+    },
+    verifyingTx (value) {
+      this.$emit('verifying-tx', value)
     }
   },
   async mounted () {
@@ -180,29 +184,25 @@ export default {
       const vm = this
       let url = `/ramp-p2p/order/${vm.orderId}/`
       url = vm.action === 'RELEASE' ? `${url}verify-release/` : `${url}verify-refund/`
-      vm.state = 'verifying'
-      const body = {
-        txid: this.transactionId
-      }
-      setTimeout(function () {
-        backend.post(url, body, { authorize: true })
-          .then(response => {
-            console.log(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-              vm.errorMessage = error.response?.data?.error
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+      vm.verifyingTx = true
+      // setTimeout(() => {vm.verifyingTx = false}, 5000)
+      const body = { txid: this.transactionId }
+      await backend.post(url, body, { authorize: true })
+        .then(response => { console.log(response.data) })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            vm.hideBtn = false
-          })
-      }, 5000)
+            vm.errorMessage = error.response?.data?.error
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+          vm.hideBtn = false
+        })
+        .finally(() => { vm.verifyingTx = false })
     },
     submitAction () {
       const vm = this
