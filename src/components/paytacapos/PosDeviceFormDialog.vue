@@ -154,9 +154,8 @@ const defaultBranch = computed(() => {
 
 async function getFirstPosPubkeys (posid) {
   const wallet = await loadWallet('BCH')
-  const posFirstIndex = '1' + padPosId(posid)
-  const pubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true, Number(posFirstIndex))
-  return pubkeys
+  const posFirstIndex = Number('1' + padPosId(posid))
+  return await wallet.BCH.getPublicKey(undefined, undefined, true, posFirstIndex)
 }
 
 async function getZerothAddressAndWif () {
@@ -170,7 +169,7 @@ async function getZerothAddressAndWif () {
 }
 
 // device vault token address
-async function mintMintingNftToDeviceVault (tokenAddress) {  
+async function mintMintingNftToDeviceVault (tokenAddress, category) {  
   const { address, wif } = await getZerothAddressAndWif()
   const opts = {
     params: {
@@ -188,7 +187,7 @@ async function mintMintingNftToDeviceVault (tokenAddress) {
   }
   
   const minter = new VerificationTokenMinter(opts)
-  await minter.mintMintingNft(tokenAddress)
+  const result = await minter.mintMintingNft(tokenAddress)
   loading.value = false
 }
 
@@ -208,32 +207,38 @@ async function checkBalance () {
 }
 
 async function savePosDevice() {
-  const posid = props.posDevice?.posid
+  let posid = props.posDevice?.posid
   const data = Object.assign({
     wallet_hash: props.posDevice?.walletHash || walletData?.value?.walletHash,
     branch_id: posDeviceForm.value.branchId,
     merchant_id: props.posDevice?.merchantId || props.merchantId,
   }, posDeviceForm.value)
+  let hasVault = false
+  loading.value = true
 
   if (!props.newDevice) {
     data.posid = posid
     
     const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
     const response = await posBackend.get(url)
-    if (response.data.length === 0) {
+    if (response.data.results.length === 0) {
       const enough = await checkBalance()
-      if (!enough) return
+      if (!enough) {
+        loading.value = false
+        return
+      }
+    } else {
+      hasVault = response.data.results.length > 0
     }
   } else {
     data.posid = -1
     const payload = { wallet_hash: data.wallet_hash }
     const response = await posBackend.post('/paytacapos/devices/latest_posid/', payload)
-    posid = response.posid
+    posid = response.data.posid
   }
 
   const receivingPubkey = await getFirstPosPubkeys(posid)
   data.pubkey = receivingPubkey.receiving
-  loading.value = true
 
   const apiRequest = posBackend.post(`/paytacapos/devices/`, data, { authorize: true })
     .catch(error => {
@@ -244,9 +249,12 @@ async function savePosDevice() {
       loading.value = false
       const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
       posBackend.get(url).then(response => {
-        if (response.data.length > 0) {
-          const deviceVault = response.data[0]
-          mintMintingNftToDeviceVault(deviceVault.token_address)
+        if (response?.data?.results?.length > 0 && !hasVault) {
+          const deviceVault = response?.data?.results[0]
+          mintMintingNftToDeviceVault(
+            deviceVault.token_address,
+            deviceVault.category
+          )
         }
       })
     })

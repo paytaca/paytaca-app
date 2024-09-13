@@ -3,6 +3,7 @@ import { loadWallet } from 'src/wallet'
 import { bus } from "src/wallet/event-bus"
 import { VerificationTokenMinter } from "src/vouchers/verification_token_minter"
 import { NFTCapability, TokenSendRequest, Wallet } from 'mainnet-js'
+import { ElectrumNetworkProvider } from "cashscript"
 
 
 /* -------------------------Merchants----------------------------- */
@@ -311,6 +312,7 @@ export async function mintGenesisVerificationMintingNft (context) {
   const derivationPath = funder.derivationPath + '/0/0'
   const wallet = await Wallet.fromSeed(funder.mnemonic, derivationPath)
   const network = context.rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'
+  const provider = new ElectrumNetworkProvider(network)
 
   const data = {
     cashaddr: wallet.address,
@@ -321,18 +323,18 @@ export async function mintGenesisVerificationMintingNft (context) {
   }
   let genesis = undefined
   try {
-    console.log('creating token genesis')
     genesis = await wallet.tokenGenesis(data)
   } catch (err) {
-    console.log('sending BCH to produce vout=0')
     const __wallet = await loadWallet('BCH')
-    await __wallet.BCH.sendBch(0.00001, wallet.address)
-    console.log('sending BCH to produce vout=0 DONE')
-    setTimeout(() => console.log('delay for settling UTXO'), 2000)
-    console.log('creating token genesis again')
+    const sendResponse = await __wallet.BCH.sendBch(0.00001, wallet.address)
+    let utxos = await provider.getUtxos(wallet.address)
+    let voutZeroUtxos = utxos.filter(utxo => !utxo?.token && utxo.vout === 0 && utxo.satoshis === 1000n)
+    while (voutZeroUtxos.length === 0) {
+      utxos = await provider.getUtxos(wallet.address)
+      voutZeroUtxos = utxos.filter(utxo => !utxo?.token && utxo.vout === 0 && utxo.satoshis === 1000n)
+    }
     genesis = await wallet.tokenGenesis(data)
   }
-  console.log('done: ', genesis)
   const category = genesis?.tokenIds[0]
   const opts = {
     params: { merchant: { category } },

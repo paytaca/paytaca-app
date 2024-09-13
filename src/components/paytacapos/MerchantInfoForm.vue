@@ -154,6 +154,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
+import { loadWallet } from 'src/wallet';
 
 const $emit = defineEmits(['cancel', 'saved'])
 const props = defineProps({
@@ -274,22 +275,24 @@ async function updateMerchantInfo() {
   let hasMinter = false
   
   if (data?.id) {
-    const merchant = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
-    if (merchant?.minter) {
+    const response = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
+    if (response?.data?.minter) {
+      hasMinter = true
+    } else {
       const enough = await checkBalance() 
       if (!enough) return
     }
   }
 
   let minterDetails = $store.getters['paytacapos/verificationTokenMinter']
-  console.log('minter details from store: ', minterDetails)
   if (!minterDetails && !hasMinter) {
     minterDetails = await $store.dispatch('paytacapos/mintGenesisVerificationMintingNft')
-    console.log('minter details from genesis: ', minterDetails)
   }
 
-  data.minter_category = minterDetails.category
-  data.minter_address = minterDetails.address
+  if (minterDetails?.category && minterDetails?.address) {
+    data.minter_category = minterDetails.category
+    data.minter_address = minterDetails.address
+  }
 
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {

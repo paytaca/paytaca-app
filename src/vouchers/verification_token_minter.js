@@ -119,8 +119,9 @@ export class VerificationTokenMinter {
 
     funderUtxo.wif = this.funder?.wif
     const funderChange = funderUtxo.satoshis - this.neededFromFunder
+
     
-    let transaction = contract.functions
+    let transaction = this.contract.functions
       .mintVerificationMintingNft()
       .from([ mintingBatonUtxo ])
       .fromP2PKH(funderUtxo, this.funderSignature)
@@ -128,9 +129,9 @@ export class VerificationTokenMinter {
       .to(recipient, this.dust, mintingBatonUtxo?.token)
   
     if (funderChange >= this.dust) transaction = transaction.to(this.funder?.address, funderChange)
-  
-    transaction = await transaction.withHardcodedFee(this.dust).send()
 
+    transaction = await transaction.withHardcodedFee(this.dust).send()
+      
     return {
       success: true,
       txid: transaction.txid,
