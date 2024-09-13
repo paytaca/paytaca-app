@@ -9,21 +9,17 @@ import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getBackendWsUrl } from 'src/exchange/backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
-// import {isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { WebSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   components: {
-    // Appeals,
-    // AppealDetail,
-    // AppealProfile,
     AppealFooterMenu,
     RampLogin
-    // HeaderNav
   },
   data () {
     return {
       state: 'list',
-      websocket: null,
+      websocketManager: null,
       showFooterMenu: true,
       footerData: {
         unreadOrdersCount: 0
@@ -37,8 +33,6 @@ export default {
     }
   },
   beforeRouteEnter (to, from, next) {
-    console.log('to.name:', to.name)
-    console.log('from.name:', from.name)
     next(vm => {
       vm.previousRoute = from.path
       if (from.name === 'exchange') {
@@ -47,8 +41,6 @@ export default {
     })
   },
   beforeRouteLeave (to, from, next) {
-    console.log('to.name__:', to.name)
-    console.log('from.name__:', from.name)
     switch (from.name) {
       case 'appeal-detail':
         if (to.name === 'exchange-arbiter') {
@@ -80,13 +72,10 @@ export default {
   mounted () {
     loadRampWallet()
     this.isLoading = false
-    // this.loadRouting()
-    this.setupWebsocket(40, 1000)
+    this.setupWebSocket()
   },
   methods: {
-    // isNotDefaultTheme,
     loadRouting () {
-      console.log('route???:', this.$route)
       this.$router.push({ name: 'arbiter-appeals' })
     },
     onShowFooterMenu (show) {
@@ -101,7 +90,6 @@ export default {
       this.appealProfileKey++
     },
     async switchMenu (tab) {
-      console.log('tab:', tab)
       const routeName = tab === 'profile' ? 'arbiter-profile' : 'arbiter-appeals'
       await this.$router.push({ name: routeName })
       this.state = tab
@@ -118,39 +106,21 @@ export default {
     handleNewAppeal (data) {
       const ongoingAppeals = [...this.$store.getters['ramp/pendingAppeals']]
       if (ongoingAppeals.length >= 20) return
-      ongoingAppeals.push(data.extra.appeal)
-      this.$store.commit('ramp/updatePendingAppeals', { overwrite: true, data: { appeals: ongoingAppeals } })
-    },
-    setupWebsocket (retries, delayDuration) {
-      const wsUrl = `${getBackendWsUrl()}general/${wallet.walletHash}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
+      if (!ongoingAppeals.map(e => { return e.id }).includes(data.extra.appeal.id)) {
+        ongoingAppeals.push(data.extra.appeal)
+        this.$store.commit('ramp/updatePendingAppeals', { overwrite: true, data: { appeals: ongoingAppeals } })
       }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        this.updateUnreadCount(data.extra.unread_count)
-        if (data.type === 'NEW_APPEAL') {
-          this.handleNewAppeal(data)
+    },
+    setupWebSocket () {
+      const url = `${getBackendWsUrl()}general/${wallet.walletHash}/`
+      this.websocketManager = new WebSocketManager()
+      this.websocketManager.setWebSocketUrl(url)
+      this.websocketManager.subscribeToMessages((message) => {
+        this.updateUnreadCount(message.extra.unread_count)
+        if (message.type === 'NEW_APPEAL') {
+          this.handleNewAppeal(message)
         }
-      }
-      this.websocket.onclose = () => {
-        console.log('General WebSocket connection closed.')
-        if (this.reconnectWebsocket && retries > 0) {
-          console.log(`General Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
-        }
-      }
-    },
-    closeWSConnection () {
-      this.reconnectWebsocket = false
-      if (this.websocket) {
-        this.websocket.close()
-      }
-    },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
+      })
     }
   }
 }

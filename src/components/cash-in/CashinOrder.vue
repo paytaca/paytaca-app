@@ -133,6 +133,9 @@ export default {
     getDarkModeClass,
     async loadData () {
       await this.fetchOrder()
+      this.setupWebSocket()
+    },
+    setupWebSocket () {
       const url = `${getBackendWsUrl()}order/${this.orderId}/`
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)
