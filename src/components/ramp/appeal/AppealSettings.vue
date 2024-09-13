@@ -26,6 +26,7 @@
           </div>
           <div class="row">
             <q-select
+              color="primary"
               class="col"
               outlined
               v-model="selectedInactiveTime"
@@ -36,6 +37,11 @@
               :hint="inactiveHint"
               :hide-hint="!isActive"
               @update:model-value="onSetInactive">
+              <template v-slot:option="scope">
+                <q-item :class="darkMode ?  'text-white' : 'text-black'">
+                  {{ scope.opt.label }}
+                </q-item>
+              </template>
             </q-select>
           </div>
           <div v-if="!isActive" class="row justify-end q-mt-xs">
