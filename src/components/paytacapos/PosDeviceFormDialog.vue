@@ -169,25 +169,8 @@ async function getZerothAddressAndWif () {
   }
 }
 
-async function hasEnoughBalance () {
-  const wallet = await loadWallet('BCH')
-  const response = await wallet.BCH.getBalance()
-  const enough = response.balance >= 0.00002
-
-  if (!enough) {
-    $q.notify({
-      icon: 'warning',
-      color: 'warning',
-      message: $t('DeviceVerificationMintingFeeMsg'),
-    })
-  }
-  return enough
-}
-
 // device vault token address
-async function mintMintingNftToDeviceVault (tokenAddress) {
-  newDeviceLoadingMsg.value = $t('MintingDeviceMintingNft', {}, 'Minting verification minting NFT to device vault')
-  
+async function mintMintingNftToDeviceVault (tokenAddress) {  
   const { address, wif } = await getZerothAddressAndWif()
   const opts = {
     params: {
@@ -209,6 +192,21 @@ async function mintMintingNftToDeviceVault (tokenAddress) {
   loading.value = false
 }
 
+async function checkBalance () {
+  const wallet = await loadWallet('BCH')
+  const response = await wallet.BCH.getBalance()
+  const enough = response.balance >= 0.00003
+  if (!enough) {
+    $q.notify({
+      color: 'brandblue',
+      message: $t('DeviceVerificationMintingFeeMsg'),
+      icon: 'mdi-information',
+      timeout: 3000
+    })
+  }
+  return enough
+}
+
 async function savePosDevice() {
   const posid = props.posDevice?.posid
   const data = Object.assign({
@@ -219,18 +217,14 @@ async function savePosDevice() {
 
   if (!props.newDevice) {
     data.posid = posid
-
+    
     const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
     const response = await posBackend.get(url)
-    if (response.data.length !== 0) {
-      const enoughBal = await hasEnoughBalance()
-      if (!enoughBal) return
+    if (response.data.length === 0) {
+      const enough = await checkBalance()
+      if (!enough) return
     }
-  }
-  else {
-    const enoughBal = await hasEnoughBalance()
-    if (!enoughBal) return
-
+  } else {
     data.posid = -1
     const payload = { wallet_hash: data.wallet_hash }
     const response = await posBackend.post('/paytacapos/devices/latest_posid/', payload)
@@ -248,11 +242,13 @@ async function savePosDevice() {
     })
     .finally(() => {
       loading.value = false
-      // const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
-      // posBackend.get(url).then(response => {
-      //   const deviceVault = response.data[0]
-      //   mintMintingNftToDeviceVault(deviceVault.token_address)
-      // })
+      const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
+      posBackend.get(url).then(response => {
+        if (response.data.length > 0) {
+          const deviceVault = response.data[0]
+          mintMintingNftToDeviceVault(deviceVault.token_address)
+        }
+      })
     })
 
   onDialogOK(apiRequest)

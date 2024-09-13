@@ -37,10 +37,11 @@ export function fetchMerchants(context, data) {
 /**
  * 
  * @param {Object} context 
- * @param {Number} id 
+ * @param {Object} [data]
+ * @param {String} data.id
  */
-export async function getMerchant (context, id) {
-  const url = `paytacapos/merchants/${id}/`
+export async function getMerchant (context, data) {
+  const url = `paytacapos/merchants/${data.id}/`
   return posBackend.get(url)
     .then(response => Promise.resolve(response))
     .catch(err => Promise.reject(err))
@@ -305,10 +306,12 @@ async function getZerothAddressAndWif () {
  * 
  * @param {Object} context 
  */
-export async function mintVerificationMintingNft (context) {
+export async function mintGenesisVerificationMintingNft (context) {
   const funder = await getZerothAddressAndWif()
   const derivationPath = funder.derivationPath + '/0/0'
   const wallet = await Wallet.fromSeed(funder.mnemonic, derivationPath)
+  const network = context.rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'
+
   const data = {
     cashaddr: wallet.address,
     amount: 0n,
@@ -317,14 +320,19 @@ export async function mintVerificationMintingNft (context) {
     value: 1000
   }
   let genesis = undefined
-  while (!genesis?.tokenIds) {
-    try {
-      genesis = await wallet.tokenGenesis(data)
-    } catch (err) {
-      const wallet = await loadWallet('BCH')
-      await wallet.sendBch(0.00001, wallet.address)
-    }
+  try {
+    console.log('creating token genesis')
+    genesis = await wallet.tokenGenesis(data)
+  } catch (err) {
+    console.log('sending BCH to produce vout=0')
+    const __wallet = await loadWallet('BCH')
+    await __wallet.BCH.sendBch(0.00001, wallet.address)
+    console.log('sending BCH to produce vout=0 DONE')
+    setTimeout(() => console.log('delay for settling UTXO'), 2000)
+    console.log('creating token genesis again')
+    genesis = await wallet.tokenGenesis(data)
   }
+  console.log('done: ', genesis)
   const category = genesis?.tokenIds[0]
   const opts = {
     params: { merchant: { category } },

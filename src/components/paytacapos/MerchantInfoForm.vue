@@ -145,13 +145,13 @@
     </div>
   </q-form>
 </template>
+
 <script setup>
 import countriesJson from 'src/assets/countries.json'
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
-import { loadWallet } from 'src/wallet'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
 
@@ -252,16 +252,16 @@ function selectCoordinates() {
     })
 }
 
-async function hasEnoughBalance () {
+async function checkBalance () {
   const wallet = await loadWallet('BCH')
   const response = await wallet.BCH.getBalance()
   const enough = response.balance >= 0.00003
-
   if (!enough) {
     $q.notify({
-      icon: 'warning',
-      color: 'warning',
+      color: 'brandblue',
       message: $t('MerchantVerificationMintingFeeMsg'),
+      icon: 'mdi-information',
+      timeout: 3000
     })
   }
   return enough
@@ -271,21 +271,21 @@ async function updateMerchantInfo() {
   loading.value = true
   
   const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
-  const minterDetails = $store.getters['paytacapos/verificationTokenMinter']
+  let hasMinter = false
   
-  if (!minterDetails) {
-      if (data?.id) {
-        const merchant = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
-      if (!merchant?.minter) {
-        const enoughBal = await hasEnoughBalance()
-        if (!enoughBal) return
-      }
-    } else {
-      const enoughBal = await hasEnoughBalance()
-      if (!enoughBal) return
+  if (data?.id) {
+    const merchant = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
+    if (merchant?.minter) {
+      const enough = await checkBalance() 
+      if (!enough) return
     }
+  }
 
-    minterDetails = await $store.dispatch('paytacapos/mintVerificationMintingNft')
+  let minterDetails = $store.getters['paytacapos/verificationTokenMinter']
+  console.log('minter details from store: ', minterDetails)
+  if (!minterDetails && !hasMinter) {
+    minterDetails = await $store.dispatch('paytacapos/mintGenesisVerificationMintingNft')
+    console.log('minter details from genesis: ', minterDetails)
   }
 
   data.minter_category = minterDetails.category

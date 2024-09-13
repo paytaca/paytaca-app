@@ -1,6 +1,6 @@
 import BCHJS from "@psf/bch-js"
 import { reverseHex } from "src/marketplace/escrow/utils";
-import { compileFile } from "cashc";
+import { compileString } from "cashc";
 import {
   Contract,
   ElectrumNetworkProvider,
@@ -8,6 +8,33 @@ import {
 } from "cashscript";
 
 const bchjs = new BCHJS()
+const VERIFICATION_MINTER_CONTRACT = `pragma cashscript ^0.8.0;
+
+contract VerificationTokenMinter (bytes32 verificationTokenCategory) {
+
+    function mintVerificationMintingNft () {
+        // >= 3 outputs: minting NFT (baton), UTXO for minting/fee
+        // >= 3 outputs: minting NFT (baton), minted verification minting NFT, and fee funder change
+        require(tx.inputs.length >= 2);
+        require(tx.outputs.length >= 3);
+
+        // minting NFT baton should be the first input and output
+        bytes mintingNftInputCategory = tx.inputs[0].tokenCategory;
+        bytes mintingNftOutputCategory = tx.outputs[0].tokenCategory;
+        require(verificationTokenCategory + 0x02 == mintingNftInputCategory);
+        require(verificationTokenCategory + 0x02 == mintingNftOutputCategory);
+
+        // minting NFT baton should be sent back to contract
+        require(tx.inputs[0].lockingBytecode == tx.outputs[0].lockingBytecode);
+
+        // verification minting NFT should be the second output of same category and has dust value
+        bytes verificationMintingNftOutputCategory = tx.outputs[1].tokenCategory;
+        require(verificationTokenCategory + 0x02 == verificationMintingNftOutputCategory);
+        require(tx.outputs[1].value == 1000);
+    }
+
+}
+`
 
 
 /**
@@ -35,7 +62,7 @@ export class VerificationTokenMinter {
   }
 
   get artifact () {
-    return compileFile(new URL('verification_token_minter.cash', import.meta.url))
+    return compileString(VERIFICATION_MINTER_CONTRACT)
   }
 
   get provider () {
@@ -69,17 +96,6 @@ export class VerificationTokenMinter {
   getContract () {
     return this.contract
   }
-
-  // async hasMintingNft () {
-  //   const utxos = await this.contract.getUtxos()
-  //   const mintingUtxo = utxos.filter(utxo => {
-  //     return (
-  //       utxo?.token?.nft?.capability === 'minting' &&
-  //       utxo?.token?.nft?.category === this.merchant?.category
-  //     )
-  //   })
-  //   return mintingUtxo.length > 0
-  // }
 
   // recipient here is a POS device vault token address
   async mintMintingNft (recipient) {
