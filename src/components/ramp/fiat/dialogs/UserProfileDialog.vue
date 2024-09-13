@@ -281,7 +281,7 @@ export default {
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('/ramp-p2p/peer/detail', { params: { id: userId }, authorize: true })
+        backend.get(`/ramp-p2p/peer/${userId}/`, { authorize: true })
           .then(response => {
             vm.isloaded = true
             resolve(response.data)
@@ -323,7 +323,7 @@ export default {
           page: vm.reviewsPageNumber,
           to_peer: this.user?.id
         }
-        backend.get('/ramp-p2p/order/feedback/peer', {
+        backend.get('/ramp-p2p/order/feedback/peer/', {
           params: params,
           authorize: true
         })
@@ -360,7 +360,7 @@ export default {
           owner_id: vm.user.id
         }
         params.to_peer = this.userId
-        backend.get('/ramp-p2p/ad', {
+        backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true
         })

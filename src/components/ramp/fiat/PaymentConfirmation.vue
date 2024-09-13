@@ -131,7 +131,7 @@
                         ref="filePickerRef"
                         :max-file-size="maxFileSize"
                         clearable
-                        accept=".jpg, image/*"
+                        accept="image/jpg, image/png, image/jpeg"
                         dense
                         color="blue-12"
                         label="Upload Proof of Payment"
@@ -219,7 +219,7 @@
 <script>
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { formatCurrency } from 'src/exchange'
@@ -239,7 +239,6 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      wallet: null,
       contractBalance: null,
       order: null,
       txid: null,
@@ -323,7 +322,6 @@ export default {
     getDarkModeClass,
     async loadData () {
       const vm = this
-      vm.wallet = loadRampWallet()
       await vm.fetchOrderDetail()
       vm.appealCountdown()
       vm.isloaded = true
@@ -360,15 +358,14 @@ export default {
         const index = orderPaymentMethods.map(e => e.payment_method).indexOf(paymentMethod.id)
         console.log(`Uploading ${orderPaymentMethods[index].id}: ${paymentMethod.attachment.name}`)
         const formData = new FormData()
-        formData.append('payment_id', orderPaymentMethods[index].id)
         formData.append('image', paymentMethod.attachment)
-        await this.uploadAttachment(formData)
+        await this.uploadAttachment(formData, orderPaymentMethods[index].id)
       })
     },
-    async uploadAttachment (data) {
+    async uploadAttachment (formdata, orderPaymentId) {
       await backend.post(
-        '/ramp-p2p/order/payment/attachment/upload',
-        data, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
+        `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`,
+        formdata, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
         .then(response => {
           console.log(response.data)
         })
@@ -436,7 +433,7 @@ export default {
       const body = {
         payment_methods: selectedPaymentMethodIds
       }
-      const response = await backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}`, body, { authorize: true })
+      const response = await backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}/`, body, { authorize: true })
         .catch(error => {
           console.error(error)
           if (error.response) {
@@ -460,7 +457,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
-      const keypair = await this.wallet.keypair(sellerMember.address_path)
+      const keypair = await wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
         .then(result => {
           if (result.success) {
@@ -490,7 +487,7 @@ export default {
     },
     async fetchOrderDetail () {
       const vm = this
-      await backend.get(`/ramp-p2p/order/${vm.data.order.id}`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${vm.data.order.id}/`, { authorize: true })
         .then(response => {
           vm.order = response.data
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')

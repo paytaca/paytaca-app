@@ -3,10 +3,18 @@
   <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
-      <div class="q-mx-sm q-mb-sm text-h5 text-center text-weight-bold md-font-size">
+
+
+      <div class="q-mx-sm text-h5 text-center text-weight-bold lg-font-size">
         {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
       </div>
-      <q-separator :dark="darkMode" class="q-mx-md q-mt-sm"/>
+
+      <div v-if="type === 'Profile'" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
+        <span>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+      </div>
+
+      <q-separator :dark="darkMode" class="q-mx-md"/>
+
       <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm">{{ instructionMessage }}</div>
       <q-card-section class="q-mt-sm" :style="`height: ${minHeight}px;`" style="overflow-y:auto;">
         <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
@@ -128,9 +136,11 @@ import MiscDialogs from './dialogs/MiscDialogs.vue'
 import PaymentMethodForm from './dialogs/PaymentMethodForm.vue'
 import ProgressLoader from '../../ProgressLoader.vue'
 import SelectPaymentMethods from './dialogs/SelectPaymentMethods.vue'
+import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
+import { selectedCurrency } from 'src/store/market/getters'
 
 export default {
   components: {
@@ -179,7 +189,9 @@ export default {
       miscDialogsKey: 0,
       showSelectPaymentMethods: false,
       showPaymentMethodForm: false,
-      showMiscDialogs: false
+      showMiscDialogs: false,
+      fiatOption: null,
+      selectedCurrency: this.$store.getters['market/selectedCurrency'],
     }
   },
   emits: ['submit', 'back'],
@@ -190,6 +202,9 @@ export default {
   },
   async mounted () {
     const vm = this
+    if (vm.type === 'Profile') {
+      await vm.fetchFiatCurrency()
+    }
     await vm.fetchPaymentTypes()
     await vm.fetchPaymentMethods()
     switch (vm.type) {
@@ -254,10 +269,26 @@ export default {
       return ''
     }
   },
+  watch: {
+    selectedCurrency () {
+      this.fetchPaymentMethods()
+    }
+  },
   methods: {
     getDarkModeClass,
     onBack () {
       this.$emit('back')
+    },
+    showCurrencySelect () {
+      this.$q.dialog({
+        component: CurrencyFilterDialog,
+        componentProps: {
+          fiatList: this.fiatOption
+        }
+      })
+        .onOk(currency => {
+          this.selectedCurrency = currency
+        })
     },
     onPaymentMethodBack (data) {
       if (data !== undefined) {
@@ -373,9 +404,18 @@ export default {
       this.emptyPaymentMethods = adCurrencyPaymentTypes.filter(method => !temp.includes(method))
       return match
     },
+    async fetchFiatCurrency () {
+      backend.get('/ramp-p2p/currency/fiat')
+        .then(response => {
+          this.fiatOption = response.data
+        })
+        .catch(error => {
+          console.error(error)
+        })
+    },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency }, authorize: true })
+      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol }, authorize: true })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })
@@ -393,7 +433,7 @@ export default {
     // processes
     async fetchPaymentMethods () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-method', { params: { currency: this.currency }, authorize: true })
+      await backend.get('/ramp-p2p/payment-method', { params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol }, authorize: true })
         .then(response => {
           if (this.type === 'Ads') {
             this.info = response.data
@@ -434,7 +474,7 @@ export default {
     async deletePaymentMethod (index) {
       const vm = this
       vm.isloaded = false
-      await backend.delete(`/ramp-p2p/payment-method/${index}`, { authorize: true })
+      await backend.delete(`/ramp-p2p/payment-method/${index}/`, { authorize: true })
         .catch(error => {
           console.error(error.response || error)
           if (error.response) {
@@ -490,7 +530,7 @@ export default {
         }
         case 'editPaymentMethod': {
           // editing payment method
-          backend.put(url, body, { authorize: true })
+          backend.patch(url, body, { authorize: true })
             .then(() => {
               vm.dialogType = ''
               vm.openDialog = false

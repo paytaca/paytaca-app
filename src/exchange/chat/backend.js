@@ -1,6 +1,6 @@
 import BCHJS from '@psf/bch-js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
 
@@ -82,7 +82,7 @@ export async function setSignerData (value = '') {
 
 export async function updateSignerData () {
   console.log('Updating chat signer data')
-  const wallet = loadRampWallet()
+  if (!wallet) loadRampWallet()
 
   // fetches the verifying keypair at adress path 0/0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index

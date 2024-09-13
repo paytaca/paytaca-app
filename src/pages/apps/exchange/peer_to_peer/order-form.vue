@@ -454,7 +454,7 @@ export default {
       this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
-      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}/`, { authorize: true })
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {
@@ -512,7 +512,7 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
           })
@@ -533,7 +533,7 @@ export default {
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('ramp-p2p/arbiter', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
+        backend.get('ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
           .then(response => {
             vm.arbitersAvailable = response.data
             resolve(response.data)

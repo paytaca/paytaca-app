@@ -180,7 +180,7 @@ export default {
     getDarkModeClass,
     async checkAppeal () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.orderId}/appeal`
+      const url = `/ramp-p2p/order/${vm.orderId}/appeal/`
 
       await backend.get(url, { authorize: true })
         .then(response => {
@@ -203,7 +203,7 @@ export default {
     },
     async fetchFeedback () {
       const vm = this
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = '/ramp-p2p/order/feedback/peer/'
       const params = {
         limit: 1,
         page: 1,
@@ -237,7 +237,7 @@ export default {
         })
 
       if (vm.appealed) {
-        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter/'
         const arbiterParams = {
           limit: 1,
           page: 1,
@@ -278,7 +278,7 @@ export default {
     sendFeedback () {
       const vm = this
       vm.btnLoading = true
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = '/ramp-p2p/order/feedback/peer/'
       const body = {
         order_id: vm.orderId,
         rating: vm.feedback.rating,
@@ -313,7 +313,7 @@ export default {
         })
 
       if (this.appealed) {
-        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter/'
         const arbiterBody = {
           order_id: vm.orderId,
           rating: vm.arbiterFeedback.rating,

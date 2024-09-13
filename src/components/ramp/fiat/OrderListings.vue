@@ -65,8 +65,15 @@
     </q-pull-to-refresh>
     <div class="q-mt-sm">
       <div v-if="listings.length == 0 && cashinOrders.length == 0" class="relative text-center" style="margin-top: 50px;">
-        <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-        <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+        <div v-if="displayEmptyList">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+        </div>
+        <div v-else>
+          <div class="row justify-center" v-if="loading">
+            <q-spinner-dots color="primary" size="40px" />
+          </div>
+        </div>
       </div>
       <div v-else class="q-mb-none">
         <div class="row justify-center" v-if="loading">
@@ -219,7 +226,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 
 export default {
   setup () {
@@ -229,7 +236,6 @@ export default {
     }
   },
   components: {
-    // FilterDialog,
     FilterComponent
   },
   data () {
@@ -250,12 +256,13 @@ export default {
       fiatCurrencies: [],
       notifType: null,
       loadingMoreData: false,
-      wallet: null
+      displayEmptyList: false
     }
   },
   watch: {
     statusType () {
       const vm = this
+      vm.displayEmptyList = false
       vm.filterComponentKey++
       vm.updateFilters()
       vm.scrollToTop()
@@ -301,7 +308,6 @@ export default {
     }
   },
   async mounted () {
-    this.wallet = loadRampWallet()
     this.updateFilters()
     this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
@@ -458,7 +464,7 @@ export default {
     async fetchCashinOrders (overwrite = false) {
       const vm = this
       const params = {
-        wallet_hash: this.wallet.walletHash,
+        wallet_hash: wallet.walletHash,
         owned: false
       }
       await vm.$store.dispatch('ramp/fetchCashinOrders', { params: params, overwrite: overwrite })
@@ -552,6 +558,11 @@ export default {
       this.loading = true
       await this.fetchCashinOrders(true)
       await this.fetchOrders(true)
+
+      setTimeout(() =>{
+        this.displayEmptyList = true
+      }, 150)
+
       this.loading = false
     },
     updatePaginationValues () {

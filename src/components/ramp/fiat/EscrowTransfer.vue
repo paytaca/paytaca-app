@@ -129,7 +129,7 @@
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -139,7 +139,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wallet: null,
       loading: false,
       order: null,
       adData: null,
@@ -210,7 +209,6 @@ export default {
     vm.loading = true
     vm.loadData()
     vm.loadContract()
-    vm.wallet = loadRampWallet()
   },
   methods: {
     getDarkModeClass,
@@ -279,15 +277,11 @@ export default {
       console.log('Contract address matched. Sending BCH...')
       vm.sendingBch = true
       try {
-        if (vm.order?.status?.value === 'CNF') {
-          await vm.escrowPendingOrder()
-        }
-        const wallet = await vm.wallet.raw()
         const utxos = await vm.escrowContract.getUtxos()
         if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
-          const result = await wallet.sendBch(vm.transferAmount, vm.contractAddress)
+          const result = await (await wallet.raw()).sendBch(vm.transferAmount, vm.contractAddress)
           console.log('sendBch:', result)
           if (result?.success) {
             vm.txid = result.txid
@@ -301,6 +295,9 @@ export default {
             vm.$store.commit('ramp/saveTxid', txidData)
             vm.escrowBalance = await vm.escrowContract.getBalance()
             vm.$emit('success', vm.txid)
+            if (vm.order?.status?.value === 'CNF') {
+              await vm.escrowPendingOrder()
+            }
           } else {
             vm.sendErrors = []
             if (result) {
@@ -331,7 +328,7 @@ export default {
     async escrowPendingOrder () {
       const vm = this
       vm.loading = true
-      await backend.post(`/ramp-p2p/order/${vm.order?.id}/pending-escrow`, null, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.order?.id}/pending-escrow/`, null, { authorize: true })
         .catch(error => {
           console.error(error)
           if (error.response) {
@@ -347,7 +344,7 @@ export default {
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('ramp-p2p/arbiter', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
+        backend.get('ramp-p2p/arbiter/', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
           .then(response => {
             vm.arbiterOptions = response.data
             if (vm.arbiterOptions.length > 0) {
@@ -387,7 +384,7 @@ export default {
           arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
-        backend.post('/ramp-p2p/order/contract/create', body, { authorize: true })
+        backend.post('/ramp-p2p/order/contract/', body, { authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
             vm.loading = false
@@ -459,8 +456,8 @@ export default {
     },
     fetchContract (orderId) {
       return new Promise((resolve, reject) => {
-        const url = '/ramp-p2p/order/contract'
-        backend.get(url, { params: { order_id: orderId }, authorize: true })
+        const url = `/ramp-p2p/order/${orderId}/contract/`
+        backend.get(url, { authorize: true })
           .then(response => {
             resolve(response.data)
           })
@@ -480,7 +477,7 @@ export default {
     },
     fetchFees () {
       return new Promise((resolve, reject) => {
-        const url = '/ramp-p2p/order/contract/fees'
+        const url = '/ramp-p2p/order/contract/fees/'
         backend.get(url, { authorize: true })
           .then(response => {
             resolve(response.data)

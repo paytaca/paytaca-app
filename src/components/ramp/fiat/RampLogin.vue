@@ -72,7 +72,7 @@
   </q-dialog>
 </template>
 <script>
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
@@ -93,7 +93,7 @@ export default {
       dialog: false,
       user: null,
       usernickname: '',
-      rampWallet: null,
+      // rampWallet: null,
       isLoading: true,
       register: false,
       loggingIn: false,
@@ -124,7 +124,6 @@ export default {
     if (this.error) this.errorMessage = this.error
     NativeBiometric.isAvailable().then(() => { this.hasBiometric = true })
     this.loadUser()
-    this.rampWallet = loadRampWallet()
   },
   beforeUnmount () {
     bus.emit('relogged')
@@ -179,10 +178,10 @@ export default {
       try {
         vm.loggingIn = true
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
-        const keypair = await vm.rampWallet.keypair()
-        const signature = await vm.rampWallet.signMessage(keypair.privateKey, otp)
+        const keypair = await wallet.keypair()
+        const signature = await wallet.signMessage(keypair.privateKey, otp)
         const body = {
-          wallet_hash: vm.rampWallet.walletHash,
+          wallet_hash: wallet.walletHash,
           signature: signature,
           public_key: keypair.publicKey
         }
@@ -210,11 +209,11 @@ export default {
         const vm = this
         vm.hintMessage = this.$t('UpdatingPubkeyAndAddress')
         const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
-        vm.rampWallet.pubkey().then(async pubkey => {
+        wallet.pubkey().then(async pubkey => {
           const payload = {
             public_key: pubkey,
-            address: await vm.rampWallet.address(),
-            address_path: vm.rampWallet.addressPath()
+            address: await wallet.address(),
+            address_path: wallet.addressPath()
           }
           console.log('payload:', payload)
           if (payload.public_key === vm.user.public_key &&
@@ -255,8 +254,8 @@ export default {
       const vm = this
       vm.errorMessage = null
       const timestamp = Date.now()
-      const keypair = await vm.rampWallet.keypair()
-      const signature = await vm.rampWallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
+      const keypair = await wallet.keypair()
+      const signature = await wallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
       const headers = {
         timestamp: timestamp,
         signature: signature,
@@ -264,10 +263,10 @@ export default {
       }
       const body = {
         name: vm.usernickname,
-        address: await vm.rampWallet.address(),
-        address_path: vm.rampWallet.addressPath()
+        address: await wallet.address(),
+        address_path: wallet.addressPath()
       }
-      await backend.post('/ramp-p2p/peer/create', body, { headers: headers })
+      await backend.post('/ramp-p2p/peer/', body, { headers: headers })
         .then((response) => {
           vm.user = response.data
           vm.$store.commit('ramp/updateUser', vm.user)

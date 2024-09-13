@@ -64,11 +64,7 @@
         </div>
 
         <!-- Order List -->
-        <CashinOrderList
-          v-if="state === 'order-list'"
-          :key="orderListKey"
-          :wallet-hash="wallet.walletHash"
-          @open-order="openOrder"/>
+        <CashinOrderList v-if="state === 'order-list'" :key="orderListKey" @open-order="openOrder"/>
 
         <!-- Network Error -->
         <NetworkError v-if="state === 'network-error'" @retry="refreshPage"/>
@@ -87,7 +83,7 @@ import { backend, updatePubkeyAndAddress } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -142,15 +138,15 @@ export default {
     bus.on('session-expired', this.handleSessionEvent)
   },
   mounted () {
+    loadRampWallet()
     this.loaddata()
   },
   methods: {
     getDarkModeClass,
     async loaddata () {
       this.loading = true
-      this.wallet = loadRampWallet()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
-      this.cashinAdsParams.wallet_hash = this.wallet.walletHash
+      this.cashinAdsParams.wallet_hash = wallet.walletHash
       await this.fetchCashinAds()
       this.step++
       this.loading = false
@@ -199,10 +195,10 @@ export default {
       try {
         vm.loggingIn = true
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
-        const keypair = await vm.wallet.keypair()
-        const signature = await vm.wallet.signMessage(keypair.privateKey, otp)
+        const keypair = await wallet.keypair()
+        const signature = await wallet.signMessage(keypair.privateKey, otp)
         const body = {
-          wallet_hash: vm.wallet.walletHash,
+          wallet_hash: wallet.walletHash,
           signature: signature,
           public_key: keypair.publicKey
         }
@@ -248,7 +244,7 @@ export default {
       this.fetchCashinAds()
     },
     onUpdatePresets (presets) {
-      let url = '/ramp-p2p/cashin/ad'
+      let url = '/ramp-p2p/ad/cash-in/'
       if (presets?.length > 0) {
         const amounts = presets.join('&amounts=')
         url = `${url}?amounts=${amounts}`
@@ -256,7 +252,7 @@ export default {
       this.fetchCashinAds(url)
     },
     async fetchCashinAds (url) {
-      const apiUrl = url || '/ramp-p2p/cashin/ad'
+      const apiUrl = url || '/ramp-p2p/ad/cash-in/'
       await backend.get(apiUrl, { params: this.cashinAdsParams })
         .then(response => {
           this.cashinAds = response.data.ads
@@ -295,7 +291,7 @@ export default {
     },
     async sendConfirmPayment (retries = 1) {
       const vm = this
-      await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer`, null, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer/`, null, { authorize: true })
         .catch(async (error) => {
           console.error(error)
           if (error.response) {

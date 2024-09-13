@@ -18,8 +18,13 @@
      </q-pull-to-refresh>
      <!-- Empty list display -->
      <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
-       <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
-       <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
+        <div v-if="displayEmptyList">
+          <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
+        </div>
+        <div v-else class="row justify-center">
+         <q-spinner-dots color="primary" size="40px" />
+       </div>
      </div>
      <!-- List -->
      <div v-else>
@@ -110,7 +115,8 @@ export default {
       footerData: {
         unreadOrdersCount: 0
       },
-      loadingMoreData: false
+      loadingMoreData: false,
+      displayEmptyList: false
     }
   },
   emits: ['selectAppeal'],
@@ -122,6 +128,7 @@ export default {
   },
   watch: {
     async statusType () {
+      this.displayEmptyList = false
       this.scrollToTop()
       this.refreshData()
     }
@@ -226,6 +233,11 @@ export default {
       vm.$store.commit('ramp/resetAppealsPagination')
       vm.loading = true
       await vm.fetchAppeals(true)
+
+      setTimeout(() => {
+        this.displayEmptyList = true
+      }, 150)
+
       vm.loading = false
     },
     updatePaginationValues () {

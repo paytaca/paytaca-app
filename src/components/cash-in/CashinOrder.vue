@@ -133,6 +133,9 @@ export default {
     getDarkModeClass,
     async loadData () {
       await this.fetchOrder()
+      this.setupWebSocket()
+    },
+    setupWebSocket () {
       const url = `${getBackendWsUrl()}order/${this.orderId}/`
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)
@@ -147,7 +150,7 @@ export default {
     },
     async fetchOrder () {
       const vm = this
-      await backend.get(`/ramp-p2p/order/${vm.orderId}`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${vm.orderId}/`, { authorize: true })
         .then(response => {
           vm.order = response.data
           vm.status = vm.order?.status?.value
@@ -225,9 +228,9 @@ export default {
           this.newOrder = true
       }
     },
-    async deleteAttachment (attachmentId) {
-      await backend.post(
-        '/ramp-p2p/order/payment/attachment/delete', { attachment_id: attachmentId }, { authorize: true })
+    async deleteAttachment (orderPaymentId) {
+      await backend.delete(
+        `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`, { authorize: true })
         .then(response => {
           this.fetchOrder()
         })
@@ -235,11 +238,11 @@ export default {
           console.error(error.response || error)
         })
     },
-    async uploadAttachment (data) {
+    async uploadAttachment (formdata, orderPaymentId) {
       this.uploading = true
       await backend.post(
-        '/ramp-p2p/order/payment/attachment/upload',
-        data, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
+        `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`,
+        formdata, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
         .then(response => {
           this.fetchOrder()
         })
@@ -258,7 +261,7 @@ export default {
     },
     async fetchAppeal () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/appeal`
+      const url = `/ramp-p2p/order/${vm.order.id}/appeal/`
       await backend.get(url, { authorize: true })
         .then(response => {
           this.appeal = response.data.appeal
@@ -277,8 +280,9 @@ export default {
     },
     appealOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/appeal`
+      const url = '/ramp-p2p/appeal/'
       const data = {
+        order_id: vm.order.id,
         type: 'RFN',
         reasons: this.appealReasons
       }
@@ -304,7 +308,7 @@ export default {
     },
     cancelOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           if (response.data.status?.value === 'CNCL') {

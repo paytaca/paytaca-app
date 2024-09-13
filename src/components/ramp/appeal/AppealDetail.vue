@@ -43,7 +43,7 @@
           <q-btn class="col q-py-none" no-caps flat dense @click="showTransactionHistory = true">View Transactions</q-btn>
         </div>
         <!-- Payment Methods -->
-        <div v-if="order?.payment_methods_selected?.length > 0" class="q-px-sm q-pt-sm q-ma-sm">
+        <div v-if="order?.payment_methods_selected?.length > 0" class="q-pt-sm q-ma-sm">
           <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
           <div class="text-center sm-font-size q-mx-md q-mb-sm">
             The buyer selected the following payment methods.
@@ -154,15 +154,6 @@
             <div class="row justify-center text-center subtext">Resolved at {{ formatDate(appeal?.resolved_at) }}</div>
           </q-card>
         </div>
-        <div class="q-mx-lg q-mt-md" v-if="sendingBch">
-          <q-spinner class="q-mr-xs"/>
-          <template v-if="selectedAction === 'release'">
-            {{ $t('ReleasingBch') }}
-          </template>
-          <template v-else>
-            {{ $t('RefundingBch') }}
-          </template>
-        </div>
         <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto;">
           <q-card flat class="row pt-card-2 bg-red-1 text-red q-pa-lg pp-text bg-red-1" :class="getDarkModeClass(darkMode)">
             {{ sendError }}
@@ -200,7 +191,7 @@ import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
@@ -248,17 +239,13 @@ export default {
     escrowContract: Object,
     state: String
   },
-  emits: ['back', 'refresh', 'success', 'update-state', 'updatePageName'],
+  emits: ['back', 'refresh', 'success', 'sending-bch', 'updatePageName'],
   watch: {
     sendError (value) {
       console.log('sendError:', value)
     },
     sendingBch (value) {
-      if (value) {
-        this.$emit('update-state', 'form-sending')
-      } else {
-        this.$emit('update-state', 'form')
-      }
+      this.$emit('sending-bch', value)
     }
   },
   computed: {
@@ -274,10 +261,9 @@ export default {
     this.fetchContractBalance().then((balance) => {
       if (balance === 0 && this.order.status.value === 'APL') {
         const result = this.loadTransactionId(this.order.id)
-        if (result.txid) this.setOrderPending(result.txid, result.action)
+        if (result.txid) this.setOrderPending(result.action)
       }
     })
-    this.wallet = loadRampWallet()
   },
   methods: {
     formatDate,
@@ -326,6 +312,7 @@ export default {
       const vm = this
       vm.showDragSlide = false
       vm.sendingBch = true
+
       let txid = null
       if (vm.selectedAction === 'release') {
         txid = await vm.releaseBch()
@@ -333,13 +320,16 @@ export default {
       if (vm.selectedAction === 'refund') {
         txid = await vm.refundBch()
       }
+      console.log('txid:', txid)
       if (txid) {
-        vm.setOrderPending(vm.selectedAction)
+        await vm.setOrderPending(vm.selectedAction)
       }
+      vm.sendingBch = false
+      vm.$emit('refresh')
     },
     async setOrderPending (action) {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.appeal.order.id}/appeal/pending-${action}`
+      const url = `/ramp-p2p/appeal/${vm.appeal.id}/pending-${action}/`
       await backend.post(url, {}, { authorize: true })
         .then(response => {
           console.log(response.data)
@@ -354,14 +344,13 @@ export default {
             bus.emit('network-error')
           }
         })
-      vm.sendingBch = true
     },
     async releaseBch () {
       const vm = this
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const keypair = await this.wallet.keypair(arbiterMember.address_path)
+      const keypair = await wallet.keypair(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.crypto_amount)
         .then(result => {
@@ -378,14 +367,12 @@ export default {
             vm.$store.commit('ramp/saveTxid', txidData)
           } else {
             vm.sendError = result.reason
-            vm.sendingBch = false
             vm.showDragSlide = true
           }
         })
         .catch(error => {
           console.error(error)
           vm.sendError = error
-          vm.sendingBch = false
           vm.showDragSlide = true
         })
       return txid
@@ -395,7 +382,7 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const privateKey = await vm.wallet.privkey(arbiterMember.address_path)
+      const privateKey = await wallet.privkey(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.refund(privateKey, this.order.crypto_amount)
         .then(result => {
@@ -412,7 +399,6 @@ export default {
             vm.$store.commit('ramp/saveTxid', txidData)
           } else {
             vm.sendError = result.reason
-            vm.sendingBch = false
             vm.showDragSlide = true
             console.log('state:', vm.state)
           }
@@ -420,7 +406,6 @@ export default {
         .catch(error => {
           console.error(error)
           vm.sendError = error
-          vm.sendingBch = false
           vm.showDragSlide = true
         })
       return txid
@@ -477,7 +462,17 @@ export default {
     viewPaymentAttachment (url) {
       this.showAttachmentDialog = true
       this.attachmentUrl = url
-    }
+    },
+    dynamicVal (field) {
+      if (field.model_ref === 'order') {
+        if (field.field_ref === 'id') {
+          return this.order.id
+        }
+        if (field.field_ref === 'tracking_id') {
+          return this.order.tracking_id
+        }
+      }
+    },
   }
 }
 </script>

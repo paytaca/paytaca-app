@@ -251,7 +251,7 @@ export default {
     },
     async fetchPaymentMethod (id) {
       const vm = this
-      await backend.get(`/ramp-p2p/payment-method/${id}`, { authorize: true })
+      await backend.get(`/ramp-p2p/payment-method/${id}/`, { authorize: true })
         .then(response => {
           const data = response.data
           const fields = {}
@@ -392,7 +392,7 @@ export default {
         })
     },
     async editPaymentMethod (url, body) {
-      await backend.put(url, body, { authorize: true })
+      await backend.patch(url, body, { authorize: true })
         .then(response => {
           console.log(response)
         })
@@ -408,7 +408,7 @@ export default {
         })
     },
     async deletePaymentMethod () {
-      await backend.delete(`/ramp-p2p/payment-method/${this.paymentMethod.id}`, { authorize: true })
+      await backend.delete(`/ramp-p2p/payment-method/${this.paymentMethod.id}/`, { authorize: true })
         .catch(error => {
           console.error(error)
           console.error(error.response)

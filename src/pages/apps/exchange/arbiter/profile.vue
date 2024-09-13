@@ -14,7 +14,7 @@
         <div class="q-mb-lg">
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-            <q-btn round flat icon="settings" style="position: fixed; right: 15px; top: 90px;" @click="openSettings=true"></q-btn>
+            <q-btn round flat icon="settings" style="position: fixed; right: 40px; top: 70px;" @click="openSettings=true"></q-btn>
             <div class="text-weight-bold lg-font-size q-pt-sm">
               <span id="target-name">{{ arbiter?.name }}</span>
               <q-icon
@@ -48,8 +48,8 @@
           </div>
           <!-- Currencies -->
           <div v-if="arbiter?.fiat_currencies.length > 0" class="row justify-center q-mt-xs q-mb-sm q-gutter-xs">
-            <q-badge outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
-            <q-badge outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
+            <q-badge :color="darkMode ? 'blue-grey-2' : 'primary'" outline v-for="(currency, index) in currencies" :key="index" @click="viewCurrencies=true">{{ currency.symbol }}</q-badge>
+            <q-badge :color="darkMode ? 'blue-grey-2' : 'primary'" outline v-if="arbiter?.fiat_currencies.length > 5" @click="viewCurrencies=true">+{{ arbiter?.fiat_currencies.length - 5 }}</q-badge>
           </div>
           <div v-else class="row justify-center subtext">
             <span>No currency assigned</span>
@@ -124,6 +124,7 @@ import { backend } from 'src/exchange/backend'
 import { formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { updateChatIdentity } from 'src/exchange/chat'
+import { wallet } from 'src/exchange/wallet'
 
 export default {
   components: {
@@ -170,6 +171,7 @@ export default {
     }
   },
   mounted () {
+    console.log('wallet:', wallet)
     this.fetchArbiter()
     this.fetchFeedback()
   },
@@ -190,12 +192,11 @@ export default {
     },
     async fetchArbiter () {
       const vm = this
-      const url = '/ramp-p2p/arbiter/detail'
+      const url = `/ramp-p2p/arbiter/${wallet.walletHash}`
 
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.arbiter = response.data
-          console.log('vm.arbiter:', vm.arbiter)
           vm.currencies = vm.arbiter.fiat_currencies.slice(0, 5)
           vm.arbiter.rating = Number(vm.arbiter?.rating)
           vm.parseInactiveTime(vm.arbiter.inactive_until)
@@ -233,7 +234,7 @@ export default {
     async fetchFeedback () {
       const vm = this
       vm.loadingReviews = true
-      const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+      const arbiterUrl = '/ramp-p2p/order/feedback/arbiter/'
       const arbiterParams = {
         limit: 20,
         page: vm.reviewsPageNumber
@@ -265,7 +266,7 @@ export default {
     },
     async updateUserName (data) {
       const vm = this
-      const url = '/ramp-p2p/arbiter/detail'
+      const url = '/ramp-p2p/arbiter/'
       try {
         await updateChatIdentity({ id: vm.arbiter.chat_identity_id, name: data.nickname })
         await backend.patch(url, { name: data.nickname }, { authorize: true })

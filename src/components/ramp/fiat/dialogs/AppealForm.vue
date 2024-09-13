@@ -127,10 +127,11 @@ export default {
     async submitAppeal () {
       const vm = this
       const data = {
+        order_id: vm.order.id,
         type: vm.selectedAppealType?.value,
         reasons: vm.selectedReasons
       }
-      await backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
+      await backend.post('/ramp-p2p/appeal/', data, { authorize: true })
         .then(vm.addArbiterToChat())
         .then(response => {
           vm.$emit('update-status', response.data.status?.status)
@@ -160,7 +161,7 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
           })

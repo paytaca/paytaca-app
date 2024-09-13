@@ -151,7 +151,7 @@ export async function fetchCashinOrders (context, { params = null, overwrite = f
         owned: params.owned
       }
 
-      const apiURL = '/ramp-p2p/cashin/order'
+      const apiURL = '/ramp-p2p/order/cash-in/'
       backend.get(apiURL, { params: parameters })
         .then((response) => {
           context.commit('updateCashinOrders', { overwrite: overwrite, data: response.data })
@@ -216,7 +216,7 @@ export async function fetchOrders (context, { statusType = null, params = null, 
         }
       }
 
-      let apiURL = '/ramp-p2p/order'
+      let apiURL = '/ramp-p2p/order/'
       let listParams = false
       if (params.payment_types?.length > 0) {
         const paymentTypes = params.payment_types.join('&payment_types=')
@@ -282,7 +282,7 @@ export function fetchAppeals (context, { appealState = null, params = null, over
       if (pageNumber !== null) pageNumber++
       params.page = pageNumber
       params.limit = state.itemsPerPage
-      backend.get('/ramp-p2p/appeal', { params: params, authorize: true })
+      backend.get('/ramp-p2p/appeal/', { params: params, authorize: true })
         .then(response => {
           switch (appealState) {
             case 'PENDING':

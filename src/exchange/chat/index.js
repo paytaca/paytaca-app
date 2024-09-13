@@ -3,13 +3,14 @@ import { loadWallet } from 'src/wallet'
 import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
-import { loadRampWallet } from 'src/exchange/wallet'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
 
 export const chatIdentityManager = new ChatIdentityManager()
 export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
+  if (!wallet) loadRampWallet()
 
   const payload = {
     user_type: usertype,
@@ -17,8 +18,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     chat_identity_id: params.chat_identity_id
   }
 
-  const rampWallet = loadRampWallet()
-  const chatIdentityRef = generateChatIdentityRef(rampWallet.walletHash)
+  const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
 
   // fetch chat identity if existing
   let identity = await fetchChatIdentity(chatIdentityRef)
@@ -49,7 +49,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 export function updateOrderChatSessionRef (orderId, chatRef) {
   return new Promise((resolve, reject) => {
     const payload = { chat_session_ref: chatRef }
-    backend.patch(`/ramp-p2p/order/${orderId}`, payload, { authorize: true })
+    backend.patch(`/ramp-p2p/order/${orderId}/`, payload, { authorize: true })
       .then(response => {
         console.log('Updated order chat_session_ref:', response.data)
         resolve(response)

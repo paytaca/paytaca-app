@@ -147,7 +147,7 @@ export default {
     },
     async fetchReviews () {
       const vm = this
-      const url = 'ramp-p2p/order/feedback/peer'
+      const url = 'ramp-p2p/order/feedback/peer/'
       vm.page += 1
       const params = {
         limit: vm.limit,

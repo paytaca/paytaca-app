@@ -165,7 +165,7 @@ export default {
       return getAppealCooldown(appealCooldownChoice)
     },
     async fetchAdSnapshot () {
-      await backend.get('/ramp-p2p/ad-snapshot',
+      await backend.get('/ramp-p2p/ad/snapshot/',
         { authorize: true, params: { order_id: this.orderId } }
       )
         .then(response => {

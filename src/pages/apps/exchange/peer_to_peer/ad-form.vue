@@ -599,7 +599,7 @@ export default {
     },
     async fetchAd () {
       const vm = this
-      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, { authorize: true })
         .then(response => {
           const data = response.data
           vm.adData.tradeType = data.trade_type
@@ -672,7 +672,7 @@ export default {
     async updateAd () {
       const vm = this
       const body = vm.transformPostData(false)
-      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}`, body, { authorize: true })
+      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, body, { authorize: true })
         .then(() => {
           vm.swipeStatus = true
           // vm.$emit('submit')
@@ -685,7 +685,7 @@ export default {
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('ramp-p2p/arbiter', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
+        backend.get('ramp-p2p/arbiter/', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
           .then(response => {
             vm.arbiterOptions = response.data
             resolve(response.data)
@@ -706,7 +706,7 @@ export default {
     async getInitialMarketPrice () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/utils/market-price', { params: { currency: vm.selectedCurrency.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data?.price)
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)

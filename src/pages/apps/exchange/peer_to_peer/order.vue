@@ -372,6 +372,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     async refreshPage (done) {
+      if (this.sendingBch || this.verifyingTx) {
+        if (done) done()
+        return
+      }
       await this.loadData()
       this.reloadChildComponents()
       if (done) done()
@@ -524,7 +528,7 @@ export default {
     fetchOrder () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `/ramp-p2p/order/${this.$route.params?.order}`
+        const url = `/ramp-p2p/order/${this.$route.params?.order}/`
         backend.get(url, { authorize: true })
           .then(response => {
             vm.order = response.data
@@ -575,7 +579,7 @@ export default {
       const vm = this
       if (vm.order?.read_at) return
       return new Promise((resolve, reject) => {
-        const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members`
+        const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
         backend.patch(url, null, { authorize: true })
           .then(response => {
             resolve(response.data)
@@ -597,7 +601,7 @@ export default {
     fetchAd () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `/ramp-p2p/ad/${vm.order.ad.id}`
+        const url = `/ramp-p2p/ad/${vm.order.ad.id}/`
         backend.get(url, { authorize: true })
           .then(response => {
             vm.ad = response.data
@@ -620,7 +624,7 @@ export default {
     },
     confirmOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/confirm`
+      const url = `/ramp-p2p/order/${vm.order.id}/confirm/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           vm.updateStatus(response.data.status)
@@ -639,7 +643,7 @@ export default {
     },
     cancelOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           if (response.data && response.data.status.value === 'CNCL') {
@@ -661,7 +665,7 @@ export default {
     fetchFees () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/contract/fees'
+        const url = '/ramp-p2p/order/contract/fees/'
         backend.get(url, { authorize: true })
           .then(response => {
             vm.fees = response.data
@@ -684,13 +688,8 @@ export default {
     fetchContract () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/contract'
-        backend.get(url, {
-          params: {
-            order_id: vm.order?.id
-          },
-          authorize: true
-        })
+        const url = `/ramp-p2p/order/${vm.order?.id}/contract/`
+        backend.get(url, { authorize: true })
           .then(response => {
             vm.contract = response.data
             resolve(response.data)
@@ -728,7 +727,8 @@ export default {
     },
     submitAppeal (data) {
       const vm = this
-      backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
+      data.order_id = vm.order.id
+      backend.post('/ramp-p2p/appeal/', data, { authorize: true })
         .then(response => {
           vm.updateStatus(response.data.status.status)
         })
@@ -748,7 +748,7 @@ export default {
     sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = '/ramp-p2p/order/feedback/peer/'
       const body = {
         order_id: vm.order.id,
         rating: feedback.rating,
@@ -780,7 +780,7 @@ export default {
     fetchFeedback () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/feedback/peer'
+        const url = '/ramp-p2p/order/feedback/peer/'
         backend.get(url, {
           params: {
             limit: 7,
@@ -819,7 +819,7 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
           })
@@ -959,6 +959,7 @@ export default {
         console.log('WebSocket data:', data)
         if (data?.txdata) {
           this.verifyingTx = false
+          this.sendingBch = false
         }
         this.fetchOrder()
           .then(() => {

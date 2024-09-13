@@ -93,7 +93,7 @@ export default {
     getDarkModeClass,
     async fetchFeedback () {
       const vm = this
-      const url = '/ramp-p2p/order/feedback/arbiter'
+      const url = '/ramp-p2p/order/feedback/arbiter/'
       const params = {
         limit: 5,
         page: 1,

@@ -436,7 +436,7 @@ export default {
     },
     fetchAppeal () {
       const vm = this
-      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
+      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: true })
         .then(response => {
           vm.appeal = response.data?.appeal
         })
@@ -479,7 +479,7 @@ export default {
       this.showUserProfile = true
     },
     onViewAd (id) {
-      backend.get('/ramp-p2p/ad-snapshot',
+      backend.get('/ramp-p2p/ad/snapshot/',
         { authorize: true, params: { ad_snapshot_id: id } }
       )
         .then(response => {

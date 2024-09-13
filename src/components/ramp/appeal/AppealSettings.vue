@@ -26,6 +26,7 @@
           </div>
           <div class="row">
             <q-select
+              color="primary"
               class="col"
               outlined
               v-model="selectedInactiveTime"
@@ -36,6 +37,11 @@
               :hint="inactiveHint"
               :hide-hint="!isActive"
               @update:model-value="onSetInactive">
+              <template v-slot:option="scope">
+                <q-item :class="darkMode ?  'text-white' : 'text-black'">
+                  {{ scope.opt.label }}
+                </q-item>
+              </template>
             </q-select>
           </div>
           <div v-if="!isActive" class="row justify-end q-mt-xs">
@@ -51,6 +57,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ConfirmationDialog from './ConfirmationDialog.vue'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
+import { wallet } from 'src/exchange/wallet'
 
 export default {
   data () {
@@ -95,7 +102,7 @@ export default {
     getDarkModeClass,
     fetchUserData () {
       return new Promise((resolve, reject) => {
-        backend.get('ramp-p2p/arbiter/detail', { authorize: true })
+        backend.get(`ramp-p2p/arbiter/${wallet.walletHash}`, { authorize: true })
           .then((response) => {
             this.currencies = response.data?.fiat_currencies
             this.selectedInactiveTime = null
@@ -165,7 +172,7 @@ export default {
       const body = {
         inactive_hours: hours
       }
-      backend.patch('ramp-p2p/arbiter/detail', body, { authorize: true })
+      backend.patch('ramp-p2p/arbiter/', body, { authorize: true })
         .then(() => {
           this.fetchUserData()
           this.$emit('setInactive')
