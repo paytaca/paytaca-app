@@ -4,16 +4,15 @@
             <div class="q-mt-sm q-mx-md" style="overflow: auto">
                 <div class="row justify-center q-mb-md text-center" style="font-size: medium;">Transaction History</div>
                 <div v-for="(transaction, index) in transactionHistory" :key=index>
-                    <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
                     <div class="row no-wrap sm-font-size q-my-sm" :class="darkMode ? '' : 'text-grey-7'">
                         <div class="col">
-                            <div>{{ transaction.action }}</div>
-                            <div :class="transaction.txid ? 'text-blue' : ''" @click="copyToClipboard(transaction.txid)" :style=" transaction.txid ? 'text-decoration-line: underline' : ''">
-                                {{ transaction.txid?.substring(0, 20) }}{{ transaction.txid ? '...' : '' }}
-                            </div>
-                            <div>{{ formatDate(transaction.created_at, false)}}</div>
+                            <q-input hide-bottom-space readonly filled dense class="q-pa-none" :label="transaction.action" :hint="formatDate(transaction.created_at, false)" v-model="transaction.txid">
+                              <template v-slot:append>
+                                <q-icon flat dense class="col-auto" :color="transaction.valid ? 'green' : 'warning'" :name="transaction.valid ? 'check_circle' : 'pending'"/>
+                                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink(transaction.txid))"/>
+                              </template>
+                            </q-input>
                         </div>
-                        <q-btn flat dense class="col-auto" :color="transaction.valid ? 'green' : 'warning'" :icon="transaction.valid ? 'check_circle' : 'pending'"></q-btn>
                     </div>
                 </div>
             </div>
@@ -22,6 +21,7 @@
 </template>
 <script>
 import { formatOrderStatus, formatDate } from 'src/exchange'
+import { openURL } from 'quasar'
 
 export default {
   data () {
@@ -34,7 +34,13 @@ export default {
   props: {
     transactionHistory: Array
   },
+  computed: {
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    }
+  },
   methods: {
+    openURL,
     formatOrderStatus,
     formatDate,
     copyToClipboard (value) {
@@ -45,6 +51,14 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
+    },
+    explorerLink (txid) {
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/tx/'
+      }
+      return `${url}${txid}`
     }
   }
 }
