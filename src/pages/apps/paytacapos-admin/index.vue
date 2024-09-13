@@ -17,7 +17,7 @@
           round
           icon="add"
           class="btn-scan button text-white bg-grad"
-          @click="() => openMerchantInfoDialog()"
+          @click="checkBalance"
         />
       </div>
 
@@ -82,6 +82,17 @@
         </div>
       </div>
     </div>
+    <q-dialog v-model="confirm" persistent>
+      <q-card>
+        <q-card-section class="row items-center">
+          <span class="q-ml-sm">{{ $t('MerchantVerificationMintingFeeMsg') }}</span>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('OK')" color="brandblue" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-pull-to-refresh>
 </template>
 <script setup>
@@ -102,6 +113,8 @@ const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const confirm = ref(false)
+
 onMounted(() => refreshPage())
 
 const authWallet = ref({ walletHash: '', walletType: '' })
@@ -134,6 +147,14 @@ const reLogin = async () => {
 }
 const reLoginDebounced = debounce(reLogin, 500)
 
+async function checkBalance () {
+  const wallet = await loadWallet('BCH')
+  const response = await wallet.BCH.getBalance()
+  const enough = response.balance >= 0.00003
+  confirm.value = !enough
+  
+  if (enough) openMerchantInfoDialog()
+}
 
 const walletType = 'bch'
 const walletData = computed(() => {

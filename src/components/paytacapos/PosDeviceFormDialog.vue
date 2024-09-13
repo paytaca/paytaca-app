@@ -154,9 +154,8 @@ const defaultBranch = computed(() => {
 
 async function getFirstPosPubkeys (posid) {
   const wallet = await loadWallet('BCH')
-  const posFirstIndex = '1' + padPosId(posid)
-  const pubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true, Number(posFirstIndex))
-  return pubkeys
+  const posFirstIndex = Number('1' + padPosId(posid))
+  return await wallet.BCH.getPublicKey(undefined, undefined, true, posFirstIndex)
 }
 
 async function getZerothAddressAndWif () {
@@ -169,25 +168,8 @@ async function getZerothAddressAndWif () {
   }
 }
 
-async function hasEnoughBalance () {
-  const wallet = await loadWallet('BCH')
-  const response = await wallet.BCH.getBalance()
-  const enough = response.balance >= 0.00002
-
-  if (!enough) {
-    $q.notify({
-      icon: 'warning',
-      color: 'warning',
-      message: $t('DeviceVerificationMintingFeeMsg'),
-    })
-  }
-  return enough
-}
-
 // device vault token address
-async function mintMintingNftToDeviceVault (tokenAddress) {
-  newDeviceLoadingMsg.value = $t('MintingDeviceMintingNft', {}, 'Minting verification minting NFT to device vault')
-  
+async function mintMintingNftToDeviceVault (tokenAddress, category) {  
   const { address, wif } = await getZerothAddressAndWif()
   const opts = {
     params: {
@@ -205,41 +187,58 @@ async function mintMintingNftToDeviceVault (tokenAddress) {
   }
   
   const minter = new VerificationTokenMinter(opts)
-  await minter.mintMintingNft(tokenAddress)
+  const result = await minter.mintMintingNft(tokenAddress)
   loading.value = false
 }
 
+async function checkBalance () {
+  const wallet = await loadWallet('BCH')
+  const response = await wallet.BCH.getBalance()
+  const enough = response.balance >= 0.00003
+  if (!enough) {
+    $q.notify({
+      color: 'brandblue',
+      message: $t('DeviceVerificationMintingFeeMsg'),
+      icon: 'mdi-information',
+      timeout: 3000
+    })
+  }
+  return enough
+}
+
 async function savePosDevice() {
-  const posid = props.posDevice?.posid
+  let posid = props.posDevice?.posid
   const data = Object.assign({
     wallet_hash: props.posDevice?.walletHash || walletData?.value?.walletHash,
     branch_id: posDeviceForm.value.branchId,
     merchant_id: props.posDevice?.merchantId || props.merchantId,
   }, posDeviceForm.value)
+  let hasVault = false
+  loading.value = true
 
   if (!props.newDevice) {
     data.posid = posid
-
+    
     const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
     const response = await posBackend.get(url)
-    if (response.data.length !== 0) {
-      const enoughBal = await hasEnoughBalance()
-      if (!enoughBal) return
+    if (response.data.results.length === 0) {
+      const enough = await checkBalance()
+      if (!enough) {
+        loading.value = false
+        return
+      }
+    } else {
+      hasVault = response.data.results.length > 0
     }
-  }
-  else {
-    const enoughBal = await hasEnoughBalance()
-    if (!enoughBal) return
-
+  } else {
     data.posid = -1
     const payload = { wallet_hash: data.wallet_hash }
     const response = await posBackend.post('/paytacapos/devices/latest_posid/', payload)
-    posid = response.posid
+    posid = response.data.posid
   }
 
   const receivingPubkey = await getFirstPosPubkeys(posid)
   data.pubkey = receivingPubkey.receiving
-  loading.value = true
 
   const apiRequest = posBackend.post(`/paytacapos/devices/`, data, { authorize: true })
     .catch(error => {
@@ -248,11 +247,16 @@ async function savePosDevice() {
     })
     .finally(() => {
       loading.value = false
-      // const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
-      // posBackend.get(url).then(response => {
-      //   const deviceVault = response.data[0]
-      //   mintMintingNftToDeviceVault(deviceVault.token_address)
-      // })
+      const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
+      posBackend.get(url).then(response => {
+        if (response?.data?.results?.length > 0 && !hasVault) {
+          const deviceVault = response?.data?.results[0]
+          mintMintingNftToDeviceVault(
+            deviceVault.token_address,
+            deviceVault.category
+          )
+        }
+      })
     })
 
   onDialogOK(apiRequest)

@@ -132,7 +132,7 @@
             round
             class="button"
             :color="darkMode ? 'grad' : 'brandblue'"
-            @click="addNewPosDevice()"
+            @click="checkBalance"
           />
         </div>
         <q-separator :color="darkMode ? 'white' : 'grey-7'" class="q-mt-md q-mb-lg"/>
@@ -276,8 +276,21 @@
         </div>
       </q-card-section>
     </q-card>
+
+    <q-dialog v-model="confirm" persistent>
+      <q-card>
+        <q-card-section class="row items-center">
+          <span class="q-ml-sm">{{ $t('DeviceVerificationMintingFeeMsg') }}</span>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('OK')" color="brandblue" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-pull-to-refresh>
 </template>
+
 <script setup>
 import BCHJS from '@psf/bch-js';
 import { backend as posBackend, parsePosDeviceData, padPosId, authToken } from 'src/wallet/pos'
@@ -307,7 +320,7 @@ const $store = useStore()
 const $q = useQuasar()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-
+const confirm = ref(false)
 const walletType = 'bch'
 const walletData = computed(() => {
   const _walletData = $store.getters['global/getWallet'](walletType)
@@ -321,6 +334,16 @@ const walletData = computed(() => {
   Object.assign(data, _walletData)
   return data
 })
+
+
+async function checkBalance () {
+  const wallet = await loadWallet('BCH')
+  const response = await wallet.BCH.getBalance()
+  const enough = response.balance >= 0.00002
+  confirm.value = !enough
+
+  if (enough) addNewPosDevice()
+}
 
 const wallet = ref(null)
 async function initWallet() {

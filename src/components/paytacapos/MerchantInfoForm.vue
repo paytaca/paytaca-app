@@ -154,6 +154,7 @@
     </div>
   </q-form>
 </template>
+
 <script setup>
 import countriesJson from 'src/assets/countries.json'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
@@ -162,9 +163,9 @@ import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
-import { loadWallet } from 'src/wallet'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
+import { loadWallet } from 'src/wallet';
 
 const $emit = defineEmits(['cancel', 'saved'])
 const props = defineProps({
@@ -356,36 +357,47 @@ async function selectCoordinates(opts={ autoFocusSearch: false }) {
     })
 }
 
-async function hasEnoughBalance () {
+async function checkBalance () {
   const wallet = await loadWallet('BCH')
   const response = await wallet.BCH.getBalance()
   const enough = response.balance >= 0.00003
-
   if (!enough) {
     $q.notify({
-      icon: 'warning',
-      color: 'warning',
+      color: 'brandblue',
       message: $t('MerchantVerificationMintingFeeMsg'),
+      icon: 'mdi-information',
+      timeout: 3000
     })
   }
   return enough
 }
 
 async function updateMerchantInfo() {
-  const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
-
-  if (data?.id) {
-    const merchant = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
-    if (!merchant?.minter) {
-      const enoughBal = await hasEnoughBalance()
-      if (!enoughBal) return
-    }
-  } else {
-    const enoughBal = await hasEnoughBalance()
-    if (!enoughBal) return
-  }
-  
   loading.value = true
+  
+  const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
+  let hasMinter = false
+  
+  if (data?.id) {
+    const response = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
+    if (response?.data?.minter) {
+      hasMinter = true
+    } else {
+      const enough = await checkBalance() 
+      if (!enough) return
+    }
+  }
+
+  let minterDetails = $store.getters['paytacapos/verificationTokenMinter']
+  if (!minterDetails && !hasMinter) {
+    minterDetails = await $store.dispatch('paytacapos/mintGenesisVerificationMintingNft')
+  }
+
+  if (minterDetails?.category && minterDetails?.address) {
+    data.minter_category = minterDetails.category
+    data.minter_address = minterDetails.address
+  }
+
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {
       $q.notify({
@@ -393,7 +405,7 @@ async function updateMerchantInfo() {
         color: 'positive',
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
-      $store.dispatch('paytacapos/mintVerificationMintingNft', { merchantId: response?.data?.id })
+      $store.commit('paytacapos/clearVerificationTokenMinter')
       $emit('saved', response?.data)
       return response
     })
