@@ -101,6 +101,7 @@ import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialo
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import ChatDialog from 'src/components/ramp/fiat/dialogs/ChatDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
+import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -129,7 +130,7 @@ export default {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
-      websocket: {
+      websocketManager: {
         watchtower: null,
         chat: null
       },
@@ -210,12 +211,17 @@ export default {
     getDarkModeClass,
     onSendingBch (sending) {
       this.sendingBch = sending
+      if (!sending) {
+        this.refreshData()
+      }
     },
     onVerifyingTx (verifying) {
       this.verifyingTx = verifying
+      if (!verifying) {
+        this.refreshData()
+      }
     },
     async refreshData (done) {
-      console.log('refreshData')
       if (this.sendingBch || this.verifyingTx) {
         if (done) done()
         return
@@ -269,33 +275,29 @@ export default {
           })
       })
     },
-    fetchAppeal () {
+    async fetchAppeal () {
       const vm = this
-      return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal/`, { authorize: true })
-          .then(response => {
-            vm.appeal = response.data.appeal
-            vm.contract = response.data.contract
-            vm.fees = response.data.fees
-            vm.order = response.data.order
-            vm.appealDetailData = response.data
-            vm.updateStatus(response.data.order?.status)
-            vm.loading = false
-            resolve(response.data)
-          })
-          .catch(error => {
-            console.error(error.response)
-            if (error.response) {
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
+      await backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal/`, { authorize: true })
+        .then(response => {
+          vm.appeal = response.data.appeal
+          vm.contract = response.data.contract
+          vm.fees = response.data.fees
+          vm.order = response.data.order
+          vm.appealDetailData = response.data
+          vm.updateStatus(response.data.order?.status)
+          vm.loading = false
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            this.loading = false
-            reject(error)
-          })
-      })
+          } else {
+            bus.emit('network-error')
+          }
+          this.loading = false
+        })
     },
     generateContract () {
       if (!this.contract || !this.fees) return
@@ -310,9 +312,7 @@ export default {
       this.escrowContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
     },
     updateStatus (status) {
-      // if (this.status && status && this.status.value === status.value) return
       this.status = status
-
       switch (this.status.value) {
         case 'RFN_PN':
           this.selectedAction = 'REFUND'
@@ -321,7 +321,6 @@ export default {
           this.selectedAction = 'RELEASE'
           break
       }
-
       this.checkStep()
     },
     checkStep () {
@@ -437,56 +436,33 @@ export default {
     },
     setupWebsocket () {
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
-      const wsChatUrl = `${getChatBackendWsUrl()}${this.appealDetailData?.order?.chat_session_ref}/`
-      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
-      this.websocket.chat = new WebSocket(wsChatUrl)
-
-      // on open
-      this.websocket.watchtower.onopen = () => {
-        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
-      }
-      this.websocket.chat.onopen = () => {
-        console.log('Chat WebSocket connection established to ' + wsChatUrl)
-      }
-
-      this.websocket.watchtower.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('WebSocket data:', data)
-        if (data) {
-          if (data.success) {
-            this.fetchAppeal().then(this.reloadChildComponents())
-          } else if (data.error) {
-            this.errorMessages.push(data.error)
-            this.appealTransferKey++
-          } else if (data.errors) {
-            this.errorMessages.push(...data.errors)
-            this.appealTransferKey++
-          }
+      this.websocketManager.watchtower = new WebSocketManager()
+      this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
+      this.websocketManager.watchtower.subscribeToMessages((message) => {
+        if (message?.success) {
+          this.fetchAppeal().then(this.reloadChildComponents())
+        } else if (message?.error || message?.errors) {
+          this.errorMessages.push(message.error || [...message.errors])
+          this.appealTransferKey++
         }
-      }
-      this.websocket.chat.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data)
-        console.log('Chat WebSocket data:', parsedData)
+      })
 
-        if (parsedData?.type === 'new_message') {
-          const messageData = parsedData.data
+      const wsChatUrl = `${getChatBackendWsUrl()}${this.appealDetailData?.order?.chat_session_ref}/`
+      this.websocketManager.chat = new WebSocketManager()
+      this.websocketManager.chat.setWebSocketUrl(wsChatUrl)
+      this.websocketManager.chat.subscribeToMessages((message) => {
+        if (message?.type === 'new_message') {
+          const messageData = message.data
           // RECEIVE MESSAGE
           console.log('Received a new message:', messageData)
           this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
           if (this.openChat) bus.emit('new-message', messageData)
         }
-      }
-
-      this.websocket.watchtower.onclose = () => {
-        console.log('WebSocket connection closed.')
-      }
-      this.websocket.chat.onclose = () => {
-        console.log('Chat WebSocket connection closed.')
-      }
+      })
     },
     closeWSConnection () {
-      if (this.websocket.watchtower) this.websocket.watchtower.close()
-      if (this.websocket.chat) this.websocket.chat.close()
+      if (this.websocketManager.watchtower) this.websocketManager.watchtower.closeConnection()
+      if (this.websocketManager.chat) this.websocketManager.chat.closeConnection()
     },
     onViewPeer (data) {
       this.peerInfo = data

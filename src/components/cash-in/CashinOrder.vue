@@ -280,7 +280,7 @@ export default {
     },
     appealOrder () {
       const vm = this
-      const url = '/ramp-p2p/order/appeal/'
+      const url = '/ramp-p2p/appeal/'
       const data = {
         order_id: vm.order.id,
         type: 'RFN',
