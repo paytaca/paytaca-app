@@ -181,6 +181,7 @@ const phrases = {
       SelectAssetToSend: "Select Asset to Send",
       SelectAssetToBeReceived: "Select Asset to be Received",
       SendToAnotherAddress: "Send to another address",
+      SendTo: "Send to",
       SendTransaction: "Send Transaction",
       SignTransaction: "Sign Transaction",
       SelectCustomToken: "Select custom token",
@@ -743,7 +744,7 @@ const phrases = {
       ReleasingBch: 'Releasing BCH, please wait.',
       RefundingBch: 'Refunding BCH, please wait.',
       PaymentConfirmationReleaseFundsMsg: 'Please release the funds if you have received the fiat payment.',
-      ConfirmPayment: 'ConfirmPayment',
+      ConfirmPayment: 'Confirm Payment',
       SearchUser: 'Search User...',
       BuyBCH: 'Buy BCH',
       SellBCH: 'Sell BCH',
@@ -976,7 +977,7 @@ const phrases = {
       UpdateSessionMsg: 'Input wallet index or WIF',
       NoProducts: 'No products',
       FungibleAmount: 'Fungible amount',
-      SeelectAddresses: 'Select the addresses to use on this site',
+      SelectAddresses: 'Select the addresses to use on this site',
       Permissions: 'Permissions: see address, account balance, activity and suggest transactions to approve',
       OnlyConnect: 'Only connect with sites you trust.',
       ConnectedAddress: 'Connected Addresses',
@@ -1077,6 +1078,14 @@ const phrases = {
       FirstName: "First name",
       LastName: "Last name",
       PhoneNumber: "Phone Number",
+    },
+    {
+      SearchAddress: 'Search address',
+      ClearSearch: 'Clear search',
+      AddressCouldNotBeFound: 'Sorry, that address could not be found.',
+      SweepSuccessMessage: "Assets claimed successfully",
+      AllLimitsReachedMessage: 'Sorry, this transaction did not qualify for a cashback as it exceeds limits stated in the campaign.',
+      CashbackAttribute: 'Cashback received for transacting with'
     }
   ],
   dynamic: [
@@ -1139,6 +1148,11 @@ const phrases = {
     {
       UnableToFindChatSessionOrderID: "Unable to find chat session for order #{ID}",
       DeleteMerchantName: "Delete merchant {name}",
+      WithLimitMerchantNameMessage: 'Congratulations! You qualify for a cashback for transacting with <span class="cashback-text">{merchantName}</span>.',
+      NoLimitsReachedMessage: 'You will receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
+      CustomerLimitReachedMessage: 'But since it falls within the set customer limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
+      MerchantLimitReachedMessage: 'But since it falls within the set merchant limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
+      TransactionLimitReachedMessage: 'But since it falls within the set transaction limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.'
     }
   ]
 }

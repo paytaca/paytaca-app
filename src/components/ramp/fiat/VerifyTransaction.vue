@@ -74,7 +74,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
@@ -161,12 +161,7 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         vm.loading = true
-        backend.get('/ramp-p2p/order/contract', {
-          params: {
-            order_id: vm.data?.orderId
-          },
-          authorize: true
-        })
+        backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true })
           .then(response => {
             vm.contract = response.data
             resolve(response.data)
@@ -179,6 +174,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -188,15 +184,19 @@ export default {
       const vm = this
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release`, body, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
         .then(response => {
           console.log(response.data)
         })
         .catch(error => {
           console.error(error?.response || error)
           vm.errorMessage = error.response?.data?.error
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
           vm.hideBtn = false
           vm.disableBtn = false
@@ -208,7 +208,7 @@ export default {
       const vm = this
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow`, body, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
         .then(response => {
           console.log(response.data)
         })
@@ -217,8 +217,12 @@ export default {
           if (error.response?.data?.error === 'txid is required') {
             vm.errorMessage = 'Transaction ID is required for verification'
           }
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
           vm.hideBtn = false
           vm.disableBtn = false

@@ -11,8 +11,12 @@
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm q-pt-md">
+    <div class="q-mx-sm q-mt-md">
       <SessionLocationWidget ref="sessionLocationWidget" />
+    </div>
+
+    <div class="q-px-md q-py-md">
+      <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -201,13 +205,15 @@ import { backend } from 'src/marketplace/backend'
 import { Order, Storefront } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText, getISOWithTimezone, round, roundRating } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { computed, ref, onMounted, watch, onActivated } from 'vue'
+import { computed, ref, onMounted, watch, onActivated, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
 import MarketplaceHeaderMenu from 'src/components/marketplace/MarketplaceHeaderMenu.vue'
+import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
 
 
 const $q = useQuasar()
@@ -225,35 +231,63 @@ function resetPage() {
 }
 
 
-onMounted(() => refreshPage())
+// add delay to get loadAppPromise from MarketplaceLayout to initialize
+onMounted(() => setTimeout(() => refreshPage(), 100))
 onActivated(() => {
   if (!initialized.value) return
   fetchOrders()
 })
 
+const loadAppPromise = ref()
+async function onLoadAppInit(_loadAppPromise) {
+  loadAppPromise.value = _loadAppPromise
+  try {
+    await loadAppPromise.value
+  } finally {
+    loadAppPromise.value = undefined
+  }
+}
+onMounted(() => bus.on('marketplace-init-promise', onLoadAppInit))
+onUnmounted(() => bus.off('marketplace-init-promise', onLoadAppInit))
+
+
+const customer = computed(() => $store.getters['marketplace/customer'])
 const sessionLocationWidget = ref()
 const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
-onMounted(async () => {
+async function initializeLocation() {
+  const _isValidCoordinates = (opts={ ignoreExpired: false }) => sessionLocation.value?.id &&
+      sessionLocation.value?.validCoordinates &&
+      (!sessionLocation.value?.expired || opts?.ignoreExpired)
+
+  if (_isValidCoordinates()) return
+
   if (!sessionLocationWidget.value) {
-    if(!sessionLocation.value?.isDeviceLocation && sessionLocation.value?.id) return
-    return updateLocation()
+    await updateLocation()
       .then(() => $store.commit('marketplace/setSelectedSessionLocationId'))
       .catch(console.error)
   } else {
-    sessionLocationWidget.value.openLocationSelector = true
+    await sessionLocationWidget.value.setCurrentLocation({
+      keepSelectorOpen: true, hideDialogOnError: true
+    })
+      ?.then(() => sessionLocationWidget.value.setCurrentLocation = true)
+      ?.catch?.(console.error)
   }
 
-  if(!sessionLocation.value?.isDeviceLocation && sessionLocation.value?.id) return
+  if (_isValidCoordinates({ ignoreExpired: true })) return
 
-  setTimeout(async () => {
-    await sessionLocationWidget.value
-      ?.setCurrentLocation?.({ keepSelectorOpen: true, hideDialogOnError: true })
-      ?.catch(console.error)
-    if (!sessionLocation.value?.validCoordinates) {
-      sessionLocationWidget.value?.updateDeviceLocation({ keepSelectorOpen: true })
+  if (customer.value?.defaultLocation?.validCoordinates) {
+    $store.commit('marketplace/addCustomerLocation', customer.value?.defaultLocation?.$raw)
+    $store.commit('marketplace/setSelectedSessionLocationId', customer.value?.defaultLocation?.id)
+    if (sessionLocationWidget.value) {
+      sessionLocationWidget.value.openLocationSelector = false
     }
-  }, 250)
-})
+    return
+  }
+
+  if (sessionLocationWidget.value) {
+    sessionLocationWidget.value?.updateDeviceLocation?.()
+  }
+}
 const updateLocationPromise = ref()
 async function updateLocation() {
   if (!updateLocationPromise.value) {
@@ -366,6 +400,8 @@ async function fetchOrders(opts = { limit: 0, offset: 0 }) {
 
 async function refreshPage(done=() => {}) {
   try {
+    await loadAppPromise.value
+    if (!initialized.value) await initializeLocation().catch(console.error)
     await Promise.all([
       fetchStorefronts(),
       fetchOrders(),

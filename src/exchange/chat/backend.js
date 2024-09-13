@@ -1,6 +1,6 @@
 import BCHJS from '@psf/bch-js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
 
@@ -81,79 +81,30 @@ export async function setSignerData (value = '') {
 }
 
 export async function updateSignerData () {
-  console.log('Updating signer data')
+  console.log('Updating chat signer data')
+  if (!wallet) loadRampWallet()
 
-  const wallet = loadRampWallet()
-  const walletHash = wallet?.walletHash
-
+  // fetches the verifying keypair at adress path 0/0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
-  const privkey = await wallet.privkey(null, `0/${verifyingPubkeyIndex}`)
-  const verifyingPubkey = await wallet.pubkey(null, `0/${verifyingPubkeyIndex}`)
-  // if (currentVerifyingPubkey && currentVerifyingPubkey !== verifyingPubkey) {
-  //   // Resolve the correct keypair
-  //   console.log('Pubkeys do not match. Resolving correct keypair')
-  //   const [keypair, index] = await resolveMatchingKeypair(wallet, currentVerifyingPubkey, currentIndex)
-  //   if (!keypair || !index) {
-  //     return Promise.reject('Failed to updateVerifyingPubkey: Could not find matching keypair/index')
-  //   }
-  //   // Update the verifying pubkey in the server
-  //   await updateVerifyingPubkey(wallet, keypair, verifyingPubkey, index)
-  // }
+  const privkey = await wallet.privkey(`0/${verifyingPubkeyIndex}`)
+  const verifyingPubkey = await wallet.pubkey(`0/${verifyingPubkeyIndex}`)
 
-  const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
+  // generate message and signature to verify
   const message = `${Date.now()}`
   const signature = await (await wallet.raw()).signMessage(message, verifyingPubkeyIndex)
+
+  // get address from verifyingPubkey
+  const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
   const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
   const address = bchjs.ECPair.toLegacyAddress(ecPair)
+
+  // verify if signature is valid for address
   const valid = await (await wallet.raw()).verifyMessage(address, signature, message)
   if (!valid) return Promise.reject('Invalid signature on updateSignerData')
 
-  const result = await setSignerData(`${walletHash}:${privkey}`)
-  console.log('setSignerData result:', result)
-}
-
-async function resolveMatchingKeypair (wallet, currentVerifyingPubkey, endIndex) {
-  let keypair = null
-  let matchingIndex = null
-  console.log(`Starting at index ${endIndex}`)
-  for (let index = endIndex; index >= 0; index--) {
-    const verifyingPubkey = await wallet.pubkey(null, `0/${index}`)
-    if (verifyingPubkey === currentVerifyingPubkey) {
-      console.log(`Found match at index ${index}`)
-      const privateKey = await wallet.privkey(null, `0/${index}`)
-      keypair = {
-        publicKey: verifyingPubkey,
-        privateKey: privateKey
-      }
-      matchingIndex = index
-      break
-    }
-  }
-  return [keypair, matchingIndex]
-}
-
-async function updateVerifyingPubkey (wallet, keypair, verifyingPubkey, index) {
-  // set the signer data temporarily
-  const pubkeyBuffer = Buffer.from(keypair.publicKey, 'hex')
-  const message = `${Date.now()}`
-  const signature = await (await wallet.raw()).signMessage(message, index)
-  const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
-  const address = bchjs.ECPair.toLegacyAddress(ecPair)
-  const valid = await (await wallet.raw()).verifyMessage(address, signature, message)
-  if (!valid) return Promise.reject('Invalid signature in updateVerifyingPubkey')
-  setSignerData(`${wallet.walletHash}:${keypair.privateKey}`)
-
-  // set the verifying pubkey to the pubkey at 0/0
-  const data = {
-    verifying_pubkey: verifyingPubkey
-  }
-  await chatBackend.post('chat/identities/', data, { forceSign: true })
-    .then(response => {
-      console.log('Updated verifying pubkey:', response.data)
-    })
-    .catch(error => {
-      console.error(error.response)
-    })
+  // store this walletHash:privkey pair as current chat signer
+  const walletHash = wallet?.walletHash
+  await setSignerData(`${walletHash}:${privkey}`)
 }
 
 export function getChatBackendWsUrl () {

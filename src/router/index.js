@@ -6,6 +6,7 @@ import store from '../store'
 
 import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
+import { isValidWif } from 'src/wallet/sweep'
 
 /*
  * If not building with SSR mode, you can
@@ -73,6 +74,7 @@ export default function ({ store }) {
 
   Plugins.App.addListener('appUrlOpen', function (event) {
     const url = new URL(event.url)
+    console.log('App URL open', { url })
     if (/\/payment-request\/?$/.test(url.pathname) || /\/apps\/connecta\/?$/.test(url.pathname)) {
       const query = {}
       if (url.searchParams.has('d')) query.paymentRequestData = url.searchParams.get('d')
@@ -88,6 +90,11 @@ export default function ({ store }) {
         }
       })
     } else if (['ethereum:', 'bitcoincash:', 'paytaca:'].indexOf(url.protocol) >= 0) {
+      if (url.protocol === 'bitcoincash:' && isValidWif(url.pathname)) {
+        Router.push({ name: 'app-sweep', query: { w: url.pathname }})
+        return
+      }
+
       const query = { assetId: 'bch', paymentUrl: String(url) }
       try {
         const parsedPaymentUri = parsePaymentUri(

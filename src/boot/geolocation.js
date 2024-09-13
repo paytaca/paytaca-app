@@ -25,6 +25,8 @@ class GeolocationManager {
     })
     this.tracker = ref({ callbackId: null })
     this.isGpsStatusEnabled = ref(null)
+
+    this.geoip = ref({ longitude: NaN, latitude: NaN })
   }
 
   get geolocateOpts() {
@@ -238,6 +240,24 @@ class GeolocationManager {
     )
     console.log('Tracking location. Callback ID:', this.tracker.value.callbackId)
     return this.tracker.value.callbackId
+  }
+
+  getOrUpdateGeoIp() {
+    if (!Number.isNaN(this.geoip.value.latitude) && !Number.isNaN(this.geoip.value.longitude)) {
+      return this.geoip.value
+    }
+    return axios.get(`https://commercehub.paytaca.com/api/geoip/`)
+      .then(response => {
+        const result = Object.assign({}, response?.data, {
+          latitude: parseFloat(response?.data?.latitude),
+          longitude: parseFloat(response?.data?.longitude),
+        })
+        
+        if (Number.isNaN(result.latitude) || Number.isNaN(result.longitude)) return
+
+        this.geoip.value = result
+        return this.geoip.value
+      })
   }
 }
 

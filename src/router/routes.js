@@ -100,7 +100,7 @@ const routes = [
       { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
       { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
-      { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep' },
+      { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
       { path: 'chat', component: () => import('src/pages/apps/chat/index.vue'), name: 'app-chats-list' },
       { path: 'chat/conversation', component: () => import('src/pages/apps/chat/chat.vue'), name: 'app-chat-conversation', props: route => route.query },
@@ -130,40 +130,6 @@ const routes = [
         ]
       },
       { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
-      {
-        path: 'ramp/fiat',
-        name: 'ramp-fiat',
-        component: () => import('src/pages/apps/ramp-fiat.vue'),
-        children: [
-          {
-            path: 'store/',
-            name: 'ramp-fiat-store',
-            component: () => import('src/components/ramp/fiat/FiatStore.vue')
-          },
-          {
-            path: 'ads/',
-            name: 'ramp-fiat-ads',
-            component: () => import('src/components/ramp/fiat/FiatAds.vue'),
-            children: [
-              {
-                path: 'create/',
-                name: 'ads-create',
-                component: () => import('src/components/ramp/fiat/FiatAdsForm.vue')
-              }
-            ]
-          },
-          {
-            path: 'orders/',
-            name: 'ramp-fiat-orders',
-            component: () => import('src/components/ramp/fiat/FiatOrders.vue')
-          },
-          {
-            path: 'profile/',
-            name: 'ramp-fiat-profile',
-            component: () => import('src/components/ramp/fiat/FiatProfileCard.vue')
-          }
-        ]
-      },
       {
         path: 'exchange/',
         name: 'exchange',

@@ -265,7 +265,7 @@
 </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { loadRampWallet } from 'src/wallet/ramp/wallet'
+import { wallet } from 'src/exchange/wallet'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import {
@@ -277,18 +277,17 @@ import {
   sendChatMessage,
   fetchChatMessages,
   generateChatRef,
-  updateChatIdentity,
   updateLastRead,
   generateChatIdentityRef
-} from 'src/wallet/ramp/chat'
-import { ChatMessage } from 'src/wallet/ramp/chat/objects'
-import { formatDate } from 'src/wallet/ramp'
+} from 'src/exchange/chat'
+import { ChatMessage } from 'src/exchange/chat/objects'
+import { formatDate } from 'src/exchange'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
-import { getKeypair } from 'src/wallet/ramp/chat/keys'
+import { backend } from 'src/exchange/backend'
+import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -457,8 +456,6 @@ export default {
   },
   computed: {
     userName () {
-      // const vm = this
-      // return vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).name
       return this.chatIdentity?.name
     },
     theme () {
@@ -504,7 +501,6 @@ export default {
           resolve(decMes)
         })
           .then(item => {
-            // const ref = this.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
             this.addingNewMessage = false
             const ref = this.chatIdentity?.ref
             item.chatIdentity.is_user = item.chatIdentity.ref === ref
@@ -534,13 +530,17 @@ export default {
     },
     async loadChatSession () {
       const vm = this
-      const chatIdentityRef = generateChatIdentityRef(loadRampWallet().walletHash)
+      const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
       vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
       let createSession = false
       await fetchChatSession(vm.chatRef)
         .catch(error => {
-          if (error.response?.status === 404) {
-            createSession = true
+          if (error.response) {
+            if (error.response?.status === 404) {
+              createSession = true
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
       await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
@@ -572,14 +572,7 @@ export default {
           .then(members => {
             // if mismatched name
             vm.chatMembers = members.map(member => {
-              // const name = this.$store.getters['ramp/getUser'].name
-              // if ((name !== member.chat_identity.name) && (member.chat_identity.ref === vm.chatIdentity.ref)) {
-              //   const payload = {
-              //     id: vm.chatIdentity.id,
-              //     name: name
-              //   }
-              //   updateChatIdentity(payload).then(response => { console.log('Updated chat identity name:', response.data) }).catch(console.error)
-              // }
+              const name = this.$store.getters['ramp/getUser'].name
 
               return {
                 id: member.chat_identity.id,
@@ -614,14 +607,18 @@ export default {
       })
         .catch(error => {
           console.error(error.response || error)
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response?.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
           })
@@ -630,6 +627,7 @@ export default {
               console.error(error.response)
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -719,7 +717,6 @@ export default {
       if (!vm.keypair.privkey) return
       await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
         .then(decryptedMessages => {
-          // const ref = vm.$store.getters['ramp/chatIdentity'](loadRampWallet().walletHash).ref
           const ref = vm.chatIdentity?.ref
           const temp = decryptedMessages
           temp.map(item => {

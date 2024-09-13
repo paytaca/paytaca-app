@@ -283,8 +283,8 @@
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
@@ -599,7 +599,7 @@ export default {
     },
     async fetchAd () {
       const vm = this
-      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, { authorize: true })
         .then(response => {
           const data = response.data
           vm.adData.tradeType = data.trade_type
@@ -672,7 +672,7 @@ export default {
     async updateAd () {
       const vm = this
       const body = vm.transformPostData(false)
-      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}`, body, { authorize: true })
+      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, body, { authorize: true })
         .then(() => {
           vm.swipeStatus = true
           // vm.$emit('submit')
@@ -685,15 +685,19 @@ export default {
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('ramp-p2p/arbiter', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
+        backend.get('ramp-p2p/arbiter/', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
           .then(response => {
             vm.arbiterOptions = response.data
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error.response)
-            if (error.response && error.response.status === 403) {
-              bus.emit('session-expired')
+            if (error.response) {
+              console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
+            } else {
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -702,22 +706,26 @@ export default {
     async getInitialMarketPrice () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/utils/market-price', { params: { currency: vm.selectedCurrency.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data?.price)
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)
         }
       } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     },
     async getFiatCurrencies () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/currency/fiat', { authorize: true })
+        const response = await backend.get('/ramp-p2p/currency/fiat')
         vm.fiatCurrencies = response.data
         if (!vm.selectedCurrency) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
@@ -731,8 +739,12 @@ export default {
           vm.selectedCurrency = vm.fiatCurrencies[0]
         }
 
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     },
@@ -741,9 +753,13 @@ export default {
         const { data } = await backend.get('/ramp-p2p/payment-method/', { authorize: true })
         return data
       } catch (error) {
-        console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          console.error(error.response)
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     },
@@ -980,6 +996,7 @@ export default {
         }
       } else {
         console.error(error)
+        bus.emit('network-error')
       }
     }
   }

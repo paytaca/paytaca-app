@@ -11,10 +11,7 @@
       <div v-else>
         <q-card-section v-if="!errorMessage" class="text-center q-pt-none">
           <span class="lg-font-size text-weight-bold">
-            {{ paymentMethod.payment_type?.full_name}}:
-          </span><br>
-          <span>
-            {{ paymentMethod.account_identifier }}
+            {{ paymentMethod.payment_type?.full_name}}
           </span>
         </q-card-section>
         <q-card-section v-else class="text-center q-pt-none q-mx-md">
@@ -74,54 +71,21 @@
             </template>
           </q-select>
           <div v-if="paymentMethod.payment_type">
-            <!-- Identifier Type -->
-            <q-select
-              v-if="paymentMethod.payment_type?.formats?.length > 1"
-              dense
-              borderless
-              filled
-              v-model="paymentMethod.identifier_format"
-              :label="$t('IdentifierType')"
-              :dark="darkMode"
-              :options="paymentMethod.payment_type?.formats"
-              @update:model-value="onUpdateIdentifierType"
-              class="q-py-xs">
-              <template v-slot:option="scope">
-                <q-item v-bind="scope.itemProps">
-                  <q-item-section>
-                    <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
-                      {{ scope.opt }}
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-select>
-            <div v-if="paymentMethod.identifier_format">
-              <!-- Account Identifier -->
+            <div v-for="(field, index) in paymentMethod?.payment_type?.fields" :key="index">
               <q-input
-                ref="accIdentifierRef"
                 dense
                 filled
                 hide-bottom-space
-                :label="paymentMethod.identifier_format"
+                :label="paymentMethod?.fields[field.id]?.fieldname"
                 :dark="darkMode"
-                :rules="[isValidIdentifier]"
-                v-model="paymentMethod.account_identifier"
+                :rules="[
+                  val => isValidIdentifier(val, field.fieldname, field.required)
+                ]"
+                v-model="paymentMethod.fields[field.id].value"
+                @update:model-value="onUpdateFieldValue"
                 class="q-py-xs">
               </q-input>
             </div>
-            <!-- Account Name -->
-            <q-input
-              v-if="paymentMethod.account_name || paymentMethod.payment_type.acc_name_required"
-              dense
-              filled
-              hide-bottom-space
-              :label="$t('AccountName')"
-              :dark="darkMode"
-              :rules="[val => !!val || $t('FieldRequired')]"
-              v-model="paymentMethod.account_name"
-              class="q-py-xs">
-            </q-input>
           </div>
         </div>
         <div class="q-my-md q-px-md q-mx-lg" v-if="paymentMethod.payment_type">
@@ -150,7 +114,7 @@
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -169,10 +133,12 @@ export default {
         payment_type: null,
         account_name: null,
         account_identifier: null,
-        identifier_format: null
+        identifier_format: null,
+        fields: {}
       },
       errorMessage: null,
-      actionType: this.action
+      actionType: this.action,
+      disableSubmitBtn: true
     }
   },
   emits: ['back', 'success'],
@@ -182,20 +148,16 @@ export default {
     paymentType: Object,
     currency: String
   },
-  computed: {
-    disableSubmitBtn () {
-      return this.isValidIdentifier(this.paymentMethod.account_identifier) !== true || (this.paymentMethod.payment_type?.acc_name_required && !this.paymentMethod.account_name)
-    }
-  },
   async mounted () {
     switch (this.action) {
       case 'deletePaymentMethod':
       case 'editPaymentMethod':
         await this.fetchPaymentMethod(this.paymentMethodId)
+        this.onUpdateFieldValue(this.paymentMethod.payment_type)
         break
       case 'addMethodFromAd':
         this.paymentMethod.payment_type = this.paymentType
-        this.paymentMethod.identifier_format = this.paymentType.formats[0]
+        this.onUpdatePaymentType(this.paymentType)
         break
       case 'createPaymentMethod':
         await this.fetchPaymentTypes()
@@ -207,9 +169,20 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isValidIdentifier (val) {
-      if (!val) return this.$t('FieldRequired')
-      const format = this.paymentMethod.identifier_format
+    onUpdateFieldValue () {
+      // Checks if value is valid
+      let hasEmptyValue = false
+      const fields = this.paymentMethod?.fields
+      for (const [, field] of Object.entries(fields)) {
+        if (field.required && !field.value) {
+          hasEmptyValue = true
+          break
+        }
+      }
+      this.disableSubmitBtn = hasEmptyValue
+    },
+    isValidIdentifier (val, format, required = false) {
+      if (required && !val) return this.$t('FieldRequired')
       switch (format) {
         case 'Email Address':
           if (/^[\w\\.~!$%^&*=+}{'?-]+@([\w-]+\.)+[\w-]{2,4}$/.test(val)) {
@@ -240,12 +213,15 @@ export default {
       this.paymentMethod.account_identifier = ''
     },
     onUpdatePaymentType (data) {
-      if (typeof data === 'string') {
-        this.paymentMethod.identifier_format = data
-      } else {
-        this.paymentMethod.identifier_format = data.formats[0]
-      }
-      this.paymentMethod.account_identifier = ''
+      const paymentFields = {}
+      data.fields.forEach(field => {
+        paymentFields[field.id] = {
+          fieldname: field.fieldname,
+          required: field.required,
+          value: null
+        }
+      })
+      this.paymentMethod.fields = paymentFields
     },
     filterPaymentTypes () {
       let currentMethods = null
@@ -268,14 +244,48 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
     async fetchPaymentMethod (id) {
       const vm = this
-      await backend.get(`/ramp-p2p/payment-method/${id}`, { authorize: true })
+      await backend.get(`/ramp-p2p/payment-method/${id}/`, { authorize: true })
         .then(response => {
-          vm.paymentMethod = response.data
+          const data = response.data
+          const fields = {}
+          // map payment method fields
+          data.values.forEach(field => {
+            fields[field.field_reference.id] = {
+              id: field.id,
+              fieldname: field.field_reference.fieldname,
+              required: field.field_reference.required,
+              value: field.value
+            }
+          })
+          // include missing required payment type fields
+          if (data.values.length < data.payment_type?.fields?.length) {
+            const methodFieldIds = data?.values?.map(item => { return item.field_reference.id })
+            const typeFieldIds = data?.payment_type?.fields?.map(item => { return item.id })
+            const missingFieldIds = typeFieldIds.filter(field => !methodFieldIds.includes(field))
+
+            const missingFields = data?.payment_type?.fields?.filter(item => missingFieldIds.includes(item.id))
+            missingFields.forEach(field => {
+              fields[field.id] = {
+                fieldname: field.fieldname,
+                required: field.required,
+                value: null
+              }
+            })
+          }
+          const paymentMethod = {
+            id: data.id,
+            owner: data.owner,
+            payment_type: data.payment_type,
+            fields: fields
+          }
+          vm.paymentMethod = paymentMethod
         })
         .catch(error => {
           console.error(error)
@@ -284,6 +294,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -292,7 +304,6 @@ export default {
       await backend.get('/ramp-p2p/payment-method/', { params: { currency: this.currency }, authorize: true })
         .then(response => {
           vm.currentPaymentMethods = response.data
-          // console.log('currentPaymentMethods:', vm.currentPaymentMethods)
         })
         .catch(error => {
           console.error(error)
@@ -301,6 +312,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -325,17 +338,33 @@ export default {
     },
     async savePaymentMethod () {
       const vm = this
+      const fields = []
+      const body = {}
       let url = '/ramp-p2p/payment-method/'
-      const body = {
-        account_name: vm.paymentMethod.account_name,
-        account_identifier: vm.paymentMethod.account_identifier,
-        identifier_format: vm.paymentMethod.identifier_format
-      }
       if (vm.action === 'editPaymentMethod') {
         url = url + vm.paymentMethodId
+        // construct payment type fields for edit request payload
+        for (const [key, field] of Object.entries(vm.paymentMethod.fields)) {
+          const data = {
+            id: field.id,
+            value: field.value
+          }
+          if (field.value && !field.required) {
+            data.field_reference = key
+          }
+          fields.push(data)
+        }
       } else {
+        // construct payment type fields for create request payload
+        for (const [key, field] of Object.entries(vm.paymentMethod.fields)) {
+          fields.push({
+            field_reference: key,
+            value: field.value
+          })
+        }
         body.payment_type = vm.paymentMethod.payment_type.id
       }
+      body.fields = fields
       switch (vm.action) {
         case 'editPaymentMethod':
           await this.editPaymentMethod(url, body)
@@ -353,25 +382,33 @@ export default {
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
     async editPaymentMethod (url, body) {
-      await backend.put(url, body, { authorize: true })
+      await backend.patch(url, body, { authorize: true })
         .then(response => {
           console.log(response)
         })
         .catch(error => {
           console.error(error.response)
-          if (error.response && error.response.status === 403) {
-            bus.emit('session-expired')
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
     async deletePaymentMethod () {
-      await backend.delete(`/ramp-p2p/payment-method/${this.paymentMethod.id}`, { authorize: true })
+      await backend.delete(`/ramp-p2p/payment-method/${this.paymentMethod.id}/`, { authorize: true })
         .catch(error => {
           console.error(error)
           console.error(error.response)
@@ -382,6 +419,8 @@ export default {
             if (error.response.status === 400) {
               this.errorMessage = error.response.data.error
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     }

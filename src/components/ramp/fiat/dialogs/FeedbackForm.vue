@@ -117,7 +117,7 @@
     </q-dialog>
 </template>
 <script>
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -180,7 +180,7 @@ export default {
     getDarkModeClass,
     async checkAppeal () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.orderId}/appeal`
+      const url = `/ramp-p2p/order/${vm.orderId}/appeal/`
 
       await backend.get(url, { authorize: true })
         .then(response => {
@@ -188,17 +188,22 @@ export default {
         })
         .catch(error => {
           console.log(error.response)
-
-          if (error.response.status === 400) {
-            if (error.response?.data?.error.includes('no appeal')) {
-              vm.appealed = false
+          if (error.response) {
+            if (error.response.status === 400) {
+              if (error.response?.data?.error.includes('no appeal')) {
+                vm.appealed = false
+              }
+            } else if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
     async fetchFeedback () {
       const vm = this
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = '/ramp-p2p/order/feedback/peer/'
       const params = {
         limit: 1,
         page: 1,
@@ -222,6 +227,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => {
@@ -231,7 +237,7 @@ export default {
         })
 
       if (vm.appealed) {
-        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter/'
         const arbiterParams = {
           limit: 1,
           page: 1,
@@ -256,6 +262,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
           })
           .finally(() => { vm.loading = false })
@@ -271,7 +278,7 @@ export default {
     sendFeedback () {
       const vm = this
       vm.btnLoading = true
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = '/ramp-p2p/order/feedback/peer/'
       const body = {
         order_id: vm.orderId,
         rating: vm.feedback.rating,
@@ -296,6 +303,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => {
@@ -305,7 +313,7 @@ export default {
         })
 
       if (this.appealed) {
-        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter'
+        const arbiterUrl = '/ramp-p2p/order/feedback/arbiter/'
         const arbiterBody = {
           order_id: vm.orderId,
           rating: vm.arbiterFeedback.rating,
@@ -329,6 +337,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
           })
           .finally(() => {

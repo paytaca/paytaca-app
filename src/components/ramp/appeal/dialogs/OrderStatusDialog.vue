@@ -1,26 +1,22 @@
 <template>
     <q-dialog v-model="showDialog" full-width position="bottom" @before-hide="$emit('back')">
-        <q-card class="br-15 q-pa-md q-ma-sm text-bow" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+        <q-card class="br-15 q-pa-md q-ma-sm text-bow" bordered flat :class="[darkMode ? 'pt-card-2 dark' : 'light']">
             <div class="q-mt-md q-mx-md" style="overflow: auto">
-                <div class="row justify-center q-mb-lg" style="font-size: medium;">Order No. {{ statusHistory?.[0]?.order }} Status History</div>
-                <q-separator class="q-my-sm" :dark="darkMode"/>
+                <div class="row justify-center q-mb-md lg-font-size">Order Status History</div>
                 <div v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
-                    <q-separator class="q-my-sm" :dark="darkMode" v-if="index !== 0"/>
-                    <div class="row justify-between no-wrap q-mx-lg">
-                    <span class="col">{{ formatOrderStatus(status.status) }}</span>
-                    <span class="col text-nowrap q-ml-xs">
-                        {{ formatDate(status.created_at) }}
-                    </span>
+                  <q-card flat :class="['card', darkMode ? 'dark' : 'light']">
+                    <div class="row q-pa-sm">
+                      <div class="col q-py-sm q-pl-sm" >{{formatOrderStatus(status.status)}}</div>
+                      <div class="col subtext" style="text-align: end">{{ formatDate(status.created_at) }}</div>
                     </div>
+                  </q-card>
                 </div>
-                <q-separator class="q-my-sm" :dark="darkMode"/>
             </div>
         </q-card>
     </q-dialog>
 </template>
 <script>
-import { formatOrderStatus, formatDate } from 'src/wallet/ramp'
-
+import { formatOrderStatus, formatDate } from 'src/exchange'
 export default {
   data () {
     return {
@@ -38,3 +34,23 @@ export default {
   }
 }
 </script>
+<style scoped>
+.subtext {
+  opacity: .5;
+}
+
+.lg-font-size {
+  font-size: large;
+}
+
+.card.dark {
+  background-color: #1c2833;
+  color: white;
+}
+
+.card.light {
+  background-color: #edf4fa;
+  color: black
+}
+
+</style>

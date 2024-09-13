@@ -3,11 +3,53 @@ import { loadWallet } from 'src/wallet'
 import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
+import { loadRampWallet, wallet } from 'src/exchange/wallet'
+import { ChatIdentityManager } from './objects'
+
+export const chatIdentityManager = new ChatIdentityManager()
+export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
+  if (!usertype) throw new Error('missing required parameter: usertype')
+  if (!params.name) throw new Error('missing required parameter: params.name')
+  if (!wallet) loadRampWallet()
+
+  const payload = {
+    user_type: usertype,
+    name: params.name,
+    chat_identity_id: params.chat_identity_id
+  }
+
+  const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
+
+  // fetch chat identity if existing
+  let identity = await fetchChatIdentity(chatIdentityRef)
+  if (identity) {
+    identity = chatIdentityManager.setIdentity(identity)
+    console.log('identity:', identity)
+  }
+
+  // update verifying and encryption keypairs
+  await chatIdentityManager._updateSignerData()
+  await chatIdentityManager._updateEncryptionKeypair(!!identity)
+
+  // create identity if not existing
+  if (!identity) {
+    payload.ref = chatIdentityRef
+    identity = await chatIdentityManager.create(payload)
+  }
+
+  // Update chat identity id (in watchtower) if currently unset (null) or mismatch
+  if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
+    updateChatIdentityId(payload.user_type, identity.id)
+  }
+
+  Store.commit('ramp/updateChatIdentity', { ref: chatIdentityRef, chatIdentity: identity })
+  return identity
+}
 
 export function updateOrderChatSessionRef (orderId, chatRef) {
   return new Promise((resolve, reject) => {
     const payload = { chat_session_ref: chatRef }
-    backend.patch(`/ramp-p2p/order/${orderId}`, payload, { authorize: true })
+    backend.patch(`/ramp-p2p/order/${orderId}/`, payload, { authorize: true })
       .then(response => {
         console.log('Updated order chat_session_ref:', response.data)
         resolve(response)
@@ -280,19 +322,16 @@ async function getKeypairSeed () {
   return privkey
 }
 
-export async function updateOrCreateKeypair (opts = { updatePubkey: true }) {
-  console.log('Updating chat keypair [opts]:', opts)
+export async function updateOrCreateKeypair (update = true) {
+  console.log('Updating chat encryption keypair')
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed: seed })
 
-  if (opts?.updatePubkey) {
+  if (update) {
     await updatePubkey(keypair.pubkey)
       .catch(error => {
-        console.error(error)
-        if (error.response) {
-          console.error(error.response)
-        }
-        return Promise.reject('Failed to save chat pubkey to server')
+        console.error(error.response || error)
+        return Promise.reject('Failed to create/update chat pubkey to server')
       })
   }
 

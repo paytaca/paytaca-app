@@ -186,13 +186,12 @@ export default defineComponent({
 
     async executeSecurityChecking () {
       try {
-        await SecureStoragePlugin.get({ key: 'pin' })
+        const vm = this
         setTimeout(() => {
-          if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-            this.pinDialogAction = 'VERIFY'
-          }
-        }, 500);
-      } catch {
+          vm.pinDialogAction = 'VERIFY'
+        }, 500)
+      } catch (err) {
+        console.error(err)
       }
     },
 

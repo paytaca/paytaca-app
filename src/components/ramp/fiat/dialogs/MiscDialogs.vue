@@ -503,10 +503,10 @@
 </template>
 
 <script>
-import { getAppealCooldown } from 'src/wallet/ramp'
+import { getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   emits: ['back', 'submit'],
@@ -867,6 +867,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
           vm.loading = false
         })

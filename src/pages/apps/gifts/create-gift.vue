@@ -162,6 +162,11 @@ import sha256 from 'js-sha256'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
+const aesjs = require('aes-js')
+const short = require('short-uuid')
+const pbkdf2 = require('pbkdf2')
+const sss = require('shamirs-secret-sharing')
+
 export default {
   name: 'Gifts',
   components: {
@@ -250,6 +255,18 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     isNotDefaultTheme,
+    encryptShard(shard) {
+      const password = short.generate()
+      const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
+      const textBytes = aesjs.utils.utf8.toBytes(shard)
+      const aesCtr = new aesjs.ModeOfOperation.ctr(key)
+      const encryptedBytes = aesCtr.encrypt(textBytes)
+      const encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes)
+      return {
+        code: password,
+        encryptedHex: encryptedHex
+      }
+    },
     disableGenerateButton () {
       if (this.amountBCH > 0) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
@@ -278,18 +295,18 @@ export default {
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
       const address = bchjs.ECPair.toCashAddress(pair)
-
-      const sss = require('shamirs-secret-sharing')
       const secret = Buffer.from(wif)
       const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
-      // console.log(shares)
-      vm.giftCodeHash = sha256(shares[0])
+      const encryptedShard = this.encryptShard(shares[0])
+
+      vm.giftCodeHash = sha256(encryptedShard.code)
       const payload = {
         gift_code_hash: vm.giftCodeHash,
+        encrypted_share: encryptedShard.encryptedHex,
         address: address,
         share: shares[1],
-        amount: parseFloat(vm.amountBCH)
+        amount: parseFloat(vm.amountBCH),
       }
       if (vm.selectedCampaign) {
         if (vm.createNewCampaign) {
@@ -307,12 +324,12 @@ export default {
       const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
       axios.post(url, payload).then((resp) => {
         if (resp.status === 200) {
-          vm.qrCodeContents = shares[0]
+          vm.qrCodeContents = encryptedShard.code
           vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
             if (result.success) {
               vm.processing = false
               vm.$store.dispatch('gifts/saveGift', { giftCodeHash: vm.giftCodeHash, share: shares[2] })
-              vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: shares[0] })
+              vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: encryptedShard.code })
               vm.completed = true
 
               vm.wallet.BCH.getBalance().then(function (response) {
@@ -376,15 +393,12 @@ export default {
 
 <style lang="scss" scoped>
     .col-qr-code {
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 10px;
+    margin: 10px;
     text-align: center;
-    width: 500px;
-    height: 310px;
+    width: 23em;
+    height: 23em;
     border-radius: 16px;
     border: 4px solid #ed5f59;
-    padding: 22px 10px 32px 10px;
     background: white;
   }
   .fontStyle {

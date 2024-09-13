@@ -63,7 +63,7 @@
   </q-dialog>
 </template>
 <script>
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -93,7 +93,7 @@ export default {
     getDarkModeClass,
     async fetchFeedback () {
       const vm = this
-      const url = '/ramp-p2p/order/feedback/arbiter'
+      const url = '/ramp-p2p/order/feedback/arbiter/'
       const params = {
         limit: 5,
         page: 1,
@@ -115,6 +115,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
         .finally(() => { vm.loading = false })

@@ -155,9 +155,9 @@
 </template>
 <script>
 import RampDragSlide from './dialogs/RampDragSlide.vue'
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -225,13 +225,17 @@ export default {
     async fetchMarketPrice () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/utils/market-price', { params: { currency: vm.adData?.fiatCurrency?.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency: vm.adData?.fiatCurrency?.symbol } })
         vm.marketPrice = parseFloat(response.data.price)
         console.log(response)
       } catch (error) {
         console.error(error.response)
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired')
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
         }
       }
     }

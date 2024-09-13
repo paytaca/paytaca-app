@@ -44,6 +44,21 @@
               </div>
             </template>
           </q-input>
+          <div v-if="data?.order?.status?.value === 'RLS'">
+            <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('TransactionId') }}</div>
+            <q-input
+              class="q-pb-xs md-font-size"
+              readonly
+              dense
+              filled
+              :dark="darkMode"
+              :label="txid">
+              <template v-slot:append>
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(txid)"/>
+              </template>
+            </q-input>
+          </div>
           <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
           <q-input
             class="q-pb-xs md-font-size"
@@ -59,7 +74,7 @@
           </q-input>
         </div>
         <!-- Payment methods -->
-        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-mx-md q-px-sm q-pt-sm">
+        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-px-xs q-pt-sm">
           <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
             <div class="text-center sm-font-size q-mx-md q-mb-sm">
             <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
@@ -75,16 +90,36 @@
                     :default-opened=true
                     :label="method.payment_type"
                     expand-separator >
-                    <q-card>
-                      <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                    <q-card class="row no-wrap q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                      <div class="col">
+                        <div class="row">
                           <div class="col q-pr-sm q-py-xs">
-                            <div>{{ method.account_name }}</div>
-                            <div class="text-weight-bold" :class="!method.account_name ? 'q-pt-xs':''" @click="copyToClipboard(method.account_identifier)">
-                              {{ method.account_identifier }}
-                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6"/>
+                            <div v-for="(field, index) in method.values" :key="index">
+                              <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                              <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                                {{ field.value }}
+                                <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
+                              </div>
+                            </div>
+                            <div v-for="(field, index) in method.dynamic_values" :key="index">
+                              {{ field.fieldname }}
+                              <div class="q-ml-sm text-weight-bold">
+                                {{ dynamicVal(field) }}
+                                <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
+                              </div>
                             </div>
                           </div>
-                      </q-card>
+                        </div>
+                        <div v-if="method.attachments?.length > 0" class="row">
+                          <q-btn
+                            flat dense no-caps
+                            icon="image"
+                            class="row button button-text-primary q-my-none q-py-none"
+                            label="View Proof of Payment"
+                            style="font-size: small;"
+                            @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
+                        </div>
+                      </div>
                     </q-card>
                   </q-expansion-item>
                 </q-card>
@@ -94,7 +129,7 @@
         </div>
         <!-- Instruction message -->
         <div
-          class="row q-mx-md q-px-md q-pt-sm text-center sm-font-size"
+          class="row q-px-md q-pt-sm text-center sm-font-size"
           style="overflow-wrap: break-word;">
           <div v-if="hasLabel" class="row">
             <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
@@ -141,10 +176,7 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <AppealForm
-      :order="data?.order"
-      @back="openDialog = false"
-      />
+    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" />
     <!-- <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
@@ -176,23 +208,26 @@
     :arbiter="data.order?.arbiter"
     @back="openReviewForm = false"
     @submit="onSubmitFeedback"/>
+  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
 import AppealForm from './dialogs/AppealForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackForm from './dialogs/FeedbackForm.vue'
+import { openURL } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
+import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      nickname: this.$store.getters['ramp/getUser'].name,
+      nickname: this.$store.getters['ramp/getUser']?.name,
       appeal: null,
       isloaded: false,
       appealCountdown: null,
@@ -206,7 +241,9 @@ export default {
       contractBalance: null,
       lockedPrice: '',
       byFiat: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      showAttachmentDialog: false,
+      attachmentUrl: null
     }
   },
   props: {
@@ -217,33 +254,36 @@ export default {
     FeedbackDialog,
     AppealForm,
     ProgressLoader,
-    FeedbackForm
+    FeedbackForm,
+    AttachmentDialog
   },
   computed: {
     arbiterName () {
       return this.data?.arbiter?.name
     },
-    // instructionMessage () {
-    //   const status = this.data?.order?.status?.value
-    //   if (!status) return
-    //   switch (status) {
-    //     case 'SBM':
-    //       return 'Please wait for the order to be confirmed.'
-    //     default:
-    //       return null
-    //   }
-    // },
+    orderUserType () {
+      const vm = this
+      let userType = null
+      if (vm.data?.ad?.trade_type === 'SELL') {
+        userType = vm.data?.order.is_ad_owner ? 'seller' : 'buyer'
+      } else if (vm.data?.ad?.trade_type === 'BUY') {
+        userType = vm.data?.order.is_ad_owner ? 'buyer' : 'seller'
+      }
+      return userType
+    },
     appealBtnLabel () {
       if (this.appealCountdown) return this.$t('AppealableInSeconds', { countdown: this.appealCountdown }, `Appealable in ${this.appealCountdown}`)
       return this.$t('SubmitAnAppeal')
     },
     showAppealBtn () {
-      const stat = ['ESCRW', 'PD_PN', 'PD']
-      return stat.includes(this.data?.order?.status.value) && this.data?.order?.appealable_at && !this.appealCountdownLoading
+      const stat = ['ESCRW', 'PD_PN', 'PD', 'CNCL']
+      const statusAppealable = stat.includes(this.data?.order?.status.value)
+      const hasFundedContract = !!this.data?.contractAddress && this.contractBalance > 0
+      return statusAppealable && (hasFundedContract || (!!this.data?.order?.appealable_at && !this.appealCountdownLoading))
     },
     displayContractInfo () {
       const status = this.data?.order?.status?.value
-      return status !== 'SBM' && status !== 'CNF' && status !== 'CNCL'
+      return (this.data?.contractAddress && status !== 'SBM' && status !== 'CNF')
     },
     isAppealed () {
       return this.data?.order?.status?.value === 'APL'
@@ -318,16 +358,40 @@ export default {
 
       switch (tradeType) {
         case 'SELL':
-          adOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
-          orderOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
+          adOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
+          orderOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
           break
         case 'BUY':
-          adOwner = { name: this.data.order?.members.buyer.name, label: 'Buyer' }
-          orderOwner = { name: this.data.order?.members.seller.name, label: 'Seller' }
+          adOwner = { name: this.data.order?.members?.buyer?.name, label: 'Buyer' }
+          orderOwner = { name: this.data.order?.members?.seller?.name, label: 'Seller' }
           break
       }
 
       return this.data.order?.is_ad_owner ? adOwner : orderOwner
+    },
+    explorerLink () {
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+
+      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
+      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      // }
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/tx/'
+      }
+      return `${url}${this.txid}`
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    txid () {
+      let txId = null
+      this.data?.order?.transactions?.forEach((tx) => {
+        if (tx.action === 'RELEASE') {
+          txId = tx.txid
+        }
+      })
+      return txId
     }
   },
   async mounted () {
@@ -345,6 +409,7 @@ export default {
     formatCurrency,
     getDarkModeClass,
     isNotDefaultTheme,
+    openURL,
     loadData () {
       if (this.isAppealed) {
         this.fetchAppeal()
@@ -355,11 +420,34 @@ export default {
       this.lockedPrice = this.formatCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
       this.feedback = this.data.feedback
     },
+    dynamicVal (field) {
+      if (field.model_ref === 'order') {
+        if (field.field_ref === 'id') {
+          return this.data?.order?.id
+        }
+        if (field.field_ref === 'tracking_id') {
+          return this.data?.order?.tracking_id
+        }
+      }
+    },
+    viewPaymentAttachment (url) {
+      this.showAttachmentDialog = true
+      this.attachmentUrl = url
+    },
     fetchAppeal () {
       const vm = this
-      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal`, { authorize: true })
+      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: true })
         .then(response => {
           vm.appeal = response.data?.appeal
+        })
+        .catch(error => {
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
         })
     },
     fetchContractBalance () {
@@ -391,7 +479,7 @@ export default {
       this.showUserProfile = true
     },
     onViewAd (id) {
-      backend.get('/ramp-p2p/ad-snapshot',
+      backend.get('/ramp-p2p/ad/snapshot/',
         { authorize: true, params: { ad_snapshot_id: id } }
       )
         .then(response => {
@@ -405,6 +493,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
     },
@@ -413,7 +503,6 @@ export default {
       this.$emit('submitAppeal', data)
     },
     onSubmitFeedback (feedback) {
-      console.log('onSubmitFeedback:', feedback)
       this.feedback = feedback
     },
     startAppealCountdown () {

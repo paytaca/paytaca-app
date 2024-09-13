@@ -59,8 +59,8 @@
           class="col q-mx-lg q-mb-md q-my-sm button"
           @click="submitAction">
         </q-btn>
-        <div v-if="hideBtn && !errorMessage">
-          <span v-if="state === 'verifying'">
+        <!-- <div v-if="hideBtn && !errorMessage"> -->
+          <!-- <span v-if="verifyingTx">
             <q-spinner class="q-mr-sm"/>
             <span v-if="waitSeconds">
               {{
@@ -72,15 +72,15 @@
               }}
             </span>
             <span v-else>{{ $t('VerifyingPleaseWait2') }}</span>
-          </span>
-        </div>
+          </span> -->
+        <!-- </div> -->
       </div>
     </div>
   </div>
 </template>
 <script>
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -103,10 +103,11 @@ export default {
       btnLabel: '',
       txidLoaded: false,
       balanceLoaded: false,
-      disableTxidInput: true
+      disableTxidInput: true,
+      verifyingTx: false
     }
   },
-  emits: ['back', 'updatePageName'],
+  emits: ['back', 'updatePageName', 'verifying-tx'],
   props: {
     escrowContract: Object,
     orderId: Number,
@@ -119,6 +120,9 @@ export default {
     },
     balanceLoaded () {
       this.checkTransferStatus()
+    },
+    verifyingTx (value) {
+      this.$emit('verifying-tx', value)
     }
   },
   async mounted () {
@@ -153,7 +157,7 @@ export default {
     fetchContract () {
       const vm = this
       vm.loading = true
-      backend.get('/ramp-p2p/order/contract', { params: { order_id: vm.orderId }, authorize: true })
+      backend.get(`/ramp-p2p/order/${vm.orderId}/contract/`, { authorize: true })
         .then(response => {
           console.log(response.data)
           vm.contract = response.data
@@ -172,35 +176,33 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
     async verify () {
       const vm = this
       let url = `/ramp-p2p/order/${vm.orderId}/`
-      url = vm.action === 'RELEASE' ? `${url}verify-release` : `${url}verify-refund`
-      vm.state = 'verifying'
-      const body = {
-        txid: this.transactionId
-      }
-      setTimeout(function () {
-        backend.post(url, body, { authorize: true })
-          .then(response => {
-            console.log(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-              vm.errorMessage = error.response?.data?.error
-            } else {
-              console.error(error)
+      url = vm.action === 'RELEASE' ? `${url}verify-release/` : `${url}verify-refund/`
+      vm.verifyingTx = true
+      // setTimeout(() => {vm.verifyingTx = false}, 5000)
+      const body = { txid: this.transactionId }
+      await backend.post(url, body, { authorize: true })
+        .then(response => { console.log(response.data) })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            vm.hideBtn = false
-          })
-      }, 5000)
+            vm.errorMessage = error.response?.data?.error
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+          vm.hideBtn = false
+        })
+        .finally(() => { vm.verifyingTx = false })
     },
     submitAction () {
       const vm = this

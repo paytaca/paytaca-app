@@ -156,10 +156,10 @@
   </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
@@ -189,7 +189,11 @@ export default {
     }
   },
   props: {
-    userInfo: Object
+    userInfo: Object,
+    clickableAds: {
+      type: Boolean,
+      default: true
+    }
   },
   emits: ['back'],
   components: {
@@ -277,7 +281,7 @@ export default {
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('/ramp-p2p/peer/detail', { params: { id: userId }, authorize: true })
+        backend.get(`/ramp-p2p/peer/${userId}/`, { authorize: true })
           .then(response => {
             vm.isloaded = true
             resolve(response.data)
@@ -289,6 +293,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.isloaded = true
             reject(error)
@@ -317,7 +323,7 @@ export default {
           page: vm.reviewsPageNumber,
           to_peer: this.user?.id
         }
-        backend.get('/ramp-p2p/order/feedback/peer', {
+        backend.get('/ramp-p2p/order/feedback/peer/', {
           params: params,
           authorize: true
         })
@@ -336,6 +342,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.loadingReviews = false
             reject(error)
@@ -352,7 +360,7 @@ export default {
           owner_id: vm.user.id
         }
         params.to_peer = this.userId
-        backend.get('/ramp-p2p/ad', {
+        backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true
         })
@@ -371,6 +379,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.loadingAds = false
             reject(error)
@@ -378,7 +388,9 @@ export default {
       })
     },
     selectAd (ad) {
-      this.$router.push({ name: 'p2p-store-form', params: { ad: ad?.id } })
+      if (this.clickableAds) {
+        this.$router.push({ name: 'p2p-store-form', params: { ad: ad?.id } })
+      }
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()

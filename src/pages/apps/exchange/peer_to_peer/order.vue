@@ -4,7 +4,7 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
     <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="q-pt-sm text-center text-weight-bold">
+      <div class="text-center text-weight-bold">
         <div class="lg-font-size">
           <span>{{ headerTitle.toUpperCase() }}</span>
         </div>
@@ -101,15 +101,15 @@
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
   </template>
 <script>
-import { formatCurrency } from 'src/wallet/ramp'
+import { formatCurrency } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
-import { backend, getBackendWsUrl } from 'src/wallet/ramp/backend'
-import { getChatBackendWsUrl } from 'src/wallet/ramp/chat/backend'
-import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/wallet/ramp/chat'
+import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
+import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/exchange/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
-import RampContract from 'src/wallet/ramp/contract'
+import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
 import EscrowTransfer from 'src/components/ramp/fiat/EscrowTransfer.vue'
@@ -169,6 +169,7 @@ export default {
       tradeInfoCardKey: 0,
       userProfileDialogKey: 0,
       adSnapshotDialogKey: 0,
+      chatDialogKey: 0,
 
       errorMessages: [],
       selectedPaymentMethods: [],
@@ -371,6 +372,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     async refreshPage (done) {
+      if (this.sendingBch || this.verifyingTx) {
+        if (done) done()
+        return
+      }
       await this.loadData()
       this.reloadChildComponents()
       if (done) done()
@@ -405,6 +410,7 @@ export default {
       this.tradeInfoCardKey++
       this.userProfileDialogKey++
       this.adSnapshotDialogKey++
+      this.chatDialogKey++
     },
     updateStatus (status) {
       const vm = this
@@ -522,7 +528,7 @@ export default {
     fetchOrder () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `/ramp-p2p/order/${this.$route.params?.order}`
+        const url = `/ramp-p2p/order/${this.$route.params?.order}/`
         backend.get(url, { authorize: true })
           .then(response => {
             vm.order = response.data
@@ -554,6 +560,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -572,7 +579,7 @@ export default {
       const vm = this
       if (vm.order?.read_at) return
       return new Promise((resolve, reject) => {
-        const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members`
+        const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
         backend.patch(url, null, { authorize: true })
           .then(response => {
             resolve(response.data)
@@ -585,6 +592,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -593,7 +601,7 @@ export default {
     fetchAd () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = `/ramp-p2p/ad/${vm.order.ad.id}`
+        const url = `/ramp-p2p/ad/${vm.order.ad.id}/`
         backend.get(url, { authorize: true })
           .then(response => {
             vm.ad = response.data
@@ -607,6 +615,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -615,7 +624,7 @@ export default {
     },
     confirmOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/confirm`
+      const url = `/ramp-p2p/order/${vm.order.id}/confirm/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           vm.updateStatus(response.data.status)
@@ -628,12 +637,13 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
     cancelOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/cancel`
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
           if (response.data && response.data.status.value === 'CNCL') {
@@ -648,13 +658,14 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
     fetchFees () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/contract/fees'
+        const url = '/ramp-p2p/order/contract/fees/'
         backend.get(url, { authorize: true })
           .then(response => {
             vm.fees = response.data
@@ -668,6 +679,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -676,13 +688,8 @@ export default {
     fetchContract () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/contract'
-        backend.get(url, {
-          params: {
-            order_id: vm.order?.id
-          },
-          authorize: true
-        })
+        const url = `/ramp-p2p/order/${vm.order?.id}/contract/`
+        backend.get(url, { authorize: true })
           .then(response => {
             vm.contract = response.data
             resolve(response.data)
@@ -695,6 +702,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -719,7 +727,8 @@ export default {
     },
     submitAppeal (data) {
       const vm = this
-      backend.post(`/ramp-p2p/order/${vm.order.id}/appeal`, data, { authorize: true })
+      data.order_id = vm.order.id
+      backend.post('/ramp-p2p/appeal/', data, { authorize: true })
         .then(response => {
           vm.updateStatus(response.data.status.status)
         })
@@ -732,13 +741,14 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
     },
     sendFeedback (feedback) {
       const vm = this
       vm.isloaded = false
-      const url = '/ramp-p2p/order/feedback/peer'
+      const url = '/ramp-p2p/order/feedback/peer/'
       const body = {
         order_id: vm.order.id,
         rating: feedback.rating,
@@ -762,6 +772,7 @@ export default {
             }
           } else {
             console.error(error)
+            bus.emit('network-error')
           }
         })
       vm.isloaded = true
@@ -769,7 +780,7 @@ export default {
     fetchFeedback () {
       return new Promise((resolve, reject) => {
         const vm = this
-        const url = '/ramp-p2p/order/feedback/peer'
+        const url = '/ramp-p2p/order/feedback/peer/'
         backend.get(url, {
           params: {
             limit: 7,
@@ -800,6 +811,7 @@ export default {
               }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -807,15 +819,19 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
           })
           .catch(error => {
             if (error.response) {
               console.error(error.response)
+              if (error.response.status === 403) {
+                bus.emit('session-expired')
+              }
             } else {
               console.error(error)
+              bus.emit('network-error')
             }
             reject(error)
           })
@@ -943,6 +959,7 @@ export default {
         console.log('WebSocket data:', data)
         if (data?.txdata) {
           this.verifyingTx = false
+          this.sendingBch = false
         }
         this.fetchOrder()
           .then(() => {

@@ -244,11 +244,11 @@ import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from 'src/components/ramp/fiat/dialogs/FeedbackDialog.vue'
-import { updateChatIdentity } from 'src/wallet/ramp/chat'
-import { formatDate, formatCurrency, getAppealCooldown } from 'src/wallet/ramp'
+import { updateChatIdentity } from 'src/exchange/chat'
+import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/wallet/ramp/backend'
+import { backend } from 'src/exchange/backend'
 
 export default {
   components: {
@@ -387,7 +387,7 @@ export default {
     getUserInfo (userId) {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('/ramp-p2p/peer/detail', { params: { id: userId }, authorize: true })
+        backend.get(`/ramp-p2p/peer/${userId}/`, { params: { id: userId }, authorize: true })
           .then(response => {
             vm.isloaded = true
             resolve(response.data)
@@ -399,6 +399,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.isloaded = true
             reject(error)
@@ -427,7 +429,7 @@ export default {
           page: vm.reviewsPageNumber,
           to_peer: this.user?.id
         }
-        backend.get('/ramp-p2p/order/feedback/peer', {
+        backend.get('/ramp-p2p/order/feedback/peer/', {
           params: params,
           authorize: true
         })
@@ -446,6 +448,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.loadingReviews = false
             reject(error)
@@ -462,7 +466,7 @@ export default {
           owner_id: vm.user.id
         }
         params.to_peer = this.userId
-        backend.get('/ramp-p2p/ad', {
+        backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true
         })
@@ -481,6 +485,8 @@ export default {
               if (error.response.status === 403) {
                 bus.emit('session-expired')
               }
+            } else {
+              bus.emit('network-error')
             }
             vm.loadingAds = false
             reject(error)
@@ -489,7 +495,7 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      backend.patch('/ramp-p2p/peer/detail', { name: info.nickname }, { authorize: true })
+      backend.patch('/ramp-p2p/peer/', { name: info.nickname }, { authorize: true })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
@@ -507,6 +513,8 @@ export default {
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
+          } else {
+            bus.emit('network-error')
           }
         })
 

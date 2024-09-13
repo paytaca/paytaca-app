@@ -140,13 +140,13 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
-        {
-          name: this.$t('Sweep'),
-          iconName: 'mdi-broom',
-          path: '/apps/sweep',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
+        // {
+        //   name: this.$t('Sweep'),
+        //   iconName: 'mdi-broom',
+        //   path: '/apps/sweep',
+        //   active: !this.$store.getters['global/isChipnet'],
+        //   smartBCHOnly: false
+        // },
         // {
         //   name: 'Chat',
         //   iconName: 'mdi-chat',

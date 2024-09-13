@@ -79,6 +79,9 @@ import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import QRUploader from 'src/components/QRUploader'
 
+const aesjs = require('aes-js')
+const pbkdf2 = require('pbkdf2')
+
 export default {
   name: 'sweep',
   props: {
@@ -128,6 +131,14 @@ export default {
     getAssetDenomination,
     getDarkModeClass,
     isNotDefaultTheme,
+    decryptShard(encryptedHex, password) {
+      const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
+      const encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)
+      const aesCtr = new aesjs.ModeOfOperation.ctr(key)
+      const decryptedBytes = aesCtr.decrypt(encryptedBytes)
+      var decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes)
+      return decryptedText
+    },
     claimGift (giftCodeHash) {
       const vm = this
       vm.processing = true
@@ -148,7 +159,14 @@ export default {
       const url = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
       const walletHash = this.wallet.BCH.getWalletHash()
       axios.post(url, { wallet_hash: walletHash }).then((resp) => {
-        const privateKey = sss.combine([giftCode, resp.data.share])
+        const share1 = resp.data.share
+        let share2
+        if (resp.data.encrypted_share) {
+          share2 = this.decryptShard(resp.data.encrypted_share, giftCode)
+        } else {
+          share2 = giftCode
+        }
+        const privateKey = sss.combine([share1, share2])
         vm.sweeper = new SweepPrivateKey(privateKey.toString())
         vm.sweeper.getBchBalance().then(function (data) {
           vm.bchAmount = data.spendable || 0
@@ -178,6 +196,7 @@ export default {
           vm.processing = false
         })
       }).catch((error) => {
+        console.log(error)
         vm.error = error.response.data.message
         vm.processing = false
       })

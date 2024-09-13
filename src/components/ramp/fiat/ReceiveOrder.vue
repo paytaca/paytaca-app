@@ -32,7 +32,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getAppealCooldown, formatCurrency } from 'src/wallet/ramp'
+import { getAppealCooldown, formatCurrency } from 'src/exchange'
 
 export default {
   data () {
