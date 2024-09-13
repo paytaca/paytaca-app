@@ -64,11 +64,7 @@
         </div>
 
         <!-- Order List -->
-        <CashinOrderList
-          v-if="state === 'order-list'"
-          :key="orderListKey"
-          :wallet-hash="wallet.walletHash"
-          @open-order="openOrder"/>
+        <CashinOrderList v-if="state === 'order-list'" :key="orderListKey" @open-order="openOrder"/>
 
         <!-- Network Error -->
         <NetworkError v-if="state === 'network-error'" @retry="refreshPage"/>
@@ -199,10 +195,10 @@ export default {
       try {
         vm.loggingIn = true
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
-        const keypair = await vm.wallet.keypair()
-        const signature = await vm.wallet.signMessage(keypair.privateKey, otp)
+        const keypair = await wallet.keypair()
+        const signature = await wallet.signMessage(keypair.privateKey, otp)
         const body = {
-          wallet_hash: vm.wallet.walletHash,
+          wallet_hash: wallet.walletHash,
           signature: signature,
           public_key: keypair.publicKey
         }

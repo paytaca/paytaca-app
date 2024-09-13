@@ -64,6 +64,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
+import { wallet } from 'src/exchange/wallet'
 
 export default {
   setup () {
@@ -91,14 +92,11 @@ export default {
     this.loading = true
     this.fetchCashinOrders()
   },
-  props: {
-    walletHash: String
-  },
   methods: {
     getDarkModeClass,
     async fetchCashinOrders () {
       const params = {
-        wallet_hash: this.walletHash,
+        wallet_hash: wallet.walletHash,
         limit: 15,
         page: this.page,
         owned: true
