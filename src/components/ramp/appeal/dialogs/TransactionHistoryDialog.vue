@@ -1,6 +1,6 @@
 <template>
     <q-dialog v-model="showDialog" full-width @before-hide="$emit('back')">
-        <q-card class="br-15 q-pa-md q-ma-sm text-bow" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+        <q-card class="br-15 q-pa-md q-ma-sm text-bow" bordered flat :class="[darkMode ? 'pt-card-2 dark' : 'light']">
             <div class="q-mt-sm q-mx-md" style="overflow: auto">
                 <div class="row justify-center q-mb-md text-center" style="font-size: medium;">Transaction History</div>
                 <div v-for="(transaction, index) in transactionHistory" :key=index>

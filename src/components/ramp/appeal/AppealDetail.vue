@@ -43,7 +43,7 @@
           <q-btn class="col q-py-none" no-caps flat dense @click="showTransactionHistory = true">View Transactions</q-btn>
         </div>
         <!-- Payment Methods -->
-        <div v-if="order?.payment_methods_selected?.length > 0" class="q-px-sm q-pt-sm q-ma-sm">
+        <div v-if="order?.payment_methods_selected?.length > 0" class="q-pt-sm q-ma-sm">
           <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
           <div class="text-center sm-font-size q-mx-md q-mb-sm">
             The buyer selected the following payment methods.
@@ -154,15 +154,6 @@
             <div class="row justify-center text-center subtext">Resolved at {{ formatDate(appeal?.resolved_at) }}</div>
           </q-card>
         </div>
-        <!-- <div class="q-mx-lg q-mt-md" v-if="sendingBch">
-          <q-spinner class="q-mr-xs"/>
-          <template v-if="selectedAction === 'release'">
-            {{ $t('ReleasingBch') }}
-          </template>
-          <template v-else>
-            {{ $t('RefundingBch') }}
-          </template>
-        </div> -->
         <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto;">
           <q-card flat class="row pt-card-2 bg-red-1 text-red q-pa-lg pp-text bg-red-1" :class="getDarkModeClass(darkMode)">
             {{ sendError }}
@@ -321,7 +312,7 @@ export default {
       const vm = this
       vm.showDragSlide = false
       vm.sendingBch = true
-      // setTimeout(() => {vm.sendingBch = false}, 5000)
+
       let txid = null
       if (vm.selectedAction === 'release') {
         txid = await vm.releaseBch()
