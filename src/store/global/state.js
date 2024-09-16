@@ -8,6 +8,7 @@ export default function () {
     },
     theme: 'default', // [default, payhero]
     isChipnet: false,
+    autoGenerateAddress: false,
     showTokens: true,
     enableSmartBCH: false,
     wallets: {

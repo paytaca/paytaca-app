@@ -85,6 +85,10 @@ export function toggleIsChipnet (state) {
   state.isChipnet = !state.isChipnet
 }
 
+export function toggleAutoGenerateAddress (state) {
+  state.autoGenerateAddress = !state.autoGenerateAddress
+}
+
 export function showTokens (state) {
   state.showTokens = !state.showTokens
 }
