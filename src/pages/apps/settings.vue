@@ -88,6 +88,23 @@
                     />
                   </q-item-section>
               </q-item>
+              <q-item clickable v-ripple @click="autoGenerateAddress = !autoGenerateAddress">
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
+                      </q-item-label>
+                      <q-item-label caption style="line-height:1;margin-top:0;" >
+                        {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets') }}
+                      </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-toggle
+                      v-model="autoGenerateAddress"
+                      color="blue-9"
+                      keep-color
+                    />
+                  </q-item-section>
+              </q-item>
               <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -219,6 +236,7 @@ export default {
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
+      autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
       showTokens: this.$store.getters['global/showTokens'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       currentCountry: this.$store.getters['global/country'].code,
@@ -238,6 +256,9 @@ export default {
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
+    },
+    autoGenerateAddress (n, o) {
+      this.$store.commit('global/toggleAutoGenerateAddress')
     },
     showTokens (n, o) {
       this.$store.commit('global/showTokens')
