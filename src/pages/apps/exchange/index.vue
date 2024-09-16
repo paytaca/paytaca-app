@@ -14,6 +14,8 @@
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
+import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
+import packageInfo from '../../../../package.json'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
@@ -23,7 +25,8 @@ export default {
   components: {
     RampLogin,
     ProgressLoader,
-    NetworkError
+    NetworkError,
+    versionUpdate
   },
   data () {
     return {
@@ -32,13 +35,15 @@ export default {
       user: null,
       showLogin: false,
       isloaded: false,
-      networkError: false
+      networkError: false,
+      appVersion: packageInfo.version
     }
   },
   async created () {
     bus.on('network-error', this.openNetworkError)
   },
   async mounted () {
+    // this.checkVersionUpdate() // WIP
     loadRampWallet()
     await this.getUser()
   },
@@ -81,6 +86,22 @@ export default {
     openNetworkError () {
       this.showLogin = false
       this.networkError = true
+    },
+    checkVersionUpdate () {
+      const vm = this
+      // console.log('current version: ', this.appVersion)
+
+      // restricting version update dialog to mobile, ios & browser extentions
+      const platformCont = [vm.$q.platform.is.mobile, vm.$q.platform.is.ios, vm.$q.platform.is.bex].includes(true)
+
+      // fetch allowed versions
+
+      // if continue
+      if (platformCont) {
+        this.$q.dialog({
+          component: versionUpdate,
+        })
+      }
     }
   }
 }

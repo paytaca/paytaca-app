@@ -361,6 +361,8 @@ import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
+import packageInfo from '../../../package.json'
+import versionUpdate from './dialog/versionUpdate.vue'
 
 const ago = require('s-ago')
 
@@ -381,7 +383,8 @@ export default {
     PriceChart,
     AssetFilter,
     MultiWalletDropdown,
-    CashIn
+    CashIn,
+    versionUpdate
   },
   directives: {
     dragscroll
@@ -421,8 +424,8 @@ export default {
       parsedBCHBalance: '0',
       walletYield: null,
       hasCashin: false,
-      availableCashinFiat: null
-
+      availableCashinFiat: null,
+      appVersion: packageInfo.version
     }
   },
 
@@ -1096,6 +1099,37 @@ export default {
       )
       return tokens
     },
+    async checkVersionUpdate () {
+      const vm = this
+      // console.log('current version: ', this.appVersion)
+
+      let platform = null
+
+      if (vm.$q.platform.is.mobile) {
+        platform = 'android'
+      }
+      if (vm.$q.platform.is.ios) {
+        platform = 'ios'
+      }
+      if (vm.$q.platform.is.bex) {
+        platform = 'web'
+      }
+
+      console.log('platform: ', platform)
+
+      // fetch allowed versions
+      if (platform) {
+        const response = await backend.get(`version/check/${platform}/`)
+
+        if (!('error' in response.data)) {
+          //check version
+
+          this.$q.dialog({
+            component: versionUpdate,
+          })
+        }
+      }
+    }
   },
 
   beforeRouteEnter (to, from, next) {
@@ -1110,6 +1144,7 @@ export default {
 
   async mounted () {
     const vm = this
+    this.checkVersionUpdate()
     this.checkCashinAvailable()
     bus.on('handle-push-notification', this.handleOpenedNotification)
 
