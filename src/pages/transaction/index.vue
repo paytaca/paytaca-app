@@ -424,8 +424,7 @@ export default {
       parsedBCHBalance: '0',
       walletYield: null,
       hasCashin: false,
-      availableCashinFiat: null,
-      appVersion: packageInfo.version
+      availableCashinFiat: null
     }
   },
 
@@ -1101,8 +1100,11 @@ export default {
     },
     async checkVersionUpdate () {
       const vm = this
+      const appVer = packageInfo.version
       // console.log('current version: ', this.appVersion)
 
+
+      /// fetch plattform
       let platform = null
 
       if (vm.$q.platform.is.mobile) {
@@ -1117,17 +1119,49 @@ export default {
 
       console.log('platform: ', platform)
 
-      // fetch allowed versions
       if (platform) {
-        const response = await backend.get(`version/check/${platform}/`)
+        // fetching version check
+        await backend.get(`version/check/${platform}/`)
+          .then(response => {
+            console.log('response: ', response)
 
-        if (!('error' in response.data)) {
-          //check version
+            if (!('error' in response.data)) {
+              const latestVer = response.data?.latest_version
+              const minReqVer = response.data?.min_required_version
 
-          this.$q.dialog({
-            component: versionUpdate,
+              console.log('test: ', appVer === latestVer)
+
+              if (appVer !== latestVer) {
+                const appV = appVer.split('.').map(Number)
+                const minV = minReqVer.split('.').map(Number)
+
+                console.log('appV: ', appV)
+                console.log('minV: ', minV)
+
+                let openVersionUpdate = false
+
+                for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
+                  const v1 = appV[i] || 0
+                  const v2 = minV[i] || 0
+
+                  if (v1 < v2) {
+                    console.log('to update')
+                    openVersionUpdate = true
+                    break
+                  } else {
+                    console.log('supported')
+                    openVersionUpdate = false
+                  }
+                }
+
+                if (openVersionUpdate) {
+                  this.$q.dialog({
+                    component: versionUpdate,
+                  })
+                }
+              }
+            }
           })
-        }
       }
     }
   },
