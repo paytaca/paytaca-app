@@ -1,10 +1,11 @@
 <template>
   <q-dialog persistent ref="dialogRef">
-    <q-card style="width: 250px">
-      <div class="text-center q-py-lg text-bold" style="font-size: 15px;">Update App to Latest Version</div>
+    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="width: 250px">
+      <div class="text-center q-py-lg text-bold" :class="darkMode ? 'text-white' : 'text-black'" style="font-size: 15px;">Update App to Latest Version</div>
 
       <div class="row justify-center q-pb-sm">
-        <q-btn flat color="red" label="OK" @click="onOKClick()" v-close-popup/>
+        <q-btn flat color="red" label="cancel" @click="$router.push('/apps')" v-close-popup v-if="type === 'ramp'"/>
+        <q-btn flat color="blue" label="OK" @click="onOKClick()" v-close-popup/>
       </div>
     </q-card>
   </q-dialog>
@@ -12,11 +13,12 @@
 <script>
 import { openURL } from 'quasar'
 import { useDialogPluginComponent } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
     return {
-      darkmode: this.$store.getters['darkmode/getStatus'],
+      darkMode: this.$store.getters['darkmode/getStatus'],
     }
   },
   setup () {
@@ -27,9 +29,16 @@ export default {
       dialogRef
     }
   },
+  props: {
+    type: {
+      type: String,
+      default: 'general'
+    }
+  },
   emits: [...useDialogPluginComponent.emits],
   methods: {
     openURL,
+    getDarkModeClass,
     onOKClick () {
       openURL(this.updateLink())
       this.onDialogOK()

@@ -134,6 +134,9 @@ export default {
                 if (this.openVersionUpdate) {
                   this.$q.dialog({
                     component: versionUpdate,
+                    componentProps: {
+                      type: 'ramp'
+                    }
                   }).onOk(() => {
                     this.openVersionUpdate = false
                   })
