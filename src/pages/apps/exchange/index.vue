@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!networkError">
+  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!networkError && !openVersionUpdate">
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
@@ -8,7 +8,7 @@
     </div>
     <RampLogin v-if="showLogin" @logged-in="onLoggedIn"/>
   </div>
-  <NetworkError v-else/>
+  <NetworkError v-if="networkError"/>
 </template>
 <script>
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
@@ -36,14 +36,14 @@ export default {
       showLogin: false,
       isloaded: false,
       networkError: false,
-      appVersion: packageInfo.version
+      openVersionUpdate: false
     }
   },
   async created () {
     bus.on('network-error', this.openNetworkError)
   },
   async mounted () {
-    // this.checkVersionUpdate() // WIP
+    await this.checkVersionUpdate()
     loadRampWallet()
     await this.getUser()
   },
@@ -87,20 +87,64 @@ export default {
       this.showLogin = false
       this.networkError = true
     },
-    checkVersionUpdate () {
+    async checkVersionUpdate () {
       const vm = this
-      // console.log('current version: ', this.appVersion)
+      const appVer = packageInfo.version
 
-      // restricting version update dialog to mobile, ios & browser extentions
-      const platformCont = [vm.$q.platform.is.mobile, vm.$q.platform.is.ios, vm.$q.platform.is.bex].includes(true)
+      /// get platform
+      let platform = null
 
-      // fetch allowed versions
+      if (vm.$q.platform.is.mobile) {
+        platform = 'android'
+      }
+      if (vm.$q.platform.is.ios) {
+        platform = 'ios'
+      }
+      if (vm.$q.platform.is.bex) {
+        platform = 'web'
+      }
 
-      // if continue
-      if (platformCont) {
-        this.$q.dialog({
-          component: versionUpdate,
-        })
+      if (platform) {
+        // fetching version check
+        await backend.get(`ramp-p2p/version/check/${platform}/`)
+          .then(response => {
+            if (!('error' in response.data)) {
+              const latestVer = response.data?.latest_version
+              const minReqVer = response.data?.min_required_version
+
+              if (appVer !== latestVer) {
+                const appV = appVer.split('.').map(Number)
+                const minV = minReqVer.split('.').map(Number)
+
+                // let openVersionUpdate = false
+
+                for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
+                  const v1 = appV[i] || 0
+                  const v2 = minV[i] || 0
+
+                  if (v1 < v2) {
+                    this.openVersionUpdate = true
+                    break
+                  } else {
+                    this.openVersionUpdate = false
+                  }
+                }
+
+                // open version update dialog
+                if (this.openVersionUpdate) {
+                  this.$q.dialog({
+                    component: versionUpdate,
+                  }).onOk(() => {
+                    this.openVersionUpdate = false
+                  })
+                }
+              }
+            }
+          })
+          .catch(error => {
+            console.error(error)
+            this.networkError = true
+          })
       }
     }
   }

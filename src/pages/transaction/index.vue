@@ -1101,10 +1101,8 @@ export default {
     async checkVersionUpdate () {
       const vm = this
       const appVer = packageInfo.version
-      // console.log('current version: ', this.appVersion)
 
-
-      /// fetch plattform
+      /// get platform
       let platform = null
 
       if (vm.$q.platform.is.mobile) {
@@ -1117,26 +1115,17 @@ export default {
         platform = 'web'
       }
 
-      console.log('platform: ', platform)
-
       if (platform) {
         // fetching version check
         await backend.get(`version/check/${platform}/`)
           .then(response => {
-            console.log('response: ', response)
-
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version
               const minReqVer = response.data?.min_required_version
 
-              console.log('test: ', appVer === latestVer)
-
               if (appVer !== latestVer) {
                 const appV = appVer.split('.').map(Number)
                 const minV = minReqVer.split('.').map(Number)
-
-                console.log('appV: ', appV)
-                console.log('minV: ', minV)
 
                 let openVersionUpdate = false
 
@@ -1145,15 +1134,14 @@ export default {
                   const v2 = minV[i] || 0
 
                   if (v1 < v2) {
-                    console.log('to update')
                     openVersionUpdate = true
                     break
                   } else {
-                    console.log('supported')
                     openVersionUpdate = false
                   }
                 }
 
+                // open version update dialog
                 if (openVersionUpdate) {
                   this.$q.dialog({
                     component: versionUpdate,
