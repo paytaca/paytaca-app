@@ -135,7 +135,8 @@ export default {
                   this.$q.dialog({
                     component: versionUpdate,
                     componentProps: {
-                      type: 'ramp'
+                      type: 'ramp',
+                      data: response.data
                     }
                   }).onOk(() => {
                     this.openVersionUpdate = false

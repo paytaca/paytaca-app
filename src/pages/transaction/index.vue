@@ -1145,6 +1145,9 @@ export default {
                 if (openVersionUpdate) {
                   this.$q.dialog({
                     component: versionUpdate,
+                    componentProps: {
+                      data: response.data
+                    }
                   })
                 }
               }

@@ -1,11 +1,20 @@
 <template>
-  <q-dialog persistent ref="dialogRef">
-    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="width: 250px">
-      <div class="text-center q-py-lg text-bold" :class="darkMode ? 'text-white' : 'text-black'" style="font-size: 15px;">Update App to Latest Version</div>
+  <q-dialog persistent ref="dialogRef" full-width>
+    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="q-px-lg q-pt-lg text-bold" :class="darkMode ? 'text-white' : 'text-black'" style="font-size: 17px;">Update App to <span class="text-blue">v{{ versionInfo.latest_version }}</span></div>
 
-      <div class="row justify-center q-pb-sm">
-        <q-btn flat color="red" label="cancel" @click="$router.push('/apps')" v-close-popup v-if="type === 'ramp'"/>
-        <q-btn flat color="blue" label="OK" @click="onOKClick()" v-close-popup/>
+      <div class="q-px-lg q-pt-sm">
+        <div class="text-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-8'" style="font-size: 15px;">{{ versionInfo.release_date }}</div>
+        <q-scroll-area
+          style="height: 200px;"
+          class="q-pt-xs">
+          <p :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="white-space: pre-line; font-size: 13px; text-align: justify;">{{ versionInfo.notes }}</p>
+        </q-scroll-area>
+      </div>
+
+      <div class="row justify-center q-py-sm">
+        <q-btn flat :color="darkMode ? 'blue-grey-4' : 'blue-grey'"  label="cancel" @click="$router.push('/apps')" v-close-popup v-if="type === 'ramp'"/>
+        <q-btn flat color="blue" label="Update" @click="onOKClick()" v-close-popup/>
       </div>
     </q-card>
   </q-dialog>
@@ -19,6 +28,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      versionInfo: this.data
     }
   },
   setup () {
@@ -33,7 +43,8 @@ export default {
     type: {
       type: String,
       default: 'general'
-    }
+    },
+    data: Object
   },
   emits: [...useDialogPluginComponent.emits],
   methods: {
