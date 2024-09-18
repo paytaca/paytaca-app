@@ -14,7 +14,7 @@
         <div class="q-mb-lg">
           <div class="text-center q-pt-none">
             <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-            <q-btn round flat icon="settings" style="position: fixed; right: 40px; top: 70px;" @click="openSettings=true"></q-btn>
+            <q-btn round flat icon="settings" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 70px;'" style="position: fixed; right: 40px;" @click="openSettings=true"></q-btn>
             <div class="text-weight-bold lg-font-size q-pt-sm">
               <span id="target-name">{{ arbiter?.name }}</span>
               <q-icon
