@@ -77,7 +77,7 @@ export async function updateMerchantInfo(context, data) {
     ...data,
   }
 
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', context.getters['global/getWalletIndex'])
   const receivingPubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true)
   const pubkey = receivingPubkeys.receiving
   Object.assign(payload, { pubkey })
@@ -305,7 +305,7 @@ export function generateLinkCode(context, data) {
 
 
 async function getZerothAddressAndWif () {
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', context.getters['global/getWalletIndex'])
   const address = await wallet.BCH.getAddressSetAt(0)
   const wif = await wallet.BCH.getPrivateKey(undefined, undefined, true)
   return {
@@ -339,7 +339,7 @@ export async function mintGenesisVerificationMintingNft (context) {
   try {
     genesis = await wallet.tokenGenesis(data)
   } catch (err) {
-    const __wallet = await loadWallet('BCH')
+    const __wallet = await loadWallet('BCH', context.getters['global/getWalletIndex'])
     const sendResponse = await __wallet.BCH.sendBch(0.00001, wallet.address)
     let utxos = await provider.getUtxos(wallet.address)
     let voutZeroUtxos = utxos.filter(utxo => !utxo?.token && utxo.vout === 0 && utxo.satoshis === 1000n)

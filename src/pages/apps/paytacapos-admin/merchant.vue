@@ -337,7 +337,7 @@ const walletData = computed(() => {
 
 
 async function checkBalance () {
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   const response = await wallet.BCH.getBalance()
   const enough = response.balance >= 0.00002
   confirm.value = !enough
