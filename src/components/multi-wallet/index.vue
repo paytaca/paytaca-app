@@ -2,10 +2,10 @@
   <q-dialog
     ref="multi-wallet"
     full-width
-    seamless
     position="top"
     transition-show="fade"
     transition-hide="fade"
+    @before-hide="$emit('dialog-hide')"
   >
     <q-card class="q-mt-xl q-mx-sm wallet-card" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
@@ -107,7 +107,8 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   emits: [
-    'update-wallet-name'
+    'update-wallet-name',
+    'dialog-hide'
   ],
   data () {
     return {

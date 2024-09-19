@@ -1,26 +1,4 @@
 <template>
-  <!-- <q-btn-dropdown
-    flat
-    class="full-width"
-    align="left"
-    :auto-close="false"
-    dropdown-icon="none"
-    :style="{color: darkMode ? 'white' : 'black'}"
-    @before-show="arrowIcon = 'arrow_drop_up'"
-    @before-hide="arrowIcon = 'arrow_drop_down'"
-  >
-    <template v-slot:label>
-      <q-icon :name="arrowIcon" />
-      <span
-        class="q-ml-sm text-bold text-h6 wallet-name-label"
-        :class="!darkMode && isNotDefaultTheme(theme) ? 'text-black' : 'text-grad'"
-      >
-        {{ walletNameLabel }}
-      </span>
-    </template>
-
-    <MultiWallet @update-wallet-name="onUpdateWalletName" />
-  </q-btn-dropdown> -->
   <q-btn
     flat
     class="col-10"
@@ -47,7 +25,11 @@
     icon="notifications"
   />
 
-  <MultiWallet ref="multi-wallet-parent" @update-wallet-name="onUpdateWalletName" />
+  <MultiWallet
+    ref="multi-wallet-parent"
+    @update-wallet-name="onUpdateWalletName"
+    @dialog-hide="onDialogHide"
+  />
 </template>
 
 <script>
@@ -84,9 +66,6 @@ export default {
 
   methods: {
     isNotDefaultTheme,
-    onUpdateWalletName (name) {
-      this.walletNameLabel = name
-    },
     showMultiWalletDialog () {
       if (!this.isShow) {
         this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
@@ -97,6 +76,13 @@ export default {
         this.isShow = false
         this.arrowIcon = 'arrow_drop_down'
       }
+    },
+    onUpdateWalletName (name) {
+      this.walletNameLabel = name
+    },
+    onDialogHide () {
+      this.isShow = false
+      this.arrowIcon = 'arrow_drop_down'
     }
   },
 
