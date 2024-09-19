@@ -18,12 +18,6 @@
     </template>
 
   </q-btn>
-  <q-btn
-    flat
-    class="col-2"
-    align="right"
-    icon="notifications"
-  />
 
   <MultiWallet
     ref="multi-wallet-parent"

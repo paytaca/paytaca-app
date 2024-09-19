@@ -12,6 +12,14 @@
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown />
+              <q-btn
+                flat
+                class="col-2"
+                align="right"
+                icon="notifications"
+                @click="$refs['notifs-dialog-parent'].$refs['notifs-dialog'].show()"
+              />
+              <Notifications ref="notifs-dialog-parent" />
             </div>
 
             <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
@@ -361,6 +369,7 @@ import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
+import Notifications from 'src/components/notifications/index.vue'
 
 const ago = require('s-ago')
 
@@ -381,7 +390,8 @@ export default {
     PriceChart,
     AssetFilter,
     MultiWalletDropdown,
-    CashIn
+    CashIn,
+    Notifications
   },
   directives: {
     dragscroll
