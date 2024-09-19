@@ -2,13 +2,17 @@
   <q-btn-dropdown
     flat
     class="full-width"
-    align="between"
+    align="left"
     :auto-close="false"
+    dropdown-icon="none"
     :style="{color: darkMode ? 'white' : 'black'}"
+    @before-show="arrowIcon = 'arrow_drop_up'"
+    @before-hide="arrowIcon = 'arrow_drop_down'"
   >
     <template v-slot:label>
+      <q-icon :name="arrowIcon" />
       <span
-        class="text-bold text-h6 wallet-name-label"
+        class="q-ml-sm text-bold text-h6 wallet-name-label"
         :class="!darkMode && isNotDefaultTheme(theme) ? 'text-black' : 'text-grad'"
       >
         {{ walletNameLabel }}
@@ -32,7 +36,8 @@ export default {
 
   data () {
     return {
-      walletNameLabel: ''
+      walletNameLabel: '',
+      arrowIcon: 'arrow_drop_down'
     }
   },
 
