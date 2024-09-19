@@ -116,14 +116,15 @@ export default {
                 const appV = appVer.split('.').map(Number)
                 const minV = minReqVer.split('.').map(Number)
 
-                // let openVersionUpdate = false
-
                 for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
                   const v1 = appV[i] || 0
                   const v2 = minV[i] || 0
 
                   if (v1 < v2) {
                     this.openVersionUpdate = true
+                    break
+                  } else if (v1 > v2) {
+                    this.openVersionUpdate = false
                     break
                   } else {
                     this.openVersionUpdate = false
