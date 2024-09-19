@@ -104,7 +104,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      statusType: 'PENDING',
+      statusType: this.$store.getters['ramp/appealListingTab'],
       selectedAppeal: null,
       loading: false,
       totalPages: null,
@@ -127,10 +127,11 @@ export default {
     }
   },
   watch: {
-    async statusType () {
+    async statusType (value) {
       this.displayEmptyList = false
       this.scrollToTop()
       this.refreshData()
+      this.$store.commit('ramp/updateAppealListingTab', value)
     }
   },
   computed: {
@@ -202,7 +203,7 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.error(error?.response)
+          console.error(error?.response || error)
           if (error.response) {
             if (error?.response?.status === 403) {
               bus.emit('session-expired')

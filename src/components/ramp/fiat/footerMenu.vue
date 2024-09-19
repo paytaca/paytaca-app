@@ -73,6 +73,7 @@ export default {
           pageName = 'p2p-profile'
           break
       }
+      this.$store.commit('ramp/resetListingTabs')
       await this.$router.replace({ name: pageName })
       this.$emit('clicked', { name: menu })
     },

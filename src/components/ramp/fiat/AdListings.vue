@@ -200,7 +200,7 @@ export default {
       openMiscDialog: false,
       openDialog: false,
       dialogName: '',
-      transactionType: 'BUY',
+      transactionType: this.$store.getters['ramp/adListingTab'],
       state: 'selection', // 'create' 'edit'
       loading: false,
       totalPages: null,
@@ -219,11 +219,12 @@ export default {
         this.$router.push({ name: 'ads-create' })
       }
     },
-    transactionType () {
+    transactionType (value) {
       const vm = this
       vm.displayEmptyList = false
       vm.scrollToTop()
       vm.resetAndRefetchListings()
+      vm.$store.commit('ramp/updateAdListingTab', value)
     }
   },
   computed: {

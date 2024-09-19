@@ -242,7 +242,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       selectedCurrency: { symbol: this.$t('All') },
-      statusType: 'ONGOING',
+      statusType: this.$store.getters['ramp/orderListingTab'],
       state: 'order-list',
       loading: false,
       totalPages: null,
@@ -260,13 +260,14 @@ export default {
     }
   },
   watch: {
-    statusType () {
+    statusType (value) {
       const vm = this
       vm.displayEmptyList = false
       vm.filterComponentKey++
       vm.updateFilters()
       vm.scrollToTop()
       vm.resetAndRefetchListings()
+      vm.$store.commit('ramp/updateOrderListingTab', value)
     },
     selectedCurrency () {
       this.filterComponentKey++

@@ -185,7 +185,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      transactionType: 'SELL',
+      transactionType: this.$store.getters['ramp/storeListingTab'],
       loading: false,
       peerProfile: null,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
@@ -214,6 +214,7 @@ export default {
       vm.updatePaginationValues()
       vm.updateFilters()
       vm.resetAndRefetchListings()
+      vm.$store.commit('ramp/updateStoreListingTab', value)
     },
     async selectedCurrency () {
       this.updateFilters()

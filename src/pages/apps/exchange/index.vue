@@ -38,6 +38,10 @@ export default {
   async created () {
     bus.on('network-error', this.openNetworkError)
   },
+  beforeUnmount () {
+    this.$store.commit('ramp/resetListingTabs')
+    this.$store.commit('ramp/resetAppealListingTab')
+  },
   async mounted () {
     loadRampWallet()
     await this.getUser()
