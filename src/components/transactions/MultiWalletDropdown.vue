@@ -1,5 +1,5 @@
 <template>
-  <q-btn-dropdown
+  <!-- <q-btn-dropdown
     flat
     class="full-width"
     align="left"
@@ -20,7 +20,34 @@
     </template>
 
     <MultiWallet @update-wallet-name="onUpdateWalletName" />
-  </q-btn-dropdown>
+  </q-btn-dropdown> -->
+  <q-btn
+    flat
+    class="col-10"
+    align="left"
+    @click="showMultiWalletDialog"
+  >
+    <template v-slot:default>
+      <div class="row">
+        <q-icon :name="arrowIcon" class="col-1" />
+        <span
+          class="text-bold text-h6 wallet-name-label col-11"
+          :class="!darkMode && isNotDefaultTheme(theme) ? 'text-black' : 'text-grad'"
+        >
+          {{ walletNameLabel }}
+        </span>
+      </div>
+    </template>
+
+  </q-btn>
+  <q-btn
+    flat
+    class="col-2"
+    align="right"
+    icon="notifications"
+  />
+
+  <MultiWallet ref="multi-wallet-parent" @update-wallet-name="onUpdateWalletName" />
 </template>
 
 <script>
@@ -37,7 +64,8 @@ export default {
   data () {
     return {
       walletNameLabel: '',
-      arrowIcon: 'arrow_drop_down'
+      arrowIcon: 'arrow_drop_down',
+      isShow: false
     }
   },
 
@@ -58,6 +86,17 @@ export default {
     isNotDefaultTheme,
     onUpdateWalletName (name) {
       this.walletNameLabel = name
+    },
+    showMultiWalletDialog () {
+      if (!this.isShow) {
+        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
+        this.arrowIcon = 'arrow_drop_up'
+        this.isShow = true
+      } else {
+        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
+        this.isShow = false
+        this.arrowIcon = 'arrow_drop_down'
+      }
     }
   },
 
@@ -73,7 +112,8 @@ export default {
 
 <style scoped>
 .wallet-name-label {
-  overflow-wrap: break-word;
-  text-wrap: wrap;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
