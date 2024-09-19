@@ -555,13 +555,27 @@ export default {
     async checkCashinAvailable () {
       // check network
       if (this.selectedNetwork === 'BCH') {
-        // check availableCashinFiat to avoid duplicate requests
+        // check availableCashinFiat is empty to avoid duplicate requests
         if (this.availableCashinFiat) {
           this.hasCashin = true
         } else {
-          const { data: user } = await backend.get('/auth/')
+          let fetchCurrency = false
 
-          if (!user?.is_arbiter) {
+          await backend.get('/auth')
+            .then(response => {
+              const user = response.data
+
+              if (!user?.is_arbiter) {
+                fetchCurrency = true
+              }
+            })
+            .catch(error => {
+              if (error.response?.status === 404) {
+                fetchCurrency = true
+              }
+            })
+
+          if (fetchCurrency) {
             backend.get('/ramp-p2p/currency/fiat')
               .then(response => {
                 this.availableCashinFiat = response.data
