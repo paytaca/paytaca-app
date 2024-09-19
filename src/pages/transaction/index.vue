@@ -1136,6 +1136,9 @@ export default {
                   if (v1 < v2) {
                     openVersionUpdate = true
                     break
+                  } else if (v1 > v2) {
+                    openVersionUpdate = false
+                    break
                   } else {
                     openVersionUpdate = false
                   }
