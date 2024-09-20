@@ -78,85 +78,87 @@
           <div class="row justify-center" v-if="loading">
             <q-spinner-dots color="primary" size="40px" />
           </div>
-          <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
-              <q-item-section>
-                <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                  <div class="row">
-                    <div class="col ib-text">
-                      <div>
-                        <span
-                          :class="{'pt-label dark': darkMode}"
-                          class="md-font-size">
-                          <!-- @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)"> -->
-                          {{ userNameView(listing.owner?.name) }}
-                        </span>
-                        <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
-                      </div>
-                      <div class="row">
-                        <q-rating
-                          readonly
-                          :model-value="listing.owner.rating ? listing.owner.rating : 0"
-                          :v-model="listing.owner.rating"
-                          size="1.1em"
-                          color="yellow-9"
-                          icon="star"
-                          icon-half="star_half"
-                          />
-                        <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
-                      </div>
-                      <div class="sm-font-size">
-                        <span class="q-mr-sm">
-                          {{
-                            $t(
-                              'TradeCount',
-                              { count: listing.trade_count },
-                              `${ listing.trade_count || 0 } trades`
-                            )
-                          }}
-                        </span>
-                        <span class="q-ml-sm">
-                          {{
-                            $t(
-                              'CompletionPercentage',
-                              { percentage: formatCompletionRate(listing.completion_rate) },
-                              `${ formatCompletionRate(listing.completion_rate) }% completion`
-                            )
-                          }}
-                        </span><br>
-                      </div>
-                      <span
-                        class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
-                        :class="getDarkModeClass(darkMode)">
-                        {{ listing.fiat_currency.symbol }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
-                      </span>
-                      <span class="sm-font-size">/BCH</span><br>
-                      <div class="sm-font-size">
-                        <div class="row">
-                          <span class="col-3">{{ $t('Quantity') }}</span>
-                          <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+          <q-pull-to-refresh @refresh="refreshData">
+            <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+              <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
+                <q-item-section>
+                  <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                    <div class="row">
+                      <div class="col ib-text">
+                        <div>
+                          <span
+                            :class="{'pt-label dark': darkMode}"
+                            class="md-font-size">
+                            <!-- @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)"> -->
+                            {{ userNameView(listing.owner?.name) }}
+                          </span>
+                          <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
                         </div>
                         <div class="row">
-                          <span class="col-3">Limit</span>
-                          <span class="col"> {{ formatCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formatCurrency(minTradeAmount(listing), listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                          <q-rating
+                            readonly
+                            :model-value="listing.owner.rating ? listing.owner.rating : 0"
+                            :v-model="listing.owner.rating"
+                            size="1.1em"
+                            color="yellow-9"
+                            icon="star"
+                            icon-half="star_half"
+                            />
+                          <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
+                        </div>
+                        <div class="sm-font-size">
+                          <span class="q-mr-sm">
+                            {{
+                              $t(
+                                'TradeCount',
+                                { count: listing.trade_count },
+                                `${ listing.trade_count || 0 } trades`
+                              )
+                            }}
+                          </span>
+                          <span class="q-ml-sm">
+                            {{
+                              $t(
+                                'CompletionPercentage',
+                                { percentage: formatCompletionRate(listing.completion_rate) },
+                                `${ formatCompletionRate(listing.completion_rate) }% completion`
+                              )
+                            }}
+                          </span><br>
+                        </div>
+                        <span
+                          class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
+                          :class="getDarkModeClass(darkMode)">
+                          {{ listing.fiat_currency.symbol }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
+                        </span>
+                        <span class="sm-font-size">/BCH</span><br>
+                        <div class="sm-font-size">
+                          <div class="row">
+                            <span class="col-3">{{ $t('Quantity') }}</span>
+                            <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                          </div>
+                          <div class="row">
+                            <span class="col-3">Limit</span>
+                            <span class="col"> {{ formatCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formatCurrency(minTradeAmount(listing), listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
+                    <div class="q-gutter-sm q-pt-xs">
+                      <q-badge v-for="method in listing.payment_methods" :key="method.id"
+                      rounded outline :color="transactionType === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
+                      {{ method }}
+                      </q-badge>
+                    </div>
                   </div>
-                  <div class="q-gutter-sm q-pt-xs">
-                    <q-badge v-for="method in listing.payment_methods" :key="method.id"
-                    rounded outline :color="transactionType === 'SELL'? darkMode ? 'blue-13' : 'blue' : darkMode ? 'red-13' : 'red'">
-                    {{ method }}
-                    </q-badge>
-                  </div>
-                </div>
-              </q-item-section>
-            </q-item>
-            <div class="row justify-center">
-              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
-              <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
-            </div>
-          </q-list>
+                </q-item-section>
+              </q-item>
+              <div class="row justify-center">
+                <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+                <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+              </div>
+            </q-list>
+          </q-pull-to-refresh>
         </div>
       </div>
     </div>
@@ -202,7 +204,11 @@ export default {
       componentKey: 0,
       filterComponentKey: 0,
       loadingMoreData: false,
-      displayEmptyList: false
+      displayEmptyList: false,
+      onFirstLoad: {
+        sell: true,
+        buy: true
+      }
     }
   },
   watch: {
@@ -424,14 +430,23 @@ export default {
     },
     async refreshData (done) {
       done()
-      await this.resetAndRefetchListings()
+      await this.resetAndRefetchListings(true)
     },
-    async resetAndRefetchListings () {
+    async resetAndRefetchListings (refresh = false) {
+      const tab = this.transactionType
+      if (!refresh && ((tab === 'SELL' && !this.onFirstLoad.sell) ||
+          (tab === 'BUY' && !this.onFirstLoad.buy))) {
+        return
+      }
+
+      if (tab === 'SELL') this.onFirstLoad.sell = false
+      if (tab === 'BUY') this.onFirstLoad.buy = false
+
       this.$store.commit('ramp/resetStorePagination')
       this.loading = true
       await this.fetchStoreListings(true)
 
-      setTimeout( () => {
+      setTimeout(() => {
         this.displayEmptyList = true
       }, 150)
 
@@ -468,6 +483,17 @@ export default {
         return parseFloat(tradeAmount)
       } else {
         return parseFloat(tradeCeiling)
+      }
+    },
+    preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
       }
     }
   }

@@ -51,111 +51,113 @@
           <div class="row justify-center" v-if="loading">
             <q-spinner-dots color="primary" size="40px" />
           </div>
-          <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
-            <div v-for="(listing, index) in listings" :key="index">
-              <q-item>
-                <q-item-section>
-                  <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="row">
-                      <div class="col ib-text">
-                        <span
-                          class="q-mb-none text-uppercase pt-label"
-                          :class="getDarkModeClass(darkMode)"
-                          style="font-size: 13px;">
-                          {{ listing.price_type }}
-                        </span><br>
-                        <div class="row q-gutter-md">
-                          <span>
-                            {{
-                              $t(
-                                'TradeCount',
-                                { count: listing.trade_count },
-                                `${ listing.trade_count } trades`
-                              )
-                            }}
+          <q-pull-to-refresh @refresh="refreshData">
+            <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
+              <div v-for="(listing, index) in listings" :key="index">
+                <q-item>
+                  <q-item-section>
+                    <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                      <div class="row">
+                        <div class="col ib-text">
+                          <span
+                            class="q-mb-none text-uppercase pt-label"
+                            :class="getDarkModeClass(darkMode)"
+                            style="font-size: 13px;">
+                            {{ listing.price_type }}
+                          </span><br>
+                          <div class="row q-gutter-md">
+                            <span>
+                              {{
+                                $t(
+                                  'TradeCount',
+                                  { count: listing.trade_count },
+                                  `${ listing.trade_count } trades`
+                                )
+                              }}
+                            </span>
+                            <span>
+                              {{
+                                $t(
+                                  'CompletionPercentage',
+                                  { percentage: Number(listing.completion_rate.toFixed(2)) },
+                                  `${ Number(listing.completion_rate.toFixed(2)) }% completion`
+                                )
+                              }}
+                            </span>
+                          </div>
+                          <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
+                            {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                           </span>
-                          <span>
-                            {{
-                              $t(
-                                'CompletionPercentage',
-                                { percentage: Number(listing.completion_rate.toFixed(2)) },
-                                `${ Number(listing.completion_rate.toFixed(2)) }% completion`
-                              )
-                            }}
-                          </span>
+                          <span class="sm-font-size">/BCH</span>
+                          <div class="sm-font-size row q-gutter-md">
+                            <span>{{ $t('Quantity') }}</span>
+                            <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
+                          </div>
+                          <div class="sm-font-size row q-gutter-md">
+                            <span>{{ $t('Limits') }}</span>
+                            <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
+                          </div>
+                          <div class="sm-font-size">
+                            <span>
+                              {{
+                                $t(
+                                  'AppealableInCooldown',
+                                  { cooldown: appealCooldown(listing.appeal_cooldown).label },
+                                  `Appealable in ${ appealCooldown(listing.appeal_cooldown).label }`
+                                )
+                              }}
+                            </span>
+                          </div>
                         </div>
-                        <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
-                          {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
-                        </span>
-                        <span class="sm-font-size">/BCH</span>
-                        <div class="sm-font-size row q-gutter-md">
-                          <span>{{ $t('Quantity') }}</span>
-                          <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
-                        </div>
-                        <div class="sm-font-size row q-gutter-md">
-                          <span>{{ $t('Limits') }}</span>
-                          <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(minTradeAmount(listing), tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
-                        </div>
-                        <div class="sm-font-size">
-                          <span>
-                            {{
-                              $t(
-                                'AppealableInCooldown',
-                                { cooldown: appealCooldown(listing.appeal_cooldown).label },
-                                `Appealable in ${ appealCooldown(listing.appeal_cooldown).label }`
-                              )
-                            }}
-                          </span>
+                        <div class="text-right">
+                          <div class="row q-gutter-xs justify-end">
+                            <q-btn
+                              outline
+                              rounded
+                              padding="sm"
+                              icon="edit"
+                              size="sm"
+                              color="button"
+                              @click="onEditAd(listing.id)"
+                            />
+                            <q-btn
+                              outline
+                              rounded
+                              padding="sm"
+                              size="sm"
+                              icon="delete"
+                              color="button"
+                              @click="onDeleteAd(listing.id)"
+                            />
+                          </div>
+                          <div class="row justify-end q-mt-sm">
+                            <q-btn
+                              outline
+                              rounded
+                              padding="xs sm"
+                              size="sm"
+                              class="q-ml-xs text-weight-bold"
+                              :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
+                              :icon="listing.is_public ? 'visibility' : 'visibility_off'"
+                              @click="onToggleAdVisibility(listing, index)">
+                              <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
+                            </q-btn>
+                          </div>
                         </div>
                       </div>
-                      <div class="text-right">
-                        <div class="row q-gutter-xs justify-end">
-                          <q-btn
-                            outline
-                            rounded
-                            padding="sm"
-                            icon="edit"
-                            size="sm"
-                            color="button"
-                            @click="onEditAd(listing.id)"
-                          />
-                          <q-btn
-                            outline
-                            rounded
-                            padding="sm"
-                            size="sm"
-                            icon="delete"
-                            color="button"
-                            @click="onDeleteAd(listing.id)"
-                          />
-                        </div>
-                        <div class="row justify-end q-mt-sm">
-                          <q-btn
-                            outline
-                            rounded
-                            padding="xs sm"
-                            size="sm"
-                            class="q-ml-xs text-weight-bold"
-                            :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
-                            :icon="listing.is_public ? 'visibility' : 'visibility_off'"
-                            @click="onToggleAdVisibility(listing, index)">
-                            <span class="q-mx-xs">{{ listing.is_public ? 'public' : 'private'}}</span>
-                          </q-btn>
-                        </div>
+                      <div class="q-gutter-sm q-pt-xs">
+                        <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method" />
                       </div>
                     </div>
-                    <div class="q-gutter-sm q-pt-xs">
-                      <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method" />
-                    </div>
-                  </div>
-                </q-item-section>
-              </q-item>
-            </div>
-            <div class="row justify-center">
-              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
-              <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
-            </div>
-          </q-list>
+                  </q-item-section>
+                </q-item>
+              </div>
+              <div class="row justify-center">
+                <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+                <q-btn v-else-if="!loading && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+              </div>
+            </q-list>
+          </q-pull-to-refresh>
         </div>
       </div>
     </div>
@@ -451,8 +453,16 @@ export default {
         this.$refs.scrollTarget.$el.scrollTop = 0
       }
     },
-    formattedDate (value) {
-      return formatDate(value)
+    preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
     }
   }
 }

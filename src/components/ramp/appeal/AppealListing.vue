@@ -28,63 +28,65 @@
      </div>
      <!-- List -->
      <div v-else>
-       <div class="row justify-center" v-if="loading">
-         <q-spinner-dots color="primary" size="40px" />
-       </div>
-       <q-list ref="scrollTarget" :style="`max-height: ${minHeight - 105}px`" style="overflow:auto;">
-         <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
-           <q-item clickable @click="selectAppeal(index)">
-             <q-item-section class="q-py-sm">
-               <div class="row q-mx-md">
-                 <div class="col ib-text">
-                   <!-- <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" /> -->
-                   <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
-                   <!-- <div class="xs-font-size">{{ appeal.owner.name}}</div> -->
-                   <div class="text-weight-bold" style="font-size: medium;">
-                     {{
-                       $t(
-                         'AppealIdNo',
-                         { ID: appeal.id },
-                         `Appeal #${ appeal.id }`
-                       )
-                     }}
-                     <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="info" label="New" class="q-mx-xs" />
-                   </div>
-                   <div class="row" style="font-size: small;">
-                     {{
-                       $t(
-                         'OrderIdNo',
-                         { ID: appeal.order.id },
-                         `ORDER #${ appeal.order.id }`
-                       )
-                     }}
-                   </div>
-                   <div class="xs-font-size">
-                     <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
-                     <div v-if="statusType === 'RESOLVED'" class="row">
-                       {{
-                         $t(
-                           'ResolvedDate',
-                           { date: formattedDate(appeal.resolved_at) },
-                           `Resolved ${ formattedDate(appeal.resolved_at) }`
-                         )
-                       }}
-                     </div>
-                   </div>
-                   <div v-for="(reason, index) in appeal.reasons" :key="index">
-                     <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
-                   </div>
-                 </div>
-               </div>
-             </q-item-section>
-           </q-item>
-           <q-separator class="q-mx-lg" :dark="darkMode"/>
-         </div>
-         <div class="row justify-center">
-           <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
-           <q-btn v-else-if="!loading && hasMoreData" flat @click="loadMoreData">view more</q-btn>
-         </div>
-       </q-list>
+        <div class="row justify-center" v-if="loading">
+          <q-spinner-dots color="primary" size="40px" />
+        </div>
+        <q-pull-to-refresh @refresh="refreshData">
+          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 105}px`" style="overflow:auto;">
+            <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
+              <q-item clickable @click="selectAppeal(index)">
+                <q-item-section class="q-py-sm">
+                  <div class="row q-mx-md">
+                    <div class="col ib-text">
+                      <!-- <q-badge v-if="statusType === 'PENDING'" rounded size="sm" outline :color="appeal.type.value === 'RFN' ?  'red-5' : 'blue-5'" class="text-uppercase" :label="appeal.type.label" /> -->
+                      <q-badge v-if="statusType === 'RESOLVED'" rounded size="sm" outline color="info" class="text-uppercase" :label="appeal.order.status.label" />
+                      <!-- <div class="xs-font-size">{{ appeal.owner.name}}</div> -->
+                      <div class="text-weight-bold" style="font-size: medium;">
+                        {{
+                          $t(
+                            'AppealIdNo',
+                            { ID: appeal.id },
+                            `Appeal #${ appeal.id }`
+                          )
+                        }}
+                        <q-badge v-if="!appeal.read_at" rounded outline size="sm" color="info" label="New" class="q-mx-xs" />
+                      </div>
+                      <div class="row" style="font-size: small;">
+                        {{
+                          $t(
+                            'OrderIdNo',
+                            { ID: appeal.order.id },
+                            `ORDER #${ appeal.order.id }`
+                          )
+                        }}
+                      </div>
+                      <div class="xs-font-size">
+                        <div v-if="statusType === 'PENDING'" class="row"> {{ formattedDate(appeal.created_at) }} </div>
+                        <div v-if="statusType === 'RESOLVED'" class="row">
+                          {{
+                            $t(
+                              'ResolvedDate',
+                              { date: formattedDate(appeal.resolved_at) },
+                              `Resolved ${ formattedDate(appeal.resolved_at) }`
+                            )
+                          }}
+                        </div>
+                      </div>
+                      <div v-for="(reason, index) in appeal.reasons" :key="index">
+                        <q-badge rounded size="sm" outline :color="darkMode ? 'blue-grey-4' :  'blue-grey-6'" :label="reason" />
+                      </div>
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
+              <q-separator class="q-mx-lg" :dark="darkMode"/>
+            </div>
+            <div class="row justify-center">
+              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+              <q-btn v-else-if="!loading && hasMoreData" flat @click="loadMoreData">view more</q-btn>
+            </div>
+          </q-list>
+        </q-pull-to-refresh>
      </div>
    </div>
  </template>
@@ -261,6 +263,17 @@ export default {
       console.log('selectAppeal:', this.selectedAppeal)
       await this.$router.push({ name: 'appeal-detail', params: { order: this.selectedAppeal?.order?.id } })
       bus.emit('show-footer-menu', false)
+    },
+    preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
     }
   }
 }
