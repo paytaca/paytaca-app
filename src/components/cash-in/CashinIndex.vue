@@ -4,7 +4,7 @@
       <!-- Title -->
       <div class="q-pt-sm">
         <q-card-section class="row items-center q-pb-none">
-          <q-btn flat icon="arrow_back" color="blue-6" round dense @click="previousView" />
+          <q-btn flat icon="arrow_back" color="blue-6" round dense @click="previousView()" />
           <q-space />
           <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="showOrderListButton" @click="state = 'order-list'"/>
         </q-card-section>
@@ -185,6 +185,7 @@ export default {
         console.error(error.response || error)
         if (error.response?.status === 404) {
           vm.state = 'register'
+          vm.register = true
         } else {
           this.dislayNetworkError()
         }
@@ -312,8 +313,17 @@ export default {
 
       switch (vm.state) {
         case 'register':
-        case 'order-list':
+          vm.step = 2
           vm.state = 'cashin-order'
+          vm.register = false
+          break
+        case 'order-list':
+          if (vm.register) {
+            console.log('heree')
+            vm.state = 'register'
+          } else {
+            vm.state = 'cashin-order'
+          }
           break
         case 'cashin-order':
           if (this.step === 1) {
