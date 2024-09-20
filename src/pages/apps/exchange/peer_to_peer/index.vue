@@ -158,13 +158,19 @@ export default {
       }
       // NB: this does not filter by payment types
       if (addToList) {
-        const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
-        if (filters.sort_type === 'descending') {
-          ongoingOrders.unshift(order)
+        if (order.is_cash_in) {
+          const cashinOrders = [...this.$store.getters['ramp/getCashinOrders']]
+          cashinOrders.unshift(order)
+          this.$store.commit('ramp/updateCashinOrders', { overwrite: true, data: { orders: cashinOrders } })
         } else {
-          ongoingOrders.push(order)
+          const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
+          if (filters.sort_type === 'descending') {
+            ongoingOrders.unshift(order)
+          } else {
+            ongoingOrders.push(order)
+          }
+          this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
         }
-        this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
       }
     },
     setupWebsocket () {
