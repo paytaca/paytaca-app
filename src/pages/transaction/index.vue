@@ -451,6 +451,9 @@ export default {
       if (val) {
         this.formatBCHCardBalance(this.denomination)
       }
+    },
+    selectedNetwork (value) {
+      this.checkCashinAvailable()
     }
   },
 
@@ -550,20 +553,44 @@ export default {
       })
     },
     async checkCashinAvailable () {
-      const { data: user } = await backend.get('/auth/')
+      // check network
+      if (this.selectedNetwork === 'BCH') {
+        // check availableCashinFiat is empty to avoid duplicate requests
+        if (this.availableCashinFiat) {
+          this.hasCashin = true
+        } else {
+          let fetchCurrency = false
 
-      if (!user?.is_arbiter) {
-        backend.get('/ramp-p2p/currency/fiat')
-          .then(response => {
-            this.availableCashinFiat = response.data
-            const selectedFiat = this.$store.getters['market/selectedCurrency']
-            const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
+          await backend.get('/auth')
+            .then(response => {
+              const user = response.data
 
-            this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
-          })
-          .catch(error => {
-            console.error(error)
-          })
+              if (!user?.is_arbiter) {
+                fetchCurrency = true
+              }
+            })
+            .catch(error => {
+              if (error.response?.status === 404) {
+                fetchCurrency = true
+              }
+            })
+
+          if (fetchCurrency) {
+            backend.get('/ramp-p2p/currency/fiat')
+              .then(response => {
+                this.availableCashinFiat = response.data
+                const selectedFiat = this.$store.getters['market/selectedCurrency']
+                const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
+
+                this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
+              })
+              .catch(error => {
+                console.error(error)
+              })
+          }
+        }
+      } else {
+        this.hasCashin = false
       }
     },
     async updateTokenMenuPosition () {

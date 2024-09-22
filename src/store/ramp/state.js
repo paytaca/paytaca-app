@@ -1,8 +1,6 @@
 export default function () {
   return {
-    // websocket: null,
     wallet: null,
-    authHeaders: null,
     user: null,
     chatIdentity: {},
     arbiter: null,
@@ -92,6 +90,11 @@ export default function () {
       }
     },
     migrateStoreOrderFilters: true,
-    ordersCurrency: 'All'
+    ordersCurrency: 'All',
+
+    storeListingTab: 'SELL',
+    adListingTab: 'BUY',
+    orderListingTab: 'ONGOING',
+    appealListingTab: 'PENDING'
   }
 }

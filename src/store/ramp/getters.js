@@ -1,12 +1,18 @@
-function getCookie (name) {
-  const cookieArr = document.cookie.split('; ')
-  for (let i = 0; i < cookieArr.length; i++) {
-    const cookiePair = cookieArr[i].split('=')
-    if (name === cookiePair[0]) {
-      return decodeURIComponent(cookiePair[1])
-    }
-  }
-  return null
+
+export function storeListingTab (state) {
+  return state.storeListingTab
+}
+
+export function adListingTab (state) {
+  return state.adListingTab
+}
+
+export function orderListingTab (state) {
+  return state.orderListingTab
+}
+
+export function appealListingTab (state) {
+  return state.appealListingTab
 }
 
 export function ongoingOrderFilters (state) {
@@ -249,12 +255,6 @@ export function getOrderTxid (state) {
 
 export function wallet (state) {
   return state.wallet
-}
-
-export function authHeaders (state) {
-  const headers = { ...state.authHeaders }
-  headers.Authorization = `Token ${getCookie('token')}`
-  return headers
 }
 
 export function paymentTypes (state) {

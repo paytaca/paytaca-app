@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps/exchange/peer-to-peer/store"/>
+  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
   <div v-if="!networkError">
     <div v-if="state !== 'order-process'">
       <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
@@ -278,7 +278,7 @@ export default {
   },
   beforeRouteEnter (to, from, next) {
     next(vm => {
-      vm.previousRoute = from.path
+      vm.previousRoute = from.path || '/apps/exchange/peer-to-peer/store'
     })
   },
   emits: ['back', 'orderCanceled', 'updatePageName'],

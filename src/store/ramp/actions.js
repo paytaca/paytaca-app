@@ -1,17 +1,6 @@
 import { Store } from '..'
 import { backend } from 'src/exchange/backend'
 
-export async function loadAuthHeaders (context) {
-  if (!context.state.wallet) {
-    throw new Error('Ramp wallet not initialized')
-  }
-  const wallet = context.state.wallet // await loadWallet(context)
-  const headers = {
-    'wallet-hash': wallet.walletHash
-  }
-  context.commit('updateAuthHeaders', headers)
-}
-
 export function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
   const walletInfo = {

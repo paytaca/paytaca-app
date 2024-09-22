@@ -1,7 +1,7 @@
 <template>
   <div v-if="$route.name === 'p2p-store'">
     <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
-    <StoreListings :key="storeListingsKey" />
+    <StoreListings :key="storeListingsKey"/>
   </div>
   <div v-else>
     <router-view :key="$route.path"></router-view>
