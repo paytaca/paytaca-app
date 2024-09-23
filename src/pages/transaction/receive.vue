@@ -194,6 +194,7 @@ export default {
       legacy: false,
       lnsName: '',
       generatingAddress: false,
+      generateAddressOnLeave: false,
       copying: false,
       amount: '',
       tempAmount: '',
@@ -504,6 +505,7 @@ export default {
     },
     notifyOnReceive (amount, symbol, logo, decimals = 0, isCashToken = false) {
       const vm = this
+      vm.generateAddressOnLeave = vm.$store.getters['global/autoGenerateAddress']
       vm.playSound(true)
       vm.$confetti.start({
         particles: [
@@ -646,6 +648,12 @@ export default {
     },
     amountDialog () {
       this.tempAmount = this.amount
+    }
+  },
+
+  async beforeUnmount() {
+    if (this.generateAddressOnLeave) {
+      this.generateNewAddress()
     }
   },
 

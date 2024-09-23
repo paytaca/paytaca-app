@@ -10,7 +10,6 @@ export class RampWallet {
     this.walletIndex = walletIndex
     this.addressIndex = addressIndex
     this.isChipnet = isChipnet
-    this.raw()
   }
 
   async raw () {

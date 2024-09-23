@@ -13,10 +13,10 @@ const VERIFICATION_MINTER_CONTRACT = `pragma cashscript ^0.8.0;
 contract VerificationTokenMinter (bytes32 verificationTokenCategory) {
 
     function mintVerificationMintingNft () {
-        // >= 3 outputs: minting NFT (baton), UTXO for minting/fee
-        // >= 3 outputs: minting NFT (baton), minted verification minting NFT, and fee funder change
+        // >= 2 outputs: minting NFT (baton), UTXO for minting/fee
+        // >= 2 outputs: minting NFT (baton), minted verification minting NFT, and fee funder change
         require(tx.inputs.length >= 2);
-        require(tx.outputs.length >= 3);
+        require(tx.outputs.length >= 2);
 
         // minting NFT baton should be the first input and output
         bytes mintingNftInputCategory = tx.inputs[0].tokenCategory;

@@ -195,14 +195,3 @@ export function makeid (length) {
   }
   return result
 }
-
-export function getCookie (name) {
-  const cookieArr = document.cookie.split('; ')
-  for (let i = 0; i < cookieArr.length; i++) {
-    const cookiePair = cookieArr[i].split('=')
-    if (name === cookiePair[0]) {
-      return decodeURIComponent(cookiePair[1])
-    }
-  }
-  return null
-}

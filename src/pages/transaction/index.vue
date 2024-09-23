@@ -371,6 +371,8 @@ import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import Notifications from 'src/components/notifications/index.vue'
+import packageInfo from '../../../package.json'
+import versionUpdate from './dialog/versionUpdate.vue'
 
 const ago = require('s-ago')
 
@@ -391,7 +393,8 @@ export default {
     PriceChart,
     AssetFilter,
     MultiWalletDropdown,
-    CashIn
+    CashIn,
+    versionUpdate
   },
   directives: {
     dragscroll
@@ -432,7 +435,6 @@ export default {
       walletYield: null,
       hasCashin: false,
       availableCashinFiat: null
-
     }
   },
 
@@ -461,6 +463,9 @@ export default {
       if (val) {
         this.formatBCHCardBalance(this.denomination)
       }
+    },
+    selectedNetwork (value) {
+      this.checkCashinAvailable()
     }
   },
 
@@ -560,20 +565,44 @@ export default {
       })
     },
     async checkCashinAvailable () {
-      const { data: user } = await backend.get('/auth/')
+      // check network
+      if (this.selectedNetwork === 'BCH') {
+        // check availableCashinFiat is empty to avoid duplicate requests
+        if (this.availableCashinFiat) {
+          this.hasCashin = true
+        } else {
+          let fetchCurrency = false
 
-      if (!user?.is_arbiter) {
-        backend.get('/ramp-p2p/currency/fiat')
-          .then(response => {
-            this.availableCashinFiat = response.data
-            const selectedFiat = this.$store.getters['market/selectedCurrency']
-            const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
+          await backend.get('/auth')
+            .then(response => {
+              const user = response.data
 
-            this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
-          })
-          .catch(error => {
-            console.error(error)
-          })
+              if (!user?.is_arbiter) {
+                fetchCurrency = true
+              }
+            })
+            .catch(error => {
+              if (error.response?.status === 404) {
+                fetchCurrency = true
+              }
+            })
+
+          if (fetchCurrency) {
+            backend.get('/ramp-p2p/currency/fiat')
+              .then(response => {
+                this.availableCashinFiat = response.data
+                const selectedFiat = this.$store.getters['market/selectedCurrency']
+                const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
+
+                this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
+              })
+              .catch(error => {
+                console.error(error)
+              })
+          }
+        }
+      } else {
+        this.hasCashin = false
       }
     },
     async updateTokenMenuPosition () {
@@ -1106,6 +1135,66 @@ export default {
       )
       return tokens
     },
+    async checkVersionUpdate () {
+      const vm = this
+      const appVer = packageInfo.version
+
+      /// get platform
+      let platform = null
+
+      if (vm.$q.platform.is.mobile) {
+        platform = 'android'
+      }
+      if (vm.$q.platform.is.ios) {
+        platform = 'ios'
+      }
+      if (vm.$q.platform.is.bex) {
+        platform = 'web'
+      }
+
+      if (platform) {
+        // fetching version check
+        await backend.get(`version/check/${platform}/`)
+          .then(response => {
+            if (!('error' in response.data)) {
+              const latestVer = response.data?.latest_version
+              const minReqVer = response.data?.min_required_version
+
+              if (appVer !== latestVer) {
+                const appV = appVer.split('.').map(Number)
+                const minV = minReqVer.split('.').map(Number)
+
+                let openVersionUpdate = false
+
+                for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
+                  const v1 = appV[i] || 0
+                  const v2 = minV[i] || 0
+
+                  if (v1 < v2) {
+                    openVersionUpdate = true
+                    break
+                  } else if (v1 > v2) {
+                    openVersionUpdate = false
+                    break
+                  } else {
+                    openVersionUpdate = false
+                  }
+                }
+
+                // open version update dialog
+                if (openVersionUpdate) {
+                  this.$q.dialog({
+                    component: versionUpdate,
+                    componentProps: {
+                      data: response.data
+                    }
+                  })
+                }
+              }
+            }
+          })
+      }
+    },
     openNotificationsDialog () {
       this.$q.dialog({
         component: Notifications
@@ -1125,6 +1214,7 @@ export default {
 
   async mounted () {
     const vm = this
+    this.checkVersionUpdate()
     this.checkCashinAvailable()
     bus.on('handle-push-notification', this.handleOpenedNotification)
 

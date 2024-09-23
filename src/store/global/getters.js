@@ -35,6 +35,10 @@ export function isChipnet (state) {
   return state.isChipnet
 }
 
+export function autoGenerateAddress(state) {
+  return state.autoGenerateAddress
+}
+
 export function showTokens (state) {
   return state.showTokens
 }

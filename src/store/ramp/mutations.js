@@ -1,6 +1,41 @@
-// export function updateWebsocket (state, data) {
-//   state.websocket = data
-// }
+export function updateStoreListingTab (state, tab) {
+  state.storeListingTab = tab
+}
+
+export function updateAdListingTab (state, tab) {
+  state.adListingTab = tab
+}
+
+export function updateOrderListingTab (state, tab) {
+  state.orderListingTab = tab
+}
+
+export function updateAppealListingTab (state, tab) {
+  state.appealListingTab = tab
+}
+
+export function resetStoreListingTab (state) {
+  state.storeListingTab = 'SELL'
+}
+
+export function resetAdListingTab (state) {
+  state.adListingTab = 'BUY'
+}
+
+export function resetOrderListingTab (state) {
+  state.orderListingTab = 'ONGOING'
+}
+
+export function resetAppealListingTab (state) {
+  state.appealListingTab = 'PENDING'
+}
+
+export function resetListingTabs (state) {
+  resetStoreListingTab(state)
+  resetAdListingTab(state)
+  resetOrderListingTab(state)
+  resetAppealListingTab(state)
+}
 
 export function updateStoreBuyFilters (state, { filters = {}, currency = null }) {
   if (!currency) return (() => { state.storeBuyFilters = {} })()
@@ -206,7 +241,6 @@ export function updateUser (state, user) {
 export function resetUser (state) {
   state.user = null
   state.wallet = null
-  state.authHeaders = null
 }
 
 export function saveTxid (state, data) {
@@ -408,10 +442,6 @@ export function resetData (state) {
 
 export function updateWallet (state, wallet) {
   state.wallet = wallet
-}
-
-export function updateAuthHeaders (state, headers) {
-  state.authHeaders = headers
 }
 
 export function updatePaymentTypes (state, { paymentTypes = [], currency = null }) {

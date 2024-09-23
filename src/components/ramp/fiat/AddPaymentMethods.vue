@@ -140,7 +140,6 @@ import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
-import { selectedCurrency } from 'src/store/market/getters'
 
 export default {
   components: {
@@ -415,7 +414,7 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol }, authorize: true })
+      await backend.get('/ramp-p2p/payment-type/', { params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol }, authorize: true })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })

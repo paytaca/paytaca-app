@@ -358,7 +358,7 @@ async function selectCoordinates(opts={ autoFocusSearch: false }) {
 }
 
 async function checkBalance () {
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   const response = await wallet.BCH.getBalance()
   const enough = response.balance >= 0.00003
   if (!enough) {

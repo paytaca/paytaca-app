@@ -148,7 +148,7 @@ const reLogin = async () => {
 const reLoginDebounced = debounce(reLogin, 500)
 
 async function checkBalance () {
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   const response = await wallet.BCH.getBalance()
   const enough = response.balance >= 0.00003
   confirm.value = !enough

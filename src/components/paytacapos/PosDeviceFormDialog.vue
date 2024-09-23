@@ -153,13 +153,13 @@ const defaultBranch = computed(() => {
 })
 
 async function getFirstPosPubkeys (posid) {
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   const posFirstIndex = Number('1' + padPosId(posid))
   return await wallet.BCH.getPublicKey(undefined, undefined, true, posFirstIndex)
 }
 
 async function getZerothAddressAndWif () {
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   const address = await wallet.BCH.getAddressSetAt(0)
   const wif = await wallet.BCH.getPrivateKey(undefined, undefined, true)
   return {
@@ -192,7 +192,7 @@ async function mintMintingNftToDeviceVault (tokenAddress, category) {
 }
 
 async function checkBalance () {
-  const wallet = await loadWallet('BCH')
+  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   const response = await wallet.BCH.getBalance()
   const enough = response.balance >= 0.00003
   if (!enough) {
