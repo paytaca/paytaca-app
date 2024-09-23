@@ -358,15 +358,25 @@ const walletData = computed(() => {
 
 
 async function checkBalance () {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  const response = await wallet.BCH.getBalance()
-  const enough = response.balance >= 0.00002
-  confirm.value = !enough
-
-  if (enough) addNewPosDevice()
+  try {
+    $q.loading.show({ delay: 250, group: 'merchantCheckBalance', backgroundColor: 'none' })
+    const wallet = await getOrInitWallet()
+    const response = await wallet.BCH.getBalance()
+    const enough = response.balance >= 0.00002
+    confirm.value = !enough
+  
+    if (enough) addNewPosDevice()
+  } finally {
+    $q.loading.hide('merchantCheckBalance')
+  }
 }
 
 const wallet = ref(null)
+async function getOrInitWallet() {
+  if (!wallet.value) await initWallet()
+  if(wallet.value) return wallet.value
+  return await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+}
 async function initWallet() {
   const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   wallet.value = _wallet
