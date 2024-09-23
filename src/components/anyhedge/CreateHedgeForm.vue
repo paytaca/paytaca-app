@@ -705,7 +705,7 @@ const createHedgeFormConstraints = computed(() => {
     minimumNominalUnits: 0,
     maximumNominalUnits: Infinity,
     minimumDurationInSeconds: 0,
-    maximumDurationInSminimumDurationInSeconds: Infinity,
+    maximumDurationInSeconds: Infinity,
     minimumLowLiquidationPriceMultiplier: 0,
     maximumLowLiquidationPriceMultiplier: Infinity,
     minimumHighLiquidationPriceMultiplier: 0,

@@ -105,8 +105,8 @@ export async function updateMerchantInfo(context, data) {
             .catch(_error => {
               // failed updating merchant location in engagement hub
             })
-          return Promise.resolve(response)
         }
+        return Promise.resolve(response)
       }
       return Promise.reject({ response })
     })
@@ -304,7 +304,7 @@ export function generateLinkCode(context, data) {
 }
 
 
-async function getZerothAddressAndWif () {
+async function getZerothAddressAndWif (context) {
   const wallet = await loadWallet('BCH', context.getters['global/getWalletIndex'])
   const address = await wallet.BCH.getAddressSetAt(0)
   const wif = await wallet.BCH.getPrivateKey(undefined, undefined, true)
@@ -322,7 +322,7 @@ async function getZerothAddressAndWif () {
  * @param {Object} context 
  */
 export async function mintGenesisVerificationMintingNft (context) {
-  const funder = await getZerothAddressAndWif()
+  const funder = await getZerothAddressAndWif(context)
   const derivationPath = funder.derivationPath + '/0/0'
   const wallet = await Wallet.fromSeed(funder.mnemonic, derivationPath)
   const network = context.rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'
