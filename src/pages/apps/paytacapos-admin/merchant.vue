@@ -418,13 +418,13 @@ const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])
 const merchantInfo = computed(() => merchantsList.value.find(merchant => merchant?.id == props.merchantId))
 const showMerchantInfoDialog = ref(false)
 function openMerchantInfoDialog() {
+  hidePopups()
   showMerchantInfoDialog.value = !showMerchantInfoDialog.value
 }
 const merchantBranches = computed(() => {
   return $store.getters['paytacapos/merchantBranches']
     .filter(branch => branch?.merchant?.id == props.merchantId)
 })
-window.mb = merchantBranches
 function fetchBranches() {
   return $store.dispatch(
     'paytacapos/refetchBranches',
@@ -444,11 +444,12 @@ function merchantBranch (branchId) {
 
 const branchFormDialog = ref({ show: false, branch: null })
 function showBranchInfo(branch) {
+  hidePopups()
   branchFormDialog.value = { show: true, branch: branch }
 }
-window.sb = showBranchInfo
 
 function openNewBranchForm() {
+  hidePopups()
   branchFormDialog.value = { show: true, branch: null }
 }
 
@@ -531,6 +532,7 @@ function syncPosDevice(posDevice, append=false) {
 }
 
 function openLinkDeviceDialog(posDevice) {
+  hidePopups()
   $q.dialog({
     component: PosDeviceLinkDialog,
     componentProps: {
@@ -594,7 +596,9 @@ async function deviceUnlinkRequest(posDevice) {
     })
 }
 
+const confirmCancelUnlinkPosDeviceDialog = ref()
 function confirmCancelUnlinkPosDevice(posDevice) {
+  hidePopups()
   const dialog = $q.dialog({
     title: $t('UnlinkDevice', {}, 'Unlink device'),
     message: $t('CancellingUnlinkRequest', {}, 'Cancelling unlink request'),
@@ -604,6 +608,11 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     ok: false,
     class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
+  confirmCancelUnlinkPosDeviceDialog.value = dialog
+    .onDismiss(() => {
+      confirmCancelUnlinkPosDeviceDialog.value = null
+    })
+
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
   const watchtower = new Watchtower()
   watchtower.BCH._api.post(`paytacapos/devices/${handle}/unlink_device/cancel/`)
@@ -668,9 +677,11 @@ function updateDeviceSuspension(posDevice, isSuspended) {
 
 const salesReportDialog = ref({ show: false, posDevice: null })
 function displayDeviceSalesReportDialog(posDevice) {
+  hidePopups()
   salesReportDialog.value = { show: true, posDevice: posDevice }
 }
 function displaySalesReportDialog() {
+  hidePopups()
   salesReportDialog.value = { show: true, posDevice: null }
 }
 
@@ -702,15 +713,17 @@ function updateLastActive(posDevice) {
     })
 }
 
+const confirmUnlinkPosDeviceDialog = ref()
 function confirmUnlinkPosDevice(posDevice) {
   if (posDevice?.linkedDevice?.unlinkRequest?.id) return
+  hidePopups()
 
   const msgParams = { ID: posDevice?.posid, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
   const message = $t(
     'UnlinkPOSDeviceNumName', msgParams,
     `Unlink POS Device #${msgParams.ID}${msgParams.name}`
   )
-  $q.dialog({
+  const dialog = $q.dialog({
     title: $t('UnlinkPOSDevice', {}, 'Unlink POS device'),
     message: message,
     ok: {
@@ -726,6 +739,13 @@ function confirmUnlinkPosDevice(posDevice) {
   })
     .onOk(() => {
       return deviceUnlinkRequest(posDevice)
+    })
+
+  confirmUnlinkPosDeviceDialog.value = dialog
+    .onDismiss(() => {
+      if (confirmUnlinkPosDeviceDialog.value === dialog) {
+        confirmUnlinkPosDeviceDialog.value = null
+      }
     })
 }
 
@@ -828,20 +848,24 @@ function onSubmitUpdatePosDevice(apiCall) {
 }
 
 function addNewPosDevice() {
+  hidePopups()
   posDeviceFormDialog.value = { show: true, posDevice: null }
 }
 
 function updatePosDevice(posDevice) {
+  hidePopups()
   posDeviceFormDialog.value = { show: true, posDevice: posDevice }
 }
 
+const confirmRemovePosDeviceDialog = ref()
 function confirmRemovePosDevice(posDevice) {
   const msgParams = { ID: posDevice?.posid, name: posDevice?.name ? ` '${posDevice?.name}'` : ''}
   const message = $t(
     'RemovePOSDeviceNumName', msgParams,
     `Remove POS Device #${msgParams.ID}${msgParams.name}`
   )
-  $q.dialog({
+  hidePopups()
+  const dialog = $q.dialog({
     title: $t('RemovePOSDevice', {}, 'Remove POS device'),
     message: message,
     ok: {
@@ -897,6 +921,11 @@ function confirmRemovePosDevice(posDevice) {
           dialog.update({ persistent: false, progress: false })
         })
     })
+
+  confirmRemovePosDeviceDialog.value = dialog
+    .onDismiss(() => {
+      confirmRemovePosDeviceDialog.value = null
+    })
 }
 
 /**
@@ -909,6 +938,19 @@ function deletePosDevice(posDevice) {
       if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
       return Promise.reject(error)
     })
+}
+
+function hidePopups() {
+  try {
+    confirmRemovePosDeviceDialog.value?.hide?.()
+  } catch {}
+  try {
+    confirmUnlinkPosDeviceDialog.value?.hide?.()
+  } catch {}
+  posDeviceFormDialog.value.show = false
+  showMerchantInfoDialog.value = false
+  branchFormDialog.value.show = false
+  salesReportDialog.value.show = false
 }
 
 
