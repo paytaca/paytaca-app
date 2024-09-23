@@ -288,6 +288,27 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <MerchantInfoDialog v-model="showMerchantInfoDialog" :merchant="merchantInfo" />
+    <BranchFormDialog
+      v-model="branchFormDialog.show"
+      :branch-id="branchFormDialog.branch?.id"
+      :new-branch="!branchFormDialog.branch?.id"
+      :merchant-id="merchantId"
+    />
+    <PosDeviceFormDialog
+      v-model="posDeviceFormDialog.show"
+      :new-device="!Boolean(posDeviceFormDialog.posDevice)"
+      :pos-device="posDeviceFormDialog.posDevice"
+      :merchant-id="parseInt(props.merchantId)"
+      :branch-options="merchantBranches"
+      @ok="onSubmitPosDeviceFormDialog"
+    />
+    <SalesReportDialog
+      v-model="salesReportDialog.show"
+      :wallet-hash="walletData?.walletHash"
+      :pos-device="salesReportDialog.posDevice"
+      :merchant-id="merchantId"
+    />
   </q-pull-to-refresh>
 </template>
 
@@ -385,18 +406,15 @@ async function fetchAuthWallet() {
 
 const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])
 const merchantInfo = computed(() => merchantsList.value.find(merchant => merchant?.id == props.merchantId))
+const showMerchantInfoDialog = ref(false)
 function openMerchantInfoDialog() {
-  $q.dialog({
-    component: MerchantInfoDialog,
-    componentProps: {
-      merchant: merchantInfo.value,
-    }
-  })
+  showMerchantInfoDialog.value = !showMerchantInfoDialog.value
 }
 const merchantBranches = computed(() => {
   return $store.getters['paytacapos/merchantBranches']
     .filter(branch => branch?.merchant?.id == props.merchantId)
 })
+window.mb = merchantBranches
 function fetchBranches() {
   return $store.dispatch(
     'paytacapos/refetchBranches',
@@ -413,23 +431,15 @@ watch(
 function merchantBranch (branchId) {
   return merchantBranches.value.find(branchInfo => branchInfo?.id === branchId)
 }
+
+const branchFormDialog = ref({ show: false, branch: null })
 function showBranchInfo(branch) {
-  $q.dialog({
-    component: BranchFormDialog,
-    componentProps: {
-      branchId: branch?.id,
-    }
-  })
+  branchFormDialog.value = { show: true, branch: branch }
 }
+window.sb = showBranchInfo
 
 function openNewBranchForm() {
-  $q.dialog({
-    component: BranchFormDialog,
-    componentProps: {
-      newBranch: true,
-      merchantId: props?.merchantId,
-    }
-  })
+  branchFormDialog.value = { show: true, branch: null }
 }
 
 const posDevices = ref([].map(parsePosDeviceData))
@@ -645,24 +655,15 @@ function updateDeviceSuspension(posDevice, isSuspended) {
     })
 }
 
+
+const salesReportDialog = ref({ show: false, posDevice: null })
 function displayDeviceSalesReportDialog(posDevice) {
-  $q.dialog({
-    component: SalesReportDialog,
-    componentProps: {
-      posDevice: posDevice,
-    }
-  })
+  salesReportDialog.value = { show: true, posDevice: posDevice }
+}
+function displaySalesReportDialog() {
+  salesReportDialog.value = { show: true, posDevice: null }
 }
 
-function displaySalesReportDialog() {
-  $q.dialog({
-    component: SalesReportDialog,
-    componentProps: {
-      walletHash: walletData.value.walletHash,
-      merchant_id: props?.merchantId,
-    }
-  })
-}
 function deviceLastActive(posDevice) {
   return $store.getters['paytacapos/devicesLastActive']?.find?.(
     data => data?.walletHash === posDevice?.walletHash && data?.posid === posDevice?.posid
@@ -718,112 +719,110 @@ function confirmUnlinkPosDevice(posDevice) {
     })
 }
 
-function addNewPosDevice() {
+const posDeviceFormDialog = ref({ show: false, posDevice: null })
+function onSubmitPosDeviceFormDialog(...args) {
+  return posDeviceFormDialog.value.posDevice
+    ? onSubmitUpdatePosDevice(...args)
+    : onSubmitNewPosDevice(...args)
+}
+function onSubmitNewPosDevice(apiCall) {
   const dialog = $q.dialog({
-    component: PosDeviceFormDialog,
-    componentProps: {
-      newDevice: true,
-      merchantId: parseInt(props.merchantId),
-      branchOptions: merchantBranches.value,
-    }
+    title: $t('NewDevice', {}, 'New device'),
+    message: $t('AddingNewDevice', {}, 'Adding new device'),
+    persistent: true,
+    progress: true,
+    seamless: true,
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
+    color: 'brandblue',
   })
-    .onOk(apiCall => {
-      const dialog = $q.dialog({
-        title: $t('NewDevice', {}, 'New device'),
-        message: $t('AddingNewDevice', {}, 'Adding new device'),
-        persistent: true,
-        progress: true,
-        seamless: true,
-        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+  apiCall
+    .then(response => {
+      if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
+        fetchPosDevices()
+        return Promise.resolve(response)
+      }
+      return Promise.reject({ response })
+    })
+    .then(response => {
+      const newPaddedPosId = padPosId(response?.data?.posid)
+      dialog.update({
+        message: $t('DeviceAddedIDNo', { ID: newPaddedPosId }, `Device added #${newPaddedPosId}`),
       })
-      apiCall
-        .then(response => {
-          if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
-            fetchPosDevices()
-            return Promise.resolve(response)
-          }
-          return Promise.reject({ response })
-        })
-        .then(response => {
-          const newPaddedPosId = padPosId(response?.data?.posid)
-          dialog.update({
-            message: $t('DeviceAddedIDNo', { ID: newPaddedPosId }, `Device added #${newPaddedPosId}`),
-          })
-        })
-        .catch(error => {
-          let title = ''
-          let message = $t('FailedAddingNewDevice', {}, 'Failed to add new device')
-          let onErrorDismiss = () => {}
-          if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
-            title = message
-            message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
-            onErrorDismiss = () => openMerchantInfoDialog()
-          }
-          dialog.update({ title: title, message: message })
-            .onDismiss(() => onErrorDismiss())
-        })
-        .finally(() => {
-          dialog.update({ persistent: false, progress: false })
-        })
+    })
+    .catch(error => {
+      let title = ''
+      let message = $t('FailedAddingNewDevice', {}, 'Failed to add new device')
+      let onErrorDismiss = () => {}
+      if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
+        title = message
+        message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
+        onErrorDismiss = () => openMerchantInfoDialog()
+      }
+      dialog.update({ title: title, message: message })
+        .onDismiss(() => onErrorDismiss())
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false })
     })
 }
 
-function updatePosDevice(posDevice) {
-  const dialog = $q.dialog({
-    component: PosDeviceFormDialog,
-    componentProps: {
-      newDevice: false,
-      posDevice: posDevice,
-      branchOptions: merchantBranches.value,
-    }
-  })
-    .onOk(apiCall => {
-      let updateDialogMsg = $t(
-        'UpdatingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-        `Updating device #${padPosId(posDevice?.posid)}`,
-      )
-      const dialog = $q.dialog({
-        message: updateDialogMsg,
-        persistent: true,
-        progress: true,
-        seamless: true,
-        class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-      })
-      apiCall
-        .then(response => {
-          if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
-            refetchPosDevice(parsePosDeviceData(response?.data))
-            return Promise.resolve(response)
-          }
-          return Promise.reject({ response })
-        })
-        .then(() => {
-          updateDialogMsg = $t(
-            'UpdatedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-            `Updated device #${padPosId(posDevice?.posid)}`,
-          )
-          dialog.update({ message: updateDialogMsg })
-        })
-        .catch(error => {
-          let title = ''
-          let message = $t(
-            'FailedUpdateDeviceIDNo', {ID: padPosId(posDevice?.posid)},
-            `Failed to update device #${padPosId(posDevice?.posid)}`,
-          )
-          let onErrorDismiss = () => {}
-          if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
-            title = message
-            message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
-            onErrorDismiss = () => openMerchantInfoDialog()
-          }
+function onSubmitUpdatePosDevice(apiCall) {
+  const posDevice = posDeviceFormDialog.value.posDevice
 
-          dialog.update({ title: title, message: message })
-            .onDismiss(() => onErrorDismiss())
-        })
-        .finally(() => {
-          dialog.update({ persistent: false, progress: false })
-        })
+  let updateDialogMsg = $t(
+    'UpdatingDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+    `Updating device #${padPosId(posDevice?.posid)}`,
+  )
+  const dialog = $q.dialog({
+    message: updateDialogMsg,
+    persistent: true,
+    progress: true,
+    seamless: true,
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
+    color: 'brandblue',
+  })
+  apiCall
+    .then(response => {
+      if (response?.data?.wallet_hash && response?.data?.posid >= 0) {
+        refetchPosDevice(parsePosDeviceData(response?.data))
+        return Promise.resolve(response)
+      }
+      return Promise.reject({ response })
     })
+    .then(() => {
+      updateDialogMsg = $t(
+        'UpdatedDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+        `Updated device #${padPosId(posDevice?.posid)}`,
+      )
+      dialog.update({ message: updateDialogMsg })
+    })
+    .catch(error => {
+      let title = ''
+      let message = $t(
+        'FailedUpdateDeviceIDNo', {ID: padPosId(posDevice?.posid)},
+        `Failed to update device #${padPosId(posDevice?.posid)}`,
+      )
+      let onErrorDismiss = () => {}
+      if (String(error?.response?.data?.wallet_hash).match('does not have merchant information')) {
+        title = message
+        message = $t('MerchantDetailsRequired', {}, 'Merchant details required')
+        onErrorDismiss = () => openMerchantInfoDialog()
+      }
+
+      dialog.update({ title: title, message: message })
+        .onDismiss(() => onErrorDismiss())
+    })
+    .finally(() => {
+      dialog.update({ persistent: false, progress: false })
+    })
+}
+
+function addNewPosDevice() {
+  posDeviceFormDialog.value = { show: true, posDevice: null }
+}
+
+function updatePosDevice(posDevice) {
+  posDeviceFormDialog.value = { show: true, posDevice: posDevice }
 }
 
 function confirmRemovePosDevice(posDevice) {

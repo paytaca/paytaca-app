@@ -93,6 +93,10 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <MerchantInfoDialog
+      v-model="merchantInfoDialog.show" :merchant="merchantInfoDialog?.merchant"
+      @ok="_merchantData => merchantInfoDialog?.merchant?.id ? null : openMerchantPage(_merchantData)"
+    />
   </q-pull-to-refresh>
 </template>
 <script setup>
@@ -210,17 +214,9 @@ function openMerchantPage(merchantData) {
   $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
 }
 
+const merchantInfoDialog = ref({ show: false, merchant: null })
 function openMerchantInfoDialog(merchantData) {
-  const isEdit = Boolean(merchantData?.id)
-  $q.dialog({
-    component: MerchantInfoDialog,
-    componentProps: {
-      merchant: merchantData,
-    }
-  })
-    .onOk(_merchantData => {
-      if (!isEdit) openMerchantPage(_merchantData)
-    })
+  merchantInfoDialog.value = { show: true, merchant: merchantData }
 }
 
 function confirmDeleteMerchant(merchantData) {
