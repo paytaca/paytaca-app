@@ -4,6 +4,7 @@ import { i18n } from 'src/boot/i18n'
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const CASHBACK_URL = `${ENGAGEMENT_HUB_URL}cashback/`
+const NOTIFS_URL = `${ENGAGEMENT_HUB_URL}devicenotif/`
 
 const CASHBACK_LIMIT_MESSAGES = {
   WITH_LIMIT_MERCHANT_NAME: 'WithLimitMerchantNameMessage',
@@ -68,4 +69,19 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
   }
 
   return `${message1} ${message2}`
+}
+
+export async function getWalletNotifications (walletHash) {
+  let data = []
+
+  await axios
+    .post(`${NOTIFS_URL}notification/get_wallet_notifications/`, { wallet_hash: walletHash })
+    .then(response => {
+      data = response.data
+    })
+    .catch(error => {
+      console.log(error)
+    })
+
+  return data
 }

@@ -7,7 +7,11 @@
   >
     <template v-slot:default>
       <div class="row">
-        <q-icon :name="arrowIcon" class="col-1" />
+        <q-icon
+          :name="arrowIcon"
+          class="col-1 text-bow"
+          :class="getDarkModeClass(darkMode)"
+        />
         <span
           class="text-bold text-h6 wallet-name-label col-11"
           :class="!darkMode && isNotDefaultTheme(theme) ? 'text-black' : 'text-grad'"
@@ -28,7 +32,7 @@
 
 <script>
 import MultiWallet from 'src/components/multi-wallet/index'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MultiWalletDropdown',
@@ -59,6 +63,7 @@ export default {
   },
 
   methods: {
+    getDarkModeClass,
     isNotDefaultTheme,
     showMultiWalletDialog () {
       if (!this.isShow) {

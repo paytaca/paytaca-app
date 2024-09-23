@@ -12,14 +12,15 @@
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown />
-              <q-btn
-                flat
-                class="col-2"
-                align="right"
-                icon="notifications"
-                @click="$refs['notifs-dialog-parent'].$refs['notifs-dialog'].show()"
-              />
-              <Notifications ref="notifs-dialog-parent" />
+              <div class="col-2 flex justify-end">
+                <q-btn
+                  flat
+                  icon="notifications"
+                  class="text-bow"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="openNotificationsDialog"
+                />
+              </div>
             </div>
 
             <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
@@ -390,8 +391,7 @@ export default {
     PriceChart,
     AssetFilter,
     MultiWalletDropdown,
-    CashIn,
-    Notifications
+    CashIn
   },
   directives: {
     dragscroll
@@ -1106,6 +1106,11 @@ export default {
       )
       return tokens
     },
+    openNotificationsDialog () {
+      this.$q.dialog({
+        component: Notifications
+      })
+    }
   },
 
   beforeRouteEnter (to, from, next) {
