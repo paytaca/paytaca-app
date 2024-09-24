@@ -24,57 +24,72 @@
       </q-card-section>
 
       <template v-else>
-        <div class="row justify-end q-mb-md">
-          filter and refresh? and settings?
+        <div class="row justify-end q-mb-md q-gutter-x-md">
+          <q-icon name="refresh" size="sm" />
+          <q-icon name="filter_alt" size="sm" />
+          <q-icon name="settings" size="sm" />
         </div>
-        <div
-          v-if="notifsList.length > 0"
-          class="q-pb-sm q-gutter-y-sm"
-          style="height: 70vh; overflow-y: scroll;"
-        >
-          <transition-group
-            appear
-            leave-active-class="animated zoomOut fast"
-            v-for="(notif, index) in notifsList"
-            :key="`notif-${index}`"
+        <div v-if="notifsList.length > 0">
+          <div
+            class="q-pb-sm q-gutter-y-sm"
+            style="height: 70vh; overflow-y: scroll;"
           >
-            <q-slide-item
-              left-color="red"
-              right-color="red"
-              class="pt-card-2 text-bow item-border"
-              :class="getDarkModeClass(darkMode)"
+            <transition-group
+              appear
+              leave-active-class="animated zoomOut fast"
+              v-for="(notif, index) in notifsList"
               :key="`notif-${index}`"
-              @left="(event) => onSwipe(event, index)"
-              @right="(event) => onSwipe(event, index)"
-              v-if="!notif.is_hidden"
             >
-              <template v-slot:left>
-                <q-icon name="delete" /> Delete
-              </template>
-              <template v-slot:right>
-                Delete <q-icon name="delete" />
-              </template>
-
-              <transition
-                appear
-                leave-active-class="animated zoomOut fast"
+              <q-slide-item
+                left-color="red"
+                right-color="red"
+                class="pt-card-2 text-bow item-border"
+                :class="getDarkModeClass(darkMode)"
+                :key="`notif-${index}`"
+                @left="(event) => onSwipe(event, index)"
+                @right="(event) => onSwipe(event, index)"
+                v-if="!notif.is_hidden"
               >
-                <div class="row q-py-sm q-px-md">
-                  <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                    {{ notif.title }}
-                  </span><br/>
-                  <span class="col-12">{{ notif.message }}</span>
-                  <span
-                    class="col-12 q-mt-xs text-caption"
-                    align="right"
-                    style="color: gray;"
-                  >
-                    {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                  </span>
-                </div>
-              </transition>
-            </q-slide-item>
-          </transition-group>
+                <template v-slot:left>
+                  <q-icon name="delete" /> Delete
+                </template>
+                <template v-slot:right>
+                  Delete <q-icon name="delete" />
+                </template>
+
+                <transition
+                  appear
+                  leave-active-class="animated zoomOut fast"
+                >
+                  <div class="row q-py-sm q-px-md">
+                    <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
+                      {{ notif.title }}
+                    </span><br/>
+                    <span class="col-12">{{ notif.message }}</span>
+                    <span
+                      class="col-12 q-mt-xs text-caption"
+                      align="right"
+                      style="color: gray;"
+                    >
+                      {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
+                    </span>
+                  </div>
+                </transition>
+              </q-slide-item>
+            </transition-group>
+          </div>
+
+          <div class="row flex-center q-mt-sm">
+            <q-pagination
+              padding="xs"
+              :modelValue="notifsPage"
+              :max="20"
+              :max-pages="6"
+              :dark="darkMode"
+              :class="getDarkModeClass(darkMode)"
+              :hide-below-pages="2"
+            />
+          </div>
         </div>
 
         <div
@@ -107,7 +122,8 @@ export default {
   data () {
     return {
       notifsList: [],
-      isLoading: false
+      isLoading: false,
+      notifsPage: 0
     }
   },
 
