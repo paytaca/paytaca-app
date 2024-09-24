@@ -5,9 +5,9 @@
     </div>
     <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-center text-weight-bold">
-        <div class="lg-font-size">
-          <span>{{ headerTitle.toUpperCase() }}</span>
-        </div>
+        <!-- <div class="row justify-between"> -->
+          <div padding="none none" class="lg-font-size" flat dense>{{ headerTitle.toUpperCase() }}</div>
+        <!-- </div> -->
         <div class="text-center subtext sm-font-size q-mb-sm">
           {{
             $t(
@@ -17,6 +17,9 @@
             )
           }}
         </div>
+        <q-btn @click="showStatusHistory=true" dense size=".9em" icon="notifications" style="position: fixed; top: 110px; right: 35px;">
+          <q-badge v-if="order?.has_unread_status" floating rounded color="red"/>
+        </q-btn>
       </div>
       <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow:auto;">
         <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
@@ -99,9 +102,10 @@
     <UserProfileDialog :key="userProfileDialogKey" v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
     <ChatDialog :key="chatDialogKey" v-if="openChat" :order="order" @close="openChat=false"/>
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
+    <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" :trader-type="userTraderType" @back="showStatusHistory=false; order.has_unread_status=false" />
   </template>
 <script>
-import { formatCurrency } from 'src/exchange'
+import { formatCurrency, formatDate } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
@@ -122,6 +126,7 @@ import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractProgressDialog.vue'
+import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
 
 export default {
   setup () {
@@ -184,7 +189,8 @@ export default {
       hideTradeInfo: false,
       hasArbiters: true,
       sendingBch: false,
-      verifyingTx: false
+      verifyingTx: false,
+      showStatusHistory: false
     }
   },
   components: {
@@ -200,7 +206,8 @@ export default {
     AdSnapshotDialog,
     UserProfileDialog,
     ContractProgressDialog,
-    HeaderNav
+    HeaderNav,
+    OrderStatusDialog
   },
   props: {
     notifType: {
@@ -209,6 +216,13 @@ export default {
     }
   },
   computed: {
+    userTraderType () {
+      const user = this.$store.getters['ramp/getUser']
+      if (this.order?.owner?.id === user.id) {
+        return this.order?.trade_type === 'BUY' ? 'BUYER' : 'SELLER'
+      }
+      return this.order?.ad?.trade_type === 'BUY' ? 'BUYER' : 'SELLER'
+    },
     showContractProgDialog () {
       return this.sendingBch || this.verifyingTx
     },
@@ -369,6 +383,7 @@ export default {
     this.closeChatWSConnection()
   },
   methods: {
+    formatDate,
     getDarkModeClass,
     isNotDefaultTheme,
     async refreshPage (done) {

@@ -179,7 +179,7 @@
     @cancel="onSecurityCancel"
     :text="$t('SwipeToConfirmLower')"
   />
-  <OrderStatusDialog v-if="showStatusHistory" :status-history="statusHistory" @back="showStatusHistory = false" />
+  <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
   <TransactionHistoryDialog v-if="showTransactionHistory" :transaction-history="transactionHistory" @back="showTransactionHistory = false" />
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
@@ -214,7 +214,6 @@ export default {
       contract: null,
       contractBalance: null,
       fees: null,
-      statusHistory: [],
       transactionHistory: [],
       loading: true,
       amount: {
@@ -284,7 +283,6 @@ export default {
       vm.appeal = vm.data?.appeal
       vm.order = vm.data?.order
       vm.ad_snapshot = vm.data?.ad_snapshot
-      vm.statusHistory = vm.data?.statuses
       vm.transactionHistory = vm.data?.transactions
       vm.contract = vm.data?.contract
       vm.fees = vm.data?.fees

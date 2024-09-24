@@ -137,6 +137,7 @@
                           <div class="text-weight-bold subtext sm-font-size" v-else>
                             {{ listing.status?.label }}
                           </div>
+                          <q-icon class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="mark_email_unread"/>
                         </div>
                       </div>
                     </div>
@@ -202,6 +203,7 @@
                         <div class="text-weight-bold subtext sm-font-size" v-else>
                           {{ listing.status?.label }}
                         </div>
+                        <q-icon class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="mark_email_unread"/>
                       </div>
                     </div>
                   </div>
