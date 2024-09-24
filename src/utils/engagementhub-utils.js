@@ -3,8 +3,10 @@ import { i18n } from 'src/boot/i18n'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
+
+// ========== CASHBACK ========== //
+
 const CASHBACK_URL = `${ENGAGEMENT_HUB_URL}cashback/`
-const NOTIFS_URL = `${ENGAGEMENT_HUB_URL}devicenotif/`
 
 const CASHBACK_LIMIT_MESSAGES = {
   WITH_LIMIT_MERCHANT_NAME: 'WithLimitMerchantNameMessage',
@@ -71,6 +73,18 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
   return `${message1} ${message2}`
 }
 
+// ========== NOTIFICATIONS ========== //
+const NOTIFS_URL = `${ENGAGEMENT_HUB_URL}devicenotif/`
+const NOTIF_TYPES = {
+  GE: 'General',
+  MP: 'Marketplace',
+  CB: 'Cashback',
+  AH: 'AnyHedge',
+  RP: 'Ramp P2P',
+  GI: 'Gifts',
+  TR: 'Transactions'
+}
+
 export async function getWalletNotifications (walletHash) {
   let data = []
 
@@ -85,4 +99,8 @@ export async function getWalletNotifications (walletHash) {
     })
 
   return data
+}
+
+export function parseNotifType (type) {
+  return NOTIF_TYPES[type]
 }

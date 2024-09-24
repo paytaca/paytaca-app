@@ -4,8 +4,8 @@
     full-width
     full-height
   >
-    <q-card class="q-pa-md wallet-card text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center q-mb-lg">
+    <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="row justify-between items-center q-mb-sm">
         <span class="text-bold text-h6">Notifications</span>
         <q-space/>
         <q-btn
@@ -24,7 +24,14 @@
       </q-card-section>
 
       <template v-else>
-        <div v-if="notifsList.length > 0" class="q-mt-sm q-gutter-y-md">
+        <div class="row justify-end q-mb-md">
+          filter and refresh? and settings?
+        </div>
+        <div
+          v-if="notifsList.length > 0"
+          class="q-pb-sm q-gutter-y-sm"
+          style="height: 70vh; overflow-y: scroll;"
+        >
           <transition-group
             appear
             leave-active-class="animated zoomOut fast"
@@ -34,7 +41,7 @@
             <q-slide-item
               left-color="red"
               right-color="red"
-              class="pt-card-2 text-bow"
+              class="pt-card-2 text-bow item-border"
               :class="getDarkModeClass(darkMode)"
               :key="`notif-${index}`"
               @left="(event) => onSwipe(event, index)"
@@ -52,9 +59,18 @@
                 appear
                 leave-active-class="animated zoomOut fast"
               >
-                <div class="q-py-sm q-px-md">
-                  <p>{{ notif.title }}</p>
-                  <span>{{ notif.message }}</span>
+                <div class="row q-py-sm q-px-md">
+                  <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
+                    {{ notif.title }}
+                  </span><br/>
+                  <span class="col-12">{{ notif.message }}</span>
+                  <span
+                    class="col-12 q-mt-xs text-caption"
+                    align="right"
+                    style="color: gray;"
+                  >
+                    {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
+                  </span>
                 </div>
               </transition>
             </q-slide-item>
@@ -74,8 +90,10 @@
 </template>
 
 <script>
+import ago from 's-ago'
+
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { getWalletNotifications } from 'src/utils/engagementhub-utils'
+import { getWalletNotifications, parseNotifType } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -111,6 +129,7 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    parseNotifType,
     onSwipe (event, index) {
       event.reset()
       this.notifsList[index].is_hidden = true
@@ -118,7 +137,16 @@ export default {
         this.notifsList.splice(index, 1)
       }, 250)
       // call to engagement-hub to hide idth notif
+    },
+    formatDate (date) {
+      return ago(new Date(date))
     }
   }
 }
 </script>
+
+<style lang="scss" scoped>
+  .item-border.light {
+    border: 1px solid black;
+  }
+</style>
