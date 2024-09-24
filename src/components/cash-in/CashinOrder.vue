@@ -33,6 +33,17 @@
       <div v-if="hasCancel" class="row justify-center q-pt-md">
         <q-btn rounded outline dense label="Cancel" color="primary" class="q-px-lg" @click="onConfirmCancel"/>
       </div>
+      <div class="row justify-center" v-if="hasAppeal">
+        <!-- <q-btn rounded outline dense :label="appealBtnLabel" :disable="countDown !== ''" color="primary" class="q-px-lg" @click="state = 'appeal_order'"/> -->
+        <q-btn
+          flat
+          no-caps
+          :disable="countDown !== ''"
+          :label="appealBtnLabel"
+          color="blue-6"
+          @click="state = 'appeal_order'"
+        />
+      </div>
     </div>
     <div v-if="state === 'cancel_order'">
       <!-- <div v-if="confirmCancel || confirmAppeal"> -->
@@ -42,9 +53,46 @@
         <div class="row q-pt-sm q-mx-lg q-px-lg">
           <q-btn v-if="confirmCancel || confirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="state = 'await_status'"/>
           <q-btn v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
-          <q-btn v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder"/>
+          <q-btn v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder()"/>
         </div>
       <!-- </div> -->
+    </div>
+    <div v-if="state === 'appeal_order'">
+      <div class="row justify-center q-mx-md q-mt-xs" style="font-size: 20px;">
+        Appeal Order
+      </div>
+      <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'" class="row justify-center q-mx-md q-mt-xs" style="font-size: 16px;">
+        Select Reason for Appeal
+      </div>
+      <div class="row justify-center q-gutter-sm q-pt-sm q-px-lg">
+        <q-badge
+          class="q-pa-sm"
+          rounded
+          :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'"
+          :outline="!(selectedReasons.includes(reason))"
+          @click="updateAppealReasons(reason)"
+          v-for="reason in reasonOpts" :key="reason" >
+            {{ reason }}
+        </q-badge>
+      </div>
+      <div class="row justify-center q-pt-md">
+        <!-- <q-btn rounded outline dense label="Cancel" color="primary" class="q-px-lg" @click="state = 'await_status'"/> -->
+        <q-btn
+          flat
+          label="Cancel"
+          :color="darkMode ? 'grey-5' : 'grey-6'"
+          size="md"
+          @click="state = 'await_status'"
+        />
+        <q-btn
+          flat
+          label="Continue"
+          color="red-6"
+          size="md"
+          :disable="selectedReasons.length === 0"
+          @click="appealOrder('RLS')"
+        />
+      </div>
     </div>
     <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline" :class=" darkMode ? 'text-blue-6' : 'text-blue-8'" v-if="newOrder" style="font-size: medium;">
       Create Order
@@ -86,7 +134,15 @@ export default {
       uploading: false,
       txid: null,
       appealReasons: ['Cash-in buyer change of mind'],
-      appeal: null
+      appeal: null,
+      appealForm: false,
+      countDown: null,
+      selectedReasons: [],
+      reasonOpts: [
+        this.$t('AppealFormReasonOpt1'),
+        this.$t('AppealFormReasonOpt2'),
+        this.$t('AppealFormReasonOpt3')
+      ]
     }
   },
   emits: ['confirm-payment', 'new-order'],
@@ -105,6 +161,14 @@ export default {
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
       return stat.includes(this.status)
+    },
+    hasAppeal () {
+      const stat = ['PD', 'PD_PN']
+      return this.countDown !== null && stat.includes(this.status)
+    },
+    appealBtnLabel () {
+      if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countDown }, `Appealable in ${this.countDown}`)
+      return this.$t('SubmitAnAppeal')
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
@@ -131,8 +195,42 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    appealCountdown () {
+      const vm = this
+      if (vm.order?.appealable_at) {
+        const appealableDate = new Date(vm.order?.appealable_at)
+        vm.timer = setInterval(function () {
+          const now = new Date().getTime()
+          const distance = appealableDate - now
+
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+
+          if (hours > 0) vm.countDown = `${hours} hour(s)`
+          else if (minutes > 0) vm.countDown = `${minutes} minute(s)`
+          else if (seconds > 0) vm.countDown = `${seconds} second(s)`
+
+          if (distance < 0) {
+            clearInterval(vm.timer)
+            vm.countDown = ''
+          }
+        }, 1000)
+      }
+    },
+    updateAppealReasons (reason) {
+      if (this.selectedReasons.includes(reason)) {
+        const index = this.selectedReasons.indexOf(reason)
+        if (index > -1) {
+          this.selectedReasons.splice(index, 1)
+        }
+      } else {
+        this.selectedReasons.push(reason)
+      }
+    },
     async loadData () {
       await this.fetchOrder()
+      this.appealCountdown()
       this.setupWebSocket()
     },
     setupWebSocket () {
@@ -278,12 +376,16 @@ export default {
           }
         })
     },
-    appealOrder () {
+    appealOrder (type = 'RFN') {
+      if (type === 'RLS') {
+        this.appealReasons = this.selectedReasons
+      }
+
       const vm = this
       const url = '/ramp-p2p/appeal/'
       const data = {
         order_id: vm.order.id,
-        type: 'RFN',
+        type: type,
         reasons: this.appealReasons
       }
       backend.post(url, data, { authorize: true })

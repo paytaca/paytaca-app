@@ -94,15 +94,6 @@
         </template>
       </q-file>
     </div>
-    <div class="row justify-center" v-if="countDown !== null">
-      <q-btn
-        flat
-        no-caps
-        :disable="countDown !== ''"
-        :label="appealBtnLabel"
-        color="blue-6"
-      />
-    </div>
     <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
       <q-btn :disable="!url" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
     </div>
@@ -124,8 +115,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       attachment: null,
-      showImageDialog: false,
-      countDown: null
+      showImageDialog: false
     }
   },
   emits: ['confirm-payment', 'refetch-order', 'upload', 'delete', 'appeal'],
@@ -145,40 +135,10 @@ export default {
     },
     url () {
       return this.order?.payment_methods_selected[0]?.attachments[0]?.image?.url
-    },
-    appealBtnLabel () {
-      if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countDown }, `Appealable in ${this.countDown}`)
-      return this.$t('SubmitAnAppeal')
     }
-  },
-  mounted () {
-    this.appealCountdown()
   },
   methods: {
     getDarkModeClass,
-    appealCountdown () {
-      const vm = this
-      if (vm.order?.appealable_at) {
-        const appealableDate = new Date(vm.order?.appealable_at)
-        vm.timer = setInterval(function () {
-          const now = new Date().getTime()
-          const distance = appealableDate - now
-
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
-
-          if (hours > 0) vm.countDown = `${hours} hour(s)`
-          else if (minutes > 0) vm.countDown = `${minutes} minute(s)`
-          else if (seconds > 0) vm.countDown = `${seconds} second(s)`
-
-          if (distance < 0) {
-            clearInterval(vm.timer)
-            vm.countDown = ''
-          }
-        }, 1000)
-      }
-    },
     onRejectedFilePick (rejectedEntries) {
       console.log('onRejectedFilePick:', rejectedEntries)
       let message = 'File did not pass validation constraints'
