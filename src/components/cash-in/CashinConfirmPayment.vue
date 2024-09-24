@@ -173,7 +173,7 @@ export default {
       }
     },
     copyToClipboard (value) {
-      console.log(value)
+      // console.log(value)
 
       this.$copyText(value)
       this.$q.notify({

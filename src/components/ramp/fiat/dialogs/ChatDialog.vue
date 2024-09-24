@@ -49,6 +49,9 @@
         <div class="row justify-center q-py-lg" v-if="!isloaded">
           <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
+        <div  v-if="isloaded" class="text-center q-py-lg q-mb-lg q-mxlg q-px-sm" :class="darkMode ? 'text-grey-4' : 'text-grey'" style="font-size: 12px; margin-left: 30px; margin-right: 30px; overflow: auto;">
+          <q-icon name="lock"/>&nbsp; Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.
+        </div>
         <div v-if="convo.messages.length !== 0 && isloaded">
           <div v-for="(message, index) in convo.messages" :key="index" class="">
             <!-- <q-item> -->
