@@ -4,16 +4,35 @@
       <q-card-section class="q-pb-none">
         <slot name="header" v-bind="{ chatRef, chatSession }">
 
-        <div class="row items-center q-pb-sm">
+          <div class="row items-center q-pb-sm">
             <div class="q-space">
-              <div class="text-h5">{{ $t('Chat') }}</div>
+              <div class="text-h5">
+                {{ $t('Chat') }}
+                <q-icon name="lock" size="1em" @click="() => showEncryptedChatNotice = true"/>
+              </div>
               <div class="text-caption text-grey bottom">{{ chatRef }}</div>
             </div>
+            <q-space/>
             <q-btn flat icon="close" padding="sm" v-close-popup class="close-button" />
           </div>
         </slot>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
           <slot name="before-messages"></slot>
+          <div
+            v-if="showEncryptedChatNotice"
+            :class="[
+              'encrypted-chat-notice-panel rounded-borders',
+              'bg-grey text-white',
+            ]"
+          >
+            <div class="row items-start no-wrap q-gutter-sm">
+              <div class="" style="text-align:justify;">
+                <q-icon name="lock" size="1.2em"/>
+                {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+              </div>
+              <q-btn flat icon="close" padding="sm" class="float-right q-r-mr-sm q-r-mt-xs" @click="() => showEncryptedChatNotice = false"/>
+            </div>
+          </div>
           <q-space/>
           <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;">
             <div class="row justify-center">
@@ -213,6 +232,8 @@ export default defineComponent({
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+
+    const showEncryptedChatNotice = ref(true)
 
     const customer = computed(() => $store.getters['marketplace/customer'])
     function isOwnMessage(message=ChatMessage.parse()) {
@@ -572,6 +593,8 @@ export default defineComponent({
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
 
+      showEncryptedChatNotice,
+
       customer,
       isOwnMessage,
       chatSession,
@@ -608,6 +631,17 @@ export default defineComponent({
 })
 </script>
 <style lang="scss" scoped>
+.encrypted-chat-notice-panel {
+  position: sticky;
+  top: 4px;
+  margin-bottom: 4px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 80%;
+  z-index: 100;
+  padding: map-get($space-md, 'y') map-get($space-md, 'x');
+}
+
 .encrypted-attachment-text {
   max-width: 75%;
   text-decoration: underline;

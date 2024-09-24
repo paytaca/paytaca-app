@@ -382,6 +382,7 @@ export default {
   EnableLocation: "Sanya damar shiga cikin saitunan app",
   EnableSmartBCH: "Sanya wayo",
   EncounteredError: "An ci karo da kuskure",
+  EncryptedChatMsg: "Saƙonni suna ƙarewa-zuwa ƙarshen rufaffen.Babu wanda ke waje da wannan hira, ba ko da Paytaca ba, na iya karanta su.",
   English: "Na turanci",
   EnterAmount: "Shigar da adadin",
   EnterCashPointCategoryID: "Shigar ID na CASH",

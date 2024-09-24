@@ -382,6 +382,7 @@ export default {
   EnableLocation: "在应用程序设置中启用访问位置",
   EnableSmartBCH: "启用S​​martBch",
   EncounteredError: "遇到错误",
+  EncryptedChatMsg: "消息是端到端加密的。在此聊天之外，没有人能阅读它们。",
   English: "英语",
   EnterAmount: "输入金额",
   EnterCashPointCategoryID: "输入CashPoint类别ID",

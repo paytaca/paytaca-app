@@ -382,6 +382,7 @@ export default {
   EnableLocation: "Paganahin ang lokasyon ng pag -access sa mga setting ng app",
   EnableSmartBCH: "Paganahin ang SmartBch",
   EncounteredError: "Nakatagpo ng error",
+  EncryptedChatMsg: "Ang mga mensahe ay end-to-end na naka-encrypt.Walang sinuman sa labas ng chat na ito, kahit na paytaca, ang maaaring basahin ang mga ito.",
   English: "Ingles",
   EnterAmount: "Ipasok ang halaga",
   EnterCashPointCategoryID: "Ipasok ang kategorya ng cashpoint",
