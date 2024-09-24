@@ -75,7 +75,7 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { getWalletNotifications } from 'src/utils/cashback-utils'
+import { getWalletNotifications } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 

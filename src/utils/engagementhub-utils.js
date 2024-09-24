@@ -74,6 +74,7 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
 export async function getWalletNotifications (walletHash) {
   let data = []
 
+  // TODO paginate by 100?
   await axios
     .post(`${NOTIFS_URL}notification/get_wallet_notifications/`, { wallet_hash: walletHash })
     .then(response => {

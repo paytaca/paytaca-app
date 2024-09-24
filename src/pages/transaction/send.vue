@@ -381,7 +381,7 @@ import {
 } from 'src/utils/denomination-utils'
 import { getNetworkTimeDiff } from 'src/utils/time'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { getCashbackAmount } from 'src/utils/cashback-utils'
+import { getCashbackAmount } from 'src/utils/engagementhub-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
 import SingleWallet from 'src/wallet/single-wallet'
