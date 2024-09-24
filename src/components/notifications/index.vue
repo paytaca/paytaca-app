@@ -27,11 +27,11 @@
         <div v-if="notifsList.length > 0" class="q-mt-sm q-gutter-y-md">
           <transition-group
             appear
-            enter-active-class="animated zoomIn fast"
-            leave-active-class="animated zoomOut slow"
+            leave-active-class="animated zoomOut fast"
+            v-for="(notif, index) in notifsList"
+            :key="`notif-${index}`"
           >
             <q-slide-item
-              v-for="(notif, index) in notifsList"
               left-color="red"
               right-color="red"
               class="pt-card-2 text-bow"
@@ -39,6 +39,7 @@
               :key="`notif-${index}`"
               @left="(event) => onSwipe(event, index)"
               @right="(event) => onSwipe(event, index)"
+              v-if="!notif.is_hidden"
             >
               <template v-slot:left>
                 <q-icon name="delete" /> Delete
@@ -47,10 +48,15 @@
                 Delete <q-icon name="delete" />
               </template>
 
-              <div class="q-py-sm q-px-md">
-                <p>{{ notif.title }}</p>
-                <span>{{ notif.message }}</span>
-              </div>
+              <transition
+                appear
+                leave-active-class="animated zoomOut fast"
+              >
+                <div class="q-py-sm q-px-md">
+                  <p>{{ notif.title }}</p>
+                  <span>{{ notif.message }}</span>
+                </div>
+              </transition>
             </q-slide-item>
           </transition-group>
         </div>
@@ -107,6 +113,7 @@ export default {
     isNotDefaultTheme,
     onSwipe (event, index) {
       event.reset()
+      this.notifsList[index].is_hidden = true
       setTimeout(() => {
         this.notifsList.splice(index, 1)
       }, 250)
