@@ -2,9 +2,10 @@
   <q-dialog
     ref="notifs-dialog"
     full-width
+    full-height
   >
     <q-card class="q-pa-md wallet-card text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center q-mb-md">
+      <div class="row justify-between items-center q-mb-lg">
         <span class="text-bold text-h6">Notifications</span>
         <q-space/>
         <q-btn
@@ -23,8 +24,35 @@
       </q-card-section>
 
       <template v-else>
-        <div v-if="notifsList.length > 0">
-          notif data here yey
+        <div v-if="notifsList.length > 0" class="q-mt-sm q-gutter-y-md">
+          <transition-group
+            appear
+            enter-active-class="animated zoomIn fast"
+            leave-active-class="animated zoomOut slow"
+          >
+            <q-slide-item
+              v-for="(notif, index) in notifsList"
+              left-color="red"
+              right-color="red"
+              class="pt-card-2 text-bow"
+              :class="getDarkModeClass(darkMode)"
+              :key="`notif-${index}`"
+              @left="(event) => onSwipe(event, index)"
+              @right="(event) => onSwipe(event, index)"
+            >
+              <template v-slot:left>
+                <q-icon name="delete" /> Delete
+              </template>
+              <template v-slot:right>
+                Delete <q-icon name="delete" />
+              </template>
+
+              <div class="q-py-sm q-px-md">
+                <p>{{ notif.title }}</p>
+                <span>{{ notif.message }}</span>
+              </div>
+            </q-slide-item>
+          </transition-group>
         </div>
 
         <div
@@ -76,7 +104,14 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme
+    isNotDefaultTheme,
+    onSwipe (event, index) {
+      event.reset()
+      setTimeout(() => {
+        this.notifsList.splice(index, 1)
+      }, 250)
+      // call to engagement-hub to hide idth notif
+    }
   }
 }
 </script>
