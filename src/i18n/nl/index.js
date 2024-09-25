@@ -382,6 +382,7 @@ export default {
   EnableLocation: "Schakel de toegangslocatie in in app -instellingen",
   EnableSmartBCH: "Schakel smartBCH in",
   EncounteredError: "Fout aangetroffen",
+  EncryptedChatMsg: "Berichten zijn end-to-end gecodeerd.Niemand buiten deze chat, zelfs Paytaca, kan ze niet lezen.",
   English: "Engels",
   EnterAmount: "Voer een bedrag in",
   EnterCashPointCategoryID: "Voer cashpoint categorie -ID in",

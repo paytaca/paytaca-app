@@ -382,6 +382,7 @@ export default {
   EnableLocation: "Aktifkan lokasi akses di pengaturan aplikasi",
   EnableSmartBCH: "Aktifkan SmartBch",
   EncounteredError: "Kesalahan yang ditemui",
+  EncryptedChatMsg: "Pesan dienkripsi ujung ke ujung.Tidak ada orang di luar obrolan ini, bahkan Paytaca, yang bisa membacanya.",
   English: "Bahasa inggris",
   EnterAmount: "Masukan jumlah",
   EnterCashPointCategoryID: "Masukkan ID Kategori Cashpoint",

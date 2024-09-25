@@ -382,6 +382,7 @@ export default {
   EnableLocation: "アプリ設定でアクセス場所を有効にします",
   EnableSmartBCH: "SmartBchを有効にします",
   EncounteredError: "遭遇したエラー",
+  EncryptedChatMsg: "メッセージはエンドツーエンドの暗号化されています。このチャットの外の誰も、Paytacaでさえ読むことができません。",
   English: "英語",
   EnterAmount: "金額を入力します",
   EnterCashPointCategoryID: "CashPointカテゴリIDを入力します",
