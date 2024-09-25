@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless>
+  <q-dialog ref="dialogRef" v-model="innerVal" @hide="onDialogHide" :persistent="loading" seamless>
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(350px, 90vw)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm">
@@ -19,7 +19,7 @@
         />
       </div>
       <q-card-section>
-        <q-form @submit="saveBranchInfo()">
+        <q-form ref="form" @submit="saveBranchInfo()">
 
           <div class="q-gutter-sm">
             <div class="row items-center">
@@ -176,28 +176,33 @@ import { geolocationManager } from 'src/boot/geolocation'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 // dialog plugins requirement
-const emit = defineEmits([
+const $emit = defineEmits([
+  'update:modelValue',
   // REQUIRED; need to specify some events that your
   // component will emit through useDialogPluginComponent()
   ...useDialogPluginComponent.emits,
 ])
-const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-
-const $q = useQuasar()
-const $store = useStore()
-const $t = useI18n().t
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const props = defineProps({
+  modelValue: Boolean,
   newBranch: Boolean,
   readOnly: Boolean,
   merchantId: [Number, String],
   branchId: Number,
 })
+const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+const innerVal = ref(props.modelValue)
+watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+watch(() => props.modelValue, () => innerVal.value = props.modelValue)
+
+const $q = useQuasar()
+const $store = useStore()
+const $t = useI18n().t
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const branchInfo = computed(() => {
   if (props.newBranch) return
@@ -205,6 +210,7 @@ const branchInfo = computed(() => {
     .find(branchInfo => branchInfo?.id === props.branchId)
 })
 const loading = ref(false)
+const form = ref()
 const branchInfoForm = ref({
   name: '',
   isMain: false,
@@ -241,6 +247,10 @@ const validCoordinates = computed(() =>
   Number.isFinite(branchInfoForm.value.location.longitude) && Number.isFinite(branchInfoForm.value.location.latitude)
 )
 onMounted(() => resetForm())
+watch(() => [innerVal.value, props?.branchId, props?.newBranch], () => {
+  if (!innerVal.value) return
+  resetForm()
+})
 function resetForm(opts={ clear: false }) {
   let branchData = branchInfo.value
   if (opts?.clear) branchData = null
@@ -253,6 +263,8 @@ function resetForm(opts={ clear: false }) {
   branchInfoForm.value.location.country = branchData?.location?.country || ''
   branchInfoForm.value.location.longitude = Number(branchData?.location?.longitude) || null
   branchInfoForm.value.location.latitude = Number(branchData?.location?.latitude) || null
+
+  setTimeout(() => form.value?.resetValidation(), 10)
 }
 
 onMounted(() => {

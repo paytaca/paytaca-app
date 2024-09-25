@@ -1,5 +1,5 @@
 <template>
-  <q-form @submit="updateMerchantInfo()">
+  <q-form ref="form" @submit="updateMerchantInfo()">
     <div class="q-gutter-sm">
       <div class="text-subtitle1 text-grey">{{ $t('BusinessDetails', {}, 'Business details') }}</div>
       <q-input
@@ -161,7 +161,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { geolocationManager } from 'src/boot/geolocation';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 import PhoneCountryCodeSelector from 'src/components/PhoneCountryCodeSelector.vue'
@@ -185,6 +185,7 @@ const walletHash = computed(() => {
   if (props.merchant?.walletHash) return props.merchant?.walletHash
   return $store.getters['global/getWallet']('bch')?.walletHash
 })
+const form = ref()
 const merchantInfoForm = ref({
   id: 0,
   name: '',
@@ -233,6 +234,7 @@ const validCoordinates = computed(() =>
   Number.isFinite(merchantInfoForm.value.location.longitude) && Number.isFinite(merchantInfoForm.value.location.latitude)
 )
 onMounted(() => resetForm())
+watch(() => props.merchant?.id, () => resetForm())
 function resetForm(opts={ clear: false }) {
   let merchantData = props.merchant
   if (opts?.clear) merchantData = null
@@ -246,6 +248,8 @@ function resetForm(opts={ clear: false }) {
   merchantInfoForm.value.location.country = merchantData?.location?.country || ''
   merchantInfoForm.value.location.longitude = Number(merchantData?.location?.longitude) || null
   merchantInfoForm.value.location.latitude = Number(merchantData?.location?.latitude) || null
+
+  setTimeout(() => form.value?.resetValidation(), 10)
 }
 
 onMounted(() => {
@@ -422,4 +426,8 @@ async function updateMerchantInfo() {
       loading.value = false
     })
 }
+
+defineExpose({
+  resetForm,
+})
 </script>

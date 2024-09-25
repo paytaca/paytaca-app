@@ -382,6 +382,7 @@ export default {
   EnableLocation: "Pag-access sa lokasyon sa pag-access sa mga setting sa app",
   EnableSmartBCH: "Pag-andam SmartBCH",
   EncounteredError: "Nakatagbo ang sayup",
+  EncryptedChatMsg: "Ang mga mensahe mao ang pagtapos sa katapusan nga naka-encrypt.Wala'y bisan kinsa sa gawas sa kini nga chat, bisan ang Paytaca, mabasa kini.",
   English: "Internal nga Ingles",
   EnterAmount: "Pagsulud sa kantidad",
   EnterCashPointCategoryID: "Pagsulud sa Cashpoint Category ID",
