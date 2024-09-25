@@ -738,6 +738,7 @@ const phrases = {
       UseCurrentLocation: 'Use current location',
       SelectPinLocation: 'Select pin location',
       SelectLocation: 'Select Location',
+      EncryptedChatMsg: 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.'
     },
     {
       PAYMENTMETHODS: 'PAYMENT METHODS',

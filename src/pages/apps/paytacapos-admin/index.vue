@@ -93,6 +93,10 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <MerchantInfoDialog
+      v-model="merchantInfoDialog.show" :merchant="merchantInfoDialog?.merchant"
+      @ok="_merchantData => merchantInfoDialog?.merchant?.id ? null : openMerchantPage(_merchantData)"
+    />
   </q-pull-to-refresh>
 </template>
 <script setup>
@@ -148,12 +152,16 @@ const reLogin = async () => {
 const reLoginDebounced = debounce(reLogin, 500)
 
 async function checkBalance () {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  const response = await wallet.BCH.getBalance()
-  const enough = response.balance >= 0.00003
-  confirm.value = !enough
-  
-  if (enough) openMerchantInfoDialog()
+  try {
+    $q.loading.show({ delay: 250, group: 'merchantCheckBalance', backgroundColor: 'none' })
+    const wallet = await getOrInitWallet()
+    const response = await wallet.BCH.getBalance()
+    const enough = response.balance >= 0.00003
+    confirm.value = !enough
+    if (enough) openMerchantInfoDialog()
+  } finally {
+    $q.loading.hide('merchantCheckBalance')
+  }
 }
 
 const walletType = 'bch'
@@ -171,6 +179,10 @@ const walletData = computed(() => {
 })
 
 const wallet = ref([].map(() => new Wallet)[0])
+async function getOrInitWallet() {
+  if (wallet.value) return wallet.value
+  return await initWallet()
+}
 async function initWallet() {
   const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   wallet.value = _wallet
@@ -210,17 +222,9 @@ function openMerchantPage(merchantData) {
   $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
 }
 
+const merchantInfoDialog = ref({ show: false, merchant: null })
 function openMerchantInfoDialog(merchantData) {
-  const isEdit = Boolean(merchantData?.id)
-  $q.dialog({
-    component: MerchantInfoDialog,
-    componentProps: {
-      merchant: merchantData,
-    }
-  })
-    .onOk(_merchantData => {
-      if (!isEdit) openMerchantPage(_merchantData)
-    })
+  merchantInfoDialog.value = { show: true, merchant: merchantData }
 }
 
 function confirmDeleteMerchant(merchantData) {

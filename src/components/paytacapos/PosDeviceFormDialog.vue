@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" full-width seamless>
+  <q-dialog ref="dialogRef" v-model="innerVal" @hide="onDialogHide" :persistent="loading" full-width seamless>
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h6 q-space q-mt-sm">
@@ -19,7 +19,7 @@
         />
       </div>
       <q-card-section>
-        <q-form @submit="savePosDevice()" class="q-gutter-y-sm">
+        <q-form ref="form" @submit="savePosDevice()" class="q-gutter-y-sm">
           <q-input
             outlined
             dense
@@ -83,7 +83,7 @@
 import { backend as posBackend, padPosId } from 'src/wallet/pos'
 import { bus } from 'src/wallet/event-bus';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -91,11 +91,20 @@ import { loadWallet } from "src/wallet"
 import { VerificationTokenMinter } from 'src/vouchers/verification_token_minter.js'
 
 // dialog plugins requirement
-const emit = defineEmits([
+const $emit = defineEmits([
+  'update:modelValue',
   // REQUIRED; need to specify some events that your
   // component will emit through useDialogPluginComponent()
   ...useDialogPluginComponent.emits,
 ])
+const props = defineProps({
+  modelValue: Boolean,
+  newDevice: Boolean,
+  posDevice: Object,
+  merchantId: [Number, String],
+  branchOptions: Array,
+})
+
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
 const $q = useQuasar()
@@ -103,12 +112,9 @@ const $store = useStore()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const props = defineProps({
-  newDevice: Boolean,
-  posDevice: Object,
-  merchantId: [Number, String],
-  branchOptions: Array,
-})
+const innerVal = ref(props.modelValue)
+watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+watch(() => props.modelValue, () => innerVal.value = props.modelValue)
 
 const newDeviceLoadingMsg = ref($t('AddingNewDevice'))
 const walletType = 'bch'
@@ -126,6 +132,7 @@ const walletData = computed(() => {
 })
 
 const loading = ref(false)
+const form = ref()
 const posDeviceForm = ref({
   name: '',
   branchId: null,
@@ -136,14 +143,19 @@ const branchOpts = computed(() => {
   return opts
 })
 onMounted(() => resetForm())
+watch(() => [props.posDevice?.name, props.posDevice?.branchId, innerVal.value], () => {
+  resetForm()
+})
 function resetForm(opts={ clear: false }) {
   if (opts?.clear) {
     posDeviceForm.value.name = ''
     posDeviceForm.value.branchId = null
+    setTimeout(() => form.value?.resetValidation(), 10)
     return
   }
   posDeviceForm.value.name = props.posDevice?.name || ''
   posDeviceForm.value.branchId = props.posDevice?.branchId || defaultBranch.value?.id
+  setTimeout(() => form.value?.resetValidation(), 10)
 }
 
 const defaultBranch = computed(() => {
