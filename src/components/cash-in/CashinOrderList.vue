@@ -31,7 +31,12 @@
                         </div>
                         <div class="text-grey-6">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
                       </div>
-                      <div class="col-grow text-center" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">{{ statusVal(order?.status?.value) }}</div>
+                      <div class="col-auto q-my-sm text-center" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">
+                        <q-card bordered flat class="pt-card-2 q-px-sm" :class="getDarkModeClass(darkMode)" style="font-size: 13px;" outline>
+                          {{ statusVal(order?.status?.value) }}
+                          <q-badge v-if="order?.has_unread_status" floating rounded color="red-5"/>
+                        </q-card>
+                      </div>
                     </div>
                   </q-item-section>
                 </q-item>
@@ -88,6 +93,9 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  created () {
+    bus.on('cashin-alert', this.fetchCashinOrders)
+  },
   mounted () {
     this.loading = true
     this.fetchCashinOrders()
@@ -117,11 +125,12 @@ export default {
     statusVal (status) {
       switch (status) {
         case 'SBM':
+          return 'Submitted'
         case 'CNF':
-          return 'Pending Escrow'
+          return 'Confirmed'
         case 'ESCRW':
-          return 'Pending Payment'
         case 'PD_PN':
+          return 'Pending Payment'
         case 'PD':
           return 'Pending Release'
         case 'RLS':

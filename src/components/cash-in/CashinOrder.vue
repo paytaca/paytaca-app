@@ -145,7 +145,7 @@ export default {
       ]
     }
   },
-  emits: ['confirm-payment', 'new-order'],
+  emits: ['confirm-payment', 'new-order', 'refetch-cashin-alert'],
   props: {
     orderId: Number
   },
@@ -195,6 +195,16 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    async readOrderStatus () {
+      if (!this.orderId) return
+      await backend.patch(`/ramp-p2p/order/${this.orderId}/status/`, null, { authorize: true })
+        .then(response => {
+          this.$emit('refetch-cashin-alert')
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+    },
     appealCountdown () {
       const vm = this
       if (vm.order?.appealable_at) {
@@ -230,6 +240,7 @@ export default {
     },
     async loadData () {
       await this.fetchOrder()
+      this.readOrderStatus()
       this.appealCountdown()
       this.setupWebSocket()
     },
@@ -243,6 +254,7 @@ export default {
           if (this.status === 'RLS') {
             this.txid = message?.txdata?.txid
           }
+          this.readOrderStatus()
         }
       })
     },
@@ -429,6 +441,16 @@ export default {
             bus.emit('network-error')
           }
         })
+    },
+    handleError (error) {
+      console.error(error.response || error)
+      if (error.response) {
+        if (error.response.status === 403) {
+          bus.emit('session-expired')
+        }
+      } else {
+        bus.emit('network-error')
+      }
     }
   }
 }

@@ -137,7 +137,7 @@
                           <div class="text-weight-bold subtext sm-font-size" v-else>
                             {{ listing.status?.label }}
                           </div>
-                          <q-icon class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="mark_email_unread"/>
+                          <!-- <q-icon color="blue-5" class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="notifications_active"/> -->
                         </div>
                       </div>
                     </div>
@@ -203,7 +203,7 @@
                         <div class="text-weight-bold subtext sm-font-size" v-else>
                           {{ listing.status?.label }}
                         </div>
-                        <q-icon class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="mark_email_unread"/>
+                        <!-- <q-icon color="blue-5" class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="notifications_active"/> -->
                       </div>
                     </div>
                   </div>

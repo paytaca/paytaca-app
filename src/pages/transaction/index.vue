@@ -118,6 +118,7 @@
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
                             <div style="padding-right: 10px;">Cash In</div>
+                            <q-badge v-if="hasCashinAlerts" align-left floating rounded color="red"/>
                           </q-btn>
                         </div>
                       </div>
@@ -346,7 +347,8 @@ import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/exchange/backend'
+import { getBackendWsUrl, backend } from 'src/exchange/backend'
+import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
@@ -424,6 +426,7 @@ export default {
       parsedBCHBalance: '0',
       walletYield: null,
       hasCashin: false,
+      hasCashinAlerts: false,
       availableCashinFiat: null
     }
   },
@@ -595,6 +598,25 @@ export default {
         this.hasCashin = false
       }
     },
+    async checkHasCashinAlerts () {
+      const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
+      backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
+        .then(response => {
+          this.hasCashinAlerts = response.data?.has_cashin_alerts
+        })
+        .catch(error => {
+          console.log(error.response || error)
+        })
+    },
+    setupCashinWebSocket () {
+      const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
+      const url = `${getBackendWsUrl()}${walletHash}/cash-in/`
+      this.websocketManager = new WebSocketManager()
+      this.websocketManager.setWebSocketUrl(url)
+      this.websocketManager.subscribeToMessages((message) => {
+        bus.emit('cashin-alert', true)
+      })
+    },
     async updateTokenMenuPosition () {
       await this.$nextTick()
       this.$refs.tokenMenu.updatePosition()
@@ -755,6 +777,7 @@ export default {
       vm.balanceLoaded = true
     },
     refresh (done) {
+      this.checkHasCashinAlerts()
       this.getBalance(this.bchAsset.id)
       this.getBalance(this.selectedAsset.id)
       this.transactions = []
@@ -1193,14 +1216,19 @@ export default {
     })
   },
 
-  unmounted() {
+  unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
   },
-
+  created () {
+    bus.on('cashin-alert', (value) => { this.hasCashinAlerts = value })
+  },
   async mounted () {
     const vm = this
     this.checkVersionUpdate()
     this.checkCashinAvailable()
+    this.checkHasCashinAlerts()
+    this.setupCashinWebSocket()
+
     bus.on('handle-push-notification', this.handleOpenedNotification)
 
     if (isNotDefaultTheme(vm.theme) && vm.darkMode) {

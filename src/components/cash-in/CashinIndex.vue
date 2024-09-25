@@ -6,7 +6,9 @@
         <q-card-section class="row items-center q-pb-none">
           <q-btn flat icon="arrow_back" color="blue-6" round dense @click="previousView()" />
           <q-space />
-          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="showOrderListButton" @click="state = 'order-list'"/>
+          <q-btn size="18px" padding="none none" icon="sym_o_receipt_long" color="blue-6" flat dense v-if="showOrderListButton" @click="state = 'order-list'">
+            <q-badge v-if="hasCashinAlerts" align-left floating rounded color="red"/>
+          </q-btn>
         </q-card-section>
       </div>
 
@@ -60,7 +62,8 @@
             :key="orderKey"
             :order-id="order?.id"
             @confirm-payment="sendConfirmPayment"
-            @new-order="refreshPage"/>
+            @new-order="refreshPage"
+            @refetch-cashin-alert="checkHasCashinAlerts"/>
         </div>
 
         <!-- Order List -->
@@ -125,7 +128,13 @@ export default {
       selectPaymentTypeKey: 0,
       selectAmountKey: 0,
       orderKey: 0,
-      orderListKey: 0
+      orderListKey: 0,
+      hasCashinAlerts: false
+    }
+  },
+  watch: {
+    state (value) {
+      this.checkHasCashinAlerts()
     }
   },
   computed: {
@@ -136,6 +145,7 @@ export default {
   created () {
     bus.on('network-error', this.dislayNetworkError)
     bus.on('session-expired', this.handleSessionEvent)
+    bus.on('cashin-alert', (value) => { this.hasCashinAlerts = value })
   },
   mounted () {
     loadRampWallet()
@@ -148,8 +158,19 @@ export default {
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = wallet.walletHash
       await this.fetchCashinAds()
+      await this.checkHasCashinAlerts()
       this.step++
       this.loading = false
+    },
+    async checkHasCashinAlerts () {
+      backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: wallet.walletHash } })
+        .then(response => {
+          this.hasCashinAlerts = response.data?.has_cashin_alerts
+          bus.emit('cashin-alert', this.hasCashinAlerts)
+        })
+        .catch(error => {
+          console.log(error.response || error)
+        })
     },
     async fetchUser () {
       const vm = this
@@ -319,7 +340,6 @@ export default {
           break
         case 'order-list':
           if (vm.register) {
-            console.log('heree')
             vm.state = 'register'
           } else {
             vm.state = 'cashin-order'
