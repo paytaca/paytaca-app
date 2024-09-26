@@ -1,5 +1,5 @@
 <template>
-  <div class="transaction-list">
+  <div class="transaction-list" :style="{height: transactionsListHeight}">
     <template v-if="transactionsLoaded">
       <template v-if="!transactionsAppending">
         <TransactionListItem
@@ -88,13 +88,15 @@ export default {
         name: 'Bitcoin Cash',
         logo: 'bch-logo.png',
         balance: 0
-      }
+      },
+      transactionsListHeight: '100px'
     }
   },
 
   mounted () {
     this.selectedNetwork = this.selectedNetworkProps
     this.selectedAsset = this.selectedAssetProps
+    this.computeTransactionsListHeight()
   },
 
   computed: {
@@ -117,13 +119,20 @@ export default {
 
   watch: {
     showTokens () {
-      console.log('show tokens yey')
-      console.log(this.showTokens)
+      this.computeTransactionsListHeight()
     }
   },
 
   methods: {
     getDarkModeClass,
+    computeTransactionsListHeight () {
+      const vm = this
+
+      const screenHeight = vm.$q.screen.height
+      const fixedSectionHeight = vm.$parent.$refs.fixedSection.clientHeight
+      const footerMenuHeight = vm.$parent.$refs.footerMenu.$el.clientHeight
+      vm.transactionsListHeight = `${screenHeight - (fixedSectionHeight + footerMenuHeight)}px`
+    },
     scrollToBottomTransactionList () {
       this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
     },
@@ -257,15 +266,17 @@ export default {
 
 <style lang="scss" scoped>
   .transaction-list {
-    height: 10vh;
     overflow: auto;
-    padding-bottom: 5vh;
+    padding-bottom: 20vh;
   }
-  /* iPhone 5/SE */
-  @media (min-width: 280px) and (max-width: 320px) {
+  @media (min-height: 600px) and (max-height: 700px) {
     .transaction-list {
-      height: 35vh;
-      padding-bottom: 6vh;
+      padding-bottom: 23vh;
+    }
+  }
+  @media (min-height: 900px) and (max-height: 1100px) {
+    .transaction-list {
+      padding-bottom: 17vh;
     }
   }
   .no-transaction-img {

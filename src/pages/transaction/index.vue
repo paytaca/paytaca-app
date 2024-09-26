@@ -314,7 +314,7 @@
           />
         </div>
       </div>
-      <footer-menu />
+      <footer-menu ref="footerMenu" />
     </div>
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
