@@ -5,7 +5,7 @@
     full-height
   >
     <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center q-mb-sm">
+      <div class="row justify-between items-center">
         <span class="text-bold text-h6">Notifications</span>
         <q-space/>
         <q-btn
@@ -20,7 +20,7 @@
       </div>
 
       <div>
-        <div class="row justify-end items-center q-mb-md q-gutter-x-md">
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
           <q-btn
             flat
             round
@@ -28,13 +28,15 @@
             :disable="isLoading"
             @click="refreshNotifsList()"
           />
-          <q-icon
-            name="filter_alt"
-            size="sm"
+          <q-btn
+            flat
+            round
+            icon="filter_alt"
           />
-          <q-icon
-            name="settings"
-            size="sm"
+          <q-btn
+            flat
+            round
+            icon="settings"
           />
         </div>
 
@@ -95,12 +97,12 @@
               </transition-group>
             </div>
 
-            <div class="row flex-center q-mt-sm">
+            <div class="row justify-center items-end q-mt-sm">
               <q-pagination
                 padding="xs"
                 :modelValue="notifsPage"
                 :max="20"
-                :max-pages="6"
+                :max-pages="5"
                 :dark="darkMode"
                 :class="getDarkModeClass(darkMode)"
                 :hide-below-pages="2"
@@ -125,7 +127,9 @@
 import ago from 's-ago'
 
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { getWalletNotifications, parseNotifType } from 'src/utils/engagementhub-utils'
+import {
+  getWalletNotifications, parseNotifType, hideItemUpdate
+} from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -172,17 +176,18 @@ export default {
       vm.notifsList = await getWalletNotifications(vm.currentWalletHash)
       vm.isLoading = false
     },
-
-    onSwipe (event, index) {
+    async onSwipe (event, index) {
       const vm = this
 
       event.reset()
       vm.notifsList[index].is_hidden = true
-      setTimeout(() => {
-        vm.notifsList.splice(index, 1)
+      setTimeout(async () => {
+        const deletedItem = vm.notifsList.splice(index, 1)
+        // call to engagement-hub to hide idth notif
+        await hideItemUpdate(deletedItem[0])
       }, 250)
-      // call to engagement-hub to hide idth notif
     },
+
     formatDate (date) {
       return ago(new Date(date))
     }
