@@ -382,6 +382,7 @@ export default {
   EnableLocation: "Habilitar la ubicación de acceso en la configuración de la aplicación",
   EnableSmartBCH: "Habilitar SmartBCH",
   EncounteredError: "Error encontrado",
+  EncryptedChatMsg: "Los mensajes están encriptados de extremo a extremo.Nadie fuera de este chat, ni siquiera Paytaca, puede leerlos.",
   English: "Inglés",
   EnterAmount: "Ingresar la cantidad",
   EnterCashPointCategoryID: "Ingrese la identificación de la categoría CashPoint",

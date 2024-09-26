@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
+  <q-dialog ref="dialogRef" v-model="innerVal" @hide="onDialogHide" seamless>
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:max(300px, 90vw);">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('SalesReport', {}, 'Sales Report') }}</div>
@@ -79,7 +79,7 @@
 </template>
 <script setup>
 import { padPosId } from 'src/wallet/pos';
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import Watchtower from 'watchtower-cash-js';
@@ -92,7 +92,8 @@ const watchtower = new Watchtower()
 const $t = useI18n().t
 
 // dialog plugins requirement
-defineEmits([
+const $emit = defineEmits([
+  'update:modelValue',
   // REQUIRED; need to specify some events that your
   // component will emit through useDialogPluginComponent()
   ...useDialogPluginComponent.emits
@@ -100,10 +101,15 @@ defineEmits([
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
 const props = defineProps({
+  modelValue: Boolean,
   posDevice: Object,
   walletHash: String,
   merchantId: [Number, String],
 })
+
+const innerVal = ref(props.modelValue)
+watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+watch(() => props.modelValue, () => innerVal.value = props.modelValue)
 
 const $q = useQuasar()
 const $store = useStore()
@@ -157,6 +163,19 @@ onMounted(() => fetchSalesReport({
   range: 'month',
   currency: $store.getters['market/selectedCurrency']?.symbol || 'USD',
 }))
+watch(() => [innerVal.value, props.merchantId, props.posDevice?.posid], () => {
+  if (!innerVal.value) return
+
+  salesReportData.value = null
+  fetchSalesReport({
+    timestampFrom: Math.floor(new Date().setFullYear(new Date().getFullYear() - 1) / 1000),
+    timestampTo: null,
+    // timestampFrom: Math.floor(new Date("2022-11-10") / 1000),
+    // timestampTo: Math.floor(new Date("2022-11-16") / 1000),
+    range: 'month',
+    currency: $store.getters['market/selectedCurrency']?.symbol || 'USD',
+  })
+})
 
 const totalSales = computed(() => {
   const data = {

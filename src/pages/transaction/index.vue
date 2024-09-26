@@ -434,7 +434,8 @@ export default {
       parsedBCHBalance: '0',
       walletYield: null,
       hasCashin: false,
-      availableCashinFiat: null
+      availableCashinFiat: null,
+      isPriceChartDialogShown: false
     }
   },
 
@@ -552,9 +553,15 @@ export default {
       this.$router.push({ name: 'ramp-fiat', query: notif })
     },
     openPriceChart () {
-      this.$q.dialog({
-        component: PriceChart
-      })
+      if (!this.isPriceChartDialogShown) {
+        this.isPriceChartDialogShown = true
+        this.$q.dialog({
+          component: PriceChart
+        })
+          .onDismiss(() => {
+            this.isPriceChartDialogShown = false
+          })
+      }
     },
     openCashIn () {
       this.$q.dialog({

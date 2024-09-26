@@ -10,8 +10,8 @@
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
 
-    <div v-else class="column items-center">
-      <div style="margin-top: 20px;">
+    <div v-else class="row flex-center">
+      <div class="row flex-center" style="margin-top: 20px;">
         <q-img src="bch-logo.png" height="35px" width="35px" />
         &nbsp;BCH
         <q-toggle
@@ -29,7 +29,7 @@
         {{ $t('CashToken') }}
       </div>
 
-      <div class="row">
+      <div class="row col-12 flex-center">
         <div class="col qr-code-container" @click="copyToClipboard(address)">
           <div class="col col-qr-code q-pl-sm q-pr-sm">
             <div class="row text-center">
@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <div v-if="!isCt" class="row q-mt-md">
+      <div v-if="!isCt" class="row col-12 flex-center q-mt-md">
         <q-toggle
           v-model="legacy"
           class="text-bow"
@@ -70,7 +70,7 @@
         />
       </div>
 
-      <div class="row">
+      <div class="row col-12 flex-center">
         <div class="col copy-container">
           <span class="qr-code-text text-weight-light text-center">
             <div
@@ -125,7 +125,7 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    address() {
+    address () {
       if (this.legacy) {
         return this.convertToLegacyAddress(this.addresses[0])
       }
@@ -265,7 +265,7 @@ export default {
   .copy-container {
     padding: 20px 20px 0px 20px;
     overflow-wrap: break-word;
-    max-width: 90vw;
+    text-wrap: wrap;
     .copy-address-button {
       font-size: 12px;
       margin-top: 7px;
