@@ -109,6 +109,16 @@ export default {
           .filter(Boolean)
           .filter(Number.isSafeInteger)
       )
+    },
+    showTokens () {
+      return this.$store.getters['global/showTokens']
+    }
+  },
+
+  watch: {
+    showTokens () {
+      console.log('show tokens yey')
+      console.log(this.showTokens)
     }
   },
 
@@ -173,9 +183,6 @@ export default {
                 return tx
               })
             )
-            // TODO set max pages and page for sBch (since they are not included in the response)
-            // vm.transactionsMaxPage = response?.num_pages
-            // vm.transactionsPage = page
           }
         })
         .finally(() => {
@@ -250,14 +257,15 @@ export default {
 
 <style lang="scss" scoped>
   .transaction-list {
-    height: 440px;
+    height: 10vh;
     overflow: auto;
-    padding-bottom: 80px;
+    padding-bottom: 5vh;
   }
   /* iPhone 5/SE */
   @media (min-width: 280px) and (max-width: 320px) {
     .transaction-list {
-      height: 430px;
+      height: 35vh;
+      padding-bottom: 6vh;
     }
   }
   .no-transaction-img {
