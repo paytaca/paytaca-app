@@ -4,7 +4,7 @@
     full-width
     full-height
   >
-    <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-px-md q-pt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
         <span class="text-bold text-h6">Notifications</span>
         <q-space/>
@@ -31,11 +31,13 @@
           <q-btn
             flat
             round
+            :disable="isLoading"
             icon="filter_alt"
           />
           <q-btn
             flat
             round
+            :disable="isLoading"
             icon="settings"
           />
         </div>
@@ -97,12 +99,12 @@
               </transition-group>
             </div>
 
-            <div class="row justify-center items-end q-mt-sm">
+            <div class="row flex-center q-mt-sm">
               <q-pagination
                 padding="xs"
                 :modelValue="notifsPage"
                 :max="20"
-                :max-pages="5"
+                :max-pages="6"
                 :dark="darkMode"
                 :class="getDarkModeClass(darkMode)"
                 :hide-below-pages="2"
