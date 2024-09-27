@@ -17,7 +17,7 @@
             )
           }}
         </div>
-        <q-btn @click="showStatusHistory=true" dense size=".9em" icon="notifications" style="position: fixed; top: 80px; right: 35px;">
+        <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat @click="showStatusHistory=true" dense size="1em" icon="notifications" style="position: fixed; top: 80px; right: 40px;">
           <q-badge v-if="order?.has_unread_status" floating rounded color="red"/>
         </q-btn>
       </div>
