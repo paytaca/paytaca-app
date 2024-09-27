@@ -71,7 +71,6 @@ class Translator {
       'ha',
       'pt',
       'af',
-      'ceb',
       'nl',
       'id',
       'it',

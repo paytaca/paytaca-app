@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "거래를 위해받은 캐쉬백",
   Category: "범주",
   CategoryID: "카테고리 ID",
-  Cebuano: "세부 노",
   Chain: "체인",
   ChangeAddress: "주소를 바꾸다",
   ChangePin: "핀을 변경하십시오",

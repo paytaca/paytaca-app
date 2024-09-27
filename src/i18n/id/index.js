@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Cashback diterima untuk bertransaksi dengan",
   Category: "Kategori",
   CategoryID: "ID Kategori",
-  Cebuano: "Cebuano",
   Chain: "Rantai",
   ChangeAddress: "Ubah alamat",
   ChangePin: "Ganti PIN",

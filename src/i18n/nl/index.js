@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Cashback ontvangen voor transacties met",
   Category: "Categorie",
   CategoryID: "categorie ID",
-  Cebuano: "Cebuano",
   Chain: "Ketting",
   ChangeAddress: "Adres wijzigen",
   ChangePin: "Verander pincode",

@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Cashback received for transacting with",
   Category: "Category",
   CategoryID: "Category ID",
-  Cebuano: "Cebuano",
   Chain: "Chain",
   ChangeAddress: "Change address",
   ChangePin: "Change PIN",

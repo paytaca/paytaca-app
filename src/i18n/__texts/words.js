@@ -247,7 +247,6 @@ const words = [
       Korean: 'Korean',
       Japanese: 'Japanese',
       Tagalog: 'Tagalog',
-      Cebuano: 'Cebuano',
       Dutch: 'Dutch',
       Indonesian: 'Indonesian',
       Italian: 'Italian',

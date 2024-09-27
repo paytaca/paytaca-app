@@ -36,7 +36,7 @@
 
 <script>
 const localeOptionsLabels = [
-  'English', 'Cebuano', 'ChineseSimplified', 'ChineseTraditional', 'Dutch',
+  'English', 'ChineseSimplified', 'ChineseTraditional', 'Dutch',
   'French', 'German', 'Hausa', 'Indonesian', 'Italian',
   'Japanese', 'Korean', 'Portuguese', 'BrazilianPortuguese', 'Spanish',
   'ArgentinianSpanish', 'Tagalog'
@@ -54,7 +54,6 @@ export default {
       // locale: this.$store.getters['global/language'],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
-        { value: 'ceb', label: this.$t('Cebuano') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
         { value: 'zh-tw', label: this.$t('ChineseTraditional') },
         { value: 'nl', label: this.$t('Dutch') },

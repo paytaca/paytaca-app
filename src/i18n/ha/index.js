@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Cashback da aka karɓa don aiwatarwa tare da",
   Category: "Jinsi",
   CategoryID: "Kungiyoyin ID",
-  Cebuano: "Cebuano",
   Chain: "Sarƙa",
   ChangeAddress: "Adireshin Canja",
   ChangePin: "Canza fil",

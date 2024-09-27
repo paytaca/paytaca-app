@@ -8,7 +8,6 @@ import pt from './pt'
 import ptBR from './pt-br'
 import ha from './ha'
 import af from './af'
-import ceb from './ceb'
 import fr from './fr'
 import tl from './tl'
 import nl from './nl'
@@ -43,7 +42,6 @@ export const supportedLangs = {
   // bs: 'Bosnian',
   // bg: 'Bulgarian',
   // ca: 'Catalan',
-  ceb: 'Cebuano',
   // ny: 'Chichewa',
   'zh-cn': 'Chinese Simplified',
   'zh-tw': 'Chinese Traditional',
@@ -148,7 +146,6 @@ export default {
   pt,
   ha,
   af,
-  ceb,
   nl,
   id,
   it,

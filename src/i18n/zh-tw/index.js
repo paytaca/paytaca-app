@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "收到的現金返還用於交易",
   Category: "類別",
   CategoryID: "類別ID",
-  Cebuano: "宿務",
   Chain: "鏈",
   ChangeAddress: "更換地址",
   ChangePin: "密碼",

@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "收到的现金返还用于交易",
   Category: "类别",
   CategoryID: "类别ID",
-  Cebuano: "宿务",
   Chain: "链",
   ChangeAddress: "更换地址",
   ChangePin: "更改针",

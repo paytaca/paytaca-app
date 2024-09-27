@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Natanggap ang cashback para sa pagtransak sa",
   Category: "Kategorya",
   CategoryID: "Category ID",
-  Cebuano: "Cebuano",
   Chain: "Chain",
   ChangeAddress: "Baguhin ang address",
   ChangePin: "Baguhin ang pin",

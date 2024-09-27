@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Cashback ricevuto per transazione con",
   Category: "Categoria",
   CategoryID: "Categoria ID",
-  Cebuano: "Cebuano",
   Chain: "Catena",
   ChangeAddress: "Cambia indirizzo",
   ChangePin: "Cambia il perno",

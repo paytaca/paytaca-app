@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Cashback ontvang vir die transaksie met",
   Category: "Kategorie",
   CategoryID: "Kategorie -ID",
-  Cebuano: "Cebuano",
   Chain: "Ketting",
   ChangeAddress: "Verandering adres",
   ChangePin: "Verander speld",

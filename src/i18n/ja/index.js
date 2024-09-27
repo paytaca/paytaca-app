@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "取引のために受け取ったキャッシュバック",
   Category: "カテゴリー",
   CategoryID: "カテゴリID",
-  Cebuano: "セブアノ",
   Chain: "鎖",
   ChangeAddress: "住所を変える",
   ChangePin: "ピンを変更します",

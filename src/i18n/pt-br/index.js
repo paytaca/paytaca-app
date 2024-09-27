@@ -196,7 +196,6 @@ export default {
   CashbackAttribute: "Reembolso recebido por transações com",
   Category: "Categoria",
   CategoryID: "Categoria ID",
-  Cebuano: "Cebuano",
   Chain: "Corrente",
   ChangeAddress: "Alterar endereço",
   ChangePin: "Alterar pino",
