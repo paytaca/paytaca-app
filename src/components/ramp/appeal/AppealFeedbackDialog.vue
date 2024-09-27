@@ -9,53 +9,59 @@
           </div>
 
           <!-- Arrow Button -->
-          <div class="fixed" style="margin-top: -5px;" v-if="index === 1">
-            <q-btn
-              rounded
-              no-caps
-              icon="arrow_back"
-              flat
-              color="blue"
-              @click="index--"
-            />
+          <div v-if="reviews.length === 0" class="text-center">
+            <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
           </div>
-          <div class="fixed" style="margin-top: -5px; width: 83%;" v-if="index === 0 && reviews.length > 1">
-            <div class="row justify-end">
+          <div v-else>
+            <div class="fixed" style="margin-top: -5px;" v-if="index === 1">
               <q-btn
                 rounded
                 no-caps
-                icon="arrow_forward"
+                icon="arrow_back"
                 flat
                 color="blue"
-                @click="index++"
+                @click="index--"
               />
             </div>
-          </div>
+            <div class="fixed" style="margin-top: -5px; width: 83%;" v-if="index === 0 && reviews.length > 1">
+              <div class="row justify-end">
+                <q-btn
+                  rounded
+                  no-caps
+                  icon="arrow_forward"
+                  flat
+                  color="blue"
+                  @click="index++"
+                />
+              </div>
+            </div>
 
-          <!-- Feedback Contents -->
-          <div class="text-center">
-            <span style="font-size: medium;">{{ reviews[index].peer.name }}</span><br>
-            <span style="font-size: small; color: gray;">({{ userLabel(reviews[index].peer.id) }})</span>
-          </div>
-          <div class="q-py-xs text-center">
-            <q-rating
-              readonly
-              v-model="reviews[index].rating"
-              size="3em"
-              color="yellow-9"
-              icon="star"
-            />
-          </div>
-          <div class="q-py-sm q-px-xs">
-            <q-input
-              v-if="reviews[index].comment.length > 0"
-              v-model="reviews[index].comment"
-              :dark="darkMode"
-              readonly
-              dense
-              outlined
-              autogrow
-            />
+            <!-- Feedback Contents -->
+            <div class="text-center">
+              <span style="font-size: medium;">{{ reviews[index].peer.name }}</span><br>
+              <span style="font-size: small; color: gray;">({{ userLabel(reviews[index].peer.id) }})</span>
+            </div>
+            <div class="q-py-xs text-center">
+              <q-rating
+                readonly
+                v-model="reviews[index].rating"
+                size="3em"
+                color="yellow-9"
+                icon="star"
+              />
+            </div>
+            <div class="q-py-sm q-px-xs">
+              <q-input
+                v-if="reviews[index].comment.length > 0"
+                v-model="reviews[index].comment"
+                :dark="darkMode"
+                readonly
+                dense
+                outlined
+                autogrow
+              />
+            </div>
           </div>
         </div>
       </div>
