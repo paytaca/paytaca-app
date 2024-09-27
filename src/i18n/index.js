@@ -104,7 +104,7 @@ export const supportedLangs = {
   pt: 'Portuguese',
   // ma: 'Punjabi',
   // ro: 'Romanian',
-  // ru: 'Russian',
+  ru: 'Russian',
   // sm: 'Samoan',
   // gd: 'Scots Gaelic',
   // sr: 'Serbian',

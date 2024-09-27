@@ -134,6 +134,7 @@ const words = [
     ArgentinianSpanish: "Spanish (Argentina)",
     BrazilianPortuguese: "Portuguese (Brazil)",
     Hausa: "Hausa",
+    Russian: "Russian"
   },
   {
       Type: "Type",

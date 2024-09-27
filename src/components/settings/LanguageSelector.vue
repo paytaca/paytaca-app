@@ -37,7 +37,7 @@
 <script>
 const localeOptionsLabels = [
   'English', 'ChineseSimplified', 'ChineseTraditional', 'Dutch',
-  'French', 'German', 'Hausa', 'Indonesian', 'Italian',
+  'French', 'German', 'Hausa', 'Indonesian', 'Italian', 'Russian',
   'Japanese', 'Korean', 'Portuguese', 'BrazilianPortuguese', 'Spanish',
   'ArgentinianSpanish', 'Tagalog'
 ]
@@ -68,7 +68,8 @@ export default {
         { value: 'pt-br', label: this.$t('BrazilianPortuguese') },
         { value: 'es', label: this.$t('Spanish') },
         { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
-        { value: 'tl', label: this.$t('Tagalog') }
+        { value: 'tl', label: this.$t('Tagalog') },
+        { value: 'ru', label: this.$t('Russian') }
       ],
       localeOptions: []
     }
