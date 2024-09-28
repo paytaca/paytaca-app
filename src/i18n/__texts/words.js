@@ -130,10 +130,7 @@ const words = [
     Calculate: "Calculate",
     Expired: "Expired",
     High: "High",
-    Liquidity: "Liquidity",
-    ArgentinianSpanish: "Spanish (Argentina)",
-    BrazilianPortuguese: "Portuguese (Brazil)",
-    Hausa: "Hausa",
+    Liquidity: "Liquidity"
   },
   {
       Type: "Type",
@@ -246,12 +243,16 @@ const words = [
       Marketplace: 'Marketplace',
       Korean: 'Korean',
       Japanese: 'Japanese',
+      ArgentinianSpanish: "Spanish (Argentina)",
+      BrazilianPortuguese: "Portuguese (Brazil)",
+      Hausa: "Hausa",
       Tagalog: 'Tagalog',
-      Cebuano: 'Cebuano',
+      Russian: 'Russian',
       Dutch: 'Dutch',
       Indonesian: 'Indonesian',
       Italian: 'Italian',
       Afrikaans: 'Afrikaans',
+      Arabic: 'Arabic'
   },
   {
     Resolved: 'Resolved',
