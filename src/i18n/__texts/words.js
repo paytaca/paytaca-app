@@ -130,11 +130,7 @@ const words = [
     Calculate: "Calculate",
     Expired: "Expired",
     High: "High",
-    Liquidity: "Liquidity",
-    ArgentinianSpanish: "Spanish (Argentina)",
-    BrazilianPortuguese: "Portuguese (Brazil)",
-    Hausa: "Hausa",
-    Russian: "Russian"
+    Liquidity: "Liquidity"
   },
   {
       Type: "Type",
@@ -247,7 +243,11 @@ const words = [
       Marketplace: 'Marketplace',
       Korean: 'Korean',
       Japanese: 'Japanese',
+      ArgentinianSpanish: "Spanish (Argentina)",
+      BrazilianPortuguese: "Portuguese (Brazil)",
+      Hausa: "Hausa",
       Tagalog: 'Tagalog',
+      Russian: 'Russian',
       Dutch: 'Dutch',
       Indonesian: 'Indonesian',
       Italian: 'Italian',

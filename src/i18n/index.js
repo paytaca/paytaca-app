@@ -15,6 +15,7 @@ import id from './id'
 import it from './it'
 import ja from './ja'
 import ko from './ko'
+import ru from './ru'
 
 
 /**
@@ -102,6 +103,7 @@ export const supportedLangs = {
   // fa: 'Persian',
   // pl: 'Polish',
   pt: 'Portuguese',
+  'pt-br': 'Brazilian Portuguese',
   // ma: 'Punjabi',
   // ro: 'Romanian',
   ru: 'Russian',
@@ -152,5 +154,6 @@ export default {
   ja,
   ko,
   fr,
-  tl
+  tl,
+  ru
 }

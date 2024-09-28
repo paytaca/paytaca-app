@@ -35,12 +35,32 @@
 </template>
 
 <script>
-const localeOptionsLabels = [
-  'English', 'ChineseSimplified', 'ChineseTraditional', 'Dutch',
-  'French', 'German', 'Hausa', 'Indonesian', 'Italian', 'Russian',
-  'Japanese', 'Korean', 'Portuguese', 'BrazilianPortuguese', 'Spanish',
-  'ArgentinianSpanish', 'Tagalog'
-]
+// const localeOptionsLabels = [
+//   'English', 'ChineseSimplified', 'ChineseTraditional', 'Dutch',
+//   'French', 'German', 'Hausa', 'Indonesian', 'Italian', 'Russian',
+//   'Japanese', 'Korean', 'Portuguese', 'BrazilianPortuguese', 'Spanish',
+//   'ArgentinianSpanish', 'Tagalog', 'Russian'
+// ]
+const translationKeys = {
+  'af': 'Afrikaans',
+  'en-us': 'English',
+  'zh-cn': 'ChineseSimplified',
+  'zh-tw': 'ChineseTraditional',
+  'nl': 'Dutch',
+  'fr': 'French',
+  'de': 'German',
+  'ha': 'Hausa',
+  'id': 'Indonesian',
+  'it': 'Italian',
+  'ja': 'Japanese',
+  'ko': 'Korean',
+  'pt': 'Portuguese',
+  'pt-br': 'BrazilianPortuguese',
+  'es': 'Spanish',
+  'es-ar': 'ArgentinianSpanish',
+  'tl': 'Tagalog',
+  'ru': 'Russian'
+}
 
 export default {
   props: {
@@ -51,7 +71,6 @@ export default {
   },
   data () {
     return {
-      // locale: this.$store.getters['global/language'],
       defaultLocaleOptions: [
         { value: 'en-us', label: this.$t('English') },
         { value: 'zh-cn', label: this.$t('ChineseSimplified') },
@@ -69,6 +88,7 @@ export default {
         { value: 'es', label: this.$t('Spanish') },
         { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
         { value: 'tl', label: this.$t('Tagalog') },
+        { value: 'af', label: this.$t('Afrikaans') },
         { value: 'ru', label: this.$t('Russian') }
       ],
       localeOptions: []
@@ -76,7 +96,7 @@ export default {
   },
   methods: {
     getOptionLabel (opt) {
-      const match = this.defaultLocaleOptions.filter(lang => lang.value === opt)
+      const match = this.defaultLocaleOptions.filter(lang => lang.value === opt && opt)
       if (match.length > 0) {
         return match[0].label
       } else {
@@ -103,34 +123,35 @@ export default {
       vm.defaultLocaleOptions.forEach((option, index) => {
         tempOptions.push({
           value: option.value,
-          label: vm.$t(localeOptionsLabels[index])
+          label: vm.$t(translationKeys[option.value])
         })
       })
-
       vm.defaultLocaleOptions = tempOptions
     }
   },
   computed: {
     locale: {
       get () {
-        return this.$store.getters['global/language']
+        return this.$store.getters['global/language'] || 'en-us'
       },
       set (lang) {
-        this.$i18n.locale = lang.value
-        this.$store.commit('global/setLanguage', lang.value)
+        if (lang && lang.value) {
+          this.$i18n.locale = lang.value
+          this.$store.commit('global/setLanguage', lang.value)
 
-        const denomination = this.$store.getters['global/denomination']
-        if (!['zh-tw', 'zh-cn'].includes(lang.value) &&
-            denomination !== this.$t('DEEM') &&
-            !['BCH', 'mBCH', 'Satoshis'].includes(denomination)
-        ) {
-          this.$store.commit('global/setDenomination', 'DEEM')
-        } else {
-          const translatedDenom = this.$t(denomination)
-          this.$store.commit('global/setDenomination', translatedDenom)
+          const denomination = this.$store.getters['global/denomination']
+          if (!['zh-tw', 'zh-cn'].includes(lang.value) &&
+              denomination !== this.$t('DEEM') &&
+              !['BCH', 'mBCH', 'Satoshis'].includes(denomination)
+          ) {
+            this.$store.commit('global/setDenomination', 'DEEM')
+          } else {
+            const translatedDenom = this.$t(denomination)
+            this.$store.commit('global/setDenomination', translatedDenom)
+          }
+
+          this.translateOptionsToCurrentLang()
         }
-
-        this.translateOptionsToCurrentLang()
       }
     }
   }
