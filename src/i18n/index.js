@@ -16,6 +16,7 @@ import it from './it'
 import ja from './ja'
 import ko from './ko'
 import ru from './ru'
+import ar from './ar'
 
 
 /**
@@ -34,7 +35,7 @@ import ru from './ru'
 export const supportedLangs = {
   af: 'Afrikaans',
   // sq: 'Albanian',
-  // ar: 'Arabic',
+  ar: 'Arabic',
   // hy: 'Armenian',
   // az: 'Azerbaijani',
   // eu: 'Basque',
@@ -155,5 +156,6 @@ export default {
   ko,
   fr,
   tl,
-  ru
+  ru,
+  ar
 }

@@ -79,6 +79,7 @@ class Translator {
       'fr',
       'tl',
       'ru',
+      'ar',
       /* 
         LANGUAGE BRANCH (variations)
 

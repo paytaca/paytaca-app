@@ -89,6 +89,7 @@ export default {
   ApproxHedgeAmount: "Approx hedge amount",
   ApproxHedgeAmountDescription: "Hedge amount is calculated from long amount below and low liquidation percentage below",
   Apps: "Apps",
+  Arabic: "Arabic",
   Arbiter: "Arbiter",
   ArbiterAddress: "Arbiter address",
   ArbiterLogin: "Arbiter login",

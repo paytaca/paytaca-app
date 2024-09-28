@@ -59,7 +59,8 @@ const translationKeys = {
   'es': 'Spanish',
   'es-ar': 'ArgentinianSpanish',
   'tl': 'Tagalog',
-  'ru': 'Russian'
+  'ru': 'Russian',
+  'ar': 'Arabic'
 }
 
 export default {
@@ -89,7 +90,8 @@ export default {
         { value: 'es-ar', label: this.$t('ArgentinianSpanish') },
         { value: 'tl', label: this.$t('Tagalog') },
         { value: 'af', label: this.$t('Afrikaans') },
-        { value: 'ru', label: this.$t('Russian') }
+        { value: 'ru', label: this.$t('Russian') },
+        { value: 'ar', label: this.$t('Arabic') }
       ],
       localeOptions: []
     }

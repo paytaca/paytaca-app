@@ -252,6 +252,7 @@ const words = [
       Indonesian: 'Indonesian',
       Italian: 'Italian',
       Afrikaans: 'Afrikaans',
+      Arabic: 'Arabic'
   },
   {
     Resolved: 'Resolved',
