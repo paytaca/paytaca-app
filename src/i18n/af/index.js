@@ -48,7 +48,7 @@ export default {
   Agreed: "Ooreengekom",
   All: "Alle",
   AllCurrencies: "Alle geldeenhede",
-  AllLimitsReachedMessage: "Jammer, hierdie transaksie het nie gekwalifiseer vir 'n terugbetaling nie, aangesien dit die perke oorskry wat in die veldtog aangedui word.",
+  AllLimitsReachedMessage: "Jammer, hierdie transaksie het nie vir 'n terugbetaling gekwalifiseer nie, aangesien dit die perke oorskry wat deur die veldtog gestel is.",
   Allowance: "Vergunning",
   AlmostThere: "Amper daar",
   Amount: "Bedrag",
