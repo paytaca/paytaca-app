@@ -323,7 +323,7 @@
           />
         </div>
       </div>
-      <footer-menu />
+      <footer-menu ref="footerMenu" />
     </div>
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
@@ -628,7 +628,7 @@ export default {
         const sectionHeight = vm.$refs.fixedSection.clientHeight
         vm.$refs.transactionSection.setAttribute(
           'style',
-          `position: relative; margin-top: ${sectionHeight - 24}px; z-index: 1; transition: margin-top 0.25s ease-in-out`
+          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out`
         )
       }, timeout)
     },
@@ -1335,12 +1335,12 @@ export default {
 
   }
   .transaction-row {
-    position: relative;
+    position: fixed;
     margin-top: 355px;
-    z-index: 5;
+    width: 100%;
   }
   .transaction-container {
-    min-height: 80vh;
+    overflow: hidden;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
     margin-top: 24px;

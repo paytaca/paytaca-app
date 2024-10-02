@@ -8,7 +8,6 @@ import pt from './pt'
 import ptBR from './pt-br'
 import ha from './ha'
 import af from './af'
-import ceb from './ceb'
 import fr from './fr'
 import tl from './tl'
 import nl from './nl'
@@ -16,6 +15,8 @@ import id from './id'
 import it from './it'
 import ja from './ja'
 import ko from './ko'
+import ru from './ru'
+import ar from './ar'
 
 
 /**
@@ -34,7 +35,7 @@ import ko from './ko'
 export const supportedLangs = {
   af: 'Afrikaans',
   // sq: 'Albanian',
-  // ar: 'Arabic',
+  ar: 'Arabic',
   // hy: 'Armenian',
   // az: 'Azerbaijani',
   // eu: 'Basque',
@@ -43,7 +44,6 @@ export const supportedLangs = {
   // bs: 'Bosnian',
   // bg: 'Bulgarian',
   // ca: 'Catalan',
-  ceb: 'Cebuano',
   // ny: 'Chichewa',
   'zh-cn': 'Chinese Simplified',
   'zh-tw': 'Chinese Traditional',
@@ -104,9 +104,10 @@ export const supportedLangs = {
   // fa: 'Persian',
   // pl: 'Polish',
   pt: 'Portuguese',
+  'pt-br': 'Brazilian Portuguese',
   // ma: 'Punjabi',
   // ro: 'Romanian',
-  // ru: 'Russian',
+  ru: 'Russian',
   // sm: 'Samoan',
   // gd: 'Scots Gaelic',
   // sr: 'Serbian',
@@ -148,12 +149,13 @@ export default {
   pt,
   ha,
   af,
-  ceb,
   nl,
   id,
   it,
   ja,
   ko,
   fr,
-  tl
+  tl,
+  ru,
+  ar
 }

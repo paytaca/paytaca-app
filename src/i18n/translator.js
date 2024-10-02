@@ -71,7 +71,6 @@ class Translator {
       'ha',
       'pt',
       'af',
-      'ceb',
       'nl',
       'id',
       'it',
@@ -79,7 +78,8 @@ class Translator {
       'ko',
       'fr',
       'tl',
-
+      'ru',
+      'ar',
       /* 
         LANGUAGE BRANCH (variations)
 
@@ -163,8 +163,10 @@ class Translator {
           const placeholder = '{STRING}'
           for (const [key, value] of Object.entries(translatedObj)) {
             translatedObj[key] = value.replace(this.regex.interpolatedStrRegex, placeholder)
-            for (const interpolatedKey of interpolatedWords[key]) {
-              translatedObj[key] = translatedObj[key].replace(placeholder, interpolatedKey)
+            if (Object.keys(interpolatedWords).includes(key)) {
+              for (const interpolatedKey of interpolatedWords[key]) {
+                translatedObj[key] = translatedObj[key].replace(placeholder, interpolatedKey)
+              } 
             }
           }
         }
