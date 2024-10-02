@@ -3,8 +3,11 @@
     <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
       Cash In Orders
     </div>
+    <div class="row justify-end q-mx-md q-mt-sm q-mb-none">
+      <q-btn size="sm" dense @click="markAllRead">Mark all as read</q-btn>
+    </div>
     <!-- <q-card flat bordered class="q-mx-md "> -->
-      <div ref="scrollTargetRef" class="q-mt-lg q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;" v-if="!loading">
+      <div ref="scrollTargetRef" class="q-mt-sm q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;" v-if="!loading">
         <div class="text-center" v-if="orders.length === 0">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
@@ -70,6 +73,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
 import { wallet } from 'src/exchange/wallet'
+import { buildStorage } from 'axios-cache-interceptor'
 
 export default {
   setup () {
@@ -102,6 +106,20 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    async markAllRead () {
+      await backend.patch('ramp-p2p/order/cash-in/status/', null, { authorize: true })
+        .catch(error => {
+          console.error(error)
+          console.error(error.response || error)
+          if (error.response?.status === 403) {
+            bus.emit('session-expired')
+            setTimeout(() => { this.markAllRead() }, 4000)
+          } else {
+            bus.emit('network-error')
+          }
+        })
+      bus.emit('cashin-alert', false)
+    },
     async fetchCashinOrders () {
       const params = {
         wallet_hash: wallet.walletHash,

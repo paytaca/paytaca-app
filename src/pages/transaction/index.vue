@@ -624,6 +624,9 @@ export default {
         bus.emit('cashin-alert', true)
       })
     },
+    closeCashinWebSocket () {
+      this.websocketManager.closeConnection()
+    },
     async updateTokenMenuPosition () {
       await this.$nextTick()
       this.$refs.tokenMenu.updatePosition()
@@ -1225,6 +1228,7 @@ export default {
 
   unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
+    this.closeCashinWebSocket()
   },
   created () {
     bus.on('cashin-alert', (value) => { this.hasCashinAlerts = value })
