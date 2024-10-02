@@ -48,7 +48,7 @@ export default {
   Agreed: "Overeengekomen",
   All: "Alle",
   AllCurrencies: "Alle valuta",
-  AllLimitsReachedMessage: "Sorry, deze transactie kwam niet in aanmerking voor een cashback omdat deze de in de campagne vermelde limieten overschrijdt.",
+  AllLimitsReachedMessage: "Sorry, deze transactie kwam niet in aanmerking voor een cashback omdat deze de limieten overschrijdt die zijn vastgesteld door de campagne.",
   Allowance: "Toelage",
   AlmostThere: "Bijna daar",
   Amount: "Hoeveelheid",

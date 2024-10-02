@@ -48,7 +48,7 @@ export default {
   Agreed: "Sepakat",
   All: "Semua",
   AllCurrencies: "Semua mata uang",
-  AllLimitsReachedMessage: "Maaf, transaksi ini tidak memenuhi syarat untuk mendapatkan cashback karena melebihi batas yang dinyatakan dalam kampanye.",
+  AllLimitsReachedMessage: "Maaf, transaksi ini tidak memenuhi syarat untuk cashback karena melebihi batas yang ditetapkan oleh kampanye.",
   Allowance: "Uang saku",
   AlmostThere: "Hampir sampai",
   Amount: "Jumlah",

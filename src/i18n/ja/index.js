@@ -48,7 +48,7 @@ export default {
   Agreed: "同意した",
   All: "全て",
   AllCurrencies: "すべての通貨",
-  AllLimitsReachedMessage: "申し訳ありませんが、この取引はキャンペーンに記載されている制限を超えるため、キャッシュバックの資格がありませんでした。",
+  AllLimitsReachedMessage: "申し訳ありませんが、この取引はキャンペーンによって設定された制限を超えるため、キャッシュバックの資格がありませんでした。",
   Allowance: "手当",
   AlmostThere: "ほとんどそこに",
   Amount: "額",

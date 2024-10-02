@@ -48,7 +48,7 @@ export default {
   Agreed: "M",
   All: "Duka",
   AllCurrencies: "Dukkan kudade",
-  AllLimitsReachedMessage: "Yi hakuri, wannan ma'amala bai cancanci yin jigilar kuɗi ba kamar yadda ya wuce iyaka waɗanda aka bayyana a cikin kamfen.",
+  AllLimitsReachedMessage: "Yi haƙuri, wannan ma'amala bai cancanci yin nasara ba yayin da ya wuce iyaka wanda yaƙin ya tsara.",
   Allowance: "Izni",
   AlmostThere: "Kusan can",
   Amount: "Jimla",
