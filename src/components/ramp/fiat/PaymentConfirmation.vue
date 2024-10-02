@@ -61,7 +61,7 @@
       <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
         <div class="text-center sm-font-size q-mx-md q-mb-sm">
         <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
-        <span v-if="data?.type === 'buyer'">{{ $t('SelectPaymentMethod') }}</span>
+        <span v-if="data?.type === 'buyer'">{{ order.is_cash_in ? 'You selected this payment method' : $t('SelectPaymentMethod') }}</span>
         <span v-if="data?.type === 'seller'">The buyer selected the following payment methods.</span>
       </div>
       <div class="full-width">
@@ -94,7 +94,7 @@
                         </div>
                       </div>
                       <div v-if="data?.type !== 'seller'">
-                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method, index)" :dark="darkMode"/>
+                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method, index)" :dark="darkMode" :disable="order.is_cash_in"/>
                       </div>
                     </div>
                     <div v-if="method.attachments?.length > 0" class="row">
@@ -513,6 +513,10 @@ export default {
               vm.paymentMethods = orderPaymentTypes
             } else {
               vm.paymentMethods = adPaymentTypes
+            }
+
+            if (vm.data?.order?.is_cash_in) {
+              vm.paymentMethods = orderPaymentTypes
             }
           } else {
             vm.paymentMethods = orderPaymentTypes
