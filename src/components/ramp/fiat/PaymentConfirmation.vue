@@ -361,6 +361,7 @@ export default {
         formData.append('image', paymentMethod.attachment)
         await this.uploadAttachment(formData, orderPaymentMethods[index].id)
       })
+      await this.fetchOrderDetail()
     },
     async uploadAttachment (formdata, orderPaymentId) {
       await backend.post(
@@ -407,8 +408,7 @@ export default {
         switch (status) {
           case 'ESCRW': {
             const resp = await vm.sendConfirmPayment(vm.data?.type)
-            await vm.uploadAttachments(resp.order_payment_methods)
-            await this.fetchOrderDetail()
+            vm.uploadAttachments(resp.order_payment_methods)
             break
           }
           case 'PD_PN': {
