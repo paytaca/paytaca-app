@@ -48,7 +48,7 @@ export default {
   Agreed: "Vereinbart",
   All: "Alle",
   AllCurrencies: "Alle Währungen",
-  AllLimitsReachedMessage: "Entschuldigung, diese Transaktion hat sich nicht für einen Cashback qualifiziert, da sie die in der Kampagne angegebenen Grenzen überschreitet.",
+  AllLimitsReachedMessage: "Entschuldigung, diese Transaktion hat sich nicht für einen Cashback qualifiziert, da sie die durch die Kampagne festgelegten Grenzen überschreitet.",
   Allowance: "Zuschuss",
   AlmostThere: "Fast da",
   Amount: "Menge",

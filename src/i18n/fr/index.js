@@ -48,7 +48,7 @@ export default {
   Agreed: "Convenu",
   All: "Tous",
   AllCurrencies: "Toutes les devises",
-  AllLimitsReachedMessage: "Désolé, cette transaction ne s'est pas qualifiée pour un cashback car il dépasse les limites indiquées dans la campagne.",
+  AllLimitsReachedMessage: "Désolé, cette transaction ne s'est pas qualifiée pour un cashback car elle dépasse les limites fixées par la campagne.",
   Allowance: "Allocation",
   AlmostThere: "Presque là",
   Amount: "Montant",

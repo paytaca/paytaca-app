@@ -48,7 +48,7 @@ export default {
   Agreed: "Sumang -ayon",
   All: "Lahat",
   AllCurrencies: "Lahat ng mga pera",
-  AllLimitsReachedMessage: "Paumanhin, ang transaksyon na ito ay hindi kwalipikado para sa isang cashback dahil lumampas ito sa mga limitasyon na nakasaad sa kampanya.",
+  AllLimitsReachedMessage: "Paumanhin, ang transaksyon na ito ay hindi kwalipikado para sa isang cashback dahil lumampas ito sa mga limitasyon na itinakda ng kampanya.",
   Allowance: "Allowance",
   AlmostThere: "Halos doon",
   Amount: "Halaga",

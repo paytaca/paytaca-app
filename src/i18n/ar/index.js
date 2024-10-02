@@ -48,7 +48,7 @@ export default {
   Agreed: "متفق",
   All: "الجميع",
   AllCurrencies: "جميع العملات",
-  AllLimitsReachedMessage: "عذرًا ، لم تكن هذه الصفقة مؤهلة للحصول على استرداد نقدي لأنها تتجاوز الحدود المذكورة في الحملة.",
+  AllLimitsReachedMessage: "عذرًا ، لم تكن هذه الصفقة مؤهلة للحصول على استرداد نقدي لأنها تتجاوز الحدود التي تحددها الحملة.",
   Allowance: "بدل",
   AlmostThere: "تقريبا هناك",
   Amount: "كمية",

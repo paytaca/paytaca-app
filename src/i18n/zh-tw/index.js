@@ -48,7 +48,7 @@ export default {
   Agreed: "同意",
   All: "全部",
   AllCurrencies: "所有貨幣",
-  AllLimitsReachedMessage: "抱歉，這項交易沒有資格獲得現金返還，因為它超過了廣告系列中所述的限制。",
+  AllLimitsReachedMessage: "抱歉，這項交易沒有資格獲得現金返還，因為它超過了廣告系列設定的限制。",
   Allowance: "津貼",
   AlmostThere: "幾乎在那裡",
   Amount: "數量",
