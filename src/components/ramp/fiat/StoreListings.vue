@@ -298,7 +298,7 @@ export default {
     },
     onFilterListings (filters) {
       this.filters = filters
-      this.resetAndRefetchListings()
+      this.resetAndRefetchListings(true)
     },
     showCurrencySelect () {
       if (this.fiatCurrencies.length !== 0) {
@@ -327,7 +327,7 @@ export default {
       }
     },
     searchUser () {
-      this.resetAndRefetchListings()
+      this.resetAndRefetchListings(true)
     },
     fetchPaymentTypes () {
       const vm = this
@@ -407,7 +407,7 @@ export default {
       }
     },
     async receiveDialog (data) {
-      this.resetAndRefetchListings()
+      this.resetAndRefetchListings(true)
     },
     async updateFilters () {
       const vm = this

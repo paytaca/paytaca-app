@@ -94,7 +94,7 @@
                         </div>
                       </div>
                       <div v-if="data?.type !== 'seller'">
-                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(method, index)" :dark="darkMode" :disable="order.is_cash_in"/>
+                        <q-checkbox v-model="method.selected" @click="order.is_cash_in ? '' : selectPaymentMethod(method, index)" :dark="darkMode" :disable="order.is_cash_in"/>
                       </div>
                     </div>
                     <div v-if="method.attachments?.length > 0" class="row">
@@ -517,6 +517,7 @@ export default {
 
             if (vm.data?.order?.is_cash_in) {
               vm.paymentMethods = orderPaymentTypes
+              vm.selectedPaymentMethods = orderPaymentTypes
             }
           } else {
             vm.paymentMethods = orderPaymentTypes
