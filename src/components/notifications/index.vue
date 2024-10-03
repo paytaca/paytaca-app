@@ -33,13 +33,14 @@
               flat
               round
               :disable="isLoading"
-              icon="filter_alt"
+              icon="delete"
             />
             <q-btn
               flat
               round
               :disable="isLoading"
-              icon="settings"
+              icon="filter_alt"
+              @click="openFilterDialog"
             />
           </div>
 
@@ -136,6 +137,7 @@ import {
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
 
 export default {
   name: 'Notifications',
@@ -192,6 +194,14 @@ export default {
         // call to engagement-hub to hide idth notif
         await hideItemUpdate(deletedItem[0])
       }, 250)
+    },
+    openFilterDialog () {
+      this.$q.dialog({
+        component: NotificationsFilterDialog
+      })
+        .onOk((data) => {
+          console.log(data)
+        })
     },
 
     formatDate (date) {
