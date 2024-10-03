@@ -216,6 +216,7 @@ export default {
       const vm = this
       try {
         vm.loggingIn = true
+        console.log('logging in')
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
         const keypair = await wallet.keypair()
         const signature = await wallet.signMessage(keypair.privateKey, otp)
@@ -349,6 +350,7 @@ export default {
           if (this.step === 1) {
             vm.$refs.dialog.hide()
           } else if (this.step === 3 && this.openOrderPage) {
+            this.handleSessionEvent()
             this.state = 'order-list'
             this.openOrderPage = false
             this.step = 1

@@ -1,4 +1,16 @@
 
+export function cashinOrderList (state) {
+  return state.cashinOrderList
+}
+
+export function cashinOrderListPage (state) {
+  return state.cashinOrderListPage
+}
+
+export function cashinOrderListTotalPage (state) {
+  return state.cashinOrderListTotalPage
+}
+
 export function storeListingTab (state) {
   return state.storeListingTab
 }

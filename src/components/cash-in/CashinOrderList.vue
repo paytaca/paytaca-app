@@ -3,33 +3,29 @@
     <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
       Cash In Orders
     </div>
-    <div class="row justify-end q-mx-md q-mt-sm q-mb-none">
-      <q-btn size="sm" dense @click="markAllRead">Mark all as read</q-btn>
-    </div>
-    <!-- <q-card flat bordered class="q-mx-md "> -->
-      <div ref="scrollTargetRef" class="q-mt-sm q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 300px; overflow: auto;" v-if="!loading">
-        <div class="text-center" v-if="orders.length === 0">
+    <div v-if="!loading">
+      <div class="row justify-end q-mx-md q-mb-none">
+        <q-btn :disable="selectedOrders.length === 0" dense flat icon="mark_email_read" @click="markMultipleRead"/>
+        <q-checkbox size="sm" @click="onSelectMultipleOrders" :model-value="selectMultipleButtonValue"/>
+        <q-select class="q-pl-none" dense square hide-selected borderless :options="selectionTypeOpts" v-model="selectionType" @update:model-value="onSelectMultipleOrders"/>
+      </div>
+      <div class="q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 275px; overflow: auto;">
+        <div v-if="loadingNewPage" class="row justify-center q-py-lg">
+          <ProgressLoader/>
+        </div>
+        <div v-else-if="orders.length === 0" class="text-center">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
         </div>
-        <!-- <q-card flat bordered> -->
-          <q-infinite-scroll
-            @load="loadMoreData"
-            :scroll-target="scrollTargetRef"
-            :offset="0" v-else>
-            <template v-slot:loading>
-              <div class="row justify-center q-my-md">
-                <q-spinner-dots color="primary" size="40px" />
-              </div>
-            </template>
-
-            <q-list bordered class="br-15">
+        <div v-else>
+          <q-pull-to-refresh @refresh="fetchCashinOrders">
+            <q-list class="scroll-y br-15" @touchstart="preventPull" ref="scrollTarget" bordered style="max-height: 275px; overflow:auto;">
               <div v-for="(order,index) in orders" :key="index" class="q-pt-sm">
                 <q-item clickable :key="index" @click="$emit('open-order', order?.id)">
                   <q-item-section>
                     <div class="row">
-                      <div class="col-grow">
-                        <div style="font-size: medium;">
+                      <div class="col-grow" style="font-size: small;">
+                        <div style="font-size: 13px;">
                           ORDER #{{ order?.id }}
                         </div>
                         <div class="text-grey-6">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
@@ -40,105 +36,169 @@
                           <q-badge v-if="order?.has_unread_status" floating rounded color="red-5"/>
                         </q-card>
                       </div>
+                      <div class="col-auto">
+                        <q-checkbox size="sm" @click="onSelectOrder(order.id)" :model-value="selectedOrders.includes(order.id)"/>
+                      </div>
                     </div>
                   </q-item-section>
                 </q-item>
                 <q-separator class="q-mx-sm" v-if="index !== orders.length - 1"/>
               </div>
             </q-list>
-          </q-infinite-scroll>
-        <!-- </q-card> -->
-      </div>
-      <div v-else class="text-center" style="margin-top: 70px;">
-        <div class="row justify-center q-mx-md" style="font-size: 25px;">
-          Processing
-        </div>
-        <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
-          Please wait a moment
-        </div>
-        <q-spinner-hourglass class="col q-pt-sm q-mb-lg" color="blue-6" size="3em"/>
-        <div class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
-          <div class="col" style="opacity: .55;">
-            <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
-            <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
-          </div>
+          </q-pull-to-refresh>
         </div>
       </div>
-    <!-- </q-card> -->
+      <q-pagination :model-value="page" v-model="currentPage" class="row justify-center q-pt-sm" max-pages="5" @update:model-value="updateCurrentPage(currentPage)" :max="totalPage" boundary-numbers ellipses direction-links flat color="grey" active-color="primary"/>
+    </div>
+    <div v-else class="text-center" style="margin-top: 70px;">
+      <div class="row justify-center q-mx-md" style="font-size: 25px;">
+        <ProgressLoader/>
+      </div>
+      <!-- <div class="row justify-center q-mx-md" style="font-size: 25px;">
+        Processing
+      </div>
+      <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
+        Please wait a moment
+      </div>
+      <q-spinner-hourglass class="col q-pt-sm q-mb-lg" color="blue-6" size="3em"/> -->
+      <div class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
+        <div class="col" style="opacity: .55;">
+          <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
+          <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 <script>
+import ProgressLoader from '../ProgressLoader.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
 import { wallet } from 'src/exchange/wallet'
-import { buildStorage } from 'axios-cache-interceptor'
 
 export default {
   setup () {
-    const scrollTargetRef = ref(null)
-
+    const scrollTarget = ref(null)
     return {
-      scrollTargetRef
+      scrollTarget
     }
+  },
+  components: {
+    ProgressLoader
   },
   data () {
     return {
-      page: 1,
-      totalPage: 0,
-      orders: [],
-      loading: false
+      currentPage: 1,
+      loading: false,
+      selectedOrders: [],
+      selectionTypeOpts: [
+        'All', 'Unread'
+      ],
+      selectionType: 'All',
+      loadingNewPage: false
     }
   },
   emits: ['open-order'],
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    selectMultipleButtonValue () {
+      let value = null
+      if (this.selectedOrders.length === this.orders.length) value = true
+      if (this.selectedOrders.length === 0) value = false
+      return value
+    },
+    orders () {
+      return this.$store.getters['ramp/cashinOrderList']
+    },
+    page () {
+      return this.$store.getters['ramp/cashinOrderListPage']
+    },
+    totalPage () {
+      return this.$store.getters['ramp/cashinOrderListTotalPage']
     }
   },
-  created () {
-    bus.on('cashin-alert', this.fetchCashinOrders)
-  },
-  mounted () {
+  watch: {},
+  // created () {
+  //   bus.on('cashin-alert', this.fetchCashinOrders)
+  // },
+  async mounted () {
     this.loading = true
-    this.fetchCashinOrders()
+    this.resetPagination()
+    await this.fetchCashinOrders()
+    this.loading = false
   },
   methods: {
     getDarkModeClass,
-    async markAllRead () {
-      await backend.patch('ramp-p2p/order/cash-in/status/', null, { authorize: true })
+    resetPagination () {
+      this.$store.commit('ramp/resetCashinOrderListPage')
+      this.$store.commit('ramp/resetCashinOrderListTotalPage')
+    },
+    updateCurrentPage (currentPage) {
+      this.selectedOrders = []
+      this.$store.commit('ramp/updateCashinOrderListPage', currentPage)
+      this.fetchCashinOrders()
+    },
+    onSelectMultipleOrders () {
+      if (this.selectedOrders.length === 0) {
+        switch (this.selectionType) {
+          case 'All':
+            this.selectedOrders = this.orders?.map(el => el.id)
+            break
+          case 'Unread': {
+            const unreadOrders = this.orders.filter(el => el.has_unread_status)
+            this.selectedOrders = unreadOrders.map(el => el.id)
+            break
+          }
+        }
+      } else {
+        this.selectedOrders = []
+      }
+      this.selectionType = 'All'
+    },
+    onSelectOrder (orderId) {
+      if (this.selectedOrders.includes(orderId)) {
+        this.selectedOrders = this.selectedOrders.filter(el => orderId !== el)
+      } else {
+        this.selectedOrders.push(orderId)
+      }
+    },
+    async markMultipleRead () {
+      const payload = {
+        order_ids: Array.from(this.selectedOrders)
+      }
+      await backend.patch('ramp-p2p/order/status/', payload, { authorize: true })
+        .then(response => {
+          this.fetchCashinOrders(false)
+          bus.emit('cashin-alert', response.data.has_cashin_alerts)
+        })
         .catch(error => {
           console.error(error)
           console.error(error.response || error)
-          if (error.response?.status === 403) {
-            bus.emit('session-expired')
-            setTimeout(() => { this.markAllRead() }, 4000)
-          } else {
+          if (!error.response) {
             bus.emit('network-error')
           }
         })
-      bus.emit('cashin-alert', false)
     },
-    async fetchCashinOrders () {
+    async fetchCashinOrders (loading = true) {
+      this.loadingNewPage = loading
       const params = {
         wallet_hash: wallet.walletHash,
         limit: 15,
         page: this.page,
         owned: true
       }
-      await backend.get('ramp-p2p/order/cash-in/', { params: params })
-        .then(response => {
-          this.orders.push(...response.data?.orders)
-          this.totalPage = response?.data?.total_pages
-          this.loading = false
-        })
+      await this.$store.dispatch('ramp/fetchCashinOrderList', { params: params })
         .catch(error => {
           console.error(error.response || error)
           if (!error.response) {
             bus.emit('network-error')
           }
         })
+        .finally(() => { this.loadingNewPage = false })
     },
     statusVal (status) {
       switch (status) {
@@ -162,16 +222,15 @@ export default {
           return 'Pending'
       }
     },
-    loadMoreData (index, done) {
-      // update page/totalpage to fetch
-      if (this.page < this.totalPage) {
-        this.page++
-        setTimeout(() => {
-          this.fetchCashinOrders()
-          done()
-        }, 2000)
-      } else {
-        done()
+    preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
       }
     }
   }

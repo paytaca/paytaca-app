@@ -121,6 +121,7 @@ export default {
   },
   data () {
     return {
+      websocketManager: null,
       state: 'await_status',
       statusTitle: 'Processing',
       statusMessage: 'Please wait a moment',

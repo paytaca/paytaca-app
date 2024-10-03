@@ -428,7 +428,8 @@ export default {
       hasCashin: false,
       hasCashinAlerts: false,
       availableCashinFiat: null,
-      isPriceChartDialogShown: false
+      isPriceChartDialogShown: false,
+      websocketManager: null
     }
   },
 
@@ -609,7 +610,8 @@ export default {
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
       backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
         .then(response => {
-          this.hasCashinAlerts = response.data?.has_cashin_alerts
+          console.log('checkHasCashinAlerts:', response.data)
+          this.hasCashinAlerts = response.data?.has_cashin_alerts > 0
         })
         .catch(error => {
           console.log(error.response || error)
@@ -621,7 +623,9 @@ export default {
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)
       this.websocketManager.subscribeToMessages((message) => {
-        bus.emit('cashin-alert', true)
+        let value = true
+        if (message?.type === 'ConnectionMessage') value = false
+        this.hasCashinAlerts = value
       })
     },
     closeCashinWebSocket () {

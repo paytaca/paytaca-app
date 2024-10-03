@@ -1,3 +1,25 @@
+export function updateCashinOrderList (state, data) {
+  state.cashinOrderList = data
+}
+
+export function updateCashinOrderListPage (state, value) {
+  if (!value) value = 1
+  state.cashinOrderListPage = value
+}
+
+export function updateCashinOrderListTotalPage (state, value) {
+  if (!value) value = 1
+  state.cashinOrderListTotalPage = value
+}
+
+export function resetCashinOrderListPage (state) {
+  state.cashinOrderListPage = 1
+}
+
+export function resetCashinOrderListTotalPage (state) {
+  state.cashinOrderListTotalPage = 1
+}
+
 export function updateStoreListingTab (state, tab) {
   state.storeListingTab = tab
 }
