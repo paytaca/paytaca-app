@@ -55,7 +55,7 @@
           v-close-popup
           label="Filter"
           class="button"
-          @click="$emit('ok', notifTypesList)"
+          @click="emitFilteredList"
         />
       </div>
     </q-card>
@@ -68,40 +68,51 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'NotificationsFilterDialog',
 
+  props: {
+    notifTypes: { type: Array }
+  },
+
   data () {
     return {
       notifTypesList: [
         {
+          value: 'GE',
           label: 'General',
-          selected: true
+          selected: false
         },
         {
+          value: 'TR',
           label: 'Transactions',
-          selected: true
+          selected: false
         },
         {
+          value: 'MP',
           label: 'Marketplace',
-          selected: true
+          selected: false
         },
         {
+          value: 'CB',
           label: 'Cashback',
-          selected: true
+          selected: false
         },
         {
+          value: 'AH',
           label: 'AnyHedge',
-          selected: true
+          selected: false
         },
         {
+          value: 'RP',
           label: 'Ramp P2P',
-          selected: true
+          selected: false
         },
         {
+          value: 'GI',
           label: 'Gifts',
-          selected: true
+          selected: false
         }
       ],
 
-      selectedAll: true
+      selectedAll: false
     }
   },
 
@@ -109,6 +120,17 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     }
+  },
+
+  mounted () {
+    this.notifTypesList.forEach(item => {
+      if (this.notifTypes.includes(item.value)) {
+        item.selected = true
+      }
+    })
+
+    const selectedCount = this.notifTypesList.filter(item => item.selected).length
+    this.selectedAll = selectedCount === this.notifTypesList.length
   },
 
   methods: {
@@ -125,6 +147,13 @@ export default {
 
       const selectedCount = this.notifTypesList.filter(item => item.selected).length
       this.selectedAll = selectedCount === this.notifTypesList.length
+    },
+    emitFilteredList () {
+      const filteredList = this.notifTypesList
+        .filter(item => item.selected)
+        .map(item => item.value)
+
+      this.$emit('ok', filteredList)
     }
   }
 }

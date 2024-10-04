@@ -150,7 +150,8 @@ export default {
     return {
       notifsList: [],
       isLoading: false,
-      notifsPage: 0
+      notifsPage: 0,
+      notifsTypes: ['GE', 'MP', 'CB', 'AH', 'RP', 'GI', 'TR']
     }
   },
 
@@ -181,7 +182,7 @@ export default {
       if (done) done()
 
       vm.isLoading = true
-      vm.notifsList = await getWalletNotifications(vm.currentWalletHash)
+      vm.notifsList = await getWalletNotifications(vm.currentWalletHash, this.notifsTypes)
       vm.isLoading = false
     },
     async onSwipe (event, index) {
@@ -195,12 +196,14 @@ export default {
         await hideItemUpdate(deletedItem[0])
       }, 250)
     },
-    openFilterDialog () {
+    async openFilterDialog () {
       this.$q.dialog({
-        component: NotificationsFilterDialog
+        component: NotificationsFilterDialog,
+        componentProps: { notifTypes: this.notifsTypes }
       })
-        .onOk((data) => {
-          console.log(data)
+        .onOk(async (data) => {
+          this.notifsTypes = data
+          this.refreshNotifsList(null)
         })
     },
 
