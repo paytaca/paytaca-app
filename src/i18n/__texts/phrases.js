@@ -1087,7 +1087,7 @@ const phrases = {
       ClearSearch: 'Clear search',
       AddressCouldNotBeFound: 'Sorry, that address could not be found.',
       SweepSuccessMessage: "Assets claimed successfully",
-      AllLimitsReachedMessage: 'Sorry, this transaction did not qualify for a cashback as it exceeds limits stated in the campaign.',
+      AllLimitsReachedMessage: 'Sorry, this transaction did not qualify for a cashback as it exceeds limits set by the campaign.',
       CashbackAttribute: 'Cashback received for transacting with'
     }
   ],
