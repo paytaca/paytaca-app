@@ -122,9 +122,6 @@ export default {
     }
   },
   watch: {},
-  // created () {
-  //   bus.on('cashin-alert', this.fetchCashinOrders)
-  // },
   async mounted () {
     this.loading = true
     this.resetPagination()
@@ -178,7 +175,6 @@ export default {
         .catch(error => {
           console.error(error.response || error)
           if (error.response) {
-            console.log('error.response.status:', error.response.status)
             if (error.response?.status === 403) {
               bus.emit('session-expired')
             }

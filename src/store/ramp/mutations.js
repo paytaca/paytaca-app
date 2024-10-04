@@ -12,6 +12,10 @@ export function updateCashinOrderListTotalPage (state, value) {
   state.cashinOrderListTotalPage = value
 }
 
+export function resetCashinOrderList (state) {
+  state.cashinOrderList = []
+}
+
 export function resetCashinOrderListPage (state) {
   state.cashinOrderListPage = 1
 }

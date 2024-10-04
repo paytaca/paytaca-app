@@ -157,7 +157,6 @@ export default {
     getDarkModeClass,
     onCashinAlert (val) {
       this.hasCashinAlert = val
-      console.log('hasCashinAlert:', this.hasCashinAlert)
     },
     async loaddata () {
       this.loading = true

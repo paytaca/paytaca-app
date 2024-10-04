@@ -342,7 +342,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
@@ -366,8 +366,6 @@ import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 
-const ago = require('s-ago')
-
 const sep20IdRegexp = /sep20\/(.*)/
 
 export default {
@@ -382,11 +380,8 @@ export default {
     securityOptionDialog,
     VOffline,
     connectedDialog,
-    PriceChart,
     AssetFilter,
-    MultiWalletDropdown,
-    CashIn,
-    versionUpdate
+    MultiWalletDropdown
   },
   directives: {
     dragscroll
@@ -608,9 +603,9 @@ export default {
     },
     async checkCashinAlert () {
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-      backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
+      await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
         .then(response => {
-          this.hasCashinAlert = response.data?.has_cashin_alerts > 0
+          this.hasCashinAlert = response.data.has_cashin_alerts
         })
         .catch(error => {
           console.log(error.response || error)
@@ -622,9 +617,8 @@ export default {
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)
       this.websocketManager.subscribeToMessages((message) => {
-        let value = true
-        if (message?.type === 'ConnectionMessage') value = false
-        bus.emit('cashin-alert', value)
+        if (message?.type === 'ConnectionMessage') return
+        bus.emit('cashin-alert', true)
       })
     },
     closeCashinWebSocket () {
@@ -1220,6 +1214,11 @@ export default {
             }
           })
       }
+    },
+    resetCashinOrderPagination () {
+      this.$store.commit('ramp/resetCashinOrderList')
+      this.$store.commit('ramp/resetCashinOrderListPage')
+      this.$store.commit('ramp/resetCashinOrderListTotalPage')
     }
   },
 
@@ -1240,8 +1239,9 @@ export default {
     const vm = this
     this.checkVersionUpdate()
     this.checkCashinAvailable()
-    this.checkCashinAlert()
     this.setupCashinWebSocket()
+    this.resetCashinOrderPagination()
+    this.checkCashinAlert()
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 
