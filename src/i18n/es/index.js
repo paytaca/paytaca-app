@@ -48,7 +48,7 @@ export default {
   Agreed: "Acordado",
   All: "Todo",
   AllCurrencies: "Todas las monedas",
-  AllLimitsReachedMessage: "Lo sentimos, esta transacción no calificó para un reembolso, ya que excede los límites establecidos en la campaña.",
+  AllLimitsReachedMessage: "Lo sentimos, esta transacción no calificó para un reembolso, ya que excede los límites establecidos por la campaña.",
   Allowance: "Prestación",
   AlmostThere: "Casi llegamos",
   Amount: "Cantidad",

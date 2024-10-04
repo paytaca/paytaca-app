@@ -48,7 +48,7 @@ export default {
   Agreed: "Agreed",
   All: "All",
   AllCurrencies: "All Currencies",
-  AllLimitsReachedMessage: "Sorry, this transaction did not qualify for a cashback as it exceeds limits stated in the campaign.",
+  AllLimitsReachedMessage: "Sorry, this transaction did not qualify for a cashback as it exceeds limits set by the campaign.",
   Allowance: "Allowance",
   AlmostThere: "Almost there",
   Amount: "Amount",

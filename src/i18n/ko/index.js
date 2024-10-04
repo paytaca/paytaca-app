@@ -48,7 +48,7 @@ export default {
   Agreed: "동의했다",
   All: "모두",
   AllCurrencies: "모든 통화",
-  AllLimitsReachedMessage: "죄송합니다.이 거래는 캠페인에 명시된 한도를 초과하기 때문에 캐쉬백을받을 자격이 없었습니다.",
+  AllLimitsReachedMessage: "죄송합니다.이 거래는 캠페인에 의해 설정된 한도를 초과하기 때문에 캐쉬백을받을 자격이 없었습니다.",
   Allowance: "용돈",
   AlmostThere: "거의 거기",
   Amount: "양",

@@ -52,7 +52,7 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
   if (message === 'ALL_LIMITS_REACHED') {
     return $t(
       CASHBACK_LIMIT_MESSAGES[message],
-      'Sorry, this transaction did not qualify for a cashback as it exceeds limits stated in the campaign.'
+      'Sorry, this transaction did not qualify for a cashback as it exceeds limits set by the campaign.'
     )
   } else {
     message1 = $t(
