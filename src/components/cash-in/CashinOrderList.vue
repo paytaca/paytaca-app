@@ -176,9 +176,13 @@ export default {
           bus.emit('cashin-alert', response.data.has_cashin_alerts)
         })
         .catch(error => {
-          console.error(error)
           console.error(error.response || error)
-          if (!error.response) {
+          if (error.response) {
+            console.log('error.response.status:', error.response.status)
+            if (error.response?.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
             bus.emit('network-error')
           }
         })

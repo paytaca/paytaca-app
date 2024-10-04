@@ -13,9 +13,9 @@
       </div>
 
       <!-- Body -->
-      <div v-if="loading" class="text-center" style="margin-top: 70px;">
+      <div v-if="loading || loggingIn" class="text-center" style="margin-top: 70px;">
         <div class="row justify-center q-mx-md" style="font-size: 25px;">
-          Processing
+          {{ loggingIn ? 'Authenticating': 'Processing'}}
         </div>
         <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
           Please wait a moment
@@ -121,6 +121,7 @@ export default {
       register: false,
       openorderList: false,
       loading: true,
+      loggingIn: false,
       order: null,
       orderPayload: null,
       openOrderPage: false,
@@ -169,7 +170,7 @@ export default {
           bus.emit('cashin-alert', this.hasCashinAlerts)
         })
         .catch(error => {
-          console.log(error.response || error)
+          console.error(error.response || error)
         })
     },
     async fetchUser () {
@@ -215,8 +216,8 @@ export default {
     async login () {
       const vm = this
       try {
+        console.log('Logging in to P2P Exchange')
         vm.loggingIn = true
-        console.log('logging in')
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
         const keypair = await wallet.keypair()
         const signature = await wallet.signMessage(keypair.privateKey, otp)
@@ -399,7 +400,6 @@ export default {
       this.cashinAdsParams.currency = null
     },
     handleSessionEvent () {
-      console.log('handle session event')
       this.fetchUser()
     }
   }

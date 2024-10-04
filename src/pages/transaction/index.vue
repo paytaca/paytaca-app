@@ -610,7 +610,6 @@ export default {
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
       backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
         .then(response => {
-          console.log('checkHasCashinAlerts:', response.data)
           this.hasCashinAlerts = response.data?.has_cashin_alerts > 0
         })
         .catch(error => {
