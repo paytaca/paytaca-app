@@ -525,7 +525,7 @@
 
       <div class="q-px-xs q-pt-sm q-pb-md" @click="toggleAmountsDisplay">
         <q-banner v-if="aggregatedCashback?.parsedMessage" rounded class="bg-grad q-mb-md">
-          {{ aggregatedCashback?.parsedMessage }}
+          <span v-html="aggregatedCashback?.parsedMessage"></span>
         </q-banner>
 
         <div class="row items-start text-subtitle2">
@@ -1563,7 +1563,7 @@ async function updateCashbackAmounts() {
           cashback.parsedMessage = parseCashbackMessage(
             response?.data.message,
             bch, fiatAmount,
-            response?.data?.merchantName,
+            response?.data?.merchant_name,
           )
           cashbacks.value.push(cashback)
           return response

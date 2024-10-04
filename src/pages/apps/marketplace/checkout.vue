@@ -366,7 +366,7 @@
             </div>
           </q-banner>
           <q-banner v-if="cashback?.parsedMessage" rounded class="bg-grad q-mb-md">
-            {{ cashback?.parsedMessage }}
+            <span v-html="cashback?.parsedMessage"></span>
           </q-banner>
           <q-input
             dense
@@ -1884,6 +1884,7 @@ async function updateCashbackAmount() {
   cashback.value = { amountBch: 0, fiatAmount: 0, message: '', merchantName: '', parsedMessage: '' }
   if (!data.merchant_address || !data.customer_address || !data.satoshis) return
 
+  // return backend.post(`http://localhost:8000/api/cashback/calculate_cashback/`, data)
   return backend.post(`cashback/calculate_cashback/`, data)
     .then(response => {
       const bch = parseFloat(response?.data?.cashback_amount)
@@ -1897,7 +1898,7 @@ async function updateCashbackAmount() {
       cashback.value.parsedMessage = parseCashbackMessage(
         response?.data.message,
         bch, fiatAmount,
-        response?.data?.merchantName,
+        response?.data?.merchant_name,
       )
       return response
     })
