@@ -6,8 +6,9 @@
         <q-card-section class="row items-center q-pb-none">
           <q-btn flat icon="arrow_back" color="blue-6" round dense @click="previousView()" />
           <q-space />
+          <!-- Order List Icon -->
           <q-btn size="18px" padding="none none" icon="sym_o_receipt_long" color="blue-6" flat dense v-if="showOrderListButton" @click="state = 'order-list'">
-            <q-badge v-if="hasCashinAlerts" align-left floating rounded color="red"/>
+            <q-badge v-if="hasCashinAlert" align-left floating rounded color="red"/>
           </q-btn>
         </q-card-section>
       </div>
@@ -63,7 +64,7 @@
             :order-id="order?.id"
             @confirm-payment="sendConfirmPayment"
             @new-order="refreshPage"
-            @refetch-cashin-alert="checkHasCashinAlerts"/>
+            @refetch-cashin-alert="checkCashinAlert"/>
         </div>
 
         <!-- Order List -->
@@ -130,12 +131,12 @@ export default {
       selectAmountKey: 0,
       orderKey: 0,
       orderListKey: 0,
-      hasCashinAlerts: false
+      hasCashinAlert: false
     }
   },
   watch: {
     state (value) {
-      this.checkHasCashinAlerts()
+      this.checkCashinAlert()
     }
   },
   computed: {
@@ -146,7 +147,7 @@ export default {
   created () {
     bus.on('network-error', this.dislayNetworkError)
     bus.on('session-expired', this.handleSessionEvent)
-    bus.on('cashin-alert', (value) => { this.hasCashinAlerts = value })
+    bus.on('cashin-alert', this.onCashinAlert)
   },
   mounted () {
     loadRampWallet()
@@ -154,20 +155,24 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onCashinAlert (val) {
+      this.hasCashinAlert = val
+      console.log('hasCashinAlert:', this.hasCashinAlert)
+    },
     async loaddata () {
       this.loading = true
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = wallet.walletHash
       await this.fetchCashinAds()
-      await this.checkHasCashinAlerts()
+      await this.checkCashinAlert()
       this.step++
       this.loading = false
     },
-    async checkHasCashinAlerts () {
+    async checkCashinAlert () {
       backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: wallet.walletHash } })
         .then(response => {
-          this.hasCashinAlerts = response.data?.has_cashin_alerts
-          bus.emit('cashin-alert', this.hasCashinAlerts)
+          this.hasCashinAlert = response.data?.has_cashin_alerts
+          bus.emit('cashin-alert', this.hasCashinAlert)
         })
         .catch(error => {
           console.error(error.response || error)

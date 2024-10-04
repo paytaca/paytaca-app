@@ -118,7 +118,7 @@
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
                             <div style="padding-right: 10px;">Cash In</div>
-                            <q-badge v-if="hasCashinAlerts" align-left floating rounded color="red"/>
+                            <q-badge v-if="hasCashinAlert" align-left floating rounded color="red"/>
                           </q-btn>
                         </div>
                       </div>
@@ -426,7 +426,7 @@ export default {
       parsedBCHBalance: '0',
       walletYield: null,
       hasCashin: false,
-      hasCashinAlerts: false,
+      hasCashinAlert: false,
       availableCashinFiat: null,
       isPriceChartDialogShown: false,
       websocketManager: null
@@ -606,11 +606,11 @@ export default {
         this.hasCashin = false
       }
     },
-    async checkHasCashinAlerts () {
+    async checkCashinAlert () {
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
       backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
         .then(response => {
-          this.hasCashinAlerts = response.data?.has_cashin_alerts > 0
+          this.hasCashinAlert = response.data?.has_cashin_alerts > 0
         })
         .catch(error => {
           console.log(error.response || error)
@@ -624,7 +624,7 @@ export default {
       this.websocketManager.subscribeToMessages((message) => {
         let value = true
         if (message?.type === 'ConnectionMessage') value = false
-        this.hasCashinAlerts = value
+        bus.emit('cashin-alert', value)
       })
     },
     closeCashinWebSocket () {
@@ -790,7 +790,7 @@ export default {
       vm.balanceLoaded = true
     },
     refresh (done) {
-      this.checkHasCashinAlerts()
+      this.checkCashinAlert()
       this.getBalance(this.bchAsset.id)
       this.getBalance(this.selectedAsset.id)
       this.transactions = []
@@ -1234,13 +1234,13 @@ export default {
     this.closeCashinWebSocket()
   },
   created () {
-    bus.on('cashin-alert', (value) => { this.hasCashinAlerts = value })
+    bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
   },
   async mounted () {
     const vm = this
     this.checkVersionUpdate()
     this.checkCashinAvailable()
-    this.checkHasCashinAlerts()
+    this.checkCashinAlert()
     this.setupCashinWebSocket()
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
