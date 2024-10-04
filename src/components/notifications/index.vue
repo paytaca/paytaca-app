@@ -6,7 +6,9 @@
   >
     <q-card class="q-px-md q-pt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
-        <span class="text-bold text-h6">Notifications</span>
+        <span class="text-bold text-h6" style="color: #ed5f59;">
+          Notifications
+        </span>
         <q-space/>
         <q-btn
           flat
@@ -105,7 +107,7 @@
                 <q-pagination
                   padding="xs"
                   :modelValue="notifsPage"
-                  :max="20"
+                  :max="maxPages"
                   :max-pages="6"
                   :dark="darkMode"
                   :class="getDarkModeClass(darkMode)"
@@ -150,8 +152,9 @@ export default {
     return {
       notifsList: [],
       isLoading: false,
-      notifsPage: 0,
-      notifsTypes: ['GE', 'MP', 'CB', 'AH', 'RP', 'GI', 'TR']
+      notifsPage: 1,
+      notifsTypes: ['GE', 'MP', 'CB', 'AH', 'RP', 'GI', 'TR'],
+      maxPages: 0
     }
   },
 
@@ -182,7 +185,9 @@ export default {
       if (done) done()
 
       vm.isLoading = true
-      vm.notifsList = await getWalletNotifications(vm.currentWalletHash, this.notifsTypes)
+      const respData = await getWalletNotifications(vm.currentWalletHash, this.notifsTypes)
+      vm.notifsList = respData.list
+      vm.maxPages = respData.max
       vm.isLoading = false
     },
     async onSwipe (event, index) {

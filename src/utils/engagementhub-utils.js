@@ -86,16 +86,16 @@ const NOTIF_TYPES = {
   TR: 'Transactions'
 }
 
-export async function getWalletNotifications (walletHash, notifType) {
+export async function getWalletNotifications (walletHash, notifType, page = 1) {
   let data = []
 
-  // TODO paginate by 100?
   await NOTIFS_URL
     .post(
       'notification/get_wallet_notifications/',
       {
         wallet_hash: walletHash,
-        notif_type: notifType
+        notif_type: notifType,
+        page
       }
     )
     .then(response => {
