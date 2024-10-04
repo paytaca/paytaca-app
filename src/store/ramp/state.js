@@ -1,5 +1,3 @@
-import { updateCashinOrderListMaxPage } from "./mutations";
-
 export default function () {
   return {
     wallet: null,

@@ -161,7 +161,7 @@ export async function fetchCashinOrderList (context, { params = null }) {
 
   // Setup pagination parameters
   const pageNumber = state.cashinOrderListPage
-  const totalPages = state.cashinOrderListMaxPage
+  const totalPages = state.cashinOrderListTotalPage
   if (pageNumber <= totalPages) {
     const parameters = {
       wallet_hash: params.wallet_hash,
