@@ -6,7 +6,7 @@ import store from '../store'
 
 import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
-import { isValidWif } from 'src/wallet/sweep'
+import { isValidWif, extractWifFromUrl } from 'src/wallet/sweep'
 
 /*
  * If not building with SSR mode, you can
@@ -89,12 +89,12 @@ export default function ({ store }) {
           openCallRequest: true
         }
       })
+    } else if(extractWifFromUrl(String(url))) {
+      Router.push({
+        name: 'app-sweep',
+        query: { w: extractWifFromUrl(String(url)) }
+      })
     } else if (['ethereum:', 'bitcoincash:', 'paytaca:'].indexOf(url.protocol) >= 0) {
-      if (url.protocol === 'bitcoincash:' && isValidWif(url.pathname)) {
-        Router.push({ name: 'app-sweep', query: { w: url.pathname }})
-        return
-      }
-
       const query = { assetId: 'bch', paymentUrl: String(url) }
       try {
         const parsedPaymentUri = parsePaymentUri(
