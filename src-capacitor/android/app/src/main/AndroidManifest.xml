@@ -52,6 +52,7 @@
                 <data android:scheme="bitcoincash" />
                 <data android:scheme="paytaca" />
                 <data android:scheme="ethereum" />
+                <data android:scheme="bch-wif" />
             </intent-filter>
 
             <intent-filter android:autoVerify="true">
