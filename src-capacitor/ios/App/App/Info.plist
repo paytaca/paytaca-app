@@ -30,6 +30,7 @@
 				<string>bitcoincash</string>
 				<string>paytaca</string>
 				<string>ethereum</string>
+				<string>bch-wif</string>
 			</array>
 		</dict>
 		<dict>
