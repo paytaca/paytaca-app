@@ -3,7 +3,7 @@
     <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
         <span class="text-bold" style="font-size: 18px;">
-          Filter Notifications
+          {{ $t('FilterNotifications') }}
         </span>
         <q-space/>
         <q-btn
@@ -20,7 +20,7 @@
       <q-separator />
 
       <div class="q-pt-sm">
-        <div class="text-weight-bold text-subtitle1">Type</div>
+        <div class="text-weight-bold text-subtitle1">{{ $t('Type') }}</div>
         <div class="q-pt-sm q-ml-sm q-gutter-y-sm q-gutter-x-md">
           <q-badge
             rounded
@@ -29,7 +29,7 @@
             :outline="!selectedAll"
             @click="allClicked"
           >
-            All
+            {{ $t('All') }}
           </q-badge>
           <q-badge
             rounded
@@ -49,11 +49,11 @@
         <q-btn
           outline
           v-close-popup
-          label="Cancel"
+          :label="$t('Cancel')"
         />
         <q-btn
           v-close-popup
-          label="Filter"
+          :label="$t('Filter')"
           class="button"
           @click="emitFilteredList"
         />
@@ -77,22 +77,22 @@ export default {
       notifTypesList: [
         {
           value: 'GE',
-          label: 'General',
+          label: this.$t('General'),
           selected: false
         },
         {
           value: 'TR',
-          label: 'Transactions',
+          label: this.$t('Transactions'),
           selected: false
         },
         {
           value: 'MP',
-          label: 'Marketplace',
+          label: this.$t('Marketplace'),
           selected: false
         },
         {
           value: 'CB',
-          label: 'Cashback',
+          label: this.$t('Cashback'),
           selected: false
         },
         {
@@ -107,7 +107,7 @@ export default {
         },
         {
           value: 'GI',
-          label: 'Gifts',
+          label: this.$t('Gifts'),
           selected: false
         }
       ],

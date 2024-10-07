@@ -7,7 +7,7 @@
     <q-card class="q-px-md q-pt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
         <span class="text-bold text-h6" style="color: #ed5f59;">
-          Notifications
+          {{ $t('Notifications') }}
         </span>
         <q-space/>
         <q-btn
@@ -75,10 +75,10 @@
                     v-if="!notif.is_hidden"
                   >
                     <template v-slot:left>
-                      <q-icon name="delete" /> Delete
+                      <q-icon name="delete" /> {{ $t('Delete') }}
                     </template>
                     <template v-slot:right>
-                      Delete <q-icon name="delete" />
+                      {{ $t('Delete') }} <q-icon name="delete" />
                     </template>
 
                     <transition

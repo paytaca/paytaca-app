@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
 
+const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 
@@ -30,8 +31,6 @@ const FALLBACK_CASHBACK_LIMIT_MESSAGES = {
     'But since it falls within the set transaction limit, you will only receive<br/>' +
     '<span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.'
 }
-
-const { t: $t } = i18n.global
 
 export async function getCashbackAmount (payload) {
   let data = null
@@ -77,13 +76,13 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
 
 const NOTIFS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}devicenotif/` })
 const NOTIF_TYPES = {
-  GE: 'General',
-  MP: 'Marketplace',
-  CB: 'Cashback',
+  GE: $t('General'),
+  MP: $t('Marketplace'),
+  CB: $t('Cashback'),
   AH: 'AnyHedge',
   RP: 'Ramp P2P',
-  GI: 'Gifts',
-  TR: 'Transactions'
+  GI: $t('Gifts'),
+  TR: $t('Transactions')
 }
 
 export async function getWalletNotifications (walletHash, notifType, page = 1) {
