@@ -34,11 +34,15 @@
               @click="() => {
                 if (query_name) {
                   query_name = null
-                  receiveDialog(filters, 'search')
+                  if (ongoingSearch) {
+                    receiveDialog(filters, 'search')
+                    scrollToTop()
+                  }
                   $refs.inputRef.focus()
                 } else {
                   searchState('blur')
                 }
+                ongoingSearch = false
               }"
               class="cursor-pointer" />
             <q-icon name="search" @click="searchUser()" />
@@ -81,7 +85,7 @@
         </div>
         <q-pull-to-refresh @refresh="refreshData">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <q-card bordered flat v-if="statusType === 'ONGOING' && cashinOrders?.length > 0" class="q-mx-xs q-my-xs text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card bordered flat v-if="showCashInList" class="q-mx-xs q-my-xs text-bow" :class="getDarkModeClass(darkMode)">
               <div v-for="(listing, index) in cashinOrders" :key="index">
                 <q-item clickable @click="selectOrder(listing)">
                   <q-item-section>
@@ -258,7 +262,8 @@ export default {
       fiatCurrencies: [],
       notifType: null,
       loadingMoreData: false,
-      displayEmptyList: false
+      displayEmptyList: false,
+      ongoingSearch: false
     }
   },
   watch: {
@@ -308,6 +313,9 @@ export default {
     },
     userInfo () {
       return this.$store.getters['ramp/getUser']
+    },
+    showCashInList () {
+      return this.statusType === 'ONGOING' && this.cashinOrders?.length > 0 && !this.ongoingSearch
     }
   },
   async mounted () {
@@ -402,9 +410,11 @@ export default {
         vm.showSearch = false
       }
     },
-    searchUser () {
+    async searchUser () {
       if (this.query_name) {
-        this.resetAndRefetchListings()
+        this.ongoingSearch = true
+        await this.resetAndRefetchListings()
+        this.scrollToTop()
       }
     },
     updatePageName (name) {

@@ -3,10 +3,11 @@
     <div
       class="q-mx-md text-bow"
       :class="getDarkModeClass(darkMode)">
-      <div class="sm-font-size subtext q-pt-xs q-mx-md q-px-sm">
+      <div class="row justify-between sm-font-size subtext q-pt-xs q-mx-md q-px-sm">
         <span class="text-nowrap q-ml-xs" :style="balanceExceeded ? 'color:red' : ''">
           {{ $t('Balance') }}: {{ bchBalance }} BCH
         </span>
+        <div class="text-red q-mr-xs" v-if="errorMessage"><q-icon name="o_info" /> <span>{{ errorMsg }}</span></div>
       </div>
       <div class="row q-pt-md q-px-sm">
         <q-btn
@@ -44,11 +45,12 @@ export default {
       byFiat: false,
       amount: null,
       price: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
     }
   },
   props: {
-    data: Object
+    data: Object,
+    errorMessage: String
   },
   emits: ['back', 'confirm', 'cancel'],
   computed: {
@@ -67,6 +69,18 @@ export default {
     },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
+    },
+    errorMsg () {
+      const msg = this.errorMessage.split(' ').map(word => {
+        if (word.includes('_')) {
+          return word.split('_').map(subWord =>
+            subWord.charAt(0).toUpperCase() + subWord.slice(1)
+          ).join(' ')
+        } else {
+          return word
+        }
+      }).join(' ')
+      return msg
     }
   },
   watch: {

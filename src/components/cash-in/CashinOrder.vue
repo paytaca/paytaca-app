@@ -147,6 +147,7 @@ export default {
   },
   watch: {
     status (val) {
+      this.appealCountdown()
       this.checkStatus(val)
     }
   },
@@ -159,7 +160,7 @@ export default {
       return stat.includes(this.status)
     },
     hasAppeal () {
-      const stat = ['PD', 'PD_PN']
+      const stat = ['PD_PN']
       return this.countDown !== null && stat.includes(this.status)
     },
     appealBtnLabel () {
