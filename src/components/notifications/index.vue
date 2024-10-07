@@ -234,4 +234,7 @@ export default {
   .item-border.light {
     border: 1px solid black;
   }
+  .q-card.light {
+    background-color: $grey-2 !important;
+  }
 </style>
