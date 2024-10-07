@@ -38,6 +38,7 @@
           <ReceiveOrder
             v-if="state === 'order-confirm-decline'"
             :data="receiveOrderData"
+            :errorMessage="receiveOrderError"
             @confirm="confirmingOrder"
             @cancel="cancellingOrder"
             @back="onBack"
@@ -190,7 +191,8 @@ export default {
       hasArbiters: true,
       sendingBch: false,
       verifyingTx: false,
-      showStatusHistory: false
+      showStatusHistory: false,
+      receiveOrderError: null
     }
   },
   components: {
@@ -647,6 +649,9 @@ export default {
         .catch(error => {
           if (error.response) {
             console.error(error.response)
+            if (error.response.status === 400) {
+              this.receiveOrderError = error.response.data.error
+            }
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
