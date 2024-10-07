@@ -112,6 +112,10 @@
                   :dark="darkMode"
                   :class="getDarkModeClass(darkMode)"
                   :hide-below-pages="2"
+                  @update:modelValue="(val) => {
+                    notifsPage = val
+                    refreshNotifsList(null)
+                  }"
                 />
               </div>
             </div>
@@ -185,7 +189,9 @@ export default {
       if (done) done()
 
       vm.isLoading = true
-      const respData = await getWalletNotifications(vm.currentWalletHash, this.notifsTypes)
+      const respData = await getWalletNotifications(
+        vm.currentWalletHash, this.notifsTypes, this.notifsPage
+      )
       vm.notifsList = respData.list
       vm.maxPages = respData.max
       vm.isLoading = false
