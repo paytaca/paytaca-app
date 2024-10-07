@@ -5,7 +5,7 @@
     </div>
     <div v-if="!loading">
       <div class="row justify-end q-mx-md q-mb-none">
-        <q-btn :disable="selectedOrders.length === 0" dense flat icon="mark_email_read" @click="markMultipleRead"/>
+        <q-btn :loading="markAsReadLoading" :disable="selectedOrders.length === 0 || markAsReadLoading" dense flat icon="mark_email_read" @click="markMultipleRead"/>
         <q-checkbox size="sm" @click="onSelectMultipleOrders" :model-value="selectMultipleButtonValue"/>
         <q-select class="q-pl-none" dense square hide-selected borderless :options="selectionTypeOpts" v-model="selectionType" @update:model-value="onSelectMultipleOrders"/>
       </div>
@@ -97,7 +97,8 @@ export default {
         'All', 'Unread'
       ],
       selectionType: 'All',
-      loadingNewPage: false
+      loadingNewPage: false,
+      markAsReadLoading: false
     }
   },
   emits: ['open-order'],
@@ -164,6 +165,7 @@ export default {
       }
     },
     async markMultipleRead () {
+      this.markAsReadLoading = true
       const payload = {
         order_ids: Array.from(this.selectedOrders)
       }
@@ -182,6 +184,7 @@ export default {
             bus.emit('network-error')
           }
         })
+      this.markAsReadLoading = false
     },
     async fetchCashinOrders (loading = true) {
       this.loadingNewPage = loading

@@ -14,22 +14,14 @@
       </div>
 
       <!-- Body -->
-      <div v-if="loading || loggingIn" class="text-center" style="margin-top: 70px;">
-        <div class="row justify-center q-mx-md" style="font-size: 25px;">
-          {{ loggingIn ? 'Authenticating': 'Processing'}}
-        </div>
-        <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
-          Please wait a moment
-        </div>
-        <q-spinner-hourglass class="col q-pt-sm" color="blue-6" size="3em"/>
-        <div class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
-          <div class="col" style="opacity: .55;">
-            <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
-            <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
-          </div>
-        </div>
+      <div v-if="loading || loggingIn" style="margin-top: 70px;">
+        <StandBy :title="title" :subtitle="subtitle" spinner/>
       </div>
       <div v-else>
+        <div v-if="state === 'pending-order'" class="q-mt-lg q-pt-lg">
+          <StandBy :title="title" :subtitle="subtitle" buttonLabel="View pending order" button @btn-click="onViewPendingOrder"/>
+        </div>
+
         <!-- Register -->
         <Register v-if="state === 'register'" @login="onSubmitOrder(orderPayload, false)" :key="registerKey"/>
 
@@ -61,7 +53,7 @@
           <CashinOrder
             v-if="step === 3"
             :key="orderKey"
-            :order-id="order?.id"
+            :order-id="orderId"
             @confirm-payment="sendConfirmPayment"
             @new-order="refreshPage"
             @refetch-cashin-alert="checkCashinAlert"/>
@@ -77,6 +69,7 @@
   </q-dialog>
 </template>
 <script>
+import StandBy from './CashinStandBy.vue'
 import SelectPaymentType from './SelectPaymentType.vue'
 import CashinOrderList from './CashinOrderList.vue'
 import CashinOrder from './CashinOrder.vue'
@@ -92,6 +85,7 @@ import { bus } from 'src/wallet/event-bus'
 
 export default {
   components: {
+    StandBy,
     SelectPaymentType,
     SelectAmount,
     CashinOrder,
@@ -123,7 +117,7 @@ export default {
       openorderList: false,
       loading: true,
       loggingIn: false,
-      order: null,
+      orderId: null,
       orderPayload: null,
       openOrderPage: false,
       registerKey: 0,
@@ -131,7 +125,8 @@ export default {
       selectAmountKey: 0,
       orderKey: 0,
       orderListKey: 0,
-      hasCashinAlert: false
+      hasCashinAlert: false,
+      pendingOrders: []
     }
   },
   watch: {
@@ -140,6 +135,16 @@ export default {
     }
   },
   computed: {
+    title () {
+      let text = this.loggingIn ? 'Authenticating' : 'Processing'
+      if (this.state === 'pending-order') text = 'Pending Order'
+      return text
+    },
+    subtitle () {
+      let text = 'Please wait a moment'
+      if (this.state === 'pending-order') text = 'Please wait for pending cash-in orders to be escrowed before creating a new order'
+      return text
+    },
     showOrderListButton () {
       return !this.loading && this.state !== 'order-list'
     }
@@ -155,6 +160,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onViewPendingOrder () {
+      this.openOrder(this.pendingOrders[0])
+    },
     onCashinAlert (val) {
       this.hasCashinAlert = val
     },
@@ -303,23 +311,28 @@ export default {
       const vm = this
       try {
         const response = await backend.post('/ramp-p2p/order/', this.orderPayload, { authorize: true })
-        vm.order = response.data.order
+        vm.orderId = response.data.order?.id
       } catch (error) {
         console.error(error.response || error)
         if (error.response) {
           if (error.response.status === 403) {
-            // bus.emit('session-expired')
+            bus.emit('session-expired')
+          }
+          if (error.response.status === 400) {
+            vm.pendingOrders = error.response.data?.error?.pending_orders
+            if (vm.pendingOrders > 0) {
+              vm.state = 'pending-order'
+            }
           }
         } else {
           console.error(error)
-          // bus.emit('network-error')
           this.dislayNetworkError()
         }
       }
     },
     async sendConfirmPayment (retries = 1) {
       const vm = this
-      await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer/`, null, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.orderId}/confirm-payment/buyer/`, null, { authorize: true })
         .catch(async (error) => {
           console.error(error)
           if (error.response) {
@@ -376,7 +389,7 @@ export default {
       this.loading = true
       await this.fetchUser()
       this.loading = false
-      this.order = { id: orderId }
+      this.orderId = orderId
       this.state = 'cashin-order'
       this.step = 3
       this.openOrderPage = true
