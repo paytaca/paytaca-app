@@ -128,7 +128,7 @@
                           :src="
                             selectedNetwork === 'sBCH'
                               ? 'sep20-logo.png'
-                              : denomination === $t('DEEM') || denominationTabSelected === $t('DEEM')
+                              : denominationTabSelected === $t('DEEM')
                                 ? 'assets/img/theme/payhero/deem-logo.png'
                                 : 'bch-logo.png'
                           "
@@ -468,6 +468,8 @@ export default {
       return this.$store.getters['global/country'].code
     },
     denomination () {
+      // const denom = this.$store.getters['global/denomination']
+      // return denom === this.$t('DEEM') ? 'BCH' : denom
       return this.$store.getters['global/denomination']
     },
     theme () {
@@ -1267,8 +1269,6 @@ export default {
     if (vm.$store.state.market.assetPrices.length === 0) {
       vm.$store.dispatch('market/updateAssetPrices', {})
     }
-
-    vm.denominationTabSelected = this.denomination
 
     const assets = vm.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
