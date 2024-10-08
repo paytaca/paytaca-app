@@ -131,9 +131,6 @@ export default {
     }
   },
   watch: {
-    amount (val) {
-      this.computePresetFiatAmount(val)
-    },
     byFiat () {
       this.amount = 0
       this.selectedOption = null
@@ -153,7 +150,7 @@ export default {
       this.$emit('update-presets', this.bchPresetOptions)
     },
     computeFiatPresets () {
-      const fiatPresets = [250, 500, 1000, 2000, 5000, 10000]
+      const fiatPresets = this.currency.cashin_presets
       const eqBchPresets = []
       fiatPresets.forEach(fiatAmount => {
         if (!fiatAmount.isNaN) {
@@ -163,45 +160,6 @@ export default {
       })
       this.amountFiatOptions = fiatPresets
       this.amountFiatEqOptions = eqBchPresets
-    },
-    computePresetFiatAmount (bchAmount, roundDown = true, roundUp = false) {
-      if (bchAmount === '' || isNaN(bchAmount)) return 0
-      let fiatAmount = Number(Number((bchAmount) * parseFloat(this.ad?.price)).toFixed(2))
-      const digits = fiatAmount.toFixed(0).length
-      if (Number(fiatAmount.toString().split('.')[0]) > 0) {
-        let digitFactor = 1
-        if (digits > 1) {
-          digitFactor = 10
-          const max = digits - 2
-          for (let i = 0; i < max; i++) {
-            digitFactor = digitFactor * 10
-          }
-        }
-        const remainder = fiatAmount % digitFactor
-        if (remainder > 0) {
-          if (digits >= 2) {
-            if (roundUp) {
-              const remDigits = remainder.toFixed(0).length
-              let remDigitFactor = 1
-              let offsetAmount = 0
-              if (remDigits > 1) {
-                remDigitFactor = 10
-              } else {
-                remDigitFactor = 5
-              }
-              offsetAmount = Number((remainder / remDigitFactor).toFixed(0)) * remDigitFactor
-              fiatAmount = fiatAmount - remainder + offsetAmount
-            }
-            if (roundDown) fiatAmount = fiatAmount - remainder
-          } else {
-            fiatAmount = fiatAmount + 1 - remainder
-          }
-        }
-        fiatAmount = Number(fiatAmount.toFixed(0))
-      } else {
-        fiatAmount = Number(fiatAmount.toFixed(2))
-      }
-      return fiatAmount
     },
     submitOrder () {
       let amount = this.amount

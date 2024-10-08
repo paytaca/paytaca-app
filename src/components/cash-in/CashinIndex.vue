@@ -106,7 +106,7 @@ export default {
       selectedPaymentType: null,
       amount: null,
       amountPresets: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
-      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedCurrency: null,
       cashinAdsParams: {
         currency: null,
         payment_type: null
@@ -155,6 +155,7 @@ export default {
     bus.on('cashin-alert', this.onCashinAlert)
   },
   mounted () {
+    this.setFiatCurrency()
     loadRampWallet()
     this.loaddata()
   },
@@ -165,6 +166,12 @@ export default {
     },
     onCashinAlert (val) {
       this.hasCashinAlert = val
+    },
+    setFiatCurrency () {
+      const temp = this.$store.getters['market/selectedCurrency']
+      this.selectedCurrency = this.fiatCurrencies.filter(currency => {
+        return temp.symbol === currency.symbol
+      })[0]
     },
     async loaddata () {
       this.loading = true
@@ -252,6 +259,7 @@ export default {
     },
     setCurrency (currency) {
       this.selectedCurrency = currency
+
       this.cashinAdsParams.currency = this.selectedCurrency.symbol
       this.fetchCashinAds()
     },
