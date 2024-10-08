@@ -30,12 +30,6 @@ export default {
     MultiWallet
   },
 
-  data () {
-    return {
-      walletNameLabel: ''
-    }
-  },
-
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -46,6 +40,11 @@ export default {
     walletName () {
       const walletIndex = this.$store.getters['global/getWalletIndex']
       return this.$store.getters['global/getVault'][walletIndex].name
+    },
+    walletNameLabel() {
+      if (this.walletName) return this.walletName
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      return `Personal Wallet #${walletIndex + 1}`
     }
   },
 
@@ -54,14 +53,6 @@ export default {
     onUpdateWalletName (name) {
       this.walletNameLabel = name
     }
-  },
-
-  mounted () {
-    const vm = this
-
-    const walletIndex = vm.$store.getters['global/getWalletIndex']
-    const name = vm.walletName
-    vm.walletNameLabel = name !== '' ? name : `Personal Wallet #${walletIndex + 1}`
   }
 }
 </script>
