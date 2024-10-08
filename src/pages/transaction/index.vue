@@ -468,8 +468,6 @@ export default {
       return this.$store.getters['global/country'].code
     },
     denomination () {
-      // const denom = this.$store.getters['global/denomination']
-      // return denom === this.$t('DEEM') ? 'BCH' : denom
       return this.$store.getters['global/denomination']
     },
     theme () {

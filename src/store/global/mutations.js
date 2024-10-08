@@ -118,6 +118,7 @@ export function setCountry (state, data) {
   state.country.name = data.country.name
   state.country.code = data.country.code
   state.theme = data.country.code === 'HK' ? 'payhero' : 'default'
+  state.denomination = !['BCH', 'mBCH', 'Satoshis'].includes(data.denomination) ? 'BCH' : data.denomination
 }
 
 export function setConnectedAddress (state, details) {
