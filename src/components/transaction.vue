@@ -22,7 +22,7 @@
           <q-item class="q-px-none">
             <q-item-section side top class="asset-logo">
               <img
-                :src="denomination === $t('DEEM') && transaction.asset.symbol === 'BCH'
+                :src="(denominationTabSelected === $t('DEEM')) && transaction.asset.symbol === 'BCH'
                   ? 'assets/img/theme/payhero/deem-logo.png'
                   : transaction.asset.logo || fallbackAssetLogo
                 "
@@ -34,14 +34,14 @@
               <q-item-label>
                 <template v-if="transaction.record_type === 'outgoing'">
                   {{ `${parseAssetDenomination(
-                    denomination === $t('DEEM') ? denominationTabSelected : denomination, {
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
                     ...transaction.asset,
                     balance: transaction.amount
                   })}` }}
                 </template>
                 <template v-else>
                   {{ `${parseAssetDenomination(
-                    denomination === $t('DEEM') ? denominationTabSelected : denomination, {
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
                     ...transaction.asset,
                     balance: transaction.amount
                   })}` }}
@@ -181,7 +181,7 @@
                 <q-item-label class="text-gray" caption>{{ $t('GasFee') }}</q-item-label>
                 <q-item-label>
                   {{ getAssetDenomination(
-                    denomination === $t('DEEM') ? denominationTabSelected : denomination,
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination,
                     transaction.gas) }}
                 </q-item-label>
                 <q-item-label v-if="txFeeMarketValue" caption>
@@ -192,7 +192,7 @@
                 <q-item-label class="text-gray" caption>{{ $t('MinerFee') }}</q-item-label>
                 <q-item-label>
                   {{ getAssetDenomination(
-                    denomination === $t('DEEM') ? denominationTabSelected : denomination,
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination,
                     transaction.tx_fee / (10**8)) }}
                 </q-item-label>
                 <q-item-label v-if="txFeeMarketValue" caption>
