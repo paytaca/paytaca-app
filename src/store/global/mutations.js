@@ -117,14 +117,7 @@ export function setLanguage (state, language) {
 export function setCountry (state, data) {
   state.country.name = data.country.name
   state.country.code = data.country.code
-
-  if (data.country.code === 'HK') {
-    state.theme = 'payhero'
-    state.denomination = data.denomination
-  } else {
-    state.theme = 'default'
-    state.denomination = 'BCH'
-  }
+  state.theme = data.country.code === 'HK' ? 'payhero' : 'default'
 }
 
 export function setConnectedAddress (state, details) {
