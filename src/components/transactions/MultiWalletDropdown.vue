@@ -37,9 +37,11 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
+    walletIndex() {
+      return this.$store.getters['global/getWalletIndex']
+    },
     walletName () {
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      return this.$store.getters['global/getVault'][walletIndex].name
+      return this.$store.getters['global/getVault'][this.walletIndex].name
     },
     walletNameLabel() {
       if (this.walletName) return this.walletName
@@ -53,6 +55,13 @@ export default {
     onUpdateWalletName (name) {
       this.walletNameLabel = name
     }
+  },
+
+  mounted() {
+    this.$store.dispatch(
+      'global/syncWalletName',
+      { walletIndex: this.walletIndex }
+    )
   }
 }
 </script>
