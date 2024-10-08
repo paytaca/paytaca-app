@@ -104,8 +104,9 @@
     <ChatDialog :key="chatDialogKey" v-if="openChat" :order="order" @close="openChat=false"/>
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
     <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" :trader-type="userTraderType" @back="showStatusHistory=false; order.has_unread_status=false" />
-  </template>
+</template>
 <script>
+import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { formatCurrency, formatDate } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { ref } from 'vue'
@@ -141,6 +142,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
+      websocketManager: null,
       websocket: {
         watchtower: null,
         chat: null
@@ -179,7 +181,7 @@ export default {
 
       errorMessages: [],
       selectedPaymentMethods: [],
-      autoReconWebSocket: true,
+      // autoReconWebSocket: true,
       reconnectingWebSocket: false,
       showAdSnapshot: false,
       showPeerProfile: false,
@@ -376,13 +378,12 @@ export default {
   },
   async mounted () {
     await this.loadData()
-    this.setupWebsocket(20, 1000)
-    this.setupChatWebsocket(20, 1000)
+    this.setupWebSocket()
+    // this.setupWebocket(20, 1000)
+    // this.setupChatWebsocket(20, 1000)
   },
   beforeUnmount () {
-    this.autoReconWebSocket = false
-    this.closeWSConnection()
-    this.closeChatWSConnection()
+    this.closeWebSocket()
   },
   methods: {
     formatDate,
@@ -939,73 +940,36 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    setupChatWebsocket (retries, delayDuration) {
-      const wsChatUrl = `${getChatBackendWsUrl()}${this.chatRef}/`
-      this.websocket.chat = new WebSocket(wsChatUrl)
-      this.websocket.chat.onopen = () => {
-        console.log('Chat WebSocket connection established to ' + wsChatUrl)
-      }
-      this.websocket.chat.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data)
-        console.log('Chat WebSocket data:', parsedData)
-        if (parsedData?.type === 'new_message') {
-          const messageData = parsedData.data
-          // RECEIVE MESSAGE
-          console.log('Received a new message:', messageData)
+    setupWebSocket () {
+      // setup order websocket
+      this.websocket.watchtower = new WebSocketManager(`${getBackendWsUrl()}order/${this.order.id}/`)
+      this.websocket.watchtower.subscribeToMessages(async (message) => {
+        if (message?.txdata) {
+          this.verifyingTx = false
+          this.sendingBch = false
+        }
+        await this.fetchOrder()
+        // if (message?.contract_address) {
+        //   await this.fetchContract()
+        //   this.escrowTransferKey++
+        // }
+      })
+
+      // setup chat websocket
+      this.websocket.chat = new WebSocketManager(`${getChatBackendWsUrl()}${this.chatRef}/`)
+      this.websocket.chat.subscribeToMessages(async (message) => {
+        if (message?.type === 'new_message') {
+          const messageData = message.data
           bus.emit('last-read-update')
           if (this.openChat) {
             bus.emit('new-message', messageData)
           }
         }
-      }
-      this.websocket.chat.onclose = () => {
-        console.log('Chat WebSocket connection closed.')
-        if (this.autoReconWebSocket && retries > 0) {
-          // this.reconnectingWebSocket = true
-          console.log(`Chat WS reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupChatWebsocket(retries - 1, delayDuration * 2))
-        }
-      }
+      })
     },
-    setupWebsocket (retries, delayDuration) {
-      const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.order.id}/`
-      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
-      this.websocket.watchtower.onopen = () => {
-        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
-      }
-      this.websocket.watchtower.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('WebSocket data:', data)
-        if (data?.txdata) {
-          this.verifyingTx = false
-          this.sendingBch = false
-        }
-        this.fetchOrder()
-          .then(() => {
-            if (data?.contract_address) {
-              this.fetchContract().then(() => { this.escrowTransferKey++ })
-            }
-          })
-      }
-      this.websocket.watchtower.onclose = () => {
-        console.log('WebSocket connection closed.')
-        if (this.autoReconWebSocket && retries > 0) {
-          this.reconnectingWebSocket = true
-          console.log(`Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
-        }
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket.watchtower) this.websocket.watchtower.close()
-    },
-    closeChatWSConnection () {
-      if (this.websocket.chat) this.websocket.chat.close()
-    },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
+    closeWebSocket () {
+      if (this.websocket.watchtower) this.websocket.watchtower.closeConnection()
+      if (this.websocket.chat) this.websocket.chat.closeConnection()
     },
     onBack () {
       bus.emit('show-menu', 'orders')

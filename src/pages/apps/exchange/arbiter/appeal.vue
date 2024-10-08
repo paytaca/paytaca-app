@@ -130,7 +130,7 @@ export default {
     return {
       isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
-      websocketManager: {
+      websocket: {
         watchtower: null,
         chat: null
       },
@@ -436,9 +436,9 @@ export default {
     },
     setupWebsocket () {
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
-      this.websocketManager.watchtower = new WebSocketManager()
-      this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
-      this.websocketManager.watchtower.subscribeToMessages((message) => {
+      this.websocket.watchtower = new WebSocketManager()
+      this.websocket.watchtower.setWebSocketUrl(wsWatchtowerUrl)
+      this.websocket.watchtower.subscribeToMessages((message) => {
         if (message?.success) {
           this.fetchAppeal().then(this.reloadChildComponents())
         } else if (message?.error || message?.errors) {
@@ -448,21 +448,19 @@ export default {
       })
 
       const wsChatUrl = `${getChatBackendWsUrl()}${this.appealDetailData?.order?.chat_session_ref}/`
-      this.websocketManager.chat = new WebSocketManager()
-      this.websocketManager.chat.setWebSocketUrl(wsChatUrl)
-      this.websocketManager.chat.subscribeToMessages((message) => {
+      this.websocket.chat = new WebSocketManager()
+      this.websocket.chat.setWebSocketUrl(wsChatUrl)
+      this.websocket.chat.subscribeToMessages((message) => {
         if (message?.type === 'new_message') {
           const messageData = message.data
-          // RECEIVE MESSAGE
-          console.log('Received a new message:', messageData)
           this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
           if (this.openChat) bus.emit('new-message', messageData)
         }
       })
     },
     closeWSConnection () {
-      if (this.websocketManager.watchtower) this.websocketManager.watchtower.closeConnection()
-      if (this.websocketManager.chat) this.websocketManager.chat.closeConnection()
+      if (this.websocket.watchtower) this.websocket.watchtower.closeConnection()
+      if (this.websocket.chat) this.websocket.chat.closeConnection()
     },
     onViewPeer (data) {
       this.peerInfo = data

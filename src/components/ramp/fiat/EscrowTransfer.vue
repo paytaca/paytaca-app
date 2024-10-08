@@ -40,8 +40,8 @@
         dense
         hide-bottom-space
         bottom-slots
-        error-message="Contract address mismatch"
-        :error="contractAddress && escrowContract?.getAddress() && !contractAddressMatch"
+        :error-message="contractErrorMessage"
+        :error="!!contractError"
         :dark="darkMode"
         :loading="hasArbiters && !contractAddress"
         :disable="!hasArbiters"
@@ -134,6 +134,7 @@ import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import RampContract from 'src/exchange/contract'
+import { EscrowManager } from 'src/exchange/contract/manager'
 
 export default {
   data () {
@@ -152,6 +153,10 @@ export default {
       sendErrors: [],
       sendingBch: false,
       dragSlideKey: 0,
+
+      escrowManager: null,
+      contractError: {},
+
       escrowContract: null,
       escrowBalance: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
@@ -176,6 +181,15 @@ export default {
     }
   },
   computed: {
+    contractErrorMessage () {
+      const errorMessages = {
+        ContractAddressMismatch: 'Contract address mismatch'
+      }
+      console.log('this.contractError.code:', this.contractError)
+      const message = errorMessages[this.contractError.code]
+      console.log('message:', message)
+      return message
+    },
     contractAddressMatch () {
       const localContractAddress = this.escrowContract?.getAddress()
       return localContractAddress === this.contractAddress
@@ -376,33 +390,21 @@ export default {
           })
       })
     },
-    generateContractAddress (force = false) {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const body = {
-          order_id: vm.order?.id,
-          arbiter_id: vm.selectedArbiter?.id,
-          force: force
+    async generateContractAddress (force = false) {
+      const orderId = this.order.id
+      this.escrowManager = new EscrowManager(orderId)
+      await this.escrowManager.buildContract(this.selectedArbiter.id, force)
+      this.escrowManager.subscribeToContract((data) => {
+        console.log('+++++++', data)
+        if (data.message?.contract_address) {
+          console.log('contract_address:', data.message?.contract_address)
         }
-        backend.post('/ramp-p2p/order/contract/', body, { authorize: true })
-          .then(response => {
-            vm.contractAddress = response.data?.address
-            vm.loading = false
-            resolve(response.data)
-          })
-          .catch(error => {
-            console.error(error.response)
-            if (error.response) {
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
-            vm.loading = false
-            reject(error)
-          })
+        if (data?.type === 'error') {
+          this.contractError = data
+          console.log('___this.contractError:', this.contractError)
+        }
       })
+      console.log('escrowManager:', this.escrowManager)
     },
     checkSufficientBalance () {
       if (this.transferAmount > parseFloat(this.balance)) {

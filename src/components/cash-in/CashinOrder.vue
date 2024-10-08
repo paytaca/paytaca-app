@@ -120,7 +120,6 @@ export default {
       state: 'await_status',
       statusTitle: 'Processing',
       statusMessage: 'Please wait a moment',
-      websocket: null,
       status: null,
       confirmPaymentKey: 0,
       order: null,
