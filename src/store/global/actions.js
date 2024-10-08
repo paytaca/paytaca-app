@@ -1,5 +1,6 @@
 import Watchtower from "watchtower-cash-js"
 import { deleteAuthToken } from 'src/exchange/auth'
+import { decryptWalletName } from "src/marketplace/chat/encryption"
 
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
@@ -74,6 +75,24 @@ export async function fetchWalletName (context, walletHash) {
   } catch {}
 }
 
+/**
+ * @param {Object} context 
+ * @param {Object} opts
+ * @param {Number} opts.walletIndex
+ */
+export async function syncWalletName(context, opts) {
+  const vault = context.getters.getVault?.[opts?.walletIndex]
+  if (!vault) throw new Error('No vault found')
+
+  const walletHash = vault?.wallet?.bch?.walletHash
+  if (!walletHash) throw new Error('No wallet hash found')
+
+  const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
+  const decryptedName = decryptWalletName(walletName, walletHash)
+  context.commit('updateWalletName', { index: opts?.walletIndex, name: decryptedName })
+  return decryptedName
+}
+
 export async function updateWalletNameInPreferences (context, data) {
   const selectedCurrency = context.rootGetters['market/selectedCurrency']
   const walletHash = context.rootGetters['global/getVault'][data.walletIndex].wallet.bch.walletHash
@@ -84,6 +103,15 @@ export async function updateWalletNameInPreferences (context, data) {
   }
 
   await watchtower.BCH._api.patch(`wallet/preferences/${walletHash}/`, payload)
+
+  try {
+    const decryptedName = decryptWalletName(data.walletName, walletHash)
+    console.log('Updating wallet name: ', data.walletIndex, decryptedName)
+    context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
+  } catch(error) {
+    console.error(error)
+    context.dispatch('syncWalletName', { walletIndex: data?.walletIndex })
+  }
 }
 
 /**
