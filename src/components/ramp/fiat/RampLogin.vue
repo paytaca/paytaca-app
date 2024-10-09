@@ -146,6 +146,7 @@ export default {
         // login user if not authenticated
         vm.hintMessage = vm.$t('LoggingYouIn')
         const token = await getAuthToken()
+
         if (!token) forceLogin = true
         if (!user.is_authenticated || forceLogin) {
           await vm.login()
