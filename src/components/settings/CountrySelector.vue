@@ -100,7 +100,7 @@ export default {
           vm.$store.commit('global/setLanguage', language[0])
           vm.$store.commit('global/setCountry', {
             country: selectedCountry,
-            denomination: this.$t('DEEM')
+            denomination: this.$store.getters['global/denomination']
           })
 
           let currency = vm.currencyOptions.filter(o => o.symbol === selectedCountry.currency)

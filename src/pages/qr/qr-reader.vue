@@ -68,7 +68,7 @@
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { isValidWif } from 'src/wallet/sweep'
+import { extractWifFromUrl } from 'src/wallet/sweep'
 
 import { QrcodeStream } from 'vue-qrcode-reader'
 import HeaderNav from 'src/components/header-nav'
@@ -258,6 +258,11 @@ export default {
             name: 'claim-gift',
             query: { code: value }
           })
+        } else if(extractWifFromUrl(value)) {
+          vm.$router.push({
+            name: 'app-sweep',
+            query: { w: extractWifFromUrl(value) },
+          })
         } else if (value.includes('bitcoincash:')) {
           // redirect to send page
           const loadingDialog = vm.loadingDialog()
@@ -291,11 +296,6 @@ export default {
             query: { uri: value }
           })
           
-        } else if(isValidWif(value)) {
-          vm.$router.push({
-            name: 'app-sweep',
-            query: { w: value },
-          })
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),

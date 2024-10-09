@@ -8,6 +8,7 @@ import {
   getBlockChainNetwork,
   getWalletByNetwork
 } from 'src/wallet/chipnet'
+import Watchtower from 'watchtower-cash-js'
 
 
 function getBcmrBackend() {
@@ -200,6 +201,50 @@ export async function saveExistingAsset (context, details) {
       context.commit('updateVault', { index: details.index, asset: assets })
     }
   }
+}
+
+/**
+ * @param {Object} context 
+ * @param {Object} opts 
+ * @param {Boolean} opts.chipnet
+ */
+export async function updateVaultBchBalances(context, opts) {
+  const watchtower = new Watchtower(opts?.chipnet)
+
+  const _vault = context.getters.getVault;
+  const vault = JSON.parse(JSON.stringify(_vault));
+  if (!Array.isArray(vault)) throw new Error('Invalid vault data', vault)
+
+  const vaultWalletHashes = context.rootGetters['global/getVault']
+    ?.map(walletVault => {
+      const walletData = opts?.chipnet ? walletVault?.chipnet?.bch : walletVault?.wallet?.bch
+      return walletData?.walletHash
+    })
+
+  const results = await Promise.allSettled(
+    vault.map((assetsVault, index) => {
+      const assets = opts?.chipnet ? assetsVault?.chipnet_assets : assetsVault?.asset
+
+      const bchAsset = assets?.find?.(asset => asset?.id === 'bch')
+      if (!bchAsset) return 'No BCH asset found'
+
+      const walletHash = vaultWalletHashes[index]
+      if (!walletHash) return 'No wallet hash found'
+
+      return watchtower.Wallet.getBalance({ walletHash })
+        .then(response => {
+          bchAsset.balance = response.balance
+          bchAsset.spendable = response.spendable
+          return bchAsset
+        })
+    })
+  )
+
+  vault.forEach((assetsVault, index) => {
+    context.commit('updateVault', { index: index, asset: assetsVault })
+  })
+
+  return results
 }
 
 export async function getAssetMetadata (context, assetId) {
