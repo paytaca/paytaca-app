@@ -20,7 +20,7 @@
           </div>
         </template>
       </q-input>
-      <div class="row justify-between text-right subtext q-pr-sm q-pt-xs" style="font-size: 14px">
+      <div v-if="currency.cashin_presets" class="row justify-between text-right subtext q-pr-sm q-pt-xs" style="font-size: 14px">
         <div class="col-auto">
           <q-btn
             class="sm-font-size"
@@ -152,14 +152,19 @@ export default {
     computeFiatPresets () {
       const fiatPresets = this.currency.cashin_presets
       const eqBchPresets = []
-      fiatPresets.forEach(fiatAmount => {
-        if (!fiatAmount.isNaN) {
-          const bchAmount = Number(Number((fiatAmount) / parseFloat(this.ad?.price)).toFixed(2))
-          eqBchPresets.push(bchAmount)
-        }
-      })
-      this.amountFiatOptions = fiatPresets
-      this.amountFiatEqOptions = eqBchPresets
+
+      if (fiatPresets) {
+        fiatPresets.forEach(fiatAmount => {
+          if (!fiatAmount.isNaN) {
+            const bchAmount = Number(Number((fiatAmount) / parseFloat(this.ad?.price)).toFixed(2))
+            eqBchPresets.push(bchAmount)
+          }
+        })
+        this.amountFiatOptions = fiatPresets
+        this.amountFiatEqOptions = eqBchPresets
+      } else {
+        this.byFiat = false
+      }
     },
     submitOrder () {
       let amount = this.amount
