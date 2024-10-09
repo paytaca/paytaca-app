@@ -1,4 +1,5 @@
 import { deleteMnemonic } from './../../wallet'
+import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 
 function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
@@ -83,6 +84,7 @@ export function deleteWallet (state, index) {
 
 export function toggleIsChipnet (state) {
   state.isChipnet = !state.isChipnet
+  deleteP2PExchangeAuthToken()
 }
 
 export function toggleAutoGenerateAddress (state) {

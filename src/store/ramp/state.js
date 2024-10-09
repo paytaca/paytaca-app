@@ -95,6 +95,10 @@ export default function () {
     storeListingTab: 'SELL',
     adListingTab: 'BUY',
     orderListingTab: 'ONGOING',
-    appealListingTab: 'PENDING'
+    appealListingTab: 'PENDING',
+
+    cashinOrderList: [],
+    cashinOrderListPage: 1,
+    cashinOrderListTotalPage: 1
   }
 }

@@ -6,27 +6,22 @@
         <q-card-section class="row items-center q-pb-none">
           <q-btn flat icon="arrow_back" color="blue-6" round dense @click="previousView()" />
           <q-space />
-          <q-btn size="18px" flat icon="sym_o_receipt_long" color="blue-6" round dense v-if="showOrderListButton" @click="state = 'order-list'"/>
+          <!-- Order List Icon -->
+          <q-btn size="18px" padding="none none" icon="sym_o_receipt_long" color="blue-6" flat dense v-if="showOrderListButton" @click="state = 'order-list'">
+            <q-badge v-if="hasCashinAlert" align-left floating rounded color="red"/>
+          </q-btn>
         </q-card-section>
       </div>
 
       <!-- Body -->
-      <div v-if="loading" class="text-center" style="margin-top: 70px;">
-        <div class="row justify-center q-mx-md" style="font-size: 25px;">
-          Processing
-        </div>
-        <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
-          Please wait a moment
-        </div>
-        <q-spinner-hourglass class="col q-pt-sm" color="blue-6" size="3em"/>
-        <div class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
-          <div class="col" style="opacity: .55;">
-            <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
-            <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
-          </div>
-        </div>
+      <div v-if="loading || loggingIn" style="margin-top: 70px;">
+        <StandBy :title="title" :subtitle="subtitle" spinner/>
       </div>
       <div v-else>
+        <div v-if="state === 'pending-order'" class="q-mt-lg q-pt-lg">
+          <StandBy :title="title" :subtitle="subtitle" buttonLabel="View pending order" button @btn-click="onViewPendingOrder"/>
+        </div>
+
         <!-- Register -->
         <Register v-if="state === 'register'" @login="onSubmitOrder(orderPayload, false)" :key="registerKey"/>
 
@@ -58,9 +53,10 @@
           <CashinOrder
             v-if="step === 3"
             :key="orderKey"
-            :order-id="order?.id"
+            :order-id="orderId"
             @confirm-payment="sendConfirmPayment"
-            @new-order="refreshPage"/>
+            @new-order="refreshPage"
+            @refetch-cashin-alert="checkCashinAlert"/>
         </div>
 
         <!-- Order List -->
@@ -73,6 +69,7 @@
   </q-dialog>
 </template>
 <script>
+import StandBy from './CashinStandBy.vue'
 import SelectPaymentType from './SelectPaymentType.vue'
 import CashinOrderList from './CashinOrderList.vue'
 import CashinOrder from './CashinOrder.vue'
@@ -88,6 +85,7 @@ import { bus } from 'src/wallet/event-bus'
 
 export default {
   components: {
+    StandBy,
     SelectPaymentType,
     SelectAmount,
     CashinOrder,
@@ -108,7 +106,7 @@ export default {
       selectedPaymentType: null,
       amount: null,
       amountPresets: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
-      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedCurrency: null,
       cashinAdsParams: {
         currency: null,
         payment_type: null
@@ -118,17 +116,35 @@ export default {
       register: false,
       openorderList: false,
       loading: true,
-      order: null,
+      loggingIn: false,
+      orderId: null,
       orderPayload: null,
       openOrderPage: false,
       registerKey: 0,
       selectPaymentTypeKey: 0,
       selectAmountKey: 0,
       orderKey: 0,
-      orderListKey: 0
+      orderListKey: 0,
+      hasCashinAlert: false,
+      pendingOrders: []
+    }
+  },
+  watch: {
+    state (value) {
+      this.checkCashinAlert()
     }
   },
   computed: {
+    title () {
+      let text = this.loggingIn ? 'Authenticating' : 'Processing'
+      if (this.state === 'pending-order') text = 'Pending Order'
+      return text
+    },
+    subtitle () {
+      let text = 'Please wait a moment'
+      if (this.state === 'pending-order') text = 'Please wait for pending cash-in orders to be escrowed before creating a new order'
+      return text
+    },
     showOrderListButton () {
       return !this.loading && this.state !== 'order-list'
     }
@@ -136,20 +152,45 @@ export default {
   created () {
     bus.on('network-error', this.dislayNetworkError)
     bus.on('session-expired', this.handleSessionEvent)
+    bus.on('cashin-alert', this.onCashinAlert)
   },
   mounted () {
+    this.setFiatCurrency()
     loadRampWallet()
     this.loaddata()
   },
   methods: {
     getDarkModeClass,
+    onViewPendingOrder () {
+      this.openOrder(this.pendingOrders[0])
+    },
+    onCashinAlert (val) {
+      this.hasCashinAlert = val
+    },
+    setFiatCurrency () {
+      const temp = this.$store.getters['market/selectedCurrency']
+      this.selectedCurrency = this.fiatCurrencies.filter(currency => {
+        return temp.symbol === currency.symbol
+      })[0]
+    },
     async loaddata () {
       this.loading = true
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = wallet.walletHash
       await this.fetchCashinAds()
+      await this.checkCashinAlert()
       this.step++
       this.loading = false
+    },
+    async checkCashinAlert () {
+      backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: wallet.walletHash } })
+        .then(response => {
+          this.hasCashinAlert = response.data?.has_cashin_alerts
+          bus.emit('cashin-alert', this.hasCashinAlert)
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
     },
     async fetchUser () {
       const vm = this
@@ -194,6 +235,7 @@ export default {
     async login () {
       const vm = this
       try {
+        console.log('Logging in to P2P Exchange')
         vm.loggingIn = true
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
         const keypair = await wallet.keypair()
@@ -217,6 +259,7 @@ export default {
     },
     setCurrency (currency) {
       this.selectedCurrency = currency
+
       this.cashinAdsParams.currency = this.selectedCurrency.symbol
       this.fetchCashinAds()
     },
@@ -276,23 +319,28 @@ export default {
       const vm = this
       try {
         const response = await backend.post('/ramp-p2p/order/', this.orderPayload, { authorize: true })
-        vm.order = response.data.order
+        vm.orderId = response.data.order?.id
       } catch (error) {
         console.error(error.response || error)
         if (error.response) {
           if (error.response.status === 403) {
-            // bus.emit('session-expired')
+            bus.emit('session-expired')
+          }
+          if (error.response.status === 400) {
+            vm.pendingOrders = error.response.data?.error?.pending_orders
+            if (vm.pendingOrders > 0) {
+              vm.state = 'pending-order'
+            }
           }
         } else {
           console.error(error)
-          // bus.emit('network-error')
           this.dislayNetworkError()
         }
       }
     },
     async sendConfirmPayment (retries = 1) {
       const vm = this
-      await backend.post(`/ramp-p2p/order/${vm.order?.id}/confirm-payment/buyer/`, null, { authorize: true })
+      await backend.post(`/ramp-p2p/order/${vm.orderId}/confirm-payment/buyer/`, null, { authorize: true })
         .catch(async (error) => {
           console.error(error)
           if (error.response) {
@@ -319,7 +367,6 @@ export default {
           break
         case 'order-list':
           if (vm.register) {
-            console.log('heree')
             vm.state = 'register'
           } else {
             vm.state = 'cashin-order'
@@ -329,6 +376,7 @@ export default {
           if (this.step === 1) {
             vm.$refs.dialog.hide()
           } else if (this.step === 3 && this.openOrderPage) {
+            this.handleSessionEvent()
             this.state = 'order-list'
             this.openOrderPage = false
             this.step = 1
@@ -349,7 +397,7 @@ export default {
       this.loading = true
       await this.fetchUser()
       this.loading = false
-      this.order = { id: orderId }
+      this.orderId = orderId
       this.state = 'cashin-order'
       this.step = 3
       this.openOrderPage = true
@@ -377,7 +425,6 @@ export default {
       this.cashinAdsParams.currency = null
     },
     handleSessionEvent () {
-      console.log('handle session event')
       this.fetchUser()
     }
   }
