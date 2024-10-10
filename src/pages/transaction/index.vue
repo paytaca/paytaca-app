@@ -48,6 +48,19 @@
                   :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
                 >
                   <q-tab
+                    name="BCH"
+                    class="network-selection-tab denominations-tab"
+                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
+                    label="BCH &#x1F30F;"
+                  />
+                  <q-icon
+                    name="sync_alt"
+                    size="sm"
+                    style="margin: 10px 10px 0px 10px;"
+                    class="button button-icon"
+                    :class="getDarkModeClass(darkMode)"
+                  />
+                  <q-tab
                     :name="$t('DEEM')"
                     class="network-selection-tab denominations-tab"
                     :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
@@ -63,19 +76,6 @@
                       </div>
                     </template>
                   </q-tab>
-                  <q-icon
-                    name="sync_alt"
-                    size="sm"
-                    style="margin: 10px 10px 0px 10px;"
-                    class="button button-icon"
-                    :class="getDarkModeClass(darkMode)"
-                  />
-                  <q-tab
-                    name="BCH"
-                    class="network-selection-tab denominations-tab"
-                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
-                    label="BCH &#x1F30F;"
-                  />
                 </q-tabs>
               </template>
             </div>
@@ -128,7 +128,7 @@
                           :src="
                             selectedNetwork === 'sBCH'
                               ? 'sep20-logo.png'
-                              : denomination === $t('DEEM') && denominationTabSelected === $t('DEEM')
+                              : denominationTabSelected === $t('DEEM')
                                 ? 'assets/img/theme/payhero/deem-logo.png'
                                 : 'bch-logo.png'
                           "
@@ -420,7 +420,7 @@ export default {
       isCashToken: true,
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
-      denominationTabSelected: this.$t('DEEM'),
+      denominationTabSelected: 'BCH',
       parsedBCHBalance: '0',
       walletYield: null,
       hasCashin: false,
@@ -481,7 +481,7 @@ export default {
     },
     isDenominationTabEnabled () {
       return (isNotDefaultTheme(this.theme) &&
-        (this.denomination === this.$t('DEEM') || this.denomination === 'DEEM') &&
+        (this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
         this.selectedNetwork !== 'sBCH')
     },
     selectedNetwork: {
