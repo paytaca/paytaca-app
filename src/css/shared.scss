@@ -117,4 +117,5 @@ $font-family_1: "Rubik", sans-serif;
 
 .no-click-outside {
   pointer-events: bounding-box !important;
+  background-color: rgba($color: #000000, $alpha: 0.3)
 }
