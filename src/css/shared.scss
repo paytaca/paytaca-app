@@ -114,3 +114,7 @@ $font-family_1: "Rubik", sans-serif;
     z-index: 100 !important;
   }
 }
+
+.no-click-outside {
+  pointer-events: bounding-box !important;
+}
