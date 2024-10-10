@@ -1,5 +1,5 @@
 <template>
-  <q-dialog persistent seamless ref="dialog">
+  <q-dialog seamless ref="dialog" class="no-click-outside">
     <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-end">
         <q-btn
@@ -13,7 +13,7 @@
       </div>
       <p class="q-ma-sm section-title" style="margin-top: 0;">{{ $t('WalletInfo') }}</p>
       <q-list bordered separator class="br-12 pt-card-2" :class="getDarkModeClass(darkMode)">
-        <q-item clickable v-ripple>
+        <q-item>
           <q-item-section>
             <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletName') }}</q-item-label>
             <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
@@ -21,7 +21,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable v-ripple>
+        <q-item>
           <q-item-section>
             <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletBalanceCap') }}</q-item-label>
             <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
@@ -33,7 +33,7 @@
       </q-list>
       <p class="q-ma-sm q-mt-lg section-title">{{ $t('BchAddresses') }}</p>
       <q-list bordered separator class="br-12 pt-card-2" :class="getDarkModeClass(darkMode)">
-        <q-item clickable v-ripple>
+        <q-item>
           <q-item-section>
             <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
             <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
@@ -41,7 +41,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable v-ripple>
+        <q-item>
           <q-item-section>
             <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
             <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
@@ -49,7 +49,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable v-ripple>
+        <q-item>
           <q-item-section>
             <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
             <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">

@@ -1,5 +1,11 @@
 <template>
-  <q-dialog ref="dialog" persistent full-width seamless>
+  <q-dialog
+    ref="dialog"
+    persistent
+    full-width
+    seamless
+    class="no-click-outside"
+  >
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-sm" v-if="!showInfo">
         <div class="text-subtitle2 q-space q-mt-sm">
