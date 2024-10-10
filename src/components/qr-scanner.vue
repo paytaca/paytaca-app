@@ -65,7 +65,7 @@ export default {
     },
     frontCamera: {
       type: Boolean,
-      defualt: false
+      default: false
     }
 
   },

@@ -1,11 +1,6 @@
 import { backend as posBackend } from "src/wallet/pos"
 import { loadWallet } from 'src/wallet'
 import { bus } from "src/wallet/event-bus"
-
-import { VerificationTokenMinter } from "src/vouchers/verification_token_minter"
-import { NFTCapability, TokenSendRequest, Wallet } from 'mainnet-js'
-import { ElectrumNetworkProvider } from "cashscript"
-
 import axios from 'axios'
 
 /* -------------------------Merchants----------------------------- */
@@ -35,21 +30,6 @@ export function fetchMerchants(context, data) {
       return response
     })
 }
-
-
-/**
- * 
- * @param {Object} context 
- * @param {Object} [data]
- * @param {String} data.id
- */
-export async function getMerchant (context, data) {
-  const url = `paytacapos/merchants/${data.id}/`
-  return posBackend.get(url)
-    .then(response => Promise.resolve(response))
-    .catch(err => Promise.reject(err))
-}
-
 
 /**
  * @param {Object} context 
@@ -304,76 +284,10 @@ export function generateLinkCode(context, data) {
 }
 
 
-async function getZerothAddressAndWif (context) {
-  const wallet = await loadWallet('BCH', context.getters['global/getWalletIndex'])
-  const address = await wallet.BCH.getAddressSetAt(0)
-  const wif = await wallet.BCH.getPrivateKey(undefined, undefined, true)
-  return {
-    address: address.receiving,
-    wif: wif.receiving,
-    mnemonic: wallet.BCH.mnemonic,
-    derivationPath: wallet.BCH.derivationPath,
-  }
+export async function getMerchantIndex (context) {
+  const url = `paytacapos/merchants/latest_index/`
+  return posBackend.get(url)
+    .then(response => Promise.resolve(response))
+    .catch(err => Promise.reject(err))
 }
 
-
-/**
- * 
- * @param {Object} context 
- */
-export async function mintGenesisVerificationMintingNft (context) {
-  const funder = await getZerothAddressAndWif(context)
-  const derivationPath = funder.derivationPath + '/0/0'
-  const wallet = await Wallet.fromSeed(funder.mnemonic, derivationPath)
-  const network = context.rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'
-  const provider = new ElectrumNetworkProvider(network)
-
-  const data = {
-    cashaddr: wallet.address,
-    amount: 0n,
-    commitment: '',
-    capability: NFTCapability.minting,
-    value: 1000
-  }
-  let genesis = undefined
-  try {
-    genesis = await wallet.tokenGenesis(data)
-  } catch (err) {
-    const __wallet = await loadWallet('BCH', context.getters['global/getWalletIndex'])
-    const sendResponse = await __wallet.BCH.sendBch(0.00001, wallet.address)
-    let utxos = await provider.getUtxos(wallet.address)
-    let voutZeroUtxos = utxos.filter(utxo => !utxo?.token && utxo.vout === 0 && utxo.satoshis === 1000n)
-    while (voutZeroUtxos.length === 0) {
-      utxos = await provider.getUtxos(wallet.address)
-      voutZeroUtxos = utxos.filter(utxo => !utxo?.token && utxo.vout === 0 && utxo.satoshis === 1000n)
-    }
-    genesis = await wallet.tokenGenesis(data)
-  }
-  const category = genesis?.tokenIds[0]
-  const opts = {
-    params: { merchant: { category } },
-    options: { network }
-  }
-  const minter = new VerificationTokenMinter(opts)
-  const contract = minter.getContract()
-  await wallet.send([
-    new TokenSendRequest(
-      {
-        cashaddr: contract.address,
-        tokenId: category,
-        commitment: '',
-        capability: NFTCapability.minting,
-      }
-    )
-  ])
-  context.commit('setVerificationTokenMinter', {
-    address: contract.address,
-    category,
-  })
-
-  return {
-    category,
-    address: contract.address,
-    tokenAddress: contract.tokenAddress,
-  }
-}

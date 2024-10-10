@@ -411,7 +411,7 @@ export default {
   props: {
     network: {
       type: String,
-      defualt: 'BCH'
+      default: 'BCH'
     },
     assetId: {
       type: String,
