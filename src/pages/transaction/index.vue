@@ -618,7 +618,8 @@ export default {
         const sectionHeight = vm.$refs.fixedSection.clientHeight
         vm.$refs.transactionSection.setAttribute(
           'style',
-          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out`
+          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out; ` +
+          `width: ${document.body.clientWidth}px;`
         )
       }, timeout)
     },

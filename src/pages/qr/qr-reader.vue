@@ -16,6 +16,8 @@
         @detect="onQRDecode"
         @init="onScannerInit"
         class="fixed-full qr-stream"
+        style="margin: auto;"
+        :style="{width: clWidth}"
       />
     </template>
 
@@ -91,7 +93,8 @@ export default {
     return {
       paused: false,
       error: '',
-      frontCamera: false
+      frontCamera: false,
+      clWidth: '0px'
     }
   },
 
@@ -239,7 +242,6 @@ export default {
       const vm = this
 
       if (content) {
-
         const value = content[0].rawValue
 
         vm.paused = true
@@ -258,10 +260,10 @@ export default {
             name: 'claim-gift',
             query: { code: value }
           })
-        } else if(extractWifFromUrl(value)) {
+        } else if (extractWifFromUrl(value)) {
           vm.$router.push({
             name: 'app-sweep',
-            query: { w: extractWifFromUrl(value) },
+            query: { w: extractWifFromUrl(value) }
           })
         } else if (value.includes('bitcoincash:')) {
           // redirect to send page
@@ -295,7 +297,6 @@ export default {
             name: 'app-wallet-connect',
             query: { uri: value }
           })
-          
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
@@ -332,6 +333,8 @@ export default {
       vm.prepareScanner()
     }
     window.scan = val => vm.onQRDecode([{ rawValue: val }])
+
+    vm.clWidth = `${document.body.clientWidth}px`
   },
 
   deactivated () {
