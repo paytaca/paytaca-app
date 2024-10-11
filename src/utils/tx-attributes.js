@@ -9,7 +9,7 @@ const TxAttribute = Object.freeze({
   AnyhedgeHedgeFundingUtxo: 'anyhedge_hedge_funding_utxo',
   AnyhedgeLongFundingUtxo: 'anyhedge_long_funding_utxo',
   AnyhedgeSettlementTx: 'anyhedge_settlement_tx',
-  VoucherClaim: /voucher_claim_\d+/,
+  VaultPayment: /vault_payment_\d+/, // vault_payment_{pos_id}
   SpicebotTip: 'spicebot_tip',
   GiftClaim: 'gift_claim',
   Cashback: 'cashback',
@@ -38,7 +38,7 @@ export function formatKeyName(key='') {
 export function parseAttributeToBadge(attribute) {
   const icons = {
     anyhedge: 'img:anyhedge-logo.png',
-    voucher_claim: 'mdi-ticket-confirmation',
+    vault_payment: 'mdi-ticket-confirmation',
     cashback: 'img:marketplace.png'
   }
 
@@ -66,12 +66,12 @@ export function parseAttributeToBadge(attribute) {
       icon: icons.anyhedge,
       description: description || 'Long funding transaction',
     }
-  } else if (TxAttribute.isMatch(key, TxAttribute.VoucherClaim)) {
+  } else if (TxAttribute.isMatch(key, TxAttribute.VaultPayment)) {
     return {
       custom: true,
       text: value,
       icon: 'mdi-ticket-confirmation',
-      description: description || 'Voucher claim',
+      description: description || 'Vault Payment',
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.SpicebotTip)) {
     return {
@@ -145,10 +145,10 @@ export function parseAttributeToDetails(attribute) {
       text: ellipsisText(value, { end: 5 }),
       actions: anyhedgeActions(value),
     }
-  } else if (TxAttribute.isMatch(key, TxAttribute.VoucherClaim)) {
+  } else if (TxAttribute.isMatch(key, TxAttribute.VaultPayment)) {
     return {
       groupName: DEFAULT_GROUP_NAME,
-      label: 'Voucher claim',
+      label: 'Vault Payment',
       tooltip: description,
       text: value,
       actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
