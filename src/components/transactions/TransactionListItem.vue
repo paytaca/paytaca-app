@@ -17,7 +17,7 @@
             <div v-if="transaction?.record_type === 'outgoing'">
               {{
                 `${parseAssetDenomination(
-                  denomination === $t('DEEM') ? denominationTabSelected : denomination, {
+                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
                   ...asset,
                   balance: transaction?.amount,
                   thousandSeparator: true
@@ -27,7 +27,7 @@
             <div v-else>
               {{
                 `${parseAssetDenomination(
-                  denomination === $t('DEEM') ? denominationTabSelected : denomination, {
+                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
                   ...asset,
                   balance: transaction?.amount,
                   thousandSeparator: true

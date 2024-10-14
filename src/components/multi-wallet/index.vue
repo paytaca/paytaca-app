@@ -147,14 +147,13 @@ export default {
         if (wallet.name === '') { // from vuex store
           tempName = `Personal Wallet #${index + 1}`
         } else {
-          const walletHash = wallet.wallet.bch.walletHash
-          const walletName = await vm.$store.dispatch('global/fetchWalletName', walletHash) ?? ''
+          const walletName = await vm.$store.dispatch(
+            'global/syncWalletName',
+            { walletIndex: index }
+          ).catch(console.error) ?? ''
 
-          if (walletName !== '') { // from db
-            tempName = decryptWalletName(walletName, walletHash)
-          } else {
-            tempName = `Personal Wallet #${index + 1}`
-          }
+          if (walletName) tempName = walletName
+          else tempName = `Personal Wallet #${index + 1}`
         }
 
         vm.$store.commit('global/updateWalletName', { index, name: tempName })
@@ -277,6 +276,8 @@ export default {
   },
   async mounted () {
     const vm = this
+
+    vm.$store.dispatch('assets/updateVaultBchBalances')?.catch(console.error)
 
     // double checking if vault is empty
     await vm.$store.dispatch('global/saveExistingWallet')

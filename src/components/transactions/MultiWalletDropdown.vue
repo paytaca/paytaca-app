@@ -43,7 +43,6 @@ export default {
 
   data () {
     return {
-      walletNameLabel: '',
       arrowIcon: 'arrow_drop_down',
       isShow: false
     }
@@ -56,9 +55,16 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
+    walletIndex () {
+      return this.$store.getters['global/getWalletIndex']
+    },
     walletName () {
+      return this.$store.getters['global/getVault'][this.walletIndex].name
+    },
+    walletNameLabel () {
+      if (this.walletName) return this.walletName
       const walletIndex = this.$store.getters['global/getWalletIndex']
-      return this.$store.getters['global/getVault'][walletIndex].name
+      return `Personal Wallet #${walletIndex + 1}`
     }
   },
 
@@ -86,11 +92,10 @@ export default {
   },
 
   mounted () {
-    const vm = this
-
-    const walletIndex = vm.$store.getters['global/getWalletIndex']
-    const name = vm.walletName
-    vm.walletNameLabel = name !== '' ? name : `Personal Wallet #${walletIndex + 1}`
+    this.$store.dispatch(
+      'global/syncWalletName',
+      { walletIndex: this.walletIndex }
+    )
   }
 }
 </script>
