@@ -25,7 +25,6 @@
 
   <MultiWallet
     ref="multi-wallet-parent"
-    @update-wallet-name="onUpdateWalletName"
     @dialog-hide="onDialogHide"
   />
 </template>
@@ -81,9 +80,6 @@ export default {
         this.isShow = false
         this.arrowIcon = 'arrow_drop_down'
       }
-    },
-    onUpdateWalletName (name) {
-      this.walletNameLabel = name
     },
     onDialogHide () {
       this.isShow = false

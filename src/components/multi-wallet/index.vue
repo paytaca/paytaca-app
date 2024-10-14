@@ -1,6 +1,7 @@
 <template>
   <q-dialog
     ref="multi-wallet"
+    seamless
     full-width
     position="top"
     transition-show="fade"
@@ -107,7 +108,6 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   emits: [
-    'update-wallet-name',
     'dialog-hide'
   ],
   data () {
@@ -141,7 +141,6 @@ export default {
       vm.processDefaultVaultName()
 
       const tempVault = vm.$store.getters['global/getVault']
-      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
       await tempVault.forEach(async (wallet, index) => {
         let tempName = wallet.name
         if (wallet.name === '') { // from vuex store
@@ -157,10 +156,6 @@ export default {
         }
 
         vm.$store.commit('global/updateWalletName', { index, name: tempName })
-
-        if (index === currentWalletIndex) {
-          vm.$emit('update-wallet-name', tempName)
-        }
       })
 
       vm.arrangeVaultData()
@@ -169,15 +164,10 @@ export default {
     processDefaultVaultName () {
       const vm = this
       const tempVault = vm.$store.getters['global/getVault']
-      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
 
       tempVault.forEach((wallet, index) => {
         if (wallet.name === '') {
           vm.$store.commit('global/updateWalletName', { index, name: `Personal Wallet #${index + 1}` })
-        }
-
-        if (index === currentWalletIndex) {
-          vm.$emit('update-wallet-name', wallet.name)
         }
       })
     },
