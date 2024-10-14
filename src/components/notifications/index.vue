@@ -3,6 +3,8 @@
     ref="notifs-dialog"
     full-width
     full-height
+    seamless
+    class="no-click-outside"
   >
     <q-card class="q-px-md q-pt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
