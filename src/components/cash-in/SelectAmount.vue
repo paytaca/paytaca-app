@@ -47,7 +47,7 @@
         <q-btn
           rounded
           :outline="index !== selectedOption"
-          :disable="denomAvailable(index)"
+          :disable="!amountAdCount || denomUnavailable(index)"
           :color="getButtonColor(index)"
           class="full-width q-py-sm"
           @click="selectOption(option, index)">
@@ -143,8 +143,10 @@ export default {
     this.updatePresets()
   },
   methods: {
-    denomAvailable (index) {
-      return this.amountAdCount[this.bchPresetOptions[index]] === 0
+    denomUnavailable (index) {
+      const adCount = this.amountAdCount[this.presetOptions[index]] || 0
+      console.log(`denumUnavailable at ${this.presetOptions[index]}`, adCount === 0)
+      return adCount === 0
     },
     updatePresets () {
       this.$emit('update-presets', this.bchPresetOptions)
@@ -180,8 +182,13 @@ export default {
       this.$emit('submit-order', payload)
     },
     selectOption (option, index) {
-      this.amount = option.toString()
-      this.selectedOption = index
+      if (this.amount !== option.toString()) {
+        this.amount = option.toString()
+        this.selectedOption = index
+      } else {
+        this.amount = 0
+        this.selectedOption = null
+      }
     },
     getButtonColor (index) {
       if (index === this.selectedOption) {

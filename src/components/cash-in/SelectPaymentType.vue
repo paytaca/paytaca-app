@@ -16,11 +16,10 @@
         <template v-slot="{ item: method, index }">
           <q-item clickable @click="selectPaymentType(method)" :key="index">
             <q-item-section>
-              <div style="font-size: medium;">{{ method?.short_name }}</div>
+              <div style="font-size: medium;">{{ method?.payment_type?.short_name }}</div>
               <div style="font-size: small;">
-                <div style="opacity: .5;">{{ method?.short_name !== method?.full_name ? method?.full_name : ''}}</div>
-                <div v-if="method.online_ads_count > 0" :class="darkMode ? 'text-green-6' : 'text-green-8'">{{ method.online_ads_count }} {{ method.online_ads_count == 1 ? 'seller' : 'sellers'}} recently active</div>
-                <div v-if="method.online_ads_count === 0" style="opacity: .5;">{{ method.online_ads_count }} {{ method.online_ads_count == 1 ? 'seller' : 'sellers'}} recently active</div>
+                <div style="opacity: .5;">{{ method?.payment_type?.short_name !== method?.payment_type?.full_name ? method?.payment_type?.full_name : ''}}</div>
+                <div v-if="method?.online_sellers > 0" :class="darkMode ? 'text-green-6' : 'text-green-8'">{{ method.online_sellers }} {{ method.online_sellers == 1 ? 'seller' : 'sellers'}} recently active</div>
               </div>
             </q-item-section>
           </q-item>
@@ -70,7 +69,7 @@ export default {
         })
     },
     selectPaymentType (value) {
-      this.$emit('select-payment', value)
+      this.$emit('select-payment', value.payment_type)
     }
   }
 }
