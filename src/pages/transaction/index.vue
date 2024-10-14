@@ -11,7 +11,7 @@
               class="row q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
-              <MultiWalletDropdown />
+              <MultiWalletDropdown ref="multi-wallet-component" />
               <div class="col-2 flex justify-end">
                 <q-btn
                   flat
@@ -708,6 +708,7 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
+      vm.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
       vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
@@ -1204,6 +1205,7 @@ export default {
       }
     },
     openNotificationsDialog () {
+      this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
       this.$q.dialog({
         component: Notifications
       })
