@@ -42,7 +42,10 @@
               :placeholder="register ? 'Enter nickname' : ''"
               :loading="inputLoading"
               :error="errorMessage !== null"
-              v-model="usernickname">
+              v-model="usernickname"
+              maxlength="15"
+              :counter="register"
+              >
               <template v-slot:append>
                 <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
                 <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
