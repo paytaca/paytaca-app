@@ -37,7 +37,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      selectedCurrency: this.fiat,
       openCurrencyDialog: false
     }
   },
@@ -51,9 +51,6 @@ export default {
     selectedCurrency (value) {
       this.$emit('select-currency', value)
     }
-  },
-  mounted () {
-    this.selectedCurrency = this.fiat
   },
   methods: {
     getDarkModeClass,

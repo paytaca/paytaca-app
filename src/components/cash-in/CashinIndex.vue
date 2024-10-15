@@ -42,7 +42,7 @@
             v-if="step === 2"
             :key="selectAmountKey"
             :payment-type="selectedPaymentType"
-            :amount-ad-count="amountAdCount"
+            :adOptions="adOptions"
             :currency="selectedCurrency"
             @select-amount="onSetAmount"
             @update-presets="onUpdatePresets"
@@ -104,7 +104,7 @@ export default {
 
       cashinAds: [],
       selectPaymentTypeOpts: [],
-      amountAdCount: {},
+      adOptions: {},
 
       selectedPaymentType: null,
       amount: null,
@@ -156,7 +156,6 @@ export default {
     bus.on('cashin-alert', this.onCashinAlert)
   },
   mounted () {
-    this.setFiatCurrency()
     loadRampWallet()
     this.loaddata()
   },
@@ -176,9 +175,10 @@ export default {
     },
     async loaddata () {
       this.loading = true
+      this.setFiatCurrency()
       this.cashinAdsParams.currency = this.selectedCurrency?.symbol
       this.cashinAdsParams.wallet_hash = wallet.walletHash
-      await this.fetchCashinAds()
+      await this.fetchCashinPayments()
       await this.checkCashinAlert()
       this.step++
       this.loading = false
@@ -258,12 +258,12 @@ export default {
       }
       vm.loggingIn = false
     },
-    setCurrency (currency) {
+    async setCurrency (currency) {
       this.selectedCurrency = currency
       this.cashinAdsParams.currency = this.selectedCurrency.symbol
-      this.fetchCashinPayments()
+      await this.fetchCashinPayments()
       // reset data
-      this.amountAdCount = {}
+      this.adOptions = {}
       this.cashinAds = []
       this.selectPaymentTypeOpts = []
     },
@@ -300,12 +300,10 @@ export default {
       this.fetchCashinAds(url)
     },
     async fetchCashinAds () {
-      const apiUrl = '/ramp-p2p/ad/cash-in/'
-      console.log('cashinAdsParams:', this.cashinAdsParams)
+      const apiUrl = '/ramp-p2p/cash-in/ad/'
       await backend.get(apiUrl, { params: this.cashinAdsParams })
         .then(response => {
-          console.log('fetchCashinAdAmounts:', response.data)
-          this.amountAdCount = response.data
+          this.adOptions = response.data
         })
         .catch(error => {
           console.error(error.response || error)
@@ -319,10 +317,9 @@ export default {
         })
     },
     async fetchCashinPayments (url) {
-      const apiUrl = url || '/ramp-p2p/ad/cash-in/payment-types/'
+      const apiUrl = url || '/ramp-p2p/cash-in/ad/payment-types/'
       await backend.get(apiUrl, { params: this.cashinAdsParams })
         .then(response => {
-          console.log('fetchCashinAds:', response.data)
           this.selectPaymentTypeOpts = response.data
         })
         .catch(error => {
