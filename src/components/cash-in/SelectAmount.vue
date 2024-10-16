@@ -20,8 +20,8 @@
           </div>
         </template>
       </q-input>
-      <div v-if="currency.cashin_presets" class="row justify-between text-right subtext q-pr-sm q-pt-xs" style="font-size: 14px">
-        <div class="col-auto">
+      <div class="row justify-between text-right q-pr-sm q-pt-xs" style="font-size: 14px">
+        <div v-if="fiatPresets.length > 0" class="col-auto">
           <q-btn
             class="sm-font-size"
             padding="none"
@@ -71,14 +71,15 @@ export default {
   props: {
     paymentType: Object,
     currency: Object,
-    adOptions: Object
+    adOptions: Object,
+    fiatPresets: Array
   },
   emits: ['select-amount', 'submit-order', 'update-presets'],
   data () {
     return {
       amount: 0,
       amountBchOptions: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
-      amountFiatOptions: [],
+      amountFiatOptions: this.fiatPresets,
       amountFiatEqOptions: [],
       selectedOptionIndex: null,
       byFiat: true
@@ -137,13 +138,11 @@ export default {
     byFiat () {
       this.amount = 0
       this.selectedOptionIndex = null
-      this.computeFiatPresets()
       this.updatePresets()
     }
   },
   mounted () {
-    this.computeFiatPresets()
-    this.updatePresets()
+    this.byFiat = this.fiatPresets.length > 0 || false
   },
   methods: {
     denomAvailable (index) {
@@ -151,24 +150,7 @@ export default {
       return adCount > 0
     },
     updatePresets () {
-      this.$emit('update-presets', this.bchPresetOptions)
-    },
-    computeFiatPresets () {
-      const fiatPresets = this.currency.cashin_presets
-      const eqBchPresets = []
-
-      if (fiatPresets) {
-        fiatPresets.forEach(fiatAmount => {
-          if (!fiatAmount.isNaN) {
-            const bchAmount = Number(Number((fiatAmount) / parseFloat(this.selectedAd?.price)).toFixed(2))
-            eqBchPresets.push(bchAmount)
-          }
-        })
-        this.amountFiatOptions = fiatPresets
-        this.amountFiatEqOptions = eqBchPresets
-      } else {
-        this.byFiat = false
-      }
+      this.$emit('update-presets', this.byFiat)
     },
     submitOrder () {
       let amount = this.amount
@@ -193,7 +175,7 @@ export default {
       }
     },
     getButtonColor (index) {
-      if (index === this.selectedOptionIndex) {
+      if (index === this.selectedOptionIndex || this.denomAvailable(index)) {
         return 'blue-6'
       } else {
         return this.darkMode ? 'blue-grey-2' : 'blue-grey-8'

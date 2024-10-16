@@ -44,6 +44,7 @@
             :payment-type="selectedPaymentType"
             :adOptions="adOptions"
             :currency="selectedCurrency"
+            :fiat-presets="fiatPresets"
             @select-amount="onSetAmount"
             @update-presets="onUpdatePresets"
             @submit-order="onSubmitOrder"
@@ -109,10 +110,12 @@ export default {
       selectedPaymentType: null,
       amount: null,
       amountPresets: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
+      fiatPresets: [],
       selectedCurrency: null,
       cashinAdsParams: {
         currency: null,
-        payment_type: null
+        payment_type: null,
+        by_fiat: true
       },
       register: false,
       openorderList: false,
@@ -180,6 +183,7 @@ export default {
       this.cashinAdsParams.wallet_hash = wallet.walletHash
       await this.fetchCashinPayments()
       await this.checkCashinAlert()
+      await this.fetchPresets()
       this.step++
       this.loading = false
     },
@@ -261,15 +265,23 @@ export default {
     async setCurrency (currency) {
       this.selectedCurrency = currency
       this.cashinAdsParams.currency = this.selectedCurrency.symbol
-      await this.fetchCashinPayments()
+
       // reset data
       this.adOptions = {}
       this.cashinAds = []
       this.selectPaymentTypeOpts = []
+      await this.fetchCashinPayments()
+      await this.fetchPresets()
     },
     setPaymentType (paymentType) {
       this.selectedPaymentType = paymentType
       this.cashinAdsParams.payment_type = this.selectedPaymentType?.id
+      this.fetchPresets()
+      if (this.fiatPresets.length === 0) {
+        this.cashinAdsParams.by_fiat = false
+      } else {
+        this.cashinAdsParams.by_fiat = true
+      }
       this.fetchCashinAds()
       this.step++
     },
@@ -291,13 +303,26 @@ export default {
       this.selectedCurrency = currency
       this.fetchCashinPayments()
     },
-    onUpdatePresets (presets) {
-      let url = '/ramp-p2p/ad/cash-in/'
-      if (presets?.length > 0) {
-        const amounts = presets.join('&amounts=')
-        url = `${url}?amounts=${amounts}`
-      }
-      this.fetchCashinAds(url)
+    onUpdatePresets (byFiat) {
+      this.fetchPresets()
+      this.cashinAdsParams.by_fiat = byFiat
+      this.fetchCashinAds()
+    },
+    async fetchPresets () {
+      await backend('ramp-p2p/cash-in/presets/', { params: { currency: this.selectedCurrency.symbol } })
+        .then(response => {
+          this.fiatPresets = response.data
+        })
+        .catch(error => {
+          console.error(error.response || error)
+          if (error.response) {
+            if (error.response?.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            this.dislayNetworkError()
+          }
+        })
     },
     async fetchCashinAds () {
       const apiUrl = '/ramp-p2p/cash-in/ad/'
