@@ -361,46 +361,26 @@ async function selectCoordinates(opts={ autoFocusSearch: false }) {
     })
 }
 
-async function checkBalance () {
+async function getPubKey (index) {
   const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  const response = await wallet.BCH.getBalance()
-  const enough = response.balance >= 0.00003
-  if (!enough) {
-    $q.notify({
-      color: 'brandblue',
-      message: $t('MerchantVerificationMintingFeeMsg'),
-      icon: 'mdi-information',
-      timeout: 3000
-    })
-  }
-  return enough
+  return await wallet.BCH.getPublicKey(undefined, undefined, true, index)
 }
 
 async function updateMerchantInfo() {
   loading.value = true
   
   const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
-  let hasMinter = false
-  
-  if (data?.id) {
-    const response = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
-    if (response?.data?.minter) {
-      hasMinter = true
-    } else {
-      const enough = await checkBalance() 
-      if (!enough) return
-    }
+  try {
+    const response = await $store.dispatch('paytacapos/getMerchantIndex')
+    const index = response.data.index
+    const pubkey = getPubKey(index)
+    data.index = index
+    data.pukey = pubkey
+  } catch (err) {
+    // added try-catch here for handling of obsolete wallets
+    // TODO: remove this try-catch after watchtower deployment of payment-vault
   }
 
-  let minterDetails = $store.getters['paytacapos/verificationTokenMinter']
-  if (!minterDetails && !hasMinter) {
-    minterDetails = await $store.dispatch('paytacapos/mintGenesisVerificationMintingNft')
-  }
-
-  if (minterDetails?.category && minterDetails?.address) {
-    data.minter_category = minterDetails.category
-    data.minter_address = minterDetails.address
-  }
 
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {
@@ -409,7 +389,6 @@ async function updateMerchantInfo() {
         color: 'positive',
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
-      $store.commit('paytacapos/clearVerificationTokenMinter')
       $emit('saved', response?.data)
       return response
     })
