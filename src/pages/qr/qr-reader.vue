@@ -331,18 +331,6 @@ export default {
 
     if (vm.isMobile) {
       vm.prepareScanner()
-    } else {
-      setTimeout(() => {
-        try {
-          chrome.contentSettings.camera.set({
-            primaryPattern: `${chrome.extension.getURL('www/index.html')}`,
-            scope: 'regular',
-            setting: 'allow'
-          })
-        } catch (error) {
-          console.log(error)
-        }
-      }, 1000)
     }
     window.scan = val => vm.onQRDecode([{ rawValue: val }])
 

@@ -33,8 +33,7 @@
   }],
   "permissions": [
     "storage",
-    "activeTab",
-    "contentSettings"
+    "activeTab"
   ],
   "web_accessible_resources": [
     "www/*",
