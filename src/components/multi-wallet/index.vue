@@ -267,7 +267,7 @@ export default {
   async mounted () {
     const vm = this
 
-    vm.$store.dispatch('assets/updateVaultBchBalances')?.catch(console.error)
+    vm.$store.dispatch('assets/updateVaultBchBalances', { chipnet: vm.isChipnet })?.catch(console.error)
 
     // double checking if vault is empty
     await vm.$store.dispatch('global/saveExistingWallet')
