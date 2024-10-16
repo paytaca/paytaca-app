@@ -305,6 +305,7 @@
         <div class="text-h6 text-center q-my-sm">Set Nickname</div>
         <div class="text-center">
           <q-input
+            ref="inputRef"
             dense
             filled
             counter
@@ -314,14 +315,22 @@
             :dark="darkMode"
             :rules="[value => value.length <= 15 || 'Name exceeds max length']"
             maxlength="15"
+            @update:model-value = "() => {
+              this.errorMsg = null
+            }"
           >
-            <!-- <template v-slot:append>
-              <q-icon size="xs" name="close" @click="nickname = ''"/>&nbsp;
-            </template> -->
+            <template v-slot:append>
+              <q-icon size="xs" name="close" @click=" () => {
+                nickname = ''
+                errorMsg = null
+                $refs.inputRef.focus()
+              }"/>&nbsp;
+            </template>
           </q-input>
         </div>
+        <div class="text-red text-center" style="font-size: 12px;" v-if="errorMsg">{{ errorMsg }}</div>
         <div class="row justify-center q-mt-md">
-          <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup />
+          <q-btn flat label="Cancel" color="red-6" @click="$emit('back')" v-close-popup/>
           <q-btn
             :disable="!isNameValid"
             flat
@@ -329,7 +338,6 @@
             @click="submitData()"
             class="button button-text-primary"
             :class="getDarkModeClass(darkMode)"
-            v-close-popup
           />
         </div>
       </q-card-section>
@@ -625,6 +633,7 @@ export default {
       //   bank: 'Bank Account Number',
       //   phone: 'Mobile Number'
       // }
+      errorMsg: null
     }
   },
   watch: {
@@ -667,6 +676,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updateErrorMsg (msg) {
+      this.errorMsg = msg
+    },
     paymentTypeFormat (format) {
       return this.$t('Test')
     },
