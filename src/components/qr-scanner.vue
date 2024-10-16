@@ -33,7 +33,8 @@
           v-if="val"
           :camera="frontCamera ? 'front': 'auto'"
           @detect="onScannerDecode"
-          @init="onScannerInit"
+          @camera-on="onScannerInit"
+          @error="onCameraError"
           :style="{
             position: 'absolute',
             inset: 0,
@@ -186,27 +187,35 @@ export default {
       this.$emit('decode', content[0].rawValue)
     },
     onScannerInit (promise) {
-      promise
-        .then(() => {
-          this.error = ''
-        })
-        .catch(error => {
-          if (error.name === 'NotAllowedError') {
-            this.error = this.$t('CameraPermissionErrMsg1')
-          } else if (error.name === 'NotFoundError') {
-            this.error = this.$t('CameraPermissionErrMsg2')
-          } else if (error.name === 'NotSupportedError') {
-            this.error = this.$t('CameraPermissionErrMsg3')
-          } else if (error.name === 'NotReadableError') {
-            this.error = this.$t('CameraPermissionErrMsg4')
-          } else if (error.name === 'OverconstrainedError') {
-            this.frontCamera = false
-            this.error = this.$t('CameraPermissionErrMsg5')
-          } else {
-            this.error = this.$t('UnknownErrorOccurred') + ': ' + error.message
-          }
-        })
+      console.log('camera set up successfully')
     },
+    onCameraError (error) {
+      const vm = this
+      console.log('error', error)
+      if (error.name === 'NotAllowedError') {
+        // user denied camera access permission
+        vm.error = vm.$t('CameraPermissionErrMsg1')
+      } else if (error.name === 'NotFoundError') {
+        // no suitable camera device installed
+        vm.error = vm.$t('CameraPermissionErrMsg2')
+      } else if (error.name === 'NotSupportedError') {
+        // page is not served over HTTPS (or localhost)
+        vm.error = vm.$t('CameraPermissionErrMsg3')
+      } else if (error.name === 'NotReadableError') {
+        // maybe camera is already in use
+        vm.error = vm.$t('CameraPermissionErrMsg4')
+      } else if (error.name === 'OverconstrainedError') {
+        vm.frontCamera = false
+        // did you request the front camera although there is none?
+        vm.error = vm.$t('CameraPermissionErrMsg5')
+      } else if (error.name === 'StreamApiNotSupportedError') {
+        // browser seems to be lacking features
+        console.log(error)
+      } else {
+        vm.error = vm.$t('UnknownErrorOccurred') + ': ' + error.message
+      }
+    },
+
     adjustComponentsClasslist (isScanning) {
       const appContainer = document.getElementById('app-container')
       const scannerUI = document.getElementById('qr-scanner-ui')
