@@ -40,13 +40,13 @@
               :readonly="!register || user?.is_arbiter"
               :disable="loggingIn"
               :placeholder="register ? 'Enter nickname' : ''"
-              :loading="loggingIn || (!usernickname && !register) || isLoading"
+              :loading="inputLoading"
               :error="errorMessage !== null"
               v-model="usernickname">
               <template v-slot:append>
                 <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
                 <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
-                <q-btn v-if="register && !loggingIn" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="onRegisterUser" />
+                <q-btn v-if="register && !inputLoading" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="onRegisterUser" />
               </template>
               <template v-slot:hint>
                 <div class="row justify-center text-center">{{ hintMessage }}</div>
@@ -116,6 +116,9 @@ export default {
   computed: {
     isValidNickname () {
       return this.usernickname && this.usernickname.length > 0
+    },
+    inputLoading () {
+      return this.loggingIn || (!this.usernickname && !this.register) || this.isLoading
     }
   },
   mounted () {
@@ -135,14 +138,15 @@ export default {
       const vm = this
       try {
         const { data: user } = await backend.get('/auth/')
-        console.log('user:', user)
+        // console.log('user:', user)
         vm.user = user
         vm.usernickname = user?.name
-        vm.isLoading = false
+        vm.isLoading = true
 
         // login user if not authenticated
         vm.hintMessage = vm.$t('LoggingYouIn')
         const token = await getAuthToken()
+
         if (!token) forceLogin = true
         if (!user.is_authenticated || forceLogin) {
           await vm.login()
@@ -157,6 +161,7 @@ export default {
         await vm.savePubkeyAndAddress()
         vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
         vm.$store.commit('ramp/updateUser', user)
+        vm.isLoading = false
       } catch (error) {
         vm.isLoading = false
         console.error(error.response || error)

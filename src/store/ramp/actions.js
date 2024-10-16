@@ -156,6 +156,33 @@ export async function fetchCashinOrders (context, { params = null, overwrite = f
   })
 }
 
+export async function fetchCashinOrderList (context, { params = null }) {
+  const state = context.state
+
+  // Setup pagination parameters
+  const pageNumber = state.cashinOrderListPage
+  const totalPages = state.cashinOrderListTotalPage
+  if (pageNumber <= totalPages) {
+    const parameters = {
+      wallet_hash: params.wallet_hash,
+      page: pageNumber,
+      limit: params.limit || 15,
+      owned: params.owned
+    }
+
+    const apiURL = '/ramp-p2p/order/cash-in/'
+    await backend.get(apiURL, { params: parameters })
+      .then((response) => {
+        context.commit('updateCashinOrderList', response.data.orders)
+        context.commit('updateCashinOrderListTotalPage', response.data.total_pages)
+        return response.data
+      })
+      .catch(error => {
+        console.error(error.response || error)
+      })
+  }
+}
+
 export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   return new Promise((resolve, reject) => {
     const state = context.state

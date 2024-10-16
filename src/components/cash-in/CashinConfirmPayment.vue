@@ -115,7 +115,8 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       attachment: null,
-      showImageDialog: false
+      showImageDialog: false,
+      paid: false
     }
   },
   emits: ['confirm-payment', 'refetch-order', 'upload', 'delete', 'appeal'],
@@ -135,6 +136,11 @@ export default {
     },
     url () {
       return this.order?.payment_methods_selected[0]?.attachments[0]?.image?.url
+    }
+  },
+  unmounted () {
+    if (!this.paid) {
+      this.onDeleteAttachment()
     }
   },
   methods: {
@@ -160,6 +166,7 @@ export default {
       this.$emit('upload', formData, this.order?.payment_methods_selected[0]?.order_payment_id)
     },
     onPaid () {
+      this.paid = true
       this.$emit('confirm-payment')
     },
     dynamicVal (field) {
@@ -173,7 +180,7 @@ export default {
       }
     },
     copyToClipboard (value) {
-      console.log(value)
+      // console.log(value)
 
       this.$copyText(value)
       this.$q.notify({

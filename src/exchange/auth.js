@@ -20,4 +20,5 @@ export function getAuthToken () {
 
 export function deleteAuthToken () {
   SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
+  console.log('P2P Exchange auth token deleted')
 }

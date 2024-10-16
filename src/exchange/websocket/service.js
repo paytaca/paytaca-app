@@ -24,7 +24,7 @@ export class WebSocketService {
 
   // Event handlers
   onWebSocketOpen (event) {
-    console.log('WebSocket connection opened')
+    console.log('WebSocket connection opened', { url: this.url })
     this.messageEmitter.emit('open', event)
   }
 
@@ -34,7 +34,7 @@ export class WebSocketService {
   }
 
   onWebSocketClose (event) {
-    console.log('WebSocket connection closed')
+    console.log('WebSocket connection closed', { url: this.url })
     event.retry = this.retryOnClose
     this.messageEmitter.emit('close', event)
   }
