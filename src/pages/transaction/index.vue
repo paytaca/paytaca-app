@@ -11,7 +11,16 @@
               class="row q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
-              <MultiWalletDropdown />
+              <MultiWalletDropdown ref="multi-wallet-component" />
+              <div class="col-2 flex justify-end">
+                <q-btn
+                  flat
+                  icon="notifications"
+                  class="text-bow"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="openNotificationsDialog"
+                />
+              </div>
             </div>
 
             <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
@@ -363,6 +372,7 @@ import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
+import Notifications from 'src/components/notifications/index.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 
@@ -640,7 +650,8 @@ export default {
         const sectionHeight = vm.$refs.fixedSection.clientHeight
         vm.$refs.transactionSection.setAttribute(
           'style',
-          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out`
+          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out; ` +
+          `width: ${document.body.clientWidth}px;`
         )
       }, timeout)
     },
@@ -719,6 +730,7 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
+      vm.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
       vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
@@ -1219,6 +1231,12 @@ export default {
       this.$store.commit('ramp/resetCashinOrderList')
       this.$store.commit('ramp/resetCashinOrderListPage')
       this.$store.commit('ramp/resetCashinOrderListTotalPage')
+    },
+    openNotificationsDialog () {
+      this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
+      this.$q.dialog({
+        component: Notifications
+      })
     }
   },
 
