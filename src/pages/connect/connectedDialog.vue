@@ -1,6 +1,6 @@
 <template>
   <div id="connected-dialog pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
-    <div style="display: flex; justify-content: center; margin-top: 5px;">{{$t('ConectedAddresses')}}</div>
+    <div style="display: flex; justify-content: center; margin-top: 5px;">{{$t('ConnectedAddresses')}}</div>
     <q-dialog ref="dialog" @hide="hide" persistent seamless>
       <q-card ref="card" style="padding: 20px 10px 5px 0;" class="pp-text br-15 pt-card" :class="getDarkModeClass(darkMode)">
         <div class="connected-dialog-header">
