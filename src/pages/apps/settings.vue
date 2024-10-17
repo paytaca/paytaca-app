@@ -177,6 +177,9 @@
             </q-item>
           </q-list>
         </div>
+
+        <PushNotifsSettings />
+
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
           <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('AppInfo') }}</p>
             <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
@@ -222,6 +225,7 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import DenominatorSelector from 'src/components/settings/DenominatorSelector'
+import PushNotifsSettings from 'src/components/settings/PushNotifsSettings.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
@@ -240,7 +244,8 @@ export default {
       showTokens: this.$store.getters['global/showTokens'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       currentCountry: this.$store.getters['global/country'].code,
-      repoUrl: 'https://github.com/paytaca/paytaca-app'
+      repoUrl: 'https://github.com/paytaca/paytaca-app',
+      enablePushNotifs: false
     }
   },
   components: {
@@ -251,7 +256,8 @@ export default {
     CountrySelector,
     CurrencySelector,
     DenominatorSelector,
-    ThemeSelector
+    ThemeSelector,
+    PushNotifsSettings
   },
   watch: {
     isChipnet (n, o) {
@@ -365,7 +371,7 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
   .dim-text {
     color: #ed5f59;
   }
