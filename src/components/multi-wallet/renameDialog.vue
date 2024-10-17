@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="rename" seamless persistent>
+  <q-dialog ref="rename" seamless persistent class="no-click-outside">
     <q-card style="min-width: 350px" class="br-15 pt-card" :class="getDarkModeClass('text-white', 'text-black')">
       <div v-if="isLoaded">
         <q-card-section>

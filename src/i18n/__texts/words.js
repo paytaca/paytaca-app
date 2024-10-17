@@ -340,7 +340,10 @@ const words = [
     ButtonDeem: 'DEEM',
     Disabled: 'disabled',
     French: 'French',
-    Portuguese: 'Portuguese'
+    Portuguese: 'Portuguese',
+    Notifications: 'Notifications',
+    General: 'General',
+    Cashback: 'Cashback'
   }
 ]
 

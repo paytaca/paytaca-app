@@ -1,6 +1,6 @@
 <template>
   <div id="transaction">
-    <q-dialog ref="dialog" @hide="hide" persistent seamless>
+    <q-dialog ref="dialog" @hide="hide" persistent seamless class="no-click-outside">
       <q-card
         ref="card"
         v-if="transaction && transaction.asset"

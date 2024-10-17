@@ -1,88 +1,99 @@
 <template>
-  <q-card class="br-15 wallet-card" :class="getDarkModeClass(darkMode)">
-    <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-      <div class="text-h5 q-space q-mt-sm title">
-        {{ $t('Wallets') }}
+  <q-dialog
+    ref="multi-wallet"
+    seamless
+    full-width
+    position="top"
+    transition-show="fade"
+    transition-hide="fade"
+    @before-hide="$emit('dialog-hide')"
+  >
+    <q-card class="q-mt-xl q-mx-sm wallet-card" :class="getDarkModeClass(darkMode)">
+      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
+        <div class="text-h5 q-space q-mt-sm title">
+          {{ $t('Wallets') }}
+        </div>
+        <div
+          clickable
+          class="text-blue-9 create-import-button"
+          :class="{'text-grad': isNotDefaultTheme(theme)}"
+          @click="() => {
+            $router.push('/accounts')
+            hide()
+          }"
+        >
+          {{ $t('CreateOrImportWallet') }}
+        </div>
       </div>
-      <div
-        clickable
-        class="text-blue-9 create-import-button"
-        :class="{'text-grad': isNotDefaultTheme(theme)}"
-        @click="() => {
-          $router.push('/accounts')
-        }"
-      >
-        {{ $t('CreateOrImportWallet') }}
-      </div>
-    </div>
-    <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-    </q-card-section>
-    <q-card-section class="q-pt-sm" v-else>
-      <q-virtual-scroll :items="vault">
-        <template v-slot="{ item: wallet, index }">
-          <template v-if="wallet.deleted !== true">
-            <q-item
-              clickable
-              class="q-pb-sm bottom-border"
-              :class="getDarkModeClass(darkMode)"
-              @click="selectedIndex = index"
-            >
-              <q-item-section style="overflow-wrap: break-word;">
-                <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
-                  <span class="text-h5" :class="{'text-grad text-weight-bold' : isNotDefaultTheme(theme)}" style="font-size: 15px;">
-                    {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
-                  </span>
-                  <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
-                    {{ parseAssetDenomination(denomination, getAssetData(index), false, 10) }}
-                  </span>
-                </div>
-                <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
-                  <span class="address" :class="getDarkModeClass(darkMode)">
-                    {{ arrangeAddressText(wallet) }}
-                  </span>
-                  <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass(darkMode)">
-                    {{ parseFiatCurrency(getAssetMarketBalance(getAssetData(index)), selectedMarketCurrency) }}
-                  </span>
-                </div>
-                <q-menu anchor="bottom right" self="top end" >
-                  <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
-                    <q-item clickable v-close-popup>
-                      <q-item-section
-                        class="pt-label"
-                        :class="getDarkModeClass(darkMode)"
-                        @click="switchWallet(selectedIndex)"
-                      >
-                        {{ $t('SwitchWallet') }}
-                      </q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section
-                        class="pt-label"
-                        :class="getDarkModeClass(darkMode)"
-                        @click="openRenameDialog()"
-                      >
-                        {{ $t('Rename') }}
-                      </q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section
-                        class="pt-label"
-                        :class="getDarkModeClass(darkMode)"
-                        @click="openBasicInfoDialog()"
-                      >
-                        {{ $t('SeeBasicWalletInfo') }}
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-item-section>
-            </q-item>
+      <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </q-card-section>
+      <q-card-section class="q-pt-sm" v-else>
+        <q-virtual-scroll :items="vault">
+          <template v-slot="{ item: wallet, index }">
+            <template v-if="wallet.deleted !== true">
+              <q-item
+                clickable
+                class="q-pb-sm bottom-border"
+                :class="getDarkModeClass(darkMode)"
+                @click="selectedIndex = index"
+              >
+                <q-item-section style="overflow-wrap: break-word;">
+                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
+                    <span class="text-h5" :class="{'text-grad text-weight-bold' : isNotDefaultTheme(theme)}" style="font-size: 15px;">
+                      {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
+                    </span>
+                    <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
+                      {{ parseAssetDenomination(denomination, getAssetData(index), false, 10) }}
+                    </span>
+                  </div>
+                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
+                    <span class="address" :class="getDarkModeClass(darkMode)">
+                      {{ arrangeAddressText(wallet) }}
+                    </span>
+                    <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass(darkMode)">
+                      {{ parseFiatCurrency(getAssetMarketBalance(getAssetData(index)), selectedMarketCurrency) }}
+                    </span>
+                  </div>
+                  <q-menu anchor="bottom right" self="top end" >
+                    <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
+                      <q-item clickable v-close-popup>
+                        <q-item-section
+                          class="pt-label"
+                          :class="getDarkModeClass(darkMode)"
+                          @click="switchWallet(selectedIndex)"
+                        >
+                          {{ $t('SwitchWallet') }}
+                        </q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section
+                          class="pt-label"
+                          :class="getDarkModeClass(darkMode)"
+                          @click="openRenameDialog()"
+                        >
+                          {{ $t('Rename') }}
+                        </q-item-section>
+                      </q-item>
+                      <q-item clickable v-close-popup>
+                        <q-item-section
+                          class="pt-label"
+                          :class="getDarkModeClass(darkMode)"
+                          @click="openBasicInfoDialog()"
+                        >
+                          {{ $t('SeeBasicWalletInfo') }}
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-item-section>
+              </q-item>
+            </template>
           </template>
-        </template>
-      </q-virtual-scroll>
-    </q-card-section>
-  </q-card>
+        </q-virtual-scroll>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 <script>
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
@@ -97,7 +108,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   emits: [
-    'update-wallet-name'
+    'dialog-hide'
   ],
   data () {
     return {
@@ -130,7 +141,6 @@ export default {
       vm.processDefaultVaultName()
 
       const tempVault = vm.$store.getters['global/getVault']
-      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
       await tempVault.forEach(async (wallet, index) => {
         let tempName = wallet.name
         if (wallet.name === '') { // from vuex store
@@ -146,10 +156,6 @@ export default {
         }
 
         vm.$store.commit('global/updateWalletName', { index, name: tempName })
-
-        if (index === currentWalletIndex) {
-          vm.$emit('update-wallet-name', tempName)
-        }
       })
 
       vm.arrangeVaultData()
@@ -158,15 +164,10 @@ export default {
     processDefaultVaultName () {
       const vm = this
       const tempVault = vm.$store.getters['global/getVault']
-      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
 
       tempVault.forEach((wallet, index) => {
         if (wallet.name === '') {
           vm.$store.commit('global/updateWalletName', { index, name: `Personal Wallet #${index + 1}` })
-        }
-
-        if (index === currentWalletIndex) {
-          vm.$emit('update-wallet-name', wallet.name)
         }
       })
     },
@@ -174,6 +175,7 @@ export default {
       const vm = this
       if (index === this.currentIndex) return
 
+      vm.hide()
       const loadingDialog = this.$q.dialog({
         component: LoadingWalletDialog
       })
@@ -239,6 +241,9 @@ export default {
           vaultIndex: this.selectedIndex
         }
       })
+    },
+    hide () {
+      this.$refs['multi-wallet'].hide()
     }
   },
   computed: {
@@ -262,7 +267,7 @@ export default {
   async mounted () {
     const vm = this
 
-    vm.$store.dispatch('assets/updateVaultBchBalances')?.catch(console.error)
+    vm.$store.dispatch('assets/updateVaultBchBalances', { chipnet: vm.isChipnet })?.catch(console.error)
 
     // double checking if vault is empty
     await vm.$store.dispatch('global/saveExistingWallet')
@@ -305,4 +310,3 @@ export default {
   cursor: pointer;
 }
 </style>
-src/exchange/auth

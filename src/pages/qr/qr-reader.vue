@@ -14,12 +14,15 @@
         :camera="frontCamera ? 'front': 'auto'"
         :paused="paused"
         @detect="onQRDecode"
-        @init="onScannerInit"
+        @camera-on="onScannerInit"
+        @error="onCameraError"
         class="fixed-full qr-stream"
+        style="margin: auto;"
+        :style="{width: clWidth}"
       />
     </template>
 
-    <div class="q-mb-lg scanner-box" ref="box">
+    <div v-if="!error" class="q-mb-lg scanner-box" ref="box">
       <div class="scan-layout-design">
         <div class="scan-design1">
           <div class="line-design1"></div>
@@ -91,7 +94,8 @@ export default {
     return {
       paused: false,
       error: '',
-      frontCamera: false
+      frontCamera: false,
+      clWidth: '0px'
     }
   },
 
@@ -109,28 +113,33 @@ export default {
 
     // DESKTOP
     onScannerInit (promise) {
+      console.log('camera set up successfully')
+    },
+    onCameraError (error) {
       const vm = this
-
-      promise
-        .then(() => {
-          vm.error = ''
-        })
-        .catch(error => {
-          if (error.name === 'NotAllowedError') {
-            vm.error = vm.$t('CameraPermissionErrMsg1')
-          } else if (error.name === 'NotFoundError') {
-            vm.error = vm.$t('CameraPermissionErrMsg2')
-          } else if (error.name === 'NotSupportedError') {
-            vm.error = vm.$t('CameraPermissionErrMsg3')
-          } else if (error.name === 'NotReadableError') {
-            vm.error = vm.$t('CameraPermissionErrMsg4')
-          } else if (error.name === 'OverconstrainedError') {
-            vm.frontCamera = false
-            vm.error = vm.$t('CameraPermissionErrMsg5')
-          } else {
-            vm.error = vm.$t('UnknownErrorOccurred') + ': ' + error.message
-          }
-        })
+      console.log('error', error)
+      if (error.name === 'NotAllowedError') {
+        // user denied camera access permission
+        vm.error = vm.$t('CameraPermissionErrMsg1')
+      } else if (error.name === 'NotFoundError') {
+        // no suitable camera device installed
+        vm.error = vm.$t('CameraPermissionErrMsg2')
+      } else if (error.name === 'NotSupportedError') {
+        // page is not served over HTTPS (or localhost)
+        vm.error = vm.$t('CameraPermissionErrMsg3')
+      } else if (error.name === 'NotReadableError') {
+        // maybe camera is already in use
+        vm.error = vm.$t('CameraPermissionErrMsg4')
+      } else if (error.name === 'OverconstrainedError') {
+        vm.frontCamera = false
+        // did you request the front camera although there is none?
+        vm.error = vm.$t('CameraPermissionErrMsg5')
+      } else if (error.name === 'StreamApiNotSupportedError') {
+        // browser seems to be lacking features
+        console.log(error)
+      } else {
+        vm.error = vm.$t('UnknownErrorOccurred') + ': ' + error.message
+      }
     },
 
     // MOBILE
@@ -239,7 +248,6 @@ export default {
       const vm = this
 
       if (content) {
-
         const value = content[0].rawValue
 
         vm.paused = true
@@ -258,10 +266,10 @@ export default {
             name: 'claim-gift',
             query: { code: value }
           })
-        } else if(extractWifFromUrl(value)) {
+        } else if (extractWifFromUrl(value)) {
           vm.$router.push({
             name: 'app-sweep',
-            query: { w: extractWifFromUrl(value) },
+            query: { w: extractWifFromUrl(value) }
           })
         } else if (value.includes('bitcoincash:')) {
           // redirect to send page
@@ -295,7 +303,6 @@ export default {
             name: 'app-wallet-connect',
             query: { uri: value }
           })
-          
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
@@ -332,6 +339,8 @@ export default {
       vm.prepareScanner()
     }
     window.scan = val => vm.onQRDecode([{ rawValue: val }])
+
+    vm.clWidth = `${document.body.clientWidth}px`
   },
 
   deactivated () {
@@ -355,7 +364,7 @@ export default {
   .scanner-error-dialog {
     border-radius: 15px;
     margin-top: 20%;
-    margin-bottom: auto;
+    margin-bottom: 20%;
     margin-left: auto;
     margin-right: auto;
     width: 220px;

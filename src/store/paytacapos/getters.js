@@ -42,8 +42,3 @@ export function paymentOTPCache(state) {
     }
   }
 }
-
-
-export function verificationTokenMinter (state) {
-  return state.verificationTokenMinter
-}

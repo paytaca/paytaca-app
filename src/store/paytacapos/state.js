@@ -20,7 +20,6 @@ export default function () {
         },
       }
     }),
-    verificationTokenMinter: undefined, // {address: '', category: ''}
     branches: [
       {
         id: 0,
