@@ -271,13 +271,15 @@ export default {
             name: 'app-sweep',
             query: { w: extractWifFromUrl(value) }
           })
-        } else if (value.includes('bitcoincash:')) {
+        } else if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
           // redirect to send page
           const loadingDialog = vm.loadingDialog()
           setTimeout(() => {
             loadingDialog.hide()
           }, 700)
-          if (value.includes('bitcoincash:q') || value.includes('bitcoincash:p') || value.includes('bitcoincash:?')) {
+          if (value.includes('bitcoincash:q') || value.includes('bitcoincash:p') ||
+              value.includes('bitcoincash:?') || value.includes('bchtest:q')
+          ) {
             const query = {
               assetId: vm.$store.getters['assets/getAssets'][0].id,
               tokenType: 1,
