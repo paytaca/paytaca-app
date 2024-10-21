@@ -779,6 +779,7 @@ import { backend } from 'src/marketplace/backend'
 import { Checkout, Rider, Payment, Location } from 'src/marketplace/objects'
 import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { errorParser, formatTimestampToText, getISOWithTimezone, round } from 'src/marketplace/utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { Wallet, loadWallet } from 'src/wallet'
 import { Device } from '@capacitor/device';
 import { debounce, useQuasar } from 'quasar'
@@ -1887,7 +1888,7 @@ async function updateCashbackAmount() {
   // return backend.post(`http://localhost:8000/api/cashback/calculate_cashback/`, data)
   return backend.post(`cashback/calculate_cashback/`, data)
     .then(response => {
-      const bch = parseFloat(response?.data?.cashback_amount)
+      const bch = round(parseFloat(response?.data?.cashback_amount), 8)
       const fiatAmount = round(payment.value.bchPrice.price * bch, 3)
       cashback.value = {
         amountBch: bch,
@@ -1897,7 +1898,8 @@ async function updateCashbackAmount() {
       }
       cashback.value.parsedMessage = parseCashbackMessage(
         response?.data.message,
-        bch, fiatAmount,
+        bch,
+        parseFiatCurrency(fiatAmount, checkoutCurrency.value),
         response?.data?.merchant_name,
       )
       return response
