@@ -700,6 +700,7 @@ import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Storefront } from 'src/marketplace/objects'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
 import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor, round } from 'src/marketplace/utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted, inject, onActivated, onDeactivated } from 'vue'
@@ -1551,7 +1552,7 @@ async function updateCashbackAmounts() {
 
       return backend.post(`cashback/calculate_cashback/`, data)
         .then(response => {
-          const bch = parseFloat(response?.data?.cashback_amount)
+          const bch = round(parseFloat(response?.data?.cashback_amount), 8)
           const fiatAmount = round(payment.bchPrice.price * bch, 3)
           const cashback = {
             paymentId: payment?.id,
@@ -1562,7 +1563,8 @@ async function updateCashbackAmounts() {
           }
           cashback.parsedMessage = parseCashbackMessage(
             response?.data.message,
-            bch, fiatAmount,
+            bch,
+            parseFiatCurrency(fiatAmount, orderCurrency.value),
             response?.data?.merchant_name,
           )
           cashbacks.value.push(cashback)
