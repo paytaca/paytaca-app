@@ -370,17 +370,16 @@ async function updateMerchantInfo() {
   loading.value = true
   
   const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
-  try {
-    const response = await $store.dispatch('paytacapos/getMerchantIndex')
-    const index = response.data.index
+  let index = props.merchant?.index
+
+  if (index === -1 || props.merchant === undefined) {
+    const response = await $store.dispatch('paytacapos/getLatestMerchantIndex', walletHash.value)
+    index = response.data.index
     const pubkey = getPubKey(index)
+
     data.index = index
     data.pukey = pubkey
-  } catch (err) {
-    // added try-catch here for handling of obsolete wallets
-    // TODO: remove this try-catch after watchtower deployment of payment-vault
   }
-
 
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {
