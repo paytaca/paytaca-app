@@ -3,9 +3,9 @@ export default function () {
     merchants: [].map(() => {
       return {
         id: 0,
+        index: null,
         walletHash: '',
         name: '',
-        verificationTokenCategory: '',
         primaryContactNumber: '',
         branchCount: 0,
         posDeviceCount: 0,
