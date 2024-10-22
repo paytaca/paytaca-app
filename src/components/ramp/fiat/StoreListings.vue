@@ -463,7 +463,7 @@ export default {
         scrollElement.scrollTop = 0
       }
     },
-    selectCurrency (index) {
+    async selectCurrency (index) {
       if (index === 0) {
         this.isAllCurrencies = true
         this.selectedCurrency = { symbol: 'All' }
@@ -471,6 +471,7 @@ export default {
         this.selectedCurrency = this.fiatCurrencies[index]
         this.isAllCurrencies = false
       }
+      await this.resetAndRefetchListings(true)
     },
     async selectListing (listing) {
       await this.$router.push({ name: 'p2p-store-form', params: { ad: listing.id } })

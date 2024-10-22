@@ -57,7 +57,13 @@
               <p v-if="error" style="color: red; font-size: 20px;">
                 {{ error }}
               </p>
-              <q-btn v-if="completed || error" class="q-mt-md" @click="$router.push('/')">{{ $t("GoToHome") }}</q-btn>
+              <q-btn
+                v-if="completed || error"
+                class="q-mt-md button"
+                @click="$router.push('/')"
+              >
+                {{ $t("GoToHome") }}
+              </q-btn>
             </div>
           </div>
         </div>
@@ -166,7 +172,16 @@ export default {
         } else {
           share2 = giftCode
         }
-        const privateKey = sss.combine([share1, share2])
+
+        let privateKey
+        try {
+          privateKey = sss.combine([share1, share2])
+        } catch (error) {
+          // fallback for when sss.combine causes an error because share2 was
+          // not decrypted successfully and thus contains unreadable characters
+          // when recovering gift
+          privateKey = sss.combine([share1, giftCode])
+        }
         vm.sweeper = new SweepPrivateKey(privateKey.toString())
         vm.sweeper.getBchBalance().then(function (data) {
           vm.bchAmount = data.spendable || 0
@@ -197,7 +212,7 @@ export default {
         })
       }).catch((error) => {
         console.log(error)
-        vm.error = error.response.data.message
+        vm.error = error?.response?.data?.message
         vm.processing = false
       })
     },
