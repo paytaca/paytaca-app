@@ -3,7 +3,7 @@ export default function () {
     merchants: [].map(() => {
       return {
         id: 0,
-        index: -1,
+        index: null,
         walletHash: '',
         name: '',
         primaryContactNumber: '',
