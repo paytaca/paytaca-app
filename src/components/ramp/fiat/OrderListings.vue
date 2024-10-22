@@ -319,7 +319,6 @@ export default {
     }
   },
   async mounted () {
-    // this.fetchPaymentTypes()
     this.updateFilters()
     this.fetchFiatCurrencies()
     this.resetAndRefetchListings()
@@ -455,28 +454,6 @@ export default {
         this.selectedCurrency = this.fiatCurrencies[index]
         this.isAllCurrencies = false
       }
-    },
-    fetchPaymentTypes () {
-      const vm = this
-      return new Promise((resolve, reject) => {
-        vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? 'all' : this.selectedCurrency?.symbol })
-          .then(() => {
-            const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
-            resolve(paymentTypes)
-          })
-          .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
     },
     async fetchFiatCurrencies () {
       const vm = this
