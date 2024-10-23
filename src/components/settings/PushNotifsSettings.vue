@@ -13,6 +13,7 @@
             v-model="enablePushNotifs"
             color="blue-9"
             keep-color
+            @click="handleNotifsSubscription"
           />
         </q-item-section>
       </q-item>
@@ -42,7 +43,11 @@
 </template>
 
 <script>
+import Watchtower from 'watchtower-cash-js'
+
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { loadWallet } from 'src/wallet'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 
 export default {
   name: 'PushNotifsSettings',
@@ -86,7 +91,31 @@ export default {
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    async handleNotifsSubscription () {
+      const vm = this
+      const multiWalletIndex = vm.$store.getters['global/getWalletIndex']
+      const wallet = await loadWallet('BCH', multiWalletIndex)
+      const walletHashes = [
+        getWalletByNetwork(wallet, 'bch').getWalletHash(),
+        getWalletByNetwork(wallet, 'slp').getWalletHash(),
+        wallet.sBCH.getWalletHash()
+      ]
+
+      if (vm.enablePushNotifs) {
+        await vm.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+        if (!vm.$pushNotifications.isEnabled && !vm.promptedPushNotifications) {
+          await vm.$pushNotifications.openPushNotificationsSettingsPrompt({
+            message: 'Enable push notifications to receive updates from the app'
+          }).catch(console.log)
+        } else {
+          vm.$pushNotifications.watchtower = new Watchtower(vm.$store.state.global.isChipnet)
+          await vm.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
+        }
+      } else {
+        await vm.$pushNotifications.unsubscribe(walletHashes)
+      }
+    }
   }
 }
 </script>
