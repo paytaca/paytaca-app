@@ -375,10 +375,10 @@ async function updateMerchantInfo() {
   if (index === null || props.merchant === undefined) {
     const response = await $store.dispatch('paytacapos/getLatestMerchantIndex', walletHash.value)
     index = response.data.index
-    const pubkey = getPubKey(index)
+    const pubkey = await getPubKey(index)
 
     data.index = index
-    data.pukey = pubkey
+    data.pubkey = pubkey.receiving
   }
 
   $store.dispatch('paytacapos/updateMerchantInfo', data)
