@@ -284,9 +284,9 @@ export function generateLinkCode(context, data) {
 }
 
 
-export async function getMerchantIndex (context) {
+export async function getLatestMerchantIndex (context, walletHash) {
   const url = `paytacapos/merchants/latest_index/`
-  return posBackend.get(url)
+  return posBackend.post(url, { wallet_hash: walletHash })
     .then(response => Promise.resolve(response))
     .catch(err => Promise.reject(err))
 }
