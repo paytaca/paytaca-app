@@ -24,113 +24,111 @@
       </div>
 
       <div>
-        <q-pull-to-refresh @refresh="refreshNotifsList">
-          <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
-            <q-btn
-              flat
-              round
-              icon="refresh"
-              :disable="isLoading"
-              @click="refreshNotifsList()"
-            />
-            <q-btn
-              flat
-              round
-              :disable="isLoading"
-              icon="delete"
-            />
-            <q-btn
-              flat
-              round
-              :disable="isLoading"
-              icon="filter_alt"
-              @click="openFilterDialog"
-            />
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
+          <q-btn
+            flat
+            round
+            icon="refresh"
+            :disable="isLoading"
+            @click="refreshNotifsList()"
+          />
+          <q-btn
+            flat
+            round
+            :disable="isLoading"
+            icon="delete"
+          />
+          <q-btn
+            flat
+            round
+            :disable="isLoading"
+            icon="filter_alt"
+            @click="openFilterDialog"
+          />
+        </div>
+
+        <template v-if="isLoading">
+          <q-card-section class="q-pt-sm flex flex-center">
+            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          </q-card-section>
+        </template>
+
+        <template v-else>
+          <div v-if="notifsList.length > 0">
+            <div
+              class="q-pb-sm q-gutter-y-sm"
+              style="height: 70vh; overflow-y: scroll;"
+            >
+              <transition-group
+                appear
+                leave-active-class="animated zoomOut fast"
+                v-for="(notif, index) in notifsList"
+                :key="`notif-${index}`"
+              >
+                <q-slide-item
+                  left-color="red"
+                  right-color="red"
+                  class="pt-card-2 text-bow item-border"
+                  :class="getDarkModeClass(darkMode)"
+                  :key="`notif-${index}`"
+                  @left="(event) => onSwipe(event, index)"
+                  @right="(event) => onSwipe(event, index)"
+                  v-if="!notif.is_hidden"
+                >
+                  <template v-slot:left>
+                    <q-icon name="delete" /> {{ $t('Delete') }}
+                  </template>
+                  <template v-slot:right>
+                    {{ $t('Delete') }} <q-icon name="delete" />
+                  </template>
+
+                  <transition
+                    appear
+                    leave-active-class="animated zoomOut fast"
+                  >
+                    <div class="row q-py-sm q-px-md">
+                      <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
+                        {{ notif.title }}
+                      </span><br/>
+                      <span class="col-12">{{ notif.message }}</span>
+                      <span
+                        class="col-12 q-mt-xs text-caption"
+                        align="right"
+                        style="color: gray;"
+                      >
+                        {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
+                      </span>
+                    </div>
+                  </transition>
+                </q-slide-item>
+              </transition-group>
+            </div>
+
+            <div class="row flex-center q-mt-lg">
+              <q-pagination
+                padding="xs"
+                :modelValue="notifsPage"
+                :max="maxPages"
+                :max-pages="6"
+                :dark="darkMode"
+                :class="getDarkModeClass(darkMode)"
+                :hide-below-pages="2"
+                @update:modelValue="(val) => {
+                  notifsPage = val
+                  refreshNotifsList(null)
+                }"
+              />
+            </div>
           </div>
 
-          <template v-if="isLoading">
-            <q-card-section class="q-pt-sm flex flex-center">
-              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-            </q-card-section>
-          </template>
-
-          <template v-else>
-            <div v-if="notifsList.length > 0">
-              <div
-                class="q-pb-sm q-gutter-y-sm"
-                style="height: 70vh; overflow-y: scroll;"
-              >
-                <transition-group
-                  appear
-                  leave-active-class="animated zoomOut fast"
-                  v-for="(notif, index) in notifsList"
-                  :key="`notif-${index}`"
-                >
-                  <q-slide-item
-                    left-color="red"
-                    right-color="red"
-                    class="pt-card-2 text-bow item-border"
-                    :class="getDarkModeClass(darkMode)"
-                    :key="`notif-${index}`"
-                    @left="(event) => onSwipe(event, index)"
-                    @right="(event) => onSwipe(event, index)"
-                    v-if="!notif.is_hidden"
-                  >
-                    <template v-slot:left>
-                      <q-icon name="delete" /> {{ $t('Delete') }}
-                    </template>
-                    <template v-slot:right>
-                      {{ $t('Delete') }} <q-icon name="delete" />
-                    </template>
-
-                    <transition
-                      appear
-                      leave-active-class="animated zoomOut fast"
-                    >
-                      <div class="row q-py-sm q-px-md">
-                        <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                          {{ notif.title }}
-                        </span><br/>
-                        <span class="col-12">{{ notif.message }}</span>
-                        <span
-                          class="col-12 q-mt-xs text-caption"
-                          align="right"
-                          style="color: gray;"
-                        >
-                          {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                        </span>
-                      </div>
-                    </transition>
-                  </q-slide-item>
-                </transition-group>
-              </div>
-
-              <div class="row flex-center q-mt-sm">
-                <q-pagination
-                  padding="xs"
-                  :modelValue="notifsPage"
-                  :max="maxPages"
-                  :max-pages="6"
-                  :dark="darkMode"
-                  :class="getDarkModeClass(darkMode)"
-                  :hide-below-pages="2"
-                  @update:modelValue="(val) => {
-                    notifsPage = val
-                    refreshNotifsList(null)
-                  }"
-                />
-              </div>
-            </div>
-
-            <div
-              class="text-center text-subtitle1"
-              style="color: gray"
-              v-else
-            >
-              No notifications
-            </div>
-          </template>
-        </q-pull-to-refresh>
+          <div
+            class="text-center text-subtitle1"
+            style="color: gray"
+            v-else
+          >
+            No notifications
+          </div>
+        </template>
       </div>
     </q-card>
   </q-dialog>
