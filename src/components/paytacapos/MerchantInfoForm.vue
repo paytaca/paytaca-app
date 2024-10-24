@@ -181,6 +181,9 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const loading = ref(false)
 
+const wallet = ref(null)
+onMounted(async () => wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex']))
+
 const walletHash = computed(() => {
   if (props.merchant?.walletHash) return props.merchant?.walletHash
   return $store.getters['global/getWallet']('bch')?.walletHash
@@ -362,8 +365,7 @@ async function selectCoordinates(opts={ autoFocusSearch: false }) {
 }
 
 async function getPubKey (index) {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  return await wallet.BCH.getPublicKey(undefined, undefined, true, index)
+  return await wallet.value.BCH.getPublicKey(undefined, undefined, true, index)
 }
 
 async function updateMerchantInfo() {
@@ -380,6 +382,8 @@ async function updateMerchantInfo() {
     data.index = index
     data.pubkey = pubkey.receiving
   }
+
+  await wallet.value.BCH.getNewAddressSet(index) // subscribe addresses used in vault
 
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {
