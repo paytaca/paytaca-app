@@ -1,5 +1,4 @@
 import { backend as posBackend } from "src/wallet/pos"
-import { loadWallet } from 'src/wallet'
 import { bus } from "src/wallet/event-bus"
 import axios from 'axios'
 
@@ -46,6 +45,8 @@ export function fetchMerchants(context, data) {
  * @param {String} data.location.country
  * @param {String} data.location.longitude
  * @param {String} data.location.latitude
+ * @param {Number} data.index -- optional
+ * @param {String} data.pubkey -- optional
  */
 export async function updateMerchantInfo(context, data) {
   if (!data?.walletHash) return Promise.reject(new Error('wallet hash required'))
@@ -56,11 +57,6 @@ export async function updateMerchantInfo(context, data) {
     allow_duplicates: true, // temporary field
     ...data,
   }
-
-  const wallet = await loadWallet('BCH', context.getters['global/getWalletIndex'])
-  const receivingPubkeys = await wallet.BCH.getPublicKey(undefined, undefined, true)
-  const pubkey = receivingPubkeys.receiving
-  Object.assign(payload, { pubkey })
 
   const promise = data?.id
     ? posBackend.patch(`paytacapos/merchants/${data?.id}/`, payload, { authorize: true })
