@@ -119,3 +119,20 @@ export async function hideItemUpdate (item) {
       console.log(error)
     })
 }
+
+export async function getPushNotifConfigs (deviceId) {
+  let data = null
+
+  await axios.post(
+    `${process.env.ENGAGEMENT_HUB_URL}devicenotif/wallethashdevice/get_push_notifs_settings/`,
+    { device_id: deviceId }
+  )
+    .then(response => {
+      data = response.data
+    })
+    .catch(error => {
+      console.log(error)
+    })
+
+  return data
+}

@@ -45,9 +45,11 @@
 <script>
 import Watchtower from 'watchtower-cash-js'
 
+import { BigNumber } from 'ethers'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadWallet } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { getPushNotifConfigs } from 'src/utils/engagementhub-utils'
 
 export default {
   name: 'PushNotifsSettings',
@@ -55,6 +57,7 @@ export default {
   data () {
     return {
       enablePushNotifs: false,
+
       notifsList: [
         // {
         //   label: 'Promotions',
@@ -66,22 +69,27 @@ export default {
         // },
         {
           label: this.$t('Transactions'),
+          db_col: 'is_tr_enabled',
           isEnabled: false
         },
         {
           label: this.$t('Cashback'),
+          db_col: 'is_cb_enabled',
           isEnabled: false
         },
         {
           label: this.$t('Marketplace'),
+          db_col: 'is_mp_enabled',
           isEnabled: false
         },
         {
           label: 'AnyHedge',
+          db_col: 'is_ah_enabled',
           isEnabled: false
         },
         {
           label: 'P2P Exchange',
+          db_col: 'is_rp_enabled',
           isEnabled: false
         }
       ]
@@ -92,6 +100,13 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     }
+  },
+
+  async mounted () {
+    const deviceId = BigNumber.from('0x' + this.$pushNotifications.deviceId).toString()
+    const data = await getPushNotifConfigs(deviceId)
+    console.log(data)
+    this.enablePushNotifs = data.is_enabled
   },
 
   methods: {
