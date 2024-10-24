@@ -607,29 +607,18 @@ export default {
           vm.adData.fixedPrice = parseFloat(data.fixed_price)
           vm.adData.floatingPrice = parseFloat(data.floating_price)
           vm.adData.fiatCurrency = data.fiat_currency
-          vm.adData.tradeAmount = parseFloat(data.trade_amount)
-          vm.adData.tradeFloor = parseFloat(data.trade_floor)
-          // vm.adData.tradeCeiling = parseFloat(data.trade_ceiling)
-          // if trade amount is lesser than trade_ceiling, set trade_amount as trade_ceiling
+
           let tradeAmount = parseFloat(data.trade_amount)
+          if (data.trade_amount_in_fiat) tradeAmount = tradeAmount.toFixed(2)
+          vm.adData.tradeAmount = tradeAmount
+
+          let tradeFloor = parseFloat(data.trade_floor)
           let tradeCeiling = parseFloat(data.trade_ceiling)
-
           if (data.trade_limits_in_fiat) {
-            // if trade_limits in fiat and trade_amount in BCH
-            // convert trade_amount to fiat
-            if (!data.trade_amount_in_fiat) {
-              tradeAmount = tradeAmount * vm.marketPrice
-            }
-            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
-          } else {
-            // If trade_limits in BCH and trade_amount in fiat:
-            // convert trade amount to BCH
-            if (data.trade_amount_in_fiat) {
-              tradeAmount = tradeAmount / vm.marketPrice
-            }
-            tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+            tradeFloor = tradeFloor.toFixed(2)
+            tradeCeiling = tradeCeiling.toFixed(2)
           }
-
+          vm.adData.tradeFloor = tradeFloor
           vm.adData.tradeCeiling = tradeCeiling
           vm.adData.paymentMethods = data.payment_methods
           vm.adData.isPublic = data.is_public
