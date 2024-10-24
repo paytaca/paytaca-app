@@ -76,12 +76,10 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
 
 const NOTIFS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}devicenotif/` })
 const NOTIF_TYPES = {
-  GE: $t('General'),
   MP: $t('Marketplace'),
   CB: $t('Cashback'),
   AH: 'AnyHedge',
-  RP: 'Ramp P2P',
-  GI: $t('Gifts'),
+  RP: 'P2P Exchange',
   TR: $t('Transactions')
 }
 

@@ -65,15 +65,19 @@ export default {
         //   isEnabled: false
         // },
         {
-          label: 'Transactions',
+          label: this.$t('Transactions'),
           isEnabled: false
         },
         {
-          label: 'Cashbacks',
+          label: this.$t('Cashback'),
           isEnabled: false
         },
         {
-          label: 'Marketplace',
+          label: this.$t('Marketplace'),
+          isEnabled: false
+        },
+        {
+          label: 'AnyHedge',
           isEnabled: false
         },
         {

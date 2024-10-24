@@ -157,7 +157,7 @@ export default {
       notifsList: [],
       isLoading: false,
       notifsPage: 1,
-      notifsTypes: ['GE', 'MP', 'CB', 'AH', 'RP', 'GI', 'TR'],
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR'],
       maxPages: 0
     }
   },
