@@ -13,7 +13,6 @@
             v-model="enablePushNotifs"
             color="blue-9"
             keep-color
-            @click="handleNotifsSubscription"
           />
         </q-item-section>
       </q-item>
@@ -56,14 +55,14 @@ export default {
     return {
       enablePushNotifs: false,
       notifsList: [
-        {
-          label: 'Promotions',
-          isEnabled: false
-        },
-        {
-          label: 'Events',
-          isEnabled: false
-        },
+        // {
+        //   label: 'Promotions',
+        //   isEnabled: false
+        // },
+        // {
+        //   label: 'Events',
+        //   isEnabled: false
+        // },
         {
           label: 'Transactions',
           isEnabled: false
