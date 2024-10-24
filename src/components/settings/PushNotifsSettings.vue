@@ -13,6 +13,7 @@
             v-model="enablePushNotifs"
             color="blue-9"
             keep-color
+            @click="handleNotifsSubscription"
           />
         </q-item-section>
       </q-item>

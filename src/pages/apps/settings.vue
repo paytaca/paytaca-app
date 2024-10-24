@@ -178,7 +178,9 @@
           </q-list>
         </div>
 
-        <PushNotifsSettings />
+        <template v-if="isMobile">
+          <PushNotifsSettings />
+        </template>
 
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
           <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('AppInfo') }}</p>
@@ -259,6 +261,11 @@ export default {
     ThemeSelector,
     PushNotifsSettings
   },
+  computed: {
+    isMobile () {
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    }
+  },
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
@@ -274,7 +281,7 @@ export default {
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
-    }
+    },
   },
   methods: {
     getDarkModeClass,
