@@ -531,6 +531,7 @@ export default {
     isNotDefaultTheme,
     async loadFormData () {
       this.loading = true
+      this.getInitialMarketPrice()
       // determine if form is edit or create
       if (this.$route.name === 'p2p-ads-edit-form') {
         await this.fetchAd()
@@ -545,7 +546,6 @@ export default {
 
       await this.fetchArbiters()
       await this.getFiatCurrencies()
-      this.getInitialMarketPrice()
       this.updatePriceValue(this.adData.priceType)
       this.setupWebsocket()
       this.loading = false
