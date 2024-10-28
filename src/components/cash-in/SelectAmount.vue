@@ -20,8 +20,8 @@
           </div>
         </template>
       </q-input>
-      <div v-if="currency.cashin_presets" class="row justify-between text-right subtext q-pr-sm q-pt-xs" style="font-size: 14px">
-        <div class="col-auto">
+      <div class="row justify-between text-right q-pr-sm q-pt-xs" style="font-size: 14px">
+        <div v-if="fiatPresets.length > 0" class="col-auto">
           <q-btn
             class="sm-font-size"
             padding="none"
@@ -46,8 +46,8 @@
       <div class="col-5" v-for="(option, index) in presetOptions" :key="option">
         <q-btn
           rounded
-          :outline="index !== selectedOption"
-          :disable="denomAvailable(index)"
+          :outline="index !== selectedOptionIndex"
+          :disable="!adOptions || !denomAvailable(index)"
           :color="getButtonColor(index)"
           class="full-width q-py-sm"
           @click="selectOption(option, index)">
@@ -70,18 +70,18 @@
 export default {
   props: {
     paymentType: Object,
-    amountAdCount: Object,
     currency: Object,
-    ads: Object
+    adOptions: Object,
+    fiatPresets: Array
   },
   emits: ['select-amount', 'submit-order', 'update-presets'],
   data () {
     return {
       amount: 0,
       amountBchOptions: [0.02, 0.04, 0.1, 0.25, 0.5, 1],
-      amountFiatOptions: [],
+      amountFiatOptions: this.fiatPresets,
       amountFiatEqOptions: [],
-      selectedOption: null,
+      selectedOptionIndex: null,
       byFiat: true
     }
   },
@@ -93,16 +93,14 @@ export default {
       return this.byFiat ? this.amountFiatEqOptions : this.amountBchOptions
     },
     unavailableDenoms () {
-      let hasUnavailables = false
-      if (this.amountAdCount) {
-        for (let i = 0; i < this.bchPresetOptions.length; i++) {
-          if (this.amountAdCount[this.bchPresetOptions[i]] === 0) {
-            hasUnavailables = true
-            break
-          }
+      let hasUnavailable = false
+      for (const key in this.adOptions) {
+        if (this.adOptions[key].length === 0) {
+          hasUnavailable = true
+          break
         }
       }
-      return hasUnavailables
+      return hasUnavailable
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -111,68 +109,56 @@ export default {
       let amount = this.amount
       if (amount === '' || isNaN(amount)) return 0
       if (!this.byFiat) {
-        amount = Number((amount) * parseFloat(this.ad?.price)).toFixed(2)
+        amount = Number((amount) * parseFloat(this.selectedAd?.price)).toFixed(2)
       } else {
-        amount = Number((amount) / parseFloat(this.ad?.price)).toFixed(2)
+        amount = Number((amount) / parseFloat(this.selectedAd?.price)).toFixed(2)
       }
       return Number(amount)
     },
-    ad () {
-      if (this.ads?.length > 0) return this.ads[0]
-      return null
-    },
     disableProceedBtn () {
-      return this.amount === 0 || !this.ad
+      return this.amount === 0 || !this.selectedAd
     },
     selectedPaymentMethod () {
-      const paymentMethod = this.ad.payment_methods.filter(e => e.payment_type.id === this.paymentType.id)
+      const paymentMethod = this.selectedAd.payment_methods.filter(e => e.payment_type.id === this.paymentType.id)
       if (paymentMethod?.length === 0) return null
       return paymentMethod[0]
+    },
+    selectedAd () {
+      let ad = null
+      if (this.amount) {
+        const adList = this.adOptions[this.amount]
+        if (adList?.length > 0) {
+          ad = adList[0]
+        }
+      }
+      return ad
     }
   },
   watch: {
     byFiat () {
       this.amount = 0
-      this.selectedOption = null
-      this.computeFiatPresets()
+      this.selectedOptionIndex = null
       this.updatePresets()
     }
   },
   mounted () {
-    this.computeFiatPresets()
-    this.updatePresets()
+    this.byFiat = this.fiatPresets.length > 0 || false
   },
   methods: {
     denomAvailable (index) {
-      return this.amountAdCount[this.bchPresetOptions[index]] === 0
+      const adCount = this.adOptions[this.presetOptions[index]]?.length || 0
+      return adCount > 0
     },
     updatePresets () {
-      this.$emit('update-presets', this.bchPresetOptions)
-    },
-    computeFiatPresets () {
-      const fiatPresets = this.currency.cashin_presets
-      const eqBchPresets = []
-
-      if (fiatPresets) {
-        fiatPresets.forEach(fiatAmount => {
-          if (!fiatAmount.isNaN) {
-            const bchAmount = Number(Number((fiatAmount) / parseFloat(this.ad?.price)).toFixed(2))
-            eqBchPresets.push(bchAmount)
-          }
-        })
-        this.amountFiatOptions = fiatPresets
-        this.amountFiatEqOptions = eqBchPresets
-      } else {
-        this.byFiat = false
-      }
+      this.$emit('update-presets', this.byFiat)
     },
     submitOrder () {
       let amount = this.amount
       if (this.byFiat) {
-        amount = Number((amount) / parseFloat(this.ad?.price)).toFixed(8)
+        amount = Number((amount) / parseFloat(this.selectedAd?.price)).toFixed(8)
       }
       const payload = {
-        ad: this.ad?.id,
+        ad: this.selectedAd?.id,
         crypto_amount: amount,
         payment_methods: [this.selectedPaymentMethod?.id],
         is_cash_in: true
@@ -180,11 +166,16 @@ export default {
       this.$emit('submit-order', payload)
     },
     selectOption (option, index) {
-      this.amount = option.toString()
-      this.selectedOption = index
+      if (this.amount !== option.toString()) {
+        this.amount = option.toString()
+        this.selectedOptionIndex = index
+      } else {
+        this.amount = '0'
+        this.selectedOptionIndex = null
+      }
     },
     getButtonColor (index) {
-      if (index === this.selectedOption) {
+      if (index === this.selectedOptionIndex || this.denomAvailable(index)) {
         return 'blue-6'
       } else {
         return this.darkMode ? 'blue-grey-2' : 'blue-grey-8'
