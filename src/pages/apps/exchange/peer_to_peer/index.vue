@@ -99,9 +99,9 @@ export default {
     this.fetchUser()
     this.setupWebsocket()
   },
-  async beforeUnmount () {
-    this.$store.commit('ramp/resetPaymentTypes')
-  },
+  // async beforeUnmount () {
+  // this.$store.commit('ramp/resetPaymentTypes')
+  // },
   methods: {
     isNotDefaultTheme,
     handleSessionEvent () {

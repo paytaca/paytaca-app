@@ -163,7 +163,7 @@ import {
   customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseCashbackMessage } from 'src/utils/cashback-utils'
+import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
 
 export default {
   components: {

@@ -87,8 +87,6 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { loadWallet } from "src/wallet"
-import { VerificationTokenMinter } from 'src/vouchers/verification_token_minter.js'
 
 // dialog plugins requirement
 const $emit = defineEmits([
@@ -164,93 +162,18 @@ const defaultBranch = computed(() => {
   return
 })
 
-async function getFirstPosPubkeys (posid) {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  const posFirstIndex = Number('1' + padPosId(posid))
-  return await wallet.BCH.getPublicKey(undefined, undefined, true, posFirstIndex)
-}
-
-async function getZerothAddressAndWif () {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  const address = await wallet.BCH.getAddressSetAt(0)
-  const wif = await wallet.BCH.getPrivateKey(undefined, undefined, true)
-  return {
-    address: address.receiving,
-    wif: wif.receiving,
-  }
-}
-
-// device vault token address
-async function mintMintingNftToDeviceVault (tokenAddress, category) {  
-  const { address, wif } = await getZerothAddressAndWif()
-  const opts = {
-    params: {
-      merchant: {
-        category,
-      },
-      funder: {
-        address,
-        wif,
-      }
-    },
-    options: {
-      network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
-    }
-  }
-  
-  const minter = new VerificationTokenMinter(opts)
-  const result = await minter.mintMintingNft(tokenAddress)
-  loading.value = false
-}
-
-async function checkBalance () {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  const response = await wallet.BCH.getBalance()
-  const enough = response.balance >= 0.00003
-  if (!enough) {
-    $q.notify({
-      color: 'brandblue',
-      message: $t('DeviceVerificationMintingFeeMsg'),
-      icon: 'mdi-information',
-      timeout: 3000
-    })
-  }
-  return enough
-}
-
 async function savePosDevice() {
+  loading.value = true
+
   let posid = props.posDevice?.posid
   const data = Object.assign({
     wallet_hash: props.posDevice?.walletHash || walletData?.value?.walletHash,
     branch_id: posDeviceForm.value.branchId,
     merchant_id: props.posDevice?.merchantId || props.merchantId,
   }, posDeviceForm.value)
-  let hasVault = false
-  loading.value = true
-
-  if (!props.newDevice) {
-    data.posid = posid
-    
-    const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
-    const response = await posBackend.get(url)
-    if (response.data.results.length === 0) {
-      const enough = await checkBalance()
-      if (!enough) {
-        loading.value = false
-        return
-      }
-    } else {
-      hasVault = response.data.results.length > 0
-    }
-  } else {
-    data.posid = -1
-    const payload = { wallet_hash: data.wallet_hash }
-    const response = await posBackend.post('/paytacapos/devices/latest_posid/', payload)
-    posid = response.data.posid
-  }
-
-  const receivingPubkey = await getFirstPosPubkeys(posid)
-  data.pubkey = receivingPubkey.receiving
+  
+  if (!props.newDevice) data.posid = posid
+  else data.posid = -1
 
   const apiRequest = posBackend.post(`/paytacapos/devices/`, data, { authorize: true })
     .catch(error => {
@@ -259,16 +182,6 @@ async function savePosDevice() {
     })
     .finally(() => {
       loading.value = false
-      const url = `/vouchers/device-vaults/?posid=${posid}&wallet_hash=${data.wallet_hash}`
-      posBackend.get(url).then(response => {
-        if (response?.data?.results?.length > 0 && !hasVault) {
-          const deviceVault = response?.data?.results[0]
-          mintMintingNftToDeviceVault(
-            deviceVault.token_address,
-            deviceVault.category
-          )
-        }
-      })
     })
 
   onDialogOK(apiRequest)

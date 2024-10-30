@@ -366,8 +366,6 @@ const phrases = {
       MintingDeviceMintingNft: 'Minting verification minting NFT to device vault',
       MerchantVerificationMintingFeeMsg: 'Need at least 0.00003 BCH for minting merchant verification token minter',
       DeviceVerificationMintingFeeMsg: 'Need at least 0.00002 BCH for minting device verification token minter',
-      MerchantCreationNote: 'Creating a merchant now requires funds for vouchers support on Paytaca POS',
-      DeviceCreationNote: 'Creating a device now requires funds for vouchers support on Paytaca POS',
     },
     {
       ReferenceId: "Reference ID",
@@ -1088,7 +1086,8 @@ const phrases = {
       AddressCouldNotBeFound: 'Sorry, that address could not be found.',
       SweepSuccessMessage: "Assets claimed successfully",
       AllLimitsReachedMessage: 'Sorry, this transaction did not qualify for a cashback as it exceeds limits set by the campaign.',
-      CashbackAttribute: 'Cashback received for transacting with'
+      CashbackAttribute: 'Cashback received for transacting with',
+      FilterNotifications: 'Filter Notifications'
     }
   ],
   dynamic: [

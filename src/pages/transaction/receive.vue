@@ -98,12 +98,16 @@
             </div>
             <div
               v-if="asset.symbol === 'BCH'"
-              @click="amountDialog = true"
               class="text-center button button-text-primary"
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
             >
-              {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
+              <span class="cursor-pointer" @click="amountDialog = true">
+                {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
+              </span>
+              <span class="q-ml-md text-negative cursor-pointer" @click="amount = ''">
+                {{ amount ? 'Remove Amount' : '' }}
+              </span>
             </div>
           </div>
         </div>

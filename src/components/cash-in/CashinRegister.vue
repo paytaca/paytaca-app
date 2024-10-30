@@ -14,7 +14,10 @@
       v-model="username"
       placeholder="Enter Username"
       :error="!!errorMessage"
-      :loading="loggingIn">
+      :loading="loggingIn"
+      maxlength="15"
+      counter
+      >
       <template v-slot:append>
         <q-btn v-if="!loggingIn" round dense flat icon="send" @click="registerUser" />
       </template>

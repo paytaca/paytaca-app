@@ -1,5 +1,5 @@
 <template>
-  <q-dialog persistent seamless ref="dialog">
+  <q-dialog persistent seamless ref="dialog" class="no-click-outside">
     <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-end">
         <q-btn

@@ -16,6 +16,10 @@ class MarketplacePushNotificationsManager {
         this.appInfo = pushNotificationsManager.appInfo
         return response
       })
+      .catch(error => {
+        console.log(error)
+        return null
+      })
   }
 
   fetchDeviceId() {

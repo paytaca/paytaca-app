@@ -183,4 +183,19 @@ export function isValidWif(value='') {
   return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(value)
 }
 
+export function extractWifFromUrl(value='') {
+  if (typeof value !== 'string') return
+
+  const removePrefixes = ['bitcoincash:', 'bch-wif:']
+
+  const wifWithoutPrefix = removePrefixes.reduce((result, prefix) => {
+    return result.startsWith(prefix) ? result.slice(prefix.length) : result;
+  }, value);
+
+  if (!isValidWif(wifWithoutPrefix)) return
+
+  return wifWithoutPrefix
+}
+
+
 export default SweepPrivateKey

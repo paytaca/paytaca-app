@@ -1,9 +1,13 @@
 import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
 
+const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
-const CASHBACK_URL = `${ENGAGEMENT_HUB_URL}cashback/`
+
+// ========== CASHBACK ========== //
+
+const CASHBACK_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}cashback/` })
 
 const CASHBACK_LIMIT_MESSAGES = {
   WITH_LIMIT_MERCHANT_NAME: 'WithLimitMerchantNameMessage',
@@ -28,13 +32,11 @@ const FALLBACK_CASHBACK_LIMIT_MESSAGES = {
     '<span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.'
 }
 
-const { t: $t } = i18n.global
-
 export async function getCashbackAmount (payload) {
   let data = null
 
-  await axios
-    .post(`${CASHBACK_URL}campaign/get_cashback_amount/`, payload)
+  await CASHBACK_URL
+    .post('campaign/get_cashback_amount/', payload)
     .then(response => {
       data = response.data
     })
@@ -68,4 +70,54 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
   }
 
   return `${message1} ${message2}`
+}
+
+// ========== NOTIFICATIONS ========== //
+
+const NOTIFS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}devicenotif/` })
+const NOTIF_TYPES = {
+  GE: $t('General'),
+  MP: $t('Marketplace'),
+  CB: $t('Cashback'),
+  AH: 'AnyHedge',
+  RP: 'Ramp P2P',
+  GI: $t('Gifts'),
+  TR: $t('Transactions')
+}
+
+export async function getWalletNotifications (walletHash, notifType, page = 1) {
+  let data = []
+
+  await NOTIFS_URL
+    .post(
+      'notification/get_wallet_notifications/',
+      {
+        wallet_hash: walletHash,
+        notif_type: notifType,
+        page
+      }
+    )
+    .then(response => {
+      data = response.data
+    })
+    .catch(error => {
+      console.log(error)
+    })
+
+  return data
+}
+
+export function parseNotifType (type) {
+  return NOTIF_TYPES[type]
+}
+
+export async function hideItemUpdate (item) {
+  await NOTIFS_URL
+    .patch(`notification/${item.id}`, { is_hidden: true })
+    .then(response => {
+      // notif hidden successfully
+    })
+    .catch(error => {
+      console.log(error)
+    })
 }

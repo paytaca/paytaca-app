@@ -181,6 +181,9 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const loading = ref(false)
 
+const wallet = ref(null)
+onMounted(async () => wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex']))
+
 const walletHash = computed(() => {
   if (props.merchant?.walletHash) return props.merchant?.walletHash
   return $store.getters['global/getWallet']('bch')?.walletHash
@@ -361,46 +364,26 @@ async function selectCoordinates(opts={ autoFocusSearch: false }) {
     })
 }
 
-async function checkBalance () {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  const response = await wallet.BCH.getBalance()
-  const enough = response.balance >= 0.00003
-  if (!enough) {
-    $q.notify({
-      color: 'brandblue',
-      message: $t('MerchantVerificationMintingFeeMsg'),
-      icon: 'mdi-information',
-      timeout: 3000
-    })
-  }
-  return enough
+async function getPubKey (index) {
+  return await wallet.value.BCH.getPublicKey(undefined, undefined, true, index)
 }
 
 async function updateMerchantInfo() {
   loading.value = true
   
   const data = Object.assign({ walletHash: walletHash.value }, merchantInfoForm.value)
-  let hasMinter = false
-  
-  if (data?.id) {
-    const response = await $store.dispatch('paytacapos/getMerchant', { id: data.id })
-    if (response?.data?.minter) {
-      hasMinter = true
-    } else {
-      const enough = await checkBalance() 
-      if (!enough) return
-    }
+  let index = props.merchant?.index
+
+  if (index === null || props.merchant === undefined) {
+    const response = await $store.dispatch('paytacapos/getLatestMerchantIndex', walletHash.value)
+    index = response.data.index
+    const pubkey = await getPubKey(index)
+
+    data.index = index
+    data.pubkey = pubkey.receiving
   }
 
-  let minterDetails = $store.getters['paytacapos/verificationTokenMinter']
-  if (!minterDetails && !hasMinter) {
-    minterDetails = await $store.dispatch('paytacapos/mintGenesisVerificationMintingNft')
-  }
-
-  if (minterDetails?.category && minterDetails?.address) {
-    data.minter_category = minterDetails.category
-    data.minter_address = minterDetails.address
-  }
+  await wallet.value.BCH.getNewAddressSet(index) // subscribe addresses used in vault
 
   $store.dispatch('paytacapos/updateMerchantInfo', data)
     .then(response => {
@@ -409,7 +392,6 @@ async function updateMerchantInfo() {
         color: 'positive',
         message: $t('MerchantDetailsSaved', {}, 'Merchant details saved'),
       })
-      $store.commit('paytacapos/clearVerificationTokenMinter')
       $emit('saved', response?.data)
       return response
     })

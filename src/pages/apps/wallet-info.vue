@@ -632,6 +632,7 @@ export default {
         if (vaultCheck.length === 0) {
           vm.$store.commit('global/clearVault')
           vm.$router.push('/accounts')
+          setTimeout(() => { location.reload() }, 500)
         } else {
           vm.switchWallet(undeletedWallets[0])
         }

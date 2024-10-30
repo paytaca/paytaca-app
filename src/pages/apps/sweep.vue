@@ -249,7 +249,7 @@
 import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
-import SweepPrivateKey from '../../wallet/sweep'
+import SweepPrivateKey, { extractWifFromUrl } from '../../wallet/sweep'
 import QrScanner from '../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
@@ -534,7 +534,7 @@ export default {
   watch: {
     w() {
       if (this.wif || this.sweeper) return
-      this.wif = this.w
+      this.wif = extractWifFromUrl(this.w) || this.w
       this.getTokens(true)
     }
   },
@@ -548,7 +548,7 @@ export default {
     })
 
     if (vm.w) {
-      vm.wif = vm.w
+      vm.wif =  extractWifFromUrl(vm.w) || vm.w
       vm.getTokens(true)
     }
   }

@@ -366,7 +366,7 @@
             </div>
           </q-banner>
           <q-banner v-if="cashback?.parsedMessage" rounded class="bg-grad q-mb-md">
-            {{ cashback?.parsedMessage }}
+            <span v-html="cashback?.parsedMessage"></span>
           </q-banner>
           <q-input
             dense
@@ -779,6 +779,7 @@ import { backend } from 'src/marketplace/backend'
 import { Checkout, Rider, Payment, Location } from 'src/marketplace/objects'
 import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { errorParser, formatTimestampToText, getISOWithTimezone, round } from 'src/marketplace/utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { Wallet, loadWallet } from 'src/wallet'
 import { Device } from '@capacitor/device';
 import { debounce, useQuasar } from 'quasar'
@@ -803,7 +804,7 @@ import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDi
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
-import { parseCashbackMessage } from 'src/utils/cashback-utils'
+import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
 
 const forceShowReview = ref(false)
 onMounted(() => {
@@ -1884,9 +1885,10 @@ async function updateCashbackAmount() {
   cashback.value = { amountBch: 0, fiatAmount: 0, message: '', merchantName: '', parsedMessage: '' }
   if (!data.merchant_address || !data.customer_address || !data.satoshis) return
 
+  // return backend.post(`http://localhost:8000/api/cashback/calculate_cashback/`, data)
   return backend.post(`cashback/calculate_cashback/`, data)
     .then(response => {
-      const bch = parseFloat(response?.data?.cashback_amount)
+      const bch = round(parseFloat(response?.data?.cashback_amount), 8)
       const fiatAmount = round(payment.value.bchPrice.price * bch, 3)
       cashback.value = {
         amountBch: bch,
@@ -1896,8 +1898,9 @@ async function updateCashbackAmount() {
       }
       cashback.value.parsedMessage = parseCashbackMessage(
         response?.data.message,
-        bch, fiatAmount,
-        response?.data?.merchantName,
+        bch,
+        parseFiatCurrency(fiatAmount, checkoutCurrency.value),
+        response?.data?.merchant_name,
       )
       return response
     })

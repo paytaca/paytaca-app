@@ -1,5 +1,7 @@
 import { Store } from '..'
 import { backend } from 'src/exchange/backend'
+import { toRaw } from 'vue'
+
 
 export function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
@@ -327,12 +329,89 @@ export function fetchAppeals (context, { appealState = null, params = null, over
 }
 
 export function fetchPaymentTypes (context, { currency = null }) {
+  const currencyFormat = currency
   currency = currency !== 'All' ? currency : null
+  const previousPT = toRaw(context.state?.paymentTypes[currency === null ? 'All' : currency])
+
   return new Promise((resolve, reject) => {
     backend.get('/ramp-p2p/payment-type', { params: { currency: currency }, authorize: true })
       .then(response => {
         const paymentTypes = response.data
-        context.commit('updatePaymentTypes', { paymentTypes: paymentTypes, currency: currency })
+
+        // adding new payment type to default payment type filter
+        if (previousPT) {
+          if (paymentTypes.length > previousPT.length) {
+            const diff = paymentTypes.filter(x => !previousPT.some(y => x.id === y.id))
+
+            diff.forEach((x) => {
+              let temp = null
+
+              // store filter
+              if (context.state?.storeBuyFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.storeBuyFilters[currencyFormat])
+                temp.payment_types?.push(x.id)
+
+                context.commit('updateStoreBuyFilters', { filter: temp, currency: currencyFormat })
+              }
+              if (context.state?.storeSellFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.storeSellFilters[currencyFormat])
+                temp.payment_types?.push(x.id)
+
+                context.commit('updateStoreSellFilters', { filter: temp, currency: currencyFormat })
+              }
+
+              // order filter
+              if (context?.state?.ongoingOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.ongoingOrderFilters)
+                temp[currencyFormat]?.payment_types?.push(x.id)
+
+                context.commit('updateOngoingOrderFilters', { filter: temp, currency: currencyFormat })
+              }
+              if (context?.state?.completedOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.completedOrderFilters)
+                temp[currencyFormat]?.payment_types?.push(x.id)
+
+                context.commit('updateCompletedOrderFilters', { filter: temp, currency: currencyFormat })
+              }
+            })
+          } else if (paymentTypes.length < previousPT.length) {
+            const diff = previousPT.filter(x => !paymentTypes.some(y => x.id === y.id))
+
+            diff.forEach((x) => {
+              // remove item from filter
+              let temp = null
+
+              // store filter
+              if (context?.state?.storeBuyFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.storeBuyFilters[currencyFormat])
+                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
+
+                context.commit('updateStoreBuyFilters', { filter: temp, currency: currencyFormat })
+              }
+              if (context?.state?.storeSellFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.storeSellFilters[currencyFormat])
+                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
+
+                context.commit('updateStoreSellFilters', { filter: temp, currency: currencyFormat })
+              }
+
+              // order filters
+              if (context?.state?.ongoingOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.ongoingOrderFilters)
+                temp[currencyFormat].payment_types = temp[currencyFormat]?.payment_types.filter(y => y !== x.id)
+
+                context.commit('updateOngoingOrderFilters', { filter: temp, currency: currencyFormat })
+              }
+              if (context?.state?.completedOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
+                temp = toRaw(context?.state?.completedOrderFilters)
+                temp[currencyFormat].payment_types = temp[currencyFormat]?.payment_types.filter(y => y !== x.id)
+
+                context.commit('updateCompletedOrderFilters', { filter: temp, currency: currencyFormat })
+              }
+            })
+          }
+        }
+        context.commit('updatePaymentTypes', { paymentTypes: paymentTypes, currency: currencyFormat })
         resolve(paymentTypes)
       })
       .catch(error => {

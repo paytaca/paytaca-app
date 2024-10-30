@@ -45,7 +45,7 @@ export default {
     },
     darkMode: {
       type: Boolean,
-      defualt: false
+      default: false
     }
   },
 

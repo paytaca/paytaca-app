@@ -1,4 +1,5 @@
 import { deleteMnemonic } from './../../wallet'
+import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 
 function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
@@ -83,6 +84,7 @@ export function deleteWallet (state, index) {
 
 export function toggleIsChipnet (state) {
   state.isChipnet = !state.isChipnet
+  deleteP2PExchangeAuthToken()
 }
 
 export function toggleAutoGenerateAddress (state) {
@@ -117,14 +119,8 @@ export function setLanguage (state, language) {
 export function setCountry (state, data) {
   state.country.name = data.country.name
   state.country.code = data.country.code
-
-  if (data.country.code === 'HK') {
-    state.theme = 'payhero'
-    state.denomination = data.denomination
-  } else {
-    state.theme = 'default'
-    state.denomination = 'BCH'
-  }
+  state.theme = data.country.code === 'HK' ? 'payhero' : 'default'
+  state.denomination = !['BCH', 'mBCH', 'Satoshis'].includes(data.denomination) ? 'BCH' : data.denomination
 }
 
 export function setConnectedAddress (state, details) {

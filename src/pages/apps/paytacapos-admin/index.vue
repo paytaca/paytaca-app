@@ -17,7 +17,7 @@
           round
           icon="add"
           class="btn-scan button text-white bg-grad"
-          @click="checkBalance"
+          @click="openMerchantInfoDialog()"
         />
       </div>
 
@@ -151,19 +151,6 @@ const reLogin = async () => {
 }
 const reLoginDebounced = debounce(reLogin, 500)
 
-async function checkBalance () {
-  try {
-    $q.loading.show({ delay: 250, group: 'merchantCheckBalance', backgroundColor: 'none' })
-    const wallet = await getOrInitWallet()
-    const response = await wallet.BCH.getBalance()
-    const enough = response.balance >= 0.00003
-    confirm.value = !enough
-    if (enough) openMerchantInfoDialog()
-  } finally {
-    $q.loading.hide('merchantCheckBalance')
-  }
-}
-
 const walletType = 'bch'
 const walletData = computed(() => {
   const _walletData = $store.getters['global/getWallet'](walletType)
@@ -179,10 +166,7 @@ const walletData = computed(() => {
 })
 
 const wallet = ref([].map(() => new Wallet)[0])
-async function getOrInitWallet() {
-  if (wallet.value) return wallet.value
-  return await initWallet()
-}
+
 async function initWallet() {
   const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   wallet.value = _wallet
