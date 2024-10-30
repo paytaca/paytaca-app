@@ -33,12 +33,12 @@
               :disable="isLoading"
               @click="refreshNotifsList()"
             />
-            <q-btn
+            <!-- <q-btn
               flat
               round
               :disable="isLoading"
               icon="delete"
-            />
+            /> -->
             <q-btn
               flat
               round
