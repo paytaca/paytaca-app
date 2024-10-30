@@ -467,10 +467,10 @@ export default {
       type: String,
       required: false,
     },
-    useAddressPath: {
-      type: String,
-      required: false,
-    },
+    // useAddressPath: {
+    //   type: String,
+    //   required: false,
+    // },
     backPath: {
       type: String,
       default: '/'
@@ -1681,18 +1681,18 @@ export default {
       const wallet = new Wallet(mnemonic, this.network)
       this.wallet = markRaw(wallet)
       if (this.isSmartBch) this.wallet.sBCH.getOrInitWallet()
-      if (!this.isSmartBch && this.useAddressPath) {
-        let wif
-        if (this.isSLP) wif = await wallet.SLP.getPrivateKey(this.useAddressPath)
-        else wif = await wallet.BCH.getPrivateKey(this.useAddressPath)
-        this.singleWallet = new SingleWallet({
-          wif, 
-          apiBaseUrl: wallet.BCH.watchtower._baseUrl,
-          isChipnet: this.isChipnet,
-        })
-      } else {
-        this.singleWallet = undefined
-      }
+      // if (!this.isSmartBch && this.useAddressPath) {
+      //   let wif
+      //   if (this.isSLP) wif = await wallet.SLP.getPrivateKey(this.useAddressPath)
+      //   else wif = await wallet.BCH.getPrivateKey(this.useAddressPath)
+      //   this.singleWallet = new SingleWallet({
+      //     wif, 
+      //     apiBaseUrl: wallet.BCH.watchtower._baseUrl,
+      //     isChipnet: this.isChipnet,
+      //   })
+      // } else {
+      //   this.singleWallet = undefined
+      // }
       return { wallet, singleWallet: this.singleWallet }
     },
     onQRUploaderClick () {
