@@ -27,9 +27,9 @@
         readonly
         dense
         filled
-        :loading="!balanceLoaded || retryBalance(contract.balance)"
+        :loading="!this.contract.balance"
         :dark="darkMode"
-        v-model="contract.balance">
+        :model-value="contract.balance">
         <template v-slot:append>
           <span>BCH</span>
         </template>
@@ -75,6 +75,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
+import { EscrowManager } from 'src/exchange/contract/manager'
 
 export default {
   data () {
@@ -93,6 +94,7 @@ export default {
       txidLoaded: false,
       balanceLoaded: false,
       disableTxidInput: true,
+      escrowManager: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -101,11 +103,10 @@ export default {
     data: Object
   },
   watch: {
-    txidLoaded () {
-      console.log('txidLoaded:', this.txidLoaded)
+    'transactionId' () {
       this.checkTransferStatus()
     },
-    balanceLoaded () {
+    'contract.balance' () {
       this.checkTransferStatus()
     },
     verifyingTx (val) {
@@ -119,8 +120,8 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.loadTransactionId()
     vm.loadContract()
+    vm.loadTransactionId()
   },
   beforeUnmount () {
     clearInterval(this.timer)
@@ -129,25 +130,20 @@ export default {
     getDarkModeClass,
     async loadTransactionId () {
       if (!this.transactionId) {
-        this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
+        this.transactionId = await this.escrowManager.fetchTransactionId(this.data?.action)
       }
-      await this.fetchTransactions()
       console.log('transactionId:', this.transactionId)
     },
-    loadContract () {
-      this.fetchContract().then(this.fetchContractBalance())
+    async loadContract () {
+      await this.initEscrowManager()
+      await this.fetchContract()
+      await this.fetchContractBalance()
     },
-    fetchContractBalance () {
-      return new Promise((resolve, reject) => {
-        if (!this.data?.escrow) return 0
-        this.data?.escrow?.getBalance(this.contract.address)
-          .then(balance => {
-            this.contract.balance = balance
-            this.balanceLoaded = true
-            resolve(balance)
-          })
-          .catch(error => reject(error))
-      })
+    async fetchContractBalance () {
+      const balance = await this.escrowManager?.fetchContractBalance(this.data?.action)
+      this.contract.balance = balance
+      console.log('contract.balance:', this.contract.balance)
+      return balance
     },
     async fetchTransactions () {
       console.log('fetchTransactions')
@@ -180,24 +176,22 @@ export default {
           })
       })
     },
+    async initEscrowManager () {
+      this.escrowManager?.closeContractWebSocket()
+      this.escrowManager = null
+      this.contractError = null
+
+      const orderId = this.data?.orderId
+      this.escrowManager = new EscrowManager(orderId)
+      await this.escrowManager.buildContract()
+      console.log('escrowManager:', this.escrowManager)
+    },
     async verifyRelease () {
       const vm = this
-      const body = { txid: this.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
-        .then(response => {
-          console.log(response.data)
-        })
+      await this.escrowManager.verifyRelease(this.transactionId)
         .catch(error => {
-          console.error(error?.response || error)
-          vm.errorMessage = error.response?.data?.error
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          console.error(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -206,24 +200,10 @@ export default {
     },
     async verifyEscrow () {
       const vm = this
-      const body = { txid: vm.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
-        .then(response => {
-          console.log(response.data)
-        })
+      await this.escrowManager?.verifyEscrow(this.transactionId)
         .catch(error => {
-          console.error(error?.response || error)
-          if (error.response?.data?.error === 'txid is required') {
-            vm.errorMessage = 'Transaction ID is required for verification'
-          }
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          console.error(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -244,39 +224,43 @@ export default {
           break
       }
     },
-    checkTransferStatus () {
-      if (this.balanceLoaded && this.txidLoaded) {
-        this.verifyingTx = true
-        switch (this.data?.action) {
-          case 'RELEASE':
-            if (this.contract.balance === 0) {
-              if (!this.transactionId) {
-                this.disableTxidInput = false
-              }
-              this.submitAction()
-            } else {
-              this.verifyingTx = false
-              // poll for balance with exponential backoff
-              this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
+    async checkTransferStatus () {
+      console.log('checkTransferStatus')
+      // if (this.balanceLoaded && this.txidLoaded) {
+      this.verifyingTx = true
+      switch (this.data?.action) {
+        case 'RELEASE':
+          if (this.contract.balance === 0) {
+            if (!this.transactionId) {
+              this.disableTxidInput = false
             }
-            break
-          case 'ESCROW':
-            if (this.contract.balance > 0) {
-              if (!this.transactionId) {
-                this.disableTxidInput = false
-              }
-              this.submitAction()
-            } else {
-              this.verifyingTx = false
-              // poll for balance with exponential backoff
-              this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
-            }
-            break
-          default:
+            this.submitAction()
+          } else {
             this.verifyingTx = false
-        }
-        this.loading = false
+            // poll for balance with exponential backoff
+            // this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
+            await this.fetchContractBalance()
+          }
+          break
+        case 'ESCROW':
+          console.log('++++++++++++++++++:', this.contract.balance)
+          if (this.contract.balance > 0) {
+            if (!this.transactionId) {
+              this.disableTxidInput = false
+            }
+            this.submitAction()
+          } else {
+            this.verifyingTx = false
+            // poll for balance with exponential backoff
+            // this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
+            await this.fetchContractBalance()
+          }
+          break
+        default:
+          this.verifyingTx = false
       }
+      this.loading = false
+      // }
     },
     copyToClipboard (value) {
       if (!value) return

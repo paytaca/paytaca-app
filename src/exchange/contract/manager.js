@@ -10,19 +10,19 @@ const bchjs = new BCHJS()
 export class EscrowManager {
   constructor (orderId) {
     this.orderId = orderId
+    this.escrow = null
     this.setupContractWebSocket()
   }
 
+  closeContractWebSocket () {
+    this.websocket.closeConnection()
+  }
+
   setupContractWebSocket () {
-    const websocket = new WebSocketManager(`${getBackendWsUrl()}order/${this.orderId}/`)
-    websocket.subscribeToMessages((message) => {
+    this.websocket = new WebSocketManager(`${getBackendWsUrl()}order/${this.orderId}/`)
+    this.websocket.subscribeToMessages((message) => {
       if (message?.contract_address) {
-        try {
-          this._validateContractAddressMatch(message?.contract_address)
-        } catch (error) {
-          console.error(error)
-          this._emitMessage({ type: 'error', code: 'ContractAddressMismatch', error: error })
-        }
+        this._validateContractAddressMatch(message?.contract_address)
         this._emitMessage({ type: 'message', message: message })
       }
     })
@@ -38,13 +38,18 @@ export class EscrowManager {
     }
   }
 
-  async buildContract (arbiterId, forceGen) {
+  async buildContract (arbiterId = null, forceGen = false) {
     const network = this._getNetwork()
     const fees = await this.fetchFees()
+    if (forceGen) await this._createContract(arbiterId, forceGen)
     const contract = await this._fetchContract(arbiterId, forceGen)
+    this._validateAddressNetworks(contract?.addresses)
+    this.escrow = new EscrowContract(contract.pubkeys, contract?.addresses, fees, contract?.timestamp, network)
+    this._validateContractAddressMatch(contract?.address)
+  }
 
-    this._validateAddressesNetwork(contract.addresses)
-    this.escrow = new EscrowContract(contract.pubkeys, contract.addresses, fees, contract.timestamp, network)
+  async fetchContract () {
+    return await this._fetchContract()
   }
 
   /**
@@ -53,17 +58,12 @@ export class EscrowManager {
    * @param {Boolean} forceGen Indicates if to force regenerate the contract address in the backend.
    * @returns {Object} The generated/existing contract.
    */
-  async _fetchContract (arbiterId, forceGen) {
-    const params = {
-      arbiter_id: arbiterId,
-      force: forceGen
-    }
+  async _fetchContract (arbiterId = null, forceGen = false) {
     let contract = null
-    await backend.get(`/ramp-p2p/order/${this.orderId}/contract/`, { params: params, authorize: true })
+    await backend.get(`/ramp-p2p/order/${this.orderId}/contract/`, { authorize: true })
       .then(response => {
-        console.log('_fetchContract:', response)
         contract = response.data
-        this._validateContractAddressMatch(contract.address)
+        console.log('contract:', contract)
       })
       .catch(error => {
         console.error(error.response || error)
@@ -73,8 +73,10 @@ export class EscrowManager {
           }
           if (error.response.status === 404) {
             // create the contract if not existing
-            this._createContract(arbiterId, forceGen)
-            contract = this._fetchContract(arbiterId, forceGen)
+            if (arbiterId) {
+              this._createContract(arbiterId, forceGen)
+              contract = this._fetchContract(arbiterId, forceGen)
+            }
           }
         } else {
           bus.emit('network-error')
@@ -95,7 +97,6 @@ export class EscrowManager {
       arbiter_id: arbiterId,
       force: forceGen
     }
-    console.log('body:', body)
     let contract = null
     await backend.post('/ramp-p2p/order/contract/', body, { authorize: true })
       .then(response => {
@@ -116,6 +117,10 @@ export class EscrowManager {
   }
 
   async fetchFees () {
+    return await this._fetchFees()
+  }
+
+  async _fetchFees () {
     let fees = null
     await backend.get('/ramp-p2p/order/contract/fees/', { authorize: true })
       .then(response => {
@@ -139,7 +144,7 @@ export class EscrowManager {
     return fees
   }
 
-  _validateAddressesNetwork (addresses) {
+  _validateAddressNetworks (addresses) {
     // validate that addresses and network match
     const globalNetwork = this._getNetwork()
     Object.keys(addresses).forEach(key => {
@@ -150,9 +155,16 @@ export class EscrowManager {
   }
 
   _validateContractAddressMatch (address) {
-    console.log(`_validateContractAddressMatch | ${address} === ${this.escrow.contract.address}`)
-    if (address === this.escrow.contract.address) {
-      throw new Error(`Contract addresses mismatch: ${this.address} !== ${this.escrow.contract.address}`)
+    if (!address || !this.escrow) return
+    console.log('validating contract:', this.escrow?.contract)
+    console.log(`_validateContractAddressMatch | ${address} === ${this.escrow?.contract?.address}`)
+    try {
+      if (address !== this.escrow.contract?.address) {
+        throw new Error(`Contract addresses mismatch: ${this.address} !== ${this.escrow?.contract?.address}`)
+      }
+    } catch (error) {
+      console.error(error)
+      this._emitMessage({ type: 'error', code: 'ContractAddressMismatch', error: error, extra: { contract_address: address } })
     }
   }
 
@@ -160,13 +172,113 @@ export class EscrowManager {
     return Store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet'
   }
 
+  getTransactions () {
+    return this.escrow?.getUtxos()
+  }
+
   release () {
-    this.contract.release()
+    this.escrow.release()
   }
 
   refund () {
-    this.contract.refund()
+    this.escrow.refund()
   }
 
-  verifyTransaction () {}
+  async verifyEscrow (transactionId) {
+    await backend.post(`/ramp-p2p/order/${this.orderId}/verify-escrow/`, { txid: transactionId }, { authorize: true })
+      .then(response => {
+        console.log(response.data)
+      })
+      .catch(error => {
+        console.error(error?.response || error)
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
+        }
+        if (error.response?.data?.error === 'txid is required') {
+          throw new Error('Transaction ID is required for verification')
+        } else {
+          throw new Error(error)
+        }
+      })
+  }
+
+  async verifyRelease (transactionId) {
+    const body = { txid: transactionId }
+    await backend.post(`/ramp-p2p/order/${this.orderId}/verify-release/`, body, { authorize: true })
+      .then(response => {
+        console.log(response.data)
+      })
+      .catch(error => {
+        console.error(error?.response || error)
+        if (error.response) {
+          if (error.response.status === 403) {
+            bus.emit('session-expired')
+          }
+        } else {
+          bus.emit('network-error')
+        }
+        throw new Error(error)
+      })
+  }
+
+  async verifyRefund () {
+
+  }
+
+  async fetchTransactionId (action, orderId) {
+    if (!orderId) orderId = this.orderId
+    let transactionId = Store.getters['ramp/getOrderTxid'](orderId, action)
+    if (!transactionId) {
+      const utxos = await this.escrow?.getUtxos()
+      if (utxos.length > 0) {
+        transactionId = utxos[0]?.txid
+      }
+    }
+    console.log('_____xasdftxis:', transactionId)
+    return transactionId
+  }
+
+  async fetchContractBalance (action) {
+    return await this.exponentialBackoff(this._fetchContractBalance, action, 5, 1000)
+  }
+
+  async _fetchContractBalance (escrow) {
+    let balance = 0
+    if (!escrow) return balance
+    await escrow?.getBalance().then(bal => { balance = bal }).catch(error => { console.error(error) })
+    return balance
+  }
+
+  async exponentialBackoff (fn, action, retries, delayDuration) {
+    const balance = await fn(this.escrow).catch(error => console.error(error))
+    if (this.retryBalance(action, balance)) {
+      if (retries > 0) {
+        console.log(`Attempt failed. Retrying in ${delayDuration / 1000} seconds...`)
+        await this.delay(delayDuration)
+        return this.exponentialBackoff(fn, retries - 1, delayDuration * 2)
+      }
+    }
+    return balance
+  }
+
+  delay (duration) {
+    return new Promise(resolve => setTimeout(resolve, duration))
+  }
+
+  retryBalance (action, balance) {
+    let retry = false
+    switch (action) {
+      case 'RELEASE':
+        if (balance > 0) retry = true
+        break
+      case 'ESCROW':
+        if (balance <= 0) retry = true
+        break
+    }
+    return retry
+  }
 }

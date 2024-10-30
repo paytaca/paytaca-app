@@ -45,7 +45,7 @@
         :dark="darkMode"
         :loading="hasArbiters && !contractAddress"
         :disable="!hasArbiters"
-        v-model="contractAddress">
+        :model-value="contractAddress">
         <template v-slot:append v-if="contractAddress">
           <div @click="copyToClipboard(contractAddress)">
             <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
@@ -112,7 +112,7 @@
     </div>
     <RampDragSlide
       :key="dragSlideKey"
-      :locked="!contractAddressMatch"
+      :locked="!!contractError"
       v-if="showDragSlide"
       :style="{
         position: 'fixed',
@@ -145,7 +145,7 @@ export default {
       adData: null,
       selectedArbiter: null,
       arbiterOptions: [],
-      contractAddress: null,
+      // contractAddress: null,
       fees: null,
       transferAmount: null,
       txid: null,
@@ -155,7 +155,7 @@ export default {
       dragSlideKey: 0,
 
       escrowManager: null,
-      contractError: {},
+      contractError: null,
 
       escrowContract: null,
       escrowBalance: null,
@@ -181,16 +181,19 @@ export default {
     }
   },
   computed: {
+    contractAddress () {
+      return this.escrowManager?.escrow?.contract?.address
+    },
     contractErrorMessage () {
       const errorMessages = {
         ContractAddressMismatch: 'Contract address mismatch'
       }
-      console.log('this.contractError.code:', this.contractError)
-      const message = errorMessages[this.contractError.code]
-      console.log('message:', message)
-      return message
+      // console.log('contractError:', this.contractError)
+      // console.log('errorMessages[this.contractError?.code]:', errorMessages[this.contractError?.code])
+      return errorMessages[this.contractError?.code]
     },
     contractAddressMatch () {
+      // console.log('contractError:', this.contractError)`
       const localContractAddress = this.escrowContract?.getAddress()
       return localContractAddress === this.contractAddress
     },
@@ -224,35 +227,36 @@ export default {
     vm.loadData()
     vm.loadContract()
   },
+  beforeUnmount () {
+    this.escrowManager?.closeContractWebSocket()
+  },
   methods: {
     getDarkModeClass,
     onReloadContractAddress () {
-      this.generateContractAddress(true)
+      this.initEscrowManager(true)
       this.$emit('refresh')
     },
     selectArbiter () {
-      this.contractAddress = null
-      this.generateContractAddress()
+      this.initEscrowManager(true)
     },
     async loadContract () {
       const vm = this
       await vm.fetchArbiters()
       // init arbiter and contract address if already existing
       if (vm.data.arbiter) vm.selectedArbiter = vm.data.arbiter
-      if (vm.data.contractAddress) vm.contractAddress = vm.data.contractAddress
+      // if (vm.data.contractAddress) vm.contractAddress = vm.data.contractAddress
 
       // if arbiters are available, generate contract address
       if (vm.hasArbiters) {
         // generate contract address if not existing yet
         if (!vm.contractAddress) {
-          // generates the contract address
-          await vm.generateContractAddress()
+          // generates the contract address and object
+          await vm.initEscrowManager()
         }
       }
-      // generates the contract object
-      await vm.generateContract()
+
       // mark contract as pending for verification, if the contract is already funded
-      vm.escrowBalance = await vm.escrowContract.getBalance()
+      vm.escrowBalance = await vm.escrowManager?.escrow?.getBalance()
       if (vm.escrowBalance > 0) {
         if (vm.order?.status?.value === 'CNF') {
           await vm.escrowPendingOrder()
@@ -282,16 +286,10 @@ export default {
     },
     async escrowBch () {
       const vm = this
-      if (!vm.contractAddressMatch) {
-        vm.sendErrors.push('Contract address mismatch')
-        vm.dragSlideOn = true
-        vm.dragSlideKey++
-        return
-      }
       console.log('Contract address matched. Sending BCH...')
       vm.sendingBch = true
       try {
-        const utxos = await vm.escrowContract.getUtxos()
+        const utxos = await vm.escrowManager?.escrow?.contract?.getUtxos()
         if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
@@ -307,7 +305,7 @@ export default {
               }
             }
             vm.$store.commit('ramp/saveTxid', txidData)
-            vm.escrowBalance = await vm.escrowContract.getBalance()
+            vm.escrowBalance = await vm.escrowManager?.escrow?.contract?.getBalance()
             vm.$emit('success', vm.txid)
             if (vm.order?.status?.value === 'CNF') {
               await vm.escrowPendingOrder()
@@ -390,20 +388,19 @@ export default {
           })
       })
     },
-    async generateContractAddress (force = false) {
+    async initEscrowManager (force = false) {
+      this.escrowManager?.closeContractWebSocket()
+      this.escrowManager = null
+      this.contractError = null
+
       const orderId = this.order.id
       this.escrowManager = new EscrowManager(orderId)
-      await this.escrowManager.buildContract(this.selectedArbiter.id, force)
       this.escrowManager.subscribeToContract((data) => {
-        console.log('+++++++', data)
-        if (data.message?.contract_address) {
-          console.log('contract_address:', data.message?.contract_address)
-        }
         if (data?.type === 'error') {
           this.contractError = data
-          console.log('___this.contractError:', this.contractError)
         }
       })
+      await this.escrowManager.buildContract(this.selectedArbiter.id, force)
       console.log('escrowManager:', this.escrowManager)
     },
     checkSufficientBalance () {
@@ -437,23 +434,6 @@ export default {
         timeout: 800,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
-      })
-    },
-    async generateContract () {
-      const vm = this
-      const fees = await vm.fetchFees()
-      await vm.fetchContract(vm.order.id).then(contract => {
-        if (vm.escrowContract || !contract) return
-        const publicKeys = contract.pubkeys
-        const addresses = contract.addresses
-        const fees_ = {
-          arbitrationFee: fees.breakdown?.arbitration_fee,
-          serviceFee: fees.breakdown?.service_fee,
-          contractFee: fees.breakdown?.hardcoded_fee
-        }
-        const timestamp = contract.timestamp
-        const isChipnet = vm.$store.getters['global/isChipnet']
-        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, isChipnet)
       })
     },
     fetchContract (orderId) {
