@@ -9,6 +9,7 @@
             <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
             {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
           </div>
+          <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;"/>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
             <div class="q-mx-lg q-px-xs q-mb-sm">
               <TradeInfoCard
@@ -336,6 +337,7 @@ export default {
     bus.on('relogged', this.loadData)
   },
   async mounted () {
+    console.log('url: ', window.location.href)
     bus.emit('hide-menu')
     await this.loadData()
   },
