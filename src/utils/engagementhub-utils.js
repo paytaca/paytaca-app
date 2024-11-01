@@ -113,7 +113,7 @@ export function parseNotifType (type) {
 
 export async function hideItemUpdate (item) {
   await NOTIFS_URL
-    .patch(`notification/${item.id}`, { is_hidden: true })
+    .patch(`notification/${item.id}/`, { is_hidden: true })
     .then(response => {
       // notif hidden successfully
     })
