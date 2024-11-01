@@ -724,7 +724,7 @@ const phrases = {
       CreateCall: 'Create call',
       UpdatingPayment: 'Updating payment',
       UpdatePaymentErrMsg: 'Unable to update status',
-      TransactionId: 'Transaction ID Copied',
+      TransactionId: 'Transaction ID',
       AmountDoesntMatchTitle: 'Amount does not match',
       AmountDoesntMatchMsg: 'Amount does not match with expected amount. Continue?',
       RefundAll: 'Refund all',
