@@ -102,7 +102,7 @@
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
             >
-              <span class="cursor-pointer" @click="amountDialog = true">
+              <span class="cursor-pointer" @click="amountDialog = true; customKeyboardState = 'show';">
                 {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
               </span>
               <span class="q-ml-md text-negative cursor-pointer" @click="amount = ''">
@@ -205,7 +205,7 @@ export default {
       readonlyState: false,
       amountDialog: false,
       customKeyboardState: 'dismiss',
-      setAmountInFiat: false,
+      setAmountInFiat: true,
       tokens: []
     }
   },
