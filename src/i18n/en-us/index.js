@@ -1274,7 +1274,7 @@ export default {
   Transaction: "Transaction",
   TransactionDeadline: "Transaction Deadline",
   TransactionHistory: "Transaction History",
-  TransactionId: "Transaction ID Copied",
+  TransactionId: "Transaction ID",
   TransactionLimitReachedMessage: "But since it falls within the set transaction limit, you will only receive<br/><span class=\"cashback-text amount\">{amountBch} BCH or {amountFiat}</span>.",
   TransactionSent: "Transaction Sent",
   Transactions: "Transactions",
