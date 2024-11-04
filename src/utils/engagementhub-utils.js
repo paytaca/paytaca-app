@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
+// import { Capacitor } from '@capacitor/core'
 
 const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
@@ -123,8 +124,8 @@ export async function hideItemUpdate (item) {
 export async function getPushNotifConfigs (deviceId) {
   let data = null
 
-  await axios.post(
-    `${process.env.ENGAGEMENT_HUB_URL}devicenotif/wallethashdevice/get_push_notifs_settings/`,
+  await NOTIFS_URL.post(
+    '/wallethashdevice/get_push_notifs_settings/',
     { device_id: deviceId }
   )
     .then(response => {
@@ -135,4 +136,47 @@ export async function getPushNotifConfigs (deviceId) {
     })
 
   return data
+}
+
+export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId) {
+  let id = deviceNotifTypesId
+  if (id !== -1) { // patch
+    const data = {}
+    if (type.db_col === 'is_tr_enabled') data.is_tr_enabled = type.isEnabled
+    else if (type.db_col === 'is_cb_enabled') data.is_cb_enabled = type.isEnabled
+    else if (type.db_col === 'is_mp_enabled') data.is_mp_enabled = type.isEnabled
+    else if (type.db_col === 'is_ah_enabled') data.is_ah_enabled = type.isEnabled
+    else if (type.db_col === 'is_rp_enabled') data.is_rp_enabled = type.isEnabled
+
+    await NOTIFS_URL.patch(
+      `devicenotiftype/${id}/`,
+      data
+    ).then(response => {
+      console.log(response)
+    }).catch(error => {
+      console.log(error)
+    })
+  } else { // post
+    // const platform = Capacitor.getPlatform()
+
+    const data = {
+      is_tr_enabled: false,
+      is_cb_enabled: false,
+      is_mp_enabled: false,
+      is_ah_enabled: false,
+      is_rp_enabled: false,
+      // adjust for ios
+      apns_device: null,
+      gcm_device: Number(deviceId)
+    }
+
+    await NOTIFS_URL.post('devicenotiftype/', data)
+      .then(response => {
+        console.log(response)
+      }).catch(error => {
+        console.log(error)
+      })
+  }
+
+  return id
 }

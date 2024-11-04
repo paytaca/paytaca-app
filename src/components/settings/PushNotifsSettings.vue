@@ -24,24 +24,53 @@
       </q-item>
 
       <template v-if="enablePushNotifs && !isEnablePushNotifsLoading">
-        <q-item
-          v-for="(item, index) in notifsList"
-          :key="`${item}-${index}`"
-        >
+        <q-item>
           <q-item-section>
-            <q-item-label class="q-pl-md pt-setting-menu" :class="getDarkModeClass(darkMode)">
-              {{ item.label }}
+            <q-item-label class="q-pl-sm pt-setting-menu" :class="getDarkModeClass(darkMode)">
+              Events and Promotions
             </q-item-label>
           </q-item-section>
 
           <q-item-section avatar>
             <q-toggle
-              v-model="item.isEnabled"
+              v-model="isEnableEventsAndPromos"
               color="blue-9"
               keep-color
             />
+              <!-- @click="handleNotifTypesSubscription(item)" -->
           </q-item-section>
         </q-item>
+
+        <template v-if="isEnableEventsAndPromos">
+          <q-item
+            v-for="(item, index) in eventsAndPromosSubList"
+            :key="`${item}-${index}`"
+          >
+            <q-item-section>
+              <q-item-label class="q-pl-md pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                {{ item.label }}
+                <q-icon name="info">
+                  <q-tooltip
+                    anchor="top end"
+                    self="bottom end"
+                    max-width="65%"
+                  >
+                    {{ item.subLabel }}
+                  </q-tooltip>
+                </q-icon>
+              </q-item-label>
+            </q-item-section>
+
+            <q-item-section avatar>
+              <q-toggle
+                v-model="item.isEnabled"
+                color="blue-9"
+                keep-color
+              />
+                <!-- @click="handleNotifTypesSubscription(item)" -->
+            </q-item-section>
+          </q-item>
+        </template>
       </template>
     </q-list>
   </div>
@@ -54,7 +83,7 @@ import { BigNumber } from 'ethers'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { loadWallet } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import { getPushNotifConfigs } from 'src/utils/engagementhub-utils'
+import { getPushNotifConfigs, updateDeviceNotifType } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -69,39 +98,20 @@ export default {
     return {
       enablePushNotifs: false,
       isEnablePushNotifsLoading: false,
+      isEnableEventsAndPromos: false,
 
-      notifsList: [
-        // {
-        //   label: 'Promotions',
-        //   isEnabled: false
-        // },
-        // {
-        //   label: 'Events',
-        //   isEnabled: false
-        // },
+      deviceNotifTypesId: -1,
+
+      eventsAndPromosSubList: [
         {
-          label: this.$t('Transactions'),
-          db_col: 'is_tr_enabled',
+          label: 'By Country',
+          subLabel:
+              'Receive push notifications in your country only. If disabled, you will receive notifications from around the world.',
           isEnabled: false
         },
         {
-          label: this.$t('Cashback'),
-          db_col: 'is_cb_enabled',
-          isEnabled: false
-        },
-        {
-          label: this.$t('Marketplace'),
-          db_col: 'is_mp_enabled',
-          isEnabled: false
-        },
-        {
-          label: 'AnyHedge',
-          db_col: 'is_ah_enabled',
-          isEnabled: false
-        },
-        {
-          label: 'P2P Exchange',
-          db_col: 'is_rp_enabled',
+          label: 'By City',
+          subLabel: 'Receive push notifications in your city only. If disabled, you will receive notifications from cities all around the country - if By Country is enabled, else receive notifications from around the world.',
           isEnabled: false
         }
       ]
@@ -118,12 +128,22 @@ export default {
   },
 
   async mounted () {
-    this.isEnablePushNotifsLoading = true
+    const vm = this
+    vm.isEnablePushNotifsLoading = true
 
-    const deviceId = BigNumber.from('0x' + this.$pushNotifications.deviceId).toString()
+    // adjust for ios
+    const deviceId = BigNumber.from('0x' + vm.$pushNotifications.deviceId).toString()
     const data = await getPushNotifConfigs(deviceId)
+
     console.log(data)
-    this.enablePushNotifs = data.is_enabled
+    vm.enablePushNotifs = data.is_enabled
+    // const configs = data.push_notif_configs
+    // if (Object.keys(configs).length > 0) {
+    //   vm.deviceNotifTypesId = configs.id
+    //   vm.notifsList.forEach(type => {
+    //     type.isEnabled = configs[type.db_col]
+    //   })
+    // }
 
     this.isEnablePushNotifsLoading = false
   },
@@ -151,12 +171,19 @@ export default {
         } else {
           vm.$pushNotifications.watchtower = new Watchtower(vm.$store.state.global.isChipnet)
           await vm.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
+          // await vm.handleNotifTypesSubscription(null)
         }
       } else {
         await vm.$pushNotifications.unsubscribe(walletHashes)
+        this.deviceNotifTypesId = -1
       }
 
       vm.isEnablePushNotifsLoading = false
+    },
+    async handleNotifTypesSubscription (type) {
+      // adjust for ios
+      const deviceId = BigNumber.from('0x' + this.$pushNotifications.deviceId).toString()
+      await updateDeviceNotifType(this.deviceNotifTypesId, type, deviceId)
     }
   }
 }
