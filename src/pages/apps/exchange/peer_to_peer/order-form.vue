@@ -9,7 +9,7 @@
             <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
             {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
           </div>
-          <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;"/>
+          <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
             <div class="q-mx-lg q-px-xs q-mb-sm">
               <TradeInfoCard
@@ -219,6 +219,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import ShareDialog from 'src/components/ramp/fiat/dialogs/ShareDialog.vue'
 
 export default {
   setup () {
@@ -348,6 +349,11 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
+    openShareDialog () {
+      this.$q.dialog({
+        component: ShareDialog
+      })
+    },
     onEditAd () {
       // state = 'edit-ad'
       // $emit('updatePageName', 'ad-form-1')
@@ -362,6 +368,7 @@ export default {
       vm.closeWSConnection()
       vm.setupWebsocket()
       vm.isloaded = true
+      console.log('loaded data: ', this.$route.name)
     },
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
