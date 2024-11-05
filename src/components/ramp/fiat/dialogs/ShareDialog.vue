@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialog" full-width position="bottom" transition-show="slide-up">
     <q-card class="q-pb-lg br-15">
-      <div class="q-pl-lg q-pt-md q-pb-sm text-bold" style="font-size: 20px;">Share</div>
+      <div class="q-pl-lg q-pt-md q-pb-sm text-bold" style="font-size: 20px;">Share Ad</div>
 
       <div class="q-px-lg q-pb-sm">
         <q-input v-model="link" readonly outlined dense>
@@ -13,7 +13,7 @@
 
       <div class="row q-pt-sm justify-center">
         <div v-for="(index, shareLink) in shareLinks" :key="index">
-          <q-btn :icon="shareLinks[shareLink].icon" size="lg" padding="0" flat round class="q-mx-md" color="blue-grey-8"/>
+          <q-btn :icon="shareLinks[shareLink].icon" size="lg" padding="0" flat round class="q-mx-md" color="blue-grey-8" :href="shareLinks[shareLink].url" target="blank"/>
         </div>
       </div>
     </q-card>
@@ -26,17 +26,34 @@ export default {
   data () {
     return {
       darkMode: true,
-      link: 'https://test.com/exchange'
+      link: 'https://test.com/exchange/?x=helloThere'
     }
+  },
+  props: {
+    adShareUrl: String
   },
   computed: {
     shareLinks () {
+      const encodedUrl = encodeURI(this.link)
+      const fbAppId = 438643061338284 // using a dev app, might have to replace
+
+      console.log('fbAppId: ', fbAppId)
       const data = {
-        fb: { icon: 'fab fa-facebook'},
-        messenger: { icon: 'fab fa-facebook-messenger' },
-        telegram: { icon: 'telegram' },
-        whatsapp: { icon: 'fab fa-whatsapp' },
-        email: { icon: 'email' }
+        fb: { icon: 'fab fa-facebook', url: `https://www.facebook.com/dialog/share?app_id=${fbAppId}&href=${encodedUrl}&display=popup`},
+        messenger: { icon: 'fab fa-facebook-messenger', url: `b-messenger://share/?link=${encodedUrl}&app_id=${fbAppId}` },
+        telegram: { icon: 'telegram', url: `https://t.me/share?url=${encodedUrl}&text=P2P Exchange Ad` },
+        whatsapp: { icon: 'fab fa-whatsapp', url: `https://wa.me/?text=P2P Exchange Ad\n${encodedUrl}` },
+        email: { icon: 'email', url: `mailto:?body=P2P Exchange Ad: ${encodedUrl}` }
+      }
+
+      if (this.$q.platform.is.mobile) {
+        data.telegram.url = `tg://msg_url?url=${encodedUrl}&text=P2P Exchange Ad`
+        data.messenger = {
+          icon: 'fab fa-facebook-messenger',
+          url: `fb-messenger://share/?link=${encodedUrl}&app_id=${fbAppId}`
+        }
+      } else {
+        delete data.messenger
       }
       return data
     }
@@ -52,15 +69,6 @@ export default {
             icon: 'mdi-clipboard-check'
           })
         })
-      // console.log('copying link: ', value)
-      // this.$copyText(value)
-      // this.$copyText('hello worl')
-      // this.$q.notify({
-      //   message: this.$t('CopiedToClipboard'),
-      //   timeout: 800,
-      //   color: 'blue-9',
-      //   icon: 'mdi-clipboard-check'
-      // })
     }
   }
 }
