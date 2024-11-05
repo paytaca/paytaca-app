@@ -2,27 +2,33 @@
   <div :class="getDarkModeClass(darkMode)" class="q-mx-md q-mb-lg text-bow" :style="`height: ${minHeight}px;`">
     <div class="q-mb-sm q-pb-sm">
       <q-pull-to-refresh @refresh="refreshData">
-        <div class="row items-center q-px-sm" v-if="!showSearch">
-          <!-- currency dialog -->
-          <div class="col-auto">
-            <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
-              <span v-if="isAllCurrencies">{{ $t('All') }}</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+        <div class="items-center q-px-sm" v-if="!showSearch">
+          <div class="row">
+            <!-- currency dialog -->
+            <div class="col-auto">
+              <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
+                <span v-if="isAllCurrencies">{{ $t('All') }}</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+              </div>
+            </div>
+            <q-space />
+            <!-- filters -->
+            <div class="col-auto q-pr-md">
+              <q-btn
+                unelevated
+                ripple
+                dense
+                size="md"
+                icon="search"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                @click="searchState('focus')">
+              </q-btn>
+              <FilterComponent :key="filterComponentKey" type="store" :currency="selectedCurrency?.symbol" :transactionType="transactionType" @filter="onFilterListings"/>
             </div>
           </div>
-          <q-space />
-          <!-- filters -->
-          <div class="col-auto q-pr-md">
-            <q-btn
-              unelevated
-              ripple
-              dense
-              size="md"
-              icon="search"
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
-              @click="searchState('focus')">
-            </q-btn>
-            <FilterComponent :key="filterComponentKey" type="store" :currency="selectedCurrency?.symbol" :transactionType="transactionType" @filter="onFilterListings"/>
+          <div class="q-ml-md">
+            <span><q-badge outline color="blue" rounded @click="openFilterSelection()">Amount <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
+            <span class="q-pl-xs"><q-badge outline color="blue" rounded @click="openFilterSelection()">Payment Types <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
           </div>
         </div>
         <div v-else class="q-px-lg q-mx-xs">
@@ -167,6 +173,7 @@
 <script>
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
+import FilterSelectionDialog from './dialogs/FilterSelectionDialog.vue'
 import { formatCurrency } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -269,6 +276,11 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    openFilterSelection () {
+      this.$q.dialog({
+        component: FilterSelectionDialog
+      })
+    },
     minTradeAmount (ad) {
       let tradeAmount = parseFloat(ad.trade_amount)
       let tradeCeiling = parseFloat(ad.trade_ceiling)
