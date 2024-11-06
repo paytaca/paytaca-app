@@ -27,8 +27,8 @@
             </div>
           </div>
           <div class="q-ml-md">
-            <span><q-badge outline color="blue" rounded @click="openFilterSelection()">Amount <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
-            <span class="q-pl-xs"><q-badge outline color="blue" rounded @click="openFilterSelection()">Payment Types <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
+            <span><q-badge outline color="blue" rounded @click="openFilterSelection('amount')">Amount <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
+            <span class="q-pl-xs"><q-badge outline color="blue" rounded @click="openFilterSelection('paymentTypes')">Payment Types <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
           </div>
         </div>
         <div v-else class="q-px-lg q-mx-xs">
@@ -276,9 +276,15 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
-    openFilterSelection () {
+    openFilterSelection (type) {
+      console.log('filter: ', this.filters)
       this.$q.dialog({
-        component: FilterSelectionDialog
+        component: FilterSelectionDialog,
+        componentProps: {
+          type: type,
+          filter: this.filters,
+          currency: this.selectedCurrency
+        }
       })
     },
     minTradeAmount (ad) {

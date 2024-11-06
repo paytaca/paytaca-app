@@ -25,7 +25,7 @@ import { copyToClipboard } from 'quasar'
 export default {
   data () {
     return {
-      darkMode: true,
+      darkMode: this.$store.getters['darkmode/getStatus'],
       link: 'https://test.com/exchange/?x=helloThere'
     }
   },
