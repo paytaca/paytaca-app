@@ -7,9 +7,6 @@
         <div v-if="type === 'amount'">
           <q-input dense rounded outlined v-model="amount" placeholder="Enter Amount">
           </q-input>
-          <div class="text-center">
-            <q-btn rounded class="text-center q-mt-sm" color="blue" label="filter" />
-          </div>
         </div>
         <div v-if="type === 'paymentTypes'">
           <div class="q-gutter-sm q-pt-sm">
@@ -17,7 +14,8 @@
              class="q-pa-sm"
              rounded
              color="blue-grey-6"
-             :outline="filter.payment_types?.length === paymentTypes?.length"
+             :outline="!paymentTypeAllSelected"
+              @click="selectAllPaymentTypes()"
              >
              {{ $t('DefaultAll') }}
             </q-badge>
@@ -28,13 +26,16 @@
               color="blue-grey-6"
               rounded
               :outline="!filter.payment_types?.includes(payment.id)"
+              @click="setPaymentTypes(payment.id)"
               >
               {{ payment.short_name || payment.full_name }}
             </q-badge>
           </div>
         </div>
+        <div class="text-center">
+          <q-btn rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
+        </div>
       </div>
-      {{ currency }}
     </q-card>
   </q-dialog>
 </template>
@@ -45,24 +46,45 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       paymentTypes: [],
-      amount: null
+      amount: null,
+      // selectedPaymentTypes: [],
+      filter: null
     }
   },
   computed: {
     filterTypeText () {
       return this.type === 'amount' ? 'Filter Ad by Order Amount' : 'Select Payment Type'
+    },
+    paymentTypeAllSelected () {
+      return this.paymentTypes.length === this.filter.payment_types.length
     }
   },
   props: {
     type: String,
-    filter: Object,
+    filterData: Object,
     currency: Object
   },
-  emits: ['submit'],
   mounted () {
+    this.filter = this.filterData
     this.paymentTypes = this.$store.getters['ramp/paymentTypes'](this.currency.symbol || 'All')
-
-    console.log('paymentTypes: ', this.paymentTypes)
+    // this.selectedPaymentTypes = this.filter.payment_types
+  },
+  methods: {
+    selectAllPaymentTypes () {
+      this.filter.payment_types = this.paymentTypes.map(e => e.id)
+    },
+    setPaymentTypes (value) {
+      const tempPaymentType = this.filter.payment_types
+      if (tempPaymentType?.includes(value)) {
+        this.filter.payment_types = tempPaymentType.filter(e => e !== value)
+      } else {
+        this.filter.payment_types.push(value)
+      }
+    },
+    onOKClick () {
+      this.$emit('ok', this.filter)
+      this.$refs.dialog.hide()
+    }
   }
 }
 </script>

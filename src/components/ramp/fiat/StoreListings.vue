@@ -282,10 +282,13 @@ export default {
         component: FilterSelectionDialog,
         componentProps: {
           type: type,
-          filter: this.filters,
+          filterData: this.filters,
           currency: this.selectedCurrency
         }
       })
+        .onOk(filter => {
+          this.onFilterListings(filter)
+        })
     },
     minTradeAmount (ad) {
       let tradeAmount = parseFloat(ad.trade_amount)
