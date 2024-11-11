@@ -338,7 +338,7 @@ export default {
     bus.on('relogged', this.loadData)
   },
   async mounted () {
-    console.log('url: ', window.location.href)
+    // console.log('url: ', window.location.href)
     bus.emit('hide-menu')
     await this.loadData()
   },
@@ -351,7 +351,10 @@ export default {
     formatCurrency,
     openShareDialog () {
       this.$q.dialog({
-        component: ShareDialog
+        component: ShareDialog,
+        componentProps: {
+          adShareUrl: window.location.href
+        }
       })
     },
     onEditAd () {

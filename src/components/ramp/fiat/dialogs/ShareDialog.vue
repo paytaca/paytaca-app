@@ -26,7 +26,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      link: 'https://test.com/exchange/?x=helloThere'
+      link: this.adShareUrl
     }
   },
   props: {
