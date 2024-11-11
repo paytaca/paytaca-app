@@ -74,6 +74,7 @@
                     :key="`notif-${index}`"
                     @left="(event) => onSwipe(event, index)"
                     @right="(event) => onSwipe(event, index)"
+                    @click="clickRedirect(notif)"
                     v-if="!notif.is_hidden"
                   >
                     <template v-slot:left>
@@ -223,6 +224,42 @@ export default {
           this.notifsTypes = data
           this.refreshNotifsList(null)
         })
+    },
+    clickRedirect (notif) {
+      const vm = this
+      console.log('item redirect yey')
+      vm.$refs['notifs-dialog'].hide()
+      switch (notif.notif_type) {
+        case 'TR': {
+          console.log('transaction notif yey')
+          if (notif.extra_url !== '') {
+            const query = {
+              assetId: vm.$store.getters['assets/getAssets'][0].id,
+              tokenType: 1,
+              network: 'BCH',
+              address: notif.extra_url
+            }
+            vm.$router.push({
+              name: 'transaction-send',
+              query
+            })
+          }
+          break
+        } case 'MP': {
+          console.log('marketplace notif yey')
+          break
+        } case 'AH': {
+          console.log('anyhedge notif yey')
+          break
+        } case 'RP': {
+          console.log('p2p exchange notif yey')
+          break
+        } case 'CB': {
+          console.log('cashback notif yey')
+          break
+        } default:
+          break
+      }
     },
 
     formatDate (date) {
