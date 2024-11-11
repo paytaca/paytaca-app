@@ -139,7 +139,7 @@
                           </div>
                           <div class="row">
                             <span class="col-3">Limit</span>
-                            <span class="col"> {{ formatCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formatCurrency(minTradeAmount(listing), listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                            <span class="col"> {{ formatCurrency(listing.trade_floor, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null)  }} - {{ formatCurrency(listing.trade_ceiling, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{  listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
                           </div>
                         </div>
                       </div>
@@ -261,12 +261,10 @@ export default {
   },
   async mounted () {
     const vm = this
-    vm.fetchPaymentTypes()
-      .then(async () => {
-        vm.fetchFiatCurrencies()
-        vm.updateFilters()
-        vm.resetAndRefetchListings()
-      })
+    await vm.fetchPaymentTypes()
+    vm.fetchFiatCurrencies()
+    vm.updateFilters()
+    vm.resetAndRefetchListings()
   },
   methods: {
     getDarkModeClass,
@@ -329,31 +327,28 @@ export default {
     searchUser () {
       this.resetAndRefetchListings(true)
     },
-    fetchPaymentTypes () {
+    async fetchPaymentTypes () {
       const vm = this
-      return new Promise((resolve, reject) => {
-        vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
-          .then(() => {
-            const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
-            resolve(paymentTypes)
-          })
-          .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
+      await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
+        .then(() => {
+          const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
+          console.log('paymentTypes:', paymentTypes)
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
-    fetchFiatCurrencies () {
+    async fetchFiatCurrencies () {
       const vm = this
-      backend.get('/ramp-p2p/currency/fiat')
+      await backend.get('/ramp-p2p/currency/fiat')
         .then(response => {
           vm.fiatCurrencies = response.data
           if (!vm.selectedCurrency) {

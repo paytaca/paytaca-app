@@ -236,7 +236,7 @@
     </div>
   </div>
   <AddPaymentMethods ref="addPaymentMethods" v-if="$route.query?.edit === 'payments'" :type="'Profile'"/>
-  <MiscDialogs v-if="editNickname" :type="'editNickname'" v-on:back="editNickname = false" v-on:submit="updateUserName"/>
+  <MiscDialogs ref="misc" v-if="editNickname" :type="'editNickname'" v-on:back="editNickname = false" v-on:submit="updateUserName"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -505,11 +505,16 @@ export default {
           vm.retry = true
           vm.exponentialBackoff(updateChatIdentity, 5, 1000, payload)
           this.processUserData()
+          this.editNickname = false
         })
         .catch(error => {
           console.error(error)
           if (error.response) {
             console.error(error.response)
+            if (error.response.status === 400) {
+              const errorMsg = error.response.data.error
+              this.$refs.misc.updateErrorMsg(errorMsg)
+            }
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
@@ -517,8 +522,6 @@ export default {
             bus.emit('network-error')
           }
         })
-
-      this.editNickname = false
     },
     exponentialBackoff (fn, retries, delayDuration, ...info) {
       const vm = this

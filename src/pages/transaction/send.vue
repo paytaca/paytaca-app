@@ -11,29 +11,6 @@
         :backnavpath="backPath"
       ></header-nav>
       <q-banner
-        v-if="singleWallet"
-        dense
-        class="q-mx-md pt-card rounded-borders"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <div class="float-right text-grey q-mr-xs" style="margin-top:0.9em;">
-          <q-icon name="info" size="2rem"/>
-          <q-menu class="q-py-xs q-px-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-            <div>
-              Using single address as wallet derived from main wallet
-            </div>
-            <div class="text-grey">Address path: {{ useAddressPath }}</div>
-          </q-menu>
-        </div>
-        <div class="text-grey">Wallet</div>
-        <div style="word-wrap: break-word;line-height:1.1em;">
-          {{ singleWalletAddress }}
-        </div>
-        <div v-if="asset?.symbol || actualWalletBalance.balance" class="text-grey">
-          {{ parseAssetDenomination(denomination, { ...asset, balance: actualWalletBalance.balance}) }}
-        </div>
-      </q-banner>
-      <q-banner
         v-if="assetId.startsWith('slp/')"
         inline-actions
         class="bg-red text-center q-mt-lg text-bow slp-disabled-banner"
@@ -45,7 +22,7 @@
         <div v-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel
             :jpp="jpp"
-            :wallet="singleWallet || wallet"
+            :wallet="wallet"
             class="q-mx-md"
             @paid="onJppPaymentSucess()"
           />
@@ -384,7 +361,6 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { getCashbackAmount } from 'src/utils/engagementhub-utils'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
-import SingleWallet from 'src/wallet/single-wallet'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import QRUploader from 'src/components/QRUploader'
@@ -467,10 +443,6 @@ export default {
       type: String,
       required: false,
     },
-    useAddressPath: {
-      type: String,
-      required: false,
-    },
     backPath: {
       type: String,
       default: '/'
@@ -479,7 +451,6 @@ export default {
   data () {
     return {
       asset: {},
-      singleWallet: [].map(() => new SingleWallet())[0],
       /** @type {Wallet} */
       wallet: null,
       walletType: '',
@@ -606,23 +577,6 @@ export default {
       if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
-    },
-    singleWalletAddress() {
-      if (!this.singleWallet) return ''
-      if (this.isCashToken) {
-        return this.isChipnet
-          ? this.singleWallet?.testnetTokenAddress
-          : this.singleWallet?.tokenAddress
-      }
-
-      if (this.isSLP) {
-        return this.isChipnet
-          ? this.singleWallet?.testnetSlpAddress
-          : this.singleWallet?.slpAddress
-      }
-      return this.isChipnet
-        ? this.singleWallet?.testnetAddress
-        : this.singleWallet?.cashAddress
     },
     defaultNftImage() {
       if (!this.isNFT) return ''
@@ -1147,19 +1101,19 @@ export default {
             })
           }
         } else {
-          spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.actualWalletBalance.spendable, true))
-          currentRecipient.amount = this.actualWalletBalance.spendable
+          spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+          currentRecipient.amount = this.asset.spendable
         }
         currentInputExtras.amountFormatted = spendableAsset
         if (this.setAmountInFiat) {
-          const convertedFiat = this.convertToFiatAmount(this.actualWalletBalance.spendable)
+          const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
           currentInputExtras.sendAmountInFiat = convertedFiat
         }
       } else {
         if (this.asset.id.startsWith('ct/')) {
-          currentRecipient.amount = this.actualWalletBalance.balance / (10 ** this.asset.decimals)
+          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
         } else {
-          currentRecipient.amount = this.actualWalletBalance.balance
+          currentRecipient.amount = this.asset.balance
         }
         currentInputExtras.amountFormatted = currentRecipient.amount
       }
@@ -1293,7 +1247,7 @@ export default {
         .reduce((acc, curr) => acc + curr, 0)
         .toFixed(8)
 
-      if (totalAmount > vm.actualWalletBalance.balance) {
+      if (totalAmount > vm.asset.balance) {
         vm.raiseNotifyError(vm.$t('TotalAmountError'))
         return
       }
@@ -1419,16 +1373,10 @@ export default {
       })
 
       if (toSendBCHRecipients.length > 0) {
-        if (vm.singleWallet) {
-          vm.singleWallet
-            .sendBch(toSendBCHRecipients, token)
-            .then(result => vm.promiseResponseHandler(result, vm.walletType))
-        } else {
-          const changeAddress = vm.getChangeAddress('bch')
-          getWalletByNetwork(vm.wallet, 'bch')
-            .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
-            .then(result => vm.promiseResponseHandler(result, vm.walletType))
-        }
+        const changeAddress = vm.getChangeAddress('bch')
+        getWalletByNetwork(vm.wallet, 'bch')
+          .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
+          .then(result => vm.promiseResponseHandler(result, vm.walletType))
       } else if (toSendSLPRecipients.length > 0) {
         const tokenId = vm.assetId.split('slp/')[1]
         const bchWallet = vm.getWallet('bch')
@@ -1437,20 +1385,14 @@ export default {
           mnemonic: vm.wallet.mnemonic,
           derivationPath: bchWallet.derivationPath
         }
-        if (vm.singleWallet) {
-          vm.singleWallet
-            .sendSlp(tokenId, vm.tokenType, feeFunder, toSendSLPRecipients)
-            .then(result => vm.promiseResponseHandler(result, vm.walletType))
-        } else {
-          const changeAddresses = {
-            bch: vm.getChangeAddress('bch'),
-            slp: vm.getChangeAddress('slp'),
-          }
-
-          getWalletByNetwork(vm.wallet, 'slp')
-            .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
-            .then(result => vm.promiseResponseHandler(result, vm.walletType))
+        const changeAddresses = {
+          bch: vm.getChangeAddress('bch'),
+          slp: vm.getChangeAddress('slp'),
         }
+
+        getWalletByNetwork(vm.wallet, 'slp')
+          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
+          .then(result => vm.promiseResponseHandler(result, vm.walletType))
       }
     },
     promiseResponseHandler (result, walletType) {
@@ -1631,19 +1573,6 @@ export default {
       keys.push(...Object.entries(this.inputExtras[index]))
       return keys
     },
-    async updateActualWalletBalance() {
-      let result
-      if (this.singleWallet) {
-        result = await this.singleWallet.getOrFetchBalance({ assetId: this.assetId })
-      } else {
-        result = this.asset
-      }
-      this.actualWalletBalance = {
-        balance: result?.balance,
-        spendable: result?.spendable,
-      }
-      return this.actualWalletBalance
-    },
     adjustWalletBalance () {
       const isToken = this.asset.id.startsWith('ct/')
       const tokenDenominator = 10 ** this.asset.decimals
@@ -1652,8 +1581,7 @@ export default {
         .map(a => Number(a.amount))
         .reduce((acc, curr) => acc + curr, 0)
         .toFixed(8)
-      const actualBalance = this.actualWalletBalance.balance
-      const walletBalance = isToken ? actualBalance / tokenDenominator : actualBalance
+      const walletBalance = this.asset.balance
       this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
       // for tokens ('ct/'), convert back to original decimals
       if (isToken) this.currentWalletBalance *= tokenDenominator
@@ -1681,19 +1609,7 @@ export default {
       const wallet = new Wallet(mnemonic, this.network)
       this.wallet = markRaw(wallet)
       if (this.isSmartBch) this.wallet.sBCH.getOrInitWallet()
-      if (!this.isSmartBch && this.useAddressPath) {
-        let wif
-        if (this.isSLP) wif = await wallet.SLP.getPrivateKey(this.useAddressPath)
-        else wif = await wallet.BCH.getPrivateKey(this.useAddressPath)
-        this.singleWallet = new SingleWallet({
-          wif, 
-          apiBaseUrl: wallet.BCH.watchtower._baseUrl,
-          isChipnet: this.isChipnet,
-        })
-      } else {
-        this.singleWallet = undefined
-      }
-      return { wallet, singleWallet: this.singleWallet }
+      return { wallet }
     },
     onQRUploaderClick () {
       this.$refs['qr-upload'].$refs['q-file'].pickFiles()
@@ -1730,7 +1646,6 @@ export default {
     vm.selectedDenomination = vm.denomination
     // Load wallets
     vm.initWallet()
-      .then(() => vm.updateActualWalletBalance())
       .then(() => vm.adjustWalletBalance())
 
     if (navigator.onLine) {
