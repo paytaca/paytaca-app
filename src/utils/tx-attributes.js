@@ -13,6 +13,7 @@ const TxAttribute = Object.freeze({
   SpicebotTip: 'spicebot_tip',
   GiftClaim: 'gift_claim',
   Cashback: 'cashback',
+  StablehedgeTransaction: 'stablehedge_transaction',
 
   /**
    * @param {String} key the key in the attribute
@@ -47,6 +48,7 @@ export function parseAttributeToBadge(attribute) {
   const description = attribute?.description
   if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeFundingTx)) {
     return {
+      key,
       custom: true,
       text: 'AnyHedge',
       icon: icons.anyhedge,
@@ -54,6 +56,7 @@ export function parseAttributeToBadge(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeHedgeFundingUtxo)) {
     return {
+      key,
       custom: true,
       text: 'AnyHedge',
       icon: icons.anyhedge,
@@ -61,6 +64,7 @@ export function parseAttributeToBadge(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeLongFundingUtxo)) {
     return {
+      key,
       custom: true,
       text: 'AnyHedge',
       icon: icons.anyhedge,
@@ -68,6 +72,7 @@ export function parseAttributeToBadge(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.VaultPayment)) {
     return {
+      key,
       custom: true,
       text: value,
       icon: 'mdi-ticket-confirmation',
@@ -75,22 +80,45 @@ export function parseAttributeToBadge(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.SpicebotTip)) {
     return {
+      key,
       custom: true,
       text: 'Tip',
       description: description || 'Tip sent through Spicebot'
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.GiftClaim)) {
     return {
+      key,
       custom: true,
       text: 'Gift',
       description: description || 'Gift Claim',
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.Cashback)) {
     return {
+      key,
       custom: true,
       text: 'Cashback',
       icon: icons.cashback,
       description: description || `Cashback from ${value}`
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.StablehedgeTransaction)) {
+    const jsonValue = JSON.parse(value)
+    const txType = jsonValue?.transaction_type
+    const amount = jsonValue?.amount
+    const currency = jsonValue?.currency
+
+    let action
+    if (txType === 'inject' || txType === 'deposit') {
+      action = 'Stabilize'
+    } else {
+      action = 'Redeem'
+    }
+
+    return {
+      key,
+      custom: true,
+      text: 'Stablehedge',
+      // icon: icons.cashback,
+      description: description || `${action} ${amount} ${currency}`
     }
   }
 
@@ -123,6 +151,7 @@ export function parseAttributeToDetails(attribute) {
 
   if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeFundingTx)) {
     return {
+      key,
       groupName: 'AnyHedge',
       label: 'Funding transaction',
       tooltip: description,
@@ -131,6 +160,7 @@ export function parseAttributeToDetails(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeHedgeFundingUtxo)) {
     return {
+      key,
       groupName: 'AnyHedge',
       label: 'Short funding transaction',
       tooltip: description,
@@ -139,6 +169,7 @@ export function parseAttributeToDetails(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.AnyhedgeLongFundingUtxo)) {
     return {
+      key,
       groupName: 'AnyHedge',
       label: 'Long funding transaction',
       tooltip: description,
@@ -147,6 +178,7 @@ export function parseAttributeToDetails(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.VaultPayment)) {
     return {
+      key,
       groupName: DEFAULT_GROUP_NAME,
       label: 'Vault Payment',
       tooltip: description,
@@ -155,6 +187,7 @@ export function parseAttributeToDetails(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.SpicebotTip)) {
     return {
+      key,
       groupName: DEFAULT_GROUP_NAME,
       label: 'Spicebot Tip',
       tooltip: description,
@@ -166,6 +199,7 @@ export function parseAttributeToDetails(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.GiftClaim)) {
     return {
+      key,
       groupName: DEFAULT_GROUP_NAME,
       label: 'Gift Claim',
       tooltip: description,
@@ -174,6 +208,7 @@ export function parseAttributeToDetails(attribute) {
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.Cashback)) {
     return {
+      key,
       groupName: 'Cashback',
       label: `${$t(
         'CashbackAttribute',
@@ -183,9 +218,26 @@ export function parseAttributeToDetails(attribute) {
       text: value,
       actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
     }
+  } else if (TxAttribute.isMatch(key, TxAttribute.StablehedgeTransaction)) {
+    const jsonValue = JSON.parse(value)
+    const txType = jsonValue?.transaction_type
+    const amount = jsonValue?.amount
+    const currency = jsonValue?.currency
+    const description = `${formatKeyName(txType)} ${amount} ${currency}`
+
+    return {
+      key,
+      groupName: 'Stablehedge',
+      label: `${formatKeyName(txType)} transaction`,
+      // icon: icons.cashback,
+      tooltip: description,
+      text: description, 
+      actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
+    }
   }
 
   return {
+    key,
     groupName: DEFAULT_GROUP_NAME,
     label: formatKeyName(key),
     tooltip: description,
