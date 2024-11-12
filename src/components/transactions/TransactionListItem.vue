@@ -14,34 +14,56 @@
             class="q-mb-none transactions-wallet amount float-right ib-text text-right"
             :class="[getDarkModeClass(darkMode), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
-            <div v-if="transaction?.record_type === 'outgoing'">
-              {{
-                `${parseAssetDenomination(
-                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                  ...asset,
-                  balance: transaction?.amount,
-                  thousandSeparator: true
-                })}`
-              }}
-            </div>
-            <div v-else>
-              {{
-                `${parseAssetDenomination(
-                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                  ...asset,
-                  balance: transaction?.amount,
-                  thousandSeparator: true
-                })}`
-              }}
-            </div>
-            <div
-              v-if="marketValueData?.marketValue"
-              class="transactions-wallet market-value"
-              :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
-              style="margin-top:-0.25em;"
-            >
-              {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
-            </div>
+            <template v-if="isStablehedgeTx">
+              <div>
+                {{ 
+                  parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...asset,
+                    balance: stablehedgeTxData?.bch,
+                    thousandSeparator: true
+                  })
+                }}
+              </div>
+              <div
+                v-if="isStablehedgeTx && stablehedgeTxData?.amount"
+                class="transactions-wallet market-value"
+                :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
+                style="margin-top:-0.25em;"
+              >
+                {{ parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency) }}
+              </div>
+            </template>
+            <template v-else>
+              <div v-if="transaction.record_type === 'outgoing'">
+                {{
+                  `${parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...asset,
+                    balance: transaction?.amount,
+                    thousandSeparator: true
+                  })}`
+                }}
+              </div>
+              <div v-else>
+                {{
+                  `${parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...asset,
+                    balance: transaction?.amount,
+                    thousandSeparator: true
+                  })}`
+                }}
+              </div>
+              <div
+                v-if="marketValueData?.marketValue"
+                class="transactions-wallet market-value"
+                :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
+                style="margin-top:-0.25em;"
+              >
+                {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
+              </div>
+            </template>
           </p>
         </div>
         <div class="col">
@@ -81,6 +103,7 @@ import ago from 's-ago'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
+import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
@@ -112,6 +135,10 @@ const selectedAssetMarketPrice = computed(() => {
 })
 
 const recordTypeText = computed(() => {
+  if (stablehedgeTxData.value?.transactionTypeText) {
+    return stablehedgeTxData.value?.transactionTypeText
+  }
+
   switch (props?.transaction?.record_type) {
     case('incoming'):
       return $t('Received')
@@ -149,7 +176,11 @@ const badges = computed(() => {
   if (!Array.isArray(props.transaction?.attributes)) return []
   return props.transaction?.attributes.map(parseAttributeToBadge)
     .filter(badge => badge?.custom)
+    .filter(badge => isStablehedgeTx.value && badge.key !== 'stablehedge_transaction')
 })
+
+const stablehedgeTxData = computed(() => extractStablehedgeTxData(props.transaction))
+const isStablehedgeTx = computed(() => Boolean(stablehedgeTxData.value))
 
 function formatDate (date) {
   return ago(new Date(date))
