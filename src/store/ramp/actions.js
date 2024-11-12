@@ -2,7 +2,6 @@ import { Store } from '..'
 import { backend } from 'src/exchange/backend'
 import { toRaw } from 'vue'
 
-
 export function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
   const walletInfo = {

@@ -1,3 +1,7 @@
+export function updateShowAdLimitMessage (state, data) {
+  state.showAdLimitMessage = data
+}
+
 export function updateCashinOrderList (state, data) {
   state.cashinOrderList = data
 }

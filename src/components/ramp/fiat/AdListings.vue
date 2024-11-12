@@ -178,7 +178,7 @@
 <script>
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from 'src/components/ramp/fiat/dialogs/FiatAdsDialogs.vue'
-import { formatCurrency, formatDate, getAppealCooldown } from 'src/exchange'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -226,6 +226,7 @@ export default {
       vm.displayEmptyList = false
       vm.scrollToTop()
       vm.resetAndRefetchListings()
+      vm.checkAdLimit()
       vm.$store.commit('ramp/updateAdListingTab', value)
     }
   },
@@ -245,10 +246,26 @@ export default {
   mounted () {
     this.resetAndRefetchListings()
     this.resetListings()
+    this.checkAdLimit()
   },
   methods: {
     getDarkModeClass,
     formatCurrency,
+    checkAdLimit () {
+      const showAdLimitMessage = this.$store.getters['ramp/showAdLimitMessage']
+      if (showAdLimitMessage) {
+        backend.get('ramp-p2p/ad/check/limit/', { params: { trade_type: this.transactionType }, authorize: true })
+          .then(response => {
+            console.log(response)
+            if (response.data?.exceeds_limit) {
+              bus.emit('post-notice', 'ad-limit')
+            }
+          })
+          .catch(error => {
+            console.error(error)
+          })
+      }
+    },
     resetListings (append = false, newData = []) {
       const vm = this
       switch (vm.transactionType) {

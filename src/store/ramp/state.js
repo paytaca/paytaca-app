@@ -99,6 +99,8 @@ export default function () {
 
     cashinOrderList: [],
     cashinOrderListPage: 1,
-    cashinOrderListTotalPage: 1
+    cashinOrderListTotalPage: 1,
+
+    showAdLimitMessage: true
   }
 }
