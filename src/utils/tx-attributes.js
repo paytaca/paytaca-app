@@ -1,6 +1,7 @@
 import { ellipsisText } from "src/wallet/anyhedge/formatters"
 import { capitalize } from "vue"
 import { i18n } from 'src/boot/i18n'
+import { parseFiatCurrency } from "./denomination-utils"
 
 const { t: $t } = i18n.global
 
@@ -106,11 +107,12 @@ export function parseAttributeToBadge(attribute) {
     const amount = jsonValue?.amount
     const currency = jsonValue?.currency
 
-    let action
+    const parsedAmount = parseFiatCurrency(amount, currency)
+    let _description
     if (txType === 'inject' || txType === 'deposit') {
-      action = 'Stabilize'
+      _description = $t('StabilizeAmount', { amount: parsedAmount }, `Stabilize ${parsedAmount}`)
     } else {
-      action = 'Redeem'
+      _description = $t('RedeemAmount', { amount: parsedAmount }, `Redeem ${parsedAmount}`)
     }
 
     return {
@@ -118,7 +120,7 @@ export function parseAttributeToBadge(attribute) {
       custom: true,
       text: 'Stablehedge',
       // icon: icons.cashback,
-      description: description || `${action} ${amount} ${currency}`
+      description: description || _description
     }
   }
 
@@ -223,7 +225,15 @@ export function parseAttributeToDetails(attribute) {
     const txType = jsonValue?.transaction_type
     const amount = jsonValue?.amount
     const currency = jsonValue?.currency
-    const description = `${formatKeyName(txType)} ${amount} ${currency}`
+
+    const parsedAmount = parseFiatCurrency(amount, currency)
+
+    let description
+    if (txType === 'inject' || txType === 'deposit') {
+      description = $t('StabilizeAmount', { amount: parsedAmount }, `Stabilize ${parsedAmount}`)
+    } else {
+      description = $t('RedeemAmount', { amount: parsedAmount }, `Redeem ${parsedAmount}`)
+    }
 
     return {
       key,

@@ -1155,6 +1155,10 @@ const phrases = {
       CustomerLimitReachedMessage: 'But since it falls within the set customer limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
       MerchantLimitReachedMessage: 'But since it falls within the set merchant limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
       TransactionLimitReachedMessage: 'But since it falls within the set transaction limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.'
+    },
+    {
+      StabilizeAmount: "Stabilize {amount}",
+      RedeemAmount: "Redeem {amount}",
     }
   ]
 }

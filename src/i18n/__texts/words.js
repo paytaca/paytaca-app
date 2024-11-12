@@ -187,6 +187,7 @@ const words = [
       Merchants: "Merchants",
       BranchesCapped: "Branches",
       Stabilize: "Stabilize",
+      Redeem: "Redeem",
       Leverage: "Leverage",
       Funding: "Funding",
       Contract: "Contract",
