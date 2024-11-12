@@ -277,7 +277,6 @@ export default {
     getDarkModeClass,
     formatCurrency,
     openFilterSelection (type) {
-      console.log('filter: ', this.filters)
       this.$q.dialog({
         component: FilterSelectionDialog,
         componentProps: {
