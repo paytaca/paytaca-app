@@ -60,7 +60,7 @@ export default {
           name: 'P2P Exchange',
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
-          iconStyle: 'width:50%',
+          iconStyle: 'width:45%; height: 45%;',
           active: true, // !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -69,6 +69,7 @@ export default {
           iconName: 'img:marketplace.png',
           path: '/apps/marketplace',
           active: true,
+          iconStyle: 'width:45%; height: 45%;',
           onLongPress: (event) => {
             event?.preventDefault?.()
             this.$q.dialog({
@@ -80,6 +81,7 @@ export default {
           name: this.$t('Gifts'),
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
+          iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -87,6 +89,7 @@ export default {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
+          iconStyle: 'font-size: 4.5em',
           active: true,
           smartBCHOnly: false
         },
@@ -94,7 +97,7 @@ export default {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
-          iconStyle: 'width:50%',
+          iconStyle: 'width:55%; height: 55%;',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -102,6 +105,7 @@ export default {
           name: this.$t('Map'),
           iconName: 'public',
           path: '/apps/map/',
+          iconStyle: 'font-size: 4.2em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -109,6 +113,7 @@ export default {
           name: this.$t('MerchantAdmin', {}, 'Merchant Admin'),
           iconName: 'point_of_sale',
           path: '/apps/pos-admin',
+          iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -116,27 +121,31 @@ export default {
           name: this.$t('Bridge'),
           iconName: 'mdi-bridge',
           path: '/apps/bridge',
+          iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: true
         },
         {
           name: this.$t('AssetSwap'),
-          iconName: 'mdi-swap-horizontal-bold',
+          iconName: 'mdi-autorenew',
           path: '/apps/asset-swap',
+          iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: true
         },
         {
           name: this.$t('CryptoSwap'),
-          iconName: 'mdi-autorenew',
-          path: '/apps/ramp/crypto',
+          iconName: 'mdi-swap-horizontal-bold',
+          path: '/apps/asset-swap',
           active: true,
+          iconStyle: 'font-size: 4.7em',
           smartBCHOnly: false
         },
         {
           name: this.$t('WalletConnect'),
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
+          iconStyle: 'font-size: 4.2em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -158,6 +167,7 @@ export default {
           iconName: 'info',
           path: '/apps/wallet-info',
           active: true,
+          iconStyle: 'font-size: 4em',
           smartBCHOnly: false
         },
         {
@@ -165,6 +175,7 @@ export default {
           iconName: 'img:wallet-backup.png',
           path: '/apps/wallet-backup',
           active: true,
+          iconStyle: 'width:45%; height: 45%;',
           smartBCHOnly: false
         },
         {
@@ -172,6 +183,7 @@ export default {
           iconName: 'settings',
           path: '/apps/settings',
           active: true,
+          iconStyle: 'font-size: 4em',
           smartBCHOnly: false
         }
       ],

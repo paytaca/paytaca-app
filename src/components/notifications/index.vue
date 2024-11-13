@@ -222,6 +222,48 @@ export default {
           this.refreshNotifsList(null)
         })
     },
+    async clickRedirect (notif) {
+      const vm = this
+      vm.$refs['notifs-dialog'].hide()
+
+      switch (notif.notif_type) {
+        case 'TR': {
+          console.log('transaction notif yey')
+          const url = notif.extra_url
+          if (url !== '') {
+            // automatically hide JPP payment request notifications after clicking
+            if (url.includes('bitcoincash:?')) {
+              await hideItemUpdate(notif)
+            }
+
+            const query = {
+              assetId: vm.$store.getters['assets/getAssets'][0].id,
+              tokenType: 1,
+              network: 'BCH',
+              address: url
+            }
+            vm.$router.push({
+              name: 'transaction-send',
+              query
+            })
+          }
+          break
+        } case 'MP': {
+          console.log('marketplace notif yey')
+          break
+        } case 'AH': {
+          console.log('anyhedge notif yey')
+          break
+        } case 'RP': {
+          console.log('p2p exchange notif yey')
+          break
+        } case 'CB': {
+          console.log('cashback notif yey')
+          break
+        } default:
+          break
+      }
+    },
 
     formatDate (date) {
       return ago(new Date(date))
