@@ -15,6 +15,7 @@ import gifts from './gifts'
 import chat from './chat'
 import notification from './notification'
 import ramp from './ramp'
+import stablehedge from './stablehedge'
 
 /*
  * If not building with SSR mode, you can
@@ -41,7 +42,8 @@ export const Store = createStore({
     gifts,
     chat,
     notification,
-    ramp
+    ramp,
+    stablehedge,
   },
 
   // enable strict mode (adds overhead!)

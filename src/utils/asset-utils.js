@@ -13,13 +13,21 @@ export async function updateAssetBalanceOnLoad (id, wallet, store) {
       store.commit(updateAssetBalance, { id, balance: response.balance })
     })
   } else {
-    return getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
-      store.commit(updateAssetBalance, {
-        id,
-        balance: response.balance,
-        spendable: response.spendable,
-        yield: response.yield
-      })
-    })
+    const fetchBchBalancePromises = Promise.all([
+      getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
+        store.commit(updateAssetBalance, {
+          id,
+          balance: response.balance,
+          spendable: response.spendable,
+          yield: response.yield
+        })
+      }),
+      store.dispatch('stablehedge/updateTokenBalances')
+        .then(() => store.dispatch('stablehedge/updateTokenPrices', { minAge: 60 * 1000 }))
+        .catch(console.error),
+    ])
+
+    const results = await fetchBchBalancePromises
+    return results[0]
   }
 }
