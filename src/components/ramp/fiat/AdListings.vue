@@ -138,6 +138,7 @@
                               padding="xs sm"
                               size="sm"
                               class="q-ml-xs text-weight-bold"
+                              :loading="visibilityLoading[listing.id]"
                               :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
                               :icon="listing.is_public ? 'visibility' : 'visibility_off'"
                               @click="onToggleAdVisibility(listing, index)">
@@ -164,7 +165,7 @@
     </div>
   </div>
   <FiatAdsDialogs
-    v-if="openDialog === true"
+    v-if="openDialog"
     :type="dialogName"
     v-on:back="onDialogBack"
     v-on:selected-option="receiveDialogOption"
@@ -214,7 +215,8 @@ export default {
       loadingMoreData: false,
       listings: [],
       displayEmptyList: false,
-      disableCreateBtn: false
+      disableCreateBtn: false,
+      visibilityLoading: {}
     }
   },
   watch: {
@@ -319,14 +321,15 @@ export default {
     },
     async toggleAdVisibility (ad, index) {
       if (!ad) return
+      this.visibilityLoading[ad.id] = true
       await backend.put(`ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
         .then(response => {
-          // this.resetListings()
           this.listings[index] = response.data
         })
         .catch(error => {
           console.error(error.response || error)
         })
+      this.visibilityLoading[ad.id] = false
     },
     async loadMoreData () {
       const vm = this
@@ -340,9 +343,9 @@ export default {
       }
       vm.loadingMoreData = false
     },
-    deleteAd () {
+    async deleteAd () {
       const vm = this
-      backend.delete(`/ramp-p2p/ad/${vm.selectedAdId}/`, { authorize: true })
+      await backend.delete(`/ramp-p2p/ad/${vm.selectedAdId}/`, { authorize: true })
         .then(() => {
           setTimeout(() => {
             vm.dialogName = 'notifyDeleteAd'
