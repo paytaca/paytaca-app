@@ -62,7 +62,7 @@
                 <q-input
                   dense
                   rounded
-                  :disable="readOnlyState"
+                  :disable="readOnlyState || adsState === 'edit'"
                   outlined
                   :dark="darkMode"
                   v-model="selectedCurrency.symbol"
@@ -714,10 +714,12 @@ export default {
     async getFiatCurrencies () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/currency/fiat')
+        const response = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: vm.transactionType }, authorize: true })
         vm.fiatCurrencies = response.data
-        if (!vm.selectedCurrency) {
+        const selectedCurrencyUnused = vm.adsState === 'create' && !vm.fiatCurrencies.map(e => e.id)?.includes(vm.selectedCurrency.id)
+        if (!vm.selectedCurrency || selectedCurrencyUnused) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
+          vm.adData.fiatCurrency = vm.selectedCurrency
         }
       } catch (error) {
         console.error(error)
