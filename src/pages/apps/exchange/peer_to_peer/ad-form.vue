@@ -62,7 +62,7 @@
                 <q-input
                   dense
                   rounded
-                  :disable="readOnlyState"
+                  :disable="readOnlyState || adsState === 'edit'"
                   outlined
                   :dark="darkMode"
                   v-model="selectedCurrency.symbol"
