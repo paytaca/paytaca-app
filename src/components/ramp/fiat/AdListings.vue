@@ -29,6 +29,7 @@
               no-caps
               padding="sm"
               icon="add"
+              :disable="disableCreateBtn"
               :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
               @click="onCreateAd()"
             />
@@ -178,7 +179,7 @@
 <script>
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from 'src/components/ramp/fiat/dialogs/FiatAdsDialogs.vue'
-import { formatCurrency, formatDate, getAppealCooldown } from 'src/exchange'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -212,7 +213,8 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       loadingMoreData: false,
       listings: [],
-      displayEmptyList: false
+      displayEmptyList: false,
+      disableCreateBtn: false
     }
   },
   watch: {
@@ -223,6 +225,7 @@ export default {
     },
     transactionType (value) {
       const vm = this
+      vm.disableCreateBtn = true
       vm.displayEmptyList = false
       vm.scrollToTop()
       vm.resetAndRefetchListings()
@@ -249,6 +252,14 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    async getFiatCurrencies () {
+      try {
+        const { data: currencies } = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: this.transactionType }, authorize: true })
+        this.disableCreateBtn = currencies.length === 0
+      } catch (error) {
+        console.error(error.response || error)
+      }
+    },
     resetListings (append = false, newData = []) {
       const vm = this
       switch (vm.transactionType) {
@@ -360,10 +371,11 @@ export default {
       vm.loading = true
       await vm.fetchAds(true)
 
-      setTimeout(() =>{
+      setTimeout(() => {
         vm.displayEmptyList = true
       }, 150)
 
+      vm.getFiatCurrencies()
       vm.loading = false
     },
     updatePaginationValues () {
