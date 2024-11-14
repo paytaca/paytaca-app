@@ -97,7 +97,7 @@
                         <q-skeleton class="text-h5" type="rect"/>
                       </div>
                       <div v-else>
-                        <p>
+                        <p class="q-mb-none">
                           <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{
                               selectedNetwork === 'sBCH'
@@ -106,9 +106,8 @@
                             }}
                           </span>
                         </p>
-                        <div style="margin-top: -15px;">
-                          {{ getAssetMarketBalance(bchAsset) }}
-                        </div>
+                        <StablehedgeWidget/>
+                        <div>{{ getAssetMarketBalance(bchAsset) }}</div>
                         <q-badge
                           rounded
                           class="flex justify-start items-center yield-container"
@@ -373,6 +372,7 @@ import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import Notifications from 'src/components/notifications/index.vue'
+import StablehedgeWidget from 'src/components/stablehedge/StablehedgeWidget.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 
@@ -391,7 +391,8 @@ export default {
     VOffline,
     connectedDialog,
     AssetFilter,
-    MultiWalletDropdown
+    MultiWalletDropdown,
+    StablehedgeWidget,
   },
   directives: {
     dragscroll
