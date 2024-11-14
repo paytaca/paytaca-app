@@ -5,8 +5,9 @@
   </div>
 </template>
 <script>
+import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { useStore } from 'vuex';
-import { computed, defineComponent } from 'vue'
+import { computed, defineComponent, onMounted, onUnmounted } from 'vue'
 
 export default defineComponent({
   name: 'StablehedgeWidget',
@@ -17,6 +18,12 @@ export default defineComponent({
       const sats = $store.getters['stablehedge/totalTokenBalancesInSats']
       return sats / 10 ** 8
     })
+
+    let unsubscribePriceTracker = null;
+    onMounted(() => {
+      unsubscribePriceTracker = stablehedgePriceTracker.subscribe()
+    })
+    onUnmounted(() => unsubscribePriceTracker?.())
 
     return {
       bchBalance,

@@ -39,9 +39,14 @@ export function saveFiatTokenBalances(state, data) {
 
 /**
  * @param {State} state
- * @param {{ category: String, price: Number, timestamp: Number }} data
+ * @param {{ category: String, price: Number, timestamp: Number | String }} data
  */
 export function saveTokenPrice(state, data) {
+  if (typeof data.timestamp === 'string') {
+    data.timestamp = new Date(data.timestamp) * 1
+  }
+
+  if (Number.isNaN(data.timestamp)) data.timestamp = Date.now()
   const index = state.fiatTokens.find(tokenPrice => tokenPrice.category === data?.category)
   if (index >= 0) Object.assign(state.fiatTokens[index], data)
   else state.fiatTokens.push(data)

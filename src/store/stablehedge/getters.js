@@ -1,5 +1,6 @@
 /** @typedef {ReturnType<import("./state").default>} State */
 
+/** ------------ <Balance ------------ */
 /**
  * @param {State} state 
  */
@@ -18,8 +19,29 @@ export function tokenBalances(state, getters, rootState, rootGetters) {
 /**
  * @param {State} state 
  */
-export function tokenPrice(state) {
-  return (category) => state.fiatTokens.find(data => data?.category === category)?.price
+export function token(state) {
+  return (category) => state.fiatTokens.find(data => data?.category === category)
+}
+
+export function minTokenBalanceTimestamp(state, getters) {
+  const tokenBalances = getters.tokenBalances
+
+  console.log({ tokenBalances })
+  if (!tokenBalances?.length) return null
+
+  let minTimestamp = Infinity
+  for(var index = 0; index < tokenBalances?.length; index++) {
+    const tokenBalance = tokenBalances[index];
+
+    const token = getters.token?.(tokenBalance?.category);
+    const timestamp = token?.timestamp;
+    console.log({ tokenBalance, token })
+    if (Number.isNaN(timestamp)) return 0;
+
+    if (timestamp < minTimestamp) minTimestamp = timestamp
+  }
+
+  return minTimestamp
 }
 
 /**
@@ -32,7 +54,8 @@ export function totalTokenBalancesInSats(state, getters) {
   if (!Array.isArray(tokenBalances)) return null
 
   const satsValues = tokenBalances.map(tokenBalance => {
-    const price = getters.tokenPrice?.(tokenBalance?.category)
+    const token = getters.token?.(tokenBalance?.category)
+    const price = token?.price
     if (Number.isNaN(price)) {
       console.warn(`Stablehedge fiat token '${tokenBalance?.category}' has no price`)
       return 0
@@ -43,3 +66,5 @@ export function totalTokenBalancesInSats(state, getters) {
 
   return satsValues.reduce((subtotal, value) => value + subtotal, 0)
 }
+
+/** ------------ Balance> ------------ */
