@@ -86,7 +86,7 @@
             </span>
           </div>
         </div>
-        <div v-if="amount" class="text-center">
+        <div v-if="amount && !isCt" class="text-center row col-12 flex-center">
           <q-separator class="q-mb-sm q-mx-md" style="height: 2px;" />
           <div class="text-bow" :class="getDarkModeClass(darkMode)">
             <div class="receive-label">
@@ -98,9 +98,10 @@
           </div>
         </div>
         <div
-          class="text-center button button-text-primary"
+          class="text-center button button-text-primary q-pb-lg"
           style="font-size: 18px;"
           :class="getDarkModeClass(darkMode)"
+          v-if="!isCt"
         >
           <span class="cursor-pointer" @click="amountDialog = true; customKeyboardState = 'show';">
             {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
@@ -191,7 +192,7 @@ export default {
       amount: '',
       tempAmount: '',
       readonlyState: false,
-      setAmountInFiat: true,
+      setAmountInFiat: true
     }
   },
 
@@ -225,9 +226,7 @@ export default {
       return tempAddress
     },
     selectedAssetMarketPrice () {
-      const asset = this.isCt ? 'bch' : 'bch'
-
-      return this.$store.getters['market/getAssetPrice'](asset, this.selectedMarketCurrency())
+      return this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency())
     }
   },
 
