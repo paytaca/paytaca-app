@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
-// import { Capacitor } from '@capacitor/core'
+import { Capacitor } from '@capacitor/core'
+import { BigNumber } from 'ethers'
 
 const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
@@ -113,12 +114,17 @@ export function parseNotifType (type) {
 export async function hideItemUpdate (item) {
   await NOTIFS_URL
     .patch(`notification/${item.id}/`, { is_hidden: true })
-    .then(response => {
-      // notif hidden successfully
-    })
-    .catch(error => {
-      console.log(error)
-    })
+    .then(response => { /* notif hidden successfully */ })
+    .catch(error => { console.log(error) })
+}
+
+export async function parseDeviceId (deviceId) {
+  const platform = Capacitor.getPlatform()
+  if (platform === 'ios') {
+    return deviceId
+  } else if (platform === 'android') {
+    return BigNumber.from('0x' + deviceId).toString()
+  }
 }
 
 export async function getPushNotifConfigs (deviceId) {
@@ -139,8 +145,7 @@ export async function getPushNotifConfigs (deviceId) {
 }
 
 export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId) {
-  let id = deviceNotifTypesId
-  if (id !== -1) { // patch
+  if (deviceNotifTypesId !== -1) { // patch
     const data = {}
     if (type.db_col === 'is_tr_enabled') data.is_tr_enabled = type.isEnabled
     else if (type.db_col === 'is_cb_enabled') data.is_cb_enabled = type.isEnabled
@@ -149,7 +154,7 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
     else if (type.db_col === 'is_rp_enabled') data.is_rp_enabled = type.isEnabled
 
     await NOTIFS_URL.patch(
-      `devicenotiftype/${id}/`,
+      `devicenotiftype/${deviceNotifTypesId}/`,
       data
     ).then(response => {
       console.log(response)
@@ -157,7 +162,7 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
       console.log(error)
     })
   } else { // post
-    // const platform = Capacitor.getPlatform()
+    const platform = Capacitor.getPlatform()
 
     const data = {
       is_tr_enabled: false,
@@ -165,9 +170,14 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
       is_mp_enabled: false,
       is_ah_enabled: false,
       is_rp_enabled: false,
-      // adjust for ios
       apns_device: null,
-      gcm_device: Number(deviceId)
+      gcm_device: null
+    }
+
+    if (platform === 'ios') {
+      data.apns_device = Number(deviceId)
+    } else if (platform === 'android') {
+      data.gcm_device = Number(deviceId)
     }
 
     await NOTIFS_URL.post('devicenotiftype/', data)
@@ -178,5 +188,5 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
       })
   }
 
-  return id
+  return deviceNotifTypesId
 }

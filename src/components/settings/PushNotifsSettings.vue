@@ -59,6 +59,16 @@
                   </q-tooltip>
                 </q-icon>
               </q-item-label>
+
+              <q-item-label
+                v-if="item.isEnabled"
+                class="q-pl-md button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                style="text-decoration: underline"
+                @click="console.log('yey')"
+              >
+                {{ item.inputLabel }}
+              </q-item-label>
             </q-item-section>
 
             <q-item-section avatar>
@@ -79,11 +89,12 @@
 <script>
 import Watchtower from 'watchtower-cash-js'
 
-import { BigNumber } from 'ethers'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { loadWallet } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import { getPushNotifConfigs, updateDeviceNotifType } from 'src/utils/engagementhub-utils'
+import {
+  getPushNotifConfigs, updateDeviceNotifType, parseDeviceId
+} from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -105,14 +116,16 @@ export default {
       eventsAndPromosSubList: [
         {
           label: 'By Country',
+          isEnabled: false,
           subLabel:
-              'Receive push notifications in your country only. If disabled, you will receive notifications from around the world.',
-          isEnabled: false
+              'Receive push notifications in your country only. When disabled, you will receive notifications from around the world.',
+          inputLabel: 'Enter country'
         },
         {
           label: 'By City',
-          subLabel: 'Receive push notifications in your city only. If disabled, you will receive notifications from cities all around the country - if By Country is enabled, else receive notifications from around the world.',
-          isEnabled: false
+          isEnabled: false,
+          subLabel: 'Receive push notifications in your city only. When disabled, you will receive notifications from cities all around your country if By Country is enabled, else receive notifications from around the world.',
+          inputLabel: 'Enter city'
         }
       ]
     }
@@ -131,8 +144,7 @@ export default {
     const vm = this
     vm.isEnablePushNotifsLoading = true
 
-    // adjust for ios
-    const deviceId = BigNumber.from('0x' + vm.$pushNotifications.deviceId).toString()
+    const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
     const data = await getPushNotifConfigs(deviceId)
 
     console.log(data)
@@ -181,8 +193,7 @@ export default {
       vm.isEnablePushNotifsLoading = false
     },
     async handleNotifTypesSubscription (type) {
-      // adjust for ios
-      const deviceId = BigNumber.from('0x' + this.$pushNotifications.deviceId).toString()
+      const deviceId = parseDeviceId(this.$pushNotifications.deviceId)
       await updateDeviceNotifType(this.deviceNotifTypesId, type, deviceId)
     }
   }
