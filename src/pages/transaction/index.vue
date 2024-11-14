@@ -705,7 +705,13 @@ export default {
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
       if (!assetPrice) return ''
 
-      const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
+      let balance = Number(asset.balance || 0)
+      if (asset?.id === 'bch') {
+        const stablehedgeWalletBalance = this.$store.getters['stablehedge/totalTokenBalancesInSats'] / 10 ** 8
+        balance += stablehedgeWalletBalance || 0
+      }
+
+      const computedBalance = balance * Number(assetPrice)
       this.computeWalletYield()
 
       return parseFiatCurrency(computedBalance.toFixed(2), this.selectedMarketCurrency)
