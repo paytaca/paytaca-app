@@ -172,7 +172,8 @@
   />
   <MiscDialogs
     v-if="openMiscDialog"
-    :type="dialogName"
+    type="info"
+    :action="dialogName"
     @back="openMiscDialog = false"
     @submit="receiveFilter"
   />

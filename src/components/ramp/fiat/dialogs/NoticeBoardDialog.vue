@@ -1,9 +1,9 @@
 <template>
   <q-dialog v-model="showDialog" seamless position="bottom" @before-hide="onBeforeHide">
-    <q-card style="width: 50px; margin-bottom: 100px;" class="bg-primary text-white q-mx-md">
+    <q-card :style="bottomMargin" style="width: 50px; margin-left: 10%; margin-right: 10%;" :class="bgColor" class="text-white q-mx-lg">
       <q-bar>
         <q-icon name="mdi-information-outline"></q-icon>
-        <div>Notice</div>
+        <div>{{ capitalize(type) }}</div>
         <q-space />
 
         <q-btn dense flat icon="close" v-close-popup>
@@ -11,8 +11,8 @@
         </q-btn>
       </q-bar>
       <q-card-section class="q-pb-sm">
-        <div style="font-size: medium;" v-html="message"></div>
-        <div class="q-mt-none row justify-center">
+        <div style="font-size: medium; overflow-x: auto;" v-html="message"></div>
+        <div v-if="optional" class="q-mt-none row justify-center">
           <q-checkbox
             left-label
             color="green"
@@ -41,12 +41,41 @@ export default {
   emits: ['hide'],
   props: {
     type: String,
-    message: String
+    action: String,
+    message: String,
+    optional: {
+      type: Boolean,
+      default: false
+    }
+  },
+  computed: {
+    bottomMargin () {
+      let margin = 'margin-bottom: 100px;'
+      if (this.action === 'orders') {
+        margin = 'margin-bottom: 50px;'
+      }
+      return margin
+    },
+    bgColor () {
+      switch (this.type) {
+        case 'info':
+          return 'bg-info'
+        case 'error':
+          return 'bg-danger'
+        case 'warning':
+          return 'bg-warning'
+        default:
+          return ''
+      }
+    }
   },
   methods: {
+    capitalize (str) {
+      return str?.charAt(0).toUpperCase() + str?.slice(1).toLowerCase()
+    },
     onBeforeHide () {
       if (this.dontShowAgain && this.type) {
-        switch (this.type) {
+        switch (this.action) {
           case 'ad-limit':
             this.$store.commit('ramp/updateShowAdLimitMessage', !this.dontShowAgain)
         }
@@ -57,11 +86,7 @@ export default {
 }
 </script>
 <style scoped>
-.custom-dialog {
-  position: absolute;
-  bottom: 10px; /* Adjust this value as needed */
-  left: 50%;
-  transform: translateX(-50%);
-  width: auto; /* Adjust width as needed */
+.bg-danger {
+  background-color: #e74c3c;
 }
 </style>

@@ -134,6 +134,7 @@ import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import RampContract from 'src/exchange/contract'
+import packageInfo from '../../../../package.json'
 
 export default {
   data () {
@@ -384,7 +385,7 @@ export default {
           arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
-        backend.post('/ramp-p2p/order/contract/', body, { authorize: true })
+        backend.post('/ramp-p2p/order/contract/', body, { headers: { version: packageInfo.version }, authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
             vm.loading = false
@@ -447,7 +448,7 @@ export default {
         const fees_ = {
           arbitrationFee: fees.breakdown?.arbitration_fee,
           serviceFee: fees.breakdown?.service_fee,
-          contractFee: fees.breakdown?.hardcoded_fee
+          contractFee: fees.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         const isChipnet = vm.$store.getters['global/isChipnet']
@@ -475,26 +476,26 @@ export default {
           })
       })
     },
-    fetchFees () {
-      return new Promise((resolve, reject) => {
-        const url = '/ramp-p2p/order/contract/fees/'
-        backend.get(url, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+    async fetchFees () {
+      const url = `/ramp-p2p/order/${this.order.id}/contract/fees/`
+      let fees = null
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          fees = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
+      console.log('___fees:', fees)
+      return fees
     }
   }
 }

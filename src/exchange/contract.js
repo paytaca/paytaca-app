@@ -23,6 +23,7 @@ export class RampContract {
     this.publicKeys = publicKeys
     this.addresses = addresses
     this.fees = fees
+    console.log('fees:', fees)
     this.network = 'chipnet'
     if (!isChipnet) this.network = 'mainnet'
     this.initialize()

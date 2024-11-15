@@ -306,7 +306,7 @@ export default {
       const fees = {
         arbitrationFee: this.fees.fees.arbitration_fee,
         serviceFee: this.fees.fees.service_fee,
-        contractFee: this.fees.fees.hardcoded_fee
+        contractFee: this.fees.fees.contract_fee
       }
       const timestamp = this.contract.timestamp
       this.escrowContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)

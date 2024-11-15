@@ -21,7 +21,7 @@
           <q-badge v-if="order?.has_unread_status" floating rounded color="red"/>
         </q-btn>
       </div>
-      <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow:auto;">
+      <div :style="`height: ${scrollHeight}px`" style="overflow:auto;">
         <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
           <div class="q-mx-lg q-px-sm q-mb-sm">
             <TradeInfoCard
@@ -104,15 +104,17 @@
     <ChatDialog :key="chatDialogKey" v-if="openChat" :order="order" @close="openChat=false"/>
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
     <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" :trader-type="userTraderType" @back="showStatusHistory=false; order.has_unread_status=false" />
+    <NoticeBoardDialog v-if="showNoticeDialog" :type="noticeType" action="orders" :message="errorMessage" @hide="showNoticeDialog = false"/>
   </template>
 <script>
 import { formatCurrency, formatDate } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { ref } from 'vue'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/exchange/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { WebSocketManager } from 'src/exchange/websocket/manager'
+import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -130,12 +132,6 @@ import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractPro
 import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
 
 export default {
-  setup () {
-    const scrollTargetRef = ref(null)
-    return {
-      scrollTargetRef
-    }
-  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -178,6 +174,7 @@ export default {
       chatDialogKey: 0,
 
       errorMessages: [],
+      errorMessage: null,
       selectedPaymentMethods: [],
       autoReconWebSocket: true,
       reconnectingWebSocket: false,
@@ -192,7 +189,10 @@ export default {
       sendingBch: false,
       verifyingTx: false,
       showStatusHistory: false,
-      receiveOrderError: null
+      receiveOrderError: null,
+      orderWebSocketManager: null,
+      noticeType: 'info',
+      showNoticeDialog: false
     }
   },
   components: {
@@ -209,7 +209,8 @@ export default {
     UserProfileDialog,
     ContractProgressDialog,
     HeaderNav,
-    OrderStatusDialog
+    OrderStatusDialog,
+    NoticeBoardDialog
   },
   props: {
     notifType: {
@@ -376,12 +377,12 @@ export default {
   },
   async mounted () {
     await this.loadData()
-    this.setupWebsocket(20, 1000)
+    this.setupWebSocket()
     this.setupChatWebsocket(20, 1000)
   },
   beforeUnmount () {
     this.autoReconWebSocket = false
-    this.closeWSConnection()
+    this.orderWebSocketManager?.closeConnection()
     this.closeChatWSConnection()
   },
   methods: {
@@ -738,7 +739,7 @@ export default {
         const fees_ = {
           arbitrationFee: fees.breakdown?.arbitration_fee,
           serviceFee: fees.breakdown?.service_fee,
-          contractFee: fees.breakdown?.hardcoded_fee
+          contractFee: fees.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
@@ -968,38 +969,39 @@ export default {
         }
       }
     },
-    setupWebsocket (retries, delayDuration) {
-      const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.order.id}/`
-      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
-      this.websocket.watchtower.onopen = () => {
-        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
-      }
-      this.websocket.watchtower.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('WebSocket data:', data)
-        if (data?.txdata) {
-          this.verifyingTx = false
-          this.sendingBch = false
+    setupWebSocket () {
+      const url = `${getBackendWsUrl()}order/${this.order.id}/`
+      this.orderWebSocketManager = new WebSocketManager()
+      this.orderWebSocketManager.setWebSocketUrl(url)
+      this.orderWebSocketManager.subscribeToMessages((message) => {
+        console.log('Message:', message)
+        if (message?.success) {
+          if (message?.txdata) {
+            this.verifyingTx = false
+            this.sendingBch = false
+          }
+          this.fetchOrder()
+            .then(() => {
+              if (message?.contract_address) {
+                this.fetchContract().then(() => { this.escrowTransferKey++ })
+              }
+            })
+        } else {
+          this.handleError(message)
         }
-        this.fetchOrder()
-          .then(() => {
-            if (data?.contract_address) {
-              this.fetchContract().then(() => { this.escrowTransferKey++ })
-            }
-          })
-      }
-      this.websocket.watchtower.onclose = () => {
-        console.log('WebSocket connection closed.')
-        if (this.autoReconWebSocket && retries > 0) {
-          this.reconnectingWebSocket = true
-          console.log(`Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
-        }
+      })
+    },
+    handleError (data) {
+      console.log('handleError:', data)
+      console.log('userTraderType:', this.userTraderType)
+      if ((data?.action === 'ESCROW' || data?.action === 'RELEASE') && this.userTraderType === 'SELLER') {
+        this.noticeType = 'error'
+        this.errorMessage = data?.error
+        this.showNoticeDialog = true
       }
     },
     closeWSConnection () {
-      if (this.websocket.watchtower) this.websocket.watchtower.close()
+      this.websocket?.watchtower?.close()
     },
     closeChatWSConnection () {
       if (this.websocket.chat) this.websocket.chat.close()
