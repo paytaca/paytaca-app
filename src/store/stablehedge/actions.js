@@ -61,6 +61,8 @@ export function updateTokenPrices(context, opts) {
         context.commit('saveTokenPrice', {
           category: result?.category,
           price: result?.price,
+          decimals: result?.decimals,
+          currency: result?.currency,
           timestamp: new Date(result?.timestamp),
         })
       })

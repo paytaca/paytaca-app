@@ -39,11 +39,20 @@ export function saveFiatTokenBalances(state, data) {
 
 /**
  * @param {State} state
- * @param {{ category: String, price: Number, timestamp: Number | String }} data
+ * @param {Object} data
+ * @param {String} data.category
+ * @param {String} data.category
+ * @param {Number} data.price
+ * @param {Number} data.decimals
+ * @param {Number | String | Date} data.timestamp
+ * @param {{ category: String, price: Number, currency: String, timestamp: Number | String | Date }} data
  */
 export function saveTokenPrice(state, data) {
   if (typeof data.timestamp === 'string') {
     data.timestamp = new Date(data.timestamp) * 1
+  }
+  if (data?.timestamp instanceof Date) {
+    data.timestamp = data.timestamp * 1
   }
 
   if (Number.isNaN(data.timestamp)) data.timestamp = Date.now()

@@ -14,8 +14,9 @@ export default function () {
     }),
 
     // includes mainnet & chipnet
+    // price is from price oracle which represents unit/BCH e.g. for USD is cents/BCH
     fiatTokens: [].map(() => {
-      return { category: '', price: 0, timestamp: 0 }
+      return { category: '', price: 0, timestamp: 0, currency: '', decimals: 0 }
     })
   }
 }
