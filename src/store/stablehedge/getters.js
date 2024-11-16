@@ -26,7 +26,6 @@ export function token(state) {
 export function minTokenBalanceTimestamp(state, getters) {
   const tokenBalances = getters.tokenBalances
 
-  console.log({ tokenBalances })
   if (!tokenBalances?.length) return null
 
   let minTimestamp = Infinity
@@ -35,7 +34,6 @@ export function minTokenBalanceTimestamp(state, getters) {
 
     const token = getters.token?.(tokenBalance?.category);
     const timestamp = token?.timestamp;
-    console.log({ tokenBalance, token })
     if (Number.isNaN(timestamp)) return 0;
 
     if (timestamp < minTimestamp) minTimestamp = timestamp
@@ -44,27 +42,44 @@ export function minTokenBalanceTimestamp(state, getters) {
   return minTimestamp
 }
 
+export function tokenBalancesWithSats(state, getters) {
+  const tokenBalances = getters.tokenBalances
+
+  if (!Array.isArray(tokenBalances)) return []
+
+  return tokenBalances.map(tokenBalance => {
+    const token = getters.token?.(tokenBalance?.category)
+    const decimals = parseInt(token?.decimals) || 0
+    const price = token?.price / 10 ** decimals
+    const timestamp = token?.timestamp
+    let bch = null
+    if (Number.isNaN(price)) {
+      console.warn(`Stablehedge fiat token '${tokenBalance?.category}' has no price`)
+    } else {
+      bch = Math.floor(tokenBalance?.amount / price)
+    }
+    return {
+      ...tokenBalance,
+      satoshis: bch * 10 ** 8,
+      bch: bch,
+      price: price,
+      timestamp: timestamp,
+    }
+  })
+}
+
 /**
  * @param {State} state 
  * @param {Object} getters 
  */
 export function totalTokenBalancesInSats(state, getters) {
-  const tokenBalances = getters.tokenBalances
+  const tokenBalancesWithSats = getters.tokenBalancesWithSats
 
-  if (!Array.isArray(tokenBalances)) return null
-
-  const satsValues = tokenBalances.map(tokenBalance => {
-    const token = getters.token?.(tokenBalance?.category)
-    const price = token?.price
-    if (Number.isNaN(price)) {
-      console.warn(`Stablehedge fiat token '${tokenBalance?.category}' has no price`)
-      return 0
-    }
-    const satoshis = tokenBalance?.amount / price
-    return satoshis
-  })
-
-  return satsValues.reduce((subtotal, value) => value + subtotal, 0)
+  if (!Array.isArray(tokenBalancesWithSats)) return null
+  return tokenBalancesWithSats
+    .map(tokenBalance => tokenBalance?.satoshis)
+    .filter(Boolean)
+    .reduce((subtotal, value) => value + subtotal, 0)
 }
 
 /** ------------ Balance> ------------ */
