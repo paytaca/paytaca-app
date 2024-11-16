@@ -13,6 +13,7 @@ export async function updateAssetBalanceOnLoad (id, wallet, store) {
       store.commit(updateAssetBalance, { id, balance: response.balance })
     })
   } else {
+    // store.commit('stablehedge/reset');
     const fetchBchBalancePromises = Promise.all([
       getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
         store.commit(updateAssetBalance, {

@@ -98,15 +98,11 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
+                          <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/>
                           <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
-                            {{
-                              selectedNetwork === 'sBCH'
-                                ? `${String(bchAsset.balance).substring(0, 10)} ${selectedNetwork}`
-                                : parsedBCHBalance
-                            }}
+                            {{ bchBalanceText }}
                           </span>
                         </p>
-                        <StablehedgeWidget/>
                         <div>{{ getAssetMarketBalance(bchAsset) }}</div>
                         <q-badge
                           rounded
@@ -122,7 +118,24 @@
                             {{ `${walletYield} ${selectedMarketCurrency}` }}
                           </span>
                         </q-badge>
-                        <div v-if="hasCashin">
+                        <div v-if="stablehedgeView" class="q-mt-xs">
+                          <q-btn
+                            unelevated rounded
+                            padding="none sm"
+                            no-caps label="Freeze"
+                            class="q-mr-sm button"
+                            @click.stop
+                          />
+
+                          <q-btn
+                            unelevated rounded
+                            padding="none sm"
+                            no-caps label="Unfreeze"
+                            class="q-mr-sm button"
+                            @click.stop
+                          />
+                        </div>
+                        <div v-else-if="hasCashin">
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
                             <div style="padding-right: 10px;">Cash In</div>
@@ -132,14 +145,14 @@
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
-                      <div>
+                      <div v-if="selectedNetwork === 'sBCH'">
+                        <img src="sep20-logo.png" alt="" style="height: 75px;"/>
+                      </div>
+                      <div v-else @click.stop="() => stablehedgeView = !stablehedgeView">
                         <img
-                          :src="
-                            selectedNetwork === 'sBCH'
-                              ? 'sep20-logo.png'
-                              : denominationTabSelected === $t('DEEM')
-                                ? 'assets/img/theme/payhero/deem-logo.png'
-                                : 'bch-logo.png'
+                          :src="denominationTabSelected === $t('DEEM')
+                            ? 'assets/img/theme/payhero/deem-logo.png'
+                            : stablehedgeView ? 'stablehedge-bch-logo.png' : 'bch-logo.png'
                           "
                           alt=""
                           style="height: 75px;"
@@ -342,6 +355,7 @@
 <script>
 import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
+import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
@@ -372,7 +386,6 @@ import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import Notifications from 'src/components/notifications/index.vue'
-import StablehedgeWidget from 'src/components/stablehedge/StablehedgeWidget.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 
@@ -392,7 +405,6 @@ export default {
     connectedDialog,
     AssetFilter,
     MultiWalletDropdown,
-    StablehedgeWidget,
   },
   directives: {
     dragscroll
@@ -414,6 +426,7 @@ export default {
         logo: 'bch-logo.png',
         balance: 0
       },
+      stablehedgeView: false,
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       balanceLoaded: false,
@@ -509,6 +522,43 @@ export default {
 
       const asset = this.$store.getters['assets/getAssets'][0]
       return asset
+    },
+    bchBalanceText() {
+      if (!this.balanceLoaded) return '0'
+      const currentDenomination = this.denominationTabSelected
+      const balance = this.stablehedgeView
+        ? this.stablehedgeWalletData.balance
+        : this.bchAsset.balance
+
+      if (this.selectedNetwork === 'sBCH') {
+        return `${String(balance).substring(0, 10)} ${selectedNetwork}`
+      }
+
+      const parsedBCHBalance = parseAssetDenomination(currentDenomination, {
+        id: '',
+        balance,
+        symbol: 'BCH',
+        decimals: 0
+      }, false, 10)
+
+      if (currentDenomination === this.$t('DEEM')) {
+        const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        })
+        return `${commaBalance} ${currentDenomination}`
+      }
+
+      return parsedBCHBalance
+    },
+    stablehedgeWalletData() {
+      const sats = this.$store.getters['stablehedge/totalTokenBalancesInSats']
+      const balance = sats / 10 ** 8
+      const tokenBalances = this.$store.getters['stablehedge/tokenBalancesWithSats']
+      return {
+        balance,
+        tokenBalances,
+      }
     },
     mainchainAssets() {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
@@ -706,9 +756,9 @@ export default {
       if (!assetPrice) return ''
 
       let balance = Number(asset.balance || 0)
-      if (asset?.id === 'bch') {
+      if (asset?.id === 'bch' && this.stablehedgeView) {
         const stablehedgeWalletBalance = this.$store.getters['stablehedge/totalTokenBalancesInSats'] / 10 ** 8
-        balance += stablehedgeWalletBalance || 0
+        balance = stablehedgeWalletBalance || 0
       }
 
       const computedBalance = balance * Number(assetPrice)
@@ -1256,6 +1306,7 @@ export default {
   unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
     this.closeCashinWebSocket()
+    stablehedgePriceTracker.unsubscribe('main-page')
   },
   created () {
     bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
@@ -1267,6 +1318,7 @@ export default {
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
+    stablehedgePriceTracker.subscribe('main-page')
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 

@@ -13,16 +13,15 @@ class StablehedgeTokenPriceTracker {
     this.subscribedKeys = {};
     
     this.intervalId = null;
-    this.minAge = 30 * 1000;
-    this.interval = 3 * 1000;
+    this.minAge = 45 * 1000;
+    this.interval = 30 * 1000;
 
     this.updatingPrices = false
   }
 
   async updatePrices() {
     try {
-      console.log('Price tracker update')
-      if (this.updatingPrices) return Promise()
+      if (this.updatingPrices) return Promise.resolve()
       this.updatingPrices = true
       this._updatePricePromise = this.$store
         .dispatch('stablehedge/updateTokenPrices', { minAge: this.minAge })
@@ -38,11 +37,10 @@ class StablehedgeTokenPriceTracker {
     if (!this.intervalFunc) {
       this.intervalFunc = () => {
         const minTokenBalanceTimestamp = this.$store.getters['stablehedge/minTokenBalanceTimestamp']
-        if (minTokenBalanceTimestamp == null) return console.log('No min token balance')
+        if (minTokenBalanceTimestamp == null) return
         const tokenAge = Date.now() - minTokenBalanceTimestamp;
 
-        console.log('Interval triggered', { minTokenBalanceTimestamp, tokenAge })
-        if (tokenAge > this.minAge && this.updatingPrices) {
+        if (tokenAge > this.minAge) {
           this.updatePrices()
         }
       }
