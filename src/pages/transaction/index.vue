@@ -148,7 +148,7 @@
                       <div v-if="selectedNetwork === 'sBCH'">
                         <img src="sep20-logo.png" alt="" style="height: 75px;"/>
                       </div>
-                      <div v-else @click.stop="() => stablehedgeView = !stablehedgeView">
+                      <div v-else @click.stop="() => toggleStablehedgeView()">
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
@@ -305,35 +305,35 @@
             :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')"
           >
             <button
-              class="btn-custom q-mt-none btn-all"
-              :class="[getDarkModeClass(darkMode), {'active-transaction-btn border': transactionsFilter == 'all'}]"
-              @click="setTransactionsFilter('all')"
+              v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
+              class="btn-custom q-mt-none"
+              :class="[
+                getDarkModeClass(darkMode), 
+                `btn-${transactionFilterOpt.value}`,
+                {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
+              ]"
+              @click="setTransactionsFilter(transactionFilterOpt.value)"
             >
-              {{ $t('All') }}
-            </button>
-            <button
-              class="btn-custom q-mt-none btn-sent"
-              :class="[getDarkModeClass(darkMode), {'active-transaction-btn border': transactionsFilter == 'sent'}]"
-              @click="setTransactionsFilter('sent')"
-            >
-              {{ $t('Sent') }}
-            </button>
-            <button
-              class="btn-custom q-mt-none btn-received"
-              :class="[getDarkModeClass(darkMode), {'active-transaction-btn border': transactionsFilter == 'received'}]"
-              @click="setTransactionsFilter('received')"
-            >
-              {{ $t('Received') }}
+              {{ transactionFilterOpt?.label }}
             </button>
           </div>
-          <TransactionList
-            ref="transaction-list-component"
-            :selectedAssetProps="selectedAsset"
-            :denominationTabSelected="denominationTabSelected"
-            :wallet="wallet"
-            :selectedNetworkProps="selectedNetwork"
-            @on-show-transaction-details="showTransactionDetails"
-          />
+          <KeepAlive>
+            <StablehedgeHistory
+              v-if="stablehedgeView && selectedNetwork === 'BCH'"
+              ref="transaction-list-component"
+              :transactionsFilter="transactionsFilter"
+              :denominationTabSelected="denominationTabSelected"
+            />
+            <TransactionList
+              v-else
+              ref="transaction-list-component"
+              :selectedAssetProps="selectedAsset"
+              :denominationTabSelected="denominationTabSelected"
+              :wallet="wallet"
+              :selectedNetworkProps="selectedNetwork"
+              @on-show-transaction-details="showTransactionDetails"
+            />
+          </KeepAlive>
         </div>
       </div>
       <footer-menu ref="footerMenu" />
@@ -386,6 +386,7 @@ import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import Notifications from 'src/components/notifications/index.vue'
+import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 
@@ -405,6 +406,7 @@ export default {
     connectedDialog,
     AssetFilter,
     MultiWalletDropdown,
+    StablehedgeHistory,
   },
   directives: {
     dragscroll
@@ -590,6 +592,20 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
+    },
+    transactionsFilterOpts() {
+      if (this.stablehedgeView) {
+        return [
+          { label: this.$t('All'), value: 'all' },
+          { label: this.$t('Freeze'), value: 'freeze' },
+          { label: this.$t('Unfreeze'), value: 'unfreeze' },  
+        ]
+      }
+      return [
+        { label: this.$t('All'), value: 'all' },
+        { label: this.$t('Sent'), value: 'sent' },
+        { label: this.$t('Received'), value: 'received' },
+      ]
     }
   },
   methods: {
@@ -598,6 +614,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    toggleStablehedgeView() {
+      this.stablehedgeView = !this.stablehedgeView
+      this.$nextTick(() => this.setTransactionsFilter(this.transactionsFilter))
+    },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
@@ -861,11 +881,14 @@ export default {
       done()
     },
     setTransactionsFilter(value) {
-      if (['sent', 'received'].indexOf(value) >= 0) this.transactionsFilter = value
+      const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)
+      if (transactionsFilters.indexOf(value) >= 0) this.transactionsFilter = value
       else this.transactionsFilter = 'all'
 
-      this.$refs['transaction-list-component'].resetValues(value)
-      this.$refs['transaction-list-component'].getTransactions()
+      this.$nextTick(() => {
+        this.$refs['transaction-list-component'].resetValues(value)
+        this.$refs['transaction-list-component'].getTransactions()
+      })
     },
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)

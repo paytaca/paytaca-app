@@ -34,7 +34,7 @@ export function updateTokenBalances(context) {
  */
 export function updateTokenPrices(context, opts) {
   let categories = context.getters.tokenBalances?.map(balance => balance?.category)
-  const chipnet = context.getters['global/isChipnet']
+  const chipnet = context.rootGetters['global/isChipnet']
   const backend = getStablehedgeBackend(chipnet)
 
   if (Number.isSafeInteger(opts?.minAge)) {
@@ -68,5 +68,36 @@ export function updateTokenPrices(context, opts) {
       })
 
       return response
+    })
+}
+
+/**
+ * @param {import("vuex").ActionContext<State, Getters>} context 
+ * @param {Object} opts
+ * @param {Boolean} [opts.chipnet]
+ * @param {String[]} opts.categories
+ */
+export function updateTokenData(context, opts) {
+  const chipnet = typeof opts?.chipnet === 'boolean'
+    ? opts?.chipnet
+    : context.rootGetters['global/isChipnet']
+
+  const backend = getStablehedgeBackend(chipnet)
+  const params = {
+    categories: opts?.categories?.join(',') || '',
+  }
+  return backend.get(`stablehedge/fiat-tokens/`, { params })
+    .then(response => {
+      let results = []
+      if (Array.isArray(response?.data)) results = response?.data
+      if (Array.isArray(response?.data?.results)) results = response?.data?.results
+
+      results.forEach(result => {
+        context.commit('saveTokenData', {
+          category: result?.category,
+          decimals: result?.decimals,
+          currency: result?.currency,
+        })
+      })
     })
 }

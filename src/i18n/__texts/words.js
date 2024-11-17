@@ -186,8 +186,6 @@ const words = [
       Branches: "branches",
       Merchants: "Merchants",
       BranchesCapped: "Branches",
-      Stabilize: "Stabilize",
-      Redeem: "Redeem",
       Leverage: "Leverage",
       Funding: "Funding",
       Contract: "Contract",
@@ -345,6 +343,12 @@ const words = [
     Notifications: 'Notifications',
     General: 'General',
     Cashback: 'Cashback'
+  },
+  {
+    Stabilize: "Stabilize",
+    Redeem: "Redeem",
+    Freeze: "Freeze",
+    Unfreeze: "Unfreeze",
   }
 ]
 
