@@ -33,7 +33,7 @@ export function minTokenBalanceTimestamp(state, getters) {
     const tokenBalance = tokenBalances[index];
 
     const token = getters.token?.(tokenBalance?.category);
-    const timestamp = token?.timestamp;
+    const timestamp = token?.priceMessage?.messageTimestamp;
     if (Number.isNaN(timestamp)) return 0;
 
     if (timestamp < minTimestamp) minTimestamp = timestamp
@@ -50,7 +50,7 @@ export function tokenBalancesWithSats(state, getters) {
   return tokenBalances.map(tokenBalance => {
     const token = getters.token?.(tokenBalance?.category)
     const decimals = parseInt(token?.decimals) || 0
-    const price = token?.price / 10 ** decimals
+    const price = token?.priceMessage?.priceValue / 10 ** decimals
     const timestamp = token?.timestamp
     let bch = null
     if (Number.isNaN(price)) {

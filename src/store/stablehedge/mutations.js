@@ -39,10 +39,7 @@ export function saveFiatTokenBalances(state, data) {
 
 /**
  * @param {State} state
- * @param {Object} data
- * @param {String} data.category
- * @param {Number} data.currency
- * @param {Number} data.decimals
+ * @param {ReturnType<import("src/wallet/stablehedge/token-utils").parseTokenData>} data
  */
 export function saveTokenData(state, data) {
   const index = state.fiatTokens.findIndex(tokenPrice => tokenPrice.category === data?.category)
@@ -52,22 +49,9 @@ export function saveTokenData(state, data) {
 
 /**
  * @param {State} state
- * @param {Object} data
- * @param {String} data.category
- * @param {String} data.currency
- * @param {Number} data.price
- * @param {Number} data.decimals
- * @param {Number | String | Date} data.timestamp
+ * @param {ReturnType<import("src/wallet/stablehedge/token-utils").parseTokenData>} data
  */
 export function saveTokenPrice(state, data) {
-  if (typeof data.timestamp === 'string') {
-    data.timestamp = new Date(data.timestamp) * 1
-  }
-  if (data?.timestamp instanceof Date) {
-    data.timestamp = data.timestamp * 1
-  }
-
-  if (Number.isNaN(data.timestamp)) data.timestamp = Date.now()
   const index = state.fiatTokens.findIndex(tokenPrice => tokenPrice.category === data?.category)
   if (index >= 0) Object.assign(state.fiatTokens[index], data)
   else state.fiatTokens.push(data)

@@ -1,4 +1,6 @@
 import { getStablehedgeBackend } from "src/wallet/stablehedge/api"
+import { parseTokenData } from "src/wallet/stablehedge/token-utils"
+
 
 /** @typedef {ReturnType<import("./state").default>} State */
 /**
@@ -30,19 +32,29 @@ export function updateTokenBalances(context) {
 /**
  * @param {import("vuex").ActionContext<State, Getters>} context 
  * @param {Object} opts
+ * @param {String[]} [opts.includeCategories]
  * @param {Number} [opts.minAge] only update token prices have timestamps older than specified age
  */
 export function updateTokenPrices(context, opts) {
+  /** @type {String[]} */
   let categories = context.getters.tokenBalances?.map(balance => balance?.category)
   const chipnet = context.rootGetters['global/isChipnet']
   const backend = getStablehedgeBackend(chipnet)
+
+  if (Array.isArray(opts?.includeCategories)) {
+    opts?.includeCategories?.forEach(category => {
+      if (typeof category !== 'string') return
+      if (categories.includes(category)) return
+      categories.push(category)
+    })
+  }
 
   if (Number.isSafeInteger(opts?.minAge)) {
     const now = Date.now()
     categories = categories?.filter(category => {
       const token = context.state.fiatTokens.find(token => token?.category === category)
-      const timestamp = token?.timestamp
-      if (!Number.isNaN(timestamp)) return true
+      const timestamp = token?.priceMessage?.messageTimestamp
+      if (!Number.isFinite(timestamp)) return true
       return (now - timestamp) > opts?.minAge
     })
   }
@@ -58,13 +70,7 @@ export function updateTokenPrices(context, opts) {
       if (!Array.isArray(results)) return Promise.reject({ response })
 
       results.forEach(result => {
-        context.commit('saveTokenPrice', {
-          category: result?.category,
-          price: result?.price,
-          decimals: result?.decimals,
-          currency: result?.currency,
-          timestamp: new Date(result?.timestamp),
-        })
+        context.commit('saveTokenPrice', parseTokenData(result))
       })
 
       return response
@@ -93,11 +99,7 @@ export function updateTokenData(context, opts) {
       if (Array.isArray(response?.data?.results)) results = response?.data?.results
 
       results.forEach(result => {
-        context.commit('saveTokenData', {
-          category: result?.category,
-          decimals: result?.decimals,
-          currency: result?.currency,
-        })
+        context.commit('saveTokenData', parseTokenData(result))
       })
     })
 }
