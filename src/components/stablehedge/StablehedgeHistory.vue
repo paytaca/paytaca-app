@@ -124,7 +124,7 @@ export default defineComponent({
         wallet_hashes: walletData?.walletHash || '',
         transaction_types: transactionTypes.join(',') || undefined,
         statuses: 'success',
-        order_by: '-created_at',
+        ordering: '-created_at',
       }
     })
 
