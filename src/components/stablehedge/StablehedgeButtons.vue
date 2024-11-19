@@ -1,0 +1,227 @@
+<template>
+  <div>
+    <q-btn
+      unelevated rounded
+      padding="none sm"
+      no-caps label="Freeze"
+      class="q-mr-sm button"
+      @click.stop="() => openFreezeDialog()"
+    />
+
+    <q-btn
+      unelevated rounded
+      padding="none sm"
+      no-caps label="Unfreeze"
+      class="q-mr-sm button"
+      @click.stop="() => openUnfreezeDialog()"
+    />
+
+    <DepositFormDialog
+      v-model="depositFormDialog.show"
+      :redemptionContract="depositFormDialog.redemptionContract"
+      @ok="deposit"
+    />
+    <RedeemFormDialog
+      v-model="redeemFormDialog.show"
+      :redemptionContracts="redeemFormDialog.redemptionContracts"
+    />
+  </div>
+</template>
+<script>
+import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
+import { useQuasar } from 'quasar';
+import { useStore } from 'vuex';
+import { ref, computed, watch, defineComponent } from 'vue';
+
+import DepositFormDialog from './DepositFormDialog.vue';
+import RedeemFormDialog from './RedeemFormDialog.vue';
+import DepositDialog from './DepositDialog.vue';
+
+export default defineComponent({
+  name: 'StablehedgeButtons',
+  components: {
+    DepositFormDialog,
+    RedeemFormDialog,
+    DepositDialog,
+  },
+  emits: [
+    'deposit',
+    'redeem',
+  ],
+  setup(props, { emit: $emit }) {
+    const $q = useQuasar();
+    const $store = useStore();
+    const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+    const isChipnet = computed(() => $store.getters['global/isChipnet'])
+    watch(isChipnet, () => backend = getStablehedgeBackend(isChipnet.value))
+    let backend = getStablehedgeBackend(isChipnet.value)
+
+
+    const selectedMarketCurrency = computed(() => {
+      const currency = $store.getters['market/selectedCurrency']
+      return currency?.symbol
+    })
+
+    const tokenBalancesWithSats = computed(() => $store.getters['stablehedge/tokenBalancesWithSats'])
+
+    const redeemFormDialog = ref({
+      show: false,
+      redemptionContracts: [],
+    })
+    const depositFormDialog = ref({
+      show: false,
+      redemptionContract: null,
+    })
+    async function openUnfreezeDialog() {
+      const { redemptionContracts } = (await getContractsForUnfreeze())
+      redeemFormDialog.value.show = true
+      redeemFormDialog.value.redemptionContracts = redemptionContracts
+    }
+
+    async function openFreezeDialog() {
+      const { contract } = (await findContractForFreeze())
+      depositFormDialog.value.show = true
+      depositFormDialog.value.redemptionContract = contract
+    }
+
+    async function findContractForFreeze() {
+      const loadingKey = 'stablehedge-freeze-search'
+      try {
+        const updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const currencies = [
+          selectedMarketCurrency.value,
+          'USD',
+          ...tokenBalancesWithSats.value.map(tokenBalance => tokenBalance?.currency)
+        ].filter(Boolean)
+          .filter((element, index, list) => list.indexOf(element) === index)
+  
+        const params = {
+          currencies: currencies.join(','),
+        }
+
+        updateLoading({ message: 'Searching for ideal stablehedge contract' })
+        const response = await backend.get('stablehedge/redemption-contracts/', { params })
+        const redemptionContracts = Array.isArray(response.data)
+          ? response.data
+          : response.data?.results
+
+        let contract = redemptionContracts.find(contract => {
+          return contract?.fiat_token?.currency === selectedMarketCurrency.value
+        })
+        if (!contract) {
+          contract = redemptionContracts?.[0]
+        }
+        if (!contract) throw 'No stablehedge contracts found'
+
+        updateLoading({ message: 'Fetching price data' })
+        const category = contract?.fiat_token?.category
+        await $store.dispatch('stablehedge/updateTokenPrices', { includeCategories: [category] })
+
+        const token = $store.getters['stablehedge/token']?.(category)
+        const priceValue = token?.priceMessage?.priceValue
+        if (!Number.isFinite(priceValue)) throw 'Unable to get token price'
+
+        return { contract }
+      } catch(error) {
+        console.error(error)
+        let message = 'Unable to fetch freeze details'
+        if (typeof error === 'string') message = error
+        if (typeof error?.message === 'string') message = error?.message
+        $q.notify({
+          type: 'negative',
+          message: message,
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
+    async function getContractsForUnfreeze() {
+      const loadingKey = 'stablehedge-unfreeze-search'
+      try {
+        const updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const tokenBalances = $store.getters['stablehedge/tokenBalances']
+        const categories = tokenBalances.map(balance => balance.category)
+          .filter((element, index, list) => list.indexOf(element) === index)
+
+        if (!categories.length) throw 'No redeemable tokens'
+
+        const params = {
+          categories: categories.join(','),
+        }
+
+        updateLoading({ message: 'Fetching contracts' })
+        const response = await backend.get('stablehedge/redemption-contracts/', { params })
+        const redemptionContracts = Array.isArray(response.data)
+          ? response.data
+          : response.data?.results
+        return { redemptionContracts }
+      } catch(error) {
+        console.error(error)
+        let message = 'Unable to fetch freeze details'
+        if (typeof error === 'string') message = error
+        if (typeof error?.message === 'string') message = error?.message
+        $q.notify({
+          type: 'negative',
+          message: message,
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
+    /**
+     * @param {Object} opts
+     * @param {Number} opts.tokenUnits
+     * @param {Object} opts.redemptionContract
+     * @param {Object} opts.priceMessage
+     */
+     function deposit(opts) {
+      $q.dialog({
+        component: DepositDialog,
+        componentProps: {
+          tokenUnits: opts?.tokenUnits,
+          redemptionContract: opts?.redemptionContract,
+          priceMessage: opts?.priceMessage,
+        },
+      }).onOk(result => {
+        /** @type {import('quasar').QNotifyCreateOptions} */
+        const notifyOpts = {
+          timeout: 20 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        }
+
+        notifyOpts.message = result?.resultMessage
+        if (result?.status === 'success') {
+          notifyOpts.type = 'positive'
+          notifyOpts.icon = 'check_circle'
+          notifyOpts.message = notifyOpts.message || `Success`
+          $emit('deposit', result)
+        } else if (result?.status === 'failed') {
+          notifyOpts.type = 'negative'
+          notifyOpts.icon = 'error'
+        } else {
+          notifyOpts.icon = 'pending'
+        }
+        $q.notify(notifyOpts)
+      })
+    }
+
+    return {
+      darkMode,
+      
+      redeemFormDialog,
+      depositFormDialog,
+      openUnfreezeDialog,
+      openFreezeDialog,
+
+      findContractForFreeze,
+
+      deposit,
+    }
+  }
+})
+</script>

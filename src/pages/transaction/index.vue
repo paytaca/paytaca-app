@@ -118,23 +118,7 @@
                             {{ `${walletYield} ${selectedMarketCurrency}` }}
                           </span>
                         </q-badge>
-                        <div v-if="stablehedgeView" class="q-mt-xs">
-                          <q-btn
-                            unelevated rounded
-                            padding="none sm"
-                            no-caps label="Freeze"
-                            class="q-mr-sm button"
-                            @click.stop
-                          />
-
-                          <q-btn
-                            unelevated rounded
-                            padding="none sm"
-                            no-caps label="Unfreeze"
-                            class="q-mr-sm button"
-                            @click.stop
-                          />
-                        </div>
+                        <StablehedgeButtons v-if="stablehedgeView" class="q-mt-xs"/>
                         <div v-else-if="hasCashin">
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
@@ -386,6 +370,7 @@ import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import Notifications from 'src/components/notifications/index.vue'
+import StablehedgeButtons from 'src/components/stablehedge/StablehedgeButtons.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
@@ -406,6 +391,7 @@ export default {
     connectedDialog,
     AssetFilter,
     MultiWalletDropdown,
+    StablehedgeButtons,
     StablehedgeHistory,
   },
   directives: {
