@@ -3,7 +3,7 @@
   <q-dialog ref="dialog" full-width persistent position="top" transition-show="slide-down" @before-hide="customKeyboard = 'dismiss'" no-shake>
     <q-card class="br-15 pt-card-2 text-bow">
       <div class="text-right q-pr-lg q-pt-md">
-        <q-icon size="sm" color="red" name="close" @click="$refs.dialog.hide()"/>
+        <q-icon size="sm" color="red" name="close" @click="closeDialog()"/>
       </div>
       <div class="q-px-lg q-pt-sm text-center text-bold" style="font-size: medium;">{{ filterTypeText }}</div>
       <div class="q-pt-sm q-pb-md q-px-lg">
@@ -129,7 +129,11 @@ export default {
     },
     onOKClick () {
       this.$emit('ok', this.filter)
-      this.$refs.dialog.hide()
+      this.customKeyboardState = 'dismiss'
+
+      setTimeout(() => {
+        this.$refs.dialog.hide()
+      }, 50)
     },
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
@@ -198,6 +202,13 @@ export default {
       } else {
         this.customKeyboardState = 'dismiss'
       }
+    },
+    closeDialog () {
+      this.customKeyboardState = 'dismiss'
+
+      setTimeout(() => {
+        this.$refs.dialog.hide()
+      }, 50)
     }
   }
 }

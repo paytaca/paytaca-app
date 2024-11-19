@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" seamless position="bottom" @before-hide="onBeforeHide">
-    <q-card :style="bottomMargin" style="width: 50px; margin-left: 10%; margin-right: 10%;" :class="bgColor" class="text-white q-mx-lg">
+    <q-card :style="bottomMargin" style="width: 50px; margin-left: 10%; margin-right: 10%;" :class="[bgColor, darkMode ? 'text-white' : 'text-black']" class="q-mx-lg">
       <q-bar>
         <q-icon name="mdi-information-outline"></q-icon>
         <div>{{ capitalize(type) }}</div>
@@ -35,7 +35,8 @@ export default {
   },
   data () {
     return {
-      dontShowAgain: false
+      dontShowAgain: false,
+      darkMode: this.$store.getters['darkmode/getStatus'],
     }
   },
   emits: ['hide'],
