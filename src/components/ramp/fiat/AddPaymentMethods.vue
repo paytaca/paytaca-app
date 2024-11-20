@@ -489,6 +489,7 @@ export default {
       vm.isloaded = true
     },
     async savePaymentMethod (info) {
+      console.log('saving Payment method here')
       const vm = this
       let url = '/ramp-p2p/payment-method/'
       const body = {
@@ -497,10 +498,11 @@ export default {
         identifier_format: info.identifier_format
       }
       if (vm.dialogType === 'editPaymentMethod') {
-        url = url + vm.selectedMethodIndex
+        url = `${url}${vm.selectedMethodIndex}/`
       } else {
         body.payment_type = info.payment_type.id
       }
+
       switch (vm.dialogType) {
         case 'addMethodFromAd':
         case 'createPaymentMethod':
@@ -529,6 +531,7 @@ export default {
         }
         case 'editPaymentMethod': {
           // editing payment method
+          console.log('HEERRREEE:', url)
           backend.patch(url, body, { authorize: true })
             .then(() => {
               vm.dialogType = ''
