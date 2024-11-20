@@ -21,10 +21,6 @@ export function calculateInputSize(transaction) {
 
   // Add one extra byte per input to over-estimate tx-in count
   const contractInputSize = getInputSize(placeholderScript) + 1;
-  console.log({
-    contractInputSize,
-    placeholderScript: placeholderScript.length,
-  })
   return contractInputSize
 }
 
@@ -40,13 +36,6 @@ export function unlockP2PKH(opts) {
   const transaction = opts?.transaction
   const sourceOutputs = opts?.sourceOutputs
   const inputIndex = opts?.inputIndex
-
-  console.log({
-    template,
-    transaction,
-    sourceOutputs,
-    inputIndex,
-  })
 
   const pubkey = template.getPublicKey();
   const prevOutScript = publicKeyToP2PKHLockingBytecode(pubkey);
@@ -120,14 +109,12 @@ export function cashscriptTxToLibauth(contractAddress, tx) {
 export function watchtowerUtxoToCashscript(utxo) {
   let tokenAmount
   if (utxo?.tokenid) {
-    const amount = parseFloat(utxo?.amount)
-    const decimals = parseInt(utxo?.decimals || 0)
-    _tokenAmount = Math.floor(amount * 10 ** decimals)
-    tokenAmount = BigInt(_tokenAmount)
+    tokenAmount = BigInt(utxo?.amount)
   }
 
   return {
     txid: utxo?.txid,
+    vout: utxo?.vout,
     satoshis: BigInt(utxo?.value),
     token: !utxo?.tokenid ? undefined : {
       category: utxo?.tokenid,

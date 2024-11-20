@@ -11,6 +11,7 @@ import {
   cashAddressToLockingBytecode,
   lockingBytecodeToBase58Address,
   encodeBase58Address,
+  hashTransaction
 } from "@bitauth/libauth"
 
 export function sha256(data='', encoding='utf8') {
@@ -23,8 +24,7 @@ export function sha256(data='', encoding='utf8') {
  * @param {String} transaction 
  */
 export function getTxid(transaction) {
-  const hash1 = sha256(transaction, 'hex')
-  return sha256(hash1, 'hex')
+  return hashTransaction(hexToBin(transaction))
 }
 
 export function pubkeyToPkHash(pubkey='') {

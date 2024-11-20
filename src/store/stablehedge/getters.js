@@ -1,3 +1,5 @@
+import { tokenToSatoshis } from "src/wallet/stablehedge/token-utils"
+
 /** @typedef {ReturnType<import("./state").default>} State */
 
 /** ------------ <Balance ------------ */
@@ -49,18 +51,20 @@ export function tokenBalancesWithSats(state, getters) {
 
   return tokenBalances.map(tokenBalance => {
     const token = getters.token?.(tokenBalance?.category)
-    const decimals = parseInt(token?.decimals) || 0
-    const price = token?.priceMessage?.priceValue / 10 ** decimals
+    const price = token?.priceMessage?.priceValue
     const timestamp = token?.timestamp
+    let satoshis = null
     let bch = null
     if (Number.isNaN(price)) {
       console.warn(`Stablehedge fiat token '${tokenBalance?.category}' has no price`)
     } else {
-      bch = Math.floor(tokenBalance?.amount / price)
+      const _satoshis = tokenToSatoshis(tokenBalance?.amount, price)
+      bch = Number(_satoshis / BigInt(10 ** 8))
+      satoshis = Number(_satoshis)
     }
     return {
       ...tokenBalance,
-      satoshis: bch * 10 ** 8,
+      satoshis: satoshis,
       bch: bch,
       price: price,
       timestamp: timestamp,
