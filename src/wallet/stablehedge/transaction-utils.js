@@ -85,14 +85,7 @@ export function cashscriptTxToLibauth(contractAddress, tx) {
     const sourceOutput = {
       to: sourceBytecode || contractBytecode,
       amount: BigInt(input?.satoshis),
-      token: !input?.token ? undefined : {
-        category: hexToBin(input?.token?.category),
-        amount: BigInt(input?.token?.amount),
-        nft: !input?.token?.nft ? undefined : {
-          commitment: hexToBin(input?.token?.nft?.commitment),
-          capability: input?.token?.nft?.capability,
-        }
-      },
+      token: input?.token,
     }
 
     return cashScriptOutputToLibauthOutput(sourceOutput);

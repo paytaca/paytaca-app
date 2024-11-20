@@ -24,31 +24,34 @@
     <RedeemFormDialog
       v-model="redeemFormDialog.show"
       :redemptionContracts="redeemFormDialog.redemptionContracts"
+      @ok="redeem"
     />
   </div>
 </template>
 <script>
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { ref, computed, watch, defineComponent } from 'vue';
 
 import DepositFormDialog from './DepositFormDialog.vue';
 import RedeemFormDialog from './RedeemFormDialog.vue';
 import DepositDialog from './DepositDialog.vue';
+import RedeemDialog from './RedeemDialog.vue';
 
 export default defineComponent({
   name: 'StablehedgeButtons',
   components: {
     DepositFormDialog,
     RedeemFormDialog,
-    DepositDialog,
   },
   emits: [
     'deposit',
     'redeem',
   ],
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n()
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -56,6 +59,14 @@ export default defineComponent({
     const isChipnet = computed(() => $store.getters['global/isChipnet'])
     watch(isChipnet, () => backend = getStablehedgeBackend(isChipnet.value))
     let backend = getStablehedgeBackend(isChipnet.value)
+
+    window.test = () => $q.notify({
+      message: 'Test',
+      timeout: 20 * 1000,
+      actions: [
+        { icon: 'close', color: 'white', round: true, handler: () => {} }
+      ]
+    })
 
 
     const selectedMarketCurrency = computed(() => {
@@ -172,10 +183,13 @@ export default defineComponent({
     }
 
     /**
-     * @param {Object} opts
-     * @param {Number} opts.tokenUnits
-     * @param {Object} opts.redemptionContract
-     * @param {Object} opts.priceMessage
+     * @typedef {Object} RedemptionContractTransactionParams
+     * @property {Number} tokenUnits
+     * @property {Object} redemptionContract
+     * @property {Object} priceMessage
+     */
+    /**
+     * @param {RedemptionContractTransactionParams} opts
      */
      function deposit(opts) {
       $q.dialog({
@@ -190,7 +204,7 @@ export default defineComponent({
         const notifyOpts = {
           timeout: 20 * 1000,
           actions: [
-            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+            { icon: 'close', color: 'white', round: true, handler: () => {} }
           ]
         }
 
@@ -198,15 +212,69 @@ export default defineComponent({
         if (result?.status === 'success') {
           notifyOpts.type = 'positive'
           notifyOpts.icon = 'check_circle'
-          notifyOpts.message = notifyOpts.message || `Success`
-          $emit('deposit', result)
+          notifyOpts.message = notifyOpts.message || $t('Success')
         } else if (result?.status === 'failed') {
           notifyOpts.type = 'negative'
           notifyOpts.icon = 'error'
         } else {
           notifyOpts.icon = 'pending'
         }
+
+        if (['success', 'pending'].includes(result?.status)) {
+          $emit('deposit', [result])
+        }
         $q.notify(notifyOpts)
+      })
+    }
+
+    /**
+     * @param {RedemptionContractTransactionParams[]} opts 
+     */
+    function redeem(opts) {
+      $q.dialog({
+        component: RedeemDialog,
+        componentProps: {
+          redeemOpts: [
+            ...opts,
+          ],
+        }
+      }).onOk(results => {
+        console.log(results)
+        const successResults = results?.filter?.(result => result?.success).map(result => result?.txData)
+        const errors = results?.filter?.(result => !result?.success)
+        const errorMessage = errors.reduce((msg, error) => {
+          if (error?.txData?.resultMessage) return error?.txData?.resultMessage
+          if (error?.error) return error?.error
+          return msg
+        }, '')
+
+        /** @type {import('quasar').QNotifyCreateOptions} */
+        const notifyOpts = {
+          timeout: 20 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => {} }
+          ]
+        }
+
+        if (successResults?.length && errorMessage) {
+          notifyOpts.type = 'info'
+          notifyOpts.icon = 'rule'
+          notifyOpts.message = 'Partially redeemed funds'
+          notifyOpts.caption = errorMessage
+        } else if (successResults?.length && !errorMessage) {
+          notifyOpts.type = 'positive'
+          notifyOpts.icon = 'check_circle'
+          notifyOpts.message = $t('Success')
+          notifyOpts.caption = successResults.find(txData => txData?.resultMessage)?.resultMessage || ''
+        } else if (!successResults?.length && errorMessage) {
+          notifyOpts.type = 'negative'
+          notifyOpts.icon = 'error'
+          notifyOpts.message = errorMessage
+        }
+
+        if (notifyOpts.message) $q.notify(notifyOpts)
+
+        if (successResults?.length) $emit('redeem', successResults)
       })
     }
 
@@ -221,6 +289,7 @@ export default defineComponent({
       findContractForFreeze,
 
       deposit,
+      redeem,
     }
   }
 })
