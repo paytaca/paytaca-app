@@ -118,7 +118,12 @@
                             {{ `${walletYield} ${selectedMarketCurrency}` }}
                           </span>
                         </q-badge>
-                        <StablehedgeButtons v-if="stablehedgeView" class="q-mt-xs"/>
+                        <StablehedgeButtons
+                          v-if="stablehedgeView"
+                          class="q-mt-xs"
+                          @deposit="onStablehedgeTransaction"
+                          @redeem="onStablehedgeTransaction"
+                        />
                         <div v-else-if="hasCashin">
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
@@ -603,6 +608,32 @@ export default {
     toggleStablehedgeView() {
       this.stablehedgeView = !this.stablehedgeView
       this.$nextTick(() => this.setTransactionsFilter(this.transactionsFilter))
+    },
+    /**
+     * @typedef {Object} RedemptionTransactionResult
+     * @property {Number} id
+     * @property {String} redemptionContractAddress
+     * @property {String} txType
+     * @property {String} category
+     * @property {Number} satoshis
+     * @property {Number} bch
+     * @property {Number} amount
+     * @property {String} status
+     * @property {String} txid
+     * @property {String} resultMessage
+     * 
+     * @param {RedemptionTransactionResult[]} data
+     */
+    onStablehedgeTransaction(data) {
+      this.setTransactionsFilter(this.transactionsFilter)
+      this.$store.dispatch('stablehedge/updateTokenBalances')
+
+      data.map(txData => txData?.category)
+        .map(category => {
+          return this.assets.find(asset => asset?.id?.includes(category))?.id
+        })
+        .filter(Boolean)
+        .map(assetId => updateAssetBalanceOnLoad(assetId, this.wallet, this.$store))
     },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
