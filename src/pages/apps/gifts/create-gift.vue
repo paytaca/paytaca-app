@@ -121,7 +121,7 @@
               type="submit"
               :label="$t('Generate')"
               class="flex flex-center button"
-              :disable="(createNewCampaign && !campaignName) || disableGenerateButton()"
+              :disable="(createNewCampaign && !campaignName) || disableGenerateButton() || amountBCH > spendableBch"
               @click="processRequest()"
             >
             </q-btn>
@@ -268,7 +268,7 @@ export default {
       }
     },
     disableGenerateButton () {
-      if (this.amountBCH > 0) {
+      if (this.amountBCH > 0.00001) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
           if (this.$refs.campaignInput) {
             if (this.$refs.campaignInput.hasError) {
