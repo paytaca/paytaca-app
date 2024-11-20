@@ -10,7 +10,12 @@
     <template v-else>
       <div v-for="record in history" :key="record?.id" class="row items-center history-record">
         <div class="q-space">
-          <div class="text-uppercase text-subtitle1">{{ record?.txType }}</div>
+          <div class="text-subtitle1">
+            <span class="text-uppercase">{{ record?.txType }}</span>
+            <q-badge v-if="record?.status && record?.status != 'success'" class="q-ml-xs">
+              {{ record?.status }}
+            </q-badge>
+          </div>
           <div>{{ formatDate(record?.timestamp) }}</div>
         </div>
         <div class="text-right">
@@ -123,8 +128,8 @@ export default defineComponent({
       return {
         wallet_hashes: walletData?.walletHash || '',
         transaction_types: transactionTypes.join(',') || undefined,
-        statuses: 'success',
-        ordering: '-created_at',
+        statuses: 'pending,success',
+        ordering: 'status,-created_at',
       }
     })
 
