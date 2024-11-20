@@ -60,10 +60,11 @@ import { customNumberFormatting, parseFiatCurrency } from 'src/utils/denominatio
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
-import { prepareUtxo, waitRedemptionContractTx } from 'src/wallet/stablehedge/transaction';
+import { prepareUtxos, waitRedemptionContractTx } from 'src/wallet/stablehedge/transaction';
 import { getMnemonic } from 'src/wallet';
 import { binToHex } from '@bitauth/libauth';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { computed, defineComponent, ref, watch } from 'vue'
 import DragSlide from 'src/components/drag-slide.vue';
@@ -87,6 +88,7 @@ export default defineComponent({
     priceMessage: Object,
   },
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n()
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -127,24 +129,25 @@ export default defineComponent({
         const wallet = await getStablehedgeWallet()
 
         loadingMsg.value = 'Preparing funds'
-        const utxoPrep = await prepareUtxo({
+        const utxoPrep = await prepareUtxos({
           wallet: wallet,
-          satoshis: satoshis.value + 2000,
+          amounts: [{ satoshis: satoshis.value + 2000 }],
           locktime: 0,
         })
+        console.log({ utxoPrep })
         if (!utxoPrep.success) throw utxoPrep.error
 
-        const utxo = utxoPrep.utxo
+        const utxo = utxoPrep.utxos[0]
         utxo.addressPath = utxo.address_path
         loadingMsg.value = 'Signing data'
         const signResult = await wallet.signDepositUtxo({
-          locktime: 0,
           utxo,
           token: {
             category: props.redemptionContract?.fiat_token?.category,
             amount: tokenUnits.value
           }
         })
+        console.log({ signResult })
 
         const signedUtxo = {
           txid: utxo?.txid,
@@ -154,9 +157,7 @@ export default defineComponent({
           unlocking_bytecode: binToHex(signResult.input.unlockingBytecode),
         }
 
-        console.log({ utxoPrep })
         if (utxoPrep?.transaction) {
-          console.log('Broadcasting funds')
           loadingMsg.value = 'Preparing funds for deposit'
           const broadcastResult = await wallet.broadcast(utxoPrep?.transaction)
           if (broadcastResult.data?.error) {
@@ -189,7 +190,7 @@ export default defineComponent({
         const txStatusData = await waitRedemptionContractTx({
           id: redemptionContractTxId,
           chipnet: wallet.isChipnet,
-          timeout: 10 * 1000,
+          timeout: 30 * 1000,
         }).catch(error => {
           if (error === 'timeout') {
             return {
@@ -217,7 +218,19 @@ export default defineComponent({
         return resultData
       } catch(error) {
         console.error(error)
-        // error handling here
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
       } finally {
         loading.value = false
         loadingMsg.value = ''

@@ -5,75 +5,104 @@ import { StablehedgeRPC } from "./rpc";
 import { getStablehedgeBackend } from "./api";
 
 /**
- * Creates a utxo with the specified amount of satoshis.
- * also supports fungible cashtoken if category and tokenAmount is provided
- * 
  * @param {Object} opts 
  * @param {import("./wallet").StablehedgeWallet} opts.wallet
- * @param {Number} opts.satoshis
- * @param {String} [opts.category]
- * @param {Number} [opts.tokenAmount]
  * @param {Number} [opts.locktime]
- * @returns {{success: Boolean, error?: String, utxo: import("./wallet").WatchtowerUtxo, transaction?: String }}
+ * @param {{satoshis:Number, category:?String, tokenAmount:?Number}[]} opts.amounts
  */
-export async function prepareUtxo(opts) {
+export async function prepareUtxos(opts) {
   const wallet = opts?.wallet
+  /** @type {import("./wallet").WatchtowerUtxo[]} */
+  const utxoSearchResults = await Promise.all(
+    opts.amounts.map(async (amountData) => {
+      const utxo = await searchUtxo({
+        wallet: opts?.wallet,
+        ...amountData,
+      })
 
-  const utxo = await searchUtxo(opts)
-  console.log({ utxo })
-  if (utxo) return {
-    success: true,
-    utxo: utxo,
+      if (utxo) return utxo
+
+      return {
+        txid: '',
+        vout: -1,
+        address_path: '0/0',
+        value: amountData?.satoshis,
+        tokenid: amountData?.category,
+        amount: amountData?.tokenAmount,
+      }
+    })
+  )
+
+  if (utxoSearchResults.every(result => result.txid && result.vout >= 0)) {
+    return {
+      success: true,
+      utxos: utxoSearchResults,
+    }
   }
 
   const txBuilder = new TransactionBalancer()
-  txBuilder.outputs.push({
-    to: wallet.getAddressAt({ path: '0/0', token: Boolean(opts?.category) }),
-    amount: BigInt(opts?.satoshis),
-    token: !opts?.category ? undefined : {
-      category: opts?.category,
-      amount: BigInt(opts?.tokenAmount),
-    }
-  })
 
-  if (opts?.category && opts?.tokenAmount) {
-    const tokenUtxos = await wallet.getUtxos(opts?.category)
-    for(var index = 0; index < tokenUtxos.length; index++) {
-      const changeTokens = txBuilder.tokenChange(opts?.category)
-      if (changeTokens >= 0) break
+  for(const utxo of utxoSearchResults) {
+    if (utxo.txid && utxo.vout >= 0) continue
 
-      const utxo = tokenUtxos[index]
-      const wif = wallet.getPrivateKeyWifAt(utxo?.address_path)
-      const cashscriptUtxo = watchtowerUtxoToCashscript(utxo)
-
-      cashscriptUtxo.template = new SignatureTemplate(wif)
-      txBuilder.inputs.push(cashscriptUtxo)
-    }
-  }
-
-  const changeTokens = txBuilder.tokenChange(opts?.category)
-  if (changeTokens < 0n) {
-    return { success: false, error: 'insufficient-tokens' }
-  }
-
-  if (changeTokens > 0n) {
+    const address = wallet.getAddressAt({ path: utxo.address_path, token: Boolean(utxo.tokenid) })
+    utxo.vout = txBuilder.outputs.length
     txBuilder.outputs.push({
-      to: wallet.getAddressAt({ path: '1/0', token: true }),
-      amount: 1000n,
-      token: {
-        category: opts?.category,
-        amount: changeTokens,
+      to: address,
+      amount: BigInt(utxo.value),
+      token: !utxo.tokenid ? undefined : {
+        category: utxo.tokenid,
+        amount: BigInt(utxo.amount),
       }
     })
   }
 
+  const tokenCategories = utxoSearchResults
+    .map(result => result?.tokenid)
+    .filter(Boolean)
+    .filter((element, index, list) => list.indexOf(element) === index)
+
+  const tokenUtxos = await Promise.all(
+    tokenCategories.map(category => {
+      return wallet.getUtxos(category)
+        .then(result => {
+          return { utxos: result, category: category }
+        })
+    })
+  )
+
+  for (const tokenUtxo of tokenUtxos) {
+    const category = tokenUtxo.category
+    for (const utxo of tokenUtxo.utxos) {
+      const changeTokens = txBuilder.tokenChange(category)
+      if (changeTokens >= 0n) break
+
+      const wif = wallet.getPrivateKeyWifAt(utxo?.address_path)
+      const cashscriptUtxo = watchtowerUtxoToCashscript(utxo)
+      console.log({ cashscriptUtxo })
+
+      cashscriptUtxo.template = new SignatureTemplate(wif)
+      txBuilder.inputs.push(cashscriptUtxo)
+    }
+
+    const changeTokens = txBuilder.tokenChange(category)
+    if (changeTokens < 0n) return { success: false, error: 'insufficient-tokens', category: category }
+    if (changeTokens > 0n) {
+      txBuilder.outputs.push({
+        to: wallet.getAddressAt({ path: '1/0', token: true }),
+        amount: 1000n,
+        token: { category: category, amount: changeTokens }
+      })
+    }
+  }
+
   const bchUtxos = txBuilder.excessSats < 0n ? await wallet.getUtxos() : []
-  for(var index = 0; index < bchUtxos.length; index++) {
+  for(const utxo of bchUtxos) {
     if (txBuilder.excessSats >= 0n) break
-    const utxo = bchUtxos[index];
     const wif = wallet.getPrivateKeyWifAt(utxo?.address_path)
     const cashscriptUtxo = watchtowerUtxoToCashscript(utxo)
     cashscriptUtxo.template = new SignatureTemplate(wif)
+    console.log({ cashscriptUtxo })
     txBuilder.inputs.push(cashscriptUtxo)
   }
 
@@ -98,21 +127,18 @@ export async function prepareUtxo(opts) {
 
   const transaction = txBuilder.build()
   const txid = getTxid(transaction)
-  
-  const output = txBuilder.outputs[0]
+
+  const utxos = utxoSearchResults.map(utxo => {
+    if (utxo.txid) return utxo
+
+    utxo.txid = txid
+    return utxo
+  })
+
   return {
     success: true,
-    transaction: txBuilder.build(),
-    utxo: {
-      address_path: '0/0',
-      txid: txid,
-      vout: 0,
-      value: Number(output.amount),
-      is_cashtoken: Boolean(output?.token),
-      tokenid: output?.token?.category || undefined,
-      amount: Number(output?.token?.amount) || undefined,
-      decimals: 0,
-    }
+    transaction: transaction,
+    utxos: utxos,
   }
 }
 
@@ -122,15 +148,14 @@ export async function prepareUtxo(opts) {
  * @param {Number} opts.satoshis
  * @param {String} [opts.category]
  * @param {Number} [opts.tokenAmount]
- * @param {Number} [opts.locktime]
  */
 export async function searchUtxo(opts) {
   const wallet = opts?.wallet
   const utxos = await wallet.getUtxos(opts?.category || undefined)
   const utxo = utxos.find(utxo => {
     if (opts?.category) {
-      if (!opts?.category != utxo?.tokenid) return false
-      if (opts?.tokenAmount != parseFloat(utxo?.amount)) return false
+      if (opts?.category != utxo?.tokenid) return false
+      if (parseFloat(opts?.tokenAmount) != parseFloat(utxo?.amount)) return false
     }
     return parseInt(opts?.satoshis) === parseInt(utxo?.value)
   })
