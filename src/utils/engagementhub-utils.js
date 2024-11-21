@@ -118,7 +118,7 @@ export async function hideItemUpdate (item) {
     .catch(error => { console.log(error) })
 }
 
-export async function parseDeviceId (deviceId) {
+export function parseDeviceId (deviceId) {
   const platform = Capacitor.getPlatform()
   if (platform === 'ios') {
     return deviceId
@@ -147,17 +147,21 @@ export async function getPushNotifConfigs (deviceId) {
 export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId) {
   if (deviceNotifTypesId !== -1) { // patch
     const data = {}
-    if (type.db_col === 'is_tr_enabled') data.is_tr_enabled = type.isEnabled
-    else if (type.db_col === 'is_cb_enabled') data.is_cb_enabled = type.isEnabled
-    else if (type.db_col === 'is_mp_enabled') data.is_mp_enabled = type.isEnabled
-    else if (type.db_col === 'is_ah_enabled') data.is_ah_enabled = type.isEnabled
-    else if (type.db_col === 'is_rp_enabled') data.is_rp_enabled = type.isEnabled
+    if (type.db_col === 'is_events_promotions_enabled') {
+      data.is_events_promotions_enabled = type.value
+    } else if (type.db_col === 'is_by_country_enabled') {
+      data.is_by_country_enabled = type.value
+    } else if (type.db_col === 'is_by_city_enabled') {
+      data.is_by_city_enabled = type.value
+    } else if (type.db_col === 'country') data.country = type.value
+    else if (type.db_col === 'city') data.city = type.value
 
     await NOTIFS_URL.patch(
       `devicenotiftype/${deviceNotifTypesId}/`,
       data
     ).then(response => {
-      console.log(response)
+      // console.log(response)
+      console.log('Device notif type updated successfully.')
     }).catch(error => {
       console.log(error)
     })
@@ -165,20 +169,17 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
     const platform = Capacitor.getPlatform()
 
     const data = {
-      is_tr_enabled: false,
-      is_cb_enabled: false,
-      is_mp_enabled: false,
-      is_ah_enabled: false,
-      is_rp_enabled: false,
-      apns_device: null,
-      gcm_device: null
+      is_events_promotions_enabled: false,
+      is_by_country_enabled: false,
+      is_by_city_enabled: false,
+      country: '',
+      city: '',
+      apns_device: undefined,
+      gcm_device: undefined
     }
 
-    if (platform === 'ios') {
-      data.apns_device = Number(deviceId)
-    } else if (platform === 'android') {
-      data.gcm_device = Number(deviceId)
-    }
+    if (platform === 'ios') data.apns_device = deviceId
+    else if (platform === 'android') data.gcm_device = deviceId
 
     await NOTIFS_URL.post('devicenotiftype/', data)
       .then(response => {

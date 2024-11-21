@@ -32,12 +32,20 @@
           </q-item-section>
 
           <q-item-section avatar>
-            <q-toggle
-              v-model="isEnableEventsAndPromos"
-              color="blue-9"
-              keep-color
-            />
-              <!-- @click="handleNotifTypesSubscription(item)" -->
+            <template v-if="isEnableEventsAndPromosIsLoading">
+              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+            </template>
+            <template v-else>
+              <q-toggle
+                v-model="isEnableEventsAndPromos"
+                color="blue-9"
+                keep-color
+                @click="handleNotifTypesSubscription({
+                  db_col: 'is_events_promotions_enabled',
+                  value: isEnableEventsAndPromos
+                })"
+              />
+            </template>
           </q-item-section>
         </q-item>
 
@@ -72,12 +80,22 @@
             </q-item-section>
 
             <q-item-section avatar>
-              <q-toggle
-                v-model="item.isEnabled"
-                color="blue-9"
-                keep-color
-              />
-                <!-- @click="handleNotifTypesSubscription(item)" -->
+              <template v-if="item.isLoading">
+                <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+              </template>
+              <template v-else>
+                <q-toggle
+                  v-model="item.isEnabled"
+                  color="blue-9"
+                  keep-color
+                  @click="() => {
+                    handleNotifTypesSubscription({
+                      db_col: item.dbCol,
+                      value: item.isEnabled
+                    })
+                  }"
+                />
+              </template>
             </q-item-section>
           </q-item>
         </template>
@@ -110,21 +128,26 @@ export default {
       enablePushNotifs: false,
       isEnablePushNotifsLoading: false,
       isEnableEventsAndPromos: false,
+      isEnableEventsAndPromosIsLoading: false,
 
       deviceNotifTypesId: -1,
 
       eventsAndPromosSubList: [
         {
           label: 'By Country',
+          dbCol: 'is_by_country_enabled',
           isEnabled: false,
+          isLoading: false,
           subLabel:
               'Receive push notifications in your country only. When disabled, you will receive notifications from around the world.',
           inputLabel: 'Enter country'
         },
         {
           label: 'By City',
+          dbCol: 'is_by_city_enabled',
           isEnabled: false,
-          subLabel: 'Receive push notifications in your city only. When disabled, you will receive notifications from cities all around your country if By Country is enabled, else receive notifications from around the world.',
+          isLoading: false,
+          subLabel: 'Receive push notifications in your city only. When disabled, you will receive notifications from cities in your country if "By Country" is enabled, else receive notifications from around the world.',
           inputLabel: 'Enter city'
         }
       ]
@@ -145,17 +168,17 @@ export default {
     vm.isEnablePushNotifsLoading = true
 
     const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
-    const data = await getPushNotifConfigs(deviceId)
-
-    console.log(data)
-    vm.enablePushNotifs = data.is_enabled
-    // const configs = data.push_notif_configs
-    // if (Object.keys(configs).length > 0) {
-    //   vm.deviceNotifTypesId = configs.id
-    //   vm.notifsList.forEach(type => {
-    //     type.isEnabled = configs[type.db_col]
-    //   })
-    // }
+    await getPushNotifConfigs(deviceId)
+      .then(data => {
+        vm.enablePushNotifs = data.is_enabled
+        const configs = data.push_notif_configs
+        if (Object.keys(configs).length > 0) {
+          vm.deviceNotifTypesId = configs.id
+          vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
+          vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
+          vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
+        }
+      })
 
     this.isEnablePushNotifsLoading = false
   },
@@ -183,7 +206,7 @@ export default {
         } else {
           vm.$pushNotifications.watchtower = new Watchtower(vm.$store.state.global.isChipnet)
           await vm.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
-          // await vm.handleNotifTypesSubscription(null)
+          await vm.handleNotifTypesSubscription(null)
         }
       } else {
         await vm.$pushNotifications.unsubscribe(walletHashes)
@@ -193,8 +216,28 @@ export default {
       vm.isEnablePushNotifsLoading = false
     },
     async handleNotifTypesSubscription (type) {
-      const deviceId = parseDeviceId(this.$pushNotifications.deviceId)
-      await updateDeviceNotifType(this.deviceNotifTypesId, type, deviceId)
+      const vm = this
+
+      if (type?.dbCol === 'is_events_promotions_enabled') {
+        vm.isEnableEventsAndPromosIsLoading = true
+      } else if (type?.dbCol === 'is_by_country_enabled') {
+        vm.eventsAndPromosSubList[0].isLoading = true
+      } else if (type?.dbCol === 'is_by_city_enabled') {
+        vm.eventsAndPromosSubList[1].isLoading = true
+      }
+
+      const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
+      await updateDeviceNotifType(vm.deviceNotifTypesId, type, deviceId)
+        .then(resp => {
+          vm.deviceNotifTypesId = resp
+          if (type?.dbCol === 'is_events_promotions_enabled') {
+            vm.isEnableEventsAndPromosIsLoading = false
+          } else if (type?.dbCol === 'is_by_country_enabled') {
+            vm.eventsAndPromosSubList[0].isLoading = false
+          } else if (type?.dbCol === 'is_by_city_enabled') {
+            vm.eventsAndPromosSubList[1].isLoading = false
+          }
+        })
     }
   }
 }
