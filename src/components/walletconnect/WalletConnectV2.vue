@@ -447,8 +447,8 @@ async function disconnectSession(sessionTopic) {
     topic: session.topic,
     reason: getSdkError('USER_DISCONNECTED')
   })
-  console.log('Session disconnected', session)
-  statusUpdate()
+  activeSessions.value = await web3Wallet.value.getActiveSessions()
+  // statusUpdate()
 }
 
 function openSessionProposal(sessionProposal) {
@@ -704,7 +704,8 @@ async function onAuthRequest(...args) {
 
 async function onSessionDelete(...args) {
   console.log('Session delete', ...args)
-  statusUpdate()
+  activeSessions.value = await web3Wallet.value.getActiveSessions()
+  // statusUpdate()
 }
 
 async function onSessionProposal(sessionProposal) {
