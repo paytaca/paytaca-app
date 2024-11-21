@@ -13,7 +13,7 @@
 
       <div class="row q-pt-sm justify-center">
         <div v-for="(index, shareLink) in shareLinks" :key="index">
-          <q-btn :icon="shareLinks[shareLink].icon" size="lg" padding="0" flat round class="q-mx-md" color="blue-grey-8" :href="shareLinks[shareLink].url" target="blank"/>
+          <q-btn :icon="shareLinks[shareLink].icon" size="lg" padding="0" flat round class="q-mx-md" :color="darkMode ? 'white' : 'blue-grey-8'" :href="shareLinks[shareLink].url" target="blank"/>
         </div>
       </div>
     </q-card>
@@ -34,16 +34,15 @@ export default {
   },
   computed: {
     shareLinks () {
-      const encodedUrl = encodeURI(this.link)
+      const encodedUrl = encodeURIComponent(this.adShareUrl)
       const fbAppId = 438643061338284 // using a dev app, might have to replace
-
-      console.log('fbAppId: ', fbAppId)
       const data = {
-        fb: { icon: 'fab fa-facebook', url: `https://www.facebook.com/dialog/share?app_id=${fbAppId}&href=${encodedUrl}&display=popup`},
-        messenger: { icon: 'fab fa-facebook-messenger', url: `b-messenger://share/?link=${encodedUrl}&app_id=${fbAppId}` },
-        telegram: { icon: 'telegram', url: `https://t.me/share?url=${encodedUrl}&text=P2P Exchange Ad` },
-        whatsapp: { icon: 'fab fa-whatsapp', url: `https://wa.me/?text=P2P Exchange Ad\n${encodedUrl}` },
-        email: { icon: 'email', url: `mailto:?body=P2P Exchange Ad: ${encodedUrl}` }
+        fb: { icon: 'fab fa-facebook', url: `https://www.facebook.com/dialog/share?app_id=${fbAppId}&href=${encodedUrl}&display=popup` },
+        messenger: { icon: 'fab fa-facebook-messenger', url: `https://facebook.com/share/?url=${encodedUrl}`, },
+        twitter: { icon: 'fab fa-twitter', url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=P2P Exchange Ad&via=_paytaca_&related=_paytaca_` },
+        telegram: { icon: 'telegram', url: `https://t.me/share?url=${encodedUrl}&text=Paytaca P2P Exchange Ad`, },
+        whatsapp: { icon: 'fab fa-whatsapp', url: `https://wa.me/?text=Paytaca P2P Exchange Ad\n${encodedUrl}`, },
+        email: { icon: 'email', url: `mailto:?body=P2P Exchange Ad: ${encodedUrl}` },
       }
 
       if (this.$q.platform.is.mobile) {

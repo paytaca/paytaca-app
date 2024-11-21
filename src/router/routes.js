@@ -213,7 +213,8 @@ const routes = [
             ]
           }
         ]
-      }
+      },
+      { path: 'exchange/ad/:ad', component: () => import('src/pages/apps/exchange/peer_to_peer/order-form.vue'), name: 'p2p-store-form-redirect' },
     ]
   },
   // Always leave this as last one,
