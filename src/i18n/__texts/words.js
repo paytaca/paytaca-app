@@ -347,6 +347,7 @@ const words = [
   {
     Stabilize: "Stabilize",
     Redeem: "Redeem",
+    Inject: "Inject",
     Freeze: "Freeze",
     Unfreeze: "Unfreeze",
   }

@@ -11,7 +11,7 @@
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
         <div class="text-h6 q-space q-mt-sm">
-          Freeze BCH
+          {{ $t('Freeze') }} BCH
         </div>
         <q-btn
           flat
@@ -24,10 +24,10 @@
       <q-card-section>
         <q-form @submit="() => onSubmit()">
           <div v-if="pricePerBchText" class="row items-center text-grey q-mb-lg">
-            <div class="q-space">Current price:</div>
+            <div class="q-space">{{ $t('CurrentPrice') }}:</div>
             <div>{{ pricePerBchText }} {{ tokenCurrency}} / BCH</div>
           </div>
-          <div class="text-body1 q-my-sm">Input amount to freeze</div>
+          <div class="text-body1 q-my-sm">{{ $t('InputAmountToFreeze') }}</div>
           <q-input
             outlined
             v-model="tokenAmount"

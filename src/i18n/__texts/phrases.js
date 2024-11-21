@@ -1088,6 +1088,25 @@ const phrases = {
       AllLimitsReachedMessage: 'Sorry, this transaction did not qualify for a cashback as it exceeds limits set by the campaign.',
       CashbackAttribute: 'Cashback received for transacting with',
       FilterNotifications: 'Filter Notifications'
+    },
+    {
+      SearchingForContracts: 'Searching for contracts',
+      NoContractFound: 'No contract found',
+      GettingPriceData: 'Getting price data',
+      NoPriceDataFound: 'No price data found',
+      UnableToGetContractDetails: 'Unable to get contract details',
+      NoRedeemableTokens: 'No redeemable tokens',
+      FetchingContracts: 'Fetching contracts',
+      PartiallyRedeemed: 'Partially redeemed',
+      TokenDustAmount: 'Token dust amount',
+      InputAmountToFreeze: 'Input amount to freeze',
+      InputAmountToUnfreeze: 'Input amount to unfreeze',
+      PreparingFunds: 'Preparing funds',
+      SigningData: 'Signing data',
+      ErrorPreparingFunds: 'Error preparing funds',
+      CreatingTransaction: 'Creating transaction',
+      WaitingForTransactionToComplete: 'Waiting for transaction to complete',
+      TransactionSentButTookLongerToComplete: 'Transaction sent but took longer to complete',
     }
   ],
   dynamic: [
@@ -1159,6 +1178,7 @@ const phrases = {
     {
       StabilizeAmount: "Stabilize {amount}",
       RedeemAmount: "Redeem {amount}",
+      InsufficientCurrencyBalance: "Insufficient {currency} balance",
     }
   ]
 }

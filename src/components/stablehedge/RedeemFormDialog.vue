@@ -11,7 +11,7 @@
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
         <div class="text-h6 q-space q-mt-sm">
-          Unfreeze BCH
+          {{ $t('Unfreeze') }} BCH
         </div>
         <q-btn
           flat
@@ -24,7 +24,7 @@
       <q-card-section style="max-height:75vh;overflow-y:auto;">
         <q-form @submit="() => onSubmit()">
           <div class="row items-center q-my-sm">
-            <div class="text-body1 q-space">Input amount to unfreeze</div>
+            <div class="text-body1 q-space">{{ $t('InputAmountToUnfreeze') }}</div>
             <q-btn
               v-if="tokenBalanceContractPairs?.length > 1"
               flat

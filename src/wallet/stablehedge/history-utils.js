@@ -68,8 +68,9 @@ export function parseStablehedgeTxData(data) {
 export function parseTransactionTypeText(transactionType='') {
   switch(transactionType) {
     case('inject'):
+      return $t('Inject')
     case('deposit'):
-      return $t('Stabilize')
+      return $t('Deposit')
     case('redeem'):
       return $t('Redeem')
   }

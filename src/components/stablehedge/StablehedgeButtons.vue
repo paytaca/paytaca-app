@@ -3,7 +3,7 @@
     <q-btn
       unelevated rounded
       padding="none sm"
-      no-caps label="Freeze"
+      no-caps :label="$t('Freeze')"
       class="q-mr-sm button"
       @click.stop="() => openFreezeDialog()"
     />
@@ -11,7 +11,7 @@
     <q-btn
       unelevated rounded
       padding="none sm"
-      no-caps label="Unfreeze"
+      no-caps :label="$t('Unfreeze')"
       class="q-mr-sm button"
       @click.stop="() => openUnfreezeDialog()"
     />
@@ -111,7 +111,7 @@ export default defineComponent({
           currencies: currencies.join(','),
         }
 
-        updateLoading({ message: 'Searching for ideal stablehedge contract' })
+        updateLoading({ message: $t('SearchingForContracts') })
         const response = await backend.get('stablehedge/redemption-contracts/', { params })
         const redemptionContracts = Array.isArray(response.data)
           ? response.data
@@ -123,20 +123,20 @@ export default defineComponent({
         if (!contract) {
           contract = redemptionContracts?.[0]
         }
-        if (!contract) throw 'No stablehedge contracts found'
+        if (!contract) throw $t('NoContractFound')
 
-        updateLoading({ message: 'Fetching price data' })
+        updateLoading({ message: $t('GettingPriceData') })
         const category = contract?.fiat_token?.category
         await $store.dispatch('stablehedge/updateTokenPrices', { includeCategories: [category] })
 
         const token = $store.getters['stablehedge/token']?.(category)
         const priceValue = token?.priceMessage?.priceValue
-        if (!Number.isFinite(priceValue)) throw 'Unable to get token price'
+        if (!Number.isFinite(priceValue)) throw $t('NoPriceDataFound')
 
         return { contract }
       } catch(error) {
         console.error(error)
-        let message = 'Unable to fetch freeze details'
+        let message = $t('UnableToGetContractDetails')
         if (typeof error === 'string') message = error
         if (typeof error?.message === 'string') message = error?.message
         $q.notify({
@@ -156,13 +156,13 @@ export default defineComponent({
         const categories = tokenBalances.map(balance => balance.category)
           .filter((element, index, list) => list.indexOf(element) === index)
 
-        if (!categories.length) throw 'No redeemable tokens'
+        if (!categories.length) throw $t('NoRedeemableTokens')
 
         const params = {
           categories: categories.join(','),
         }
 
-        updateLoading({ message: 'Fetching contracts' })
+        updateLoading({ message: $t('FetchingContracts') })
         const response = await backend.get('stablehedge/redemption-contracts/', { params })
         const redemptionContracts = Array.isArray(response.data)
           ? response.data
@@ -170,7 +170,7 @@ export default defineComponent({
         return { redemptionContracts }
       } catch(error) {
         console.error(error)
-        let message = 'Unable to fetch freeze details'
+        let message = $t('UnableToGetContractDetails')
         if (typeof error === 'string') message = error
         if (typeof error?.message === 'string') message = error?.message
         $q.notify({
@@ -259,7 +259,7 @@ export default defineComponent({
         if (successResults?.length && errorMessage) {
           notifyOpts.type = 'info'
           notifyOpts.icon = 'rule'
-          notifyOpts.message = 'Partially redeemed funds'
+          notifyOpts.message = $t('PartiallyRedeemed')
           notifyOpts.caption = errorMessage
         } else if (successResults?.length && !errorMessage) {
           notifyOpts.type = 'positive'

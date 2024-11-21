@@ -11,7 +11,7 @@
       <div v-for="record in history" :key="record?.id" class="row items-center history-record">
         <div class="q-space">
           <div class="text-subtitle1">
-            <span class="text-uppercase">{{ record?.txType }}</span>
+            <span class="text-uppercase">{{ record?.txTypeText }}</span>
             <q-badge v-if="record?.status && record?.status != 'success'" class="q-ml-xs">
               {{ record?.status }}
             </q-badge>
@@ -42,6 +42,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
+import { parseTransactionTypeText } from 'src/wallet/stablehedge/history-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import ago from 's-ago'
 import { useQuasar } from 'quasar';
@@ -110,6 +111,7 @@ export default defineComponent({
         redemptionContractAddress: data?.redemption_contract_address,
         status: data?.status,
         txType: txType,
+        txTypeText: parseTransactionTypeText(txType) || txType,
         category: data?.category,
         bch: bch,
         amount: data?.amount,

@@ -25,7 +25,7 @@
       </div>
       <q-card-section class="q-pt-none">
         <div class="text-center" :class="[loading ? 'text-grey' : '']">
-          <div class="text-h5">FREEZE</div>
+          <div class="text-h5 text-uppercase">{{ $t('Freeze') }}</div>
           <div class="text-h5">{{ bchAmount }} BCH</div>
           <div>
             + {{ 2000 / 10 ** 8 }} BCH
@@ -33,7 +33,7 @@
             <q-menu class="pt-card-2 text-bow q-py-sm q-px-md br-15" :class="getDarkModeClass(darkMode)">
               <div class="row items-center q-gutter-sm">
                 <div>{{ 1000 / 10 ** 8 }} BCH</div>
-                <div class="q-space">Token dust amount</div>
+                <div class="q-space">{{ $t('TokenDustAmount') }}</div>
               </div>
               <div class="row items-center q-gutter-sm">
                 <div>{{ 1000 / 10 ** 8 }} BCH</div>
@@ -128,7 +128,7 @@ export default defineComponent({
         loading.value = true
         const wallet = await getStablehedgeWallet()
 
-        loadingMsg.value = 'Preparing funds'
+        loadingMsg.value = $t('PreparingFunds')
         const utxoPrep = await prepareUtxos({
           wallet: wallet,
           amounts: [{ satoshis: satoshis.value + 2000 }],
@@ -139,7 +139,7 @@ export default defineComponent({
 
         const utxo = utxoPrep.utxos[0]
         utxo.addressPath = utxo.address_path
-        loadingMsg.value = 'Signing data'
+        loadingMsg.value = $t('SigningData')
         const signResult = await wallet.signDepositUtxo({
           utxo,
           token: {
@@ -158,12 +158,12 @@ export default defineComponent({
         }
 
         if (utxoPrep?.transaction) {
-          loadingMsg.value = 'Preparing funds for deposit'
+          loadingMsg.value = $t('PreparingFunds')
           const broadcastResult = await wallet.broadcast(utxoPrep?.transaction)
           if (broadcastResult.data?.error) {
             return {
               status: 'failed',
-              resultMessage: broadcastResult?.data?.error || 'Error preparing funds',
+              resultMessage: broadcastResult?.data?.error || $t('ErrorPreparingFunds'),
             }
           }
         }
@@ -180,13 +180,13 @@ export default defineComponent({
           utxo: signedUtxo,
         }
 
-        loadingMsg.value = 'Finalizing'
+        loadingMsg.value = $t('CreatingTransaction')
         const url = `stablehedge/redemption-contract-transactions/`
         // const url = `stablehedge/test-utils/test_redemption_contract_tx/`
         const response = await wallet.apiBackend.post(url, data)
         const redemptionContractTxId = response?.data?.id
 
-        loadingMsg.value = 'Waiting for transaction to complete'
+        loadingMsg.value = $t('WaitingForTransactionToComplete')
         const txStatusData = await waitRedemptionContractTx({
           id: redemptionContractTxId,
           chipnet: wallet.isChipnet,
@@ -194,7 +194,7 @@ export default defineComponent({
         }).catch(error => {
           if (error === 'timeout') {
             return {
-              message: 'Transaction sent but took longer to complete',
+              message: $t('TransactionSentButTookLongerToComplete'),
             }
           }
           return Promise.reject(error)

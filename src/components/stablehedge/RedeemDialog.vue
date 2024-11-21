@@ -26,7 +26,7 @@
           class="text-center" :class="[loading ? 'text-grey' : '']"
           style="max-height:75vh; overflow-y:auto;"
         >
-          <div class="text-h5 q-mb-sm">UNFREEZE</div>
+          <div class="text-h5 q-mb-sm text-uppercase">{{ $t('Unfreeze') }}</div>
           <div
             v-for="(opts, index) in parsedRedeemOpts" :key="index"
             class="row items-center justify-center no-wrap"
@@ -183,7 +183,7 @@ export default defineComponent({
         const wallet = await getStablehedgeWallet()
         const locktime = await wallet.getBlockheight()
 
-        loadingMsg.value = 'Preparing funds'
+        loadingMsg.value = $t('PreparingFunds')
         const prepareResult = await prepareUtxos({
           wallet, locktime,
           amounts: redeemOpts.map(opts => {
@@ -200,12 +200,12 @@ export default defineComponent({
           let message = prepareResult.error
           if (message === 'insufficient-tokens') {
             const token = $store.getters['stablehedge/token'](prepareResult.category)
-            message = `Insufficient '${token?.currency}' tokens`
+            message = $t('InsufficientCurrencyBalance', { currency: token?.currency })
           }
           throw message
         }
 
-        loadingMsg.value = 'Signing data'
+        loadingMsg.value = $t('SigningData')
         const signResults = await signRedeemUtxos({
           wallet, locktime,
           utxos: prepareResult.utxos,
@@ -216,11 +216,11 @@ export default defineComponent({
         if (prepareResult.transaction) {
           const broadcastResult = await wallet.broadcast(prepareResult.transaction)
           if (broadcastResult.data?.error) {
-            throw broadcastResult?.data?.error || 'Error preparing funds'
+            throw broadcastResult?.data?.error || $t('ErrorPreparingFunds')
           }
         }
 
-        loadingMsg.value = 'Finalizing'
+        loadingMsg.value = $t('CreatingTransaction')
         const redeemPromises = redeemOpts.map((opts, index) => {
           const utxo = prepareResult.utxos[index]
           const signResult = signResults[index]
@@ -336,7 +336,7 @@ export default defineComponent({
       const redemptionContractTxId = response?.data?.id
 
       if (loading.value) {
-        loadingMsg.value = 'Waiting for transaction to complete'
+        loadingMsg.value = $t('WaitingForTransactionToComplete')
       }
       const txStatusData = await waitRedemptionContractTx({
         id: redemptionContractTxId,
@@ -345,7 +345,7 @@ export default defineComponent({
       }).catch(error => {
         if (error === 'timeout') {
           return {
-            message: 'Transaction sent but took longer to complete',
+            message: $t('TransactionSentButTookLongerToComplete'),
           }
         }
         return Promise.reject(error)
