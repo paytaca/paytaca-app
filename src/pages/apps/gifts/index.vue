@@ -87,7 +87,7 @@
                   <div class="row">
                     <div class="q-space">{{ $t('Amount') }}</div>
                     <div class="text-caption text-grey">
-                      {{ getAssetDenomination(gift?.amount) }}
+                      {{ getAssetDenomination(denomination, gift?.amount) }}
                     </div>
                   </div>
                   <div class="row">
