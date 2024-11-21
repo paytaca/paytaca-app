@@ -442,13 +442,15 @@ async function pairUrl(uri, opts={ showDialog: true }) {
 }
 
 async function disconnectSession(sessionTopic) {
-  const session = activeSessions.value[sessionTopic]
-  await web3Wallet.value.disconnectSession({
-    topic: session.topic,
-    reason: getSdkError('USER_DISCONNECTED')
-  })
-  console.log('Session disconnected', session)
-  statusUpdate()
+  // const session = activeSessions.value[sessionTopic]
+  if (sessionTopic) {
+    await web3Wallet.value.disconnectSession({
+      topic: sessionTopic,
+      reason: getSdkError('USER_DISCONNECTED')
+    })
+    activeSessions.value = await web3Wallet.value.getActiveSessions()
+  }
+  // statusUpdate()
 }
 
 function openSessionProposal(sessionProposal) {
@@ -704,7 +706,8 @@ async function onAuthRequest(...args) {
 
 async function onSessionDelete(...args) {
   console.log('Session delete', ...args)
-  statusUpdate()
+  activeSessions.value = await web3Wallet.value.getActiveSessions()
+  // statusUpdate()
 }
 
 async function onSessionProposal(sessionProposal) {
