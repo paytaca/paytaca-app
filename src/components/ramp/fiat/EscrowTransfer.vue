@@ -477,7 +477,7 @@ export default {
       })
     },
     async fetchFees () {
-      const url = `/ramp-p2p/order/${this.order.id}/contract/fees/`
+      const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
       let fees = null
       await backend.get(url, { authorize: true })
         .then(response => {
@@ -494,7 +494,6 @@ export default {
             bus.emit('network-error')
           }
         })
-      console.log('___fees:', fees)
       return fees
     }
   }

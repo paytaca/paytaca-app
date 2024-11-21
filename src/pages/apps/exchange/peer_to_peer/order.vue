@@ -683,28 +683,24 @@ export default {
           }
         })
     },
-    fetchFees () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = '/ramp-p2p/order/contract/fees/'
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.fees = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+    async fetchFees () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.order?.id}/contract/fees/`
+      backend.get(url, { authorize: true })
+        .then(response => {
+          vm.fees = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     },
     fetchContract () {
       return new Promise((resolve, reject) => {
@@ -731,15 +727,15 @@ export default {
     },
     async generateContract () {
       const vm = this
-      const fees = await vm.fetchFees()
+      await vm.fetchFees()
       await vm.fetchContract().then(async contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
         const fees_ = {
-          arbitrationFee: fees.breakdown?.arbitration_fee,
-          serviceFee: fees.breakdown?.service_fee,
-          contractFee: fees.breakdown?.contract_fee
+          arbitrationFee: vm.fees.breakdown?.arbitration_fee,
+          serviceFee: vm.fees.breakdown?.service_fee,
+          contractFee: vm.fees.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
