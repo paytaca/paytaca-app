@@ -353,7 +353,7 @@ export default {
       this.$q.dialog({
         component: ShareDialog,
         componentProps: {
-          adShareUrl: window.location.href
+          adShareUrl: `${window.location.origin}/#/apps/exchange/ad/${this.ad.id}`
         }
       })
     },
