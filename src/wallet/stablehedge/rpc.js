@@ -77,7 +77,7 @@ export class StablehedgeRPC {
   }
 
   async disconnect() {
-    this.client.onClose(() => {})
+    this.client.onCloseHandlers = []
     this.client?.ws?.close?.()
     clearTimeout(this._reconnectTimeout)
     this._reconnectTimeout = null
