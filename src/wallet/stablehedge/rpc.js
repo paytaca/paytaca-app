@@ -36,7 +36,7 @@ export class StablehedgeRPC {
       this._reconnectTimeout = null
     })
 
-    this.client.onClose(() => {
+    this.reconnectOnCloseHandler = () => {
       if (!this.reconnectionOpts.enable) return console.log('Websocket closed. Reconnection disabled.')
       if (this._currentRetries > this.reconnectionOpts.maxAttempts) return console.log('Websocket closed. Max retries reached')
 
@@ -50,7 +50,7 @@ export class StablehedgeRPC {
 
       this._reconnectTimeout = clearTimeout(this._reconnectTimeout)
       this._reconnectTimeout = setTimeout(() => this.connect(), timeout)
-    })
+    }
   }
 
   getUrl() {
@@ -68,6 +68,7 @@ export class StablehedgeRPC {
     await this.disconnect()
 
     const url = await this.getUrl()
+    this.client.onClose(this.reconnectOnCloseHandler)
     return await this.client.connect(url)
   }
 
@@ -76,8 +77,9 @@ export class StablehedgeRPC {
     return await this._connectPromise.finally(() => this._connectPromise = null)
   }
 
-  async disconnect() {
-    this.client.onCloseHandlers = []
+  disconnect() {
+    this.client.onCloseHandlers = this.client.onCloseHandlers
+      .filter(handler => handler !== this.reconnectOnCloseHandler)
     this.client?.ws?.close?.()
     clearTimeout(this._reconnectTimeout)
     this._reconnectTimeout = null
