@@ -178,7 +178,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { formatCurrency } from 'src/exchange'
+import { bchToFiat, formatCurrency, satoshiToBch } from 'src/exchange'
 import { generateChatRef, fetchChatMembers } from 'src/exchange/chat'
 import { bus } from 'src/wallet/event-bus'
 
@@ -224,18 +224,12 @@ export default {
     userInfo () {
       return this.$store.getters['ramp/getUser']
     },
-    completedOrder () {
-      return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
-    },
-    lockedPrice () {
-      return formatCurrency(this.order?.locked_price, this.order?.ad?.fiat_currency?.symbol)
-    },
     tradeAmount () {
       let amount = 0
       if (this.byFiat) {
-        amount = formatCurrency((Number(this.order?.crypto_amount) * Number(this.order?.locked_price)).toFixed(2), this.order?.ad?.fiat_currency?.symbol)
+        amount = formatCurrency(bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price), this.order?.fiat_currency?.symbol)
       } else {
-        amount = parseFloat(Number(this.order?.crypto_amount).toFixed(8))
+        amount = satoshiToBch(this.order?.trade_amount)
       }
       return String(amount).replace(/[^\d.,-]/g, '')
     },

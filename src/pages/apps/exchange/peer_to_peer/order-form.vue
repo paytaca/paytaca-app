@@ -213,7 +213,7 @@ import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
-import { formatCurrency, getAppealCooldown } from 'src/exchange'
+import { bchToSatoshi, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
@@ -491,11 +491,11 @@ export default {
     },
     async createOrder () {
       const vm = this
-      const cryptoAmount = vm.getCryptoAmount()
       const body = {
         ad: vm.ad.id,
-        crypto_amount: cryptoAmount.toFixed(8)
+        trade_amount: vm.getTradeAmount()
       }
+      console.log('___body:', body)
       if (vm.ad.trade_type === 'BUY') {
         const temp = this.paymentMethods.map(p => p.id)
         body.payment_methods = temp
@@ -731,11 +731,14 @@ export default {
       }
       return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
-    getCryptoAmount () {
+    getTradeAmount () {
+      console.log('___amount:', this.amount)
       if (!this.byFiat) {
-        return parseFloat(this.amount)
+        // convert bch to satoshi
+        return bchToSatoshi(parseFloat(this.amount))
       } else {
-        return parseFloat(this.amount) / parseFloat(this.ad.price)
+        // convert fiat to bch then satoshi
+        return bchToSatoshi(fiatToBch(this.amount, this.ad.price))
       }
     },
     onBack () {

@@ -114,10 +114,10 @@
                           <div
                             class="col-transaction text-uppercase pt-label lg-font-size"
                             :class="[getDarkModeClass(darkMode), amountColor(listing)]">
-                            {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
+                            {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.price, satoshiToBch(listing.trade_amount)), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                           </div>
                           <div class="sm-font-size">
-                            {{ formatCurrency(listing.crypto_amount) }} BCH</div>
+                            {{ formatCurrency(satoshiToBch(listing.trade_amount)) }} BCH</div>
                           <div v-if="listing.created_at" class="sm-font-size subtext">{{ formatDate(listing.created_at, true) }}</div>
                         </div>
                         <div class="text-right">
@@ -177,10 +177,10 @@
                         <div
                           class="col-transaction text-uppercase pt-label lg-font-size"
                           :class="[getDarkModeClass(darkMode), amountColor(listing)]">
-                          {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.locked_price, listing.crypto_amount), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
+                          {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.price, satoshiToBch(listing.trade_amount)), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                         </div>
                         <div class="sm-font-size">
-                          {{ formatCurrency(listing.crypto_amount) }} BCH</div>
+                          {{ formatCurrency(satoshiToBch(listing.trade_amount)) }} BCH</div>
                         <div v-if="listing.created_at" class="sm-font-size subtext">{{ formatDate(listing.created_at, true) }}</div>
                       </div>
                       <div class="text-right">
@@ -227,7 +227,7 @@
 <script>
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
-import { formatCurrency, formatDate } from 'src/exchange'
+import { formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -343,6 +343,7 @@ export default {
     }
   },
   methods: {
+    satoshiToBch,
     getDarkModeClass,
     formatDate,
     formatCurrency,

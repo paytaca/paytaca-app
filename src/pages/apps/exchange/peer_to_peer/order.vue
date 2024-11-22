@@ -107,7 +107,7 @@
     <NoticeBoardDialog v-if="showNoticeDialog" :type="noticeType" action="orders" :message="errorMessage" @hide="showNoticeDialog = false"/>
   </template>
 <script>
-import { formatCurrency, formatDate } from 'src/exchange'
+import { bchToFiat, formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
@@ -321,7 +321,7 @@ export default {
       }
     },
     transferAmount () {
-      return Number(this.order.crypto_amount)
+      return Number(this.order.trade_amount)
     },
     getAdLimits () {
       if (!this.ad) return
@@ -333,10 +333,7 @@ export default {
       }
     },
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
-    },
-    cryptoAmount () {
-      return (this.fiatAmount / this.order.locked_price).toFixed(8)
+      return bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
     },
     hasChat () {
       const stat = ['RFN', 'RLS', 'CNCL']

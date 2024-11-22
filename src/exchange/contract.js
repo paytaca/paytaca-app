@@ -136,14 +136,14 @@ export class RampContract {
       // generate the signature
       const callerSig = new SignatureTemplate(callerWIF)
       // convert amount from BCH to satoshi
-      const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
+      // const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
       /**
        * output[0]: {to: `buyer address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
        * output[2]: {to: `arbiter address`, amount: `arbitration fee`}
        * */
       const outputs = [
-        { to: this.addresses.buyer, amount: BigInt(satoshiAmount) },
+        { to: this.addresses.buyer, amount: BigInt(amount) },
         { to: this.addresses.servicer, amount: BigInt(parseInt(this.fees.serviceFee)) },
         { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]
@@ -190,14 +190,14 @@ export class RampContract {
       // generate arbiter signature
       const arbiterSig = new SignatureTemplate(callerWIF)
       // convert amount from BCH to satoshi
-      const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
+      // const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
       /**
        * output[0]: {to: `seller address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
        * output[2]: {to: `arbiter address`, amount: `arbitration fee`}
        * */
       const outputs = [
-        { to: this.addresses.seller, amount: BigInt(satoshiAmount) },
+        { to: this.addresses.seller, amount: BigInt(amount) },
         { to: this.addresses.servicer, amount: BigInt(parseInt(this.fees.serviceFee)) },
         { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]

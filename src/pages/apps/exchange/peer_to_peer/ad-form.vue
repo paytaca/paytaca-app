@@ -284,7 +284,7 @@ import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { formatCurrency, getAppealCooldown } from 'src/exchange'
+import { bchToSatoshi, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
@@ -651,7 +651,6 @@ export default {
       await backend.post('/ramp-p2p/ad/', body, { authorize: true })
         .then(() => {
           vm.swipeStatus = true
-          // vm.$emit('submit')
         })
         .catch(error => {
           vm.handleRequestError(error)
@@ -664,7 +663,6 @@ export default {
       await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, body, { authorize: true })
         .then(() => {
           vm.swipeStatus = true
-          // vm.$emit('submit')
         })
         .catch(error => {
           vm.handleRequestError(error)
@@ -818,18 +816,33 @@ export default {
       const defaultCrypto = 'BCH'
       const data = vm.adData
       const idList = data.paymentMethods.map(obj => obj.id)
-      // let tradeAmount = parseFloat(data.tradeAmount)
-      // if (vm.setTradeQuantityInFiat) {
-      //   tradeAmount = (tradeAmount / vm.marketPrice).toFixed(8)
-      // }
-      // let tradeFloor = parseFloat(data.tradeFloor)
-      // if (vm.setTradeLimitsInFiat) {
-      //   tradeFloor = (tradeFloor / vm.marketPrice).toFixed(8)
-      // }
-      // let tradeCeiling = parseFloat(data.tradeCeiling)
-      // if (vm.setTradeLimitsInFiat) {
-      //   tradeCeiling = (tradeCeiling / vm.marketPrice).toFixed(8)
-      // }
+
+      const price = this.priceAmount
+
+      // convert trade limits to satoshi
+      let tradeFloor = data.tradeFloor
+      let tradeCeiling = data.tradeCeiling
+      if (this.setTradeLimitsInFiat) {
+        // convert fiat to bch
+        tradeFloor = fiatToBch(tradeFloor, price)
+        tradeCeiling = fiatToBch(tradeCeiling, price)
+      }
+      // convert bch to satoshi
+      tradeFloor = bchToSatoshi(tradeFloor)
+      tradeCeiling = bchToSatoshi(tradeCeiling)
+
+      let tradeAmount = data.tradeAmount
+      if (this.setTradeQuantityInFiat) {
+        // convert fiat to bch
+        tradeAmount = fiatToBch(tradeAmount, price)
+      }
+      // convert bch to satoshi
+      tradeAmount = bchToSatoshi(tradeAmount)
+
+      console.log('tradeFloor:', tradeFloor)
+      console.log('tradeCeiling:', tradeCeiling)
+      console.log('tradeAmount:', tradeAmount)
+
       const payload = {
         trade_type: data.tradeType,
         price_type: data.priceType,
@@ -837,15 +850,16 @@ export default {
         crypto_currency: defaultCrypto,
         fixed_price: parseFloat(data.fixedPrice),
         floating_price: parseFloat(data.floatingPrice),
-        trade_floor: parseFloat(data.tradeFloor),
-        trade_ceiling: parseFloat(data.tradeCeiling),
-        trade_amount: parseFloat(data.tradeAmount),
+        trade_floor_sats: tradeFloor,
+        trade_ceiling_sats: tradeCeiling,
+        trade_amount_sats: tradeAmount,
         trade_limits_in_fiat: this.setTradeLimitsInFiat,
         trade_amount_in_fiat: this.setTradeQuantityInFiat,
         appeal_cooldown_choice: data.appealCooldown.value,
         payment_methods: idList,
         is_public: data.isPublic
       }
+      console.log('payload:', payload)
       return payload
     },
     updatePriceValue (priceType) {
