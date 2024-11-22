@@ -26,17 +26,17 @@
       <q-card-section class="q-pt-none">
         <div class="text-center" :class="[loading ? 'text-grey' : '']">
           <div class="text-h5 text-uppercase">{{ $t('Freeze') }}</div>
-          <div class="text-h5">{{ bchAmount }} BCH</div>
+          <div class="text-h5">{{ denominatedBchAmountText }}</div>
           <div>
-            + {{ 2000 / 10 ** 8 }} BCH
+            + {{ formatBch(2000 / 10 ** 8) }}
             <q-icon name="info" size="1em"/>
             <q-menu class="pt-card-2 text-bow q-py-sm q-px-md br-15" :class="getDarkModeClass(darkMode)">
               <div class="row items-center q-gutter-sm">
-                <div>{{ 1000 / 10 ** 8 }} BCH</div>
+                <div>{{ formatBch(1000 / 10 ** 8) }}</div>
                 <div class="q-space">{{ $t('TokenDustAmount') }}</div>
               </div>
               <div class="row items-center q-gutter-sm">
-                <div>{{ 1000 / 10 ** 8 }} BCH</div>
+                <div>{{ formatBch(1000 / 10 ** 8) }}</div>
                 <div class="q-space">{{ $t('NetworkFee') }}</div>
               </div>
             </q-menu>
@@ -56,7 +56,7 @@
   </q-dialog>
 </template>
 <script>
-import { customNumberFormatting, parseFiatCurrency } from 'src/utils/denomination-utils';
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
@@ -86,6 +86,7 @@ export default defineComponent({
     tokenUnits: Number,
     redemptionContract: Object,
     priceMessage: Object,
+    selectedDenomination: String,
   },
   setup(props, { emit: $emit }) {
     const { t: $t } = useI18n()
@@ -97,6 +98,10 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
+
+    const denomination = computed(() => {
+      return props.selectedDenomination || $store.getters['global/denomination']
+    })
     const tokenUnits = computed(() => props.tokenUnits)
     const fiatToken = computed(() => props.redemptionContract?.fiat_token)
     const tokenCurrency = computed(() => fiatToken.value?.currency || '')
@@ -104,8 +109,6 @@ export default defineComponent({
 
     const priceUnitPerBch = computed(() => parseFloat(props.priceMessage?.priceValue))
     // const priceUnitPerBch = computed(() => parseFloat(41740))
-    const pricePerBch = computed(() =>  priceUnitPerBch.value / 10 ** decimals.value)
-    const pricePerBchText = computed(() => customNumberFormatting(pricePerBch.value))
 
     const tokenAmount = computed(() => tokenUnits.value / 10 ** decimals.value)
     const satoshis = computed(() => {
@@ -113,6 +116,15 @@ export default defineComponent({
       return parseInt(tokenToSatoshis(tokenUnits.value, priceUnitPerBch.value))
     })
     const bchAmount = computed(() => satoshis.value / 10 ** 8)
+    const denominatedBchAmountText = computed(() => {
+      if (!bchAmount.value) return ''
+      return formatBch(bchAmount.value)
+    })
+    function formatBch(value) {
+      const currentDenomination = denomination.value || 'BCH'
+      return getAssetDenomination(currentDenomination, value)
+    }
+
     function securityCheck(resetSwipe=() => {}) {
       $q.dialog({
         component: SecurityCheckDialog,
@@ -255,7 +267,8 @@ export default defineComponent({
       tokenCurrency,
       tokenAmount,
       bchAmount,
-      pricePerBchText,
+      denominatedBchAmountText,
+      formatBch,
 
       securityCheck,
       loading,

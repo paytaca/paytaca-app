@@ -36,12 +36,12 @@
             </div>
             <template v-if="parsedRedeemOpts?.length > 1">
               <q-icon name="arrow_forward" color="grey" class="col-1"/>
-              <div class="text-h5 col-5">{{ opts?.bch }} BCH</div>
+              <div class="text-h5 col-5">{{ opts?.bch }} {{ denomination }}</div>
             </template>
           </div>
 
           <div class="text-h6 text-grey q-my-md">{{ $t('To') }}</div>
-          <div class="text-h5">{{ totalBchAmount }} BCH</div>
+          <div class="text-h5">{{ totalDenominatedAmount }} {{ denomination }}</div>
         </div>
         <div class="text-center">
           <div v-if="loading" class="q-my-md">
@@ -56,6 +56,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { getAssetDenomination } from 'src/utils/denomination-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { prepareUtxos, waitRedemptionContractTx } from 'src/wallet/stablehedge/transaction'
@@ -82,6 +83,7 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
+    selectedDenomination: String,
     redeemOpts: {
       // for type annotation
       default: () => {
@@ -115,15 +117,17 @@ export default defineComponent({
       return wallet
     }
 
+
+    const denomination = computed(() => {
+      return props.selectedDenomination || $store.getters['global/denomination'] || 'BCH'
+    })
+    const denominationPerBchRate = computed(() => {
+      const currentDenomination = denomination.value || 'BCH'
+      return parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+    })
     const redeemOpts = computed(() => {
       return [
         ...props.redeemOpts,
-        // ...props.redeemOpts,
-        // ...props.redeemOpts,
-        // ...props.redeemOpts,
-        // ...props.redeemOpts,
-        // ...props.redeemOpts,
-        // ...props.redeemOpts,
         // ...props.redeemOpts,
       ]
     })
@@ -144,6 +148,7 @@ export default defineComponent({
         const tokenAmount = tokenUnits / 10 ** decimals
         const satoshis = Number(tokenToSatoshis(tokenUnits, priceValue))
         const bch = satoshis / 10 ** 8
+        const denominatedBch = bch * denominationPerBchRate.value
         return {
           redemptionContract,
           priceMessage,
@@ -155,15 +160,17 @@ export default defineComponent({
           tokenAmount,
           satoshis,
           bch,
+          denominatedBch,
         }
       })
     })
   
-    const totalBchAmount = computed(() => {
+    const totalDenominatedAmount = computed(() => {
       const totalSatoshis = parsedRedeemOpts.value.reduce((subtotal, opts) => {
         return subtotal + opts?.satoshis
       }, 0)
-      return totalSatoshis / 10 ** 8
+      const totalBch = totalSatoshis / 10 ** 8
+      return totalBch * denominationPerBchRate.value
     })
 
     function securityCheck(resetSwipe=() => {}) {
@@ -390,8 +397,9 @@ export default defineComponent({
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
       innerVal,
 
+      denomination,
       parsedRedeemOpts,
-      totalBchAmount,
+      totalDenominatedAmount,
 
       securityCheck,
       loadingMsg,

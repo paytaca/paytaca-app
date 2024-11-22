@@ -19,11 +19,13 @@
     <DepositFormDialog
       v-model="depositFormDialog.show"
       :redemptionContract="depositFormDialog.redemptionContract"
+      :selectedDenomination="selectedDenomination"
       @ok="deposit"
     />
     <RedeemFormDialog
       v-model="redeemFormDialog.show"
       :redemptionContracts="redeemFormDialog.redemptionContracts"
+      :selectedDenomination="selectedDenomination"
       @ok="redeem"
     />
   </div>
@@ -50,6 +52,9 @@ export default defineComponent({
     'deposit',
     'redeem',
   ],
+  props: {
+    selectedDenomination: String,
+  },
   setup(props, { emit: $emit }) {
     const { t: $t } = useI18n()
     const $q = useQuasar();
@@ -67,7 +72,6 @@ export default defineComponent({
         { icon: 'close', color: 'white', round: true, handler: () => {} }
       ]
     })
-
 
     const selectedMarketCurrency = computed(() => {
       const currency = $store.getters['market/selectedCurrency']
@@ -198,6 +202,7 @@ export default defineComponent({
           tokenUnits: opts?.tokenUnits,
           redemptionContract: opts?.redemptionContract,
           priceMessage: opts?.priceMessage,
+          selectedDenomination: props.selectedDenomination,
         },
       }).onOk(result => {
         /** @type {import('quasar').QNotifyCreateOptions} */
@@ -232,6 +237,7 @@ export default defineComponent({
       $q.dialog({
         component: RedeemDialog,
         componentProps: {
+          selectedDenomination: props.selectedDenomination,
           redeemOpts: [
             ...opts,
           ],

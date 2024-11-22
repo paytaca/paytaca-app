@@ -11,7 +11,7 @@
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
         <div class="text-h6 q-space q-mt-sm">
-          {{ $t('Unfreeze') }} BCH
+          {{ $t('Unfreeze') }} {{ denomination }}
         </div>
         <q-btn
           flat
@@ -39,13 +39,13 @@
               class="q-my-md token-pair-form"
             >
               <div v-if="pricePerPairText[index]" class="row items-center text-grey q-mb-xs">
-                <div class="q-space">Current price:</div>
-                <div>{{ pricePerPairText[index] }} {{ tokenDataPerPair[index]?.currency }} / BCH</div>
+                <div class="q-space">{{ $t('CurrentPrice') }}:</div>
+                <div>{{ pricePerPairText[index] }} {{ tokenDataPerPair[index]?.currency }} / {{ denomination }}</div>
               </div>
               <q-input
                 outlined
                 v-model="amounts[index]"
-                suffix="BCH"
+                :suffix="denomination"
                 bottom-slots
               >
                 <template v-slot:hint>
@@ -57,15 +57,15 @@
               </q-input>
   
               <div
-                v-if="Number.isFinite(maxRedeemableBchPerPair[index])"
+                v-if="Number.isFinite(maxDenominatedRedeemableBchPerPair[index])"
                 class="q-pl-xs row items-center text-grey"
               >
-                <div class="text-body2 q-space">{{ maxRedeemableBchPerPair[index] }} BCH</div>
+                <div class="text-body2 q-space">{{ maxDenominatedRedeemableBchPerPair[index] }} {{ denomination }}</div>
                 <q-btn
                   flat
                   :label="$t('MAX')"
                   class="q-r-mr-md text-body2"
-                  @click="() => amounts[index] = maxRedeemableBchPerPair[index]"
+                  @click="() => amounts[index] = maxDenominatedRedeemableBchPerPair[index]"
                 />
               </div> 
             </div>
@@ -73,20 +73,20 @@
           <div v-else>
             <q-input
               outlined
-              v-model="amount"
-              suffix="BCH"
+              v-model="denominatedAmount"
+              :suffix="denomination"
               bottom-slots
             />
             <div
-              v-if="Number.isFinite(totalRedeemableBch)"
+              v-if="Number.isFinite(totalDenominatedRedeemableBch)"
               class="q-mb-md q-pl-xs row items-center text-grey"
             >
-              <div class="text-body2 q-space">{{ totalRedeemableBch }} BCH</div>
+              <div class="text-body2 q-space">{{ totalDenominatedRedeemableBch }} {{ denomination }}</div>
               <q-btn
                 flat
                 :label="$t('MAX')"
                 class="q-r-mr-md text-body2"
-                @click="() => amount = totalRedeemableBch"
+                @click="() => denominatedAmount = totalDenominatedRedeemableBch"
               />
             </div>
           </div>
@@ -115,7 +115,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { customNumberFormatting } from 'src/utils/denomination-utils';
+import { getAssetDenomination } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { useDialogPluginComponent } from 'quasar'
@@ -131,6 +131,7 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     redemptionContracts: Array,
+    selectedDenomination: String,
   },
   setup(props, { emit: $emit }) {
     const $store = useStore();
@@ -159,6 +160,15 @@ export default defineComponent({
         : stablehedgePriceTracker.unsubscribe(subscribeKey)
     })
 
+
+    const denomination = computed(() => {
+      return props.selectedDenomination || $store.getters['global/denomination'] || 'BCH'
+    })
+    const denominationPerBchRate = computed(() => {
+      const currentDenomination = denomination.value || 'BCH'
+      return parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+    })
+
     const redemptionContracts = computed(() => props.redemptionContracts)
     const tokenBalances = computed(() => $store.getters['stablehedge/tokenBalances'])
     const tokenBalanceContractPairs = computed(() => {
@@ -185,7 +195,8 @@ export default defineComponent({
         if (!Number.isFinite(decimals)) return ''
         if (!Number.isFinite(price)) return ''
 
-        return customNumberFormatting(price / 10 ** decimals)
+        const pricePerBch = price / 10 ** decimals
+        return pricePerBch / denominationPerBchRate.value
       })
     })
 
@@ -206,24 +217,31 @@ export default defineComponent({
         return Math.min(satoshis, redeemableSatsFromContract)
       })
     })
-    const maxRedeemableBchPerPair = computed(() => {
+    const maxDenominatedRedeemableBchPerPair = computed(() => {
       return maxRedeemableSatsPerPair.value.map(sats => sats / 10 ** 8)
+        .map(bch => bch * denominationPerBchRate.value)
     })
     const totalRedeemableSats = computed(() => {
       return maxRedeemableSatsPerPair.value.reduce((subtotal, sats) => {
         return subtotal + sats
       }, 0)
     })
-    const totalRedeemableBch = computed(() => {
-      return totalRedeemableSats.value / 10 ** 8
+    const totalDenominatedRedeemableBch = computed(() => {
+      const bch = totalRedeemableSats.value / 10 ** 8
+      return bch * denominationPerBchRate.value
     })
 
     const expandAmounts = ref(false)
     const amounts = ref([].map(Number))
+    const amountsBch = computed(() => {
+      return amounts.value.map(amount => {
+        return amount / denominationPerBchRate.value
+      })
+    })
     const tokenUnits = computed(() => {
       return tokenDataPerPair.value.map((token, index) => {
         const price = parseFloat(token?.priceMessage?.priceValue)
-        const amount = parseFloat(amounts.value[index])
+        const amount = parseFloat(amountsBch.value[index])
         if (!Number.isFinite(price)) return NaN
         if (!Number.isFinite(amount)) return NaN
 
@@ -245,7 +263,7 @@ export default defineComponent({
 
     const amount = computed({
       get() {
-        return amounts.value.reduce((subtotal, amount) => {
+        return amountsBch.value.reduce((subtotal, amount) => {
           if (!Number.isFinite(amount)) return subtotal
           return subtotal + amount
         }, 0)
@@ -257,17 +275,26 @@ export default defineComponent({
           return
         }
 
-        const newAmounts = maxRedeemableSatsPerPair.value.map(sats => {
+        const newDenominatedAmounts = maxRedeemableSatsPerPair.value.map(sats => {
           if (targetSats <= 0) return 0
           if (!Number.isFinite(sats)) return 0
           const newSats = Math.min(sats, targetSats)
           if (!Number.isFinite(newSats)) return 0
 
           targetSats = targetSats - newSats
-          return newSats / 10 ** 8
+          const bchAmount = newSats / 10 ** 8
+          return bchAmount * denominationPerBchRate.value
         })
 
-        amounts.value = newAmounts
+        amounts.value = newDenominatedAmounts
+      }
+    })
+    const denominatedAmount = computed({
+      get() {
+        return amount.value * denominationPerBchRate.value
+      },
+      set(value) {
+        amount.value = value / denominationPerBchRate.value
       }
     })
 
@@ -279,7 +306,7 @@ export default defineComponent({
           tokenUnits: tokenUnits.value[index],
         }
       }).filter(_data => {
-        return Number.isFinite(_data?.tokenUnits)
+        return Number.isFinite(_data?.tokenUnits) && _data?.tokenUnits > 0
       })
 
       onDialogOK(data)
@@ -291,16 +318,18 @@ export default defineComponent({
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
       innerVal,
 
+      denomination,
       tokenBalanceContractPairs,
       tokenDataPerPair,
       pricePerPairText,
-      maxRedeemableBchPerPair,
+      maxDenominatedRedeemableBchPerPair,
 
-      totalRedeemableBch,
+      totalDenominatedRedeemableBch,
       expandAmounts,
       amounts,
       tokenAmounts,
       amount,
+      denominatedAmount,
 
       onSubmit,
     }

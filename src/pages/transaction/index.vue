@@ -121,6 +121,7 @@
                         <StablehedgeButtons
                           v-if="stablehedgeView"
                           class="q-mt-xs"
+                          :selectedDenomination="selectedDenomination"
                           @deposit="onStablehedgeTransaction"
                           @redeem="onStablehedgeTransaction"
                         />
@@ -312,7 +313,7 @@
               ref="transaction-list-component"
               :selectedAssetId="selectedAsset?.id"
               :transactionsFilter="transactionsFilter"
-              :denominationTabSelected="denominationTabSelected"
+              :selectedDenomination="selectedDenomination"
               @resolved-transaction="onStablehedgeTransaction"
             />
             <TransactionList
@@ -358,7 +359,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { sha256 } from 'js-sha256'
 import { VOffline } from 'v-offline'
-import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
@@ -488,6 +489,11 @@ export default {
     denomination () {
       return this.$store.getters['global/denomination']
     },
+    selectedDenomination() {
+      return this.isDenominationTabEnabled
+        ? this.denominationTabSelected
+        : this.denomination
+    },
     theme () {
       return this.$store.getters['global/theme']
     },
@@ -520,7 +526,7 @@ export default {
     },
     bchBalanceText() {
       if (!this.balanceLoaded) return '0'
-      const currentDenomination = this.denominationTabSelected
+      const currentDenomination = this.selectedDenomination
       const balance = this.stablehedgeView
         ? this.stablehedgeWalletData.balance
         : this.bchAsset.balance
@@ -529,12 +535,7 @@ export default {
         return `${String(balance).substring(0, 10)} ${selectedNetwork}`
       }
 
-      const parsedBCHBalance = parseAssetDenomination(currentDenomination, {
-        id: '',
-        balance,
-        symbol: 'BCH',
-        decimals: 0
-      }, false, 10)
+      const parsedBCHBalance = getAssetDenomination(currentDenomination, balance)
 
       if (currentDenomination === this.$t('DEEM')) {
         const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {

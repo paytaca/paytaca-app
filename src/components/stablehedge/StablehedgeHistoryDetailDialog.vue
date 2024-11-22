@@ -36,7 +36,7 @@
           :class="[record?.txType === 'redeem' ? 'reverse' : '']"
         >
           <div class="text-h5">
-            {{ record?.bch }} BCH
+            {{ formatBCH(record?.bch) }}
           </div>
           <div class="text-subtitle1 text-grey q-px-sm">{{ $t('To') }}</div>
           <div class="text-h5">
@@ -76,11 +76,11 @@
           v-if="record?.priceValue"
           style="overflow-wrap: anywhere;"
           clickable v-ripple
-          @click="copyToClipboard(formatTokenUnits(record?.priceValue, record?.category) + '/BCH')"
+          @click="copyToClipboard(formatPriceDenomination(record?.priceValue, record?.category))"
         >
           <q-item-section>
             <q-item-label class="text-gray" caption>{{ $t('Price') }}</q-item-label>
-            <q-item-label>{{ formatTokenUnits(record?.priceValue, record?.category) + '/BCH' }}</q-item-label>
+            <q-item-label>{{ formatPriceDenomination(record?.priceValue, record?.category) }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item
@@ -115,6 +115,7 @@
   </q-dialog>
 </template>
 <script>
+import { getAssetDenomination } from 'src/utils/denomination-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { parseStablehedgeHistory } from 'src/wallet/stablehedge/history-utils';
 import { copyToClipboard, useDialogPluginComponent, useQuasar } from 'quasar'
@@ -130,6 +131,7 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
+    selectedDenomination: String,
     record: {
       default: () => parseStablehedgeHistory()
     }
@@ -165,6 +167,36 @@ export default defineComponent({
       })
     }
 
+    const denomination = computed(() => {
+      return props.selectedDenomination || $store.getters['global/denomination']
+    })
+    function formatBCH(balance) {
+      const currentDenomination = denomination.value || 'BCH'
+      const parsedBCHBalance = getAssetDenomination(currentDenomination, balance)
+
+      if (currentDenomination === $t('DEEM')) {
+        const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        })
+        return `${commaBalance} ${currentDenomination}`
+      }
+
+      return parsedBCHBalance
+    }
+
+    function formatPriceDenomination(price, category) {
+      const token = $store.getters['stablehedge/token'](category)
+      const decimals = parseInt(token?.decimals) || 0
+      const currency = token?.currency || 'UNIT'
+      const priceValue = price / 10 ** decimals
+
+      const currentDenomination = denomination.value || 'BCH'
+      const conversionRate = parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+
+      const convertedPrice = Number(priceValue / conversionRate)
+      return `${convertedPrice} ${currency}/${currentDenomination}`
+    }
 
     function formatTokenUnits(amount, category) {
       const token = $store.getters['stablehedge/token'](category)
@@ -188,6 +220,8 @@ export default defineComponent({
       explorerLink,
 
       copyToClipboard,
+      formatBCH,
+      formatPriceDenomination,
       formatTokenUnits,
       formatDate,
     }

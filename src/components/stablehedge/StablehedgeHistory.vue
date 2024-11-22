@@ -48,12 +48,16 @@
       :modelValue="historyPagination"
       @update:modelValue="fetchHistory"
     />
-    <StablehedgeHistoryDetailDialog v-model="detailDialog.show" :record="detailDialog.record"/>
+    <StablehedgeHistoryDetailDialog
+      v-model="detailDialog.show"
+      :record="detailDialog.record"
+      :selectedDenomination="selectedDenomination"
+    />
   </div>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import { parseStablehedgeHistory } from 'src/wallet/stablehedge/history-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { StablehedgeRPC } from 'src/wallet/stablehedge/rpc';
@@ -81,7 +85,7 @@ export default defineComponent({
     autoFetch: Boolean,
     selectedAssetId: String,
     transactionsFilter: String,
-    denominationTabSelected: String,
+    selectedDenomination: String,
   },
   setup(props, { emit: $emit }) {
     const vm = getCurrentInstance();
@@ -207,14 +211,12 @@ export default defineComponent({
     }
     /** stuff relating to parent component(main page) -- end */
 
+    const denomination = computed(() => {
+      return props.selectedDenomination || $store.getters['global/denomination']
+    })
     function formatBCH(balance) {
-      const currentDenomination = props.denominationTabSelected || 'BCH'
-      const parsedBCHBalance = parseAssetDenomination(currentDenomination, {
-        id: '',
-        balance,
-        symbol: 'BCH',
-        decimals: 0
-      }, false, 10)
+      const currentDenomination = denomination.value || 'BCH'
+      const parsedBCHBalance = getAssetDenomination(currentDenomination, balance)
 
       if (currentDenomination === $t('DEEM')) {
         const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {

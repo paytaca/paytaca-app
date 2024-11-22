@@ -11,7 +11,7 @@
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
         <div class="text-h6 q-space q-mt-sm">
-          {{ $t('Freeze') }} BCH
+          {{ $t('Freeze') }} {{ denomination }}
         </div>
         <q-btn
           flat
@@ -23,9 +23,9 @@
       </div>
       <q-card-section>
         <q-form @submit="() => onSubmit()">
-          <div v-if="pricePerBchText" class="row items-center text-grey q-mb-lg">
+          <div v-if="pricePerDenomination" class="row items-center text-grey q-mb-lg">
             <div class="q-space">{{ $t('CurrentPrice') }}:</div>
-            <div>{{ pricePerBchText }} {{ tokenCurrency}} / BCH</div>
+            <div>{{ pricePerDenomination }} {{ tokenCurrency}} / {{ denomination }}</div>
           </div>
           <div class="text-body1 q-my-sm">{{ $t('InputAmountToFreeze') }}</div>
           <q-input
@@ -35,8 +35,8 @@
             bottom-slots
           >
             <template v-slot:hint>
-              <div v-if="bchAmount" class="text-grey">
-                {{ bchAmount }} BCH
+              <div v-if="denominatedBchAmountText" class="text-grey">
+                {{ denominatedBchAmountText }}
               </div>
             </template>
           </q-input>
@@ -77,7 +77,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { customNumberFormatting, parseFiatCurrency } from 'src/utils/denomination-utils';
+import { customNumberFormatting, getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { useDialogPluginComponent } from 'quasar'
@@ -93,6 +93,7 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     redemptionContract: Object,
+    selectedDenomination: String,
   },
   setup(props, { emit: $emit }) {
     const $store = useStore();
@@ -120,6 +121,9 @@ export default defineComponent({
         : stablehedgePriceTracker.unsubscribe(subscribeKey)
     })
 
+    const denomination = computed(() => {
+      return props.selectedDenomination || $store.getters['global/denomination']
+    })
     const fiatToken = computed(() => props.redemptionContract?.fiat_token)
     const tokenCurrency = computed(() => fiatToken.value?.currency || '')
     const decimals = computed(() => fiatToken.value?.decimals)
@@ -131,7 +135,11 @@ export default defineComponent({
     const priceUnitPerBch = computed(() => parseFloat(priceMessage.value?.priceValue))
     // const priceUnitPerBch = computed(() => parseFloat(41740))
     const pricePerBch = computed(() =>  priceUnitPerBch.value / 10 ** decimals.value)
-    const pricePerBchText = computed(() => customNumberFormatting(pricePerBch.value))
+    const pricePerDenomination = computed(() => {
+      const currentDenomination = denomination.value || 'BCH'
+      const conversionRate = parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+      return pricePerBch.value / conversionRate
+    })
 
     const maxAmountSats = computed(() => {
       const asset = $store.getters['assets/getAssets'][0]
@@ -161,6 +169,11 @@ export default defineComponent({
       const sats = parseInt(tokenToSatoshis(tokenUnits.value, priceUnitPerBch.value))
       return sats / 10 ** 8
     })
+    const denominatedBchAmountText = computed(() => {
+      if (!bchAmount.value) return ''
+      const currentDenomination = denomination.value || 'BCH'
+      return getAssetDenomination(currentDenomination, bchAmount.value)
+    })
 
     function onSubmit() {
       onDialogOK({
@@ -176,11 +189,13 @@ export default defineComponent({
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
       innerVal,
 
+      denomination,
       tokenCurrency,
-      pricePerBchText,
+      pricePerDenomination,
       maxAmount,
       tokenAmount,
       bchAmount,
+      denominatedBchAmountText,
 
       onSubmit,
 
