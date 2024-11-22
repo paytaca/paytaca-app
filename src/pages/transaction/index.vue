@@ -313,6 +313,7 @@
               :selectedAssetId="selectedAsset?.id"
               :transactionsFilter="transactionsFilter"
               :denominationTabSelected="denominationTabSelected"
+              @resolved-transaction="onStablehedgeTransaction"
             />
             <TransactionList
               v-else

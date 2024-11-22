@@ -213,14 +213,12 @@ export default defineComponent({
           notifyOpts.type = 'positive'
           notifyOpts.icon = 'check_circle'
           notifyOpts.message = notifyOpts.message || $t('Success')
+          $emit('deposit', [result])
         } else if (result?.status === 'failed') {
           notifyOpts.type = 'negative'
           notifyOpts.icon = 'error'
         } else {
           notifyOpts.icon = 'pending'
-        }
-
-        if (['success', 'pending'].includes(result?.status)) {
           $emit('deposit', [result])
         }
         $q.notify(notifyOpts)

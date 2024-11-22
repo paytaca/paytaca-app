@@ -44,11 +44,12 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import { parseTransactionTypeText } from 'src/wallet/stablehedge/history-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
+import { StablehedgeRPC } from 'src/wallet/stablehedge/rpc';
 import ago from 's-ago'
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { ref, computed, defineComponent, onMounted, watch, getCurrentInstance } from 'vue';
+import { ref, computed, defineComponent, onMounted, watch, getCurrentInstance, onUnmounted } from 'vue';
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
 
@@ -59,13 +60,16 @@ export default defineComponent({
     TransactionListItemSkeleton,
     LimitOffsetPagination,
   },
+  emits: [
+    'resolved-transaction',
+  ],
   props: {
     autoFetch: Boolean,
     selectedAssetId: String,
     transactionsFilter: String,
     denominationTabSelected: String,
   },
-  setup(props) {
+  setup(props, { emit: $emit }) {
     const vm = getCurrentInstance();
     const { t: $t } = useI18n();
     const $q = useQuasar();
@@ -154,7 +158,6 @@ export default defineComponent({
         limit: opts?.limit,
         offset: opts?.offset || undefined,
       }
-      console.log({filterOpts: filterOpts.value})
       fetchingHistory.value = true
       return backend.get('stablehedge/redemption-contract-transactions/history/', { params })
         .then(response => {
@@ -186,7 +189,6 @@ export default defineComponent({
           if (!token?.currency) return true
           return false
         })
-
 
       if (categories?.length === 0) return Promise.resolve()
       return $store.dispatch('stablehedge/updateTokenData', { categories })
@@ -251,6 +253,72 @@ export default defineComponent({
 
       const tokens = amount / 10 ** decimals
       return `${tokens} ${currency}`
+    }
+
+    let subscribedHistoryIds = []
+    const redemptionTxResultEventName = 'redemption_contract_tx_result'
+    /** @type {StablehedgeRPC} */
+    let stablehedgeRpc
+    onUnmounted(() => stablehedgeRpc?.disconnect?.())
+    onMounted(() => setupRpc())
+    watch(isChipnet, () => setupRpc())
+    function setupRpc() {
+      if (stablehedgeRpc?.isConnected?.()) stablehedgeRpc.disconnect()
+
+      stablehedgeRpc = new StablehedgeRPC({ isChipnet: isChipnet.value })      
+      stablehedgeRpc.client.onClose(() => subscribedHistoryIds = [])
+      stablehedgeRpc.client.onOpen(subscribePendingHistoriesToListener)
+      stablehedgeRpc.client.onNotification = [onNotificationHandler]
+      window.rpc = stablehedgeRpc
+
+      checkAndRunPendingHistoryListener()
+    }
+
+    const pendingHistoryIds = computed(() => {
+      return history.value
+        .filter(record => record?.status === 'pending')
+        .map(record => record?.id)
+    })
+
+    watch(pendingHistoryIds, () => checkAndRunPendingHistoryListener())
+    function checkAndRunPendingHistoryListener() {
+      if (!pendingHistoryIds.value.length) return
+
+      if (!stablehedgeRpc.isConnected()) stablehedgeRpc.connect()
+      else subscribePendingHistoriesToListener()
+    }
+
+
+    function subscribePendingHistoriesToListener() {
+      if (!pendingHistoryIds.value.length) return
+      pendingHistoryIds.value.forEach(id => {
+        if (subscribedHistoryIds?.includes?.(id)) return
+        const eventParams = { id: parseInt(id) }
+        stablehedgeRpc.client.call('subscribe', [redemptionTxResultEventName, eventParams])
+        subscribedHistoryIds.push(id)
+      })
+    }
+
+    /**
+     * @param {{ event: String, data: any }} notification 
+     */
+    function onNotificationHandler(notification) {
+      const eventName = notification?.event
+      const data = notification?.data
+      if (eventName !== redemptionTxResultEventName) return
+
+      const historyId = parseInt(data?.id)
+      const recordIsInList = history.value.find(record => record?.id === historyId)
+      if (!recordIsInList) return
+      backend.get(`stablehedge/redemption-contract-transactions/${historyId}/history_detail/`)
+        .then(response => {
+          const parsedRecord = parseStablehedgeHistory(response?.data)
+          $emit('resolved-transaction', [parsedRecord])
+          const index = history.value.findIndex(record => {
+            return record?.id === parsedRecord?.id
+          })
+          if (index >= 0) history.value[index] = parsedRecord
+        })
     }
 
     return {
