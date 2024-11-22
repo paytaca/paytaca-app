@@ -61,6 +61,7 @@ export default defineComponent({
   },
   props: {
     autoFetch: Boolean,
+    selectedAssetId: String,
     transactionsFilter: String,
     denominationTabSelected: String,
   },
@@ -127,9 +128,20 @@ export default defineComponent({
       if (props.transactionsFilter === 'freeze') transactionTypes = ['inject', 'deposit']
       if (props.transactionsFilter === 'unfreeze') transactionTypes = ['redeem']
 
+      let category = ''
+      if (typeof props.selectedAssetId == 'string') {
+        const assetIdComponents = props.selectedAssetId?.split('/')
+        const assetIdPrefix = assetIdComponents?.[0]
+        const assetTokenId = assetIdComponents?.[1]
+        if (assetIdPrefix === 'ct') {
+          category = assetTokenId
+        }
+      }
+
       return {
         wallet_hashes: walletData?.walletHash || '',
         transaction_types: transactionTypes.join(',') || undefined,
+        categories: category || undefined,
         statuses: 'pending,success',
         ordering: 'status,-created_at',
       }
@@ -142,6 +154,7 @@ export default defineComponent({
         limit: opts?.limit,
         offset: opts?.offset || undefined,
       }
+      console.log({filterOpts: filterOpts.value})
       fetchingHistory.value = true
       return backend.get('stablehedge/redemption-contract-transactions/history/', { params })
         .then(response => {

@@ -310,6 +310,7 @@
             <StablehedgeHistory
               v-if="stablehedgeView && selectedNetwork === 'BCH'"
               ref="transaction-list-component"
+              :selectedAssetId="selectedAsset?.id"
               :transactionsFilter="transactionsFilter"
               :denominationTabSelected="denominationTabSelected"
             />
@@ -763,8 +764,10 @@ export default {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
-      vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
-      vm.$refs['transaction-list-component'].getTransactions()
+      vm.$nextTick(() => {
+        vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
+        vm.$refs['transaction-list-component'].getTransactions()
+      })
       vm.assetClickCounter += 1
       if (vm.assetClickCounter >= 2) {
         vm.showAssetInfo(this.bchAsset)
@@ -841,8 +844,10 @@ export default {
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
       this.getBalance()
-      this.$refs['transaction-list-component'].resetValues(null, null, asset)
-      this.$refs['transaction-list-component'].getTransactions()
+      this.$nextTick(() => {
+        this.$refs['transaction-list-component'].resetValues()
+        this.$refs['transaction-list-component'].getTransactions()
+      })
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
     },
     getBalance (id) {
