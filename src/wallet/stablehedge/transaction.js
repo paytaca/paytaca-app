@@ -197,14 +197,47 @@ export function getRedemptionContractTxStatus(opts) {
  * @returns {Promise<{ id: Number, status: String, txid: String, message: String }>}
  */
 export async function waitRedemptionContractTx(opts) {
-  const txResultData = await getRedemptionContractTxStatus(opts).catch(console.error)
-  if (['success', 'failed'].includes(txResultData?.status)) return txResultData
+  const results = await waitRedemptionContractTxs({
+    ids: [opts?.id],
+    chipnet: opts?.chipnet,
+    timeout: opts?.timeout,
+  })
+  const result = results[0]
+  if (result === 'timeout') throw result
+
+  if (['success', 'failed'].includes(result?.status)) return result
+}
+
+
+/**
+ * @param {Object} opts 
+ * @param {Number[]} opts.ids
+ * @param {Boolean} opts.chipnet
+ * @param {Number} opts.timeout
+ * @returns {Promise<{ id: Number, status: String, txid: String, message: String }[]>}
+ */
+export async function waitRedemptionContractTxs(opts) {
+  const txStatusResults = await Promise.all(
+    opts?.ids.map(async (id) => {
+      return {
+        id: id,
+        data: await getRedemptionContractTxStatus({ id, chipnet: opts?.chipnet})
+          .then(result => {
+            if (['success', 'failed'].includes(result?.status)) return result
+          })
+          .catch(console.error)
+      }
+    })
+  )
+  const allResolved = () => txStatusResults.every(result => Boolean(result.data?.id))
+
+  if (allResolved()) return txStatusResults.map(result => result?.data)
 
   const stablehedgeRpc = new StablehedgeRPC({ chipnet: opts?.chipnet })
   const eventName = 'redemption_contract_tx_result'
-  const eventParams = { id: parseInt(opts.id) }
-  return new Promise((resolve, reject) => {
-    const onTimeout = () => reject('timeout')
+  return new Promise(resolve => {
+    const resolveResults = () => resolve(txStatusResults.map(result => result?.data || 'timeout'))
+    const onTimeout = () => resolveResults()
     const timeoutId = setTimeout(onTimeout, parseInt(opts?.timeout) || 60 * 1000)
 
     /**
@@ -215,28 +248,34 @@ export async function waitRedemptionContractTx(opts) {
       const data = notification?.data
       if (eventName !== eventName) return
 
-      const result = {
+      const parseEventData = {
         ...data,
         id: data?.id,
         status: data?.status,
         txid: data?.txid,
         message: data?.message,
       }
-      clearTimeout(timeoutId)
-      resolve(result)
+      txStatusResults.forEach(result => {
+        if (result?.id != result?.id) return
+        result.data = parseEventData
+      })
+
+      if (allResolved()) {
+        clearTimeout(timeoutId)
+        resolveResults()
+      }
     }
 
     stablehedgeRpc.client.onNotification = [notificationHandler]
-
     stablehedgeRpc.client.onOpen(() => {
-      stablehedgeRpc.client.call('subscribe', [eventName, eventParams])
-      getRedemptionContractTxStatus(opts)
-        .then(response => {
-          if (['success', 'failed'].includes(response?.status)) return response
-        })
+      txStatusResults.forEach(result => {
+        const eventParams = { id: parseInt(result.id) }
+        stablehedgeRpc.client.call('subscribe', [eventName, eventParams])
+      })
     })
     stablehedgeRpc.connect()
-  }).finally(() => {
+  })
+  .finally(() => {
     stablehedgeRpc.disconnect()
   })
 }
