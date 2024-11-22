@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "Hierdie QR -kode is ekstra.U kan dit in u toestel stoor of dit aan 'n vriend deel.In elk geval kon u nie een van die skerwe opspoor nie, u mag hierdie een as plaasvervanger gebruik.",
   ExtraQRDescription2: "Stoor of deel hierdie QR -kode",
   ExtraShard: "Ekstra Shard",
+  Failed: "Misluk",
   FailedAddingNewDevice: "Kon nie 'n nuwe toestel byvoeg nie",
   FailedRemoveBranch: "Kon nie die tak verwyder nie",
   FailedToAuthenticate: "Kon nie verifieer nie",

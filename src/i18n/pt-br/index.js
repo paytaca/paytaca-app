@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "Este código QR é extra.Você pode armazená -lo no seu dispositivo ou compartilhá -lo com um amigo.De qualquer forma, você não conseguiu localizar um dos fragmentos, você pode usá -lo como substituto.",
   ExtraQRDescription2: "Armazene ou compartilhe este código QR",
   ExtraShard: "Shard extra",
+  Failed: "Fracassada",
   FailedAddingNewDevice: "Falha ao adicionar novo dispositivo",
   FailedRemoveBranch: "Falha ao remover o ramo",
   FailedToAuthenticate: "Falhou em autenticar",

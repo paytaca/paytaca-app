@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "This QR code is an extra one. You can either store it in your device or share it to a friend. In any case you were unable to locate one of the shards, you may use this one as a replacement.",
   ExtraQRDescription2: "Either store or share this QR code",
   ExtraShard: "Extra Shard",
+  Failed: "Failed",
   FailedAddingNewDevice: "Failed to add new device",
   FailedRemoveBranch: "Failed to remove branch",
   FailedToAuthenticate: "Failed to authenticate",

@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "Ang QR code na ito ay isang dagdag.Maaari mo itong maiimbak sa iyong aparato o ibahagi ito sa isang kaibigan.Sa anumang kaso hindi mo mahanap ang isa sa mga shards, maaari mong gamitin ang isang ito bilang kapalit.",
   ExtraQRDescription2: "Alinman sa tindahan o ibahagi ang QR code na ito",
   ExtraShard: "Dagdag na shard",
+  Failed: "Nabigo",
   FailedAddingNewDevice: "Nabigong magdagdag ng bagong aparato",
   FailedRemoveBranch: "Nabigong alisin ang sangay",
   FailedToAuthenticate: "Nabigong patunayan",

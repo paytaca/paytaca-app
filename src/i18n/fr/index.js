@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "Ce code QR est un supplément.Vous pouvez soit le stocker dans votre appareil, soit le partager avec un ami.Dans tous les cas, vous n'avez pas pu localiser l'un des éclats, vous pouvez utiliser celui-ci comme remplacement.",
   ExtraQRDescription2: "Stocker ou partager ce code QR",
   ExtraShard: "Fragment supplémentaire",
+  Failed: "Échoué",
   FailedAddingNewDevice: "Échec de l'ajout d'un nouvel appareil",
   FailedRemoveBranch: "Échec de la suppression de la branche",
   FailedToAuthenticate: "Échec de l'authentification",

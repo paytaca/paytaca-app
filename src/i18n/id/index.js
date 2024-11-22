@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "Kode QR ini adalah yang tambahan.Anda dapat menyimpannya di perangkat Anda atau membagikannya kepada teman.Bagaimanapun Anda tidak dapat menemukan salah satu pecahan, Anda dapat menggunakan yang ini sebagai pengganti.",
   ExtraQRDescription2: "Baik menyimpan atau berbagi kode QR ini",
   ExtraShard: "Shard ekstra",
+  Failed: "Gagal",
   FailedAddingNewDevice: "Gagal menambahkan perangkat baru",
   FailedRemoveBranch: "Gagal Menghapus Cabang",
   FailedToAuthenticate: "Gagal mengotentikasi",

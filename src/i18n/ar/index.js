@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "رمز الاستجابة السريعة هذا هو واحد إضافي.يمكنك إما تخزينه في جهازك أو مشاركته إلى صديق.في أي حال ، لم تتمكن من تحديد موقع أحد الشظايا ، يمكنك استخدام هذا البديل كبديل.",
   ExtraQRDescription2: "إما تخزين أو مشاركة رمز الاستجابة السريعة هذا",
   ExtraShard: "شارد إضافي",
+  Failed: "فشل",
   FailedAddingNewDevice: "فشل في إضافة جهاز جديد",
   FailedRemoveBranch: "فشل في إزالة الفرع",
   FailedToAuthenticate: "فشل المصادقة",

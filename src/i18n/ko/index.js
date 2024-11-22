@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "이 QR 코드는 추가 코드입니다.장치에 저장하거나 친구에게 공유 할 수 있습니다.어쨌든 당신은 파편 중 하나를 찾을 수 없었으며, 이것을 교체품으로 사용할 수 있습니다.",
   ExtraQRDescription2: "이 QR 코드를 저장하거나 공유하십시오",
   ExtraShard: "여분의 샤드",
+  Failed: "실패한",
   FailedAddingNewDevice: "새 장치를 추가하지 못했습니다",
   FailedRemoveBranch: "분기를 제거하지 못했습니다",
   FailedToAuthenticate: "인증하지 못했습니다",

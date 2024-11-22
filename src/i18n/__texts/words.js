@@ -350,6 +350,7 @@ const words = [
     Inject: "Inject",
     Freeze: "Freeze",
     Unfreeze: "Unfreeze",
+    Failed: "Failed",
   }
 ]
 

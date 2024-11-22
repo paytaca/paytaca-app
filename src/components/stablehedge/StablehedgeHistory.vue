@@ -8,12 +8,23 @@
       <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
     </div>
     <template v-else>
-      <div v-for="record in history" :key="record?.id" class="row items-center history-record">
+      <div
+        v-for="record in history" :key="record?.id"
+        class="row items-center history-record"
+        v-ripple
+        @click="() => showRecordDetail(record)"
+      >
         <div class="q-space">
           <div class="text-subtitle1">
             <span class="text-uppercase">{{ record?.txTypeText }}</span>
-            <q-badge v-if="record?.status && record?.status != 'success'" class="q-ml-xs">
-              {{ record?.status }}
+            <q-badge
+              v-if="record?.status && record?.status != 'success'"
+              class="q-ml-xs"
+              :color="record?.status === 'failed' ? 'red' : 'grey'"
+            >
+              <template v-if="record?.status === 'pending'">{{ $t('Pending') }}</template>
+              <template v-if="record?.status === 'failed'">{{ $t('Failed') }}</template>
+              <template v-else>{{ $record?.status }}</template>
             </q-badge>
           </div>
           <div>{{ formatDate(record?.timestamp) }}</div>
@@ -37,12 +48,13 @@
       :modelValue="historyPagination"
       @update:modelValue="fetchHistory"
     />
+    <StablehedgeHistoryDetailDialog v-model="detailDialog.show" :record="detailDialog.record"/>
   </div>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
-import { parseTransactionTypeText } from 'src/wallet/stablehedge/history-utils';
+import { parseStablehedgeHistory } from 'src/wallet/stablehedge/history-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { StablehedgeRPC } from 'src/wallet/stablehedge/rpc';
 import ago from 's-ago'
@@ -52,6 +64,7 @@ import { useStore } from 'vuex';
 import { ref, computed, defineComponent, onMounted, watch, getCurrentInstance, onUnmounted } from 'vue';
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
+import StablehedgeHistoryDetailDialog from './StablehedgeHistoryDetailDialog.vue'
 
 
 export default defineComponent({
@@ -59,6 +72,7 @@ export default defineComponent({
   components: {
     TransactionListItemSkeleton,
     LimitOffsetPagination,
+    StablehedgeHistoryDetailDialog,
   },
   emits: [
     'resolved-transaction',
@@ -91,40 +105,6 @@ export default defineComponent({
     const fetchingHistory = ref(false)
     const historyPagination = ref({ offset: 0, limit: 10, count: 0})
     const history = ref([].map(parseStablehedgeHistory))
-
-    /**
-     * @param {Object} data 
-     * @param {Number} data.id
-     * @param {String} data.redemption_contract_address
-     * @param {'pending' | 'success' | 'failed'} data.status
-     * @param {'inject' | 'deposit' | 'redeem'} data.transaction_type
-     * @param {String} data.category
-     * @param {Number} data.satoshis
-     * @param {Number} data.amount
-     * @param {String} data.txid
-     * @param {String} data.result_message
-     * @param {String} data.resolved_at
-     * @param {String} data.created_at
-     */
-    function parseStablehedgeHistory(data) {
-      const timestamp = new Date(data?.resolved_at || data?.created_at) * 1
-      const txType = data?.transaction_type
-      const bch = data?.satoshis / 10 ** 8
-
-      return {
-        id: data?.id,
-        redemptionContractAddress: data?.redemption_contract_address,
-        status: data?.status,
-        txType: txType,
-        txTypeText: parseTransactionTypeText(txType) || txType,
-        category: data?.category,
-        bch: bch,
-        amount: data?.amount,
-        txid: data?.txid,
-        resultMessage: data?.result_message,
-        timestamp: timestamp,
-      }
-    }
 
     const filterOpts = computed(() => {
       const walletData = $store.getters['global/getWallet']?.('bch')
@@ -192,6 +172,11 @@ export default defineComponent({
 
       if (categories?.length === 0) return Promise.resolve()
       return $store.dispatch('stablehedge/updateTokenData', { categories })
+    }
+
+    const detailDialog = ref({ show: false, record: parseStablehedgeHistory() })
+    function showRecordDetail(record=parseStablehedgeHistory()) {
+      detailDialog.value = { show: true, record: record }
     }
 
     /** start -- stuff called by parent component(main page) */
@@ -329,6 +314,8 @@ export default defineComponent({
       historyPagination,
       history,
       fetchHistory,
+      detailDialog,
+      showRecordDetail,
 
       getTransactions,
       resetValues,
@@ -345,6 +332,8 @@ export default defineComponent({
 </script>
 <style scoped lang="scss">
 .history-record {
+  position: relative;
+
   // padding: map-get($space-sm, 'y') map-get($space-sm, 'x');
   margin: map-get($space-sm, 'y') map-get($space-lg, 'x');
   padding-bottom: map-get($space-xs, 'y');

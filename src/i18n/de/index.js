@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "Dieser QR -Code ist zusätzlich.Sie können es entweder in Ihrem Gerät speichern oder an einen Freund weitergeben.In jedem Fall konnten Sie keine der Scherben finden. Sie können diesen als Ersatz verwenden.",
   ExtraQRDescription2: "Entweder diesen QR -Code speichern oder teilen",
   ExtraShard: "Zusätzliche Scherbe",
+  Failed: "Fehlgeschlagen",
   FailedAddingNewDevice: "Es konnte kein neues Gerät hinzugefügt werden",
   FailedRemoveBranch: "Verzweigungen nicht entfernen",
   FailedToAuthenticate: "Nicht authentifiziert",

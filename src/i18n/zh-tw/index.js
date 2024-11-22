@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "此QR碼是額外的。您可以將其存儲在設備中，也可以與朋友共享。無論如何，您無法找到其中一個碎片，您可以將此用作替代品。",
   ExtraQRDescription2: "存儲或共享此QR代碼",
   ExtraShard: "額外的碎片",
+  Failed: "失敗的",
   FailedAddingNewDevice: "無法添加新設備",
   FailedRemoveBranch: "無法刪除分支",
   FailedToAuthenticate: "無法進行身份驗證",

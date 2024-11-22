@@ -75,3 +75,39 @@ export function parseTransactionTypeText(transactionType='') {
       return $t('Redeem')
   }
 }
+
+/**
+ * @param {Object} data 
+ * @param {Number} data.id
+ * @param {String} data.redemption_contract_address
+ * @param {'pending' | 'success' | 'failed'} data.status
+ * @param {'inject' | 'deposit' | 'redeem'} data.transaction_type
+ * @param {String} data.category
+ * @param {Number} data.price_value
+ * @param {Number} data.satoshis
+ * @param {Number} data.amount
+ * @param {String} data.txid
+ * @param {String} data.result_message
+ * @param {String} data.resolved_at
+ * @param {String} data.created_at
+ */
+export function parseStablehedgeHistory(data) {
+  const timestamp = new Date(data?.resolved_at || data?.created_at) * 1
+  const txType = data?.transaction_type
+  const bch = data?.satoshis / 10 ** 8
+
+  return {
+    id: data?.id,
+    redemptionContractAddress: data?.redemption_contract_address,
+    status: data?.status,
+    txType: txType,
+    txTypeText: parseTransactionTypeText(txType) || txType,
+    category: data?.category,
+    priceValue: data?.price_value,
+    bch: bch,
+    amount: data?.amount,
+    txid: data?.txid,
+    resultMessage: data?.result_message,
+    timestamp: timestamp,
+  }
+}

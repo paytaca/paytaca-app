@@ -415,6 +415,7 @@ export default {
   ExtraQRDescription1: "Wannan lambar QR ita ce ƙarin.Kuna iya adana shi a cikin na'urarka ko raba shi zuwa aboki.A kowane hali da ba ku iya gano ɗaya daga cikin shards, zaku iya amfani da wannan wanda a sauyawa.",
   ExtraQRDescription2: "Ko dai adana ko raba wannan lambar QR",
   ExtraShard: "Karin Shard",
+  Failed: "Kasa",
   FailedAddingNewDevice: "An kasa ƙara sabon na'ura",
   FailedRemoveBranch: "Ba a yi nasarar cire reshe ba",
   FailedToAuthenticate: "Ya kasa gaskata",
