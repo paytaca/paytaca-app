@@ -55,6 +55,7 @@ export default function () {
         image_url: '',
         name: '',
         currency: { code: '', symbol: '' },
+        delivery_types: [],
         location: {
           id: 0,
           address1: '', address2: '',
