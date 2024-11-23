@@ -95,7 +95,12 @@
                   </div>
                 </q-menu>
               </div>
-              <q-badge v-if="!storefront?.inPrelaunch && !storefront?.isOpen" color="grey">Closed</q-badge>
+              <q-badge v-if="!storefront?.inPrelaunch && !storefront?.isOpen" color="grey" class="q-mr-xs">
+                Closed
+              </q-badge>
+              <q-badge v-if="!storefront?.inPrelaunch && storefront?.isStorepickupOnly" color="info" class="q-mr-xs">
+                Store pickup
+              </q-badge>
               <div class="ellipsis-3-lines">{{ storefront.name }}</div>
               <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="text-caption bottom">
                 {{ storefront?.openingTimeText }}
@@ -302,6 +307,7 @@ async function updateLocation() {
 const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
 watch(customerCoordinates, () => fetchStorefronts())
 
+const deliveryTypes = ref([].map(String))
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
 const storefrontsPagination = ref({ count: 0, limit: 0, offset: 0 })
@@ -335,6 +341,7 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
   const params = {
     limit: opts?.limit || 6,
     offset: opts?.offset || undefined,
+    delivery_types: deliveryTypes.value?.join(',') || undefined,
     distance: '',
     active: true,
     annotate_is_open_at: getISOWithTimezone(new Date()),

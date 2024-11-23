@@ -37,7 +37,7 @@
           </div>
         </template>
       </div>
-      <div v-if="deliveryCalculation?.fee" class="row items-center no-wrap q-px-sm">
+      <div v-if="!storefront?.isStorepickupOnly && deliveryCalculation?.fee" class="row items-center no-wrap q-px-sm">
         <div class="q-space">
           Delivery:
           {{ deliveryCalculation?.fee }} {{ deliveryCalculation?.currencySymbol }}
@@ -123,6 +123,39 @@
           </template>
         </q-input>
       </div>
+      <q-banner
+        v-if="storefront?.isStorepickupOnly === true"
+        rounded
+        inline-actions
+        class="q-my-md q-mx-sm bg-grad"
+      >
+        <template v-if="!canShowPickupDialog" v-slot:avatar>
+          <q-icon name="storefront"/>
+        </template>
+        <template v-else v-slot:action>
+          <q-btn
+            outline
+            round
+            icon="storefront"
+            padding="0.75rem"
+            size="1.25rem"
+            @click="() => showPickupDialog = true"
+          />
+          <StorePickupDialog
+            v-model="showPickupDialog"
+            view-only
+            title="Store location"
+            message=""
+            :storefront="storefront"
+            :relativeLocation="customerCoordinates"
+          />
+        </template>
+        <div class="text-h6" style="line-height:1.2">Store pickup only</div>
+        <div>This store is for store pickup only</div>
+        <div v-if="deliveryCalculation?.distance">
+          {{ round(deliveryCalculation?.distance, 1) / 1000 }} km away
+        </div>
+      </q-banner>
       <q-banner
         v-if="cashbackCampaign?.id"
         rounded
@@ -347,6 +380,7 @@ import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffec
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
+import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDialog.vue'
 import { debounce } from 'quasar'
 
 
@@ -469,6 +503,11 @@ function updateLivenessStatus() {
     })
 }
 
+const canShowPickupDialog = computed(() => {
+  return Number.isFinite(customerCoordinates.value?.longitude) &&
+        Number.isFinite(customerCoordinates.value?.latitude)
+})
+const showPickupDialog = ref(false)
 const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
 const deliveryCalculation = ref({
   fee: 0,

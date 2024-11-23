@@ -93,7 +93,13 @@
               {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
             </div>
           </div>
-          <template v-if="activeStorefrontCart?.markupSubtotal && activeStorefront?.id == deliveryCalculation?.storefrontId && deliveryCalculation?.fee">
+          <template
+            v-if="activeStorefrontCart?.markupSubtotal && 
+                  activeStorefront?.id == deliveryCalculation?.storefrontId &&
+                  deliveryCalculation?.fee &&
+                  activeStorefrontCartDeliveryType !== Checkout.DeliveryTypes.STORE_PICKUP
+            "
+          >
             <div class="row items-center q-mx-xs q-pl-md">
               <div class="q-space q-pr-xs">Delivery fee</div>
               <div class="">
@@ -109,7 +115,13 @@
               :disable="!activeStorefrontIsActive"
               label="Checkout"
               class="full-width button"
-              :to="{ name: 'app-marketplace-checkout', query: { cartId: activeStorefrontCart?.id } }"
+              :to="{
+                name: 'app-marketplace-checkout',
+                query: {
+                  cartId: activeStorefrontCart?.id,
+                  deliveryType: activeStorefrontCartDeliveryType,
+                },
+              }"
             />
           </div>
         </q-card-section>
@@ -122,7 +134,7 @@ import { backend, cachedBackend, getSignerData } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { updateOrCreateKeypair } from 'src/marketplace/chat'
-import { Cart, CartItem } from 'src/marketplace/objects'
+import { Cart, CartItem, Checkout } from 'src/marketplace/objects'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
@@ -324,6 +336,14 @@ export default {
     }
 
     const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
+    const activeStorefrontCartDeliveryType = computed(() => {
+      const storefrontId = activeStorefrontCart.value?.storefrontId
+      const storefront = $store.getters['marketplace/getStorefront']?.(storefrontId)
+      if (!storefront) return
+    
+      if (storefront?.isStorepickupOnly === true) return Checkout.DeliveryTypes.STORE_PICKUP
+      return storefront?.deliveryTypes?.[0] || Checkout.DeliveryTypes.LOCAL_DELIVERY
+    })
     function getStorefrontCurrency(storefrontId) {
       return $store.getters['marketplace/getStorefrontCurrency']?.(storefrontId)
     }
@@ -356,6 +376,8 @@ export default {
     }
 
     return {
+      Checkout,
+
       darkMode,
       loadingApp,
 
@@ -368,6 +390,7 @@ export default {
       deliveryCalculation,
 
       activeStorefrontCart,
+      activeStorefrontCartDeliveryType,
       activeStorefrontIsActive,
       getStorefrontCurrency,
       saveCart,
