@@ -177,7 +177,8 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
     if (platform === 'ios') data.apns_device = deviceId
     else if (platform === 'android') data.gcm_device = deviceId
 
-    await NOTIFS_URL.post('devicenotiftype/create_device_notif_type/', data)
+    await NOTIFS_URL
+      .post('devicenotiftype/create_device_notif_type/', data)
       .then(response => {
         respId = response.data.id
       }).catch(error => {
@@ -186,4 +187,14 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
   }
 
   return respId
+}
+
+export async function deleteDeviceNotifType (deviceNotifTypesId) {
+  await NOTIFS_URL
+    .delete(`devicenotiftype/${deviceNotifTypesId}/`)
+    .then(response => {
+      console.log('Device notif type deleted successfully.')
+    }).catch(error => {
+      console.log(error)
+    })
 }

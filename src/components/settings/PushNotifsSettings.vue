@@ -111,7 +111,10 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { loadWallet } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import {
-  getPushNotifConfigs, updateDeviceNotifType, parseDeviceId
+  getPushNotifConfigs,
+  updateDeviceNotifType,
+  parseDeviceId,
+  deleteDeviceNotifType
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -210,6 +213,7 @@ export default {
         }
       } else {
         await vm.$pushNotifications.unsubscribe(walletHashes)
+        await deleteDeviceNotifType(this.deviceNotifTypesId)
         this.deviceNotifTypesId = -1
       }
 
