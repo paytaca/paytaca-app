@@ -278,6 +278,8 @@
   </div>
 </template>
 <script setup>
+
+import { onBeforeMount } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { getWalletByNetwork } from 'src/wallet/chipnet';
@@ -287,6 +289,8 @@ import Watchtower from 'watchtower-cash-js';
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { secp256k1, decodePrivateKeyWif, binToHex, instantiateSha256} from '@bitauth/libauth'
+import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils';
 import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
 import WC2SessionRequestDialog from 'src/components/walletconnect/WC2SessionRequestDialog.vue';
 import { useI18n } from 'vue-i18n'
@@ -300,8 +304,16 @@ const $q = useQuasar()
 const $t = useI18n().t
 const $store = useStore()
 
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+/**
+ * List of wallet's external
+ * addresses fetched from watchtower.
+ */
+const walletExternalAddresses = ref/* <string[]> */()
+
+const watchtowerBaseUrl = ref()
+
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 // const showScanner = ref(false)
 async function onScannerDecode (content) {
   console.log('Scanned', content)
@@ -329,6 +341,117 @@ async function onScannerDecode (content) {
 
 const wallet = ref([].map(() => new Wallet())[0])
 const bchWallet = computed(() => $store.getters['global/getWallet']('bch'))
+
+const setWatchtowerBaseUrl = (isChipnet) => {
+  watchtowerBaseUrl.value = 'https://watchtower.cash'
+  if (isChipnet) {
+    watchtowerBaseUrl.value = 'https://chipnet.watchtower.cash'
+  }
+}
+
+/**
+ * Fetch external addresses from watchtower
+ */
+const fetchWalletExternalAddresses = async () => {
+  try {
+    const getWalletExternalAddressesResp = await fetch(`${watchtowerBaseUrl.value}/api/wallet-addresses/${bchWallet.value.walletHash}/?change_index=0`)
+    let walletExternalAddressesLoc = [] // saving locally to avoid any reactivity issue
+    if (getWalletExternalAddressesResp.ok) {
+      walletExternalAddressesLoc = await getWalletExternalAddressesResp.json()
+      walletExternalAddresses.value = walletExternalAddressesLoc
+      console.log('🚀 ~ fetchWalletExternalAddresses ~ walletExternalAddresses:', walletExternalAddresses.value)
+    }
+    return walletExternalAddressesLoc
+  } catch (error) {
+    // TODO: DELETE LOG
+    console.log('🚀 ~ fetchWalletExternalAddresses ~ error:', error)
+  }
+}
+
+/**
+ * @return privateKey of address at
+ * addressIndex.
+ */
+async function getAddressWif(addressIndex) {
+  return await getWalletByNetwork(wallet.value, 'bch').getPrivateKey(`0/${addressIndex}`)
+}
+
+async function saveWalletConnectRecordOfAccount (session, account) {
+  try {
+    const getNonceResponse = await fetch(`${watchtowerBaseUrl.value}/api/nonce/`)
+    if (getNonceResponse.ok) {
+      const jsonResponse = await getNonceResponse.json()
+      // eslint-disable-next-line eqeqeq
+      if (jsonResponse.success == true && jsonResponse.data?.nonce) {
+        console.log('jsonResponse', jsonResponse)
+        const appName = session?.peer?.metadata?.name || 'unknown-app-name'
+        const appUrl = session?.peer?.metadata?.url || 'unknown-app-url'
+        const message = `${jsonResponse.data.nonce}|${account}|${appName}|${appUrl}`
+        let addresses = walletExternalAddresses.value
+        if (!addresses) {
+        // try to load one last time
+          addresses = await fetchWalletExternalAddresses()
+        }
+        if (!addresses) {
+          addresses = getBchAddresses() // just used the last used
+        }
+        for (const index in addresses) {
+          const wif = await getAddressWif(index)
+          const decodedPrivkey = decodePrivateKeyWif(wif)
+          const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(decodedPrivkey.privateKey)
+          const pkToCashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+          if (account !== pkToCashAddress) {
+          // we'll only save the wallet connect
+          // connection record of this account
+            continue
+          }
+          const sha256 = (await instantiateSha256()).hash
+          const hashedMessage = sha256(new TextEncoder().encode(message))
+          const derSignature = secp256k1.signMessageHashDER(decodedPrivkey.privateKey, hashedMessage)
+          const derSignatureHex = binToHex(derSignature)
+          const postData = {
+            public_key: binToHex(publicKeyCompressed),
+            signature: derSignatureHex,
+            message: message
+          }
+          fetch(`${watchtowerBaseUrl.value}/api/wallet-address-app/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(postData)
+          })
+        }
+      }
+    }
+  } catch (error) {}
+}
+
+async function saveWalletConnectRecords (session) {
+  try {
+    const accounts = session?.namespaces?.bch?.accounts
+
+    const promises = accounts.map((account) => {
+      const cleanedAccount = account.replace('bch:', '')
+      return saveWalletConnectRecordOfAccount(session, cleanedAccount)
+    })
+    await Promise.all(promises)
+  } catch (error) {
+    // TODO: DELETE ME
+    console.log('🚀 ~ saveWalletConnectRecords ~ error:', error)
+  }
+}
+
+watch(() => $store.getters['global/isChipnet'], (isChipnet) => {
+  console.log('IS CHIPNET CHANGED', isChipnet)
+  setWatchtowerBaseUrl(isChipnet)
+})
+
+onBeforeMount(() => {
+  setWatchtowerBaseUrl()
+  fetchWalletExternalAddresses()
+})
+
 onMounted(async () => {
   wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
 })
@@ -337,7 +460,7 @@ const accountInfo = computed(() => {
   return {
     address: bchWallet.value?.lastAddress,
     changeAddress: bchWallet.value?.lastChangeAddress,
-    walletIndex: bchWallet.value?.lastAddressIndex,
+    walletIndex: bchWallet.value?.lastAddressIndex
   }
 })
 
@@ -363,7 +486,7 @@ function getNamespaces() {
         $store.getters['global/isChipnet'] ? 'bch:bchtest' : 'bch:bitcoincash',
       ],
       events: [
-        "addressesChanged"
+        'addressesChanged'
       ],
       accounts: getBchAddresses().map(address => `bch:${address}`),
     }
@@ -384,6 +507,7 @@ const selectedActiveSession = computed(() => activeSessions.value?.[selectedActi
 
 const showSessionProposalsDialog = ref(false)
 const sessionProposals = ref()
+
 
 async function connectNewSession(value='', prompt=true) {
   if (prompt) {
@@ -441,6 +565,7 @@ async function pairUrl(uri, opts={ showDialog: true }) {
   }
 }
 
+
 async function disconnectSession(sessionTopic) {
   // const session = activeSessions.value[sessionTopic]
   if (sessionTopic) {
@@ -448,6 +573,7 @@ async function disconnectSession(sessionTopic) {
       topic: sessionTopic,
       reason: getSdkError('USER_DISCONNECTED')
     })
+    activeSessions.value && delete activeSessions.value[sessionTopic]
     activeSessions.value = await web3Wallet.value.getActiveSessions()
   }
   // statusUpdate()
@@ -472,6 +598,8 @@ function openSessionProposal(sessionProposal) {
       statusUpdate()
     })
 }
+
+
 async function approveSessionProposal(sessionProposal) {
   const dialog = $q.dialog({
     title: $t('ApprovingSession'),
@@ -495,6 +623,7 @@ async function approveSessionProposal(sessionProposal) {
       namespaces: approvedNamespaces,
     })
     console.log('Session approved', session)
+    saveWalletConnectRecords(session)
     statusUpdate()
   } finally {
     dialog.hide()
@@ -677,6 +806,8 @@ watch(web3Wallet, () => {
 watch(web3Wallet, newValue => attachEventListeners(newValue))
 watch(web3Wallet, (_, oldValue) => detachEventsListeners(oldValue))
 
+
+
 onMounted(() => attachEventListeners(web3Wallet.value))
 onUnmounted(() => detachEventsListeners(web3Wallet.value))
 /**
@@ -725,6 +856,7 @@ function onSessionRequest(...args) {
     openSessionRequestDialog(selectedSessionRequests.value[0])
   }
 }
+
 
 defineExpose({
   onScannerDecode,
