@@ -1,11 +1,11 @@
 <template>
   <div class="col-12 q-px-lg q-mt-md">
-    <p class="q-px-sm q-my-sm dim-text section-title text-h6">Push Notifications</p>
+    <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('PushNotifications') }}</p>
     <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
       <q-item>
         <q-item-section>
           <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-            Enable Push Notifications
+            {{ $t('EnablePushNotifications') }}
           </q-item-label>
         </q-item-section>
         <q-item-section avatar>
@@ -27,7 +27,7 @@
         <q-item>
           <q-item-section>
             <q-item-label class="q-pl-sm pt-setting-menu" :class="getDarkModeClass(darkMode)">
-              Events and Promotions
+              {{ $t('EventsAndPromotions') }}
             </q-item-label>
           </q-item-section>
 
@@ -138,22 +138,21 @@ export default {
 
       eventsAndPromosSubList: [
         {
-          label: 'By Country',
+          label: this.$t('ByCountry'),
           dbCol: 'is_by_country_enabled',
           isEnabled: false,
           isLoading: false,
-          subLabel:
-              'Receive push notifications in your country only. When disabled, you will receive notifications from around the world.',
-          inputLabel: 'Enter country',
+          subLabel: this.$t('CountrySubLabel'),
+          inputLabel: this.$t('EnterCountry'),
           value: ''
         },
         {
-          label: 'By City',
+          label: this.$t('ByCity'),
           dbCol: 'is_by_city_enabled',
           isEnabled: false,
           isLoading: false,
-          subLabel: 'Receive push notifications in your city only. When disabled, you will receive notifications from cities in your country if "By Country" is enabled, else receive notifications from around the world.',
-          inputLabel: 'Enter city',
+          subLabel: this.$t('CitySubLabel'),
+          inputLabel: this.$t('EnterCity'),
           value: ''
         }
       ]
@@ -183,10 +182,13 @@ export default {
           vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
           vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
           vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
-          vm.eventsAndPromosSubList[0].inputLabel = configs.country ? 'Update country' : 'Enter country'
-          vm.eventsAndPromosSubList[1].inputLabel = configs.city ? 'Update city' : 'Enter city'
           vm.eventsAndPromosSubList[0].value = configs.country
           vm.eventsAndPromosSubList[1].value = configs.city
+
+          const countryLabel = configs.country ? this.$t('UpdateCountry') : this.$t('EnterCountry')
+          const cityLabel = configs.city ? this.$t('UpdateCity') : this.$t('EnterCity')
+          vm.eventsAndPromosSubList[0].inputLabel = countryLabel
+          vm.eventsAndPromosSubList[1].inputLabel = cityLabel
         } else await vm.handleNotifTypesSubscription(null)
       })
 
@@ -253,7 +255,7 @@ export default {
     openEnterCountryCityDialog (enterType) {
       const vm = this
 
-      const enterTypeText = enterType === 0 ? 'country' : 'city'
+      const enterTypeText = enterType === 0 ? 'Country' : 'City'
       vm.$q.dialog({
         component: EnterCountryCityDialog,
         componentProps: {
@@ -263,7 +265,8 @@ export default {
         }
       }).onOk(response => {
         vm.eventsAndPromosSubList[enterType].value = response
-        vm.eventsAndPromosSubList[enterType].inputLabel = `${response ? 'Update' : 'Enter'} ${enterTypeText}`
+        const inputLabel = this.$t(`${response ? 'Update' : 'Enter'}${enterTypeText}`)
+        vm.eventsAndPromosSubList[enterType].inputLabel = inputLabel
       })
     }
   }

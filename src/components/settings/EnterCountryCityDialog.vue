@@ -7,7 +7,7 @@
     >
       <q-card-section>
         <div class="text-h5" style="font-size: 18px;">
-          {{ currentName ? 'Update' : 'Enter' }} {{ enterType }}
+          {{ $t(`${currentName ? 'Update' : 'Enter'}${enterType}`) }}
         </div>
       </q-card-section>
 
@@ -50,7 +50,7 @@ export default {
 
   props: {
     currentName: { type: String, default: '' },
-    enterType: { type: String, default: 'country' },
+    enterType: { type: String, default: 'Country' },
     deviceNotifTypesId: { type: Number, default: -1 }
   },
 
@@ -84,7 +84,7 @@ export default {
       vm.isLoading = true
 
       const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
-      const data = { db_col: vm.enterType, value: vm.name }
+      const data = { db_col: vm.enterType.toLowerCase(), value: vm.name }
       await updateDeviceNotifType(vm.deviceNotifTypesId, data, deviceId)
       vm.$emit('ok', vm.name)
       vm.$refs['enter-country-city'].hide()

@@ -1089,6 +1089,19 @@ const phrases = {
       AllLimitsReachedMessage: 'Sorry, this transaction did not qualify for a cashback as it exceeds limits set by the campaign.',
       CashbackAttribute: 'Cashback received for transacting with',
       FilterNotifications: 'Filter Notifications'
+    },
+    {
+      PushNotifications: 'Push Notifications',
+      EnablePushNotifications: 'Enable Push Notifications',
+      EventsAndPromotions: 'Events and Promotions',
+      ByCountry: 'By Country',
+      ByCity: 'By City',
+      CountrySubLabel: 'Receive push notifications in your country only. When disabled, you will receive notifications from around the world.',
+      CitySubLabel: 'Receive push notifications in your city only. When disabled, you will receive notifications from cities in your country if a country is specified, else receive notifications from around the world.',
+      EnterCountry: 'Enter country',
+      EnterCity: 'Enter city',
+      UpdateCountry: 'Update country',
+      UpdateCity: 'Update city'
     }
   ],
   dynamic: [
