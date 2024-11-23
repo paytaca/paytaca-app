@@ -129,6 +129,7 @@ export default {
   BchBridge: "Bch brug",
   BchToReceive: "BCH om te ontvang",
   BchToSend: "BCH om te stuur",
+  BelowMinimumGiftAmount: "Bedrag is onder minimum",
   Biometric: "Biometries",
   BiometricMaxAttemptsMsg: "U het baie pogings aangewend. Probeer asseblief weer na 30 sekondes.",
   Branch: "Tak",

@@ -26,14 +26,12 @@
             filled
             clearable
             class="q-mt-sm"
-            :rules="[val => !!val || $t('FieldIsRequired')]"
+            :rules="[val => !!val || $t('FieldIsRequired'), val => (amountBCH <= spendableBch) || $t('AmountGreaterThanBalance'), val => (amountBCH >= 0.00001) || $t('BelowMinimumGiftAmount')]"
             type="number"
-            v-model="amountBCH"
-            @input="this.amountBCH"
+            v-model="giftAmount"
+            @input="giftAmount"
             :dark="darkMode"
             hide-bottom-space
-            :error="amountBCH > spendableBch"
-            :error-message="amountBCH > spendableBch ? $t('AmountGreaterThanBalance') : null"
           >
             <template v-slot:append>{{ denomination }}</template>
           </q-input>
@@ -159,7 +157,7 @@ import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
-import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 const aesjs = require('aes-js')
@@ -182,7 +180,7 @@ export default {
   },
   data () {
     return {
-      amountBCH: 0.001,
+      giftAmount: 0,
       campaignOptions: [],
       createNewCampaign: false,
       selectedCampaign: null,
@@ -226,6 +224,10 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
+    amountBCH () {
+      // const parsedAmount = Number(this.getAmountOnDenomination(this.giftAmount)) || 0
+      return Number(this.convertToBCH(this.denomination, this.giftAmount))
+    },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
@@ -234,11 +236,9 @@ export default {
       return this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
     },
     sendAmountMarketValue () {
-      const parsedAmount = Number(this.amountBCH)
-      
-      if (!parsedAmount) return ''
+      if (!this.amountBCH) return ''
       if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
+      const computedBalance = this.amountBCH * Number(this.selectedAssetMarketPrice)
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
@@ -253,6 +253,7 @@ export default {
   methods: {
     getAssetDenomination,
     parseFiatCurrency,
+    convertToBCH,
     getDarkModeClass,
     isNotDefaultTheme,
     encryptShard(shard) {
@@ -268,7 +269,7 @@ export default {
       }
     },
     disableGenerateButton () {
-      if (this.amountBCH > 0.00001) {
+      if (this.amountBCH >= 0.00001) {
         if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
           if (this.$refs.campaignInput) {
             if (this.$refs.campaignInput.hasError) {
@@ -300,13 +301,15 @@ export default {
       const shares = stateShare.map((share) => { return toHex(share) })
       const encryptedShard = this.encryptShard(shares[0])
 
+      // let finalAmount = this.getAmountOnDenomination(this.amountBCH)
+      // finalAmount = this.convertToBCH(this.denomination, finalAmount)
       vm.giftCodeHash = sha256(encryptedShard.code)
       const payload = {
         gift_code_hash: vm.giftCodeHash,
         encrypted_share: encryptedShard.encryptedHex,
         address: address,
         share: shares[1],
-        amount: parseFloat(vm.amountBCH),
+        amount: parseFloat(this.amountBCH),
       }
       if (vm.selectedCampaign) {
         if (vm.createNewCampaign) {
@@ -360,6 +363,10 @@ export default {
     },
     processRequest () {
       this.generateGift()
+    },
+    getAmountOnDenomination (amount) {
+      const amountStr = this.getAssetDenomination(this.denomination, amount)
+      return parseFloat(amountStr.split(' ')[0])
     },
     async fetchCampaigns() {
       const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])

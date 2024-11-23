@@ -129,6 +129,7 @@ export default {
   BchBridge: "BCH Gadar",
   BchToReceive: "Bch don karɓa",
   BchToSend: "BCH don aikawa",
+  BelowMinimumGiftAmount: "Adadin yana ƙasa da ƙarami",
   Biometric: "Ilmin biometric",
   BiometricMaxAttemptsMsg: "Ya ku \"CE ya yi ƙoƙari da yawa. Da fatan sake gwadawa bayan 30 seconds.",
   Branch: "Reshe",

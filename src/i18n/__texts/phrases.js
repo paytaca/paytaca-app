@@ -28,6 +28,7 @@ const phrases = {
       BchBridge: "BCH Bridge",
       BchToReceive: "BCH to receive",
       BchToSend: "BCH to send",
+      BelowMinimumGiftAmount: "Amount is below minimum",
       BridgeBalance: "Bridge balance",
       BiometricMaxAttemptsMsg: 'You"ve done many attempts. Please try again after 30 seconds.',
       BridgeLeavingPageMsg: "Leaving the page may result in being unable to view progress. Leave page?",

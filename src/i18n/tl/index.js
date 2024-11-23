@@ -129,6 +129,7 @@ export default {
   BchBridge: "BCH Bridge",
   BchToReceive: "BCH upang matanggap",
   BchToSend: "Bch upang magpadala",
+  BelowMinimumGiftAmount: "Ang halaga ay nasa ibaba ng minimum",
   Biometric: "Biometric",
   BiometricMaxAttemptsMsg: "Gumawa ka ng maraming mga pagtatangka. Mangyaring subukang muli pagkatapos ng 30 segundo.",
   Branch: "Sangay",

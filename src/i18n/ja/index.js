@@ -129,6 +129,7 @@ export default {
   BchBridge: "BCHブリッジ",
   BchToReceive: "受信するBCH",
   BchToSend: "送信するBCH",
+  BelowMinimumGiftAmount: "金額は最低です",
   Biometric: "生体認証",
   BiometricMaxAttemptsMsg: "あなたは多くの試みをしました。30秒後にもう一度やり直してください。",
   Branch: "支店",

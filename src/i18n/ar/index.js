@@ -129,6 +129,7 @@ export default {
   BchBridge: "جسر BCH",
   BchToReceive: "BCH لتلقي",
   BchToSend: "BCH لإرسال",
+  BelowMinimumGiftAmount: "المبلغ أقل من الحد الأدنى",
   Biometric: "القياس الحيوي",
   BiometricMaxAttemptsMsg: "لقد قمت بعدة محاولات. يرجى المحاولة مرة أخرى بعد 30 ثانية.",
   Branch: "فرع",

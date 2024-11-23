@@ -268,7 +268,6 @@ export default {
       this.fetchingGifts = true
       axios.get(url, { params: query })
         .then(response => {
-          console.log(response)
           if (!Array.isArray(response?.data?.gifts)) return Promise.reject({ response })
 
           this.gifts = response.data.gifts.filter(gift => {
@@ -357,10 +356,7 @@ export default {
     }
   },
   mounted () {
-    // this.getItemsWithSort()
-    // this.getItems()
     this.fetchGifts()
-    // console.log(this.getGiftShare(this.giftCodeHash))
   }
 }
 </script>
