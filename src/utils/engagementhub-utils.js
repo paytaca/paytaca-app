@@ -145,7 +145,9 @@ export async function getPushNotifConfigs (deviceId) {
 }
 
 export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId) {
-  if (deviceNotifTypesId !== -1) { // patch
+  let respId = deviceNotifTypesId
+
+  if (respId !== -1) { // patch
     const data = {}
     if (type.db_col === 'is_events_promotions_enabled') {
       data.is_events_promotions_enabled = type.value
@@ -157,10 +159,9 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
     else if (type.db_col === 'city') data.city = type.value
 
     await NOTIFS_URL.patch(
-      `devicenotiftype/${deviceNotifTypesId}/`,
+      `devicenotiftype/${respId}/`,
       data
     ).then(response => {
-      // console.log(response)
       console.log('Device notif type updated successfully.')
     }).catch(error => {
       console.log(error)
@@ -169,11 +170,6 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
     const platform = Capacitor.getPlatform()
 
     const data = {
-      is_events_promotions_enabled: false,
-      is_by_country_enabled: false,
-      is_by_city_enabled: false,
-      country: '',
-      city: '',
       apns_device: undefined,
       gcm_device: undefined
     }
@@ -181,13 +177,13 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
     if (platform === 'ios') data.apns_device = deviceId
     else if (platform === 'android') data.gcm_device = deviceId
 
-    await NOTIFS_URL.post('devicenotiftype/', data)
+    await NOTIFS_URL.post('devicenotiftype/create_device_notif_type/', data)
       .then(response => {
-        console.log(response)
+        respId = response.data.id
       }).catch(error => {
         console.log(error)
       })
   }
 
-  return deviceNotifTypesId
+  return respId
 }

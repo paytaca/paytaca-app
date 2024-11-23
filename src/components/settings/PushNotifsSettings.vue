@@ -169,7 +169,7 @@ export default {
 
     const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
     await getPushNotifConfigs(deviceId)
-      .then(data => {
+      .then(async data => {
         vm.enablePushNotifs = data.is_enabled
         const configs = data.push_notif_configs
         if (Object.keys(configs).length > 0) {
@@ -177,7 +177,7 @@ export default {
           vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
           vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
           vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
-        }
+        } else await vm.handleNotifTypesSubscription(null)
       })
 
     this.isEnablePushNotifsLoading = false
