@@ -73,7 +73,7 @@
                 class="q-pl-md button button-text-primary"
                 :class="getDarkModeClass(darkMode)"
                 style="text-decoration: underline"
-                @click="console.log('yey')"
+                @click="openEnterCountryCityDialog(index)"
               >
                 {{ item.inputLabel }}
               </q-item-label>
@@ -118,6 +118,7 @@ import {
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import EnterCountryCityDialog from 'src/components/settings/EnterCountryCityDialog.vue'
 
 export default {
   name: 'PushNotifsSettings',
@@ -143,7 +144,8 @@ export default {
           isLoading: false,
           subLabel:
               'Receive push notifications in your country only. When disabled, you will receive notifications from around the world.',
-          inputLabel: 'Enter country'
+          inputLabel: 'Enter country',
+          value: ''
         },
         {
           label: 'By City',
@@ -151,7 +153,8 @@ export default {
           isEnabled: false,
           isLoading: false,
           subLabel: 'Receive push notifications in your city only. When disabled, you will receive notifications from cities in your country if "By Country" is enabled, else receive notifications from around the world.',
-          inputLabel: 'Enter city'
+          inputLabel: 'Enter city',
+          value: ''
         }
       ]
     }
@@ -180,6 +183,10 @@ export default {
           vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
           vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
           vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
+          vm.eventsAndPromosSubList[0].inputLabel = configs.country ? 'Update country' : 'Enter country'
+          vm.eventsAndPromosSubList[1].inputLabel = configs.city ? 'Update city' : 'Enter city'
+          vm.eventsAndPromosSubList[0].value = configs.country
+          vm.eventsAndPromosSubList[1].value = configs.city
         } else await vm.handleNotifTypesSubscription(null)
       })
 
@@ -242,6 +249,22 @@ export default {
             vm.eventsAndPromosSubList[1].isLoading = false
           }
         })
+    },
+    openEnterCountryCityDialog (enterType) {
+      const vm = this
+
+      const enterTypeText = enterType === 0 ? 'country' : 'city'
+      vm.$q.dialog({
+        component: EnterCountryCityDialog,
+        componentProps: {
+          currentName: vm.eventsAndPromosSubList[enterType].value,
+          enterType: enterTypeText,
+          deviceNotifTypesId: vm.deviceNotifTypesId
+        }
+      }).onOk(response => {
+        vm.eventsAndPromosSubList[enterType].value = response
+        vm.eventsAndPromosSubList[enterType].inputLabel = `${response ? 'Update' : 'Enter'} ${enterTypeText}`
+      })
     }
   }
 }
