@@ -129,6 +129,7 @@ export default {
   BchBridge: "BCH мост",
   BchToReceive: "BCH, чтобы получить",
   BchToSend: "BCH, чтобы отправить",
+  BelowMinimumGiftAmount: "Сумма ниже минимума",
   Biometric: "Биометрический",
   BiometricMaxAttemptsMsg: "Вы сделали много попыток. Пожалуйста, попробуйте еще раз через 30 секунд.",
   Branch: "Ветвь",

@@ -129,6 +129,7 @@ export default {
   BchBridge: "BCH橋",
   BchToReceive: "Bch接收",
   BchToSend: "BCH發送",
+  BelowMinimumGiftAmount: "金額低於最低",
   Biometric: "生物認證",
   BiometricMaxAttemptsMsg: "您“嘗試了很多嘗試。請在30秒後重試。",
   Branch: "分支",

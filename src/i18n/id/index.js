@@ -129,6 +129,7 @@ export default {
   BchBridge: "Jembatan BCH",
   BchToReceive: "Bch untuk menerima",
   BchToSend: "Bch untuk dikirim",
+  BelowMinimumGiftAmount: "Jumlah di bawah minimum",
   Biometric: "Biometrik",
   BiometricMaxAttemptsMsg: "Anda telah melakukan banyak upaya. Silakan coba lagi setelah 30 detik.",
   Branch: "Cabang",

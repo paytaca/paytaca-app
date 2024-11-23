@@ -129,6 +129,7 @@ export default {
   BchBridge: "BCH 브리지",
   BchToReceive: "받을 BCH",
   BchToSend: "보낼 BCH",
+  BelowMinimumGiftAmount: "금액은 최소값 미만입니다",
   Biometric: "생체 인식",
   BiometricMaxAttemptsMsg: "당신은 \"많은 시도를했습니다. 30 초 후에 다시 시도하십시오.",
   Branch: "나뭇가지",

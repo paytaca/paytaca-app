@@ -129,6 +129,7 @@ export default {
   BchBridge: "Puente BCH",
   BchToReceive: "BCH para recibir",
   BchToSend: "Bch para enviar",
+  BelowMinimumGiftAmount: "La cantidad está por debajo del mínimo",
   Biometric: "Biométrico",
   BiometricMaxAttemptsMsg: "Has hecho muchos intentos. Vuelva a intentarlo después de 30 segundos.",
   Branch: "Rama",
