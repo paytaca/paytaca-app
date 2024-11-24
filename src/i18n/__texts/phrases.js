@@ -1093,6 +1093,7 @@ const phrases = {
   ],
   dynamic: [
     {
+      AndMoreAddresses: "and {addressCount} more addresses",
       ApprovingTokenName: "Approving {tokenInfoName}",
       DeviceAddedIDNo: "Device added #{ID}",
       FailedUpdateDeviceIDNo: "Failed to update device #{ID}",

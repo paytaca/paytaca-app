@@ -69,13 +69,21 @@
                   class="text-body2 pt-card pt-label address-popup q-px-md q-py-sm"
                   :class="getDarkModeClass(darkMode)"
                 >
-                  <span v-if="jpp?.parsed?.outputs?.length > 1">{{ index+1 }}. </span>{{ output.address }}
+                  {{ output.address }}
                 </div>
               </q-popup-proxy>
             </div>
             <div class="text-right">{{ output.amount / 10 ** 8 }} BCH</div>
           </div>
-          <span v-if="jpp?.parsed?.outputs?.length > 10"> + {{ jpp?.parsed?.outputs?.length - 10 }} $t("Addresses")</span>
+          <strong v-if="jpp?.parsed?.outputs?.length > 10">
+            {{
+              $t(
+                "AndMoreAddresses",
+                { addressCount: jpp?.parsed?.outputs?.length - 10 },
+                `and ${jpp?.parsed?.outputs?.length - 10} more addresses`
+              )
+            }}
+          </strong>
           <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mb-sm text-subtitle1">
             <div class="q-space">{{ $t('Total') }}:</div>
             <div>{{ jpp.total / 10 ** 8 }} BCH</div>
