@@ -32,15 +32,13 @@
           :class="getDarkModeClass(darkMode)"
           @click="() => openStorefrontListOptsForm()"
         />
-      </div>
-      <div class="row items-center q-px-sm">
         <q-space/>
         <LimitOffsetPagination
           :pagination-props="{
-            maxPages: 5,
+            maxPages: 3,
             rounded: true,
             size: '0.8rem',
-            padding: 'sm md',
+            padding: '0.3rem 0.8rem',
             boundaryNumbers: true,
             disable: fetchingStorefronts,
             color: 'brandblue',
@@ -49,6 +47,30 @@
           :hide-below-pages="2"
           :modelValue="storefrontsPagination"
           @update:modelValue="fetchStorefronts"
+        />
+      </div>
+      <div v-if="initialized" class="q-mx-xs q-mb-md row items-center justify-around">
+        <q-btn
+          rounded
+          :outline="shopDeliveryTypeFilter != Checkout.DeliveryTypes.STORE_PICKUP"
+          :color="shopDeliveryTypeFilter == Checkout.DeliveryTypes.STORE_PICKUP ? 'brandblue' : ''"
+          :disable="fetchingStorefronts"
+          padding="xs md"
+          no-caps label="Pickup"
+          icon="storefront"
+          style="min-width:150px;"
+          @click="() => toggleDeliveryType(Checkout.DeliveryTypes.STORE_PICKUP)"
+        />
+        <q-btn
+          rounded
+          :outline="shopDeliveryTypeFilter != Checkout.DeliveryTypes.LOCAL_DELIVERY"
+          :color="shopDeliveryTypeFilter == Checkout.DeliveryTypes.LOCAL_DELIVERY ? 'brandblue' : ''"
+          :disable="fetchingStorefronts"
+          padding="xs md"
+          no-caps label="Delivery"
+          icon="delivery_dining"
+          style="min-width:150px;"
+          @click="() => toggleDeliveryType(Checkout.DeliveryTypes.LOCAL_DELIVERY)"
         />
       </div>
       <div v-if="!initialized && fetchingStorefronts" class="row items-center justify-center">
@@ -207,7 +229,7 @@
 <script setup>
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
-import { Order, Storefront } from 'src/marketplace/objects'
+import { Order, Storefront, Checkout } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText, getISOWithTimezone, round, roundRating } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
@@ -307,13 +329,25 @@ async function updateLocation() {
 const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
 watch(customerCoordinates, () => fetchStorefronts())
 
-const deliveryTypes = ref([].map(String))
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
 const storefrontsPagination = ref({ count: 0, limit: 0, offset: 0 })
+const shopDeliveryTypeFilter = computed({
+  get() {
+    return $store.getters['marketplace/shopListOpts']?.deliveryType
+  },
+  set(value) {
+    $store.commit('marketplace/setShopListOpts', { deliveryType: value })
+  },
+})
+
+function toggleDeliveryType(value) {
+  shopDeliveryTypeFilter.value = shopDeliveryTypeFilter.value == value ? '' : value
+}
 const storefrontListOpts = computed(() => {
   const data = {
     radius: ($store.getters['marketplace/shopListOpts']?.radius || 30) * 1000,
+    deliveryType: shopDeliveryTypeFilter.value,
   }
   return data
 })
@@ -341,7 +375,7 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
   const params = {
     limit: opts?.limit || 6,
     offset: opts?.offset || undefined,
-    delivery_types: deliveryTypes.value?.join(',') || undefined,
+    delivery_types: shopDeliveryTypeFilter.value || undefined,
     distance: '',
     active: true,
     annotate_is_open_at: getISOWithTimezone(new Date()),

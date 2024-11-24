@@ -4,6 +4,7 @@ export default function () {
   return {
     shopListOpts: {
       radius: 30, // kilometers
+      deliveryType: '',
     },
     customerData: {
       id: 0,

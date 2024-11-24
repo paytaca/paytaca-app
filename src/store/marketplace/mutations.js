@@ -1,7 +1,7 @@
 import { DEVICE_LOCATION_ID_CONST } from "./state"
 
 export function setShopListOpts(state, data) {
-  state.shopListOpts = data
+  Object.assign(state.shopListOpts, data)
 }
 
 export function setSelectedSessionLocationId(state, id=DEVICE_LOCATION_ID_CONST) {
