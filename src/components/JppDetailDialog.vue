@@ -59,7 +59,7 @@
             </template>
           </div>
           <div
-            v-for="(output, index) in jpp?.parsed?.outputs" :key="index"
+            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)" :key="index"
             class="row no-wrap items-start q-mb-sm q-gutter-x-xs"
           >
             <div class="q-space">
@@ -69,12 +69,13 @@
                   class="text-body2 pt-card pt-label address-popup q-px-md q-py-sm"
                   :class="getDarkModeClass(darkMode)"
                 >
-                  {{ output.address }}
+                  <span v-if="jpp?.parsed?.outputs?.length > 1">{{ index+1 }}. </span>{{ output.address }}
                 </div>
               </q-popup-proxy>
             </div>
             <div class="text-right">{{ output.amount / 10 ** 8 }} BCH</div>
           </div>
+          <span v-if="jpp?.parsed?.outputs?.length > 10"> + {{ jpp?.parsed?.outputs?.length - 10 }} $t("Addresses")</span>
           <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mb-sm text-subtitle1">
             <div class="q-space">{{ $t('Total') }}:</div>
             <div>{{ jpp.total / 10 ** 8 }} BCH</div>
