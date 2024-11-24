@@ -64,10 +64,7 @@
               </q-item-label>
               <q-item-label class="row items-center text-caption" style="margin-top: 0;">
                 <template
-                  v-if="
-                    transaction.record_type !== 'outgoing'
-                    && ['bch', 'sbch'].includes(transaction.asset?.symbol.toLowerCase())
-                  "
+                  v-if="['bch', 'sbch'].includes(transaction.asset?.symbol.toLowerCase())"
                 >
                   <q-badge
                     rounded
