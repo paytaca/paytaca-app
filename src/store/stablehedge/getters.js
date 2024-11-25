@@ -55,12 +55,12 @@ export function tokenBalancesWithSats(state, getters) {
     const timestamp = token?.timestamp
     let satoshis = null
     let bch = null
-    if (Number.isNaN(price)) {
-      console.warn(`Stablehedge fiat token '${tokenBalance?.category}' has no price`)
-    } else {
+    if (Number.isFinite(price)) {
       const _satoshis = tokenToSatoshis(tokenBalance?.amount, price)
       bch = Number(_satoshis / BigInt(10 ** 8))
       satoshis = Number(_satoshis)
+    } else {
+      console.warn(`Stablehedge fiat token '${tokenBalance?.category}' has no price`)
     }
     return {
       ...tokenBalance,
