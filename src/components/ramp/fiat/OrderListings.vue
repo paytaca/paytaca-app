@@ -643,7 +643,7 @@ export default {
       const [days, hours, minutes] = this.getElapsedTime(appealableAt)
       let appealable = false
       if (days < 0 || hours < 0 || minutes < 0) appealable = true
-      if (['APL'].includes(status)) appealable = false
+      if (['APL', 'RLS_PN'].includes(status)) appealable = false
       return appealable
     },
     isCompleted (status) {
