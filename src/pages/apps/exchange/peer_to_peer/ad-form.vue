@@ -132,12 +132,12 @@
                 @blur="$refs.tradeFloorRef.validate(); $refs.tradeCeilingRef.validate()">
                 <template v-slot:prepend>
                   <span class="text-weight-bold sm-font-size">
-                    {{ setTradeQuantityInFiat?  selectedCurrency.symbol : 'BCH'}}
+                    {{ setTradeLimitsInFiat?  selectedCurrency.symbol : 'BCH'}}
                   </span>
                 </template>
               </q-input>
             </div>
-            <q-checkbox size="sm" v-model="setTradeQuantityInFiat" class="q-mx-md sm-font-size" color="blue-8">Set quantity in fiat </q-checkbox>
+            <!-- <q-checkbox size="sm" v-model="setTradeQuantityInFiat" class="q-mx-md sm-font-size" color="blue-8">Set quantity in fiat </q-checkbox> -->
             <div class="q-px-md q-mt-sm">
               <div class="q-pb-xs q-pl-sm text-weight-bold">
                 <span>{{ $t('TradeLimit') }}</span>&nbsp;
@@ -188,7 +188,7 @@
                 </div>
               </div>
             </div>
-            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8"> Set limits in fiat </q-checkbox>
+            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8"> Set trade limits in fiat </q-checkbox>
           </div>
 
           <!-- Appeal Cooldown -->
@@ -431,6 +431,12 @@ export default {
         }
         this.adData.tradeFloor = floor
         this.adData.tradeCeiling = ceiling
+
+        let amount = this.adData.tradeAmount * this.marketPrice
+        if (amount % 1 !== 0) {
+          amount = amount.toFixed(2)
+        }
+        this.adData.tradeAmount = amount
       } else {
         let floor = this.adData.tradeFloor / this.marketPrice
         let ceiling = this.adData.tradeCeiling / this.marketPrice
@@ -442,6 +448,12 @@ export default {
         }
         this.adData.tradeFloor = floor
         this.adData.tradeCeiling = ceiling
+
+        let amount = this.adData.tradeAmount / this.marketPrice
+        if (amount % 1 !== 0) {
+          amount = amount.toFixed(8)
+        }
+        this.adData.tradeAmount = amount
       }
     },
     step (value) {
@@ -817,32 +829,6 @@ export default {
       const data = vm.adData
       const idList = data.paymentMethods.map(obj => obj.id)
 
-      const price = this.priceAmount
-
-      // convert trade limits to satoshi
-      let tradeFloor = data.tradeFloor
-      let tradeCeiling = data.tradeCeiling
-      if (this.setTradeLimitsInFiat) {
-        // convert fiat to bch
-        tradeFloor = fiatToBch(tradeFloor, price)
-        tradeCeiling = fiatToBch(tradeCeiling, price)
-      }
-      // convert bch to satoshi
-      tradeFloor = bchToSatoshi(tradeFloor)
-      tradeCeiling = bchToSatoshi(tradeCeiling)
-
-      let tradeAmount = data.tradeAmount
-      if (this.setTradeQuantityInFiat) {
-        // convert fiat to bch
-        tradeAmount = fiatToBch(tradeAmount, price)
-      }
-      // convert bch to satoshi
-      tradeAmount = bchToSatoshi(tradeAmount)
-
-      console.log('tradeFloor:', tradeFloor)
-      console.log('tradeCeiling:', tradeCeiling)
-      console.log('tradeAmount:', tradeAmount)
-
       const payload = {
         trade_type: data.tradeType,
         price_type: data.priceType,
@@ -850,14 +836,25 @@ export default {
         crypto_currency: defaultCrypto,
         fixed_price: parseFloat(data.fixedPrice),
         floating_price: parseFloat(data.floatingPrice),
-        trade_floor_sats: tradeFloor,
-        trade_ceiling_sats: tradeCeiling,
-        trade_amount_sats: tradeAmount,
         trade_limits_in_fiat: this.setTradeLimitsInFiat,
-        trade_amount_in_fiat: this.setTradeQuantityInFiat,
+        // trade_amount_in_fiat: this.setTradeQuantityInFiat,
         appeal_cooldown_choice: data.appealCooldown.value,
         payment_methods: idList,
         is_public: data.isPublic
+      }
+
+      if (this.setTradeLimitsInFiat) {
+        payload.trade_floor_fiat = data.tradeFloor
+        payload.trade_ceiling_fiat = data.tradeCeiling
+      } else {
+        payload.trade_floor_sats = bchToSatoshi(data.tradeFloor)
+        payload.trade_ceiling_sats = bchToSatoshi(data.tradeCeiling)
+      }
+
+      if (this.setTradeQuantityInFiat) {
+        payload.trade_amount_fiat = data.tradeAmount
+      } else {
+        payload.trade_amount_sats = bchToSatoshi(data.tradeAmount)
       }
       console.log('payload:', payload)
       return payload

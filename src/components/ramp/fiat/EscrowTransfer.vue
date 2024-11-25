@@ -249,7 +249,8 @@ export default {
     async loadData () {
       this.order = this.data.order
       await this.fetchFees()
-      this.transferAmount = satoshiToBch(this.data.transferAmount + this.fees?.total)
+      const transferAmount = this.data.transferAmount
+      this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
       if (this.contractAddress) {
         this.$emit('refresh')
       }
@@ -470,7 +471,6 @@ export default {
       })
     },
     async fetchFees () {
-      console.log('fetching feess')
       const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
       await backend.get(url, { authorize: true })
         .then(response => {

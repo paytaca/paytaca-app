@@ -230,7 +230,7 @@ export default {
             console.log('Local wallet keys match server keys')
             resolve(vm.user)
           } else {
-            backend.patch(`/ramp-p2p/${usertype}/detail`, payload, { authorize: true })
+            backend.patch(`/ramp-p2p/${usertype}/`, payload, { authorize: true })
               .then(response => {
                 console.log('Updated pubkey and address:', response.data)
                 resolve(response)
