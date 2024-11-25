@@ -3,6 +3,7 @@
     <div>
       <q-pull-to-refresh @refresh="refresh">
         <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+          <q-resize-observer @resize="onFixedSectionResize" />
           <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
             <v-offline @detected-condition="onConnectivityChange" />
@@ -364,6 +365,7 @@ import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import { debounce } from 'quasar'
 
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
@@ -608,6 +610,10 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    onFixedSectionResize: debounce(function (size) {
+      this.adjustTransactionsDivHeight({ timeout: 50 })
+      this.$refs['transaction-list-component']?.computeTransactionsListHeight?.()
+    }, 500),
     toggleStablehedgeView() {
       this.stablehedgeView = !this.stablehedgeView
       this.$nextTick(() => this.setTransactionsFilter(this.transactionsFilter))
