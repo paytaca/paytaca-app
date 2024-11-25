@@ -282,7 +282,7 @@
 import { onBeforeMount } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
-import { getWalletByNetwork } from 'src/wallet/chipnet';
+import { getWalletByNetwork, convertCashAddress } from 'src/wallet/chipnet';
 import { Wallet, loadWallet } from 'src/wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import Watchtower from 'watchtower-cash-js';
@@ -383,9 +383,9 @@ async function saveWalletConnectRecordOfAccount (session, account) {
       const jsonResponse = await getNonceResponse.json()
       // eslint-disable-next-line eqeqeq
       if (jsonResponse.success == true && jsonResponse.data?.nonce) {
-        console.log('jsonResponse', jsonResponse)
-        const appName = session?.peer?.metadata?.name || 'unknown-app-name'
-        const appUrl = session?.peer?.metadata?.url || 'unknown-app-url'
+        const appName = session?.peer?.metadata?.name
+        const appUrl = session?.peer?.metadata?.url
+        if (!appName || !appUrl) return
         const message = `${jsonResponse.data.nonce}|${account}|${appName}|${appUrl}`
         let addresses = walletExternalAddresses.value
         if (!addresses) {
@@ -399,7 +399,11 @@ async function saveWalletConnectRecordOfAccount (session, account) {
           const wif = await getAddressWif(index)
           const decodedPrivkey = decodePrivateKeyWif(wif)
           const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(decodedPrivkey.privateKey)
-          const pkToCashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+          let pkToCashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+          if ($store.getters['global/isChipnet']) {
+            // to test address
+            pkToCashAddress = convertCashAddress(pkToCashAddress, true, false)
+          }
           if (account !== pkToCashAddress) {
           // we'll only save the wallet connect
           // connection record of this account
@@ -448,7 +452,7 @@ watch(() => $store.getters['global/isChipnet'], (isChipnet) => {
 })
 
 onBeforeMount(() => {
-  setWatchtowerBaseUrl()
+  setWatchtowerBaseUrl($store.getters['global/isChipnet'])
   fetchWalletExternalAddresses()
 })
 
