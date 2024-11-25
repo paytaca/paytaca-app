@@ -28,6 +28,7 @@ const phrases = {
       BchBridge: "BCH Bridge",
       BchToReceive: "BCH to receive",
       BchToSend: "BCH to send",
+      BelowMinimumGiftAmount: "Amount is below minimum",
       BridgeBalance: "Bridge balance",
       BiometricMaxAttemptsMsg: 'You"ve done many attempts. Please try again after 30 seconds.',
       BridgeLeavingPageMsg: "Leaving the page may result in being unable to view progress. Leave page?",
@@ -1107,10 +1108,22 @@ const phrases = {
       CreatingTransaction: 'Creating transaction',
       WaitingForTransactionToComplete: 'Waiting for transaction to complete',
       TransactionSentButTookLongerToComplete: 'Transaction sent but took longer to complete',
+      PushNotifications: 'Push Notifications',
+      EnablePushNotifications: 'Enable Push Notifications',
+      EventsAndPromotions: 'Events and Promotions',
+      ByCountry: 'By Country',
+      ByCity: 'By City',
+      CountrySubLabel: 'Receive push notifications in your country only. When disabled, you will receive notifications from around the world.',
+      CitySubLabel: 'Receive push notifications in your city only. When disabled, you will receive notifications from cities in your country if a country is specified, else receive notifications from around the world.',
+      EnterCountry: 'Enter country',
+      EnterCity: 'Enter city',
+      UpdateCountry: 'Update country',
+      UpdateCity: 'Update city'
     }
   ],
   dynamic: [
     {
+      AndMoreAddresses: "and {addressCount} more addresses",
       ApprovingTokenName: "Approving {tokenInfoName}",
       DeviceAddedIDNo: "Device added #{ID}",
       FailedUpdateDeviceIDNo: "Failed to update device #{ID}",

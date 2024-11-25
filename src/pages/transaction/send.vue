@@ -50,7 +50,7 @@
               <q-icon name="error" left/>
               {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0].recipientAddress === ''">
+            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
               <div class="col-12">
                 <q-input
                   bottom-slots
@@ -269,11 +269,20 @@
               </template>
 
               <p class="to-label">{{ $t('To') }}</p>
-              <template v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
+              <template v-for="(recipient, index) in recipientAddresses.slice(0, 10)" v-bind:key="index">
                 <div class="q-px-xs recipient-address">
-                  {{ recipient.recipientAddress }}
+                  {{ recipient }}
                 </div>
               </template>
+              <strong v-if="recipientAddresses.length > 10">
+                {{
+                  $t(
+                    "AndMoreAddresses",
+                    { addressCount: recipientAddresses.length - 10 },
+                    `and ${recipientAddresses.length - 10} more addresses`
+                  )
+                }}
+              </strong>
               <div class="text-center q-mt-lg">
                 <div class="text-grey">{{ $t('ReferenceId')}}</div>
                 <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
@@ -304,7 +313,7 @@
                 {{ formattedTxTimestamp }}
               </div>
 
-              <div v-if="sendDataMultiple[0].paymentAckMemo" class="row justify-center">
+              <div v-if="jpp && sendDataMultiple[0]?.paymentAckMemo !== undefined" class="row justify-center">
                 <div
                   class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
                   :class="getDarkModeClass(darkMode, 'text-white', '')"
@@ -630,6 +639,13 @@ export default {
     },
     isMultipleRecipient () {
       return !(this.isNFT || this.walletType === sBCHWalletType)
+    },
+    recipientAddresses () {
+      if (this.jpp?.parsed?.outputs !== undefined) {
+        return this.jpp.parsed.outputs.map(value => value.address)
+      } else {
+        return this.sendDataMultiple.map(value => value.recipientAddress)
+      }
     }
   },
 
@@ -876,7 +892,7 @@ export default {
       this.totalAmountSent = jppAmount
       this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
       this.sendDataMultiple[0].amount = jppAmount
-      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
+      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.slice(0, 10).map(output => output.address).join(', ')
       this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
       this.txTimestamp = Date.now()

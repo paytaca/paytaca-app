@@ -13,7 +13,7 @@
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown ref="multi-wallet-component" />
-              <div class="col-2 flex justify-end">
+              <div class="col-2 flex justify-end" v-if="isMobile">
                 <q-btn
                   flat
                   icon="notifications"
@@ -504,6 +504,9 @@ export default {
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
+    },
+    isMobile () {
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
     isDenominationTabEnabled () {
       return (isNotDefaultTheme(this.theme) &&

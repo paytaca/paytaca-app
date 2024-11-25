@@ -1,5 +1,9 @@
 <template>
-  <q-dialog persistent>
+  <q-dialog
+    persistent
+    seamless
+    class="no-click-outside"
+  >
     <q-card class="q-pa-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
         <span class="text-bold" style="font-size: 18px;">
@@ -76,11 +80,6 @@ export default {
     return {
       notifTypesList: [
         {
-          value: 'GE',
-          label: this.$t('General'),
-          selected: false
-        },
-        {
           value: 'TR',
           label: this.$t('Transactions'),
           selected: false
@@ -102,12 +101,7 @@ export default {
         },
         {
           value: 'RP',
-          label: 'Ramp P2P',
-          selected: false
-        },
-        {
-          value: 'GI',
-          label: this.$t('Gifts'),
+          label: 'P2P Exchange',
           selected: false
         }
       ],
