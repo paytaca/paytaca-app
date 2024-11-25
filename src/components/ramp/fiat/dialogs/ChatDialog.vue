@@ -5,8 +5,8 @@
     full-width
   >
    <!--Title  -->
-  <q-card class="br-15 pt-card" :style="`height: ${maxHeight}px;`" :dark="darkMode" :class="getDarkModeClass(darkMode)">
-    <div class="row items-center justify-between q-mr-lg q-pb-xs">
+  <q-card ref="container" class="br-15 pt-card" :style="`max-height: ${maxHeight}px;`" :dark="darkMode" :class="getDarkModeClass(darkMode)">
+    <div  class="row items-center justify-between q-mr-lg q-pb-xs">
       <div class="q-pl-lg q-mt-md">
         <div
           class="text-bow text-weight-medium"
@@ -199,6 +199,13 @@
         dense
         v-model="message"
         :placeholder="$t('EnterMessage')"
+        @focus="()=> {
+          console.log($refs.container.$el)
+          let element = $refs.container.$el
+          console.log('element: ', element)
+
+          element.scrollTop = element.scrollHeight
+        }"
         @update:modelValue="function(){
             typingMessage()
           }"
@@ -292,6 +299,7 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { backend } from 'src/exchange/backend'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
+import { elements } from 'chart.js'
 
 export default {
   directives: {
