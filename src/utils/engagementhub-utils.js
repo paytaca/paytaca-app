@@ -148,24 +148,26 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
   let respId = deviceNotifTypesId
 
   if (respId !== -1) { // patch
-    const data = {}
-    if (type.db_col === 'is_events_promotions_enabled') {
-      data.is_events_promotions_enabled = type.value
-    } else if (type.db_col === 'is_by_country_enabled') {
-      data.is_by_country_enabled = type.value
-    } else if (type.db_col === 'is_by_city_enabled') {
-      data.is_by_city_enabled = type.value
-    } else if (type.db_col === 'country') data.country = type.value
-    else if (type.db_col === 'city') data.city = type.value
+    if (type) {
+      const data = {}
+      if (type.db_col === 'is_events_promotions_enabled') {
+        data.is_events_promotions_enabled = type.value
+      } else if (type.db_col === 'is_by_country_enabled') {
+        data.is_by_country_enabled = type.value
+      } else if (type.db_col === 'is_by_city_enabled') {
+        data.is_by_city_enabled = type.value
+      } else if (type.db_col === 'country') data.country = type.value
+      else if (type.db_col === 'city') data.city = type.value
 
-    await NOTIFS_URL.patch(
-      `devicenotiftype/${respId}/`,
-      data
-    ).then(response => {
-      console.log('Device notif type updated successfully.')
-    }).catch(error => {
-      console.log(error)
-    })
+      await NOTIFS_URL.patch(
+        `devicenotiftype/${respId}/`,
+        data
+      ).then(response => {
+        console.log('Device notif type updated successfully.')
+      }).catch(error => {
+        console.log(error)
+      })
+    }
   } else { // post
     const platform = Capacitor.getPlatform()
 
