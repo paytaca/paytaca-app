@@ -479,9 +479,7 @@ export default {
       this.showUserProfile = true
     },
     onViewAd (id) {
-      backend.get('/ramp-p2p/ad/snapshot/',
-        { authorize: true, params: { ad_snapshot_id: id } }
-      )
+      backend.get(`/ramp-p2p/ad/snapshot/${id}/`, { authorize: true })
         .then(response => {
           this.adSnapshot = response.data
           this.showAdSnapshot = true
