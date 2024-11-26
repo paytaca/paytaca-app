@@ -5,7 +5,7 @@
     full-width
   >
    <!--Title  -->
-  <q-card class="br-15 pt-card" :style="`height: ${maxHeight}px;`" :dark="darkMode" :class="getDarkModeClass(darkMode)">
+  <q-card ref="container" class="br-15 pt-card" :style="`max-height: ${maxHeight}px;`" :dark="darkMode" :class="getDarkModeClass(darkMode)">
     <div class="row items-center justify-between q-mr-lg q-pb-xs">
       <div class="q-pl-lg q-mt-md">
         <div
@@ -199,6 +199,11 @@
         dense
         v-model="message"
         :placeholder="$t('EnterMessage')"
+        @focus="() => {
+          let element = $refs.container.$el
+
+          element.scrollTop = element.scrollHeight
+        }"
         @update:modelValue="function(){
             typingMessage()
           }"
