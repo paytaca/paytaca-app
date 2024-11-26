@@ -104,7 +104,20 @@
                             {{ bchBalanceText }}
                           </span>
                         </p>
-                        <div>{{ getAssetMarketBalance(bchAsset) }}</div>
+                        <div v-if="stablehedgeView && stablehedgeWalletData?.balancesWithoutSats?.length">
+                          + 
+                          <template v-if="stablehedgeWalletData?.balancesWithoutSats?.length === 1">
+                            <template v-for="tokenBalance in stablehedgeWalletData?.balancesWithoutSats">
+                              {{ tokenBalance?.standardizedAmount }}
+                              {{ tokenBalance?.currency || 'UNITS' }}
+                            </template>
+                          </template>
+                          <template v-else>
+                            {{ stablehedgeWalletData?.balancesWithoutSats?.length }}
+                            {{ $t('Tokens') }}
+                          </template>
+                        </div>
+                        <div v-else>{{ getAssetMarketBalance(bchAsset) }}</div>
                         <q-badge
                           rounded
                           class="flex justify-start items-center yield-container"
@@ -170,6 +183,7 @@
                 style="font-size: 20px;"
                 :class="getDarkModeClass(darkMode)"
               >
+                <template v-if="stablehedgeView"> {{ $t('Stablehedge') }}</template>
                 {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
                 <q-btn
                   flat
@@ -183,6 +197,7 @@
                   @click="toggleManageAssets"
                 />
                 <q-btn
+                  v-if="!stablehedgeView"
                   flat
                   padding="none"
                   size="sm"
@@ -218,7 +233,11 @@
               </p>
             </div>
 
-            <div class="col-3 q-mt-sm" style="margin-top: -5px !important;" v-show="selectedNetwork === networks.BCH.name">
+            <div
+              v-show="selectedNetwork === networks.BCH.name && !stablehedgeView"
+              class="col-3 q-mt-sm"
+              style="margin-top: -5px !important;"
+            >
               <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
             </div>
           </div>
@@ -556,9 +575,23 @@ export default {
       const sats = this.$store.getters['stablehedge/totalTokenBalancesInSats']
       const balance = sats / 10 ** 8
       const tokenBalances = this.$store.getters['stablehedge/tokenBalancesWithSats']
+      const balancesWithoutSats = tokenBalances.filter(tokenBalance => {
+        return !Number.isFinite(tokenBalance?.satoshis)
+      }).map(tokenBalance => {
+        const token = this.$store.getters['stablehedge/token']?.(tokenBalance?.category)
+        const decimals = parseInt(token?.decimals) || 0
+
+        return {
+          ...tokenBalance,
+          decimals: decimals,
+          currency: token?.currency,
+          standardizedAmount: tokenBalance?.amount / 10 ** decimals,
+        }
+      })
       return {
         balance,
         tokenBalances,
+        balancesWithoutSats,
       }
     },
     mainchainAssets() {
@@ -574,6 +607,10 @@ export default {
     assets () {
       const vm = this
       if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
+      
+      if (vm.stablehedgeView) {
+        return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
+      }
 
       return vm.mainchainAssets.filter(token => {
         const assetId = token.id?.split?.('/')?.[0]

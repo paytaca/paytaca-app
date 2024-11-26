@@ -18,6 +18,32 @@ export function tokenBalances(state, getters, rootState, rootGetters) {
   return chipnet ? balance.chipnet : balance.mainnet
 }
 
+export function tokenBalancesAsAssets(state, getters, rootState, rootGetters) {
+  const assets = rootGetters['assets/getAssets']
+
+  const tokenBalances = getters['tokenBalances']
+  return tokenBalances.map(tokenBalance => {
+    const assetId = `ct/${tokenBalance?.category}`
+    const asset = assets?.find?.(asset => asset?.id === assetId)
+    const token = getters['token']?.(tokenBalance?.category)
+
+    let symbol = asset?.symbol
+    let decimals = asset?.decimals
+    if (token?.currency && parseInt(token?.decimals)) {
+      symbol = token?.currency
+      decimals = parseInt(token?.decimals)
+    }
+    return {
+      ...asset,
+      id: assetId,
+      symbol: symbol,
+      decimals: decimals,
+      balance: tokenBalance?.amount,
+      spendable: tokenBalance?.amount,
+    }
+  })
+}
+
 /**
  * @param {State} state 
  */

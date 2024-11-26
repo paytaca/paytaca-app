@@ -345,6 +345,7 @@ const words = [
     Cashback: 'Cashback'
   },
   {
+    Stablehedge: "Stablehedge",
     Stabilize: "Stabilize",
     Redeem: "Redeem",
     Inject: "Inject",
