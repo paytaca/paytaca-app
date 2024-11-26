@@ -334,7 +334,9 @@
 
 <script>
 import { markRaw } from '@vue/reactivity'
-import { getMnemonic, Wallet, Address } from '../../wallet'
+import { decodePrivateKeyWif } from '@bitauth/libauth'
+import { getMnemonic, Wallet, loadWallet, Address } from '../../wallet'
+import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils';
 import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
 import ProgressLoader from '../../components/ProgressLoader'
@@ -520,7 +522,10 @@ export default {
       actualWalletBalance: { balance: 0, spendable: 0 },
       currentWalletBalance: 0,
       isLegacyAddress: false,
-      watchtowerBaseUrl: 'https://watchtower.cash'
+      watchtowerBaseUrl: 'https://watchtower.cash',
+      walletExternalAddresses: {
+        /* [walletHash]: [<address0>, <address1>, ...] */
+      }
     }
   },
 
@@ -1246,16 +1251,58 @@ export default {
      * @return true if the address was previously connected
      * to an app.
      */
-    async walletAppConnectionRecordExists (walletHash) {
+    async getLastWalletAddressUsedInApp (walletHash) {
       try {
-        const response = await fetch(`${this.watchtowerBaseUrl}/api/wallet-address-app-record-exists/?wallet_hash=${walletHash}`)
+        const response = await fetch(`${this.watchtowerBaseUrl}/api/wallet-address-app/?wallet_hash=${walletHash}`)
         if (response.ok) {
           const responseJson = await response.json()
-          return responseJson.exists
+          return responseJson?.results?.[0]?.wallet_address
         }
       } catch (error) {
         //
       }
+    },
+    /**
+     * Fetch external addresses from watchtower
+     */
+    async fetchWalletExternalAddresses (walletHash) {
+      try {
+        const getWalletExternalAddressesResp = await fetch(`${this.watchtowerBaseUrl}/api/wallet-addresses/${walletHash}/?change_index=0`)
+        let walletExternalAddressesLoc = [] // saving locally to avoid any reactivity issue
+        if (getWalletExternalAddressesResp.ok) {
+          walletExternalAddressesLoc = await getWalletExternalAddressesResp.json()
+          this.walletExternalAddresses[walletHash] = walletExternalAddressesLoc
+        }
+        return walletExternalAddressesLoc
+      } catch (error) {
+        //
+      }
+    },
+    /**
+     * Sanity checker, make sure address retrieved from watchtower
+     * is from this wallet.
+     * @param addressSourceList All the external addresses (sorted by index) from 
+     * the wallet, it's just used for its indices
+     * @return true if address is from this wallet
+     */
+    async addressIsFromThisWallet (addressBeingChecked /* :string */, addressesSourceList /* :string[] */) {
+      const vm = this
+      for (const index in addressesSourceList) {
+        const wif = await getWalletByNetwork(vm.wallet, 'bch').getPrivateKey(`0/${index}`)
+        const decodedPrivkey = decodePrivateKeyWif(wif)
+        let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+        if (vm.isChipnet) {
+          // to test address
+          cashAddress = convertCashAddress(cashAddress, true, false)
+        }
+        if (cashAddress === addressBeingChecked) {
+          return true
+        }
+      }
+      return false
+    },
+    getAddressFromThisWallet () {
+      return this.wallet.lastAddress
     },
     async handleSubmit () {
       const vm = this
@@ -1395,12 +1442,22 @@ export default {
       })
 
       if (toSendBCHRecipients.length > 0) {
-        let changeAddress = vm.getChangeAddress('bch')
-        const w = vm.getWallet('bch')
-        const dontUseChangeAddress = await this.walletAppConnectionRecordExists(w.walletHash)
+        let changeAddress = this.getChangeAddress('bch')
+        const w = this.getWallet('bch')
+        let lastWalletAddressUsedInApp
+        const dontUseChangeAddress = lastWalletAddressUsedInApp = await this.getLastWalletAddressUsedInApp(w.walletHash)
         if (dontUseChangeAddress) {
-          changeAddress = undefined
+          changeAddress = lastWalletAddressUsedInApp
+          if (!this.walletExternalAddresses[w.walletHash]) {
+            // just trying to load the addresses one last time
+            await this.fetchWalletExternalAddresses(w.walletHash)
+          }
+          const addressIsFromThisWallet = await this.addressIsFromThisWallet(lastWalletAddressUsedInApp, this.walletExternalAddresses[w.walletHash])
+          if (!addressIsFromThisWallet) {
+            changeAddress = this.getAddressFromThisWallet()
+          }
         }
+        // TODO: follow --> sendBch call stack, watch changeAddress
         getWalletByNetwork(vm.wallet, 'bch')
           .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
@@ -1643,9 +1700,15 @@ export default {
     }
   },
 
+  onBeforeMount () {
+    this.setWatchtowerBaseUrl(this.isChipnet)
+    this.fetchWalletExternalAddresses(this.getWallet('bch').walletHash)
+  },
+
   mounted () {
     const vm = this
-    vm.setWatchtowerBaseUrl(this.isChipnet)
+    this.setWatchtowerBaseUrl(vm.isChipnet)
+    this.fetchWalletExternalAddresses(vm.getWallet('bch').walletHash)
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 
