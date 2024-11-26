@@ -63,3 +63,19 @@ export function convertTokenAmount (amount, decimals, isBCH=false, isSLP=false) 
   const parsedDecimals = parseInt(decimals) || 0
   return BigInt(parsedAmount) / (BigInt(10) ** BigInt(parsedDecimals))
 }
+
+export function convertToTokenAmountWithDecimals(amount, decimals, isBCH=false, isSLP=false) {
+  if (isBCH || isSLP) return amount
+  if (amount === 0) return amount
+
+  const parsedAmount = BigInt(parseInt(amount) || 0)
+  const parsedDecimals = parseInt(decimals) || 0
+  const multiplier = BigInt(10) ** BigInt(parsedDecimals)
+
+  const remainder = parsedAmount % multiplier
+  if (remainder > 0n) {
+    return Number(parsedAmount) / Number(multiplier)
+  }
+
+  return parsedAmount / multiplier
+}

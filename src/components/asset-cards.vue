@@ -25,7 +25,7 @@
         </div>
         <template v-else>
           <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
-            {{ convertTokenAmount(asset.balance, asset.decimals).toLocaleString('en-US') }}
+            {{ formatAssetTokenAmount(asset) }}
           </p>
         </template>
 
@@ -44,7 +44,7 @@
 <script>
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
-import { convertTokenAmount } from 'src/wallet/chipnet'
+import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
@@ -89,7 +89,11 @@ export default {
     }
   },
   methods: {
-    convertTokenAmount,
+    formatAssetTokenAmount(asset) {
+      return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
+        'en-US', { maximumFractionDigits: parseInt(asset?.decimals) || 0 },
+      )
+    },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 
