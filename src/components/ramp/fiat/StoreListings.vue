@@ -141,7 +141,7 @@
                         <div class="sm-font-size">
                           <div class="row">
                             <span class="col-3">{{ $t('Quantity') }}</span>
-                            <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                            <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
                           </div>
                           <div class="row">
                             <span class="col-3">Limit</span>

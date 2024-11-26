@@ -90,11 +90,11 @@
                             {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                           </span>
                           <span class="sm-font-size">/BCH</span>
-                          <div class="sm-font-size row q-gutter-md">
+                          <div class="sm-font-size row q-gutter-md" :class="listing.trade_amount === 0 ? 'text-red': ''">
                             <span>{{ $t('Quantity') }}</span>
                             <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
                           </div>
-                          <div class="sm-font-size row q-gutter-md">
+                          <div class="sm-font-size row q-gutter-md" :class="listing.trade_amount === 0 ? 'text-red': ''">
                             <span>{{ $t('Limits') }}</span>
                             <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(listing.trade_ceiling, tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                           </div>
@@ -302,7 +302,7 @@ export default {
       this.toggleAdVisibility(ad, index)
     },
     tradeAmountCurrency (ad) {
-      return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)

@@ -389,7 +389,7 @@ export default {
       title: '',
       text: '',
       readOnlyState: false,
-      setTradeQuantityInFiat: false,
+      // setTradeQuantityInFiat: false,
       setTradeLimitsInFiat: false,
       arbiterOptions: [],
       transactionType: null,
@@ -402,22 +402,22 @@ export default {
     bus.on('relogged', this.loadFormData)
   },
   watch: {
-    setTradeQuantityInFiat (value) {
-      if (this.loading) return
-      if (value) {
-        let amount = this.adData.tradeAmount * this.marketPrice
-        if (amount % 1 !== 0) {
-          amount = amount.toFixed(2)
-        }
-        this.adData.tradeAmount = amount
-      } else {
-        let amount = this.adData.tradeAmount / this.marketPrice
-        if (amount % 1 !== 0) {
-          amount = amount.toFixed(8)
-        }
-        this.adData.tradeAmount = amount
-      }
-    },
+    // setTradeQuantityInFiat (value) {
+    //   if (this.loading) return
+    //   if (value) {
+    //     let amount = this.adData.tradeAmount * this.marketPrice
+    //     if (amount % 1 !== 0) {
+    //       amount = amount.toFixed(2)
+    //     }
+    //     this.adData.tradeAmount = amount
+    //   } else {
+    //     let amount = this.adData.tradeAmount / this.marketPrice
+    //     if (amount % 1 !== 0) {
+    //       amount = amount.toFixed(8)
+    //     }
+    //     this.adData.tradeAmount = amount
+    //   }
+    // },
     setTradeLimitsInFiat (value) {
       if (this.loading) return
       if (value) {
@@ -521,7 +521,7 @@ export default {
     confirmationData () {
       const vm = this
       const data = { ...vm.adData }
-      data.isTradeAmountFiat = this.setTradeQuantityInFiat
+      // data.isTradeAmountFiat = this.setTradeQuantityInFiat
       data.isTradeLimitsFiat = this.setTradeLimitsInFiat
       return data
     }
@@ -568,7 +568,7 @@ export default {
       let tradeFloor = Number(this.adData.tradeFloor)
       if (this.setTradeLimitsInFiat) tradeFloor = (tradeFloor / this.marketPrice).toFixed(8)
       let tradeAmount = Number(val)
-      if (this.setTradeQuantityInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
+      if (this.setTradeLimitsInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
       if (tradeFloor > tradeAmount) return 'Cannot be less than min trade limit'
     },
     tradeLimitValidation (val) {
@@ -577,7 +577,7 @@ export default {
       if (Number(this.adData.tradeFloor) > Number(this.adData.tradeCeiling)) return 'Invalid range'
 
       let tradeAmount = Number(this.adData.tradeAmount)
-      if (this.setTradeQuantityInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
+      if (this.setTradeLimitsInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
       let tradeLimit = Number(val)
       if (this.setTradeLimitsInFiat) tradeLimit = (tradeLimit / this.marketPrice).toFixed(8)
       if (tradeLimit > tradeAmount) return 'Cannot exceed trade quantity'
@@ -638,7 +638,7 @@ export default {
           vm.adData.appealCooldown = vm.appealCooldown
           vm.selectedCurrency = data.fiat_currency
           vm.setTradeLimitsInFiat = data.trade_limits_in_fiat
-          vm.setTradeQuantityInFiat = data.trade_amount_in_fiat
+          // vm.setTradeQuantityInFiat = data.trade_amount_in_fiat
 
           // price
           if (vm.adData.priceType === 'FLOATING') {
@@ -789,15 +789,6 @@ export default {
           break
       }
     },
-    // appendPaymentMethods (paymentMethods) {
-    //   const vm = this
-    //   vm.adData.paymentMethods = paymentMethods
-    //   vm.step++
-    // },
-    // async checkSubmitOption () {
-    //   this.step++
-    //   await this.$router.replace({ query: { step: vm.step } })
-    // },
     async updateFiatCurrency () {
       const vm = this
       // vm.priceValue = ''
@@ -851,7 +842,7 @@ export default {
         payload.trade_ceiling_sats = bchToSatoshi(data.tradeCeiling)
       }
 
-      if (this.setTradeQuantityInFiat) {
+      if (this.setTradeLimitsInFiat) {
         payload.trade_amount_fiat = data.tradeAmount
       } else {
         payload.trade_amount_sats = bchToSatoshi(data.tradeAmount)
@@ -952,7 +943,7 @@ export default {
         ceiling = (ceiling / vm.marketPrice).toFixed(8)
       }
       let quantity = vm.adData?.tradeAmount
-      if (vm.setTradeQuantityInFiat) quantity = (quantity / vm.marketPrice).toFixed(8)
+      if (vm.setTradeLimitsInFiat) quantity = (quantity / vm.marketPrice).toFixed(8)
       return floor > 0 && floor <= ceiling && ceiling <= quantity
     },
     isAmountValid (value) {
