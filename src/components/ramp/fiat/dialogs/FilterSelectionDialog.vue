@@ -128,6 +128,11 @@ export default {
       }
     },
     onOKClick () {
+      if (this.type === 'amount') {
+        this.filter.order_amount = this.amount
+        this.filter.order_amount_currency = this.byFiat ? this.currency?.symbol : 'BCH'
+      }
+
       this.$emit('ok', this.filter)
       this.customKeyboardState = 'dismiss'
 

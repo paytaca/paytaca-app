@@ -59,7 +59,9 @@ export function fetchAds (context, { component = null, params = null, overwrite 
         currency: params.currency,
         owned: params.owned,
         trade_type: params.trade_type,
-        query_name: params.query_name
+        query_name: params.query_name,
+        order_amount: params.order_amount,
+        order_amount_currency: params.order_amount_currency
       }
 
       let apiURL = '/ramp-p2p/ad/'

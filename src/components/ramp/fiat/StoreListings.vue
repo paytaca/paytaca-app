@@ -289,27 +289,6 @@ export default {
           this.onFilterListings(filter)
         })
     },
-    minTradeAmount (ad) {
-      let tradeAmount = parseFloat(ad.trade_amount)
-      let tradeCeiling = parseFloat(ad.trade_ceiling)
-      if (ad.trade_limits_in_fiat) {
-        // if trade_limits in fiat and trade_amount in BCH
-        // convert trade_amount to fiat
-        if (!ad.trade_amount_in_fiat) {
-          tradeAmount = tradeAmount * ad.price
-        }
-        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
-      } else {
-        // If trade_limits in BCH and trade_amount in fiat:
-        // convert trade amount to BCH
-        if (ad.trade_amount_in_fiat) {
-          tradeAmount = tradeAmount / ad.price
-        }
-        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
-      }
-      const amounts = [tradeAmount, tradeCeiling]
-      return Math.min.apply(null, amounts)
-    },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
       return limitedView
@@ -350,10 +329,6 @@ export default {
     async fetchPaymentTypes () {
       const vm = this
       await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
-        .then(() => {
-          const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
-          console.log('paymentTypes:', paymentTypes)
-        })
         .catch(error => {
           console.error(error)
           if (error.response) {
@@ -493,13 +468,6 @@ export default {
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
-    },
-    maxAmount (tradeAmount, tradeCeiling) {
-      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
-        return parseFloat(tradeAmount)
-      } else {
-        return parseFloat(tradeCeiling)
-      }
     },
     preventPull (e) {
       let parent = e.target
