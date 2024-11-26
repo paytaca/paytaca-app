@@ -212,7 +212,7 @@ export default defineComponent({
         if (!Number.isFinite(price)) return NaN
         if (!Number.isFinite(tokenUnits)) return NaN
 
-        const satoshis = Number(tokenToSatoshis(tokenUnits, price))
+        const satoshis = Number(tokenToSatoshis(tokenUnits, price, true))
         const redeemableSatsFromContract = contract?.redeemable || Infinity
         return Math.min(satoshis, redeemableSatsFromContract)
       })

@@ -33,6 +33,9 @@
             v-model="tokenAmount"
             :suffix="tokenCurrency"
             bottom-slots
+            :rules="[
+              val => parseFloat(val) > minAmount || $t('MustBeGreaterThan', { amount: minAmount + ' ' + tokenCurrency }),
+            ]"
           >
             <template v-slot:hint>
               <div v-if="denominatedBchAmountText" class="text-grey">
@@ -159,6 +162,9 @@ export default defineComponent({
       const maxTokenUnits = Math.min(maxAmountFromBalance, maxAmountFromContract)
       return maxTokenUnits / 10 ** decimals.value
     })
+    const minAmount = computed(() => {
+      return 1 / 10 ** decimals.value
+    })
 
     const tokenAmount = ref(0)
     const tokenUnits = computed(() => parseInt(tokenAmount.value * 10 ** decimals.value))
@@ -166,7 +172,7 @@ export default defineComponent({
       if (!Number.isFinite(priceUnitPerBch.value)) return NaN
       if (!parseInt(tokenUnits.value)) return NaN
 
-      const sats = parseInt(tokenToSatoshis(tokenUnits.value, priceUnitPerBch.value))
+      const sats = parseInt(tokenToSatoshis(tokenUnits.value, priceUnitPerBch.value, true))
       return sats / 10 ** 8
     })
     const denominatedBchAmountText = computed(() => {
@@ -193,6 +199,7 @@ export default defineComponent({
       tokenCurrency,
       pricePerDenomination,
       maxAmount,
+      minAmount,
       tokenAmount,
       bchAmount,
       denominatedBchAmountText,

@@ -47,7 +47,7 @@
         <div class="text-center">
           <div v-if="loading" class="q-my-md">
             <ProgressLoader/>
-            <div class="text-subtitle1 q-r-mt-xl">{{ loadingMsg }}</div>
+            <div class="text-subtitle1 q-r-mt-lg">{{ loadingMsg }}</div>
           </div>
         </div>
       </q-card-section>
@@ -58,7 +58,7 @@
 <script>
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
+import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
 import { prepareUtxos, waitRedemptionContractTx } from 'src/wallet/stablehedge/transaction';
 import { getMnemonic } from 'src/wallet';
@@ -102,7 +102,6 @@ export default defineComponent({
     const denomination = computed(() => {
       return props.selectedDenomination || $store.getters['global/denomination']
     })
-    const tokenUnits = computed(() => props.tokenUnits)
     const fiatToken = computed(() => props.redemptionContract?.fiat_token)
     const tokenCurrency = computed(() => fiatToken.value?.currency || '')
     const decimals = computed(() => fiatToken.value?.decimals)
@@ -110,11 +109,21 @@ export default defineComponent({
     const priceUnitPerBch = computed(() => parseFloat(props.priceMessage?.priceValue))
     // const priceUnitPerBch = computed(() => parseFloat(41740))
 
-    const tokenAmount = computed(() => tokenUnits.value / 10 ** decimals.value)
     const satoshis = computed(() => {
       if (!Number.isFinite(priceUnitPerBch.value)) return NaN
-      return parseInt(tokenToSatoshis(tokenUnits.value, priceUnitPerBch.value))
+      return parseInt(tokenToSatoshis(props.tokenUnits, priceUnitPerBch.value, true))
     })
+
+    /**
+     * - We recalculate token units since, deposit cashscript uses satoshisToToken formula
+     * - Recalculating e.g. tokenUnits -> tokenToSatoshis -> satoshisToToken
+     *    doesn't always give the same amount
+     */
+    const adjustedTokenUnits = computed(() => {
+      if (!Number.isFinite(priceUnitPerBch.value)) return NaN
+      return parseInt(satoshisToToken(satoshis.value, priceUnitPerBch.value))
+    })
+    const tokenAmount = computed(() => adjustedTokenUnits.value / 10 ** decimals.value)
     const bchAmount = computed(() => satoshis.value / 10 ** 8)
     const denominatedBchAmountText = computed(() => {
       if (!bchAmount.value) return ''
@@ -156,7 +165,7 @@ export default defineComponent({
           utxo,
           token: {
             category: props.redemptionContract?.fiat_token?.category,
-            amount: tokenUnits.value
+            amount: adjustedTokenUnits.value,
           }
         })
         console.log({ signResult })
@@ -219,7 +228,7 @@ export default defineComponent({
           category: props.redemptionContract?.fiat_token?.category,
           satoshis: data.utxo.satoshis,
           bch: data.utxo.satoshis / 10 ** 8,
-          amount: tokenUnits.value,
+          amount: adjustedTokenUnits.value,
 
           status: txStatusData?.status,
           txid: txStatusData?.txid,
@@ -265,6 +274,7 @@ export default defineComponent({
       innerVal,
 
       tokenCurrency,
+      adjustedTokenUnits,
       tokenAmount,
       bchAmount,
       denominatedBchAmountText,

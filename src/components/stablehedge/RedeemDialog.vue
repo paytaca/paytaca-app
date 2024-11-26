@@ -46,7 +46,7 @@
         <div class="text-center">
           <div v-if="loading" class="q-my-md">
             <ProgressLoader/>
-            <div class="text-subtitle1 q-r-mt-xl">{{ loadingMsg }}</div>
+            <div class="text-subtitle1 q-r-mt-lg">{{ loadingMsg }}</div>
           </div>
         </div>
       </q-card-section>

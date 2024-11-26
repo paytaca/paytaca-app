@@ -49,30 +49,35 @@ export function parsePriceMessage(data) {
 }
 
 
-/**
+/** 
  * @param {Number | BigInt | String} satoshis 
  * @param {Number | BigInt | String} priceValue 
+ * @param {Boolean} [ceil=false]
  * @returns 
  */
-export function satoshisToToken(satoshis, priceValue) {
+export function satoshisToToken(satoshis, priceValue, ceil) {
   satoshis = BigInt(satoshis)
   const tokenUnitsPerBch = BigInt(priceValue)
 
   const tokenUnitSatsPerBch = satoshis * tokenUnitsPerBch // <sats(units per bch)> == <units(sats per bch)>
   const satsPerBch = BigInt(10 ** 8)
   const tokenUnits = tokenUnitSatsPerBch / satsPerBch // cancels out <sats per bch>, <units> remain
+  if (ceil && tokenUnitSatsPerBch % satsPerBch > 0n) return tokenUnits + 1n
   return tokenUnits
 }
 
 /**
  * @param {Number | BigInt | String} tokenUnits 
  * @param {Number | BigInt | String} priceValue 
+ * @param {Boolean} [ceil=false]
  * @returns 
  */
-export function tokenToSatoshis(tokenUnits, priceValue) {
+export function tokenToSatoshis(tokenUnits, priceValue, ceil) {
   tokenUnits = BigInt(tokenUnits)
   const tokenUnitsPerBch = BigInt(priceValue)
   const satsPerBch = BigInt(10 ** 8)
   const unitSatsPerBch = tokenUnits * satsPerBch // <units(sats per bch)> == <sats(units per bch)>
-  return unitSatsPerBch / tokenUnitsPerBch // cancels out <units per bch>, <sats> remain
+  const satoshis = unitSatsPerBch / tokenUnitsPerBch // cancels out <units per bch>, <sats> remain
+  if (ceil && unitSatsPerBch % tokenUnitsPerBch > 0n) return satoshis + 1n
+  return satoshis
 }
