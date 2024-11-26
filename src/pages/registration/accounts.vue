@@ -757,39 +757,38 @@ export default {
         vm.$store.commit('market/updateSelectedCurrency', currency)
       }
     }, 1000)
-
-    // set language
-    const defaultLang = 'en-us'
-    const eng = ['en-us', 'en-uk', 'en-gb', 'en']
-    const supportedLangCodes = Object.getOwnPropertyNames(supportedLangsI18n) // string[]
-    const supportedIpGeoLangs = supportedLangCodes.filter(lang => ipGeoPreferences.langs?.includes?.(lang))
-      .filter(lang => lang !== defaultLang)
-      // previous implementation dont want en-us if there are other languages, so we filter it out
-    const ipGeoLang = supportedIpGeoLangs[0] || defaultLang
-
     this.currencySelectorRerender = true
 
+    // set language to English by default
+    const defaultLang = 'en-us'
+    // const eng = ['en-us', 'en-uk', 'en-gb', 'en']
+    // const supportedLangCodes = Object.getOwnPropertyNames(supportedLangsI18n) // string[]
+    // const supportedIpGeoLangs = supportedLangCodes.filter(lang => ipGeoPreferences.langs?.includes?.(lang))
+    //   .filter(lang => lang !== defaultLang)
+    //   // previous implementation dont want en-us if there are other languages, so we filter it out
+    // const ipGeoLang = supportedIpGeoLangs[0] || defaultLang
+
     if (this.$store.getters['global/isVaultEmpty']) {
-      let finalLang = ''
+      // let finalLang = ''
 
-      // Adjust paytaca language according to phone's language (if supported by paytaca)
-      const deviceLang = await this.resolveDeviceLangCode()
+      // // Adjust paytaca language according to phone's language (if supported by paytaca)
+      // const deviceLang = await this.resolveDeviceLangCode()
 
-      if (supportedLangCodes.includes(deviceLang) && !eng.includes(deviceLang)) {
-        finalLang = deviceLang
-      } else if (supportedLangCodes.includes(ipGeoLang) && !eng.includes(ipGeoLang)) {
-        finalLang = ipGeoLang
-      } else {
-        // defaults to english if device lang is unsupported by app
-        finalLang = defaultLang
-      }
+      // if (supportedLangCodes.includes(deviceLang) && !eng.includes(deviceLang)) {
+      //   finalLang = deviceLang
+      // } else if (supportedLangCodes.includes(ipGeoLang) && !eng.includes(ipGeoLang)) {
+      //   finalLang = ipGeoLang
+      // } else {
+      //   // defaults to english if device lang is unsupported by app
+      //   finalLang = defaultLang
+      // }
 
-      // if country is Philippines, set language to English
-      if (ipGeoPreferences.country.code === 'PH') {
-        finalLang = defaultLang
-      }
+      // // if country is Philippines, set language to English
+      // if (ipGeoPreferences.country.code === 'PH') {
+      //   finalLang = defaultLang
+      // }
 
-      this.setLanguage(finalLang)
+      this.setLanguage(defaultLang)
     }
 
     // set country
