@@ -171,6 +171,19 @@ export default defineComponent({
         const redemptionContracts = Array.isArray(response.data)
           ? response.data
           : response.data?.results
+
+        updateLoading({ message: $t('GettingPriceData') })
+        await $store.dispatch('stablehedge/updateTokenPrices', { includeCategories: categories })
+
+        if (Array.isArray(categories) && categories.length) {
+          const hasPriceData = categories.some(category => {
+            const token = $store.getters['stablehedge/token']?.(category)
+            return Number.isFinite(parseFloat(token?.priceMessage?.priceValue))
+          })
+
+          if (!hasPriceData) throw $t('NoPriceDataFound')
+        }
+
         return { redemptionContracts }
       } catch(error) {
         console.error(error)
