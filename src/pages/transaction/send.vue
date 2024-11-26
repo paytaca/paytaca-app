@@ -519,7 +519,8 @@ export default {
       totalFiatAmountSent: 0,
       actualWalletBalance: { balance: 0, spendable: 0 },
       currentWalletBalance: 0,
-      isLegacyAddress: false
+      isLegacyAddress: false,
+      watchtowerBaseUrl: 'https://watchtower.cash'
     }
   },
 
@@ -673,7 +674,7 @@ export default {
     manualAddress (address) {
       this.isLegacyAddress = new Address(address).isLegacyAddress()
       this.inputExtras[this.currentActiveRecipientIndex].isLegacyAddress = this.isLegacyAddress
-    }
+    },
   },
 
   methods: {
@@ -1235,6 +1236,27 @@ export default {
       return this.$store.getters['global/getChangeAddress'](walletType)
     },
 
+    setWatchtowerBaseUrl (isChipnet) {
+      this.watchtowerBaseUrl = 'https://watchtower.cash'
+      if (isChipnet) {
+        this.watchtowerBaseUrl = 'https://chipnet.watchtower.cash'
+      }
+    },
+    /**
+     * @return true if the address was previously connected
+     * to an app.
+     */
+    async walletAppConnectionRecordExists (walletHash) {
+      try {
+        const response = await fetch(`${this.watchtowerBaseUrl}/api/wallet-address-app-record-exists/?wallet_hash=${walletHash}`)
+        if (response.ok) {
+          const responseJson = await response.json()
+          return responseJson.exists
+        }
+      } catch (error) {
+        //
+      }
+    },
     async handleSubmit () {
       const vm = this
       const toSendData = vm.sendDataMultiple
@@ -1373,7 +1395,12 @@ export default {
       })
 
       if (toSendBCHRecipients.length > 0) {
-        const changeAddress = vm.getChangeAddress('bch')
+        let changeAddress = vm.getChangeAddress('bch')
+        const w = vm.getWallet('bch')
+        const dontUseChangeAddress = await this.walletAppConnectionRecordExists(w.walletHash)
+        if (dontUseChangeAddress) {
+          changeAddress = undefined
+        }
         getWalletByNetwork(vm.wallet, 'bch')
           .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
@@ -1618,6 +1645,7 @@ export default {
 
   mounted () {
     const vm = this
+    vm.setWatchtowerBaseUrl(this.isChipnet)
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 
