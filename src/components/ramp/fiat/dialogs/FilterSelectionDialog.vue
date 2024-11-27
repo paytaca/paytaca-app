@@ -64,7 +64,7 @@
           </div>
         </div>
         <div class="text-center q-pt-xs">
-          <q-btn rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
+          <q-btn :loading="loadFilterButton" :disable="loadFilterButton" rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
         </div>
       </div>
     </q-card>
@@ -90,7 +90,8 @@ export default {
       filter: null,
       byFiat: true,
       readonlyState: false,
-      customKeyboardState: 'dismiss'
+      customKeyboardState: 'dismiss',
+      loadFilterButton: false
     }
   },
   components: {
@@ -128,6 +129,7 @@ export default {
       }
     },
     onOKClick () {
+      this.loadFilterButton = true
       if (this.type === 'amount') {
         this.filter.order_amount = this.amount
         this.filter.order_amount_currency = this.byFiat ? this.currency?.symbol : 'BCH'

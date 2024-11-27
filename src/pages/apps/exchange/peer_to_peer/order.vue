@@ -37,6 +37,7 @@
           <!-- Ad Owner Confirm / Decline -->
           <ReceiveOrder
             v-if="state === 'order-confirm-decline'"
+            ref="receiveOrderRef"
             :data="receiveOrderData"
             :errorMessage="receiveOrderError"
             @confirm="confirmingOrder"
@@ -64,6 +65,7 @@
           <!-- Waiting Page -->
           <div v-if="state === 'standby-view'">
             <StandByDisplay
+              ref="standbyRef"
               :key="standByDisplayKey"
               :data="standByDisplayData"
               @send-feedback="sendFeedback"
@@ -875,10 +877,13 @@ export default {
       vm.isloaded = false
       switch (vm.dialogType) {
         case 'confirmCancelOrder':
+          if (this.$refs.standbyRef) { this.$refs.standbyRef.loadCancelButton = true }
+          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadDeclineButton = true }
           vm.cancelOrder()
           vm.onBack()
           break
         case 'confirmOrder':
+          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadConfirmButton = true }
           vm.confirmOrder()
           break
       }

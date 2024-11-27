@@ -140,6 +140,8 @@
         <div v-if="!displayContractInfo" class="q-mt-sm q-px-md q-mb-sm">
           <div class="row q-pt-sm" v-if="type === 'ongoing' && hasCancel">
             <q-btn
+              :loading="loadCancelButton"
+              :disable="loadCancelButton"
               rounded
               no-caps
               :label="$t('CancelOrder')"
@@ -243,7 +245,8 @@ export default {
       byFiat: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
-      attachmentUrl: null
+      attachmentUrl: null,
+      loadCancelButton: false
     }
   },
   props: {

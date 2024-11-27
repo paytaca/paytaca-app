@@ -134,7 +134,8 @@
               <!-- create order btn -->
               <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
                 <q-btn
-                  :disabled="!isValidInputAmount(amount) || !hasArbiters"
+                  :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton"
+                  :loading="loadSubmitButton"
                   rounded
                   no-caps
                   :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
@@ -182,6 +183,7 @@
       <!-- Add payment method -->
       <div v-if="state === 'add-payment-method'">
         <AddPaymentMethods
+          ref="addPaymentMethodsRef"
           :type="'General'"
           :ad-payment-methods="ad?.payment_methods"
           :currency="ad?.fiat_currency?.symbol"
@@ -275,7 +277,8 @@ export default {
       marketPrice: 0,
       arbitersAvailable: [],
       previousRoute: null,
-      networkError: false
+      networkError: false,
+      loadSubmitButton: false
     }
   },
   beforeRouteEnter (to, from, next) {
@@ -748,10 +751,12 @@ export default {
       this.$emit('orderCanceled')
     },
     recievePaymentMethods (item) {
+      this.$refs.addPaymentMethodsRef.loadSubmitButton = true
       this.paymentMethods = item
       this.createOrder()
     },
     recieveDialogsInfo (item) {
+      this.loadSubmitButton = true
       this.createOrder()
       this.title = ''
     },

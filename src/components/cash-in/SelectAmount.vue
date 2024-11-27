@@ -61,7 +61,7 @@
     </div>
     <!-- Proceed -->
     <div class="row justify-center q-mt-md">
-      <q-btn class="col q-mx-lg" :disable="disableProceedBtn" rounded color="blue-6" label="proceed" @click="submitOrder"/>
+      <q-btn :loading="loadProceedButton" class="col q-mx-lg" :disable="disableProceedBtn" rounded color="blue-6" label="proceed" @click="submitOrder"/>
     </div>
   </div>
 </template>
@@ -82,7 +82,8 @@ export default {
       amountFiatOptions: this.fiatPresets,
       amountFiatEqOptions: [],
       selectedOptionIndex: null,
-      byFiat: true
+      byFiat: true,
+      loadProceedButton: false
     }
   },
   computed: {
@@ -116,7 +117,7 @@ export default {
       return Number(amount)
     },
     disableProceedBtn () {
-      return this.amount === 0 || !this.selectedAd
+      return this.amount === 0 || !this.selectedAd || this.loadProceedButton
     },
     selectedPaymentMethod () {
       const paymentMethod = this.selectedAd.payment_methods.filter(e => e.payment_type.id === this.paymentType.id)
@@ -153,6 +154,7 @@ export default {
       this.$emit('update-presets', this.byFiat)
     },
     submitOrder () {
+      this.loadProceedButton = true
       let amount = this.amount
       if (this.byFiat) {
         amount = Number((amount) / parseFloat(this.selectedAd?.price)).toFixed(8)
