@@ -405,7 +405,7 @@ export default {
         await vm.generateContract()
       }
       vm.isloaded = true
-      vm.fetchAd()
+      await vm.fetchAd()
       vm.fetchFeedback().then(() => {
         if (this.notifType === 'new_message') { this.openChat = true }
       })
@@ -615,29 +615,25 @@ export default {
           })
       })
     },
-    fetchAd () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = `/ramp-p2p/ad/${vm.order.ad.id}/`
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.ad = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+    async fetchAd () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.order.id}/ad/snapshot/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.ad = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-          .finally(() => { this.reloadChildComponents() })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
+        .finally(() => { this.reloadChildComponents() })
     },
     confirmOrder () {
       const vm = this
@@ -690,8 +686,8 @@ export default {
           vm.fees = response.data
         })
         .catch(error => {
+          console.error(error.response || error)
           if (error.response) {
-            console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
@@ -732,9 +728,9 @@ export default {
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
         const fees_ = {
-          arbitrationFee: vm.fees.breakdown?.arbitration_fee,
-          serviceFee: vm.fees.breakdown?.service_fee,
-          contractFee: vm.fees.breakdown?.contract_fee
+          arbitrationFee: vm.fees?.breakdown?.arbitration_fee,
+          serviceFee: vm.fees?.breakdown?.service_fee,
+          contractFee: vm.fees?.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
