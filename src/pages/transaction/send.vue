@@ -337,6 +337,7 @@ import { markRaw } from '@vue/reactivity'
 import { decodePrivateKeyWif } from '@bitauth/libauth'
 import { getMnemonic, Wallet, loadWallet, Address } from '../../wallet'
 import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils';
+import { isTokenAddress } from 'src/utils/address-utils';
 import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
 import ProgressLoader from '../../components/ProgressLoader'
@@ -1176,10 +1177,9 @@ export default {
 
     validateAddress (address) {
       const vm = this
-      let addressObj = new Address(address)
+      const addressObj = new Address(address)
       let addressIsValid = false
       let formattedAddress
-
       try {
         if (vm.walletType === sBCHWalletType) {
           if (addressObj.isSep20Address()) {
@@ -1191,11 +1191,21 @@ export default {
         }
         if (vm.walletType === 'bch') {
           if (vm.isCashToken) {
-            addressIsValid = isValidTokenAddress(address)
+            // addressIsValid = isValidTokenAddress(address)
+            addressIsValid = isTokenAddress(address)
             formattedAddress = address
           } else {
-            if (isValidTokenAddress(address)) {
-              addressIsValid = true
+            // if (isValidTokenAddress(address)) {
+            //   addressIsValid = true
+            //   formattedAddress = address
+            // } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
+            //   if (addressObj.isValidBCHAddress(vm.isChipnet)) {
+            //     addressIsValid = true
+            //     formattedAddress = addressObj.toCashAddress(address)
+            //   }
+            // }
+            if (isTokenAddress(address)) {
+              addressIsValid = false // Address should not be a token address
               formattedAddress = address
             } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
               if (addressObj.isValidBCHAddress(vm.isChipnet)) {
