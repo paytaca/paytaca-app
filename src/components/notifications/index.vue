@@ -28,16 +28,18 @@
           <q-btn
             flat
             round
+            :disable="isLoading"
+            :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
+            :color="isCheckboxClicked ? 'red' : 'white'"
+            @click="isCheckboxClicked = !isCheckboxClicked"
+          />
+          <q-btn
+            flat
+            round
             icon="refresh"
             :disable="isLoading"
             @click="refreshNotifsList()"
           />
-          <!-- <q-btn
-            flat
-            round
-            :disable="isLoading"
-            icon="delete"
-          /> -->
           <q-btn
             flat
             round
@@ -56,52 +58,97 @@
         <template v-else>
           <div v-if="notifsList.length > 0">
             <div
-              class="q-pb-sm q-gutter-y-sm"
+              class="q-pb-sm q-gutter-y-sm row col-12"
               style="height: 70vh; overflow-y: scroll;"
             >
-              <transition-group
-                appear
-                leave-active-class="animated zoomOut fast"
-                v-for="(notif, index) in notifsList"
-                :key="`notif-${index}`"
-              >
-                <q-slide-item
-                  left-color="red"
-                  right-color="red"
-                  class="pt-card-2 text-bow item-border"
-                  :class="getDarkModeClass(darkMode)"
+              <template v-if="isCheckboxClicked">
+                <template
+                  v-for="(notif, index) in notifsList"
                   :key="`notif-${index}`"
-                  @left="(event) => onSwipe(event, index)"
-                  @right="(event) => onSwipe(event, index)"
-                  v-if="!notif.is_hidden"
                 >
-                  <template v-slot:left>
-                    <q-icon name="delete" /> {{ $t('Delete') }}
-                  </template>
-                  <template v-slot:right>
-                    {{ $t('Delete') }} <q-icon name="delete" />
-                  </template>
-
-                  <transition
-                    appear
-                    leave-active-class="animated zoomOut fast"
+                  <div
+                    v-if="isCheckboxClicked"
+                    class="col-2 flex flex-center"
+                    :key="`notif-${index}`"
                   >
-                    <div class="row q-py-sm q-px-md">
-                      <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                        {{ notif.title }}
-                      </span><br/>
-                      <span class="col-12">{{ notif.message }}</span>
-                      <span
-                        class="col-12 q-mt-xs text-caption"
-                        align="right"
-                        style="color: gray;"
-                      >
-                        {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                      </span>
-                    </div>
-                  </transition>
-                </q-slide-item>
-              </transition-group>
+                    <q-checkbox
+                      v-model="checkboxList[index]"
+                    />
+                  </div>
+
+                  <template v-if="isCheckboxClicked">
+                    <q-slide-item
+                      v-if="!notif.is_hidden"
+                      left-color="red"
+                      right-color="red"
+                      class="col-10 pt-card-2 text-bow item-border"
+                      :class="getDarkModeClass(darkMode)"
+                      :key="`notif-${index}`"
+                    >
+                      <div class="row q-py-sm q-px-md">
+                        <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
+                          {{ notif.title }}
+                        </span><br/>
+                        <span class="col-12">{{ notif.message }}</span>
+                        <span
+                          class="col-12 q-mt-xs text-caption"
+                          align="right"
+                          style="color: gray;"
+                        >
+                          {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
+                        </span>
+                      </div>
+                    </q-slide-item>
+                  </template>
+                </template>
+              </template>
+
+              <template v-else>
+                <transition-group
+                  appear
+                  leave-active-class="animated zoomOut fast"
+                  v-for="(notif, index) in notifsList"
+                  :key="`notif-${index}`"
+                >
+                  <q-slide-item
+                    v-if="!notif.is_hidden"
+                    left-color="red"
+                    right-color="red"
+                    class="col-12 pt-card-2 text-bow item-border"
+                    :class="getDarkModeClass(darkMode)"
+                    :key="`notif-${index}`"
+                    @left="(event) => onSwipe(event, index)"
+                    @right="(event) => onSwipe(event, index)"
+                    @click="clickRedirect(notif)"
+                  >
+                    <template v-slot:left>
+                      <q-icon name="delete" /> {{ $t('Delete') }}
+                    </template>
+                    <template v-slot:right>
+                      {{ $t('Delete') }} <q-icon name="delete" />
+                    </template>
+
+                    <transition
+                      appear
+                      leave-active-class="animated zoomOut fast"
+                    >
+                      <div class="row q-py-sm q-px-md">
+                        <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
+                          {{ notif.title }}
+                        </span><br/>
+                        <span class="col-12">{{ notif.message }}</span>
+                        <span
+                          class="col-12 q-mt-xs text-caption"
+                          align="right"
+                          style="color: gray;"
+                        >
+                          {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
+                        </span>
+                      </div>
+                    </transition>
+                  </q-slide-item>
+                </transition-group>
+              </template>
             </div>
 
             <div class="row flex-center q-mt-lg">
@@ -155,9 +202,13 @@ export default {
   data () {
     return {
       notifsList: [],
-      isLoading: false,
-      notifsPage: 1,
+      checkboxList: null,
       notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR'],
+
+      isLoading: false,
+      isCheckboxClicked: false,
+
+      notifsPage: 1,
       maxPages: 0
     }
   },
@@ -246,6 +297,8 @@ export default {
               name: 'transaction-send',
               query
             })
+          } else {
+            console.log('transaction dialog yey')
           }
           break
         } case 'MP': {
@@ -267,6 +320,14 @@ export default {
 
     formatDate (date) {
       return ago(new Date(date))
+    }
+  },
+
+  watch: {
+    isCheckboxClicked (value) {
+      const vm = this
+
+      vm.checkboxList = new Array(vm.notifsList.length).fill(false)
     }
   }
 }
