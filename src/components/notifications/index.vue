@@ -58,49 +58,44 @@
         <template v-else>
           <div v-if="notifsList.length > 0">
             <div
-              class="q-pb-sm q-gutter-y-sm row col-12"
+              class="q-pb-sm q-gutter-y-sm col-12"
               style="height: 70vh; overflow-y: scroll;"
             >
               <template v-if="isCheckboxClicked">
-                <template
+                <div
                   v-for="(notif, index) in notifsList"
                   :key="`notif-${index}`"
+                  class="row"
                 >
-                  <div
-                    v-if="isCheckboxClicked"
-                    class="col-2 flex flex-center"
-                    :key="`notif-${index}`"
-                  >
+                  <div class="col-2 flex flex-center">
                     <q-checkbox
                       v-model="checkboxList[index]"
                     />
                   </div>
 
-                  <template v-if="isCheckboxClicked">
-                    <q-slide-item
-                      v-if="!notif.is_hidden"
-                      left-color="red"
-                      right-color="red"
-                      class="col-10 pt-card-2 text-bow item-border"
-                      :class="getDarkModeClass(darkMode)"
-                      :key="`notif-${index}`"
-                    >
-                      <div class="row q-py-sm q-px-md">
-                        <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                          {{ notif.title }}
-                        </span><br/>
-                        <span class="col-12">{{ notif.message }}</span>
-                        <span
-                          class="col-12 q-mt-xs text-caption"
-                          align="right"
-                          style="color: gray;"
-                        >
-                          {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                        </span>
-                      </div>
-                    </q-slide-item>
-                  </template>
-                </template>
+                  <q-slide-item
+                    v-if="!notif.is_hidden"
+                    left-color="red"
+                    right-color="red"
+                    class="col-10 pt-card-2 text-bow item-border"
+                    :class="getDarkModeClass(darkMode)"
+                    :key="`notif-${index}`"
+                  >
+                    <div class="row q-py-sm q-px-md">
+                      <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
+                        {{ notif.title }}
+                      </span><br/>
+                      <span class="col-12">{{ notif.message }}</span>
+                      <span
+                        class="col-12 q-mt-xs text-caption"
+                        align="right"
+                        style="color: gray;"
+                      >
+                        {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
+                      </span>
+                    </div>
+                  </q-slide-item>
+                </div>
               </template>
 
               <template v-else>
