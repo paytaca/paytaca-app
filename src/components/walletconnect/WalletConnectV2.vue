@@ -278,8 +278,7 @@
   </div>
 </template>
 <script setup>
-
-import { onBeforeMount } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount } from 'vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { getWalletByNetwork, convertCashAddress } from 'src/wallet/chipnet';
@@ -288,7 +287,6 @@ import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import Watchtower from 'watchtower-cash-js';
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
-import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount } from 'vue';
 import { secp256k1, decodePrivateKeyWif, binToHex, instantiateSha256} from '@bitauth/libauth'
 import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils';
 import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
@@ -355,7 +353,7 @@ const setWatchtowerBaseUrl = (isChipnet) => {
 /**
  * Loads active session
  */
-async function loadActiveSessions() {
+async function loadActiveSessions () {
   activeSessions.value = await web3Wallet.value.getActiveSessions()
 }
 
@@ -369,13 +367,9 @@ const fetchWalletExternalAddresses = async () => {
     if (getWalletExternalAddressesResp.ok) {
       walletExternalAddressesLoc = await getWalletExternalAddressesResp.json()
       walletExternalAddresses.value = walletExternalAddressesLoc
-      console.log('🚀 ~ fetchWalletExternalAddresses ~ walletExternalAddresses:', walletExternalAddresses.value)
     }
     return walletExternalAddressesLoc
-  } catch (error) {
-    // TODO: DELETE LOG
-    console.log('🚀 ~ fetchWalletExternalAddresses ~ error:', error)
-  }
+  } catch (error) {}
 }
 
 /**
@@ -485,11 +479,9 @@ watch(() => $store.getters['global/isChipnet'], (isChipnet) => {
   setWatchtowerBaseUrl(isChipnet)
 })
 
-
 onBeforeMount(() => {
   setWatchtowerBaseUrl($store.getters['global/isChipnet'])
   fetchWalletExternalAddresses()
-  loadActiveSessions()
 })
 
 onMounted(async () => {
@@ -850,12 +842,12 @@ function statusUpdate() {
     return parsedSessionRequest
   })
 
-  console.log('Status update', {
-    authRequests: web3Wallet.value.getPendingAuthRequests(),
-    activeSessions: activeSessions.value,
-    pendingProposals: sessionProposals.value,
-    pendingRequests: sessionRequests.value,
-  })
+  // console.log('Status update', {
+  //   authRequests: web3Wallet.value.getPendingAuthRequests(),
+  //   activeSessions: activeSessions.value,
+  //   pendingProposals: sessionProposals.value,
+  //   pendingRequests: sessionRequests.value,
+  // })
 
   if (activeSessionsList.value?.length === 1) {
     selectedActiveSessionTopic.value = activeSessionsList.value?.[0]?.topic
@@ -874,6 +866,7 @@ async function loadWeb3Wallet () {
 
 onMounted(async () => {
   await loadWeb3Wallet()
+  loadActiveSessions()
 })
 watch(web3Wallet, () => {
   statusUpdate()
@@ -891,7 +884,6 @@ onUnmounted(() => detachEventsListeners(web3Wallet.value))
  * @param {import('@walletconnect/web3wallet').IWeb3Wallet} _web3Wallet 
  */
 function attachEventListeners(_web3Wallet) {
-  console.log('Attaching events', _web3Wallet)
   _web3Wallet?.on?.('auth_request', onAuthRequest)
   _web3Wallet?.on?.('session_proposal', onSessionProposal)
   _web3Wallet?.on?.('session_request', onSessionRequest)
@@ -902,7 +894,6 @@ function attachEventListeners(_web3Wallet) {
  * @param {import('@walletconnect/web3wallet').IWeb3Wallet} _web3Wallet 
  */
 function detachEventsListeners(_web3Wallet) {
-  console.log('Detaching events', _web3Wallet)
   _web3Wallet?.off?.('auth_request', onAuthRequest)
   _web3Wallet?.off?.('session_proposal', onSessionProposal)
   _web3Wallet?.off?.('session_request', onSessionRequest)
