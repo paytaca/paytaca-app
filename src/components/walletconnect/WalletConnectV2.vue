@@ -513,8 +513,6 @@ async function addressIsFromThisWallet (addressBeingChecked /* :string */, addre
   const vm = this
   for (const index in addressesSourceList) {
     const wif = await getWalletByNetwork(vm.wallet, 'bch').getPrivateKey(`0/${index}`)
-    const wif2 = this.getWallet().getPrivateKey(`0/${index}`)
-    console.log(`${wif} == ${wif2} `, wif === wif2)
     const decodedPrivkey = decodePrivateKeyWif(wif)
     let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
     if (vm.isChipnet) {
