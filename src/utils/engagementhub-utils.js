@@ -118,6 +118,15 @@ export async function hideItemUpdate (item) {
     .catch(error => { console.log(error) })
 }
 
+export async function massHideNotifs (notifsIds) {
+  await NOTIFS_URL
+    .post('notification/mass_delete_notifications/', { notif_ids: notifsIds })
+    .then(response => { /* mass delete successful */ })
+    .catch(error => console.log(error))
+}
+
+// ========== PUSH NOTIFICATIONS SETTINGS ========== //
+
 export function parseDeviceId (deviceId) {
   const platform = Capacitor.getPlatform()
   if (platform === 'ios') {

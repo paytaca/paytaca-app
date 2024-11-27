@@ -26,12 +26,20 @@
       <div>
         <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
           <q-btn
+            v-if="isCheckboxClicked"
+            flat
+            round
+            :disable="isLoading"
+            icon="cancel"
+            @click="isCheckboxClicked = false"
+          />
+          <q-btn
             flat
             round
             :disable="isLoading"
             :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
             :color="isCheckboxClicked ? 'red' : 'white'"
-            @click="isCheckboxClicked = !isCheckboxClicked"
+            @click="massDeleteNotifs"
           />
           <q-btn
             flat
@@ -181,7 +189,10 @@ import ago from 's-ago'
 
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import {
-  getWalletNotifications, parseNotifType, hideItemUpdate
+  getWalletNotifications,
+  parseNotifType,
+  hideItemUpdate,
+  massHideNotifs
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -240,6 +251,7 @@ export default {
       )
       vm.notifsList = respData.list
       vm.maxPages = respData.max
+      this.resetCheckboxList()
       vm.isLoading = false
     },
     async onSwipe (event, index) {
@@ -312,6 +324,31 @@ export default {
           break
       }
     },
+    resetCheckboxList () {
+      if (this.isCheckboxClicked) {
+        this.checkboxList = new Array(this.notifsList.length).fill(false)
+      }
+    },
+    async massDeleteNotifs () {
+      const vm = this
+
+      if (!vm.isCheckboxClicked) vm.isCheckboxClicked = true
+      else if (vm.checkboxList.filter(a => a === true).length > 0) {
+        const checkboxTrueList = []
+
+        vm.checkboxList.forEach((check, i) => {
+          if (check) checkboxTrueList.push(i)
+        })
+
+        const notifsIds = vm.notifsList
+          .filter((a, i) => checkboxTrueList.includes(i))
+          .map(b => b.id)
+
+        await massHideNotifs(notifsIds)
+        await vm.refreshNotifsList(null)
+        vm.isCheckboxClicked = false
+      }
+    },
 
     formatDate (date) {
       return ago(new Date(date))
@@ -320,9 +357,7 @@ export default {
 
   watch: {
     isCheckboxClicked (value) {
-      const vm = this
-
-      vm.checkboxList = new Array(vm.notifsList.length).fill(false)
+      this.resetCheckboxList()
     }
   }
 }
