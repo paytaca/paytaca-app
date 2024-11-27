@@ -288,7 +288,7 @@ import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import Watchtower from 'watchtower-cash-js';
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount } from 'vue';
 import { secp256k1, decodePrivateKeyWif, binToHex, instantiateSha256} from '@bitauth/libauth'
 import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils';
 import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
@@ -351,6 +351,12 @@ const setWatchtowerBaseUrl = (isChipnet) => {
   if (isChipnet) {
     watchtowerBaseUrl.value = 'https://chipnet.watchtower.cash'
   }
+}
+/**
+ * Loads active session
+ */
+async function loadActiveSessions() {
+  activeSessions.value = await web3Wallet.value.getActiveSessions()
 }
 
 /**
@@ -479,9 +485,11 @@ watch(() => $store.getters['global/isChipnet'], (isChipnet) => {
   setWatchtowerBaseUrl(isChipnet)
 })
 
+
 onBeforeMount(() => {
   setWatchtowerBaseUrl($store.getters['global/isChipnet'])
   fetchWalletExternalAddresses()
+  loadActiveSessions()
 })
 
 onMounted(async () => {
