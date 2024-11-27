@@ -1443,21 +1443,22 @@ export default {
 
       if (toSendBCHRecipients.length > 0) {
         let changeAddress = this.getChangeAddress('bch')
-        const w = this.getWallet('bch')
-        let lastWalletAddressUsedInApp
-        const dontUseChangeAddress = lastWalletAddressUsedInApp = await this.getLastWalletAddressUsedInApp(w.walletHash)
-        if (dontUseChangeAddress) {
-          changeAddress = lastWalletAddressUsedInApp
-          if (!this.walletExternalAddresses[w.walletHash]) {
-            // just trying to load the addresses one last time
-            await this.fetchWalletExternalAddresses(w.walletHash)
-          }
-          const addressIsFromThisWallet = await this.addressIsFromThisWallet(lastWalletAddressUsedInApp, this.walletExternalAddresses[w.walletHash])
-          if (!addressIsFromThisWallet) {
-            changeAddress = this.getAddressFromThisWallet()
+        if (token?.tokenId) {
+          const w = this.getWallet('bch')
+          let lastWalletAddressUsedInApp
+          const dontUseChangeAddress = lastWalletAddressUsedInApp = await this.getLastWalletAddressUsedInApp(w.walletHash)
+          if (dontUseChangeAddress) {
+            changeAddress = lastWalletAddressUsedInApp
+            if (!this.walletExternalAddresses[w.walletHash]) {
+              // just trying to load the addresses one last time
+              await this.fetchWalletExternalAddresses(w.walletHash)
+            }
+            const addressIsFromThisWallet = await this.addressIsFromThisWallet(lastWalletAddressUsedInApp, this.walletExternalAddresses[w.walletHash])
+            if (!addressIsFromThisWallet) {
+              changeAddress = this.getAddressFromThisWallet()
+            }
           }
         }
-        // TODO: follow --> sendBch call stack, watch changeAddress
         getWalletByNetwork(vm.wallet, 'bch')
           .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
