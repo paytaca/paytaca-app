@@ -310,6 +310,10 @@ const $store = useStore()
  * addresses fetched from watchtower.
  */
 const walletExternalAddresses = ref/* <string[]> */()
+/**
+ * Addresses used on an App, identitified by its url
+ */
+const addressesUsedOnPeerApp = ref /* { <peer url>: string[] } */
 
 const watchtowerBaseUrl = ref()
 
@@ -365,6 +369,30 @@ const fetchWalletExternalAddresses = async () => {
   } catch (error) {
     // TODO: DELETE LOG
     console.log('🚀 ~ fetchWalletExternalAddresses ~ error:', error)
+  }
+}
+
+/**
+ * Loads the addresses previously used on the (d)app.
+ */
+const loadAddressesUsedOnPeerApp = async (walletHash /* :string */, sessionProposal) => {
+  const appUrl = sessionProposal?.proposer?.metadata?.url
+  if (!appUrl) return
+  try {
+    const response = await fetch(`${watchtowerBaseUrl.value}/api/wallet-address-app/?wallet_hash=${walletHash}&app_url=${appUrl}`)
+    if (response.ok) {
+      const responseJson = await response.json()
+      if (!addressesUsedOnPeerApp.value) addressesUsedOnPeerApp.value = {}
+      for (const walletAddressAppModel of responseJson.results) {
+        if (!addressesUsedOnPeerApp.value[walletAddressAppModel.app_url]) {
+          // use app_url as key
+          addressesUsedOnPeerApp.value[walletAddressAppModel.app_url] = []
+        }
+        addressesUsedOnPeerApp.value[walletAddressAppModel.app_url].push(walletAddressAppModel.wallet_address)
+      }
+    }
+  } catch (error) {
+    console.log(error)
   }
 }
 
@@ -474,11 +502,48 @@ async function getCurrentAddressWif() {
   return utxoPkWif
 }
 
-function getBchAddresses() {
-  return [ accountInfo.value.address ]
+/**
+ * Sanity checker, make sure address retrieved from watchtower
+ * is from this wallet.
+ * @param addressSourceList All the external addresses (sorted by index) from
+ * the wallet, it's just used for its indices
+ * @return true if address is from this wallet
+ */
+async function addressIsFromThisWallet (addressBeingChecked /* :string */, addressesSourceList /* :string[] */) {
+  const vm = this
+  for (const index in addressesSourceList) {
+    const wif = await getWalletByNetwork(vm.wallet, 'bch').getPrivateKey(`0/${index}`)
+    const wif2 = this.getWallet().getPrivateKey(`0/${index}`)
+    console.log(`${wif} == ${wif2} `, wif === wif2)
+    const decodedPrivkey = decodePrivateKeyWif(wif)
+    let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+    if (vm.isChipnet) {
+      // to test address
+      cashAddress = convertCashAddress(cashAddress, true, false)
+    }
+    if (cashAddress === addressBeingChecked) {
+      return true
+    }
+  }
+  return false
 }
 
-function getNamespaces() {
+function getBchAddresses (sessionProposal /* ?: <Wc SessionProposal> */) {
+  let addresses = [accountInfo.value.address]
+  if (sessionProposal?.proposer?.metadata?.url) {
+    if (addressesUsedOnPeerApp.value?.[sessionProposal?.proposer?.metadata?.url] &&
+          addressesUsedOnPeerApp.value?.[sessionProposal?.proposer?.metadata?.url][0]) {
+      // just provide one address as before (the last address used on this app)
+      const lastUsedAddress = addressesUsedOnPeerApp.value[sessionProposal?.proposer?.metadata?.url][0]
+      if (addressIsFromThisWallet(lastUsedAddress)) {
+        addresses = [lastUsedAddress]
+      }
+    }
+  }
+  return addresses
+}
+
+function getNamespaces(sessionProposal) {
   return {
     bch: {
       methods: [
@@ -492,7 +557,7 @@ function getNamespaces() {
       events: [
         'addressesChanged'
       ],
-      accounts: getBchAddresses().map(address => `bch:${address}`),
+      accounts: getBchAddresses(sessionProposal).map(address => `bch:${address}`),
     }
   }
 }
@@ -584,6 +649,7 @@ async function disconnectSession(sessionTopic) {
 }
 
 function openSessionProposal(sessionProposal) {
+  loadAddressesUsedOnPeerApp(bchWallet.value.walletHash, sessionProposal)
   $q.dialog({
     component: WalletConnectConfirmDialog,
     componentProps: {
@@ -596,7 +662,7 @@ function openSessionProposal(sessionProposal) {
     .onCancel(async () => {
       await web3Wallet.value.rejectSession({
         id: sessionProposal?.id,
-        reason: getSdkError('USER_REJECTED'),
+        reason: getSdkError('USER_REJECTED')
       })
       console.log('Session rejected')
       statusUpdate()
@@ -607,26 +673,27 @@ function openSessionProposal(sessionProposal) {
 async function approveSessionProposal(sessionProposal) {
   const dialog = $q.dialog({
     title: $t('ApprovingSession'),
-    progress: { color: 'brandblue', },
+    progress: { color: 'brandblue' },
     persistent: true,
     seamless: true,
     ok: false,
     class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
   try {
-    const namespaces = getNamespaces()
-    console.log('Namespaces', namespaces)
-  
+    if (sessionProposal?.proposer?.metadata?.url &&
+      !addressesUsedOnPeerApp.value?.[sessionProposal?.proposer?.metadata?.url]) {
+      // try to load one last time
+      await loadAddressesUsedOnPeerApp(sessionProposal)
+    }
+    const namespaces = getNamespaces(sessionProposal)
     const approvedNamespaces = buildApprovedNamespaces({
       proposal: sessionProposal,
       supportedNamespaces: namespaces,
     })
-  
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
       namespaces: approvedNamespaces,
     })
-    console.log('Session approved', session)
     saveWalletConnectRecords(session)
     statusUpdate()
   } finally {
@@ -809,8 +876,6 @@ watch(web3Wallet, () => {
 })
 watch(web3Wallet, newValue => attachEventListeners(newValue))
 watch(web3Wallet, (_, oldValue) => detachEventsListeners(oldValue))
-
-
 
 onMounted(() => attachEventListeners(web3Wallet.value))
 onUnmounted(() => detachEventsListeners(web3Wallet.value))
