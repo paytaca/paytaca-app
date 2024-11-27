@@ -2,7 +2,7 @@
   <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-md q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
     {{ order?.id ? `Order #${order?.id}` : ''}}
   </div>
-  <CashinConfirmPayment v-if="state === 'confirm_payment'"
+  <CashinConfirmPayment ref="cashinConfirmPaymentRef" v-if="state === 'confirm_payment'"
     :key="confirmPaymentKey"
     :order="order"
     :uploading="uploading"

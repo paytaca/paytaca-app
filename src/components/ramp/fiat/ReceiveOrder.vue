@@ -15,7 +15,7 @@
           rounded
           label='confirm'
           class="q-space text-white q-mx-md button"
-          :disable="disableButton"
+          :disable="disableButton || this.balanceExceeded === true"
           @click="$emit('confirm')"
         />
       </div>
@@ -88,7 +88,7 @@ export default {
       return msg
     },
     disableButton () {
-      return this.loadConfirmButton || this.loadDeclineButton || this.balanceExceeded === true
+      return this.loadConfirmButton || this.loadDeclineButton
     }
   },
   watch: {

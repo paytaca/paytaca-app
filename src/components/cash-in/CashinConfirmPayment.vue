@@ -95,10 +95,10 @@
       </q-file>
     </div>
     <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
-      <q-btn :disable="!url" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
+      <q-btn :disable="!url || disableButtons" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
     </div>
     <div class="row justify-center q-mx-lg q-px-md">
-      <q-btn rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="$emit('appeal')"/>
+      <q-btn :disable="disableButtons" rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="$emit('appeal')"/>
     </div>
   </q-scroll-area>
   <AttachmentDialog :show="showImageDialog" :url="url" @back="showImageDialog=false"/>
@@ -106,6 +106,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import AttachmentDialog from './AttachmentDialog.vue'
+import { satoshiToBch } from 'src/exchange'
 
 export default {
   components: {
@@ -116,7 +117,9 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       attachment: null,
       showImageDialog: false,
-      paid: false
+      paid: false,
+      loadSubmitButton: false,
+      loadCancelButton: false
     }
   },
   emits: ['confirm-payment', 'refetch-order', 'upload', 'delete', 'appeal'],
@@ -132,10 +135,13 @@ export default {
       return 5 * 1024 * 1024
     },
     amount () {
-      return Number((Number(this.order?.crypto_amount) * Number(this.order?.locked_price)).toFixed(2)).toLocaleString()
+      return Number((Number(satoshiToBch(this.order?.trade_amount)) * Number(this.order?.price)).toFixed(2)).toLocaleString()
     },
     url () {
       return this.order?.payment_methods_selected[0]?.attachments[0]?.image?.url
+    },
+    disableButtons () {
+      return this.loadCancelButton || this.loadSubmitButton
     }
   },
   unmounted () {

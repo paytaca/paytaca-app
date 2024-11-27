@@ -28,7 +28,7 @@
                         <div style="font-size: 13px;">
                           ORDER #{{ order?.id }}
                         </div>
-                        <div class="text-grey-6">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
+                        <div class="text-grey-6">{{ Number(Number(satoshiToBch(order?.trade_amount)).toFixed(8)) }} BCH</div>
                       </div>
                       <div class="col-auto q-my-sm text-center" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">
                         <q-card bordered flat class="pt-card-2 q-px-sm" :class="getDarkModeClass(darkMode)" style="font-size: 13px;" outline>
@@ -77,6 +77,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
 import { wallet } from 'src/exchange/wallet'
+import { satoshiToBch } from 'src/exchange'
 
 export default {
   setup () {
@@ -130,6 +131,7 @@ export default {
     this.loading = false
   },
   methods: {
+    satoshiToBch,
     getDarkModeClass,
     resetPagination () {
       this.$store.commit('ramp/resetCashinOrderListPage')

@@ -66,6 +66,7 @@
   </div>
 </template>
 <script>
+import { bchToSatoshi } from 'src/exchange'
 
 export default {
   props: {
@@ -161,7 +162,7 @@ export default {
       }
       const payload = {
         ad: this.selectedAd?.id,
-        crypto_amount: amount,
+        trade_amount: bchToSatoshi(amount),
         payment_methods: [this.selectedPaymentMethod?.id],
         is_cash_in: true
       }
