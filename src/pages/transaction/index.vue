@@ -571,8 +571,33 @@ export default {
       })
     },
     async checkCashinAvailable () {
+
+      const appVer = packageInfo.version
+      let platform = null
+      let outdated = false
+
+      if (this.$q.platform.is.mobile) platform = 'android'
+      if (this.$q.platform.is.ios) platform = 'ios'
+      if (this.$q.platform.is.bex) platform = 'web'
+
+      if (platform) {
+        // fetching p2p exchange version check
+        await backend.get(`ramp-p2p/version/check/${platform}/`)
+          .then(response => {
+            if (!('error' in response.data)) {
+              const latestVer = response.data?.latest_version
+              const minReqVer = response.data?.min_required_version
+
+              if (appVer !== latestVer) {
+                outdated = this.checkOutdatedVersion(appVer, minReqVer)
+              }
+            }
+          })
+      }
+
+      this.hasCashin = false
       // check network
-      if (this.selectedNetwork === 'BCH') {
+      if (this.selectedNetwork === 'BCH' && !outdated) {
         // check availableCashinFiat is empty to avoid duplicate requests
         if (this.availableCashinFiat) {
           this.hasCashin = true
@@ -612,14 +637,16 @@ export default {
       }
     },
     async checkCashinAlert () {
-      const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-      await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
-        .then(response => {
-          this.hasCashinAlert = response.data.has_cashin_alerts
-        })
-        .catch(error => {
-          console.log(error.response || error)
-        })
+      if (this.hasCashin) {
+        const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
+        await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
+          .then(response => {
+            this.hasCashinAlert = response.data.has_cashin_alerts
+          })
+          .catch(error => {
+            console.log(error.response || error)
+          })
+      }
     },
     setupCashinWebSocket () {
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
@@ -1193,25 +1220,7 @@ export default {
               const minReqVer = response.data?.min_required_version
 
               if (appVer !== latestVer) {
-                const appV = appVer.split('.').map(Number)
-                const minV = minReqVer.split('.').map(Number)
-
-                let openVersionUpdate = false
-
-                for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
-                  const v1 = appV[i] || 0
-                  const v2 = minV[i] || 0
-
-                  if (v1 < v2) {
-                    openVersionUpdate = true
-                    break
-                  } else if (v1 > v2) {
-                    openVersionUpdate = false
-                    break
-                  } else {
-                    openVersionUpdate = false
-                  }
-                }
+                const openVersionUpdate = this.checkOutdatedVersion(appVer, minReqVer)
 
                 // open version update dialog
                 if (openVersionUpdate) {
@@ -1226,6 +1235,27 @@ export default {
             }
           })
       }
+    },
+    checkOutdatedVersion (appVer, minReqVer) {
+      let isOutdated = false
+      const appV = appVer.split('.').map(Number)
+      const minV = minReqVer.split('.').map(Number)
+
+      for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
+        const v1 = appV[i] || 0
+        const v2 = minV[i] || 0
+
+        if (v1 < v2) {
+          isOutdated = true
+          break
+        } else if (v1 > v2) {
+          isOutdated = false
+          break
+        } else {
+          isOutdated = false
+        }
+      }
+      return isOutdated
     },
     resetCashinOrderPagination () {
       this.$store.commit('ramp/resetCashinOrderList')
@@ -1255,7 +1285,7 @@ export default {
   },
   async mounted () {
     const vm = this
-    this.checkVersionUpdate()
+    await this.checkVersionUpdate()
     this.checkCashinAvailable()
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
