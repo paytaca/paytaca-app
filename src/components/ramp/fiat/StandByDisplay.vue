@@ -155,6 +155,7 @@
         <div v-if="showAppealBtn">
           <div class="row q-pt-xs q-px-md">
             <q-btn
+              :loading="loadAppealButton"
               flat
               no-caps
               :disable="appealCountdown !== null"
@@ -178,7 +179,7 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" />
+    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" @loadAppeal="loadAppealButton = true"/>
     <!-- <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
@@ -246,7 +247,8 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
       attachmentUrl: null,
-      loadCancelButton: false
+      loadCancelButton: false,
+      loadAppealButton: false
     }
   },
   props: {

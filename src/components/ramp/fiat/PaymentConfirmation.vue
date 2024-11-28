@@ -186,9 +186,10 @@
       <div class="row justify-center" v-if="countDown !== null">
         <q-btn
           v-if="!sendingBch"
+          :loading="loadAppealButton"
           flat
           no-caps
-          :disable="countDown !== ''"
+          :disable="countDown !== '' || loadAppealButton"
           :label="appealBtnLabel"
           color="blue-6"
           @click="onOpenAppealForm"
@@ -213,7 +214,7 @@
   }"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
-  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false"/>
+  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false" @loadAppeal="loadAppealButton = true; showDragSlide = false"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
@@ -258,7 +259,8 @@ export default {
       peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
-      attachmentUrl: null
+      attachmentUrl: null,
+      loadAppealButton: false
     }
   },
   components: {

@@ -48,9 +48,9 @@
         Cancel this Order?
       </div>
       <div class="row q-pt-sm q-mx-lg q-px-lg">
-        <q-btn v-if="confirmCancel || confirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="onDismissCancel"/>
-        <q-btn v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
-        <q-btn v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder()"/>
+        <q-btn v-if="confirmCancel || confirmAppeal" :disable="loadConfirmCancel || loadConfirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="onDismissCancel"/>
+        <q-btn :loading="loadConfirmCancel" :disable="loadConfirmCancel" v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
+        <q-btn :loading="loadConfirmAppeal" :disable="loadConfirmAppeal" v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder()"/>
       </div>
     <!-- </div> -->
   </div>
@@ -74,6 +74,7 @@
     </div>
     <div class="row justify-center q-pt-md">
       <q-btn
+        :disable="loadAppeal"
         flat
         label="Cancel"
         :color="darkMode ? 'grey-5' : 'grey-6'"
@@ -81,11 +82,12 @@
         @click="state = 'await_status'"
       />
       <q-btn
+        :loading="loadAppeal"
         flat
         label="Continue"
         color="red-6"
         size="md"
-        :disable="selectedReasons.length === 0"
+        :disable="selectedReasons.length === 0 || loadAppeal"
         @click="appealOrder('RLS')"
       />
     </div>
@@ -139,7 +141,10 @@ export default {
         this.$t('AppealFormReasonOpt1'),
         this.$t('AppealFormReasonOpt2'),
         this.$t('AppealFormReasonOpt3')
-      ]
+      ],
+      loadConfirmAppeal: false,
+      loadConfirmCancel: false,
+      loadAppeal: false
     }
   },
   emits: ['confirm-payment', 'new-order', 'refetch-cashin-alert'],
@@ -367,9 +372,13 @@ export default {
       this.confirmCancel = true
     },
     onDismissCancel () {
-      this.state = 'confirm_payment'
       this.confirmAppeal = false
       this.confirmCancel = false
+      if (this.confirmAppeal) {
+        this.state = 'confirm_payment'
+      } else {
+        this.state = 'await_status'
+      }
     },
     async fetchAppeal () {
       const vm = this
@@ -391,8 +400,13 @@ export default {
         })
     },
     appealOrder (type = 'RFN') {
+      if (type === 'RFN') {
+        this.loadConfirmAppeal = true
+      }
+
       if (type === 'RLS') {
         this.appealReasons = this.selectedReasons
+        this.loadAppeal = true
       }
       const vm = this
       const url = '/ramp-p2p/appeal/'
@@ -423,6 +437,7 @@ export default {
     },
     cancelOrder () {
       const vm = this
+      vm.loadConfirmCancel = true
       const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       backend.post(url, {}, { authorize: true })
         .then(response => {
