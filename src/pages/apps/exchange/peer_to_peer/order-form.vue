@@ -51,6 +51,10 @@
                     }}
                   </span>
                 </div>
+                <div class="q-mx-lg">
+                  <div class="row">Payment types</div>
+                  <q-badge outline :color="ad.trade_type === 'SELL' ? 'blue' : 'red'" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+                </div>
               </div>
 
               <!-- Input -->
