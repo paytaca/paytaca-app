@@ -11,15 +11,18 @@
       </div>
       <div class="row q-pt-md q-px-sm">
         <q-btn
+          :loading="loadConfirmButton"
           rounded
           label='confirm'
           class="q-space text-white q-mx-md button"
-          :disable="balanceExceeded === true"
+          :disable="disableButton || this.balanceExceeded === true"
           @click="$emit('confirm')"
         />
       </div>
       <div class="row q-pt-sm q-pb-md q-px-sm">
         <q-btn
+          :loading="loadDeclineButton"
+          :disable="disableButton"
           rounded
           label='decline'
           class="q-space text-white q-mx-md"
@@ -46,6 +49,8 @@ export default {
       amount: null,
       price: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      loadConfirmButton: false,
+      loadDeclineButton: false
     }
   },
   props: {
@@ -81,6 +86,9 @@ export default {
         }
       }).join(' ')
       return msg
+    },
+    disableButton () {
+      return this.loadConfirmButton || this.loadDeclineButton
     }
   },
   watch: {
