@@ -313,20 +313,6 @@ export default {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
       return stat.includes(this.data?.order?.status.value)
     },
-    cryptoAmount () {
-      let amount = 0
-      if (this.byFiat) {
-        amount = this.formatCurrency(parseFloat(this.data.order?.crypto_amount) * parseFloat(this.data.order?.locked_price), this.data.order?.ad?.fiat_currency?.symbol)
-      } else {
-        amount = this.formatCurrency(parseFloat(this.data.order?.crypto_amount))
-      }
-      return amount
-    },
-    fiatAmount () {
-      let amount = Number(parseFloat(this.data?.order?.crypto_amount) * parseFloat(this.data?.order?.locked_price))
-      if (amount > 1) amount = amount.toFixed(2)
-      return this.formatCurrency(amount)
-    },
     statusColor () {
       const stat = this.data?.order?.status.value
 

@@ -25,8 +25,7 @@ export default {
   components: {
     RampLogin,
     ProgressLoader,
-    NetworkError,
-    versionUpdate
+    NetworkError
   },
   data () {
     return {

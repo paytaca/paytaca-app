@@ -2,7 +2,7 @@ import { createRouter, createMemoryHistory, createWebHistory, createWebHashHisto
 import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../wallet'
 import routes from './routes'
-import store from '../store'
+import Store from '../store'
 
 import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'

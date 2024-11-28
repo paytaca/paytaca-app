@@ -48,7 +48,7 @@
         Cancel this Order?
       </div>
       <div class="row q-pt-sm q-mx-lg q-px-lg">
-        <q-btn v-if="confirmCancel || confirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="state = 'await_status'"/>
+        <q-btn v-if="confirmCancel || confirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="onDismissCancel"/>
         <q-btn v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
         <q-btn v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder()"/>
       </div>
@@ -109,6 +109,7 @@ import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import CashinConfirmPayment from './CashinConfirmPayment.vue'
+import { satoshiToBch } from 'src/exchange'
 
 export default {
   components: {
@@ -295,7 +296,7 @@ export default {
         case 'RLS': {
           this.state = 'completed'
           this.statusTitle = 'Funds Released!'
-          const amount = Number(Number(this.order?.crypto_amount).toFixed(8))
+          const amount = satoshiToBch(this.order?.trade_amount)
           this.statusMessage = `${amount} BCH has been sent to you`
           this.order?.transactions?.forEach((tx) => {
             if (tx.action === 'RELEASE') {
@@ -365,6 +366,11 @@ export default {
       this.state = 'cancel_order'
       this.confirmCancel = true
     },
+    onDismissCancel () {
+      this.state = 'confirm_payment'
+      this.confirmAppeal = false
+      this.confirmCancel = false
+    },
     async fetchAppeal () {
       const vm = this
       const url = `/ramp-p2p/order/${vm.order.id}/appeal/`
@@ -388,7 +394,6 @@ export default {
       if (type === 'RLS') {
         this.appealReasons = this.selectedReasons
       }
-
       const vm = this
       const url = '/ramp-p2p/appeal/'
       const data = {

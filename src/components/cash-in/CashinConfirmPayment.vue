@@ -98,7 +98,7 @@
       <q-btn :disable="!url || disableButtons" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
     </div>
     <div class="row justify-center q-mx-lg q-px-md">
-      <q-btn :disable="disableButtons" rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="$emit('appeal')"/>
+      <q-btn :disable="disableButtons" rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="onClickCancel"/>
     </div>
   </q-scroll-area>
   <AttachmentDialog :show="showImageDialog" :url="url" @back="showImageDialog=false"/>
@@ -144,13 +144,11 @@ export default {
       return this.loadCancelButton || this.loadSubmitButton
     }
   },
-  unmounted () {
-    if (!this.paid) {
-      this.onDeleteAttachment()
-    }
-  },
   methods: {
     getDarkModeClass,
+    onClickCancel () {
+      this.$emit('appeal')
+    },
     onRejectedFilePick (rejectedEntries) {
       console.log('onRejectedFilePick:', rejectedEntries)
       let message = 'File did not pass validation constraints'

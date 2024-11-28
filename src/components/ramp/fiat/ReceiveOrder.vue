@@ -36,7 +36,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getAppealCooldown, formatCurrency } from 'src/exchange'
+import { getAppealCooldown, formatCurrency, satoshiToBch, bchToFiat } from 'src/exchange'
 
 export default {
   data () {
@@ -64,10 +64,10 @@ export default {
     },
     balanceExceeded () {
       if (this.order?.ad?.trade_type === 'BUY' && this.order?.is_ad_owner) return false
-      return (parseFloat(this.order.crypto_amount) > parseFloat(this.balance))
+      return (satoshiToBch(this.order?.trade_amount) > parseFloat(this.balance))
     },
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
+      return bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
     },
     cryptoAmount () {
       return (this.fiatAmount / this.order.locked_price).toFixed(2)
@@ -111,9 +111,9 @@ export default {
     updateInput () {
       let amount = 0
       if (this.byFiat) {
-        amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+        amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
       } else {
-        amount = parseFloat(this.order.crypto_amount)
+        amount = satoshiToBch(this.order?.trade_amount)
       }
       this.amount = Number(amount)
     }

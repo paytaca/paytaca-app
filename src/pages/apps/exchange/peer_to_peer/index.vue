@@ -28,7 +28,6 @@ export default {
       network: 'BCH',
       menu: 'store',
       isLoading: true,
-      rampWalllet: null,
       proceed: false,
       createUser: false,
       initStatusType: 'ONGOING',
