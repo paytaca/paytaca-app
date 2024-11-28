@@ -1,212 +1,213 @@
 <template>
   <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
   <div v-if="!networkError">
-    <div v-if="state !== 'order-process'">
-      <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
-        <!-- Form Body -->
-        <div v-if="isloaded">
-          <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
-            <!-- :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'" -->
-            {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
-          </div>
-          <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
-          <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
-            <div class="q-mx-lg q-px-xs q-mb-sm">
-              <TradeInfoCard
-                :order="order"
-                :ad="ad"
-                type="ad"
-                @view-peer="onViewPeer"
-                @view-reviews="showReviews=true"/>
+    <q-pull-to-refresh @refresh="loadData">
+      <div v-if="state !== 'order-process'">
+        <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
+          <!-- Form Body -->
+          <div v-if="isloaded">
+            <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
+              {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
             </div>
-            <div class="q-mx-md">
-              <!-- Ad Info -->
-              <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('PriceType') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad.price_type }}
-                  </span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MinTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad?.trade_limits_in_fiat ? Number(Number(ad?.trade_floor).toFixed(2)) : Number(Number(ad?.trade_floor).toFixed(8))  }} {{ tradeLimitsCurrency(ad) }}
-                  </span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MaxTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad?.trade_limits_in_fiat ? Number(Number(minTradeAmount(ad)).toFixed(2)) : Number(Number(minTradeAmount(ad)).toFixed(8)) }} {{ tradeLimitsCurrency(ad) }}
-                  </span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>
-                    {{
-                      $t(
-                        'AppealableAfterCooldown',
-                        { cooldown: appealCooldown.label },
-                        `Appealable after ${ appealCooldown.label }`
-                      )
-                    }}
-                  </span>
-                </div>
-                <div class="q-mx-lg">
-                  <div class="row">Payment types</div>
-                  <q-badge outline :color="ad.trade_type === 'SELL' ? 'blue' : 'red'" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
-                </div>
+            <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
+            <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
+              <div class="q-mx-lg q-px-xs q-mb-sm">
+                <TradeInfoCard
+                  :order="order"
+                  :ad="ad"
+                  type="ad"
+                  @view-peer="onViewPeer"
+                  @view-reviews="showReviews=true"/>
               </div>
-
-              <!-- Input -->
-              <div class="q-mt-md q-mx-md" v-if="!isOwner">
-                <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
-                <q-input
-                  class="q-pb-xs"
-                  filled
-                  dense
-                  type="text"
-                  inputmode="none"
-                  :label="$t('Amount')"
-                  :disable="!hasArbiters"
-                  :dark="darkMode"
-                  :rules="[isValidInputAmount]"
-                  v-model="amount"
-                  @blur="resetInput"
-                  @focus="openCustomKeyboard(true)"
-                  :readonly="readonlyState"
-                  >
-                  <template v-slot:append>
-                    <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
-                  </template>
-                </q-input>
-                <div class="row justify-between">
-                  <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
-                    {{ amountError }}
-                  </div>
-                  <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                    &asymp; {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ equivalentAmount }} {{ !byFiat ? '' : 'BCH' }}
-                  </div>
-                  <div class="justify-end q-gutter-sm q-pr-sm">
-                    <q-btn
-                      class="sm-font-size button button-text-primary"
-                      padding="none"
-                      flat
-                      dense
-                      :disable="!hasArbiters"
-                      :class="getDarkModeClass(darkMode)"
-                      :label="$t('MIN')"
-                      @click="updateInput(max=false, min=true)"/>
-                    <q-btn
-                      class="sm-font-size button button-text-primary"
-                      padding="none"
-                      flat
-                      :disable="!hasArbiters"
-                      :class="getDarkModeClass(darkMode)"
-                      :label="$t('MAX')"
-                      @click="updateInput(max=true, min=false)"/>
-                  </div>
-                </div>
-                <div class="q-pl-sm">
-                  <q-btn
-                    class="sm-font-size button button-text-primary"
-                    padding="none"
-                    flat
-                    no-caps
-                    :disable="!hasArbiters"
-                    :class="getDarkModeClass(darkMode)"
-                    @click="byFiat = !byFiat">
-                    {{
-                      $t(
-                        'SetAmountInCurrency',
-                        { currency: byFiat ? 'BCH' : ad?.fiat_currency?.symbol },
-                        `Set amount in ${ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }`
-                      )
-                    }}
-                  </q-btn>
-                </div>
-                <div v-if="ad.trade_type === 'BUY'">
-                  <q-separator :dark="darkMode" class="q-mt-sm"/>
-                  <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
-                    <span>{{ $t('Balance') }}</span>
+              <div class="q-mx-md">
+                <!-- Ad Info -->
+                <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                  <div class="row justify-between no-wrap q-mx-lg">
+                    <span>{{ $t('PriceType') }}</span>
                     <span class="text-nowrap q-ml-xs">
-                      {{ balance }} BCH
+                      {{ ad.price_type }}
                     </span>
                   </div>
+                  <div class="row justify-between no-wrap q-mx-lg">
+                    <span>{{ $t('MinTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs">
+                      {{ ad?.trade_limits_in_fiat ? Number(Number(ad?.trade_floor).toFixed(2)) : Number(Number(ad?.trade_floor).toFixed(8))  }} {{ tradeLimitsCurrency(ad) }}
+                    </span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mx-lg">
+                    <span>{{ $t('MaxTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs">
+                      {{ ad?.trade_limits_in_fiat ? Number(Number(minTradeAmount(ad)).toFixed(2)) : Number(Number(minTradeAmount(ad)).toFixed(8)) }} {{ tradeLimitsCurrency(ad) }}
+                    </span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mx-lg">
+                    <span>
+                      {{
+                        $t(
+                          'AppealableAfterCooldown',
+                          { cooldown: appealCooldown.label },
+                          `Appealable after ${ appealCooldown.label }`
+                        )
+                      }}
+                    </span>
+                  </div>
+                  <div class="q-mx-lg">
+                    <div class="row">Payment types</div>
+                    <q-badge outline :color="ad.trade_type === 'SELL' ? 'blue' : 'red'" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+                  </div>
+                </div>
+
+                <!-- Input -->
+                <div class="q-mt-md q-mx-md" v-if="!isOwner">
+                  <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
+                  <q-input
+                    class="q-pb-xs"
+                    filled
+                    dense
+                    type="text"
+                    inputmode="none"
+                    :label="$t('Amount')"
+                    :disable="!hasArbiters"
+                    :dark="darkMode"
+                    :rules="[isValidInputAmount]"
+                    v-model="amount"
+                    @blur="resetInput"
+                    @focus="openCustomKeyboard(true)"
+                    :readonly="readonlyState"
+                    >
+                    <template v-slot:append>
+                      <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
+                    </template>
+                  </q-input>
+                  <div class="row justify-between">
+                    <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
+                      {{ amountError }}
+                    </div>
+                    <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
+                      &asymp; {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ equivalentAmount }} {{ !byFiat ? '' : 'BCH' }}
+                    </div>
+                    <div class="justify-end q-gutter-sm q-pr-sm">
+                      <q-btn
+                        class="sm-font-size button button-text-primary"
+                        padding="none"
+                        flat
+                        dense
+                        :disable="!hasArbiters"
+                        :class="getDarkModeClass(darkMode)"
+                        :label="$t('MIN')"
+                        @click="updateInput(max=false, min=true)"/>
+                      <q-btn
+                        class="sm-font-size button button-text-primary"
+                        padding="none"
+                        flat
+                        :disable="!hasArbiters"
+                        :class="getDarkModeClass(darkMode)"
+                        :label="$t('MAX')"
+                        @click="updateInput(max=true, min=false)"/>
+                    </div>
+                  </div>
+                  <div class="q-pl-sm">
+                    <q-btn
+                      class="sm-font-size button button-text-primary"
+                      padding="none"
+                      flat
+                      no-caps
+                      :disable="!hasArbiters"
+                      :class="getDarkModeClass(darkMode)"
+                      @click="byFiat = !byFiat">
+                      {{
+                        $t(
+                          'SetAmountInCurrency',
+                          { currency: byFiat ? 'BCH' : ad?.fiat_currency?.symbol },
+                          `Set amount in ${ byFiat ? 'BCH' : ad?.fiat_currency?.symbol }`
+                        )
+                      }}
+                    </q-btn>
+                  </div>
+                  <div v-if="ad.trade_type === 'BUY'">
+                    <q-separator :dark="darkMode" class="q-mt-sm"/>
+                    <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
+                      <span>{{ $t('Balance') }}</span>
+                      <span class="text-nowrap q-ml-xs">
+                        {{ balance }} BCH
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- create order btn -->
+                <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
+                  <q-btn
+                    :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton"
+                    :loading="loadSubmitButton"
+                    rounded
+                    no-caps
+                    :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
+                    :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+                    class="q-space"
+                    @click="submit()">
+                  </q-btn>
+                </div>
+
+                <!-- Warning message for when no currency arbiter is available for ad -->
+                <div v-if="!hasArbiters" class="warning-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+                  There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+                </div>
+
+                <!-- edit ad button: For ad owners only -->
+                <div class="row q-mx-lg q-py-sm" v-if="isOwner">
+                  <q-btn
+                    rounded
+                    no-caps
+                    :label="$t('EditAd')"
+                    :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
+                    class="q-space"
+                    @click="onEditAd">
+                  </q-btn>
                 </div>
               </div>
-
-              <!-- create order btn -->
-              <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
-                <q-btn
-                  :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton"
-                  :loading="loadSubmitButton"
-                  rounded
-                  no-caps
-                  :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
-                  :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-                  class="q-space"
-                  @click="submit()">
-                </q-btn>
-              </div>
-
-              <!-- Warning message for when no currency arbiter is available for ad -->
-              <div v-if="!hasArbiters" class="warning-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
-                There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
-              </div>
-
-              <!-- edit ad button: For ad owners only -->
-              <div class="row q-mx-lg q-py-sm" v-if="isOwner">
-                <q-btn
-                  rounded
-                  no-caps
-                  :label="$t('EditAd')"
-                  :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-                  class="q-space"
-                  @click="onEditAd">
-                </q-btn>
-              </div>
+            </q-scroll-area>
+          </div>
+          <!-- Progress Loader -->
+          <div v-else>
+            <div class="row justify-center q-py-lg" style="margin-top: 50px">
+              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
             </div>
-          </q-scroll-area>
-        </div>
-        <!-- Progress Loader -->
-        <div v-else>
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          </div>
+          <!-- Dialogs -->
+          <div v-if="openDialog">
+            <MiscDialogs
+              :type="'genericDialog'"
+              :title="title"
+              v-on:back="openDialog = false"
+              v-on:submit="recieveDialogsInfo"
+            />
           </div>
         </div>
-        <!-- Dialogs -->
-        <div v-if="openDialog">
-          <MiscDialogs
-            :type="'genericDialog'"
-            :title="title"
-            v-on:back="openDialog = false"
-            v-on:submit="recieveDialogsInfo"
+        <!-- Add payment method -->
+        <div v-if="state === 'add-payment-method'">
+          <AddPaymentMethods
+            ref="addPaymentMethodsRef"
+            :type="'General'"
+            :ad-payment-methods="ad?.payment_methods"
+            :currency="ad?.fiat_currency?.symbol"
+            v-on:back="state = 'initial'"
+            v-on:submit="recievePaymentMethods"
+          />
+        </div>
+        <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
+        <div style="position: fixed; z-index: 10;">
+          <customKeyboard
+            :custom-keyboard-state="customKeyboardState"
+            v-on:addKey="setAmount"
+            v-on:makeKeyAction="makeKeyAction"
           />
         </div>
       </div>
-      <!-- Add payment method -->
-      <div v-if="state === 'add-payment-method'">
-        <AddPaymentMethods
-          ref="addPaymentMethodsRef"
-          :type="'General'"
-          :ad-payment-methods="ad?.payment_methods"
-          :currency="ad?.fiat_currency?.symbol"
-          v-on:back="state = 'initial'"
-          v-on:submit="recievePaymentMethods"
-        />
+      <div v-else>
+        <router-view :key=$route.path></router-view>
       </div>
-      <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-      <div style="position: fixed; z-index: 10;">
-        <customKeyboard
-          :custom-keyboard-state="customKeyboardState"
-          v-on:addKey="setAmount"
-          v-on:makeKeyAction="makeKeyAction"
-        />
-      </div>
-    </div>
-    <div v-else>
-      <router-view :key=$route.path></router-view>
-    </div>
+    </q-pull-to-refresh>
   </div>
   <NetworkError v-else/>
 </template>
@@ -345,7 +346,6 @@ export default {
     bus.on('relogged', this.loadData)
   },
   async mounted () {
-    // console.log('url: ', window.location.href)
     bus.emit('hide-menu')
     await this.loadData()
   },
@@ -370,14 +370,14 @@ export default {
       console.log('editing ad:', this.ad)
       this.$router.push({ name: 'p2p-ads-edit-form', params: { ad: this.ad.id }, query: { step: 1 } })
     },
-    async loadData () {
+    async loadData (done) {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
       await vm.fetchArbiters()
-      vm.closeWSConnection()
       vm.setupWebsocket()
       vm.isloaded = true
+      if (done) done()
       console.log('loaded data: ', this.$route.name)
     },
     setAmount (key) {
@@ -789,6 +789,7 @@ export default {
       this.showPeerProfile = true
     },
     setupWebsocket () {
+      this.closeWSConnection()
       const wsUrl = `${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`
       this.websocket = new WebSocket(wsUrl)
       this.websocket.onopen = () => {
