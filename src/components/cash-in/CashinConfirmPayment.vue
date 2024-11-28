@@ -95,10 +95,14 @@
       </q-file>
     </div>
     <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
-      <q-btn :disable="!url || disableButtons" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
+      <q-btn :loading="loadSubmitButton" :disable="!url || disableButtons" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
     </div>
     <div class="row justify-center q-mx-lg q-px-md">
-      <q-btn :disable="disableButtons" rounded outline dense label="Cancel" color="primary" class="col q-px-lg" @click="$emit('appeal')"/>
+      <q-btn :loading="loadCancelButton" :disable="disableButtons" rounded outline dense label="Cancel" color="primary" class="col q-px-lg"
+        @click="() => {
+          loadCancelButton = true
+           $emit('appeal')
+        }"/>
     </div>
   </q-scroll-area>
   <AttachmentDialog :show="showImageDialog" :url="url" @back="showImageDialog=false"/>
@@ -172,6 +176,7 @@ export default {
       this.$emit('upload', formData, this.order?.payment_methods_selected[0]?.order_payment_id)
     },
     onPaid () {
+      this.loadSubmitButton = true
       this.paid = true
       this.$emit('confirm-payment')
     },
