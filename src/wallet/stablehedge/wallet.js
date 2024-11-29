@@ -57,6 +57,10 @@ export class StablehedgeWallet {
     return this.network === 'chipnet'
   }
 
+  set isChipnet(value) {
+    this.network = value ? 'chipnet' : 'mainnet'
+  }
+
   getWalletHash() {
     const customSha256 = (value) => binToHex(
       sha256.hash(Buffer.from(value, 'utf8'))
@@ -100,6 +104,22 @@ export class StablehedgeWallet {
     const address = pubkeyToAddress(pubkeyHex, this.isChipnet)
     if (opts?.token) return toTokenAddress(address)
     return address
+  }
+
+  async resolveAddressPath(address) {
+    // TODO: improve
+    const addressesListResponse = await this.apiBackend.get(`wallet-addresses/${this.walletHash}/`)
+    const addressList = addressesListResponse?.data
+    if (!addressList?.includes?.(address)) return
+
+    const indexCount = Math.floor(addressList / 2)
+    for (var i = 0; i < indexCount; i++) {
+      const receiving = this.getAddressAt({ path: `${i}/0`, token: false })
+      const change = this.getAddressAt({ path: `${i}/1`, token: false })
+
+      if (address == receiving) return `${i}/0`
+      if (address == change) return `${i}/1`
+    }
   }
 
   generateSighash(opts={ message: '', path: '' }) {
@@ -240,6 +260,7 @@ export class StablehedgeWallet {
 
   /**
    * @param {Object} opts
+   * @param {Number} [opts.locktime]
    * @param {Object} opts.utxo
    * @param {String} opts.utxo.addressPath
    * @param {String} opts.utxo.txid
@@ -255,7 +276,9 @@ export class StablehedgeWallet {
     const utxoAddress = this.getAddressAt({ path: opts?.utxo?.addressPath })
     const utxoLockingBytecode = cashAddressToLockingBytecode(utxoAddress).bytecode
 
-    const locktime = await this.getBlockheight()
+    const locktime = Number.isSafeInteger(opts?.locktime)
+      ? opts?.locktime
+      : await this.getBlockheight()
     const transaction = {
       version: 2,
       locktime: locktime,

@@ -50,7 +50,10 @@
         </div>
       </div>
     </q-card-section>
-    <q-dialog v-model="openDialog">
+    <q-dialog
+      v-model="openDialog"
+      position="bottom"
+    >
       <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <div class="row no-wrap items-center justify-center q-pl-md">
           <div class="text-h6 q-space q-mt-sm">
@@ -82,6 +85,18 @@
               <div class="text-weight-medium">{{ formatTokenUnits(parsedTreasuryContractBalance?.shortUnitValue) }}</div>
             </div>
           </div>
+          <div class="q-mt-sm q-gutter-sm">
+            <q-btn
+              no-caps label="Short funds"
+              color="brandblue"
+              @click="() => shortTreasuryContractFunds()"
+            />
+            <q-btn
+              no-caps label="Transfer BCH"
+              color="brandblue"
+              @click="() => sendTreasuryContractBCH()"
+            />
+          </div>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -90,15 +105,19 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { getAssetDenomination } from 'src/utils/denomination-utils';
+import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
+import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
+import { pubkeyToAddress } from 'src/utils/crypto';
+import { binToHex } from '@bitauth/libauth';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { getCurrentInstance, computed, defineComponent, onMounted, ref, watch, inject, onUnmounted } from 'vue';
 import { getMnemonic } from 'src/wallet';
-import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
+import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue';
 
 export default defineComponent({
   name: 'RedemptionContractCard',
@@ -159,7 +178,8 @@ export default defineComponent({
       if (!address) return
 
       const backend = getStablehedgeBackend(chipnet)
-      return backend.get(`stablehedge/treasury-contract/${address}/`) 
+      const addressParam = encodeURIComponent(address)
+      return backend.get(`stablehedge/treasury-contract/${addressParam}/`) 
         .then(response => {
           treasuryContract.value = response?.data
           return response
@@ -246,6 +266,134 @@ export default defineComponent({
       return wallet
     }
 
+    async function shortTreasuryContractFunds() {
+      const loadingKey = 'short-treasury-contract-funds'
+      try {
+        const updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        if (!treasuryContract.value?.address) await fetchTreasuryContract()
+        if (!treasuryContract.value?.address) throw 'No treasury contract'
+
+        const treasuryContractData = treasuryContract.value
+        const treasuryContractAddress = treasuryContractData?.address
+        const chipnet = Boolean(treasuryContractAddress?.startsWith?.('bchtest:'))
+
+        updateLoading({ message: 'Initializing wallet' })
+        const wallet = await getStablehedgeWallet()
+        wallet.isChipnet = chipnet
+        const backend = wallet.apiBackend
+
+        // pubkey1 is the default pubkey for short positions, will change later
+        const shortPubkey = treasuryContract?.pubkey1
+        const shortPubkeyAddr = pubkeyToAddress(shortPubkey, wallet.isChipnet)
+
+
+        updateLoading({ message: 'Finding wallet path for short position' })
+        const shortAddressPath = await wallet.resolveAddressPath(shortPubkeyAddr)
+        if (!shortAddressPath) throw 'Unable to find wallet path for short position'
+
+        updateLoading({ message: 'Fetching auth token' })
+        const utxos = await wallet.getUtxos(treasuryContractData?.auth_token_id)
+        const authTokenUtxo = utxos.find(utxo => utxo?.capability === 'none')
+        if (!authTokenUtxo) throw 'No auth token found'
+        
+        updateLoading({ message: 'Signing auth token' })
+        const signedAuthKey = await wallet.signAuthKey({
+          locktime: 0,
+          utxo: {
+            ...authTokenUtxo,
+            addressPath: authTokenUtxo?.address_path,
+          },
+        })
+
+        const createShortProposalResponse = await backend.post(
+          `stablehedge/treasury-contract/${treasuryContractData?.address}/short_proposal/`,
+        ).catch(resolveApiError)
+
+        /** @type {import('src/wallet/stablehedge/interfaces').ShortProposalData} */
+        var shortProposal = createShortProposalResponse?.data
+
+        const shortContractAddress = shortProposal.contract_data.address
+        console.log('shortContractAddress', shortContractAddress)
+
+        const signature = wallet.generateSighash({ message: shortContractAddress, path: shortAddressPath })
+        const accessKeyData = { pubkey: shortPubkey, signature, signature }
+
+        updateLoading({ message: 'Updating short proposal access keys' })
+        const accessKeyUpdateResp = await backend.post(
+          `stablehedge/treasury-contract/${treasuryContractData?.address}/short_proposal/access_keys/`,
+          accessKeyData,
+        ).catch(resolveApiError)
+        shortProposal = accessKeyUpdateResp?.data
+
+        updateLoading({ message: 'Signing auth token' })
+        const fundingUtxoAuthUtxo = {
+          txid: binToHex(signedAuthKey.input.outpointTransactionHash),
+          vout: signedAuthKey.input.outpointIndex,
+          satoshis: Number(signedAuthKey.source.valueSatoshis),
+          category: binToHex(signedAuthKey.source.token.category),
+          capability: signedAuthKey.source.token?.nft?.capability,
+          commitment: binToHex(signedAuthKey.source.token?.nft?.commitment),
+          amount: Number(signedAuthKey.source.token.amount),
+        }
+        const fundingUtxoSignResp = await backend.post(
+          `stablehedge/treasury-contract/${treasuryContractData?.address}/short_proposal/funding_utxo_tx/auth_key/`,
+          fundingUtxoAuthUtxo,
+        ).catch(resolveApiError)
+        shortProposal = fundingUtxoSignResp?.data
+
+        updateLoading({ message: 'Completing short proposal' })
+        const shortProposalCompleteResp = await backend.post(
+          `stablehedge/treasury-contract/${treasuryContractData?.address}/short_proposal/complete/`,
+        )
+        const parsedContractData = await parseHedgePositionData(shortProposalCompleteResp?.data)
+        $q.dialog({
+          component: HedgeContractDetailDialog,
+          componentProps: {
+            contract: parsedContractData,
+          },
+        })
+      } catch(error) {
+        console.error(error)
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
+    async function sendTreasuryContractBCH() {
+      const wallet = await getStablehedgeWallet()
+      const treasuryContractData = treasuryContract.value
+    }
+
+    /**
+     * @param {import("axios").AxiosError | Error} error
+     */
+     function resolveApiError(error) {
+      let errorMsg = $t('UnknownError')
+
+      if (typeof error?.message === 'string') errorMsg = error?.message
+      if (typeof error === 'string') errorMsg = error
+
+      if (typeof error?.response?.data?.detail === 'string') {
+        errorMsg = error?.response?.data?.detail
+      } else if (typeof error?.response?.data?.non_field_errors?.[0] === 'string') {
+        errorMsg = error?.response?.data?.non_field_errors?.[0]
+      }
+      return errorMsg
+    }
+
     /** ------- <Formatters -------  */
     function denominateBch(amount) {
       const currentDenomination = denomination.value || 'BCH'
@@ -296,6 +444,8 @@ export default defineComponent({
       summaryData,
 
       openDialog,
+      shortTreasuryContractFunds,
+      sendTreasuryContractBCH,
 
       denominateBch,
       formatTokenUnits,
