@@ -104,4 +104,5 @@ class StablehedgeTokenPriceTracker {
   }
 }
 
-export default new StablehedgeTokenPriceTracker(Store)
+export const stablehedgePriceTracker = new StablehedgeTokenPriceTracker(Store)
+export default stablehedgePriceTracker
