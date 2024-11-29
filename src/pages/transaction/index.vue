@@ -464,9 +464,9 @@ export default {
         this.formatBCHCardBalance(this.denomination)
       }
     },
-    selectedNetwork (value) {
-      this.checkCashinAvailable()
-    }
+    // selectedNetwork (value) {
+    //   this.checkCashinAvailable()
+    // }
   },
 
   computed: {
@@ -565,7 +565,8 @@ export default {
           })
       }
     },
-    openCashIn () {
+    async openCashIn () {
+      await this.checkCashinAvailable()
       this.$q.dialog({
         component: CashIn,
         componentProps: {
@@ -1259,7 +1260,7 @@ export default {
   async mounted () {
     const vm = this
     this.checkVersionUpdate()
-    this.checkCashinAvailable()
+    // this.checkCashinAvailable()
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
@@ -1344,13 +1345,23 @@ export default {
     }
 
     // Check for slow internet and/or accessibility of the backend
-    axios.get('https://watchtower.cash', { timeout: 1000 * 60 }).then((resp) => {
+    let onlineStatus = true
+    axios.get('https://watchtower.cash/api/status/', { timeout: 1000 * 60 }).then((resp) => {
       console.log('ONLINE')
+      if (resp.status === 200) {
+        if (resp.data.status !== 'up') {
+          onlineStatus = false
+        }
+      }
     }).catch((error) => {
-      console.log(error)
-      vm.$store.dispatch('global/updateConnectivityStatus', false)
-      vm.balanceLoaded = true
-      vm.transactionsLoaded = true
+      console.log('OFFLINE', error)
+      onlineStatus = false
+    }).finally(() => {
+      if (!onlineStatus) {
+        vm.$store.dispatch('global/updateConnectivityStatus', false)
+        vm.balanceLoaded = true
+        vm.transactionsLoaded = true
+      }
     })
 
     vm.$store.dispatch('market/updateAssetPrices', {})
