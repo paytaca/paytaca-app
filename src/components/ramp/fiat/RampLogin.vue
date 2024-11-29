@@ -2,12 +2,12 @@
   <q-dialog v-model="show" persistent maximized no-shake transition-show="slide-up">
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
-        <div class="col-1">
+        <!-- <div class="col-1">
            <q-icon
             size="md" name="arrow_back" class="text-grad"
             @click="$router.push('/apps')"
             :style="`margin-top: ${$q.platform.is.ios ? '-5px' : '0'}`"/>
-        </div>
+        </div> -->
         <div class="col-10">
           <p
             ref="header-title"
