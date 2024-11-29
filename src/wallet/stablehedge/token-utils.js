@@ -21,6 +21,7 @@ export function parseTokenData(data) {
       ? parsePriceMessage(data?.price_message)
       : undefined,
   }
+  if (!result.priceMessage) delete result.priceMessage
   return result
 }
 
