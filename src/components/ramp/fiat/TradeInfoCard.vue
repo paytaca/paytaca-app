@@ -17,8 +17,8 @@
                   <q-icon
                   class="q-ml-xs"
                   size="1em"
-                  :color="onlineStatusColor"
-                  :name="onlineStatusColor === 'orange' ? 'bedtime' : 'circle'"/>
+                  :color="onlineStatusColor(counterparty)"
+                  :name="onlineStatusColor(counterparty) === 'orange' ? 'bedtime' : 'circle'"/>
                 </div>
                 <div class="row">
                   <q-rating
@@ -32,7 +32,7 @@
                   @click="onViewReviews"/>
                   <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
-                <div v-if="!counterparty.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(this.counterparty?.last_online_at, true).toLowerCase() }}</div>
+                <div v-if="!counterparty?.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}</div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
                 <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
@@ -51,10 +51,15 @@
                       <q-btn flat no-caps dense
                           padding="none"
                           color="primary"
-                          class="q-py-none q-my-none row lg-font-size text-weight-bold"
+                          class="q-py-none q-my-none lg-font-size text-weight-bold"
                           @click="onViewPeer(orderOwner.id)">
                           {{ orderOwner.name }}
                       </q-btn>
+                      <q-icon
+                        class="q-ml-xs"
+                        size="1em"
+                        :color="onlineStatusColor(orderOwner)"
+                        :name="onlineStatusColor(orderOwner) === 'orange' ? 'bedtime' : 'circle'"/>
                     </div>
                     <div class="row">
                         <q-rating
@@ -67,6 +72,7 @@
                         @click="onViewReviews"/>
                         <span class="q-mx-xs sm-font-size">({{ orderOwner.rating?.toFixed(1) || 0 }})</span>
                     </div>
+                    <div v-if="!orderOwner?.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(orderOwner?.last_online_at, true).toLowerCase() }}</div>
                 </div>
             </div>
           </div>
@@ -80,10 +86,15 @@
                     dense
                     padding="none"
                     color="primary"
-                    class="row lg-font-size text-weight-bold"
+                    class="lg-font-size text-weight-bold"
                     @click="onViewPeer(adOwner.id)">
                     {{ adOwner.name }}
                 </q-btn>
+                <q-icon
+                  class="q-ml-xs"
+                  size="1em"
+                  :color="onlineStatusColor(adOwner)"
+                  :name="onlineStatusColor(adOwner) === 'orange' ? 'bedtime' : 'circle'"/>
               </div>
             </div>
             <div class="row justify-end text-right">
@@ -97,6 +108,7 @@
                 @click="onViewReviews"/>
                 <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
             </div>
+            <div v-if="!adOwner?.is_online" class="row justify-end xs-font-size text-grey">Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}</div>
           </div>
         </div>
       </div>
@@ -215,14 +227,6 @@ export default {
     this.loadChatInfo()
   },
   computed: {
-    onlineStatusColor () {
-      if (this.counterparty?.is_online) return 'green'
-      const diffInHours = this.getElapsedTimeInHours(this.counterparty?.last_online_at)
-      if (diffInHours < 24) {
-        return 'orange'
-      }
-      return 'grey-5'
-    },
     orderOwner () {
       if (this.ad?.trade_type === 'SELL') {
         return this.order?.members?.buyer
@@ -259,6 +263,14 @@ export default {
     formatDate,
     formatCurrency,
     getDarkModeClass,
+    onlineStatusColor (peer) {
+      if (peer?.is_online) return 'green'
+      const diffInHours = this.getElapsedTimeInHours(peer?.last_online_at)
+      if (diffInHours < 24) {
+        return 'orange'
+      }
+      return 'grey-5'
+    },
     getElapsedTimeInHours (date) {
       const givenDateTime = new Date(date)
       const currentDateTime = new Date()
