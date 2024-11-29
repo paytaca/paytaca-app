@@ -66,7 +66,7 @@
   </div>
 </template>
 <script>
-import { bchToSatoshi } from 'src/exchange'
+import { bchToFiat, bchToSatoshi, fiatToBch } from 'src/exchange'
 
 export default {
   props: {
@@ -111,9 +111,9 @@ export default {
       let amount = this.amount
       if (amount === '' || isNaN(amount)) return 0
       if (!this.byFiat) {
-        amount = Number((amount) * parseFloat(this.selectedAd?.price)).toFixed(2)
+        amount = bchToFiat(amount, this.selectedAd?.price)
       } else {
-        amount = Number((amount) / parseFloat(this.selectedAd?.price)).toFixed(2)
+        amount = fiatToBch(amount, this.selectedAd?.price)
       }
       return Number(amount)
     },

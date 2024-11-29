@@ -372,13 +372,13 @@ export default {
       this.confirmCancel = true
     },
     onDismissCancel () {
-      this.confirmAppeal = false
-      this.confirmCancel = false
       if (this.confirmAppeal) {
         this.state = 'confirm_payment'
       } else {
         this.state = 'await_status'
       }
+      this.confirmAppeal = false
+      this.confirmCancel = false
     },
     async fetchAppeal () {
       const vm = this

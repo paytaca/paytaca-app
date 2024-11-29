@@ -117,8 +117,8 @@
                             {{
                               $t(
                                 'TradeCount',
-                                { count: listing.trade_count },
-                                `${ listing.trade_count || 0 } trades`
+                                { count: listing.owner?.trade_count },
+                                `${ listing.owner?.trade_count || 0 } trades`
                               )
                             }}
                           </span>
@@ -126,8 +126,8 @@
                             {{
                               $t(
                                 'CompletionPercentage',
-                                { percentage: formatCompletionRate(listing.completion_rate) },
-                                `${ formatCompletionRate(listing.completion_rate) }% completion`
+                                { percentage: formatCompletionRate(listing.owner?.completion_rate) },
+                                `${ formatCompletionRate(listing.owner?.completion_rate) }% completion`
                               )
                             }}
                           </span><br>

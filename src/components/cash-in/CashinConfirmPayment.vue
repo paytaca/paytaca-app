@@ -95,7 +95,7 @@
       </q-file>
     </div>
     <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
-      <q-btn :loading="loadSubmitButton" :disable="!url || disableButtons" class="col" rounded color="blue-6" label="I have Paid" @click="onPaid"/>
+      <q-btn :loading="loadSubmitButton" :disable="!url || disableButtons" class="col" rounded color="blue-6" label="Confirm payment" @click="onPaid"/>
     </div>
     <div class="row justify-center q-mx-lg q-px-md">
       <q-btn :loading="loadCancelButton" :disable="disableButtons" rounded outline dense label="Cancel" color="primary" class="col q-px-lg"

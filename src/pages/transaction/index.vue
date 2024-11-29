@@ -659,7 +659,7 @@ export default {
       })
     },
     closeCashinWebSocket () {
-      this.websocketManager.closeConnection()
+      this.websocketManager?.closeConnection()
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()
