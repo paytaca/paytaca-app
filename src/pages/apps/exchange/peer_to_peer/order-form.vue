@@ -357,10 +357,12 @@ export default {
     isNotDefaultTheme,
     formatCurrency,
     openShareDialog () {
+      const baseURL = this.$store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
       this.$q.dialog({
         component: ShareDialog,
         componentProps: {
-          adShareUrl: `${window.location.origin}/#/apps/exchange/ad/${this.ad.id}`
+          // adShareUrl: `${window.location.origin}/#/apps/exchange/ad/${this.ad.id}`
+          adShareUrl: `${baseURL}/ramp-p2p/ad/share/?id=${this.ad.id}`
         }
       })
     },

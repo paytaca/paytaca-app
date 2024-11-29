@@ -75,6 +75,10 @@ export default function ({ store }) {
   Plugins.App.addListener('appUrlOpen', function (event) {
     const url = new URL(event.url)
     console.log('App URL open', { url })
+
+    let baseURL = store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
+    baseURL = baseURL.replace('https://', '').replace('http://', '').replace('/api', '')
+
     if (/\/payment-request\/?$/.test(url.pathname) || /\/apps\/connecta\/?$/.test(url.pathname)) {
       const query = {}
       if (url.searchParams.has('d')) query.paymentRequestData = url.searchParams.get('d')
@@ -106,6 +110,8 @@ export default function ({ store }) {
       Router.push({ name: 'transaction-send', query: query })
     } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
       Router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
+    } else if (url.host === baseURL && url.pathname.match('/api/ramp-p2p/ad/share/?')) {
+      Router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
     }
   })
 
