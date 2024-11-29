@@ -1010,7 +1010,9 @@ export default {
         vm.$refs['transaction-list-component'].getTransactions()
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-        vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        if (this.selectedNetwork === 'sBCH') {
+          vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        }
         offlineNotif()
       } else {
         vm.balanceLoaded = true
