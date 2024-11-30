@@ -464,9 +464,9 @@ export default {
         this.formatBCHCardBalance(this.denomination)
       }
     },
-    // selectedNetwork (value) {
-    //   this.checkCashinAvailable()
-    // }
+    selectedNetwork (value) {
+      this.checkCashinAvailable()
+    }
   },
 
   computed: {
@@ -1262,7 +1262,7 @@ export default {
   async mounted () {
     const vm = this
     this.checkVersionUpdate()
-    // this.checkCashinAvailable()
+    this.checkCashinAvailable()
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
