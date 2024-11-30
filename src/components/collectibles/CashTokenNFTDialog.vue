@@ -232,7 +232,9 @@ const transactionUrl = computed(() => `https://3xpl.com/bitcoin-cash/transaction
 watch(() => [props.nft?.imageUrl], () => forceFallbackImage.value = false)
 const forceFallbackImage = ref(false)
 const imageUrl = computed(() => {
-  if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrlFull) return props.nft?.parsedMetadata?.imageUrlFull
+  if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrlFull) {
+    return props.nft?.parsedMetadata?.imageUrlFull + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+  }
   return $store.getters['global/getDefaultAssetLogo']?.(`${props.nft?.category}|${props.nft?.commitment}`)
 })
 
