@@ -256,16 +256,18 @@
                 <p class="amount-label">
                   {{
                     isCashToken
-                      ? totalAmountSent
+                      ? totalAmountSent.toLocaleString('en-us', {maximumFractionDigits: asset.decimals})
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
                   }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
-                <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
-                  ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
-                </p>
-                <p v-else class="amount-fiat-label">
-                  ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
-                </p>
+                <template v-if="!isCashToken">
+                  <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
+                    ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
+                  </p>
+                  <p v-else class="amount-fiat-label">
+                    ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
+                  </p>
+                </template>
               </template>
 
               <p class="to-label">{{ $t('To') }}</p>

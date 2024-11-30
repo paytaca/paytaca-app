@@ -25,7 +25,7 @@
         </div>
         <template v-else>
           <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
-            {{ convertTokenAmount(asset.balance, asset.decimals).toLocaleString('en-US') }}
+            {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=2) }}
           </p>
         </template>
 
