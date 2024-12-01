@@ -16,7 +16,7 @@
           </p>
         </div>
         <div style="text-align: center;">
-          <img :src="asset.logo || fallbackAssetLogo" height="50" class="q-mr-xs">
+          <img :src="getImageUrl(asset)" height="50" class="q-mr-xs">
         </div>
         <div style="text-align: center;">
           {{ formatBalance(asset) }}
@@ -110,6 +110,13 @@ export default {
         this.asset = asset
         this.$refs.dialog.show()
       } catch (err) {}
+    },
+    getImageUrl (asset) {
+      if (asset.logo) {
+        return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+      } else {
+        return this.getFallbackAssetLogo
+      }
     },
     onOKClick () {
       this.hide()
