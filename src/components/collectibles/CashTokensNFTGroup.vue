@@ -165,7 +165,11 @@ function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
 function getImageUrl (nft) {
   const imgUrl = nft?.parsedMetadata?.imageUrl 
   if (imgUrl) {
-    return imgUrl + '?pinataGatewayToke=' + process.env.PINATA_GATEWAY_TOKEN
+    if (imgUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+      return imgUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+    } else {
+      return imgUrl
+    }
   } else {
     return generateFallbackImage(nft)
   }

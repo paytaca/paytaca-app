@@ -529,7 +529,11 @@ export default {
         return 'assets/img/theme/payhero/deem-logo.png'
       } else {
         if (asset.logo) {
-          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+            return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          } else {
+            return asset.logo
+          }
         } else {
           return this.fallbackAssetLogo
         }
