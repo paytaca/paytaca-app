@@ -5,9 +5,14 @@ import { backend } from '../backend'
 import { chatBackend } from './backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
+import { getAuthAbortController } from '../auth'
 
 export const chatIdentityManager = new ChatIdentityManager()
 export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
+  if (getAuthAbortController()?.signal?.aborted) {
+    console.log('loadChatIdentity aborted')
+    return
+  }
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) loadRampWallet()
@@ -24,11 +29,20 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   let identity = await fetchChatIdentity(chatIdentityRef)
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
-    console.log('identity:', identity)
+  }
+
+  if (getAuthAbortController()?.signal?.aborted) {
+    console.log('_updateSignerData aborted')
+    return
   }
 
   // update verifying and encryption keypairs
   await chatIdentityManager._updateSignerData()
+
+  if (getAuthAbortController()?.signal?.aborted) {
+    console.log('_updateEncryptionKeypair aborted')
+    return
+  }
   await chatIdentityManager._updateEncryptionKeypair(!!identity)
 
   // create identity if not existing
@@ -104,7 +118,7 @@ export async function createChatIdentity (payload) {
 
 export async function fetchChatIdentity (ref) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/?ref=${ref}`)
+    chatBackend.get(`chat/identities/?ref=${ref}`, { signal: getAuthAbortController().signal })
       .then(response => {
         let identity = null
         if (response.data?.results?.length > 0) {
