@@ -980,6 +980,20 @@ export default {
         }
       }
 
+      if (this.asset.id.startsWith('ct/')) {
+        if (this.asset.decimals === 0) {
+          currentAmount = currentAmount.toString().replace('.', '');
+        } else {
+          const parts = currentAmount.toString().split('.');
+          
+          if (parts.length > 1) { // Ensure there's a decimal part
+            // Truncate the decimal part to the desired length
+            parts[1] = parts[1].slice(0, this.asset.decimals);
+            currentAmount = parts.join('.'); // Recombine the integer and decimal parts
+          }
+        }
+      }
+
       // Set the new amount
       if (this.setAmountInFiat) {
         currentInputExtras.sendAmountInFiat = currentAmount
@@ -1048,6 +1062,7 @@ export default {
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     async slideToSubmit (reset=() => {}) {
+      console.log('SLIDE')
       if (this.bip21Expires) {
         const expires = parseInt(this.bip21Expires)
         const now = Math.floor(Date.now() / 1000)
