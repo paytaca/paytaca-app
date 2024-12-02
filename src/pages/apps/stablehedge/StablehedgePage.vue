@@ -28,7 +28,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { parseTokenData } from 'src/wallet/stablehedge/token-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { useStore } from 'vuex';
-import { computed, defineComponent, ref } from 'vue';
+import { computed, defineComponent, onMounted, ref } from 'vue';
 import HeaderNav from 'src/components/header-nav.vue';
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
 import RedemptionContractCard from 'src/components/stablehedge/dashboard/RedemptionContractCard.vue';
@@ -46,11 +46,13 @@ export default defineComponent({
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
+    onMounted(() => refreshPage())
+
     const redemptionContractCardsRef = ref()
 
     const fetchingRedempionContracts = ref(false)
     const redemptionContractsPagination = ref({ offset: 0, limit: 3, count: 15 })
-    const redemptionContracts = ref([{}, {}, {}])
+    const redemptionContracts = ref([])
     function fetchRedemptionContracts(opts={ limit: 10, offset: 0 }) {
       const params = {
         limit: opts?.limit || 10,

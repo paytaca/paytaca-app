@@ -53,7 +53,12 @@
     <q-dialog
       v-model="openDialog"
       position="bottom"
+      :persistent="hedgePositionDetailDialog.show"
       :seamless="showSendAmountForm"
+      @before-hide="() => {
+        hedgePositionDetailDialog.show = false
+        showSendAmountForm = false
+      }"
     >
       <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <div class="row no-wrap items-center justify-center q-pl-md">
@@ -98,6 +103,31 @@
               @click="() => showSendAmountForm = true"
             />
           </div>
+          <q-separator spaced />
+          <div>
+            <div class="row items-center">
+              <div class="q-space text-h6">Short positions</div>
+              <q-btn flat padding="sm" icon="refresh" @click="() => fetchShortPositions()"/>
+            </div>
+            <div v-if="fetchingShortPositions" class="text-center">
+              <q-spinner color="brandblue" size="2rem"/>
+            </div>
+            <div v-if="!shortPositions?.length" class="text-grey text-center">
+              No short positions
+            </div>
+            <div
+              v-for="shortPosition in shortPositions" :key="shortPosition?.address"
+              class="row items-center no-wrap"
+            >
+              <div class="col-8 ellipsis">
+                {{ shortPosition?.address }}
+              </div>
+              <div class="q-pl-sm q-space text-right">
+                <q-btn flat padding="sm" icon="content_copy" @click="() => copyToClipboard(shortPosition?.address)"/>
+                <q-btn flat padding="sm" icon="open_in_new" @click="() => openHedgePositionDialog(shortPosition)"/>
+              </div>
+            </div>
+          </div>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -106,6 +136,10 @@
       title="Enter amount to send"
       :maxSatoshis="parseInt(maxSendableAmount)"
       @ok="sendTreasuryContractBCH"
+    />
+    <HedgeContractDetailDialog
+      v-model="hedgePositionDetailDialog.show"
+      :contract="hedgePositionDetailDialog.hedgePosition"
     />
   </q-card>
 </template>
@@ -118,6 +152,7 @@ import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { createShortPosition } from 'src/wallet/stablehedge/short-proposal';
 import { createTreasuryContractTransaction } from 'src/wallet/stablehedge/transaction';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
+import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters';
 import { getMnemonic } from 'src/wallet';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
@@ -131,6 +166,7 @@ export default defineComponent({
   name: 'RedemptionContractCard',
   components: {
     SendBCHFormDialog,
+    HedgeContractDetailDialog,
   },
   props: {
     redemptionContract: Object,
@@ -265,6 +301,40 @@ export default defineComponent({
         expectedDiffPctgIcon,
       }
     })
+
+    onMounted(() => fetchShortPositions())
+    watch(
+      () => props.redemptionContract?.treasury_contract_address,
+      () => fetchShortPositions(),
+    )
+    const shortPositions = ref([])
+    const fetchingShortPositions = ref(false)
+    function fetchShortPositions() {
+      const params = {
+        limit: 20,
+        short_address: props.redemptionContract?.treasury_contract_address || '',
+        funding: 'complete',
+        settled: false,
+      }
+      const backend = getStablehedgeBackend(isChipnet.value)
+      fetchingShortPositions.value = true
+      return backend.get(`anyhedge/hedge-positions/`, { params })
+        .then(response => {
+          Promise.all(response.data.results.map(parseHedgePositionData))
+            .then(parsedContracts => shortPositions.value = parsedContracts)
+          return response
+        })
+        .finally(() => {
+          fetchingShortPositions.value = false
+        })
+    }
+
+    const hedgePositionDetailDialog = ref({ show: false, hedgePosition: {} })
+    function openHedgePositionDialog(hedgePosition) {
+      hedgePositionDetailDialog.value = {
+        show: true, hedgePosition: hedgePosition,
+      }
+    }
 
     const openDialog = ref(false)
     async function getStablehedgeWallet() {
@@ -460,6 +530,12 @@ export default defineComponent({
       parsedTreasuryContractBalance,
       treasuryContractBalance,
       summaryData,
+
+      fetchingShortPositions,
+      shortPositions,
+      fetchShortPositions,
+      hedgePositionDetailDialog,
+      openHedgePositionDialog,
 
       openDialog,
       shortTreasuryContractFunds,
