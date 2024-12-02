@@ -4,7 +4,7 @@
     ref="dialogRef"
     @hide="onDialogHide"
     position="bottom"
-    persistent
+    :persistent="!viewOnly"
   >
     <q-card
       class="dialog-content-base br-15 text-bow"
@@ -48,7 +48,9 @@
           </div>
         </q-banner>
         <LeafletMapDialog v-model="showMap" :locations="mapLocations" :autoCenter="true"/>
-        <div class="q-gutter-y-sm q-mt-md">
+        <div v-if="viewOnly" class="q-mt-md">
+        </div>
+        <div v-else class="q-gutter-y-sm q-mt-md">
           <q-btn
             no-caps label="Pick up from store instead"
             color="brandblue"
@@ -93,6 +95,7 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     storefront: Storefront,
+    viewOnly: Boolean,
     title: {
       type: String,
       default: 'No riders available nearby',

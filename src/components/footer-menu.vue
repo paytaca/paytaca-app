@@ -125,6 +125,7 @@ export default {
     .footer-btn-container {
       margin-top: 1px !important;
       overflow-x: auto;
+      overflow-y: hidden;
       flex-wrap: nowrap;
     }
     .default-text-color {

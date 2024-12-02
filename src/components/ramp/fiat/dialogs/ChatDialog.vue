@@ -6,7 +6,7 @@
   >
    <!--Title  -->
   <q-card ref="container" class="br-15 pt-card" :style="`max-height: ${maxHeight}px;`" :dark="darkMode" :class="getDarkModeClass(darkMode)">
-    <div  class="row items-center justify-between q-mr-lg q-pb-xs">
+    <div class="row items-center justify-between q-mr-lg q-pb-xs">
       <div class="q-pl-lg q-mt-md">
         <div
           class="text-bow text-weight-medium"

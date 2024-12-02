@@ -13,7 +13,7 @@
       v-touch-pan="handlePan"
     >
       <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
-        <img :src="asset.logo || getFallbackAssetLogo(asset)" height="30" class="q-mr-xs" alt="">
+        <img :src="getImageUrl(asset)" height="30" class="q-mr-xs" alt="">
         <p class="col q-pl-sm text-right asset-symbol" :class="{'text-grad' : isNotDefaultTheme}">
           {{ asset.symbol }}
         </p>
@@ -25,7 +25,7 @@
         </div>
         <template v-else>
           <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
-            {{ convertTokenAmount(asset.balance, asset.decimals).toLocaleString('en-US') }}
+            {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=2) }}
           </p>
         </template>
 
@@ -103,6 +103,17 @@ export default {
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
+    },
+    getImageUrl (asset) {
+      if (asset.logo) {
+        if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+        } else {
+          return asset.logo
+        }
+      } else {
+        return getFallbackAssetLogo(asset)
+      }
     },
     selectAsset (event, asset) {
       const vm = this
