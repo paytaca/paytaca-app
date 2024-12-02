@@ -13,7 +13,7 @@
 
       <div class="row q-pt-sm justify-center">
         <div v-for="(index, shareLink) in shareLinks" :key="index">
-          <q-btn :icon="shareLinks[shareLink].icon" size="lg" padding="0" flat round class="q-mx-md" :color="darkMode ? 'white' : 'blue-grey-8'" :href="shareLinks[shareLink].url" target="blank"/>
+          <q-btn :icon="shareLinks[shareLink].icon" size="md" padding="0" flat round class="q-mx-md" :color="darkMode ? 'white' : 'blue-grey-8'" :href="shareLinks[shareLink].url" target="blank"/>
         </div>
       </div>
     </q-card>
