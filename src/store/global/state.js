@@ -1,3 +1,11 @@
+// type ConnectedApp = {
+//   app_url: string,
+//   app_name: string,
+//   app_icon: string,
+//   wallet_address: string,
+//   wallet_hash: string
+// }
+
 export default function () {
   return {
     network: 'BCH', // BCH || sBCH
@@ -22,6 +30,8 @@ export default function () {
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {},
+        lastAddressAndIndex: { /*{ address: string, address_index: number}*/ },
+        connectedApps: [] /* ConnectedApp[] */
       },
       slp: {
         walletHash: '',
@@ -32,7 +42,8 @@ export default function () {
         lastAddressIndex: 0,
         connectedAddress: '',
         connectedAddressIndex: '0/0',
-        connectedSites: {}
+        connectedSites: {},
+        connectedApps: []
       },
       sbch: {
         subscribed: false,
@@ -55,6 +66,7 @@ export default function () {
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {},
+        lastAddressAndIndex: {}
       },
       slp: {
         walletHash: '',

@@ -225,3 +225,29 @@ export function setDenomination (state, denomination) {
 export function setTheme (state, theme) {
   state.theme = theme
 }
+
+export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
+  if (state.isChipnet) {
+    state.chipnet__wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+  } else {
+    state.wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+  }
+}
+
+export function setWalletAddresses(state, addresses) {
+  if (state.isChipnet) {
+    state.chipnet__wallets.bch.addresses = addresses
+  } else {
+    state.wallets.bch.addresses = addresses
+  }
+}
+
+export function setWalletConnectedApps(state, connectedApps) {
+  if (state.isChipnet) {
+    state.chipnet__wallets.bch.connectedApps = connectedApps
+  } else {
+    state.wallets.bch.connectedApps = connectedApps
+  }
+}
+
+

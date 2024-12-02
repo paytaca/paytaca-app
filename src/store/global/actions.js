@@ -1,7 +1,11 @@
 import Watchtower from "watchtower-cash-js"
+import { decodePrivateKeyWif } from '@bitauth/libauth'
+import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from "src/marketplace/chat/encryption"
-
+import { loadWallet } from '../../wallet'
+import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils';
+import { toP2pkhTestAddress } from "../../utils/address-utils"
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
 
@@ -223,4 +227,80 @@ export async function deleteWallet (context, index) {
       resolve()
     }, 1000)
   })
+}
+
+export function test (context, data) {
+  console.log('context', context, data)
+}
+
+/**
+ * Fetch and loads last address and index from server (watchtower)
+ */
+export async function loadWalletLastAddressIndex(context) {
+  console.log('🚀 ~ loadWalletLastAddressIndex ~ context:', context)
+  const w = new WatchtowerExtended(context.state.isChipnet)
+  const walletHash = context.state.isChipnet ? 
+    context.state.chipnet__wallets.bch.walletHash: context.state.wallets.bch.walletHash
+  const lastAddressAndIndex = await w.getLastExternalAddressIndex(walletHash)
+  context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+}
+
+
+/**
+ * @return the BCH addresses of wallet 
+ */
+export async function loadWalletAddresses (context) {
+
+  let lastIndex = 
+    context.state.wallets.bch.lastAddressAndIndex?.address_index || 
+    context.state.wallets.bch.lastAddressIndex
+
+  if (context.state.isChipnet) {
+    lastIndex = 
+    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index || 
+    context.state.chipnet__wallets.bch.lastAddressIndex
+  }
+
+  console.log('🚀 ~ loadWalletAddresses ~ lastIndex:', lastIndex)
+
+  const walletIndex = context.getters['getWalletIndex']
+  const wallet = await loadWallet('BCH', walletIndex)
+  
+  const stopAtIndex = lastIndex + 1 // include lastIndex
+  const addresses = []
+  for (let i = 0; i < stopAtIndex; i++ ) {
+      try {
+      const wif = await wallet.BCH.getPrivateKey(`0/${i}`)
+      console.log(`WIF of index ${i} = ${wif}`)
+      const decodedPrivkey = decodePrivateKeyWif(wif)
+      let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+      
+      if (context.state.isChipnet) {
+          // to test address
+          cashAddress = toP2pkhTestAddress(cashAddress)
+      }
+      addresses.push({ index: i, address: cashAddress, wif: wif })
+      } catch (error) {
+          console.log(error)
+          break
+      }
+  }
+  context.commit('setWalletAddresses', addresses)
+}
+
+
+// type ConnectedApp = {
+//   app_url/*:string*/,
+//   app_name/*:string*/,
+//   app_icon: string,
+//   wallet_address/*:string*/,
+//   wallet_hash/*:string*/
+// }
+
+export async function loadWalletConnectedApps (context) {
+  const w = new WatchtowerExtended(context.state.isChipnet)
+  const walletHash = context.state.isChipnet ? 
+    context.state.chipnet__wallets.bch.walletHash: context.state.wallets.bch.walletHash
+  const connectedApps = await w.getWalletConnectedApps(walletHash)
+  context.commit('setWalletConnectedApps', connectedApps)
 }
