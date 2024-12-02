@@ -258,7 +258,7 @@
                     isCashToken
                       ? totalAmountSent.toLocaleString('en-us', {maximumFractionDigits: asset.decimals})
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
-                  }} {{ isCashToken ? asset.symbol : denomination }} XX
+                  }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
                 <template v-if="!isCashToken">
                   <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
