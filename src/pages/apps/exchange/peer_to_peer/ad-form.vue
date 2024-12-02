@@ -771,7 +771,8 @@ export default {
       }
       if (currentStep === 3) {
         this.onSubmit()
-        await this.$router.push({ name: 'p2p-ads' })
+        await this.$router.push(this.previousRoute)
+        // await this.$router.push({ name: 'p2p-ads' })
       }
       if (currentStep < 3) {
         this.step++

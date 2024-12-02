@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+  <HeaderNav :title="`P2P Exchange`" :backnavpath="'/apps/exchange/peer-to-peer/store'"/>
   <div v-if="!networkError">
     <q-pull-to-refresh @refresh="loadData">
       <div v-if="state !== 'order-process'">
