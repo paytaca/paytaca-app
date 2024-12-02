@@ -1,5 +1,15 @@
 
 /**
+ * @typedef {Object} TreasuryContractApiData
+ * @property {String} address
+ * @property {String} auth_token_id
+ * @property {String} pubkey1
+ * @property {String} pubkey2
+ * @property {String} pubkey3
+ * @property {String} pubkey4
+ * @property {String} pubkey5
+ * @property {String} redemption_contract_address
+ * @property {String} funding_wif_pubkey
  *
  * @typedef {import("@generalprotocols/anyhedge").ContractDataV2} ContractData
  * 

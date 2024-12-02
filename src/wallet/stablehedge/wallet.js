@@ -110,15 +110,15 @@ export class StablehedgeWallet {
     // TODO: improve
     const addressesListResponse = await this.apiBackend.get(`wallet-addresses/${this.walletHash}/`)
     const addressList = addressesListResponse?.data
-    if (!addressList?.includes?.(address)) return
+    // if (!addressList?.includes?.(address)) return
 
-    const indexCount = Math.floor(addressList / 2)
+    const indexCount = Math.floor(addressList.length / 2)
     for (var i = 0; i < indexCount; i++) {
-      const receiving = this.getAddressAt({ path: `${i}/0`, token: false })
-      const change = this.getAddressAt({ path: `${i}/1`, token: false })
+      const receiving = this.getAddressAt({ path: `0/${i}`, token: false })
+      const change = this.getAddressAt({ path: `1/${i}`, token: false })
 
-      if (address == receiving) return `${i}/0`
-      if (address == change) return `${i}/1`
+      if (address == receiving) return `0/${i}`
+      if (address == change) return `1/${i}`
     }
   }
 
@@ -259,6 +259,27 @@ export class StablehedgeWallet {
   }
 
   /**
+   * @param {Object} opts 
+   * @param {String} opts.authTokenId
+   * @param {Number} [opts.locktime]
+   */
+  async fetchSignedAuthkey(opts) {
+    const utxos = await this.getUtxos(opts?.authTokenId, true)
+    const authTokenUtxo = utxos.find(utxo => utxo?.capability === 'none')
+    if (!authTokenUtxo) return 'no-auth-token'
+
+    const signedAuthKey = await this.signAuthKey({
+      locktime: opts?.locktime,
+      utxo: {
+        ...authTokenUtxo,
+        category: authTokenUtxo?.tokenid,
+        addressPath: authTokenUtxo?.address_path,
+      },
+    })
+    return signedAuthKey
+  }
+
+  /**
    * @param {Object} opts
    * @param {Number} [opts.locktime]
    * @param {Object} opts.utxo
@@ -319,18 +340,27 @@ export class StablehedgeWallet {
     const sigHashType = HashType.SIGHASH_SINGLE | HashType.SIGHASH_ANYONECANPAY // 0x83
 
     const signatureTemplate = new SignatureTemplate(utxoWif, sigHashType)
-    transaction.inputs[0].unlockingBytecode = unlockP2PKH({
+    const unlockResult = unlockP2PKH({
       template: signatureTemplate,
       transaction,
       inputIndex: 0,
       sourceOutputs,
+      includeSignature: true,
     })
 
-    transaction.inputs[0].unlockingBytecode = unlockingBytecode1
+    if (unlockResult instanceof Uint8Array) throw 'Unexpected unlock result'
+
+    transaction.inputs[0].unlockingBytecode = unlockResult.inputScript
+
     return {
       input: transaction.inputs[0],
       output: transaction.outputs[0],
       source: sourceOutputs[0],
+      signatureData: {
+        signature: unlockResult.signature,
+        pubkey: unlockResult.pubkey,
+        hashType: unlockResult.hashtype,
+      }
     }
   }
 
@@ -399,12 +429,15 @@ export class StablehedgeWallet {
 
   /**
    * @param {String} [tokenid]
+   * @param {Boolean} [cashtoken]
    * @returns {Promise<WatchtowerUtxo[]>}
    */
-  async getUtxos(tokenid) {
+  async getUtxos(tokenid, cashtoken) {
+    const params = {}
     let url = `utxo/wallet/${this.walletHash}/`
     if (tokenid) url = url + tokenid + '/'
-    return this.apiBackend.get(url)
+    if (tokenid && cashtoken) params.is_cashtoken_nft = true
+    return this.apiBackend.get(url, { params })
       .then(response => {
         if (!Array.isArray(response?.data.utxos)) return Promise.reject({ response })
         return response.data.utxos

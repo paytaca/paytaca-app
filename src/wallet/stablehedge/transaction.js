@@ -1,8 +1,10 @@
 import { SignatureTemplate } from "cashscript";
+import { binToHex, lockingBytecodeToCashAddress } from "@bitauth/libauth";
 import { getTxid } from "src/utils/crypto";
-import { TransactionBalancer, watchtowerUtxoToCashscript } from "./transaction-utils";
+import { mockSignatureTemplate, TransactionBalancer, watchtowerUtxoToCashscript } from "./transaction-utils";
 import { StablehedgeRPC } from "./rpc";
 import { getStablehedgeBackend } from "./api";
+import { getTreasuryContractInstance } from "./treasury-contract";
 
 /**
  * @param {Object} opts 
@@ -278,4 +280,117 @@ export async function waitRedemptionContractTxs(opts) {
   .finally(() => {
     stablehedgeRpc.disconnect()
   })
+}
+
+
+/**
+ * @callback UpdateLoadingCallback
+ * @param {import("quasar").QLoadingUpdateOptions} opts
+ * @returns {UpdateLoadingCallback}
+ */
+
+/**
+ * Only supports BCH for now
+ * 
+ * @param {Object} opts 
+ * @param {Number} [opts.locktime]
+ * @param {import("./wallet").StablehedgeWallet} opts.wallet
+ * @param {import("src/wallet/stablehedge/interfaces").TreasuryContractApiData} opts.treasuryContract
+ * @param {import("cashscript").Recipient[]} opts.recipients
+ * @param {UpdateLoadingCallback} [opts.updateLoading]
+ */
+export async function createTreasuryContractTransaction(opts) {
+  const updateLoading = typeof opts?.updateLoading === 'function'
+    ? opts?.updateLoading
+    : () => {}
+
+  const wallet = opts?.wallet
+  const treasuryContract = opts?.treasuryContract
+
+  updateLoading({ message: 'Fetching locktime' })
+  const locktime = Number.isSafeInteger(opts?.locktime)
+    ? opts?.locktime
+    : await wallet.getBlockheight()
+
+  updateLoading({ message: 'Fetching contract artifact' })
+  const contract = await getTreasuryContractInstance({ treasuryContract })
+
+  updateLoading({ message: 'Fetching & signing auth token' })
+  const signedAuthKey = await wallet.fetchSignedAuthkey({
+    locktime: locktime,
+    authTokenId: treasuryContract?.auth_token_id,
+  })
+  if (typeof signedAuthKey === 'string') throw signedAuthKey
+  const signedAuthKeyTokenDetails = {
+    category: binToHex(signedAuthKey.source.token.category),
+    amount: signedAuthKey.source.token.amount,
+    nft: {
+      capability: signedAuthKey.source.token.nft.capability,
+      commitment: binToHex(signedAuthKey.source.token.nft.commitment),
+    }
+  }
+  const mockAuthkeySignatureTemplate = mockSignatureTemplate(signedAuthKey.signatureData)
+
+  if (opts?.recipients?.find(output => output?.token)) {
+    throw 'Sending tokens not supported'
+  }
+
+  const addressParam = encodeURIComponent(treasuryContract?.address)
+  updateLoading({ message: 'Fetching contract UTXOs' })
+  const utxosResp = await wallet.apiBackend.get(`utxo/bch/${addressParam}/`)
+  /** @type {import('src/wallet/stablehedge/wallet').WatchtowerUtxo[]} */
+  const utxos = utxosResp?.data?.utxos
+  const bchUtxos = utxos.filter(utxo => !utxo?.tokenid)
+
+  if (!bchUtxos.length) throw 'No UTXOs found'
+
+  updateLoading({ message: 'Building transaction' })
+  const txBuilder = new TransactionBalancer()
+  txBuilder.outputs.push(...opts?.recipients)
+
+  for(var i = 0; i < bchUtxos?.length; i++) {
+    const utxo = bchUtxos[i]
+    if (txBuilder.excessSats > 0) break
+    txBuilder.inputs.push({ txid: utxo?.txid, vout: utxo?.vout, satoshis: BigInt(utxo?.value) })
+  }
+
+  txBuilder.inputs.splice(1, 0, {
+    txid: binToHex(signedAuthKey.input.outpointTransactionHash),
+    vout: signedAuthKey.input.outpointIndex,
+    satoshis: signedAuthKey.source.valueSatoshis,
+    token: signedAuthKeyTokenDetails,
+    template: mockAuthkeySignatureTemplate,
+  });
+  txBuilder.outputs.splice(1, 0, {
+    to: lockingBytecodeToCashAddress(
+      signedAuthKey.output.lockingBytecode,
+      wallet.isChipnet ? 'bchtest' : 'bitcoincash',
+      { tokenSupport: true },
+    ),
+    amount: signedAuthKey.source.valueSatoshis,
+    token: signedAuthKeyTokenDetails,
+  });
+
+  if (txBuilder.excessSats < 0n) {
+    console.error('Not enough balance', txBuilder)
+    throw 'Not enough balance'
+  }
+  if (txBuilder.excessSats > 546n) {
+    const changeOutput = {
+      to: contract.address,
+      amount: txBuilder.excessSats,
+    }
+
+    txBuilder.outputs.push(changeOutput)
+
+    changeOutput.amount += txBuilder.excessSats
+  }
+
+  console.log({ locktime })
+  const transaction = await contract.functions.unlockWithNft(false)
+    .from(txBuilder.inputs)
+    .to(txBuilder.outputs)
+    .withTime(locktime)
+
+  return transaction
 }

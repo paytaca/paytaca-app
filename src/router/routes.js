@@ -92,7 +92,7 @@ const routes = [
     component: () => import('layouts/Apps.vue'),
     children: [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
-      { path: 'stablehedge', component: () => import('src/pages/apps/StablehedgePage.vue'), name: 'app-stablehedge', props: route => route.query },
+      { path: 'stablehedge', component: () => import('src/pages/apps/stablehedge/StablehedgePage.vue'), name: 'app-stablehedge', props: route => route.query },
       { path: 'map', component: () => import('src/pages/apps/map.vue'), name: 'app-map', props: route => route.query },
       { path: 'anyhedge', component: () => import('src/pages/apps/anyhedge.vue'), name: 'app-any-hedge', props: route => route.query },
       { path: 'pos-admin', component: () => import('src/pages/apps/paytacapos-admin/index.vue'), name: 'app-pos-admin', props: route => route.query },

@@ -30,6 +30,7 @@ export function calculateInputSize(transaction) {
  * @param {Number} opts.inputIndex
  * @param {import("@bitauth/libauth").TransactionBCH} opts.transaction
  * @param {import("@bitauth/libauth").Output[]} opts.sourceOutputs
+ * @param {Boolean} [opts.includeSignature]
  */
 export function unlockP2PKH(opts) {
   const template = opts?.template;
@@ -43,8 +44,25 @@ export function unlockP2PKH(opts) {
   const preimage = createSighashPreimage(transaction, sourceOutputs, inputIndex, prevOutScript, hashtype);
   const sighash = hash256(preimage);
   const signature = template.generateSignature(sighash);
+  
   const inputScript = scriptToBytecode([signature, pubkey]);
+  if (opts?.includeSignature) {
+    return { signature, pubkey, hashtype, inputScript }
+  }
   return inputScript
+}
+
+/**
+ * @param {Object} opts
+ * @param {Number} opts.hashType
+ * @param {Uint8Array} opts.pubkey
+ * @param {Uint8Array} opts.signature
+ */
+export function mockSignatureTemplate(opts) {
+  const template = new SignatureTemplate({}, opts?.hashType)
+  template.getPublicKey = () => opts?.pubkey
+  template.generateSignature = () => opts?.signature
+  return template
 }
 
 /**
