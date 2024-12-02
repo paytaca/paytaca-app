@@ -76,7 +76,7 @@ export function pubkeyToAddress(pubkey, chipnet=false) {
   const pkhash = pubkeyToPkHash(pubkey)
   const legacyAddress = pkHashToLegacyAddress(pkhash)
   const decodedLegacyAddress = decodeBase58Address(legacyAddress)
-  const prefix = chipnet ? 'bitcoincash' : 'bchtest'
+  const prefix = chipnet ? 'bchtest' : 'bitcoincash'
   return encodeCashAddress(prefix, 'p2pkh', decodedLegacyAddress.payload)
 }
 
