@@ -64,7 +64,14 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  <span v-if="!asset.name.includes('New')">{{ parseAssetDenomination(denomination, asset, false, 16) }}</span>
+                  <template v-if="!asset.name.includes('New')">
+                    <span v-if="asset.id.startsWith('ct/')">
+                      {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }}
+                    </span>
+                    <span v-else>
+                      {{ parseAssetDenomination(denomination, asset, false, 16) }}
+                    </span>
+                  </template>
                   {{ asset.name.includes('New') ? asset.symbol : '' }}
                 </p>
               </div>

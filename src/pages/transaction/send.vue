@@ -132,7 +132,7 @@
                     v-model="expandedItems[`R${index + 1}`]"
                     :label="`${$t('Recipient')} #${index + 1}`"
                     :class="getDarkModeClass(darkMode)"
-                  >
+                  > 
                     <SendPageForm
                       :recipient="sendDataMultiple[index]"
                       :inputExtras="inputExtras[index]"
@@ -258,7 +258,7 @@
                     isCashToken
                       ? totalAmountSent.toLocaleString('en-us', {maximumFractionDigits: asset.decimals})
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
-                  }} {{ isCashToken ? asset.symbol : denomination }}
+                  }} {{ isCashToken ? asset.symbol : denomination }} XX
                 </p>
                 <template v-if="!isCashToken">
                   <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
