@@ -12,7 +12,7 @@
         @click.stop="() => $emit('openNft', nft)"
       >
         <q-img
-          :src="nft?.parsedMetadata?.imageUrl || generateFallbackImage(nft)"
+          :src="getImageUrl(nft)"
           fit="fill"
           @error="() => onNftImageError(nft)"
         >
@@ -160,6 +160,19 @@ function onNftImageError(nft=CashNonFungibleToken.parse()) {
 
 function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
   return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
+}
+
+function getImageUrl (nft) {
+  const imgUrl = nft?.parsedMetadata?.imageUrl 
+  if (imgUrl) {
+    if (imgUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+      return imgUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+    } else {
+      return imgUrl
+    }
+  } else {
+    return generateFallbackImage(nft)
+  }
 }
 </script>
 

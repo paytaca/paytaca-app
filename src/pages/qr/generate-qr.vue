@@ -13,8 +13,8 @@
     <div v-else>
       <div class="row flex-center" v-if="!amountDialog">
         <div class="row flex-center" style="margin-top: 20px;">
-          <q-img src="bch-logo.png" height="35px" width="35px" />
-          &nbsp;BCH
+          <q-img @click="isCt = false" src="bch-logo.png" height="35px" width="35px" />
+          <span @click="isCt = false">&nbsp;BCH</span>
           <q-toggle
             v-model="isCt"
             class="text-bow"
@@ -26,8 +26,8 @@
             unchecked-icon="img:bch-logo.png"
             :class="getDarkModeClass(darkMode)"
           />
-          <q-img src="ct-logo.png" height="35px" width="35px" />
-          {{ $t('CashToken') }}
+          <q-img @click="isCt = true" src="ct-logo.png" height="35px" width="35px" />
+          <span @click="isCt = true">&nbsp;{{ $t('CashToken') }}</span>
         </div>
 
         <div class="row col-12 flex-center">

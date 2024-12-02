@@ -136,7 +136,7 @@ export default {
         {
           name: this.$t('CryptoSwap'),
           iconName: 'mdi-swap-horizontal-bold',
-          path: '/apps/asset-swap',
+          path: '/apps/ramp/crypto',
           active: true,
           iconStyle: 'font-size: 4.7em',
           smartBCHOnly: false

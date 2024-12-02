@@ -41,7 +41,7 @@
             <div class="col col-qr-code q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" alt="" class="receive-icon-asset">
+                  <img :src="getImageUrl(asset)" height="50" alt="" class="receive-icon-asset">
                   <qr-code :text="addressAmountFormat" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
@@ -385,6 +385,17 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
+    getImageUrl (asset) {
+      if (asset.logo) {
+        if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+        } else {
+          return asset.logo
+        }
+      } else {
+        return this.getFallbackAssetLogo(asset)
+      }
+    },
     getScreenWidth () {
       const divBounds = document.body.getBoundingClientRect()
       return divBounds.width
@@ -570,7 +581,7 @@ export default {
             vm.notifyOnReceive(
               BigInt(data.amount) / (BigInt(10) ** BigInt(data.token_decimals)),
               data.token_symbol.toUpperCase(),
-              vm.asset.logo || vm.getFallbackAssetLogo(vm.asset),
+              vm.getImageUrl(vm.asset),
               tokenType === 'ct' ? vm.asset.decimals : 0,
               tokenType === 'ct'
             )
@@ -585,7 +596,7 @@ export default {
           vm.notifyOnReceive(
             amount,
             data.token_symbol.toUpperCase(),
-            vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
+            vm.getImageUrl(vm.asset)
           )
 
           // if unlisted token is detected, add to front of list
@@ -630,7 +641,7 @@ export default {
           vm.notifyOnReceive(
             tx.amount,
             vm.asset.symbol,
-            vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
+            vm.getImageUrl(vm.asset)
           )
         }
       ).then(listener => {

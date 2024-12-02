@@ -67,17 +67,14 @@
           </div>
         </q-tab-panel>
         <q-tab-panel name="delivery" :dark="darkMode">
-          <div class="q-mb-md">
+          <div v-if="deliveryOptions.length" class="q-mb-md">
             <q-btn-toggle
               v-model="formData.deliveryType"
               unelevated
               spread
               no-caps
               toggle-color="brandblue"
-              :options="[
-                { value: Checkout.DeliveryTypes.STORE_PICKUP, slot: 'store_pickup' },
-                { value: Checkout.DeliveryTypes.LOCAL_DELIVERY, slot: 'local_delivery' },
-              ]"
+              :options="deliveryOptions"
               @update:modelValue="() => findRider({ displayDialog: true })"
             >
               <template v-slot:store_pickup="ctx">
@@ -819,6 +816,7 @@ onUnmounted(() => {
 const props = defineProps({
   checkoutId: [String, Number],
   cartId: [String, Number],
+  deliveryType: String,
 })
 
 const $q = useQuasar()
@@ -945,6 +943,23 @@ function resolveLoadingMsg() {
   if (loadingState.value.rider) return 'Finding a rider'
   return ''
 }
+
+const deliveryOptions = computed(() => {
+  const deliveryTypes = checkoutStorefront.value?.deliveryTypes
+  let options = [
+    { value: Checkout.DeliveryTypes.STORE_PICKUP, slot: 'store_pickup' },
+    { value: Checkout.DeliveryTypes.LOCAL_DELIVERY, slot: 'local_delivery' },
+  ]
+  if (Array.isArray(deliveryTypes)) {
+    options = options.filter(opt => deliveryTypes.includes(opt.value))
+  }
+
+  if (options.length === 1 && checkout.value?.deliveryType === options[0].value) {
+    return []
+  }
+
+  return options
+})
 
 const formData = ref({
   payment: {
@@ -1197,7 +1212,7 @@ function fetchCheckout() {
 
   if (!initialized.value && !Number.isNaN(parsedSessionLocationData?.longitude) && !Number.isNaN(parsedSessionLocationData?.latitude)) {  
     const data = {
-      delivery_type: Checkout.DeliveryTypes.LOCAL_DELIVERY,
+      delivery_type: props.deliveryType || Checkout.DeliveryTypes.LOCAL_DELIVERY,
       delivery_address: { location: parsedSessionLocationData },
     }
     if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
