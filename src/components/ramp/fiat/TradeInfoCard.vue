@@ -10,10 +10,15 @@
                   <q-btn flat no-caps dense
                       padding="none"
                       color="primary"
-                      class="q-py-none q-my-none row lg-font-size text-weight-bold"
+                      class="q-py-none q-my-none lg-font-size text-weight-bold"
                       @click="onViewPeer(counterparty?.id)">
                       {{ counterparty?.name }}
                   </q-btn>
+                  <q-icon
+                  class="q-ml-xs"
+                  size="1em"
+                  :color="onlineStatusColor(counterparty)"
+                  :name="onlineStatusColor(counterparty) === 'orange' ? 'bedtime' : 'circle'"/>
                 </div>
                 <div class="row">
                   <q-rating
@@ -27,6 +32,7 @@
                   @click="onViewReviews"/>
                   <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
+                <div v-if="!counterparty?.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}</div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
                 <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
@@ -45,10 +51,15 @@
                       <q-btn flat no-caps dense
                           padding="none"
                           color="primary"
-                          class="q-py-none q-my-none row lg-font-size text-weight-bold"
+                          class="q-py-none q-my-none lg-font-size text-weight-bold"
                           @click="onViewPeer(orderOwner.id)">
                           {{ orderOwner.name }}
                       </q-btn>
+                      <q-icon
+                        class="q-ml-xs"
+                        size="1em"
+                        :color="onlineStatusColor(orderOwner)"
+                        :name="onlineStatusColor(orderOwner) === 'orange' ? 'bedtime' : 'circle'"/>
                     </div>
                     <div class="row">
                         <q-rating
@@ -61,6 +72,7 @@
                         @click="onViewReviews"/>
                         <span class="q-mx-xs sm-font-size">({{ orderOwner.rating?.toFixed(1) || 0 }})</span>
                     </div>
+                    <div v-if="!orderOwner?.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(orderOwner?.last_online_at, true).toLowerCase() }}</div>
                 </div>
             </div>
           </div>
@@ -74,10 +86,15 @@
                     dense
                     padding="none"
                     color="primary"
-                    class="row lg-font-size text-weight-bold"
+                    class="lg-font-size text-weight-bold"
                     @click="onViewPeer(adOwner.id)">
                     {{ adOwner.name }}
                 </q-btn>
+                <q-icon
+                  class="q-ml-xs"
+                  size="1em"
+                  :color="onlineStatusColor(adOwner)"
+                  :name="onlineStatusColor(adOwner) === 'orange' ? 'bedtime' : 'circle'"/>
               </div>
             </div>
             <div class="row justify-end text-right">
@@ -91,6 +108,7 @@
                 @click="onViewReviews"/>
                 <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
             </div>
+            <div v-if="!adOwner?.is_online" class="row justify-end xs-font-size text-grey">Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}</div>
           </div>
         </div>
       </div>
@@ -178,7 +196,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { formatCurrency } from 'src/exchange'
+import { bchToFiat, formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
 import { generateChatRef, fetchChatMembers } from 'src/exchange/chat'
 import { bus } from 'src/wallet/event-bus'
 
@@ -224,18 +242,12 @@ export default {
     userInfo () {
       return this.$store.getters['ramp/getUser']
     },
-    completedOrder () {
-      return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
-    },
-    lockedPrice () {
-      return formatCurrency(this.order?.locked_price, this.order?.ad?.fiat_currency?.symbol)
-    },
     tradeAmount () {
       let amount = 0
       if (this.byFiat) {
-        amount = formatCurrency((Number(this.order?.crypto_amount) * Number(this.order?.locked_price)).toFixed(2), this.order?.ad?.fiat_currency?.symbol)
+        amount = formatCurrency(bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price), this.order?.fiat_currency?.symbol)
       } else {
-        amount = parseFloat(Number(this.order?.crypto_amount).toFixed(8))
+        amount = satoshiToBch(this.order?.trade_amount)
       }
       return String(amount).replace(/[^\d.,-]/g, '')
     },
@@ -248,8 +260,24 @@ export default {
     }
   },
   methods: {
+    formatDate,
     formatCurrency,
     getDarkModeClass,
+    onlineStatusColor (peer) {
+      if (peer?.is_online) return 'green'
+      const diffInHours = this.getElapsedTimeInHours(peer?.last_online_at)
+      if (diffInHours < 24) {
+        return 'orange'
+      }
+      return 'grey-5'
+    },
+    getElapsedTimeInHours (date) {
+      const givenDateTime = new Date(date)
+      const currentDateTime = new Date()
+      const diffInMilliseconds = currentDateTime - givenDateTime
+      const diffInHours = diffInMilliseconds / (1000 * 60 * 60)
+      return diffInHours
+    },
     onLastReadUpdate () {
       this.fetchChatUnread(this.chatRef)
     },

@@ -2,7 +2,6 @@ import { Store } from '..'
 import { backend } from 'src/exchange/backend'
 import { toRaw } from 'vue'
 
-
 export function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
   const walletInfo = {
@@ -60,7 +59,9 @@ export function fetchAds (context, { component = null, params = null, overwrite 
         currency: params.currency,
         owned: params.owned,
         trade_type: params.trade_type,
-        query_name: params.query_name
+        query_name: params.query_name,
+        order_amount: params.order_amount,
+        order_amount_currency: params.order_amount_currency
       }
 
       let apiURL = '/ramp-p2p/ad/'
@@ -449,6 +450,20 @@ export function fetchUser (context) {
     backend.get('/auth/')
       .then(response => {
         context.commit('updateUser', response.data)
+        resolve(response.data)
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
+
+export function fetchFeatureToggles (context) {
+  return new Promise((resolve, reject) => {
+    backend.get('/ramp-p2p/feature-toggles/')
+      .then(response => {
+        console.log('fetchFeatureToggles:', response.data)
+        context.commit('updateFeatureToggles', response.data)
         resolve(response.data)
       })
       .catch(error => {

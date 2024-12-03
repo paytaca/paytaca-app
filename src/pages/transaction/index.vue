@@ -550,6 +550,9 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    fetchFeatureToggles () {
+      this.$store.dispatch('ramp/fetchFeatureToggles')
+    },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
@@ -575,6 +578,7 @@ export default {
       })
     },
     async checkCashinAvailable () {
+      this.hasCashin = false
       // check network
       if (this.selectedNetwork === 'BCH') {
         // check availableCashinFiat is empty to avoid duplicate requests
@@ -616,16 +620,19 @@ export default {
       }
     },
     async checkCashinAlert () {
-      const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-      await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
-        .then(response => {
-          this.hasCashinAlert = response.data.has_cashin_alerts
-        })
-        .catch(error => {
-          console.log(error.response || error)
-        })
+      if (this.hasCashin) {
+        const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
+        await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
+          .then(response => {
+            this.hasCashinAlert = response.data.has_cashin_alerts
+          })
+          .catch(error => {
+            console.log(error.response || error)
+          })
+      }
     },
     setupCashinWebSocket () {
+      this.closeCashinWebSocket()
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
       const url = `${getBackendWsUrl()}${walletHash}/cash-in/`
       this.websocketManager = new WebSocketManager()
@@ -636,7 +643,7 @@ export default {
       })
     },
     closeCashinWebSocket () {
-      this.websocketManager.closeConnection()
+      this.websocketManager?.closeConnection()
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()
@@ -1199,25 +1206,7 @@ export default {
               const minReqVer = response.data?.min_required_version
 
               if (appVer !== latestVer) {
-                const appV = appVer.split('.').map(Number)
-                const minV = minReqVer.split('.').map(Number)
-
-                let openVersionUpdate = false
-
-                for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
-                  const v1 = appV[i] || 0
-                  const v2 = minV[i] || 0
-
-                  if (v1 < v2) {
-                    openVersionUpdate = true
-                    break
-                  } else if (v1 > v2) {
-                    openVersionUpdate = false
-                    break
-                  } else {
-                    openVersionUpdate = false
-                  }
-                }
+                const openVersionUpdate = this.checkOutdatedVersion(appVer, minReqVer)
 
                 // open version update dialog
                 if (openVersionUpdate) {
@@ -1232,6 +1221,27 @@ export default {
             }
           })
       }
+    },
+    checkOutdatedVersion (appVer, minReqVer) {
+      let isOutdated = false
+      const appV = appVer.split('.').map(Number)
+      const minV = minReqVer.split('.').map(Number)
+
+      for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
+        const v1 = appV[i] || 0
+        const v2 = minV[i] || 0
+
+        if (v1 < v2) {
+          isOutdated = true
+          break
+        } else if (v1 > v2) {
+          isOutdated = false
+          break
+        } else {
+          isOutdated = false
+        }
+      }
+      return isOutdated
     },
     resetCashinOrderPagination () {
       this.$store.commit('ramp/resetCashinOrderList')
@@ -1261,11 +1271,12 @@ export default {
   },
   async mounted () {
     const vm = this
-    this.checkVersionUpdate()
+    await this.checkVersionUpdate()
     this.checkCashinAvailable()
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
+    this.fetchFeatureToggles()
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 

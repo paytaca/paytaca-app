@@ -342,7 +342,7 @@ export default {
       const body = {}
       let url = '/ramp-p2p/payment-method/'
       if (vm.action === 'editPaymentMethod') {
-        url = url + vm.paymentMethodId
+        url = `${url}${vm.paymentMethodId}/`
         // construct payment type fields for edit request payload
         for (const [key, field] of Object.entries(vm.paymentMethod.fields)) {
           const data = {

@@ -199,8 +199,10 @@
         dense
         v-model="message"
         :placeholder="$t('EnterMessage')"
-        @focus="() => {
+        @focus="()=> {
+          console.log($refs.container.$el)
           let element = $refs.container.$el
+          console.log('element: ', element)
 
           element.scrollTop = element.scrollHeight
         }"
@@ -297,6 +299,7 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { backend } from 'src/exchange/backend'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
+import { elements } from 'chart.js'
 
 export default {
   directives: {

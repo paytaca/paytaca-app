@@ -83,7 +83,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 
 export default {
-  emits: ['back', 'submit'],
+  emits: ['back', 'submit', 'loadAppeal'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -125,6 +125,7 @@ export default {
   methods: {
     getDarkModeClass,
     async submitAppeal () {
+      this.$emit('loadAppeal')
       const vm = this
       const data = {
         order_id: vm.order.id,
