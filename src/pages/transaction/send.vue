@@ -1352,7 +1352,7 @@ export default {
                 toSendBCHRecipients.push({
                   address: recipientAddress,
                   amount: sendData.amount,
-                  tokenAmount: tokenAmount * (10 ** vm.asset.decimals) || 0
+                  tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
                 })
               } else {
                 toSendBCHRecipients.push({
