@@ -550,6 +550,9 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    fetchFeatureToggles () {
+      this.$store.dispatch('ramp/fetchFeatureToggles')
+    },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
@@ -575,33 +578,9 @@ export default {
       })
     },
     async checkCashinAvailable () {
-
-      const appVer = packageInfo.version
-      let platform = null
-      let outdated = false
-
-      if (this.$q.platform.is.mobile) platform = 'android'
-      if (this.$q.platform.is.ios) platform = 'ios'
-      if (this.$q.platform.is.bex) platform = 'web'
-
-      if (platform) {
-        // fetching p2p exchange version check
-        await backend.get(`ramp-p2p/version/check/${platform}/`)
-          .then(response => {
-            if (!('error' in response.data)) {
-              const latestVer = response.data?.latest_version
-              const minReqVer = response.data?.min_required_version
-
-              if (appVer !== latestVer) {
-                outdated = this.checkOutdatedVersion(appVer, minReqVer)
-              }
-            }
-          })
-      }
-
       this.hasCashin = false
       // check network
-      if (this.selectedNetwork === 'BCH' && !outdated) {
+      if (this.selectedNetwork === 'BCH') {
         // check availableCashinFiat is empty to avoid duplicate requests
         if (this.availableCashinFiat) {
           this.hasCashin = true
@@ -653,6 +632,7 @@ export default {
       }
     },
     setupCashinWebSocket () {
+      this.closeCashinWebSocket()
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
       const url = `${getBackendWsUrl()}${walletHash}/cash-in/`
       this.websocketManager = new WebSocketManager()
@@ -1296,6 +1276,7 @@ export default {
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
+    this.fetchFeatureToggles()
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 

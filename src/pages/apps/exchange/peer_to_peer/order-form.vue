@@ -9,7 +9,7 @@
             <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
               {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
             </div>
-            <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
+            <q-btn v-if="adShareLinkEnabled !== false" :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
             <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
               <div class="q-mx-lg q-px-xs q-mb-sm">
                 <TradeInfoCard
@@ -67,7 +67,7 @@
                     type="text"
                     inputmode="none"
                     :label="$t('Amount')"
-                    :disable="!hasArbiters"
+                    :disable="!hasArbiters || createOrdersEnabled === false"
                     :dark="darkMode"
                     :rules="[isValidInputAmount]"
                     v-model="amount"
@@ -92,7 +92,7 @@
                         padding="none"
                         flat
                         dense
-                        :disable="!hasArbiters"
+                        :disable="!hasArbiters || createOrdersEnabled === false"
                         :class="getDarkModeClass(darkMode)"
                         :label="$t('MIN')"
                         @click="updateInput(max=false, min=true)"/>
@@ -100,7 +100,7 @@
                         class="sm-font-size button button-text-primary"
                         padding="none"
                         flat
-                        :disable="!hasArbiters"
+                        :disable="!hasArbiters || createOrdersEnabled === false"
                         :class="getDarkModeClass(darkMode)"
                         :label="$t('MAX')"
                         @click="updateInput(max=true, min=false)"/>
@@ -112,7 +112,7 @@
                       padding="none"
                       flat
                       no-caps
-                      :disable="!hasArbiters"
+                      :disable="!hasArbiters || createOrdersEnabled === false"
                       :class="getDarkModeClass(darkMode)"
                       @click="byFiat = !byFiat">
                       {{
@@ -136,7 +136,7 @@
                 </div>
 
                 <!-- create order btn -->
-                <div class="row q-mx-lg q-py-md" v-if="!isOwner && hasArbiters">
+                <div v-if="!isOwner && hasArbiters && createOrdersEnabled !== false" class="row q-mx-lg q-py-md">
                   <q-btn
                     :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton"
                     :loading="loadSubmitButton"
@@ -150,8 +150,12 @@
                 </div>
 
                 <!-- Warning message for when no currency arbiter is available for ad -->
-                <div v-if="!hasArbiters" class="warning-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+                <div v-if="!hasArbiters" class="info-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
                   There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+                </div>
+
+                <div v-if="createOrdersEnabled === false" class="info-box q-mx-md q-my-sm" :class="darkMode ? 'info-box-dark' : 'info-box-light'">
+                  This feature is temporarily disabled. We appreciate your patience as we make improvements.
                 </div>
 
                 <!-- edit ad button: For ad owners only -->
@@ -293,6 +297,12 @@ export default {
   },
   emits: ['back', 'orderCanceled', 'updatePageName'],
   computed: {
+    adShareLinkEnabled () {
+      return this.$store.getters['ramp/featureToggles']?.AdShareLinks
+    },
+    createOrdersEnabled () {
+      return this.$store.getters['ramp/featureToggles']?.CreateOrders
+    },
     hasArbiters () {
       return this.arbitersAvailable?.length > 0
     },
@@ -367,9 +377,6 @@ export default {
       })
     },
     onEditAd () {
-      // state = 'edit-ad'
-      // $emit('updatePageName', 'ad-form-1')
-      console.log('editing ad:', this.ad)
       this.$router.push({ name: 'p2p-ads-edit-form', params: { ad: this.ad.id }, query: { step: 1 } })
     },
     async loadData (done) {
@@ -378,9 +385,9 @@ export default {
       await vm.fetchAd()
       await vm.fetchArbiters()
       vm.setupWebsocket()
+      vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
       if (done) done()
-      console.log('loaded data: ', this.$route.name)
     },
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
@@ -504,7 +511,6 @@ export default {
         ad: vm.ad.id,
         trade_amount: vm.getTradeAmount()
       }
-      console.log('___body:', body)
       if (vm.ad.trade_type === 'BUY') {
         const temp = this.paymentMethods.map(p => p.id)
         body.payment_methods = temp
@@ -607,14 +613,10 @@ export default {
         }
       }
       if (amount < tradeFloor) {
-        console.log('amount is less than tradeFloor')
-        console.log(`amount: ${amount}, tradeFloor: ${tradeFloor}`)
         valid = false
         this.amountError = this.$t('FiatOrderAmountErrMsg1')
       }
       if (amount > tradeCeiling) {
-        console.log('amount is greater than tradeCeiling')
-        console.log(`amount: ${amount}, tradeCeiling: ${tradeCeiling}`)
         valid = false
         this.amountError = this.$t('FiatOrderAmountErrMsg2')
       }
@@ -741,7 +743,6 @@ export default {
       return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
     getTradeAmount () {
-      console.log('___amount:', this.amount)
       if (!this.byFiat) {
         // convert bch to satoshi
         return bchToSatoshi(parseFloat(this.amount))
@@ -837,7 +838,7 @@ export default {
   .subtext {
     opacity: .5;
   }
-  .warning-box {
+  .info-box {
     padding: 10px;
     border-radius: 5px;
   }
@@ -849,5 +850,14 @@ export default {
     background-color: #333; /* Dark mode background color */
     color: #fff; /* Text color for dark mode */
     border: 1px solid #fbc02d; /* Border color */
+  }
+  .info-box-light {
+    background-color: #c4ffff; /* Light yellow background */
+    border: 1px solid #2dd5fb; /* Border color */
+  }
+  .info-box-dark {
+    background-color: #333; /* Dark mode background color */
+    color: #fff; /* Text color for dark mode */
+    border: 1px solid #2dd5fb; /* Border color */
   }
   </style>

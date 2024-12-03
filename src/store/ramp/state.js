@@ -101,6 +101,7 @@ export default function () {
     cashinOrderListPage: 1,
     cashinOrderListTotalPage: 1,
 
-    showAdLimitMessage: true
+    showAdLimitMessage: true,
+    featureToggles: null
   }
 }

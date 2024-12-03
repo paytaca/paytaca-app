@@ -1,3 +1,7 @@
+export function featureToggles (state) {
+  return state.featureToggles
+}
+
 export function showAdLimitMessage (state) {
   return state.showAdLimitMessage
 }

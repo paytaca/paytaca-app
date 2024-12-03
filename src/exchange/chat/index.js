@@ -118,7 +118,7 @@ export async function createChatIdentity (payload) {
 
 export async function fetchChatIdentity (ref) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/?ref=${ref}`, { signal: getAuthAbortController().signal })
+    chatBackend.get(`chat/identities/?ref=${ref}`, { signal: getAuthAbortController()?.signal })
       .then(response => {
         let identity = null
         if (response.data?.results?.length > 0) {

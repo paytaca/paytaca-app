@@ -457,3 +457,17 @@ export function fetchUser (context) {
       })
   })
 }
+
+export function fetchFeatureToggles (context) {
+  return new Promise((resolve, reject) => {
+    backend.get('/ramp-p2p/feature-toggles/')
+      .then(response => {
+        console.log('fetchFeatureToggles:', response.data)
+        context.commit('updateFeatureToggles', response.data)
+        resolve(response.data)
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
