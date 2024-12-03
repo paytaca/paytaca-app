@@ -125,6 +125,13 @@ export async function massHideNotifs (notifsIds) {
     .catch(error => console.log(error))
 }
 
+export async function markWalletNotifsAsRead (walletHash) {
+  await NOTIFS_URL
+    .post('notification/mark_wallet_notifs_as_read/', { wallet_hash: walletHash })
+    .then(response => { /* marking successful */ })
+    .catch(error => console.log(error))
+}
+
 // ========== PUSH NOTIFICATIONS SETTINGS ========== //
 
 export function parseDeviceId (deviceId) {

@@ -51,6 +51,13 @@
           <q-btn
             flat
             round
+            icon="mark_chat_read"
+            :disable="isLoading"
+            @click="markAllAsRead()"
+          />
+          <q-btn
+            flat
+            round
             :disable="isLoading"
             icon="filter_alt"
             @click="openFilterDialog"
@@ -89,19 +96,13 @@
                     :class="getDarkModeClass(darkMode)"
                     :key="`notif-${index}`"
                   >
-                    <div class="row q-py-sm q-px-md">
-                      <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                        {{ notif.title }}
-                      </span><br/>
-                      <span class="col-12">{{ notif.message }}</span>
-                      <span
-                        class="col-12 q-mt-xs text-caption"
-                        align="right"
-                        style="color: gray;"
-                      >
-                        {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                      </span>
-                    </div>
+                    <NotificationBody
+                      :title="notif.title"
+                      :message="notif.message"
+                      :notif_type="parseNotifType(notif.notif_type)"
+                      :date_posted="formatDate(notif.date_posted)"
+                      :is_read="notif.is_read"
+                    />
                   </q-slide-item>
                 </div>
               </template>
@@ -135,19 +136,13 @@
                       appear
                       leave-active-class="animated zoomOut fast"
                     >
-                      <div class="row q-py-sm q-px-md">
-                        <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                          {{ notif.title }}
-                        </span><br/>
-                        <span class="col-12">{{ notif.message }}</span>
-                        <span
-                          class="col-12 q-mt-xs text-caption"
-                          align="right"
-                          style="color: gray;"
-                        >
-                          {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                        </span>
-                      </div>
+                      <NotificationBody
+                        :title="notif.title"
+                        :message="notif.message"
+                        :notif_type="parseNotifType(notif.notif_type)"
+                        :date_posted="formatDate(notif.date_posted)"
+                        :is_read="notif.is_read"
+                      />
                     </transition>
                   </q-slide-item>
                 </transition-group>
@@ -192,17 +187,20 @@ import {
   getWalletNotifications,
   parseNotifType,
   hideItemUpdate,
-  massHideNotifs
+  massHideNotifs,
+  markWalletNotifsAsRead
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
+import NotificationBody from './NotificationBody.vue'
 
 export default {
   name: 'Notifications',
 
   components: {
-    ProgressLoader
+    ProgressLoader,
+    NotificationBody
   },
 
   data () {
@@ -348,6 +346,10 @@ export default {
         await vm.refreshNotifsList(null)
         vm.isCheckboxClicked = false
       }
+    },
+    async markAllAsRead () {
+      await markWalletNotifsAsRead(this.currentWalletHash)
+      await this.refreshNotifsList(null)
     },
 
     formatDate (date) {
