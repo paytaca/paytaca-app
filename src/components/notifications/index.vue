@@ -284,7 +284,6 @@ export default {
 
       switch (notif.notif_type) {
         case 'TR': {
-          console.log('transaction notif yey')
           const url = notif.extra_url
           if (url !== '') {
             // automatically hide JPP payment request notifications after clicking
@@ -298,22 +297,20 @@ export default {
               network: 'BCH',
               address: url
             }
-            vm.$router.push({
-              name: 'transaction-send',
-              query
-            })
+            vm.$router.push({ name: 'transaction-send', query })
           } else {
             console.log('transaction dialog yey')
           }
           break
         } case 'MP': {
-          console.log('marketplace notif yey')
+          const orderId = notif.message.match(/#(\d+)/)[1]
+          vm.$router.push({ name: 'app-marketplace-order', params: { orderId } })
           break
         } case 'AH': {
-          console.log('anyhedge notif yey')
+          vm.$router.push({ name: 'anyhedge' })
           break
         } case 'RP': {
-          console.log('p2p exchange notif yey')
+          vm.$router.push({ name: 'exchange' })
           break
         } case 'CB': {
           console.log('cashback notif yey')
