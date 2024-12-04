@@ -14,15 +14,25 @@ export const isTokenAddress = (address /* :string */) => {
  * @return bchtest:qz97d...fwe if address is bchtest:qz97djdjktl0dvawp79a73jlq7cy95stcvx8sk9fwe
  */
 export const shortenAddressForDisplay = (address /* :string */) => {
-  return address.replace(address.slice(13, address.length - 3), '...')
+  let startIndex = 16
+  if (address?.startsWith('bchtest:')) {
+    startIndex = 12
+  }
+  return address.replace(address.slice(startIndex, address.length - 4), '...')
 }
 
-/**
- * Shortens address for display
- * @return bchtest:qz97d...fwe if address is bchtest:qz97djdjktl0dvawp79a73jlq7cy95stcvx8sk9fwe
- */
-export const toP2pkhTestAddress = (p2pkhAddress /* :string */, withTokens = false /* ?: boolean */) => {
+export const toP2pkhTestAddress = (p2pkhAddress /* :string */) => {
   const decodedAddress = decodeCashAddress(p2pkhAddress)
-  const addressType = withTokens ? CashAddressType.p2pkhWithTokens : CashAddressType.p2pkh
-  return encodeCashAddress(CashAddressNetworkPrefix.testnet, addressType, decodedAddress.payload)
+  return encodeCashAddress(CashAddressNetworkPrefix.testnet, CashAddressType.p2pkh, decodedAddress.payload)
+}
+
+export const toP2pkhTestTokenAddress = (p2pkhAddress /* :string */) => {
+  const decodedAddress = decodeCashAddress(p2pkhAddress)
+  return encodeCashAddress(CashAddressNetworkPrefix.testnet, CashAddressType.p2pkhWithTokens, decodedAddress.payload)
+}
+
+export const toP2pkhTokenAddress = (p2pkhAddress /* :string */, test = false) => {
+  const decodedAddress = decodeCashAddress(p2pkhAddress)
+  const prefix = test? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
+  return encodeCashAddress(CashAddressNetworkPrefix.mainnet, CashAddressType.p2pkhWithTokens, decodedAddress.payload)
 }
