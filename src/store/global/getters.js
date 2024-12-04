@@ -233,9 +233,9 @@ export function denomination (state) {
 
 export function walletAddresses (state) {
   if (state.isChipnet) {
-    return state.chipnet__wallets.bch.addresses
+    return state.chipnet__wallets.bch.walletAddresses
   }
-  return state.wallets.bch.addresses
+  return state.wallets.bch.walletAddresses
 }
 
 export function walletConnectedApps (state) {
@@ -255,5 +255,12 @@ export function lastUsedAddressAtAppUrl (state) {
       return connectedApp.app_url === appUrl
     })
   }
+}
+
+export function lastAddressAndIndex (state) {
+  if (state.isChipnet) {
+    return state.chipnet__wallets.bch.lastAddressAndIndex
+  }
+  return state.wallets.bch.lastAddressAndIndex
 }
 

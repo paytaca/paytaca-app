@@ -234,11 +234,11 @@ export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
   }
 }
 
-export function setWalletAddresses(state, addresses) {
+export function setWalletAddresses(state, walletAddresses) {
   if (state.isChipnet) {
-    state.chipnet__wallets.bch.addresses = addresses
+    state.chipnet__wallets.bch.walletAddresses = walletAddresses
   } else {
-    state.wallets.bch.addresses = addresses
+    state.wallets.bch.walletAddresses = walletAddresses
   }
 }
 

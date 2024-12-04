@@ -239,11 +239,20 @@ export function test (context, data) {
 export async function loadWalletLastAddressIndex(context) {
   console.log('🚀 ~ loadWalletLastAddressIndex ~ context:', context)
   const w = new WatchtowerExtended(context.state.isChipnet)
-  const walletHash = context.state.isChipnet ? 
-    context.state.chipnet__wallets.bch.walletHash: context.state.wallets.bch.walletHash
-  const lastAddressAndIndex = await w.getLastExternalAddressIndex(walletHash)
-  context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
-}
+  const wallet = context.state.isChipnet ? 
+    context.state.chipnet__wallets.bch: context.state.wallets.bch
+    
+  try {
+    const lastAddressAndIndex = await w.getLastExternalAddressIndex(wallet.walletHash)  
+    context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+  } catch (error) {
+    // on error just use the existing
+    context.commit('setWalletLastAddressAndIndex', {
+      address: wallet.lastAddress,
+      address_index: wallet.lastAddressIndex
+    })
+  }
+}  
 
 
 /**
@@ -267,7 +276,7 @@ export async function loadWalletAddresses (context) {
   const wallet = await loadWallet('BCH', walletIndex)
   
   const stopAtIndex = lastIndex + 1 // include lastIndex
-  const addresses = []
+  const walletAddresses = []
   for (let i = 0; i < stopAtIndex; i++ ) {
       try {
       const wif = await wallet.BCH.getPrivateKey(`0/${i}`)
@@ -279,13 +288,13 @@ export async function loadWalletAddresses (context) {
           // to test address
           cashAddress = toP2pkhTestAddress(cashAddress)
       }
-      addresses.push({ index: i, address: cashAddress, wif: wif })
+      walletAddresses.push({ address_index: i, address: cashAddress, wif: wif })
       } catch (error) {
           console.log(error)
           break
       }
   }
-  context.commit('setWalletAddresses', addresses)
+  context.commit('setWalletAddresses', walletAddresses)
 }
 
 
