@@ -66,7 +66,7 @@
   </q-dialog>
 </template>
 <script setup>
-import { ref , computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
@@ -82,18 +82,9 @@ const props = defineProps({
   lastUsedWalletAddress: null /*{ wallet_address: string, app_url: string, app_icon: string }*/
 })
 
-
 const addressSelected = ref /*<string>*/ ('')
 const addressOptions  = ref /*<{label: string, value: string }[]>*/ ([])
 
-const selectAddress = (address) => {
-  addressOptions.value.forEach(item => {
-    item.selected = (item.address === address);
-    if (item.selected) {
-      addressSelected.value = address
-    }
-  });
-}
 const onConnectClick = () => {
   onDialogOK(
     props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
@@ -104,24 +95,35 @@ const onCancelClick = () => {
   onDialogHide()
 }
 
+const selectAddress = (address) => {
+  addressOptions.value.forEach(addressOption => {
+    addressOption.selected = (addressOption.address === address);
+    if (addressOption.selected) {
+      addressSelected.value = address
+    }
+  });
+}
+
+const selectLastAddressUsedIfFound = () => {
+  if (props.lastUsedWalletAddress?.wallet_address) {
+    const foundLastUsed = addressOptions.value.find((addressOption) => {
+      return addressOption.address == props.lastUsedWalletAddress.wallet_address
+    })
+
+    if (foundLastUsed) {
+      foundLastUsed.selected = true
+      addressSelected.value = foundLastUsed.address
+    }
+  }
+}
+
 onMounted(() => {
+  // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: shortenAddressForDisplay(item.address), address: item.address, index: item.address_index }))
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
+    addressOptions.value[0].selected = true
   }
-  if (props.lastUsedWalletAddress?.wallet_address) {
-    // const foundLastUsed = props.walletAddresses.find((walletAddress) => {
-    //   return walletAddress.address == props.lastUsedWalletAddress.wallet_address
-    // })
-    // addressSelected.value = foundLastUsed ? foundLastUsed.address: addressSelected.value
-
-    const foundLastUsed = addressOptions.value.find((item) => {
-      return item.address == props.lastUsedWalletAddress.wallet_address
-    })
-    addressSelected.value = foundLastUsed ? foundLastUsed.address: addressSelected.value
-  }
-  console.log('ADDRESSES', props.walletAddresses)
-  console.log('selected', addressSelected.value)
-  console.log('LAST USED', props.lastUsedWalletAddress)
+  selectLastAddressUsedIfFound()
 })
 </script>
