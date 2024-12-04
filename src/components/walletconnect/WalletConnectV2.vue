@@ -77,7 +77,7 @@
           <div class="col-xs-12">
             <SessionInfo v-for="sessionRequest in sessionRequests" :session="sessionRequest" :key="sessionRequest.id" session-type="request">
               <template v-slot:top-right>
-                <q-btn icon="open_in_full" dense flat @click="() => openSessionRequestDialog(sessionRequest)"></q-btn>
+                <q-btn class="action-button" icon="open_in_full" dense @click.stop="() => openSessionRequestDialog(sessionRequest)"></q-btn>
               </template>
               <template v-slot:actions>
                 <q-btn v-if="sessionRequest.error" flat color="negative" icon="error" disable></q-btn>
@@ -119,7 +119,7 @@
                 </span>
               </template>
               <template v-slot:top-right>
-                <q-icon ></q-icon>
+                <q-icon name="notifications_active" size="sm" color="warning"></q-icon>
               </template>
               <template v-slot:actions>
                 <q-btn 
@@ -164,7 +164,7 @@
           </div>
           <div v-if="Object.keys(activeSessions || {}).length > 0 && showActiveSessions" class="col-xs-12 q-gutter-y-sm">
             <q-separator spaced></q-separator>
-            <SessionInfo v-for="activeSession in activeSessions" :session="activeSession" session-type="active">
+            <SessionInfo v-for="activeSession in activeSessions" :session="activeSession" session-type="active" :flat="true">
               <template v-slot:actions>
                   <q-btn
                     label="Disconnect" 
@@ -579,6 +579,8 @@ const loadSessionRequests = async ({showLoading} = {showLoading: true}) => {
       sessionRequests.value = sessionRequests.value.filter((sessionRequest) => {
         return !whitelistedMethods.includes(sessionRequest.params.request.method)
       })
+
+      console.log('SESSION REQUESTS PARSED', sessionRequests.value)
     }
     
   } catch (error) {} finally { 
@@ -1110,6 +1112,7 @@ const respondToSessionRequest = async (sessionRequest) => {
 } 
 
 const openSessionRequestDialog = (sessionRequest) => {
+  console.log('🚀 ~ openSessionRequestDialog ~ sessionRequest:', sessionRequest)
   // sessionRequestDialog.value.sessionRequest = sessionRequest
   // sessionRequestDialog.value.show = true
   // selectedActiveSessionTopic.value = sessionRequest?.topic
@@ -1117,15 +1120,16 @@ const openSessionRequestDialog = (sessionRequest) => {
     component: SessionRequestDialog,
     componentProps: {
       sessionRequest
+    },
+    cancel: true,
+  }).onOk(({ response }) => {
+    if (response === 'ok') {
+      return respondToSessionRequest(sessionRequest)  
     }
-  }).onOk(() => {
-    respondToSessionRequest(sessionRequest)
-  }).onCancel(() => {
-    rejectSessionRequest(sessionRequest)
-  }).onDismiss(() => {
-    //TODO: close dialog
+    if (response === 'reject') {
+      return rejectSessionRequest(sessionRequest)
+    }
   })
-
 }
 
 const rejectSessionRequest = async (sessionRequest) => {
@@ -1360,6 +1364,8 @@ onBeforeMount(async () => {
   await $store.dispatch('global/loadWalletConnectedApps')
   wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
+  await loadSessionRequests()
+  await loadSessionProposals()
 })
 
 onMounted(async () => {
@@ -1367,40 +1373,18 @@ onMounted(async () => {
     loading.value = 'Loading...'
     await loadWeb3Wallet()
     attachEventListeners(web3Wallet.value)
-    await $store.dispatch('global/loadWalletLastAddressIndex')
-    await $store.dispatch('global/loadWalletAddresses')
-    await $store.dispatch('global/loadWalletConnectedApps')
-    console.log($store.getters['global/walletAddresses'])
-    console.log($store.getters['global/walletConnectedApps'])
-    console.log($store.getters['global/lastAddressAndIndex'])
+    if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
+      await $store.dispatch('global/loadWalletLastAddressIndex')  
+    }
+    if (!$store.getters['global/walletConnectedApps']) {
+      await $store.dispatch('global/loadWalletConnectedApps')
+    }
+    if (!$store.getters['global/walletAddresses']) {
+      await $store.dispatch('global/loadWalletAddresses')  
+    }
     walletAddresses.value = $store.getters['global/walletAddresses']
-    
-    
-    // await mapSessionTopicWithAddress(activeSessions, walletAddresses.value)
-
-    // const leai = await loadLastExternalAddressIndex()
-    // const as = await loadAddressSelections(leai?.address_index)
-    // await mapSessionTopicWithAddress(ac, as)
-    await loadSessionRequests()
-    await loadSessionProposals()
     await loadActiveSessions()
     console.log('MAP SESSION TOPIC WITH ADDRESS', sessionTopicWalletAddressMapping.value)
-    // console.log('Is Chipnet', $store.getters['global/isChipnet'])
-    // console.log('Active Sessions', activeSessions.value)
-    // console.log('Session Requests', sessionRequests.value)
-    // console.log('Session Proposals', sessionProposals.value)
-    // console.log('Session Topic Mapping', sessionTopicWalletAddressMapping.value)
-    // console.log('Address Selections', walletAddresses.value)
-
-    // await $store.dispatch('global/loadWalletLastAddressIndex')
-    // await $store.dispatch('global/loadWalletAddresses')
-    // await $store.dispatch('global/loadWalletConnectedApps')
-    
-
-    // console.log($store.getters['global/walletAddresses'])
-    // console.log($store.getters['global/walletConnectedApps'])
-    // console.log($store.getters['global/lastAddressAndIndex'])
-
   } catch (error) {} finally { loading.value = undefined}
 })
 
