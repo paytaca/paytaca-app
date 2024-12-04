@@ -27,7 +27,7 @@ export default {
 
   data () {
     return {
-      notifsCount: 4
+      notifsCount: 0
     }
   },
 
@@ -37,6 +37,31 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    currentWalletHash () {
+      return this.$store.getters['global/getWallet']('bch')?.walletHash
+    }
+  },
+
+  async mounted () {
+    const notifSocket = new WebSocket(
+      `ws://https://engagementhub.paytaca.com/ws/notifications/${this.currentWalletHash}/`
+    )
+
+    notifSocket.onmessage = (event) => {
+      console.log(event)
+    }
+
+    notifSocket.onopen = (event) => {
+      console.log('open', event)
+    }
+
+    notifSocket.onclose = (event) => {
+      console.log('closed', event)
+    }
+
+    notifSocket.onerror = (event) => {
+      console.log('error', event)
     }
   },
 

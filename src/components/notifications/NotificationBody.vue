@@ -4,12 +4,14 @@
       <span class="row col-11 q-mb-sm text-bold" style="font-size: 17px;">
         {{ title }}
       </span>
-      <q-icon
-        v-if="!is_read"
-        name="circle"
-        color="red-5"
-        class="q-mt-sm"
-      />
+      <div class="row col-1 justify-end">
+        <q-icon
+          v-if="!is_read"
+          name="circle"
+          color="red-5"
+          class="q-mt-sm"
+        />
+      </div>
     </div>
     <span class="col-12">{{ message }}</span>
     <span
