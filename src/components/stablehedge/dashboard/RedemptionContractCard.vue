@@ -149,7 +149,7 @@ import { getAssetDenomination } from 'src/utils/denomination-utils';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
-import { createShortPosition } from 'src/wallet/stablehedge/short-proposal';
+import { createShortProposal, completeShortProposal } from 'src/wallet/stablehedge/short-proposal';
 import { createTreasuryContractTransaction } from 'src/wallet/stablehedge/transaction';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters';
@@ -161,6 +161,7 @@ import { getCurrentInstance, computed, defineComponent, onMounted, ref, watch, i
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue';
 import SendBCHFormDialog from './SendBCHFormDialog.vue';
 import TransactionConfirmDialog from './TransactionConfirmDialog.vue';
+import ShortProposalConfirmDialog from './ShortProposalConfirmDialog.vue';
 
 export default defineComponent({
   name: 'RedemptionContractCard',
@@ -350,12 +351,35 @@ export default defineComponent({
     async function shortTreasuryContractFunds() {
       const loadingKey = 'short-treasury-contract-funds'
       try {
-        const updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
         if (!treasuryContract.value?.address) await fetchTreasuryContract()
         if (!treasuryContract.value?.address) throw 'No treasury contract'
 
-        const parsedContractData = await createShortPosition({
-          wallet: await getStablehedgeWallet(),
+        const wallet = await getStablehedgeWallet()
+        const shortProposalData = await createShortProposal({
+          wallet: wallet,
+          treasuryContract: treasuryContract.value,
+          updateLoading: updateLoading,
+        })
+
+        // display some data and for confirmation from user
+        $q.loading.hide(loadingKey)
+        const proceed = await new Promise(resolve => {
+          $q.dialog({
+            component: ShortProposalConfirmDialog,
+            componentProps: {
+              shortProposal: shortProposalData,
+              tokenCategory: tokenCategory.value,
+            },
+          }).onOk(() => resolve(true))
+            .onDismiss(() => resolve(false))
+        })
+        if (!proceed) return
+
+        updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const parsedContractData = await completeShortProposal({
+          wallet: wallet,
+          shortProposal: shortProposalData,
           treasuryContract: treasuryContract.value,
           updateLoading: updateLoading,
         })

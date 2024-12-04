@@ -2,6 +2,15 @@
   <q-pull-to-refresh id="app-container" :class="getDarkModeClass(darkMode)" @refresh="refreshPage">
     <header-nav :title="$t('Stablehedge')" backnavpath="/apps" class="apps-header" />
     <div class="q-pa-sm">
+      <div v-if="fetchingRedemptionContracts" class="text-center">
+        <q-spinner size="3rem" color="brandblue"/>
+      </div>
+      <div
+        v-else-if="redemptionContractsLoaded && redemptionContracts.length === 0"
+        class="text-grey text-center text-h6"
+      >
+        {{ $t('NoData') }}
+      </div>
       <RedemptionContractCard
         :ref="el => redemptionContractCardsRef = el"
         v-for="redemptionContract in redemptionContracts" :key="redemptionContract?.address"
@@ -13,7 +22,7 @@
           padding: 'xs',
           dark: darkMode,
           class: ['justify-center', getDarkModeClass(darkMode)],
-          disable: fetchingRedempionContracts,
+          disable: fetchingRedemptionContracts,
         }"
         class="q-my-sm"
         :hide-below-pages="2"
@@ -50,8 +59,9 @@ export default defineComponent({
 
     const redemptionContractCardsRef = ref()
 
-    const fetchingRedempionContracts = ref(false)
-    const redemptionContractsPagination = ref({ offset: 0, limit: 3, count: 15 })
+    const fetchingRedemptionContracts = ref(false)
+    const redemptionContractsLoaded = ref(false)
+    const redemptionContractsPagination = ref({ offset: 0, limit: 0, count: 0 })
     const redemptionContracts = ref([])
     function fetchRedemptionContracts(opts={ limit: 10, offset: 0 }) {
       const params = {
@@ -59,7 +69,7 @@ export default defineComponent({
         offset: opts?.offset || undefined,
       }
       const backend = getStablehedgeBackend(isChipnet.value)
-      fetchingRedempionContracts.value = true
+      fetchingRedemptionContracts.value = true
       return backend.get(`stablehedge/redemption-contracts/`, { params })
         .then(response => {
           if (Array.isArray(response.data)) {
@@ -86,7 +96,8 @@ export default defineComponent({
           return response
         })
         .finally(() => {
-          fetchingRedempionContracts.value = false
+          fetchingRedemptionContracts.value = false
+          redemptionContractsLoaded.value = true
         })
     }
 
@@ -109,7 +120,8 @@ export default defineComponent({
       darkMode, getDarkModeClass,
       redemptionContractCardsRef,
 
-      fetchingRedempionContracts,
+      fetchingRedemptionContracts,
+      redemptionContractsLoaded,
       redemptionContractsPagination,
       redemptionContracts,
       fetchRedemptionContracts,
