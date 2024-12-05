@@ -174,7 +174,7 @@
             style="color: gray"
             v-else
           >
-            No notifications
+            {{ $t{'NoNotifications'} }}
           </div>
         </template>
       </div>
