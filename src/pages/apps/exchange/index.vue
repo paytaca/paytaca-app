@@ -20,13 +20,13 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
+import { getAuthToken } from 'src/exchange/auth'
 
 export default {
   components: {
     RampLogin,
     ProgressLoader,
-    NetworkError,
-    versionUpdate
+    NetworkError
   },
   data () {
     return {
@@ -56,8 +56,9 @@ export default {
     isNotDefaultTheme,
     async getUser () {
       await backend.get('auth')
-        .then((response) => {
-          this.showLogin = !response?.data?.is_authenticated
+        .then(async (response) => {
+          const token = await getAuthToken()
+          this.showLogin = !response?.data?.is_authenticated || !token
           this.user = response.data
           if (!this.showLogin) {
             this.isloaded = true
@@ -84,7 +85,11 @@ export default {
       if (this.user?.is_arbiter) {
         this.$router?.push({ name: 'arbiter-appeals' })
       } else {
-        this.$router?.push({ name: 'p2p-store' })
+        if ('ad_id' in this.$route.query) {
+          this.$router?.push({ name: 'p2p-store', query: this.$route.query })
+        } else {
+          this.$router?.push({ name: 'p2p-store' })
+        }
       }
     },
     openNetworkError () {

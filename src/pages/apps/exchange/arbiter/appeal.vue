@@ -108,6 +108,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { fetchChatMembers } from 'src/exchange/chat'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { ref } from 'vue'
+import { satoshiToBch } from 'src/exchange'
 
 export default {
   setup () {
@@ -306,7 +307,7 @@ export default {
       const fees = {
         arbitrationFee: this.fees.fees.arbitration_fee,
         serviceFee: this.fees.fees.service_fee,
-        contractFee: this.fees.fees.hardcoded_fee
+        contractFee: this.fees.fees.contract_fee
       }
       const timestamp = this.contract.timestamp
       this.escrowContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
@@ -356,7 +357,7 @@ export default {
         vm.loading = true
         backend.get(`/ramp-p2p/order/${vm.$route.params?.order}`, { authorize: true })
           .then(response => {
-            vm.amount = response.data?.order?.crypto_amount
+            vm.amount = satoshiToBch(response.data?.order?.trade_amount)
             resolve(response.data)
           })
           .catch(error => {

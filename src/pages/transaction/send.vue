@@ -132,7 +132,7 @@
                     v-model="expandedItems[`R${index + 1}`]"
                     :label="`${$t('Recipient')} #${index + 1}`"
                     :class="getDarkModeClass(darkMode)"
-                  >
+                  > 
                     <SendPageForm
                       :recipient="sendDataMultiple[index]"
                       :inputExtras="inputExtras[index]"
@@ -256,16 +256,18 @@
                 <p class="amount-label">
                   {{
                     isCashToken
-                      ? totalAmountSent
+                      ? totalAmountSent.toLocaleString('en-us', {maximumFractionDigits: asset.decimals})
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
                   }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
-                <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
-                  ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
-                </p>
-                <p v-else class="amount-fiat-label">
-                  ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
-                </p>
+                <template v-if="!isCashToken">
+                  <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
+                    ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
+                  </p>
+                  <p v-else class="amount-fiat-label">
+                    ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
+                  </p>
+                </template>
               </template>
 
               <p class="to-label">{{ $t('To') }}</p>
@@ -978,6 +980,20 @@ export default {
         }
       }
 
+      if (this.asset.id.startsWith('ct/')) {
+        if (this.asset.decimals === 0) {
+          currentAmount = currentAmount.toString().replace('.', '');
+        } else {
+          const parts = currentAmount.toString().split('.');
+          
+          if (parts.length > 1) { // Ensure there's a decimal part
+            // Truncate the decimal part to the desired length
+            parts[1] = parts[1].slice(0, this.asset.decimals);
+            currentAmount = parts.join('.'); // Recombine the integer and decimal parts
+          }
+        }
+      }
+
       // Set the new amount
       if (this.setAmountInFiat) {
         currentInputExtras.sendAmountInFiat = currentAmount
@@ -1046,6 +1062,7 @@ export default {
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     async slideToSubmit (reset=() => {}) {
+      console.log('SLIDE')
       if (this.bip21Expires) {
         const expires = parseInt(this.bip21Expires)
         const now = Math.floor(Date.now() / 1000)
@@ -1335,7 +1352,7 @@ export default {
                 toSendBCHRecipients.push({
                   address: recipientAddress,
                   amount: sendData.amount,
-                  tokenAmount: tokenAmount * (10 ** vm.asset.decimals) || 0
+                  tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
                 })
               } else {
                 toSendBCHRecipients.push({

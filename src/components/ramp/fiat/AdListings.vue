@@ -29,6 +29,7 @@
               no-caps
               padding="sm"
               icon="add"
+              :disable="disableCreateBtn"
               :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
               @click="onCreateAd()"
             />
@@ -89,11 +90,11 @@
                             {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
                           </span>
                           <span class="sm-font-size">/BCH</span>
-                          <div class="sm-font-size row q-gutter-md">
+                          <div class="sm-font-size row q-gutter-md" :class="listing.trade_amount === 0 ? 'text-red': ''">
                             <span>{{ $t('Quantity') }}</span>
                             <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
                           </div>
-                          <div class="sm-font-size row q-gutter-md">
+                          <div class="sm-font-size row q-gutter-md" :class="listing.trade_amount === 0 ? 'text-red': ''">
                             <span>{{ $t('Limits') }}</span>
                             <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(listing.trade_ceiling, tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
                           </div>
@@ -137,6 +138,7 @@
                               padding="xs sm"
                               size="sm"
                               class="q-ml-xs text-weight-bold"
+                              :loading="visibilityLoading[listing.id]"
                               :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
                               :icon="listing.is_public ? 'visibility' : 'visibility_off'"
                               @click="onToggleAdVisibility(listing, index)">
@@ -163,14 +165,15 @@
     </div>
   </div>
   <FiatAdsDialogs
-    v-if="openDialog === true"
+    v-if="openDialog"
     :type="dialogName"
     v-on:back="onDialogBack"
     v-on:selected-option="receiveDialogOption"
   />
   <MiscDialogs
     v-if="openMiscDialog"
-    :type="dialogName"
+    type="info"
+    :action="dialogName"
     @back="openMiscDialog = false"
     @submit="receiveFilter"
   />
@@ -178,7 +181,7 @@
 <script>
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import FiatAdsDialogs from 'src/components/ramp/fiat/dialogs/FiatAdsDialogs.vue'
-import { formatCurrency, formatDate, getAppealCooldown } from 'src/exchange'
+import { formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -212,7 +215,9 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       loadingMoreData: false,
       listings: [],
-      displayEmptyList: false
+      displayEmptyList: false,
+      disableCreateBtn: false,
+      visibilityLoading: {}
     }
   },
   watch: {
@@ -223,9 +228,11 @@ export default {
     },
     transactionType (value) {
       const vm = this
+      vm.disableCreateBtn = true
       vm.displayEmptyList = false
       vm.scrollToTop()
       vm.resetAndRefetchListings()
+      vm.checkAdLimit()
       vm.$store.commit('ramp/updateAdListingTab', value)
     }
   },
@@ -245,10 +252,34 @@ export default {
   mounted () {
     this.resetAndRefetchListings()
     this.resetListings()
+    this.checkAdLimit()
   },
   methods: {
     getDarkModeClass,
     formatCurrency,
+    async getFiatCurrencies () {
+      try {
+        const { data: currencies } = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: this.transactionType }, authorize: true })
+        this.disableCreateBtn = currencies.length === 0
+      } catch (error) {
+        console.error(error.response || error)
+      }
+    },
+    checkAdLimit () {
+      const showAdLimitMessage = this.$store.getters['ramp/showAdLimitMessage']
+      if (showAdLimitMessage) {
+        backend.get('ramp-p2p/ad/check/limit/', { params: { trade_type: this.transactionType }, authorize: true })
+          .then(response => {
+            console.log(response)
+            if (response.data?.exceeds_limit) {
+              bus.emit('post-notice', 'ad-limit')
+            }
+          })
+          .catch(error => {
+            console.error(error)
+          })
+      }
+    },
     resetListings (append = false, newData = []) {
       const vm = this
       switch (vm.transactionType) {
@@ -271,7 +302,7 @@ export default {
       this.toggleAdVisibility(ad, index)
     },
     tradeAmountCurrency (ad) {
-      return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
@@ -308,14 +339,15 @@ export default {
     },
     async toggleAdVisibility (ad, index) {
       if (!ad) return
+      this.visibilityLoading[ad.id] = true
       await backend.put(`ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
         .then(response => {
-          // this.resetListings()
           this.listings[index] = response.data
         })
         .catch(error => {
           console.error(error.response || error)
         })
+      this.visibilityLoading[ad.id] = false
     },
     async loadMoreData () {
       const vm = this
@@ -329,9 +361,9 @@ export default {
       }
       vm.loadingMoreData = false
     },
-    deleteAd () {
+    async deleteAd () {
       const vm = this
-      backend.delete(`/ramp-p2p/ad/${vm.selectedAdId}/`, { authorize: true })
+      await backend.delete(`/ramp-p2p/ad/${vm.selectedAdId}/`, { authorize: true })
         .then(() => {
           setTimeout(() => {
             vm.dialogName = 'notifyDeleteAd'
@@ -360,10 +392,11 @@ export default {
       vm.loading = true
       await vm.fetchAds(true)
 
-      setTimeout(() =>{
+      setTimeout(() => {
         vm.displayEmptyList = true
       }, 150)
 
+      vm.getFiatCurrencies()
       vm.loading = false
     },
     updatePaginationValues () {

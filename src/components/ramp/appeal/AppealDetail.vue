@@ -350,7 +350,7 @@ export default {
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
       const keypair = await wallet.keypair(arbiterMember.address_path)
       let txid = null
-      await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.crypto_amount)
+      await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.trade_amount)
         .then(result => {
           console.log(result)
           if (result.success) {
@@ -382,7 +382,7 @@ export default {
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
       const privateKey = await wallet.privkey(arbiterMember.address_path)
       let txid = null
-      await vm.escrowContract.refund(privateKey, this.order.crypto_amount)
+      await vm.escrowContract.refund(privateKey, this.order.trade_amount)
         .then(result => {
           console.log(result)
           if (result.success) {

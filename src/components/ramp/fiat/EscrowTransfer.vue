@@ -134,6 +134,8 @@ import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import RampContract from 'src/exchange/contract'
+import packageInfo from '../../../../package.json'
+import { bchToFiat, satoshiToBch } from 'src/exchange'
 
 export default {
   data () {
@@ -199,7 +201,7 @@ export default {
       return false
     },
     fiatAmount () {
-      let amount = Number(parseFloat(this.order?.crypto_amount) * parseFloat(this.order?.locked_price))
+      let amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
       if (amount > 1) amount = amount.toFixed(2)
       return this.$parent.formattedCurrency(amount)
     }
@@ -207,8 +209,7 @@ export default {
   async mounted () {
     const vm = this
     vm.loading = true
-    vm.loadData()
-    vm.loadContract()
+    await vm.loadData()
   },
   methods: {
     getDarkModeClass,
@@ -245,21 +246,15 @@ export default {
         }
       }
     },
-    loadData () {
-      const vm = this
-      vm.order = vm.data.order
-      vm.fees = vm.data.fees
-      vm.updateTransferAmount(vm.data.transferAmount)
-      if (vm.contractAddress) {
-        vm.$emit('refresh')
+    async loadData () {
+      this.order = this.data.order
+      await this.fetchFees()
+      const transferAmount = this.data.transferAmount
+      this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
+      if (this.contractAddress) {
+        this.$emit('refresh')
       }
-    },
-    updateTransferAmount (transferAmount) {
-      this.transferAmount = transferAmount
-      if (this.fees) {
-        this.transferAmount += this.fees.total / 100000000
-      }
-      this.transferAmount = parseFloat(this.transferAmount.toFixed(8))
+      this.loadContract()
     },
     async completePayment () {
       const vm = this
@@ -384,7 +379,7 @@ export default {
           arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
-        backend.post('/ramp-p2p/order/contract/', body, { authorize: true })
+        backend.post('/ramp-p2p/order/contract/', body, { headers: { version: packageInfo.version }, authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
             vm.loading = false
@@ -439,15 +434,15 @@ export default {
     },
     async generateContract () {
       const vm = this
-      const fees = await vm.fetchFees()
+      await vm.fetchFees()
       await vm.fetchContract(vm.order.id).then(contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
         const fees_ = {
-          arbitrationFee: fees.breakdown?.arbitration_fee,
-          serviceFee: fees.breakdown?.service_fee,
-          contractFee: fees.breakdown?.hardcoded_fee
+          arbitrationFee: vm.fees.breakdown?.arbitration_fee,
+          serviceFee: vm.fees.breakdown?.service_fee,
+          contractFee: vm.fees.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         const isChipnet = vm.$store.getters['global/isChipnet']
@@ -475,26 +470,23 @@ export default {
           })
       })
     },
-    fetchFees () {
-      return new Promise((resolve, reject) => {
-        const url = '/ramp-p2p/order/contract/fees/'
-        backend.get(url, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+    async fetchFees () {
+      const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          this.fees = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     }
   }
 }

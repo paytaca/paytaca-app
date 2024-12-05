@@ -4,12 +4,12 @@
       Cash In Orders
     </div>
     <div v-if="!loading">
-      <div class="row justify-end q-mx-md q-mb-none">
+      <div v-if="!loading && orders.length > 0" class="row justify-end q-mx-md q-mb-none">
         <q-btn :loading="markAsReadLoading" :disable="selectedOrders.length === 0 || markAsReadLoading" dense flat icon="mark_email_read" @click="markMultipleRead"/>
         <q-checkbox size="sm" @click="onSelectMultipleOrders" :model-value="selectMultipleButtonValue"/>
         <q-select class="q-pl-none" dense square hide-selected borderless :options="selectionTypeOpts" v-model="selectionType" @update:model-value="onSelectMultipleOrders"/>
       </div>
-      <div class="q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 275px; overflow: auto;">
+      <div class="q-mx-md text-bow" :class="getDarkModeClass(darkMode)" style="height: 250px; overflow: auto;">
         <div v-if="loadingNewPage" class="row justify-center q-py-lg">
           <ProgressLoader/>
         </div>
@@ -19,7 +19,7 @@
         </div>
         <div v-else>
           <q-pull-to-refresh @refresh="fetchCashinOrders">
-            <q-list class="scroll-y br-15" @touchstart="preventPull" ref="scrollTarget" bordered style="max-height: 275px; overflow:auto;">
+            <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" style="max-height: 250px; overflow:auto;">
               <div v-for="(order,index) in orders" :key="index" class="q-pt-sm">
                 <q-item clickable :key="index" @click="$emit('open-order', order?.id)">
                   <q-item-section>
@@ -28,7 +28,7 @@
                         <div style="font-size: 13px;">
                           ORDER #{{ order?.id }}
                         </div>
-                        <div class="text-grey-6">{{ Number(Number(order?.crypto_amount).toFixed(8)) }} BCH</div>
+                        <div class="text-grey-6">{{ Number(Number(satoshiToBch(order?.trade_amount)).toFixed(8)) }} BCH</div>
                       </div>
                       <div class="col-auto q-my-sm text-center" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">
                         <q-card bordered flat class="pt-card-2 q-px-sm" :class="getDarkModeClass(darkMode)" style="font-size: 13px;" outline>
@@ -48,19 +48,12 @@
           </q-pull-to-refresh>
         </div>
       </div>
-      <q-pagination :model-value="page" v-model="currentPage" class="row justify-center q-pt-sm" max-pages="5" @update:model-value="updateCurrentPage(currentPage)" :max="totalPage" boundary-numbers ellipses direction-links flat color="grey" active-color="primary"/>
+      <q-pagination v-if="!loading && orders.length > 0" :model-value="page" v-model="currentPage" class="row justify-center q-pt-sm" max-pages="5" @update:model-value="updateCurrentPage(currentPage)" :max="totalPage" boundary-numbers ellipses direction-links flat color="grey" active-color="primary"/>
     </div>
     <div v-else class="text-center" style="margin-top: 70px;">
       <div class="row justify-center q-mx-md" style="font-size: 25px;">
         <ProgressLoader/>
       </div>
-      <!-- <div class="row justify-center q-mx-md" style="font-size: 25px;">
-        Processing
-      </div>
-      <div class="row justify-center q-mx-lg" style="font-size: medium; opacity: .7;">
-        Please wait a moment
-      </div>
-      <q-spinner-hourglass class="col q-pt-sm q-mb-lg" color="blue-6" size="3em"/> -->
       <div class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
         <div class="col" style="opacity: .55;">
           <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
@@ -77,6 +70,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
 import { wallet } from 'src/exchange/wallet'
+import { satoshiToBch } from 'src/exchange'
 
 export default {
   setup () {
@@ -130,6 +124,7 @@ export default {
     this.loading = false
   },
   methods: {
+    satoshiToBch,
     getDarkModeClass,
     resetPagination () {
       this.$store.commit('ramp/resetCashinOrderListPage')
