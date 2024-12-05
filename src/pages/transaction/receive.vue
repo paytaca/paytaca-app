@@ -256,6 +256,10 @@ export default {
 
       tempAddress += this.amount ? '?amount=' + tempAmount : ''
 
+      if (this.assetId.startsWith('ct/')) {
+        tempAddress += '?c=' + this.assetId.split('/')[1]
+      }
+
       return tempAddress
     }
   },

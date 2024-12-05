@@ -355,7 +355,6 @@ import { NativeAudio } from '@capacitor-community/native-audio'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
 import {
-  convertCashAddress,
   isValidTokenAddress,
   getWalletByNetwork,
   convertTokenAmount,
