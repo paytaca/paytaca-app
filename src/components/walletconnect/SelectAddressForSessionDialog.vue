@@ -21,22 +21,22 @@
             :focused="item.selected"
           >
             <q-item-section>
-              <div>{{ `${item.index} - ${item.label}` }}</div>
+              <div class="text-caption" >{{ `${item.index} - ${item.label}` }}</div>
             </q-item-section>
 
             <q-item-section side>
-              <q-icon
-                v-if="item.selected"
-                name="check"
-                color="primary"
-                size="sm"
-              />
-              <q-badge 
-                v-if="!item.selected && 
-                lastUsedWalletAddress && 
-                lastUsedWalletAddress.wallet_address === item.address">
-                Last Used
-              </q-badge>
+              <div class="row flex q-gutter-x-sm">
+                <q-badge 
+                  v-if="lastUsedWalletAddress?.wallet_address === item.address">
+                  Last Used
+                </q-badge>
+                <q-icon
+                  v-if="item.selected"
+                  name="check"
+                  color="primary"
+                  size="sm"
+                />
+              </div>
             </q-item-section>
           </q-item>
         </q-list>
@@ -67,13 +67,14 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useDialogPluginComponent } from 'quasar'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import PeerInfo from './PeerInfo.vue'
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } 
   = useDialogPluginComponent()
 const emit = defineEmits(['ok', 'hide'])
+const $q = useQuasar()
 const props = defineProps({
   peerId: String,
   sessionProposal: Object,
@@ -104,19 +105,6 @@ const selectAddress = (address) => {
   });
 }
 
-const selectLastAddressUsedIfFound = () => {
-  if (props.lastUsedWalletAddress?.wallet_address) {
-    const foundLastUsed = addressOptions.value.find((addressOption) => {
-      return addressOption.address == props.lastUsedWalletAddress.wallet_address
-    })
-
-    if (foundLastUsed) {
-      foundLastUsed.selected = true
-      addressSelected.value = foundLastUsed.address
-    }
-  }
-}
-
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: shortenAddressForDisplay(item.address), address: item.address, index: item.address_index }))
@@ -124,6 +112,15 @@ onMounted(() => {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true
   }
-  selectLastAddressUsedIfFound()
+  if (props.lastUsedWalletAddress?.wallet_address) {
+    selectAddress(props.lastUsedWalletAddress?.wallet_address)
+  }
 })
 </script>
+
+<style scoped>
+/* unset default style for active item */
+.q-item.q-router-link--active, .q-item--active {
+ color: inherit 
+}
+</style>
