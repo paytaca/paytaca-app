@@ -70,7 +70,8 @@
           :key="inputExtras.amountFormatted"
         >
           <template v-slot:append>
-            {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol }}
+            <!-- TODO: UNDO shortening of asset symbol,  -->
+            {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol?.replace(asset.symbol.slice(4, asset.symbol.length - 1), '...') }}
             <DenominatorTextDropdown
               v-if="!recipient.fixedAmount"
               @on-selected-denomination="onSelectedDenomination"
@@ -141,6 +142,19 @@
     </div>
   </div>
 
+  <div class="row q-my-sm" v-if="assetIsFT">
+    <div class="col text-right">
+      <q-btn @click="openSelectChangeAddressDialog" no-caps>
+        <div class="row items-center no-wrap">
+          <q-icon left name="priority_high" color="warning"/>
+          <div class="text-center">
+            Select Change Address
+          </div>
+        </div>
+      </q-btn>
+    </div>
+  </div>
+
   <q-card
     class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
     :class="getDarkModeClass(darkMode)"
@@ -164,6 +178,8 @@ import {
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
+import { shortenAddressForDisplay } from 'src/utils/address-utils'
+import SelectChangeAddress from './SelectChangeAddress.vue'
 
 export default {
   components: {
@@ -206,7 +222,8 @@ export default {
     'on-recipient-input',
     'on-empty-recipient',
     'on-selected-denomination-change',
-    'on-qr-uploader-click'
+    'on-qr-uploader-click',
+    'on-selected-change-address'
   ],
 
   data () {
@@ -217,7 +234,9 @@ export default {
       balanceExceeded: false,
       emptyRecipient: false,
       selectedDenomination: 'BCH',
-      isLegacyAddress: false
+      isLegacyAddress: false,
+      changeAddresses: [],
+      selectedChangeAddress: null
     }
   },
 
@@ -231,6 +250,7 @@ export default {
     } else {
       this.selectedDenomination = this.inputExtras.selectedDenomination
     }
+    console.log('THIS', this)
   },
 
   computed: {
@@ -242,6 +262,9 @@ export default {
         this.emptyRecipient = value === ''
         this.$emit('on-recipient-input', value)
       }
+    },
+    defaultChangeAddress () {
+      return this.$store.getters['global/getChangeAddress']('bch')
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -266,6 +289,25 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
+    },
+    assetIsFT() {
+      return this.$props.asset?.id?.startsWith('ct/') && this.$props.asset?.balance > 0
+    },
+    addressConnectedApps () {
+      const vm = this
+      return (address) => {
+        const apps = vm.$store.getters['global/walletConnectedApps']
+        return apps?.filter((item) => item.wallet_address === address)
+      }
+    },
+    walletAddresses() {
+      return this.$store.getters['global/walletAddresses'] || []
+    },
+    connectedApps() {
+      const distinct = (value, index, list) => {
+        return list.findIndex((item) => item.address === value.address && item.app_url === value.app_url) == index
+      }
+      return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
     }
   },
 
@@ -275,6 +317,7 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     customNumberFormatting,
+    shortenAddressForDisplay,
     onQRScannerClick (value) {
       this.$emit('on-qr-scanner-click', value)
     },
@@ -316,7 +359,23 @@ export default {
       const merchantName = this.inputExtras.cashbackData.merchant_name
 
       return parseCashbackMessage(message, amountBch, amountFiat, merchantName)
-    }
+    },
+    openSelectChangeAddressDialog() {
+      const vm = this
+      this.$q.dialog({
+        component: SelectChangeAddress,
+        componentProps: {
+          walletAddresses: vm.walletAddresses,
+          connectedApps: vm.connectedApps,
+          defaultChangeAddress: vm.defaultChangeAddress,
+          darkMode: vm.darkMode
+        },
+        class:`pt-card text-bow ${vm.getDarkModeClass(vm.darkMode)}`
+      }).onOk(selectedChangeAddress => {
+        vm.selectedChangeAddress = selectedChangeAddress
+        vm.emit('on-selected-change-address', selectedChangeAddress)
+      }).onCancel(() => {})
+    },
   },
 
   watch: {
