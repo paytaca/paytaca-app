@@ -241,16 +241,23 @@ export default {
     async refreshNotifsList (done) {
       const vm = this
 
-      if (done) done()
+      try {
+        if (done) done()
 
-      vm.isLoading = true
-      const respData = await getWalletNotifications(
-        vm.currentWalletHash, this.notifsTypes, this.notifsPage
-      )
-      vm.notifsList = respData.list
-      vm.maxPages = respData.max
-      this.resetCheckboxList()
-      vm.isLoading = false
+        vm.isLoading = true
+        const respData = await getWalletNotifications(
+          vm.currentWalletHash, this.notifsTypes, this.notifsPage
+        )
+        vm.notifsList = respData.list
+        vm.maxPages = respData.max
+        this.resetCheckboxList()
+        vm.isLoading = false
+      } catch (error) {
+        // fallback when an error occurs after deleting last remaining notif
+        vm.notifsList = []
+        vm.maxPages = 0
+        vm.isLoading = false
+      }
     },
     async onSwipe (event, index) {
       const vm = this
