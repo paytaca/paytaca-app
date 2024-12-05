@@ -79,6 +79,7 @@ export default function () {
         connectedAddressIndex: '0/0',
         connectedSites: {},
         lastAddressAndIndex: {},
+        connectedApps: [], 
         walletAddresses: []
       },
       slp: {
