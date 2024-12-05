@@ -132,6 +132,28 @@ export async function markWalletNotifsAsRead (walletHash) {
     .catch(error => console.log(error))
 }
 
+export async function setupNotifWebsocket (walletHash) {
+  const notifSocket = new WebSocket(
+    `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${walletHash}/`
+  )
+
+  notifSocket.onmessage = (event) => {
+    console.log(event)
+  }
+
+  notifSocket.onopen = (event) => {
+    console.log('notifwebsocket opened', event)
+  }
+
+  notifSocket.onclose = (event) => {
+    console.log('notifwebsocket closed', event)
+  }
+
+  notifSocket.onerror = (event) => {
+    console.log('notifwebsocket error', event)
+  }
+}
+
 // ========== PUSH NOTIFICATIONS SETTINGS ========== //
 
 export function parseDeviceId (deviceId) {

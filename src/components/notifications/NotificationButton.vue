@@ -15,6 +15,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { setupNotifWebsocket } from 'src/utils/engagementhub-utils'
 
 import Notifications from 'src/components/notifications/index.vue'
 
@@ -44,25 +45,7 @@ export default {
   },
 
   async mounted () {
-    const notifSocket = new WebSocket(
-      `ws://https://engagementhub.paytaca.com/ws/notifications/${this.currentWalletHash}/`
-    )
-
-    notifSocket.onmessage = (event) => {
-      console.log(event)
-    }
-
-    notifSocket.onopen = (event) => {
-      console.log('open', event)
-    }
-
-    notifSocket.onclose = (event) => {
-      console.log('closed', event)
-    }
-
-    notifSocket.onerror = (event) => {
-      console.log('error', event)
-    }
+    await setupNotifWebsocket(this.currentWalletHash)
   },
 
   methods: {
