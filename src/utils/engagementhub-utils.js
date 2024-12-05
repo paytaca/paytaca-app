@@ -118,6 +118,31 @@ export async function hideItemUpdate (item) {
     .catch(error => { console.log(error) })
 }
 
+export async function massHideNotifs (notifsIds) {
+  await NOTIFS_URL
+    .post('notification/mass_delete_notifications/', { notif_ids: notifsIds })
+    .then(response => { /* mass delete successful */ })
+    .catch(error => console.log(error))
+}
+
+export async function markWalletNotifsAsRead (walletHash) {
+  await NOTIFS_URL
+    .post('notification/mark_wallet_notifs_as_read/', { wallet_hash: walletHash })
+    .then(response => { /* marking successful */ })
+    .catch(error => console.log(error))
+}
+
+export async function getWalletUnreadNotifs (walletHash) {
+  let count = 0
+  await NOTIFS_URL
+    .post('notification/get_unread_notifs/', { wallet_hash: walletHash })
+    .then(response => { count = response.data.unread_notifs_count })
+    .catch(error => console.log(error))
+  return count
+}
+
+// ========== PUSH NOTIFICATIONS SETTINGS ========== //
+
 export function parseDeviceId (deviceId) {
   const platform = Capacitor.getPlatform()
   if (platform === 'ios') {

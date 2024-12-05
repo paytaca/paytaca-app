@@ -12,15 +12,7 @@
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown ref="multi-wallet-component" />
-              <div class="col-2 flex justify-end" v-if="isMobile">
-                <q-btn
-                  flat
-                  icon="notifications"
-                  class="text-bow"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="openNotificationsDialog"
-                />
-              </div>
+              <NotificationButton @hide-multi-wallet-dialog="hideMultiWalletDialog" />
             </div>
 
             <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
@@ -372,9 +364,9 @@ import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
-import Notifications from 'src/components/notifications/index.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
+import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 
 const sep20IdRegexp = /sep20\/(.*)/
 
@@ -391,7 +383,8 @@ export default {
     VOffline,
     connectedDialog,
     AssetFilter,
-    MultiWalletDropdown
+    MultiWalletDropdown,
+    NotificationButton
   },
   directives: {
     dragscroll
@@ -741,7 +734,7 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
-      vm.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
+      vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
@@ -1248,11 +1241,8 @@ export default {
       this.$store.commit('ramp/resetCashinOrderListPage')
       this.$store.commit('ramp/resetCashinOrderListTotalPage')
     },
-    openNotificationsDialog () {
+    hideMultiWalletDialog () {
       this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
-      this.$q.dialog({
-        component: Notifications
-      })
     }
   },
 
