@@ -1,29 +1,27 @@
 <template>
-  <q-card :class="sessionType === 'active'? 'session session-info-active q-pa-sm': 'session session-info q-pa-sm'"  :flat="sessionType === 'active'? true: false">
+  <q-card :class=" flat ? 'session session-info-flat q-pa-sm': 'session session-info q-pa-sm'"  :flat="flat">
     <q-card-section style="padding-bottom: 0px">
-      <div class="row justify-between">
+      <div class="row justify-between items-center">
         <q-chip size="xs" dense style="background-color:inherit">
           <q-avatar class="q-mr-sm">
-            <q-badge v-if="sessionType==='active'" :color="sessionType==='proposal'? 'warning': 'green'"></q-badge>
+            <q-badge :color="sessionType==='proposal'? 'warning': 'green'"></q-badge>
           </q-avatar>
           <slot name="account"> 
-            <span class="text-overline">
-              <span v-if="session?.namespaces?.bch?.accounts[0]">
-                {{ shortenAddressForDisplay(session?.namespaces?.bch?.accounts[0]?.replace('bch:', '')) }}
-              </span>
+            <span v-if="account" class="text-caption">
+              {{ shortenAddressForDisplay(account.replace('bch:', '')) }}
             </span>
           </slot>
         </q-chip>
         <slot name="top-right">
             <!-- dummy if not slot is not used by parent -->
-          <q-btn flat dense></q-btn>
+          <!-- <q-btn flat dense></q-btn> -->
         </slot>
       </div>
       <template v-if="sessionType==='proposal'">
           <PeerInfo :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"> 
             <template v-slot:name> 
               <div class="row flex items-center">
-                <span>{{ peerMetadata?.name || 'App'}} wants to connect. </span><q-icon name="notifications_active" color="warning"></q-icon>
+                <span>{{ peerMetadata?.name || 'App'}} wants to connect. </span>
               </div>
             </template>
           </PeerInfo>
@@ -32,27 +30,29 @@
           <PeerInfo  :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"/>
       </template>
       <template v-if="sessionType==='request'">
-          <PeerInfo  :metadata="peerMetadata" :session-id="session.session.id" :session-topic="session.session.topic"> 
+          <PeerInfo  :metadata="peerMetadata" :session-id="!hideSessionId && session?.id" :session-topic="!hideTopic && session?.topic"> 
             <template v-slot:name> 
               <div class="row items-center">
-                <span v-if="session?.params?.request?.params?.userPrompt" class="text-bold">
+                <div v-if="session?.params?.request?.params?.userPrompt" class="text-bold col-auto">
                   {{ session?.params?.request?.params?.userPrompt || `Sign a ${method}`}} for {{session?.session?.peer?.metadata?.name || 'App'}}?
-                </span>
-                <q-icon name="notifications_active" color="warning"></q-icon>
+                </div>
+                <div class="col q-mr-xs">
+                  <q-icon name="notifications_active" color="warning" size="sm"></q-icon>
+                </div>
               </div>
             </template>
             <template v-slot:url>
               <div class="row">
                 <div class="col-12 text-light session-info-attribute-url">
-                  Origin: {{ session.verifyContext?.verified?.origin }}
+                  Origin: <span style="word-break: break-all;">{{ session.verifyContext?.verified?.origin }}</span>
                 </div>
                 <div class="col-12 text-light session-info-attribute">
                   Method: {{ session.params?.request?.method }}
                 </div>
-                <div class="col-12 text-light session-info-attribute">
-                  Sid: {{ session.session?.id}}
+                <div v-if="!hideSessionId" class="col-12 text-light session-info-attribute">
+                  Sid: {{ session?.id}}
                 </div>
-                <div class="col-12 text-light session-info-attribute">
+                <div v-if="!hideTopic" class="col-12 text-light session-info-attribute">
                   Topic: {{session.session?.topic?.replace(session.session.topic.slice(3, session.session.topic.length - 3), '...') }}
                 </div>
               </div>
@@ -72,7 +72,10 @@ import { shortenAddressForDisplay } from '../../utils/address-utils'
 
 const props = defineProps({
     sessionType: { type: String, required: true }, /* proposal | request | active */
-    session: { type: Object, required: true} // sessionProposal | sessionRequest | activeSession
+    session: { type: Object, required: true}, // sessionProposal | sessionRequest | activeSession
+    flat: { type: Boolean },
+    hideSessionId: { type: Boolean },
+    hideTopic: { type: Boolean },
 })
 const peerMetadata = computed(() => {
   if (props.sessionType === 'proposal') {
@@ -89,17 +92,17 @@ const peerMetadata = computed(() => {
   return {}
 })
 
-const requestMethod = computed(() => {
-  if (props.sessionType === 'request') {
-    const sessionRequest = props.session
-    const method = { 
-      bch_signTransaction: 'transaction', 
-      bch_signMessage: 'message'
-    }[sessionRequest.params.request.method]
-    return method
-  }
+const account = computed(() => {
+  // session 
+  if (props.session?.namespaces?.bch?.accounts[0]) 
+    return props.session?.namespaces?.bch?.accounts[0]
+  // session request
+  if (props.session?.session?.namespaces?.bch?.accounts[0]) 
+    return props.session?.session?.namespaces?.bch?.accounts[0]
+  
   return ''
 })
+
 </script>
 
 <style lang="scss" scoped>
@@ -126,7 +129,7 @@ const requestMethod = computed(() => {
   border-radius: 15px;
 }
 
-.session-info-active:after {
+.session-info-flat:after {
   content: '';
   position: absolute;
   top: 0;
@@ -147,4 +150,5 @@ const requestMethod = computed(() => {
   font-family: monospace;
   font-size: x-small;
 }
+
 </style>
