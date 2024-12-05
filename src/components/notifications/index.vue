@@ -24,7 +24,10 @@
       </div>
 
       <div>
-        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
+        <div
+          class="row justify-end items-center q-mb-sm q-gutter-x-md"
+          v-if="notifsList.length > 0"
+        >
           <q-btn
             v-if="isCheckboxClicked"
             flat
@@ -167,7 +170,7 @@
           </div>
 
           <div
-            class="text-center text-subtitle1"
+            class="q-mt-lg text-center text-subtitle1"
             style="color: gray"
             v-else
           >
