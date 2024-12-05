@@ -133,7 +133,8 @@ onMounted(async () => {
 
 async function refreshPage(done=() => {}) {
   try {
-    await walletConnectV2.value?.statusUpdate?.()
+    // await walletConnectV2.value?.statusUpdate?.()
+    await walletConnectV2.value?.refreshComponent()
   } finally {
     done?.()
   }

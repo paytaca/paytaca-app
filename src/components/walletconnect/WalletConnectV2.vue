@@ -111,8 +111,8 @@
         </div>
         <div v-if="sessionProposals" class="row q-mt-md">
           <!-- TODO: ADD label to translator -->
-          <div class="col-xs-12">
-            <SessionInfo v-for="sessionProposal in sessionProposals" :session="sessionProposal" :key="sessionProposal.id" session-type="proposal">
+          <div v-for="sessionProposal in sessionProposals" class="col-xs-12">
+            <SessionInfo  :session="sessionProposal" :key="sessionProposal.id" session-type="proposal">
               <template v-if="sessionTopicWalletAddressMapping[sessionProposal.pairingTopic]" v-slot:account> 
                 <span class="text-overline text-small">
                   {{ shortenAddressForDisplay(sessionTopicWalletAddressMapping[sessionProposal.pairingTopic].address) }}
@@ -536,18 +536,17 @@ const loadActiveSessions = async ({showLoading} = {showLoading: true}) => {
 }
 
 const loadSessionProposals = async ({showLoading} = {showLoading: true}) => {
-  loading.value = showLoading && $t('CheckingForConnectionRequests')
+  if (showLoading) {
+    loading.value = showLoading && $t('CheckingForConnectionRequests')
+  } 
   try {
     if (web3Wallet.value) {
       sessionProposals.value = await web3Wallet.value.getPendingSessionProposals()
-      console.log('SESSION PROPOSALS', sessionProposals.value)
-      // for (const sp of sessionProposals.value) {
-      //   console.log('SP', sp)
-      //   loadAddressPeerAppRecords(wallet.value.BCH.walletHash, sp)
-      // }
     }  
   } catch (error) {} finally { 
-    loading.value = undefined
+    if (showLoading) {
+      loading.value = undefined
+    }
   }
 }
 
@@ -708,7 +707,7 @@ async function getCurrentAddressWif() {
   return utxoPkWif
 }
 
-const connectNewSession = async(value='', prompt=true) => {
+const connectNewSession = async(uri='', prompt=true) => {
   if (prompt) {
     $q.dialog({
       title: $t('NewSession'),
@@ -717,55 +716,57 @@ const connectNewSession = async(value='', prompt=true) => {
         label: $t('SessionURL'),
         placeholder: $t('PasteURL'),
         color: 'brandblue',
-        model: value,
+        model: uri,
         outlined: true,
         type: 'textarea',
         autogrow: true,
-        inputStyle: 'word-break: break-all'
+        inputStyle: 'word-break: break-all; padding: 2px;'
       },
       ok: {
         noCaps: true,
         label: $t('Proceed'),
         color: 'brandblue',
-        class: `button q-ml-sm${getDarkModeClass(darkMode.value)}`
+        class: `button q-mr-md ${getDarkModeClass(darkMode.value)}`
       },
       cancel: {
         flat: true,
         noCaps: true,
         label: $t('Close'),
-        class: `button${getDarkModeClass(darkMode.value)}`
+        class: `${getDarkModeClass(darkMode.value)}`
       },
       position: 'bottom',
       seamless: true,
       class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
     })
-      .onOk(val => pairUrl(val))
+      .onOk(async (_uri) => await pairURI(_uri))
   } else {
     setTimeout(async () => {
-      await pairUrl(value)
+      await pairURI(uri)
     }, 2000)
   }
 }
 
-const pairUrl = async(uri, opts={ showDialog: true }) => {
-  loading.value = $t('Connecting')
+const pairURI = async(uri) => {
   if (!uri) return
-  // const dialog = !opts?.showDialog ? undefined : $q.dialog({
-  //   title: 'Connecting',
-  //   progress: { color: 'brandblue', },
-  //   persistent: true,
-  //   seamless: true,
-  //   ok: false,
-  //   class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-  // })
   try {
     if (!web3Wallet.value) {
       await loadWeb3Wallet()
     }
+    loading.value = $t('HandshakingWithPeer')
+    const prevSessionProposalsLength = sessionProposals.value?.length
+    console.log('🚀 ~ pairURI ~ prevSessionProposalsLength:', prevSessionProposalsLength)
     await web3Wallet.value.pair({ uri: uri })
-    // await loadSessionProposals()
+    await loadSessionProposals({showLoading: false})
+    let tryAgain = 15
+    const i = setInterval(() => {
+    if (sessionProposals.value?.length > prevSessionProposalsLength || !tryAgain) {
+      loading.value = false
+         tryAgain = 0
+         clearInterval(i)
+       }
+       tryAgain--
+     }, 500);
   } finally {
-    loading.value = false
   }
 }
 
@@ -1123,7 +1124,7 @@ const openSessionRequestDialog = (sessionRequest) => {
     },
     cancel: true,
   }).onOk(({ response }) => {
-    if (response === 'ok') {
+    if (response === 'confirm') {
       return respondToSessionRequest(sessionRequest)  
     }
     if (response === 'reject') {
@@ -1232,31 +1233,31 @@ const handleBchSessionRequest = async (sessionRequest) => {
 /**
  * Remove this
  */
-const statusUpdate = () => {
-  if (!web3Wallet.value) return
-  activeSessions.value = web3Wallet.value.getActiveSessions()
-  sessionProposals.value = web3Wallet.value.getPendingSessionProposals()
-  sessionRequests.value = web3Wallet.value.getPendingSessionRequests()
-  sessionRequests.value = sessionRequests.value.map(sessionRequest => {
-    const parsedSessionRequest = parseSessionRequest(sessionRequest)
+// const statusUpdate = () => {
+//   if (!web3Wallet.value) return
+//   activeSessions.value = web3Wallet.value.getActiveSessions()
+//   sessionProposals.value = web3Wallet.value.getPendingSessionProposals()
+//   sessionRequests.value = web3Wallet.value.getPendingSessionRequests()
+//   sessionRequests.value = sessionRequests.value.map(sessionRequest => {
+//     const parsedSessionRequest = parseSessionRequest(sessionRequest)
 
-    parsedSessionRequest.session = activeSessions.value[parsedSessionRequest?.topic]
-    const defaultTopic = Object.getOwnPropertyNames(activeSessions.value)[0]
-    if (!parsedSessionRequest.session) parsedSessionRequest.session = activeSessions.value[defaultTopic]
-    return parsedSessionRequest
-  })
+//     parsedSessionRequest.session = activeSessions.value[parsedSessionRequest?.topic]
+//     const defaultTopic = Object.getOwnPropertyNames(activeSessions.value)[0]
+//     if (!parsedSessionRequest.session) parsedSessionRequest.session = activeSessions.value[defaultTopic]
+//     return parsedSessionRequest
+//   })
 
-  // console.log('Status update', {
-  //   authRequests: web3Wallet.value.getPendingAuthRequests(),
-  //   activeSessions: activeSessions.value,
-  //   pendingProposals: sessionProposals.value,
-  //   pendingRequests: sessionRequests.value,
-  // })
+//   // console.log('Status update', {
+//   //   authRequests: web3Wallet.value.getPendingAuthRequests(),
+//   //   activeSessions: activeSessions.value,
+//   //   pendingProposals: sessionProposals.value,
+//   //   pendingRequests: sessionRequests.value,
+//   // })
 
-  if (activeSessionsList.value?.length === 1) {
-    selectedActiveSessionTopic.value = activeSessionsList.value?.[0]?.topic
-  }
-}
+//   if (activeSessionsList.value?.length === 1) {
+//     selectedActiveSessionTopic.value = activeSessionsList.value?.[0]?.topic
+//   }
+// }
 
 const loadWeb3Wallet = async () => {
   web3WalletPromise.value = initWeb3Wallet()
@@ -1279,7 +1280,7 @@ const onSessionProposal = async (sessionProposal) => {
   console.log('SESSION PROPOSAL', sessionProposal)
   // Note: typeof(sessionProposal.params) === typeof(sessionProposals.value[n])
   // received value on the listener has some extra fields
-  sessionProposals.value.unshift(sessionProposal.params) 
+  // sessionProposals.value.unshift(sessionProposal.params) 
   loadSessionProposals({showLoading: false})
 }
 
@@ -1325,12 +1326,15 @@ const detachEventsListeners = (_web3Wallet) => {
 // watch(web3Wallet, newValue => attachEventListeners(newValue))
 // watch(web3Wallet, (_, oldValue) => detachEventsListeners(oldValue))
 
-watch(() => $store.getters['global/isChipnet'], (isChipnet) => {
-  console.log('CHIPNET CHANGED', isChipnet)
-  if (watchtower.value) {
-    watchtower.value.isChipnet = isChipnet
-  }
-})
+// watch(() => $store.getters['global/isChipnet'], (isChipnet) => {
+//   if (watchtower.value) {
+//     watchtower.value.isChipnet = isChipnet
+//   }
+// })
+
+
+
+
 
 // watch(() => lastExternalAddressIndex.value, (newLastExternalAddressIndexValue) => {
 //   if (newLastExternalAddressIndexValue?.address_index) {
@@ -1396,10 +1400,20 @@ onUnmounted(() => {
 
 // onMounted(() => attachEventListeners(web3Wallet.value))
 // onUnmounted(() => detachEventsListeners(web3Wallet.value))
+const refreshComponent = async () => {
+  await $store.dispatch('global/loadWalletLastAddressIndex')
+  await $store.dispatch('global/loadWalletAddresses')
+  await $store.dispatch('global/loadWalletConnectedApps')
+  wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+  watchtower.value = new Watchtower($store.getters['global/isChipnet'])
+  await loadSessionRequests()
+  await loadSessionProposals()
+}
 
 defineExpose({
   onScannerDecode,
-  statusUpdate,
+  // statusUpdate,
+  refreshComponent,
   web3Wallet,
   web3WalletPromise,
   connectNewSession,
