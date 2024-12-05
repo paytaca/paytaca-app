@@ -1,8 +1,8 @@
 <template>
   <q-dialog ref="dialogRef" persistent seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
-      <div class="text-grad text-center q-my-sm text-h6">{{$t('SelectChangeAddress')}}</div>
-      <div class="row q-my-sm justify-end items-center q-gutter-md q-px-md">
+      <div class="text-grad text-center q-my-md text-h6">{{$t('SelectChangeAddress')}}</div>
+      <div class="row q-my-md justify-center items-center q-gutter-md q-px-md">
         <q-checkbox v-model="useSystemGeneratedChangeAddress" :label="$t('UseSystemGeneratedChangeAddress')" /> 
         <q-icon name="help" @click="showHelpDialog" size="lg"></q-icon>
       </div>

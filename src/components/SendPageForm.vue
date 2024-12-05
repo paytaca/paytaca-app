@@ -293,13 +293,6 @@ export default {
     assetIsFT() {
       return this.$props.asset?.id?.startsWith('ct/') && this.$props.asset?.balance > 0
     },
-    addressConnectedApps () {
-      const vm = this
-      return (address) => {
-        const apps = vm.$store.getters['global/walletConnectedApps']
-        return apps?.filter((item) => item.wallet_address === address)
-      }
-    },
     walletAddresses() {
       return this.$store.getters['global/walletAddresses'] || []
     },
@@ -373,7 +366,7 @@ export default {
         class:`pt-card text-bow ${vm.getDarkModeClass(vm.darkMode)}`
       }).onOk(selectedChangeAddress => {
         vm.selectedChangeAddress = selectedChangeAddress
-        vm.emit('on-selected-change-address', selectedChangeAddress)
+        vm.$emit('on-selected-change-address', selectedChangeAddress)
       }).onCancel(() => {})
     },
   },
