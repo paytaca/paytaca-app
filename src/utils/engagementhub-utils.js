@@ -132,6 +132,15 @@ export async function markWalletNotifsAsRead (walletHash) {
     .catch(error => console.log(error))
 }
 
+export async function getWalletUnreadNotifs (walletHash) {
+  let count = 0
+  await NOTIFS_URL
+    .post('notification/get_unread_notifs/', { wallet_hash: walletHash })
+    .then(response => { count = response.data.unread_notifs_count })
+    .catch(error => console.log(error))
+  return count
+}
+
 // ========== PUSH NOTIFICATIONS SETTINGS ========== //
 
 export function parseDeviceId (deviceId) {

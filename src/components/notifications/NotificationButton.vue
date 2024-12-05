@@ -1,5 +1,5 @@
 <template>
-  <div class="col-2 flex justify-end" v-if="!isMobile">
+  <div class="col-2 flex justify-end" v-if="isMobile">
     <q-btn
       flat
       round
@@ -15,6 +15,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getWalletUnreadNotifs } from 'src/utils/engagementhub-utils'
 
 import Notifications from 'src/components/notifications/index.vue'
 
@@ -47,44 +48,46 @@ export default {
   async mounted () {
     const vm = this
 
+    vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
+
     vm.notifSocket = new WebSocket(
       `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
     )
-
-    vm.notifSocket.addEventListener('message', (event) => {
-      const data = JSON.parse(event.data)
-      vm.notifsCount = data.unread_notifs_count
-    })
-
-    vm.notifSocket.addEventListener('open', (event) => {
-      console.log('Notification websocket opened.')
-    })
-
-    vm.notifSocket.addEventListener('close', (event) => {
-      console.log('Notification websocket closed.')
-      vm.notifSocket.close()
-      console.log('Creating new websocket.')
-      vm.notifSocket = new WebSocket(
-        `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
-      )
-    })
-
-    vm.notifSocket.addEventListener('error', (event) => {
-      console.log('Notification websocket encountered an error. ', event)
-    })
+    this.addListenersToSocket()
   },
 
   methods: {
     getDarkModeClass,
-    openNotificationsDialog () {
-      this.$emit('hide-multi-wallet-dialog')
-      this.$q.dialog({
+    async openNotificationsDialog () {
+      const vm = this
+
+      vm.$emit('hide-multi-wallet-dialog')
+      vm.$q.dialog({
         component: Notifications
+      }).onDismiss(async () => {
+        vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
       })
     },
-    updateNotifCount (count) {
-      console.log('count', count)
-      this.notifsCount = count
+    addListenersToSocket () {
+      const vm = this
+
+      vm.notifSocket.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data)
+        vm.notifsCount = data.unread_notifs_count
+      })
+
+      vm.notifSocket.addEventListener('open', (event) => {
+        console.log('Notification websocket opened.')
+      })
+
+      vm.notifSocket.addEventListener('close', (event) => {
+        vm.notifSocket.open()
+        console.log('Notification websocket closed. Reopening websocket...')
+      })
+
+      vm.notifSocket.addEventListener('error', (event) => {
+        console.log('Notification websocket encountered an error. ', event)
+      })
     }
   }
 }
