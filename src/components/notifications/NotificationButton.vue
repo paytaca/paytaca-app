@@ -15,7 +15,6 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { setupNotifWebsocket } from 'src/utils/engagementhub-utils'
 
 import Notifications from 'src/components/notifications/index.vue'
 
@@ -28,7 +27,8 @@ export default {
 
   data () {
     return {
-      notifsCount: 0
+      notifsCount: 0,
+      notifSocket: null
     }
   },
 
@@ -45,7 +45,33 @@ export default {
   },
 
   async mounted () {
-    await setupNotifWebsocket(this.currentWalletHash)
+    const vm = this
+
+    vm.notifSocket = new WebSocket(
+      `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
+    )
+
+    vm.notifSocket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data)
+      vm.notifsCount = data.unread_notifs_count
+    })
+
+    vm.notifSocket.addEventListener('open', (event) => {
+      console.log('Notification websocket opened.')
+    })
+
+    vm.notifSocket.addEventListener('close', (event) => {
+      console.log('Notification websocket closed.')
+      vm.notifSocket.close()
+      console.log('Creating new websocket.')
+      vm.notifSocket = new WebSocket(
+        `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
+      )
+    })
+
+    vm.notifSocket.addEventListener('error', (event) => {
+      console.log('Notification websocket encountered an error. ', event)
+    })
   },
 
   methods: {
@@ -55,6 +81,10 @@ export default {
       this.$q.dialog({
         component: Notifications
       })
+    },
+    updateNotifCount (count) {
+      console.log('count', count)
+      this.notifsCount = count
     }
   }
 }
