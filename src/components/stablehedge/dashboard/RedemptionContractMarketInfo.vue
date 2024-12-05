@@ -194,7 +194,7 @@ export default defineComponent({
       if (Number.isSafeInteger(tokensInCirculation) && Number.isSafeInteger(priceUnitPerBch.value)) {
         expectedBchValue = Number(
           tokenToSatoshis(tokensInCirculation, priceUnitPerBch.value)
-        )
+        ) / 10 ** 8
         expectedDiffPctg = Math.round((totalBchValue / expectedBchValue) * 100) || 0
       }
 
