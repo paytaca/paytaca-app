@@ -1,5 +1,23 @@
 
 /**
+ * @typedef {Object} FiatTokenApiData
+ * @property {String} category
+ * @property {Number} genesis_supply
+ * @property {Number} currency
+ * @property {Number} decimals
+ * 
+ * 
+ * @typedef {Object} RedemptionContractApiData
+ * @property {String} address
+ * @property {FiatTokenApiData} fiat_token
+ * @property {String} auth_token_id
+ * @property {String} price_oracle_pubkey
+ * @property {String} [treasury_contract_address]
+ * @property {Number | null} redeemable
+ * @property {Number | null} reserve_supply
+ * @property {Number} volume_24_hr
+ * 
+ * 
  * @typedef {Object} TreasuryContractApiData
  * @property {String} address
  * @property {String} auth_token_id

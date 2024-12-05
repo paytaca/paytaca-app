@@ -234,11 +234,26 @@
             </div>
 
             <div
-              v-show="selectedNetwork === networks.BCH.name && !stablehedgeView"
+              v-show="selectedNetwork === networks.BCH.name"
               class="col-3 q-mt-sm"
               style="margin-top: -5px !important;"
             >
-              <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
+              <AssetFilter v-if="!stablehedgeView" @filterTokens="isCT => isCashToken = isCT" />
+              <KeepAlive>
+                <div v-if="stablehedgeView" class="row items-center q-px-lg">
+                  <q-space/>
+                  <q-btn
+                    flat
+                    no-caps
+                    icon="query_stats"
+                    padding="sm"
+                    class="button button-text-primary"
+                    :class="getDarkModeClass(darkMode)"
+                    @click="() => openStablehedgeMarketsDialog = true"
+                  />
+                  <StablehedgeMarketsDialog v-model="openStablehedgeMarketsDialog"/>
+                </div>
+              </KeepAlive>
             </div>
           </div>
           <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
@@ -401,6 +416,7 @@ import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import Notifications from 'src/components/notifications/index.vue'
 import StablehedgeButtons from 'src/components/stablehedge/StablehedgeButtons.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
+import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 
@@ -422,6 +438,7 @@ export default {
     MultiWalletDropdown,
     StablehedgeButtons,
     StablehedgeHistory,
+    StablehedgeMarketsDialog,
   },
   directives: {
     dragscroll
@@ -444,6 +461,7 @@ export default {
         balance: 0
       },
       stablehedgeView: false,
+      openStablehedgeMarketsDialog: false,
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       balanceLoaded: false,
