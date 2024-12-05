@@ -155,6 +155,7 @@
                       @on-empty-recipient="onEmptyRecipient"
                       @on-selected-denomination-change="onSelectedDenomination"
                       @on-qr-uploader-click="onQRUploaderClick"
+                      @on-selected-change-address="onUserSelectedChangeAddress"
                       :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
@@ -184,6 +185,7 @@
                     @on-empty-recipient="onEmptyRecipient"
                     @on-selected-denomination-change="onSelectedDenomination"
                     @on-qr-uploader-click="onQRUploaderClick"
+                    @on-selected-change-address="onUserSelectedChangeAddress"
                     :key="generateKeys(index)"
                     ref="sendPageRef"
                   />
@@ -368,7 +370,6 @@ import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import QRUploader from 'src/components/QRUploader'
 import { pushNotificationsManager } from 'src/boot/push-notifications'
-
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const sBCHWalletType = 'SmartBCH'
@@ -387,6 +388,7 @@ export default {
     SendPageForm,
     QRUploader
   },
+
   props: {
     network: {
       type: String,
@@ -523,10 +525,7 @@ export default {
       actualWalletBalance: { balance: 0, spendable: 0 },
       currentWalletBalance: 0,
       isLegacyAddress: false,
-      watchtowerBaseUrl: 'https://watchtower.cash',
-      walletExternalAddresses: {
-        /* [walletHash]: [<address0>, <address1>, ...] */
-      }
+      userSelectedChangeAddress: ''
     }
   },
 
@@ -1250,67 +1249,6 @@ export default {
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
     },
-
-    setWatchtowerBaseUrl (isChipnet) {
-      this.watchtowerBaseUrl = 'https://watchtower.cash'
-      if (isChipnet) {
-        this.watchtowerBaseUrl = 'https://chipnet.watchtower.cash'
-      }
-    },
-    /**
-     * @return true if the address was previously connected
-     * to an app.
-     */
-    async getLastWalletAddressUsedInApp (walletHash) {
-      try {
-        const response = await fetch(`${this.watchtowerBaseUrl}/api/wallet-address-app/?wallet_hash=${walletHash}`)
-        if (response.ok) {
-          const responseJson = await response.json()
-          return responseJson?.results?.[0]?.wallet_address
-        }
-      } catch (error) {
-        //
-      }
-    },
-    /**
-     * Fetch external addresses from watchtower
-     */
-    async fetchWalletExternalAddresses (walletHash) {
-      try {
-        const getWalletExternalAddressesResp = await fetch(`${this.watchtowerBaseUrl}/api/wallet-addresses/${walletHash}/?change_index=0`)
-        let walletExternalAddressesLoc = [] // saving locally to avoid any reactivity issue
-        if (getWalletExternalAddressesResp.ok) {
-          walletExternalAddressesLoc = await getWalletExternalAddressesResp.json()
-          this.walletExternalAddresses[walletHash] = walletExternalAddressesLoc
-        }
-        return walletExternalAddressesLoc
-      } catch (error) {
-        //
-      }
-    },
-    /**
-     * Sanity checker, make sure address retrieved from watchtower
-     * is from this wallet.
-     * @param addressSourceList All the external addresses (sorted by index) from 
-     * the wallet, it's just used for its indices
-     * @return true if address is from this wallet
-     */
-    async addressIsFromThisWallet (addressBeingChecked /* :string */, addressesSourceList /* :string[] */) {
-      const vm = this
-      for (const index in addressesSourceList) {
-        const wif = await getWalletByNetwork(vm.wallet, 'bch').getPrivateKey(`0/${index}`)
-        const decodedPrivkey = decodePrivateKeyWif(wif)
-        let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
-        if (vm.isChipnet) {
-          // to test address
-          cashAddress = convertCashAddress(cashAddress, true, false)
-        }
-        if (cashAddress === addressBeingChecked) {
-          return true
-        }
-      }
-      return false
-    },
     getAddressFromThisWallet () {
       return this.wallet.lastAddress
     },
@@ -1453,21 +1391,8 @@ export default {
 
       if (toSendBCHRecipients.length > 0) {
         let changeAddress = this.getChangeAddress('bch')
-        if (token?.tokenId) {
-          const w = this.getWallet('bch')
-          let lastWalletAddressUsedInApp
-          const dontUseChangeAddress = lastWalletAddressUsedInApp = await this.getLastWalletAddressUsedInApp(w.walletHash)
-          if (dontUseChangeAddress) {
-            changeAddress = lastWalletAddressUsedInApp
-            if (!this.walletExternalAddresses[w.walletHash]) {
-              // just trying to load the addresses one last time
-              await this.fetchWalletExternalAddresses(w.walletHash)
-            }
-            const addressIsFromThisWallet = await this.addressIsFromThisWallet(lastWalletAddressUsedInApp, this.walletExternalAddresses[w.walletHash])
-            if (!addressIsFromThisWallet) {
-              changeAddress = this.getAddressFromThisWallet()
-            }
-          }
+        if (token?.tokenId && this.onUserSelectedChangeAddress) {
+          changeAddress = this.userSelectedChangeAddress
         }
         getWalletByNetwork(vm.wallet, 'bch')
           .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
@@ -1708,18 +1633,21 @@ export default {
     },
     onQRUploaderClick () {
       this.$refs['qr-upload'].$refs['q-file'].pickFiles()
+    },
+    onUserSelectedChangeAddress (changeAddress) {
+      this.userSelectedChangeAddress = changeAddress
     }
+    
   },
 
-  onBeforeMount () {
-    this.setWatchtowerBaseUrl(this.isChipnet)
-    this.fetchWalletExternalAddresses(this.getWallet('bch').walletHash)
+  async beforeMount() {
+    await this.$store.dispatch('global/loadWalletLastAddressIndex')
+    await this.$store.dispatch('global/loadWalletAddresses')
+    await this.$store.dispatch('global/loadWalletConnectedApps')
   },
 
-  mounted () {
+  async mounted () {
     const vm = this
-    this.setWatchtowerBaseUrl(vm.isChipnet)
-    this.fetchWalletExternalAddresses(vm.getWallet('bch').walletHash)
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 
@@ -1763,6 +1691,16 @@ export default {
 
     if (this.inputExtras.length === 1) {
       this.inputExtras[0].selectedDenomination = this.denomination
+    } 
+
+    if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
+      await $store.dispatch('global/loadWalletLastAddressIndex')  
+    }
+    if (!$store.getters['global/walletConnectedApps']) {
+      await $store.dispatch('global/loadWalletConnectedApps')
+    }
+    if (!$store.getters['global/walletAddresses']) {
+      await $store.dispatch('global/loadWalletAddresses')  
     }
   },
 
