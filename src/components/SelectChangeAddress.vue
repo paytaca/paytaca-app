@@ -3,15 +3,30 @@
     <q-card class="q-dialog-plugin br-15 q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
       <div class="text-grad text-center q-my-sm text-h6">{{$t('SelectChangeAddress')}}</div>
       <div class="row q-my-sm justify-end items-center q-gutter-md q-px-md">
-        <q-checkbox v-model="UseSystemGeneratedChangeAddress" :label="$t('UseSystemGeneratedChangeAddress')" /> 
+        <q-checkbox v-model="useSystemGeneratedChangeAddress" :label="$t('UseSystemGeneratedChangeAddress')" /> 
         <q-icon name="help" @click="showHelpDialog" size="lg"></q-icon>
       </div>
       <q-card-section>
         <q-list bordered separator>
-        <q-item
+        <q-item v-if="useSystemGeneratedChangeAddress">
+          <q-item-section>
+            <div class="text-caption" >{{ defaultChangeAddress }}</div>
+          </q-item-section>
+          <q-item-section side>
+              <div class="row flex q-gutter-x-sm">
+                <q-icon
+                  name="check"
+                  color="primary"
+                  size="sm"
+                />
+              </div>
+            </q-item-section>
+        </q-item>
+        <template v-else>
+          <q-item
           v-for="addressOption in addressOptions"
             :key="addressOption.address"
-            clickable
+            clickable="useSystemGeneratedChangeAddress"
             @click="selectAddress(addressOption.address)"
             :active="addressOption.selected"
             :focused="addressOption.selected"
@@ -23,11 +38,11 @@
                   <q-avatar
                     v-for="connectedApp,i in addressOption.connectedApps"
                     :key="i"
-                    size="40px"
+                    size="sm"
                     :style="!connectedApp.app_icon ? 'border: 1px solid grey': ''"
                   >
                     <img v-if="connectedApp.app_icon" :src="connectedApp.app_icon">
-                    <q-icon v-else name="image_not_supported" style="border: 1px solid grey"/>
+                    <q-icon v-else name="image_not_supported" />
                   </q-avatar>
                 </div>
               </div>
@@ -43,6 +58,8 @@
               </div>
             </q-item-section>
         </q-item>
+        </template>
+        
       </q-list>
       </q-card-section>
       <q-card-actions class="q-pa-md q-gutter-md">
@@ -85,9 +102,12 @@ const props = defineProps({
 const $q = useQuasar()
 const addressSelected = ref /*<string>*/ ('')
 const addressOptions  = ref /*<{label: string, value: string }[]>*/ ([])
-const UseSystemGeneratedChangeAddress = ref(false)
+const useSystemGeneratedChangeAddress = ref(false)
 
 const onConfirmSelect = () => {
+  if (useSystemGeneratedChangeAddress.value) {
+    return onDialogOK(props.defaultChangeAddress)    
+  }
   onDialogOK(
     props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
   )
@@ -108,8 +128,7 @@ const selectAddress = (address /*:string*/) => {
 
 const showHelpDialog = () => {
   $q.dialog({
-    // message: $('UseSystemGeneratedChangeAddressHelp'),
-    message: $('For improved privacy, Paytaca will select your change address for you.'),
+    message: $t('UseSystemGeneratedChangeAddressHelp'),
     ok: {
       color: 'brandblue'
     }
