@@ -88,7 +88,7 @@
   </q-dialog>
 </template>
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex';
@@ -117,8 +117,6 @@ const { t: $t } = useI18n()
 const addressSelected = ref /*<string>*/ ('')
 const addressOptions  = ref /*<{label: string, value: string }[]>*/ ([])
 const useSystemGeneratedChangeAddress = ref(false)
-
-const settings = computed(() => $store.getters['walletconnect/settings'])
 
 const formatAddressForDisplay = (address) => {
   return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
