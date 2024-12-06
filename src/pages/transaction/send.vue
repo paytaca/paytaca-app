@@ -148,6 +148,7 @@
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :convertToFiatAmount="convertToFiatAmount"
                       :setMaximumSendAmount="setMaximumSendAmount"
+                      :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
                       @on-qr-scanner-click="onQRScannerClick"
                       @read-only-state="readonlyState"
                       @on-input-focus="onInputFocus"
@@ -218,8 +219,9 @@
                   </a>
                 </div>
               </div>
-              <div class="add-recipient-button" v-if="showAddRecipientButton && !disableSending" @click.prevent="addAnotherRecipient">
-                <q-btn :label="$t('AddAnotherRecipient')" class="button" />
+              <!-- <div class="add-recipient-button" v-if="showAddRecipientButton && !disableSending" @click.prevent="addAnotherRecipient"> -->
+              <div class="add-recipient-button" v-if="!disableSending" @click.prevent="addAnotherRecipient">
+                <q-btn v-if="showAddRecipientButton" :label="$t('AddAnotherRecipient')" class="button" />
               </div>
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
@@ -638,6 +640,12 @@ export default {
     },
     isMultipleRecipient () {
       return !(this.isNFT || this.walletType === sBCHWalletType)
+    },
+    connectedApps() {
+      const distinct = (value, index, list) => {
+        return list.findIndex((item) => item.address === value.address && item.app_url === value.app_url) == index
+      }
+      return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
     }
   },
 
@@ -1393,7 +1401,8 @@ export default {
 
       if (toSendBCHRecipients.length > 0) {
         let changeAddress = this.getChangeAddress('bch')
-        if (token?.tokenId && this.onUserSelectedChangeAddress) {
+
+        if (token?.tokenId && this.userSelectedChangeAddress) {
           changeAddress = this.userSelectedChangeAddress
         }
         getWalletByNetwork(vm.wallet, 'bch')
@@ -1639,8 +1648,14 @@ export default {
     onUserSelectedChangeAddress (changeAddress) {
       console.log('USER SELECTED CHANGE ADDRESS', changeAddress)
       this.userSelectedChangeAddress = changeAddress
+    },
+    setDefaultFtChangeAddress () {
+      if (this.connectedApps?.[0]) {
+        if (!this.userSelectedChangeAddress) {
+          this.userSelectedChangeAddress = this.connectedApps[0].wallet_address
+        }
+      }
     }
-    
   },
 
   async beforeMount() {
@@ -1705,6 +1720,7 @@ export default {
     if (!vm.$store.getters['global/walletAddresses']) {
       await vm.$store.dispatch('global/loadWalletAddresses')  
     }
+    vm.setDefaultFtChangeAddress()
   },
 
   unmounted () {
