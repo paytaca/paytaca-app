@@ -8,7 +8,7 @@
           </q-avatar>
           <slot name="account"> 
             <span v-if="account" class="text-caption">
-              {{ shortenAddressForDisplay(account.replace('bch:', '')) }}
+              {{ addressDisplayFormatter ? addressDisplayFormatter(account.replace('bch:', '')) : shortenAddressForDisplay(account.replace('bch:', '')) }} <q-badge color="grey" size="sm">{{ addressDisplayFormat }}</q-badge>
             </span>
           </slot>
         </q-chip>
@@ -34,7 +34,7 @@
             <template v-slot:name> 
               <div class="row items-center">
                 <div v-if="session?.params?.request?.params?.userPrompt" class="text-bold col-auto">
-                  {{ session?.params?.request?.params?.userPrompt || `Sign a ${method}`}} for {{session?.session?.peer?.metadata?.name || 'App'}}?
+                  {{ session?.params?.request?.params?.userPrompt || `Sign a ${method}`}}
                 </div>
                 <div class="col q-mr-xs">
                   <q-icon name="notifications_active" color="warning" size="sm"></q-icon>
@@ -66,7 +66,7 @@
   </q-card>
 </template>
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import PeerInfo from './PeerInfo.vue'
 import { shortenAddressForDisplay } from '../../utils/address-utils'
 
@@ -76,6 +76,8 @@ const props = defineProps({
     flat: { type: Boolean },
     hideSessionId: { type: Boolean },
     hideTopic: { type: Boolean },
+    addressDisplayFormatter: { type: Function },
+    addressDisplayFormat: { type: String /*cashaddr | tokenaddr */}
 })
 const peerMetadata = computed(() => {
   if (props.sessionType === 'proposal') {
