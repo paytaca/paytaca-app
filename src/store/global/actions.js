@@ -229,15 +229,10 @@ export async function deleteWallet (context, index) {
   })
 }
 
-export function test (context, data) {
-  console.log('context', context, data)
-}
-
 /**
  * Fetch and loads last address and index from server (watchtower)
  */
 export async function loadWalletLastAddressIndex(context) {
-  console.log('🚀 ~ loadWalletLastAddressIndex ~ context:', context)
   const w = new WatchtowerExtended(context.state.isChipnet)
   const wallet = context.state.isChipnet ? 
     context.state.chipnet__wallets.bch: context.state.wallets.bch
@@ -270,8 +265,6 @@ export async function loadWalletAddresses (context) {
     context.state.chipnet__wallets.bch.lastAddressIndex
   }
 
-  console.log('🚀 ~ loadWalletAddresses ~ lastIndex:', lastIndex)
-
   const walletIndex = context.getters['getWalletIndex']
   const wallet = await loadWallet('BCH', walletIndex)
   
@@ -280,7 +273,6 @@ export async function loadWalletAddresses (context) {
   for (let i = 0; i < stopAtIndex; i++ ) {
       try {
       const wif = await wallet.BCH.getPrivateKey(`0/${i}`)
-      console.log(`WIF of index ${i} = ${wif}`)
       const decodedPrivkey = decodePrivateKeyWif(wif)
       let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
       
