@@ -81,6 +81,7 @@
                   <q-btn
                     no-caps
                     class="button q-mb-lg q-mt-sm"
+                    size="lg"
                     @click="() => onScannerDecode(manualAddress)"
                   >
                     <div class="ellipsis" style="max-width:min(200px, 75vw)">
@@ -623,6 +624,7 @@ export default {
       )
     },
     showAddRecipientButton () {
+      if (this.assetId?.startsWith('ct')) return false
       if (this.walletType === sBCHWalletType) return false
       return (
         this.showSlider &&
@@ -1635,6 +1637,7 @@ export default {
       this.$refs['qr-upload'].$refs['q-file'].pickFiles()
     },
     onUserSelectedChangeAddress (changeAddress) {
+      console.log('USER SELECTED CHANGE ADDRESS', changeAddress)
       this.userSelectedChangeAddress = changeAddress
     }
     
@@ -1693,14 +1696,14 @@ export default {
       this.inputExtras[0].selectedDenomination = this.denomination
     } 
 
-    if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
-      await $store.dispatch('global/loadWalletLastAddressIndex')  
+    if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
+      await vm.$store.dispatch('global/loadWalletLastAddressIndex')  
     }
-    if (!$store.getters['global/walletConnectedApps']) {
-      await $store.dispatch('global/loadWalletConnectedApps')
+    if (!vm.$store.getters['global/walletConnectedApps']) {
+      await vm.$store.dispatch('global/loadWalletConnectedApps')
     }
-    if (!$store.getters['global/walletAddresses']) {
-      await $store.dispatch('global/loadWalletAddresses')  
+    if (!vm.$store.getters['global/walletAddresses']) {
+      await vm.$store.dispatch('global/loadWalletAddresses')  
     }
   },
 
