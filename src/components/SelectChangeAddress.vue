@@ -8,9 +8,9 @@
       </div>
       <q-card-section>
         <q-list bordered separator>
-        <q-item v-if="useSystemGeneratedChangeAddress">
+        <q-item v-if="useSystemGeneratedChangeAddress" active focused>
           <q-item-section>
-            <div class="text-caption" >{{ defaultChangeAddress }}</div>
+            <div class="text-caption" >{{ shortenAddressForDisplay(defaultChangeAddress) }}</div>
           </q-item-section>
           <q-item-section side>
               <div class="row flex q-gutter-x-sm">
@@ -26,7 +26,7 @@
           <q-item
           v-for="addressOption in addressOptions"
             :key="addressOption.address"
-            clickable="useSystemGeneratedChangeAddress"
+            :clickable="!useSystemGeneratedChangeAddress"
             @click="selectAddress(addressOption.address)"
             :active="addressOption.selected"
             :focused="addressOption.selected"
@@ -75,10 +75,11 @@
         />
 
         <q-btn
-          color="green"
+          color="brandblue"
           :label="$t('Select')"
           rounded
           no-caps
+          :disable="!addressSelected"
           @click="onConfirmSelect"
         />
       </q-card-actions>
@@ -86,8 +87,9 @@
   </q-dialog>
 </template>
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } 
@@ -95,11 +97,15 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel }
 const props = defineProps({
   walletAddresses: Array,
   connectedApps: Array,
-  defaultChangeAddress: String, /* Paytaca nominated change address */
+  defaultChangeAddress: {
+    type: String,
+    required: true
+  }, /* Paytaca nominated change address */
   darkMode: Boolean
 })
 
 const $q = useQuasar()
+const { t: $t } = useI18n()
 const addressSelected = ref /*<string>*/ ('')
 const addressOptions  = ref /*<{label: string, value: string }[]>*/ ([])
 const useSystemGeneratedChangeAddress = ref(false)
@@ -109,7 +115,7 @@ const onConfirmSelect = () => {
     return onDialogOK(props.defaultChangeAddress)    
   }
   onDialogOK(
-    props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
+    props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)?.address
   )
 }
 const onCancelClick = () => {
@@ -118,6 +124,8 @@ const onCancelClick = () => {
 }
 
 const selectAddress = (address /*:string*/) => {
+  console.log('🚀 ~ selectAddress ~ address:', address)
+  
   addressOptions.value.forEach(addressOption => {
     addressOption.selected = (addressOption.address === address);
     if (addressOption.selected) {
@@ -135,6 +143,14 @@ const showHelpDialog = () => {
   })
 }
 
+watch(() => useSystemGeneratedChangeAddress.value, (yesUse) => {
+  if (yesUse) {
+    addressSelected.value = props.defaultChangeAddress
+  } else {
+    addressSelected.value = addressOptions.value?.find((addressOption) => addressOption.selected)?.address || ''
+  }
+})
+
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: shortenAddressForDisplay(item.address), address: item.address }))
@@ -144,8 +160,6 @@ onMounted(() => {
     })
     addressOption.connectedApps = connectedAppsForAddressOption
   })
-  console.log('PROPS', props)
-  console.log('ADDRESSOPTIONS', addressOptions.value)
 })
 </script>
 

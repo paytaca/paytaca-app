@@ -151,7 +151,7 @@ const $emit = defineEmits([
 ])
 
 const $q = useQuasar()
-const $t = useI18n().t
+const { t: $t } = useI18n()
 const $store = useStore()
 
 const loading = ref/* <string> */()
