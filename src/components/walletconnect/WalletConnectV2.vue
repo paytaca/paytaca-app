@@ -477,8 +477,19 @@ const pairURI = async(uri) => {
        }
        tryAgain--
      }, 500);
-  } finally {
-  }
+  } catch(error) { 
+    loading.value = ''
+    $q.dialog({
+        message: `Error: ${error?.toString()}`,
+        ok: {
+          label: $t('Ok'),
+          noCaps: true,
+          color: 'brandblue'
+        },
+        class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
+      })
+  } finally {}
+  
 }
 
 const disconnectSession = async (activeSession) => {
