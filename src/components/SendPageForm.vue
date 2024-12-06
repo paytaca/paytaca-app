@@ -22,8 +22,24 @@
         <template v-slot:label>
           {{ $t('Recipient') }}
         </template>
+        <template v-slot:append>
+          <q-btn
+            round
+            class="btn-scan button text-white bg-grad"
+            icon="mdi-qrcode"
+            size="md"
+            @click="onQRScannerClick(true), onInputFocus(index)"
+          />
+          <q-btn
+            round
+            class="q-ml-sm btn-scan button text-white bg-grad"
+            icon="upload"
+            @click="onQRUploaderClick(), onInputFocus(index)"
+          />    
+        </template>
       </q-input>
-      <q-btn
+      
+      <!-- <q-btn
         round
         size="lg"
         class="btn-scan button text-white bg-grad"
@@ -38,7 +54,7 @@
         style="margin-bottom: 20px;"
         icon="upload"
         @click="onQRUploaderClick(), onInputFocus(index)"
-      />
+      /> -->
     </div>
   </div>
   <div
@@ -48,7 +64,28 @@
     :class="getDarkModeClass(darkMode)"
     v-html="$t('LegacyAddressWarning')"
   />
-
+  <div class="col-12">
+    <q-input 
+        v-if="assetIsFT && hasFTChange && hasFTChangeAddressOption && selectedChangeAddress" 
+        label-slot
+        bottom-slots
+        :model-value="convertCashAddress(selectedChangeAddress, isChipnet, true)" 
+        readonly
+        filled
+        :dense="dense">
+        <template v-slot:label>
+          {{ $t('SendTokenChangeTo') }} 
+        </template>
+        <template v-slot:prepend>
+          <q-btn dense flat icon="help" no-caps @click.stop="showWillSendChangeToHelp "/>
+        </template>
+        <template v-slot:append>
+          <q-btn class="text-grad" flat @click.stop=openSelectChangeAddressDialog> 
+            <q-icon name="edit" class="text-grad"></q-icon>
+          </q-btn>
+        </template>
+      </q-input>   
+  </div>
   <template v-if="$store.state.global.online !== false">
     <div class="row" v-if="!isNFT">
       <div class="col q-mt-xs">
@@ -130,10 +167,19 @@
       <template v-if="asset.id === 'bch' && setAmountInFiat">
         {{ `= ${parseFiatCurrency(convertToFiatAmount(currentWalletBalance), currentSendPageCurrency())}` }}
       </template>
+      <!-- <a
+        href="#"
+        v-if="!computingMax || (setAmountInFiat && !recipient.sending)"
+        class="max-button button button-text-primary text-grad"
+        :class="getDarkModeClass(darkMode)"
+        @click.prevent="onInputFocus(index), handleMaxClick()"
+      >
+        {{ $t('MAX') }}
+      </a> -->
       <a
         href="#"
         v-if="!computingMax || (setAmountInFiat && !recipient.sending)"
-        class="max-button button button-text-primary"
+        class="max-button text-grad"
         :class="getDarkModeClass(darkMode)"
         @click.prevent="onInputFocus(index), handleMaxClick()"
       >
@@ -141,20 +187,6 @@
       </a>
     </div>
   </div>
-
-  <div class="row q-my-sm" v-if="assetIsFT">
-    <div class="col text-right">
-      <q-btn @click="openSelectChangeAddressDialog" no-caps>
-        <div class="row items-center no-wrap">
-          <q-icon left name="priority_high" color="warning"/>
-          <div class="text-center">
-            Select Change Address
-          </div>
-        </div>
-      </q-btn>
-    </div>
-  </div>
-
   <q-card
     class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
     :class="getDarkModeClass(darkMode)"
@@ -167,9 +199,10 @@
 </template>
 
 <script>
+
+import { copyToClipboard } from 'quasar'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import ConfirmSetMax from 'src/pages/transaction/dialog/ConfirmSetMax.vue'
-
 import {
   parseAssetDenomination,
   getAssetDenomination,
@@ -179,6 +212,7 @@ import {
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
+import { convertCashAddress } from 'src/wallet/chipnet';
 import SelectChangeAddress from './SelectChangeAddress.vue'
 
 export default {
@@ -211,7 +245,8 @@ export default {
 
     currentSendPageCurrency: { type: Function },
     convertToFiatAmount: { type: Function },
-    setMaximumSendAmount: { type: Function }
+    setMaximumSendAmount: { type: Function },
+    defaultSelectedFtChangeAddress: { type: String}
   },
 
   emits: [
@@ -236,7 +271,7 @@ export default {
       selectedDenomination: 'BCH',
       isLegacyAddress: false,
       changeAddresses: [],
-      selectedChangeAddress: null
+      selectedChangeAddress: ''
     }
   },
 
@@ -250,7 +285,8 @@ export default {
     } else {
       this.selectedDenomination = this.inputExtras.selectedDenomination
     }
-    console.log('THIS', this)
+    this.selectedChangeAddress = this.defaultSelectedFtChangeAddress
+    // this.selectLastAddressConnectedToAppAsDefaultChangeAddress()
   },
 
   computed: {
@@ -301,6 +337,21 @@ export default {
         return list.findIndex((item) => item.address === value.address && item.app_url === value.app_url) == index
       }
       return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
+    },
+    hasFTChangeAddressOption() {
+      return this.connectedApps?.length > 0
+    },
+    hasFTChange () {
+      const decimals = this.asset?.decimals || 0
+      if (isNaN(this.amountFormatted)) return false
+      if (Number(this.amountFormatted) <= 0) return false
+      let scaledFtSendAmount = BigInt(Math.round(this.amountFormatted * Math.pow(10, decimals)));
+      let scaledFtCurrentBalance = BigInt(Math.round(this.currentWalletBalance * Math.pow(10, decimals)));
+      const ftChangeAmount = scaledFtCurrentBalance - scaledFtSendAmount
+      return ftChangeAmount > 0
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
     }
   },
 
@@ -311,6 +362,7 @@ export default {
     getDarkModeClass,
     customNumberFormatting,
     shortenAddressForDisplay,
+    convertCashAddress,
     onQRScannerClick (value) {
       this.$emit('on-qr-scanner-click', value)
     },
@@ -361,6 +413,7 @@ export default {
           walletAddresses: vm.walletAddresses,
           connectedApps: vm.connectedApps,
           defaultChangeAddress: vm.defaultChangeAddress,
+          defaultSelectedAddress: vm.selectedChangeAddress,
           darkMode: vm.darkMode
         },
         class:`pt-card text-bow ${vm.getDarkModeClass(vm.darkMode)}`
@@ -369,6 +422,21 @@ export default {
         vm.$emit('on-selected-change-address', selectedChangeAddress)
       }).onCancel(() => {})
     },
+    formatFtChangeAddressForDisplay (address) {
+      return shortenAddressForDisplay(convertCashAddress(address, this.isChipnet))
+    },
+    showWillSendChangeToHelp() {
+      this.$q.dialog({
+        message: this.$t('SelectChangeAddressHelp'),
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        ok: {
+          noCaps: true,
+          label: this.$t('Ok'),
+          color: 'brandblue',
+          class: `button q-mr-md ${this.getDarkModeClass(this.darkMode)}`
+        }
+      })
+    }
   },
 
   watch: {
@@ -389,7 +457,7 @@ export default {
 
     .recipient-input {
       flex: 1;
-      margin-right: 10px;
+      // margin-right: 10px;
     }
   }
   .balance-max-container {
@@ -399,7 +467,7 @@ export default {
     .max-button {
       float: right;
       text-decoration: none;
-      color: #3b7bf6;
+      // color: #3b7bf6;
     }
   }
 </style>
@@ -422,4 +490,23 @@ export default {
       color: $green-7;
     }
   }
+
+.change-address-banner {
+  background: inherit;
+  position:relative;
+  border-radius: 15px;
+  font-family: monospace
+}
+
+.change-address-banner:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgb(253,253,253, .023);
+  border: 1px solid #80808038;
+  border-radius: 15px;
+}
 </style>
