@@ -112,6 +112,7 @@ export default defineComponent({
           .filter((element, index, list) => list.indexOf(element) === index)
   
         const params = {
+          has_treasury_contract: true,
           currencies: currencies.join(','),
         }
 
@@ -125,6 +126,14 @@ export default defineComponent({
           return contract?.fiat_token?.currency === selectedMarketCurrency.value
         })
         if (!contract) {
+          contract = redemptionContracts?.[0]
+        }
+        if (!contract) {
+          delete params.currencies
+          const response = await backend.get('stablehedge/redemption-contracts/', { params })
+          const redemptionContracts = Array.isArray(response.data)
+            ? response.data
+            : response.data?.results
           contract = redemptionContracts?.[0]
         }
         if (!contract) throw $t('NoContractFound')

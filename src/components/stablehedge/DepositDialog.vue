@@ -197,7 +197,8 @@ export default defineComponent({
             signature: props?.priceMessage?.signature,
           },
           wallet_hash: wallet.walletHash,
-          transaction_type: 'inject', // change to 'deposit' later
+          // transaction_type: 'inject', // change to 'deposit' later
+          transaction_type: 'deposit',
           utxo: signedUtxo,
         }
 
