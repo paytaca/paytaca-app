@@ -212,7 +212,7 @@
 import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount, watchEffect } from 'vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
-import { getWalletByNetwork, convertCashAddress } from 'src/wallet/chipnet';
+import { convertCashAddress } from 'src/wallet/chipnet';
 import { Wallet, loadWallet } from 'src/wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import Watchtower from 'src/lib/watchtower'
@@ -220,7 +220,6 @@ import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
 import { decodePrivateKeyWif} from '@bitauth/libauth'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
-import WalletConnectConfirmDialog from 'src/components/walletconnect/WalletConnectConfirmDialog.vue';
 import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
@@ -816,7 +815,6 @@ const onSessionProposal = async (sessionProposal) => {
 }
 
 const onSessionRequest = async (sessionRequestData) => {
-  console.log('Session request data', sessionRequestData)
   await loadSessionRequests()
 }
 
