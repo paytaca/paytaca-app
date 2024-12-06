@@ -113,11 +113,6 @@
           </div>
           <div class="q-mt-sm q-gutter-sm">
             <q-btn
-              no-caps label="Short funds"
-              color="brandblue"
-              @click="() => shortTreasuryContractFunds()"
-            />
-            <q-btn
               no-caps label="Transfer BCH"
               color="brandblue"
               @click="() => showSendAmountForm = true"
@@ -170,7 +165,6 @@ import { toTokenAddress } from 'src/utils/crypto';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
-import { createShortProposal, completeShortProposal } from 'src/wallet/stablehedge/short-proposal';
 import { createTreasuryContractTransaction } from 'src/wallet/stablehedge/transaction';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters';
@@ -182,7 +176,6 @@ import { getCurrentInstance, computed, defineComponent, onMounted, ref, watch, i
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue';
 import SendBCHFormDialog from './SendBCHFormDialog.vue';
 import TransactionConfirmDialog from './TransactionConfirmDialog.vue';
-import ShortProposalConfirmDialog from './ShortProposalConfirmDialog.vue';
 
 export default defineComponent({
   name: 'RedemptionContractCard',
@@ -372,67 +365,6 @@ export default defineComponent({
       return wallet
     }
 
-    async function shortTreasuryContractFunds() {
-      const loadingKey = 'short-treasury-contract-funds'
-      try {
-        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
-        if (!treasuryContract.value?.address) await fetchTreasuryContract()
-        if (!treasuryContract.value?.address) throw 'No treasury contract'
-
-        const wallet = await getStablehedgeWallet()
-        const shortProposalData = await createShortProposal({
-          wallet: wallet,
-          treasuryContract: treasuryContract.value,
-          updateLoading: updateLoading,
-        })
-
-        // display some data and for confirmation from user
-        $q.loading.hide(loadingKey)
-        const proceed = await new Promise(resolve => {
-          $q.dialog({
-            component: ShortProposalConfirmDialog,
-            componentProps: {
-              shortProposal: shortProposalData,
-              tokenCategory: tokenCategory.value,
-            },
-          }).onOk(() => resolve(true))
-            .onDismiss(() => resolve(false))
-        })
-        if (!proceed) return
-
-        updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
-        const parsedContractData = await completeShortProposal({
-          wallet: wallet,
-          shortProposal: shortProposalData,
-          treasuryContract: treasuryContract.value,
-          updateLoading: updateLoading,
-        })
-
-        $q.dialog({
-          component: HedgeContractDetailDialog,
-          componentProps: {
-            contract: parsedContractData,
-          },
-        })
-        fetchTreasuryContractBalance()
-      } catch(error) {
-        console.error(error)
-        const errorMessage = resolveApiError(error)
-
-        $q.notify({
-          type: 'negative',
-          message: $t('Error'),
-          caption: errorMessage,
-          timeout: 5 * 1000,
-          actions: [
-            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
-          ]
-        })
-      } finally {
-        $q.loading.hide(loadingKey)
-      }
-    }
-
     const showSendAmountForm = ref(false)
     const maxSendableAmount = computed(() => {
       const P2PKH_INPUT_SIZE = 32 + 4 + 1 + 1 + 65 + 1 + 33 + 4;
@@ -586,7 +518,6 @@ export default defineComponent({
       openHedgePositionDialog,
 
       openDialog,
-      shortTreasuryContractFunds,
       showSendAmountForm,
       maxSendableAmount,
       sendTreasuryContractBCH,
