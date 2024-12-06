@@ -20,6 +20,16 @@
         </div>
         <q-icon name="content_copy" right/>
       </div>
+      <div
+        class="row items-center no-wrap"
+        style="position: relative;" v-ripple
+        @click="copyToClipboard(toTokenAddress(redemptionContract?.address))"
+      >
+        <div class="ellipsis text-subtitle q-space">
+          {{ toTokenAddress(redemptionContract?.address) }}
+        </div>
+        <q-icon name="content_copy" right/>
+      </div>
       <div class="row items-start no-wrap">
         <div>
           <div class="text-grey">Redemption contract</div>
@@ -78,6 +88,16 @@
           <div class="row items-center no-wrap" style="position: relative;" v-ripple @click="copyToClipboard(redemptionContract?.treasury_contract_address)">
             <div class="ellipsis text-subtitle q-space">
               {{ redemptionContract?.treasury_contract_address }}
+            </div>
+            <q-icon name="content_copy" right/>
+          </div>
+          <div
+            class="row items-center no-wrap"
+            style="position: relative;" v-ripple
+            @click="copyToClipboard(toTokenAddress(redemptionContract?.treasury_contract_address))"
+          >
+            <div class="ellipsis text-subtitle q-space">
+              {{ toTokenAddress(redemptionContract?.treasury_contract_address) }}
             </div>
             <q-icon name="content_copy" right/>
           </div>
@@ -146,6 +166,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { getAssetDenomination } from 'src/utils/denomination-utils';
+import { toTokenAddress } from 'src/utils/crypto';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
@@ -276,7 +297,10 @@ export default defineComponent({
 
     const summaryData = computed(() => {
       const redeemableBch = (parseInt(props.redemptionContract?.redeemable) || 0) / 10 ** 8
-      const totalBchValue = redeemableBch + parsedTreasuryContractBalance.value?.totalBchValue
+
+      const treasuryContractBchValue = parsedTreasuryContractBalance.value
+        ? parsedTreasuryContractBalance.value?.totalBchValue : 0
+      const totalBchValue = redeemableBch + treasuryContractBchValue
 
       const genesisSupply = parseInt(props.redemptionContract?.fiat_token?.genesis_supply)
       const tokensInCirculation = genesisSupply - props.redemptionContract?.reserve_supply
@@ -570,6 +594,7 @@ export default defineComponent({
       denominateBch,
       formatTokenUnits,
       copyToClipboard,
+      toTokenAddress,
     }
   },
 })
