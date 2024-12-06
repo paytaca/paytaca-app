@@ -12,10 +12,7 @@
             </span>
           </slot>
         </q-chip>
-        <slot name="top-right">
-            <!-- dummy if not slot is not used by parent -->
-          <!-- <q-btn flat dense></q-btn> -->
-        </slot>
+        <slot name="top-right"></slot>
       </div>
       <template v-if="sessionType==='proposal'">
           <PeerInfo :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"> 
