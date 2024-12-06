@@ -131,7 +131,7 @@
               :session="sessionProposal" :key="sessionProposal.id" session-type="proposal">
               <template v-if="sessionTopicWalletAddressMapping[sessionProposal.pairingTopic]" v-slot:account> 
                 <span class="text-overline text-small">
-                  {{ formatAddressForDisplay(sessionTopicWalletAddressMapping[sessionProposal.pairingTopic].address) }}<q-badge color="grey" size="sm">{{ settings?.addressDisplayFormat }}</q-badge>
+                  {{ formatAddressForDisplay(sessionTopicWalletAddressMapping[sessionProposal.pairingTopic].address) }}
                 </span>
               </template>
               <template v-slot:top-right>
