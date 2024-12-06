@@ -16,7 +16,9 @@
       >
         <div class="q-space">
           <div class="text-subtitle1">
-            <span class="text-uppercase">{{ record?.txTypeText }}</span>
+            <span class="text-uppercase transactions-wallet type" :class="getDarkModeClass(darkMode)">
+              {{ record?.txTypeText }}
+            </span>
             <q-badge
               v-if="record?.status && record?.status != 'success'"
               class="q-ml-xs"
@@ -27,11 +29,17 @@
               <template v-else>{{ $record?.status }}</template>
             </q-badge>
           </div>
-          <div>{{ formatDate(record?.timestamp) }}</div>
+          <div class="transactions-wallet date" :class="getDarkModeClass(darkMode)">
+            {{ formatDate(record?.timestamp) }}
+          </div>
         </div>
         <div class="text-right">
-          <div>{{ formatBCH(record?.bch) }}</div>
-          <div>{{ formatTokenUnits(record?.amount, record?.category) }}</div>
+          <div class="transactions-wallet amount" :class="getDarkModeClass(darkMode)">
+            {{ formatBCH(record?.bch) }}
+          </div>
+          <div class="transactions-wallet market-value" :class="getDarkModeClass(darkMode)">
+            {{ formatTokenUnits(record?.amount, record?.category) }}
+          </div>
         </div>
       </div>
     </template>
