@@ -9,7 +9,29 @@
           />
         </div>
       </q-card-section>
-      <div class="text-grad text-center q-my-sm">{{$t('SelectAddress')}}</div>
+      <div class="text-grad text-center q-my-sm text-h6">{{$t('SelectAddress')}}</div>
+      <div class="row justify-center q-mt-sm">
+        <q-btn-group rounded>
+          <q-btn 
+            @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'cashaddr')" 
+            :color="settings.addressDisplayFormat === 'cashaddr' ? 'brandblue': 'grey'" 
+            :outline="settings.addressDisplayFormat !== 'cashaddr'"
+            size="sm"
+            no-caps
+            >
+            cashaddr 
+          </q-btn>
+          <q-btn 
+            @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'tokenaddr')" 
+            :color="settings.addressDisplayFormat === 'tokenaddr' ? 'brandblue': 'grey'" 
+            :outline="settings.addressDisplayFormat !== 'tokenaddr'"
+            size="sm"
+            no-caps
+            >
+            tokenaddr 
+          </q-btn>
+        </q-btn-group>
+      </div>
       <q-card-section>
         <q-list bordered separator>
         <q-item
@@ -21,7 +43,7 @@
             :focused="item.selected"
           >
             <q-item-section>
-              <div class="text-caption" >{{ `${item.index} - ${item.label}` }}</div>
+              <div class="text-caption" >{{ `${item.index}-${formatAddressForDisplay(item.label)}` }} </div>
             </q-item-section>
 
             <q-item-section side>
@@ -66,21 +88,34 @@
   </q-dialog>
 </template>
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useStore } from 'vuex';
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
+import { convertCashAddress } from 'src/wallet/chipnet';
 import PeerInfo from './PeerInfo.vue'
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } 
   = useDialogPluginComponent()
 const emit = defineEmits(['ok', 'hide'])
 const $q = useQuasar()
+const $store = useStore()
+
+const settings = computed(() => $store.getters['walletconnect/settings'])
+
+const formatAddressForDisplay = (address) => {
+  if (settings.value?.addressDisplayFormat === 'tokenaddr') {
+    return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
+  }
+  return shortenAddressForDisplay(address)
+}
+
 const props = defineProps({
   peerId: String,
   sessionProposal: Object,
   darkMode: Boolean,
   walletAddresses: Array,
-  lastUsedWalletAddress: null /*{ wallet_address: string, app_url: string, app_icon: string }*/
+  lastUsedWalletAddress: null, /*{ wallet_address: string, app_url: string, app_icon: string }*/
 })
 
 const addressSelected = ref /*<string>*/ ('')
@@ -107,7 +142,7 @@ const selectAddress = (address) => {
 
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
-  addressOptions.value = props.walletAddresses?.map((item) => ({ label: shortenAddressForDisplay(item.address), address: item.address, index: item.address_index }))
+  addressOptions.value = props.walletAddresses?.map((item) => ({ label: item.address, address: item.address, index: item.address_index }))
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true
