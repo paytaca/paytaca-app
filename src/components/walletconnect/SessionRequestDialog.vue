@@ -1,7 +1,11 @@
 <template>
     <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
       <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-        <SessionInfo :session = "sessionRequest" session-type="request" :flat="true" hide-session-id hide-topic>
+        <SessionInfo 
+          :session = "sessionRequest" session-type="request" :flat="true" hide-session-id hide-topic
+          :address-display-format="addressDisplayFormat"
+          :address-display-formatter="addressDisplayFormatter"
+          >
           <template v-slot:top-right>
             <q-btn icon="close" color="negative" @click.stop="onDialogHide" style="z-index: 1" flat label="Close" no-caps></q-btn>
           </template>
@@ -61,6 +65,10 @@
   
   const props = defineProps({
     sessionRequest: Object,
+    addressDisplayFormat: String,
+    addressDisplayFormatter: {
+      type: Function,
+    }
   })
 
   defineEmits([
