@@ -8,6 +8,9 @@
           {{ pricePerDenomination }} {{ currency }}/{{ denomination }}
         </div>
       </div>
+      <div v-if="showChart" class="chart-container row items-center justify-center q-mb-sm">
+        <canvas ref="chart"></canvas>
+      </div>
       <div class="row items-center">
         <div class="text-grey q-space">Volume (24 hr): </div>
         <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
@@ -65,6 +68,15 @@
         <div class="text-grey q-space">Tokens in circulation:</div>
         <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
       </div>
+      <div class="row items-center">
+        <div class="text-grey q-space">Redeemable tokens:</div>
+        <div>
+          {{ formatTokenUnits(summaryData?.redeemableTokens) }}
+          <span v-if="summaryData?.redeemableTokensPctg">
+            ({{ summaryData?.redeemableTokensPctg }}%)
+          </span>
+        </div>
+      </div>
     </q-card-section>
   </q-card>
 </template>
@@ -74,6 +86,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
+import Chart from 'chart.js/auto'
+import { debounce } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { computed, defineComponent, watch, onMounted, onUnmounted, ref, getCurrentInstance } from 'vue';
@@ -85,12 +99,14 @@ export default defineComponent({
       /** @returns {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} */
       default: () => {}
     },
+    showChart: Boolean,
   },
   setup(props) {
     const instance = getCurrentInstance()
 
     const { t: $t } = useI18n()
     const $store = useStore()
+    const isNotDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const isChipnet = computed(() => $store.getters['global/isChipnet'])
     const denomination = computed(() => $store.getters['global/denomination'])
@@ -189,8 +205,15 @@ export default defineComponent({
 
       const genesisSupply = parseInt(props.redemptionContract?.fiat_token?.genesis_supply)
       const tokensInCirculation = genesisSupply - props.redemptionContract?.reserve_supply
-      let expectedBchValue, expectedDiffPctg
 
+      let redeemableTokens, redeemableTokensPctg
+      if (Number.isSafeInteger(priceUnitPerBch.value)) {
+        redeemableTokens = Math.floor(redeemableBch * priceUnitPerBch.value)
+        redeemableTokensPctg = tokensInCirculation
+          ? Math.round(redeemableTokens * 100 / tokensInCirculation) : 0
+      }
+
+      let expectedBchValue, expectedDiffPctg
       if (Number.isSafeInteger(tokensInCirculation) && Number.isSafeInteger(priceUnitPerBch.value)) {
         expectedBchValue = Number(
           tokenToSatoshis(tokensInCirculation, priceUnitPerBch.value)
@@ -207,9 +230,80 @@ export default defineComponent({
         volume24hrBch: props.redemptionContract?.volume_24_hr / 10 ** 8,
         totalBchValue,
         tokensInCirculation,
+        redeemableTokens,
+        redeemableTokensPctg,
         expectedBchValue,
         expectedDiffPctg,
         expectedDiffPctgIcon,
+      }
+    })
+
+    /** @type {Chart} */
+    let chartObj
+    const chart = ref()
+    watch(summaryData, () => loadChart(), { deep: true })
+    watch(() => props.showChart, () => loadChart())
+    onUnmounted(() => chartObj?.destroy?.())
+    const loadChart = debounce(() => {
+      chartObj?.destroy?.()
+      if (!props.showChart) return console.log('Skipping chart creation')
+      console.log('Creating chart', bchValuePieCharData.value)
+      chartObj = new Chart(chart.value, {
+        type: 'pie',
+        data: bchValuePieCharData.value,
+        options: {
+          devicePixelRatio: 4,
+          responsive: true,
+          animation: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          }
+        }
+      })
+    }, 500)
+
+    const chartColors = computed(() => {
+      // From https://coolors.co/image-picker - screnshot of main page
+      if (isNotDefaultTheme.value) {
+        return [
+          { name: 'Bone', hex: '#DCD8CC' },
+          { name: 'Marian blue', hex: '#2B4570' },
+          { name: 'Gold (metallic)', hex: '#CFB362' },
+          { name: 'Glaucous', hex: '#768BB4' },
+          { name: 'Prussian blue', hex: '#1A2838' },
+        ]
+      }
+      return [
+        { name: 'Sapphire', hex: '#2C5AB6' },
+        { name: 'Chinese Violet', hex: '#675672' },
+        { name: 'Marian blue', hex: '#29427B' },
+        { name: 'Blush', hex: '#EA5484' },
+        { name: 'Prussian blue', hex: '#27384D' },
+      ]
+    })
+
+    const bchValuePieCharData = computed(() => {
+      const colors = chartColors.value
+      const redeemableBch = (props.redemptionContract.redeemable || 0) / 10 ** 8
+      const data = [
+        { label: 'Redeemable', value: redeemableBch },
+      ]
+      if (parsedTreasuryContractBalance.value) {
+        data.push(
+          { label: 'Treasury contract', value: parsedTreasuryContractBalance.value.spendableBch },
+          { label: 'Short value', value: parsedTreasuryContractBalance.value.totalShortedBchValue },
+        )
+      }
+
+      return {
+        labels: data.map(_data => _data?.label),
+        datasets: [{
+          label: `${denomination.value} value`,
+          data: data.map(_data => _data.value),
+          backgroundColor: data.map((_, index) => colors[index % colors.length]?.hex),
+        }]
       }
     })
 
@@ -256,6 +350,8 @@ export default defineComponent({
       parsedTreasuryContractBalance,
       summaryData,
 
+      chart,
+
       denominateSats,
       denominateBch,
       formatTokenUnits,
@@ -264,3 +360,8 @@ export default defineComponent({
 })
 
 </script>
+<style lang="scss" scoped>
+.chart-container {
+  height: 150px;
+}
+</style>
