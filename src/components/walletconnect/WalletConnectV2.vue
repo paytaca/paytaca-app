@@ -299,7 +299,6 @@ const onScannerDecode = async (content) => {
  * Loads active session
  */
 const loadActiveSessions = async ({showLoading} = {showLoading: true}) => {
-  // TODO: add to translation words list 
   loading.value = showLoading && $t('CheckingForActiveConnections')
   try {
     if (web3Wallet.value) {
