@@ -800,13 +800,12 @@ const onAuthRequest = async (...args) => {
   console.log('Auth request', ...args)
 }
 
-const onSessionDelete = async (...args) => {
-  // console.log('Session delete', ...args)
+const onSessionDelete = async ({ topic }) => {
+  delete activeSessions.value?.[topic]
   await loadActiveSessions()
 }
 
 const onSessionProposal = async (sessionProposal) => {
-  // console.log('SESSION PROPOSAL', sessionProposal)
   // Note: typeof(sessionProposal.params) === typeof(sessionProposals.value[n])
   // received value on the listener has some extra fields
   // sessionProposals.value.unshift(sessionProposal.params) 
@@ -845,6 +844,7 @@ const refreshComponent = async () => {
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   await loadSessionRequests()
   await loadSessionProposals()
+  await loadActiveSessions()
 }
 
 watchEffect(() => {
@@ -857,8 +857,10 @@ onBeforeMount(async () => {
   await $store.dispatch('global/loadWalletConnectedApps')
   wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
+  walletAddresses.value = $store.getters['global/walletAddresses']
   await loadSessionRequests()
   await loadSessionProposals()
+  await loadActiveSessions()
 })
 
 onMounted(async () => {
@@ -876,7 +878,6 @@ onMounted(async () => {
       await $store.dispatch('global/loadWalletAddresses')  
     }
     walletAddresses.value = $store.getters['global/walletAddresses']
-    await loadActiveSessions()
   } catch (error) {} finally { loading.value = undefined}
 })
 

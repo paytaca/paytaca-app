@@ -74,7 +74,6 @@ window.wc2 = walletConnectV2
 
 const showScanner = ref(false)
 function openScanner() {
-  console.log("Opening scanner")
 
   // flipping the value due to qr-scanner not updating its internal value on mobile
   showScanner.value = false
@@ -83,7 +82,6 @@ function openScanner() {
   }, 250)
 }
 function onScannerDecode(content) {
-  console.log('Decoded', content)
   showScanner.value = false
   const isSbch = selectedNetwork.value === 'sBCH'
   if (isSbch) walletConnectV1.value?.onScannerDecode?.(content)
@@ -110,7 +108,6 @@ onMounted(async () => {
 
   if (selectedNetwork.value === 'sBCH') {
     const uriData = parseWalletConnectUri(props.uri)
-    console.log(uriData)
     if (uriData?.handshakeTopic && uriData?.key && uriData?.bridge) {
       if (walletConnectV1.value?.connector?.handshakeTopic !== uriData?.handshakeTopic) {
         walletConnectV1.value?.disconnectConnector?.()
