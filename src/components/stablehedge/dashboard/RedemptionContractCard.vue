@@ -9,7 +9,7 @@
       touch-position
       class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)"
     >
-      <q-item clickable v-close-popup disabled>
+      <q-item clickable v-close-popup @click="() => showDialog = true">
         <q-item-section>
           <q-item-label>More</q-item-label>
         </q-item-section>
@@ -47,7 +47,7 @@
       <div class="row items-start no-wrap">
         <div>
           <div class="text-grey">Redemption contract</div>
-          <div>{{ denominateBch(redemptionContract?.redeemable || 0) }}</div>
+          <div>{{ denominateSats(redemptionContract?.redeemable || 0) }}</div>
           <div>{{ formatTokenUnits(redemptionContract?.reserve_supply || 0) }}</div>
         </div>
         <q-space/>
@@ -58,6 +58,10 @@
         </div>
       </div>
       <q-separator spaced/>
+      <div class="row items-center">
+        <div class="text-grey q-space">Volume (24 hr): </div>
+        <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
+      </div>
       <div class="row items-center">
         <div class="text-grey q-space">Total Value:</div>
         <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
@@ -74,6 +78,52 @@
         </div>
       </div>
     </q-card-section>
+    <q-dialog v-model="showDialog" position="bottom">
+      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+        <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
+          <div class="text-h6 q-space q-mt-sm">Redemption contract</div>
+          <q-btn flat padding="sm" icon="close" class="close-button" v-close-popup/>
+        </div>
+        <q-card-section>
+          <div class="chart-container row items-center justify-center q-mb-sm">
+            <canvas ref="chartRef"></canvas>
+          </div>
+          <div class="row items-center justify-around q-mb-sm">
+            <q-btn flat padding="sm lg" icon="keyboard_arrow_left" @click="() => moveSummaryPanel(-1)"/>
+            <div class="text-h6">{{ summaryPanelLabel }}</div>
+            <q-btn flat padding="sm lg" icon="keyboard_arrow_right" @click="() => moveSummaryPanel(1)"/>
+          </div>
+          <div class="row items-center">
+            <div class="text-grey q-space">Volume (24 hr): </div>
+            <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
+          </div>
+          <div class="row items-center">
+            <div class="text-grey q-space">Total Value:</div>
+            <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
+          </div>
+          <div class="row items-center">
+            <div class="text-grey q-space">Ideal Value:</div>
+            <div>
+              <q-icon v-bind="summaryData?.expectedDiffPctgIcon" class="q-mr-xs"/>
+              {{ denominateBch(summaryData?.expectedBchValue) }}
+            </div>
+          </div>
+          <div class="row items-center">
+            <div class="text-grey q-space">Tokens in circulation:</div>
+            <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
+          </div>
+          <div class="row items-center">
+            <div class="text-grey q-space">Redeemable tokens:</div>
+            <div>
+              {{ formatTokenUnits(summaryData?.redeemableTokens) }}
+              <span v-if="summaryData?.redeemableTokensPctg">
+                ({{ summaryData?.redeemableTokensPctg }}%)
+              </span>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
     <TreasuryContractDialog
       v-model="showTreasuryContractDialog"
       :treasury-contract="treasuryContract"
@@ -88,7 +138,8 @@ import { toTokenAddress } from 'src/utils/crypto';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { stablehedgePriceTracker } from 'src/wallet/stablehedge/price-tracker'
-import { useQuasar } from 'quasar';
+import { Chart } from 'chart.js';
+import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { getCurrentInstance, computed, defineComponent, onMounted, ref, watch, inject, onUnmounted } from 'vue';
@@ -214,8 +265,15 @@ export default defineComponent({
 
       const genesisSupply = parseInt(props.redemptionContract?.fiat_token?.genesis_supply)
       const tokensInCirculation = genesisSupply - props.redemptionContract?.reserve_supply
-      let expectedBchValue, expectedDiffPctg
 
+      let redeemableTokens, redeemableTokensPctg
+      if (Number.isSafeInteger(priceUnitPerBch.value)) {
+        redeemableTokens = Math.floor(redeemableBch * priceUnitPerBch.value)
+        redeemableTokensPctg = tokensInCirculation
+          ? Math.round(redeemableTokens * 100 / tokensInCirculation) : 0
+      }
+
+      let expectedBchValue, expectedDiffPctg
       if (Number.isSafeInteger(tokensInCirculation) && Number.isSafeInteger(priceUnitPerBch.value)) {
         expectedBchValue = Number(
           tokenToSatoshis(tokensInCirculation, priceUnitPerBch.value)
@@ -229,15 +287,173 @@ export default defineComponent({
       }
 
       return {
+        volume24hrBch: props.redemptionContract?.volume_24_hr / 10 ** 8,
         totalBchValue,
         tokensInCirculation,
+        redeemableTokens,
+        redeemableTokensPctg,
         expectedBchValue,
         expectedDiffPctg,
         expectedDiffPctgIcon,
       }
     })
 
+    const showDialog = ref(false)
+    /** @type {import("vue").Ref<'idealBchValue' | 'bchValue' | 'token'>} */
+    const summaryPanel = ref('idealBchValue')
+    const summaryPanels = ['idealBchValue', 'bchValue', 'token']
+    function moveSummaryPanel(delta=1) {
+      const index = summaryPanels.indexOf(summaryPanel.value)
+      let newIndex = index + delta
+      const panelsCount = summaryPanels.length
+      // this modulo ensures a positive number [0, panelsCount)
+      newIndex = ((newIndex % panelsCount) + panelsCount) % panelsCount
+      summaryPanel.value = summaryPanels[newIndex]
+    }
+    const summaryPanelLabel = computed(() => {
+      console.log('summaryPanel.value', summaryPanel.value)
+      switch(summaryPanel.value) {
+        case 'idealBchValue':
+          return `Ideal ${denomination.value} value`
+        case 'bchValue':
+          return `${denomination.value} value`
+        case 'token':
+          return `Token circulation`
+      }
+    })
+    
+    const chartRef = ref()
+
+    const isNotDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
+    const chartColors = computed(() => {
+      // From https://coolors.co/image-picker - screnshot of main page
+      if (isNotDefaultTheme.value) {
+        return [
+          { name: 'Bone', hex: '#DCD8CC' },
+          { name: 'Marian blue', hex: '#2B4570' },
+          { name: 'Gold (metallic)', hex: '#CFB362' },
+          { name: 'Glaucous', hex: '#768BB4' },
+          { name: 'Prussian blue', hex: '#1A2838' },
+        ]
+      }
+      return [
+        { name: 'Sapphire', hex: '#2C5AB6' },
+        { name: 'Chinese Violet', hex: '#675672' },
+        { name: 'Marian blue', hex: '#29427B' },
+        { name: 'Blush', hex: '#EA5484' },
+        { name: 'Prussian blue', hex: '#27384D' },
+      ]
+    })
+    function getChartColors(count=0) {
+      return new Array(count).fill()
+        .map((_, index) => {
+          const _index = index % chartColors.value.length
+          return chartColors.value[_index]?.hex
+        })
+    }
+
+    /** @type {Chart} */
+    let chartObj
+    watch(showDialog, () => loadBchValueChart())
+    watch(summaryPanel, () => loadBchValueChart())
+    onUnmounted(() => chartObj?.destroy?.())
+    const loadBchValueChart = debounce(() => {
+      if (!showDialog.value) return
+      chartObj?.destroy?.()
+      switch(summaryPanel.value) {
+        case 'idealBchValue':
+          chartObj = createIdealBchValueChart(chartRef.value)
+          break;
+        case 'bchValue':
+          chartObj = createBchValueChart(chartRef.value)
+          break;
+        case 'token':
+          chartObj = createTokenChart(chartRef.value)
+          break;
+      }
+    }, 500)
+
+    function createIdealBchValueChart(ref) {
+      return new Chart(ref, {
+        type: 'bar',
+        data: {
+          labels: [`${denomination.value} value`, `Ideal ${denomination.value} value`],
+          datasets: [{
+            data: [summaryData.value.totalBchValue, summaryData.value.expectedBchValue],
+            backgroundColor: getChartColors(2),
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          devicePixelRatio: 4,
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          }
+        }
+      })
+    }
+
+    function createBchValueChart(ref) {
+      return new Chart(ref, {
+        type: 'pie',
+        data: bchValuePieChartData.value,
+        options: {
+          devicePixelRatio: 4,
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          }
+        }
+      })
+    }
+    const bchValuePieChartData = computed(() => {
+      const redeemableBch = (props.redemptionContract.redeemable || 0) / 10 ** 8
+      const data = [
+        { label: 'Redeemable', value: redeemableBch },
+      ]
+      if (parsedTreasuryContractBalance.value) {
+        data.push(
+          { label: 'Treasury contract', value: parsedTreasuryContractBalance.value.spendableBch },
+          { label: 'Short value', value: parsedTreasuryContractBalance.value.totalShortedBchValue },
+        )
+      }
+
+      return {
+        labels: data.map(_data => _data?.label),
+        datasets: [{
+          label: `${denomination.value} value`,
+          data: data.map(_data => _data.value),
+          backgroundColor: getChartColors(data?.length),
+        }]
+      }
+    })
+
+    function createTokenChart(ref) {
+      return new Chart(ref, {
+        type: 'bar',
+        data: {
+          labels: [`Tokens in circulation`, `Redeemable tokens`],
+          datasets: [{
+            data: [summaryData.value.tokensInCirculation, summaryData.value.redeemableTokens],
+            backgroundColor: getChartColors(2),
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          devicePixelRatio: 4,
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          }
+        }
+      })
+    }
+
     /** ------- <Formatters -------  */
+    function denominateSats(satoshis) {
+      return denominateBch(satoshis / 10 ** 8)
+    }
     function denominateBch(amount) {
       const currentDenomination = denomination.value || 'BCH'
       const parsedBCHBalance = getAssetDenomination(currentDenomination, amount)
@@ -288,6 +504,12 @@ export default defineComponent({
       treasuryContractBalance,
       summaryData,
 
+      showDialog,
+      summaryPanelLabel,
+      moveSummaryPanel,
+      chartRef,
+
+      denominateSats,
       denominateBch,
       formatTokenUnits,
       copyToClipboard,
@@ -296,3 +518,8 @@ export default defineComponent({
   },
 })
 </script>
+<style lang="scss" scoped>
+.chart-container {
+  height: 150px;
+}
+</style>
