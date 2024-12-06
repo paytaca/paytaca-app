@@ -14,9 +14,9 @@
         </q-item-label>
         <q-item-label caption>
           <slot name="url">
-            <div class="text-light session-info-attribute-url">{{ metadata?.url  }}</div>
+            <div class="text-light session-info-attribute-url" style="word-break: break-all">{{ metadata?.url  }}</div>
             <div v-if="sessionId" class="text-light session-info-attribute">Sid: {{ sessionId  }}</div>
-            <div v-if="sessionTopic" class="text-light session-info-attribute">Topic: {{ sessionTopic?.replace(sessionTopic.slice(3, sessionTopic.length - 3), '...')  }}</div>
+            <div v-if="sessionTopic" class="text-light session-info-attribute">Topic: {{ sessionTopic?.replace(sessionTopic.slice(3, sessionTopic.length - 6), '...')  }}</div>
           </slot>
         </q-item-label>
       </q-item-section>

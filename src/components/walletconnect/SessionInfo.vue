@@ -53,7 +53,7 @@
                   Sid: {{ session?.id}}
                 </div>
                 <div v-if="!hideTopic" class="col-12 text-light session-info-attribute">
-                  Topic: {{session.session?.topic?.replace(session.session.topic.slice(3, session.session.topic.length - 3), '...') }}
+                  Topic: {{session.session?.topic?.replace(session.session.topic.slice(3, session.session.topic.length - 6), '...') }}
                 </div>
               </div>
             </template>
