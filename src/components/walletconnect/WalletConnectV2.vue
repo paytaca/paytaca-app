@@ -394,7 +394,7 @@ async function saveConnectedApp (session) {
         const decodedPrivkey = decodePrivateKeyWif(addressWithWif.wif)
         watchtower.value.saveConnectedApp({
           address: accountWCPrefixRemoved, 
-          appName: session?.peer?.metadata?.name,
+          appName: session?.peer?.metadata?.name || session?.peer?.metadata?.url,
           appUrl: session?.peer?.metadata?.url,
           appIcon: session?.peer?.metadata?.icons?.[0],
           privateKey: decodedPrivkey.privateKey
