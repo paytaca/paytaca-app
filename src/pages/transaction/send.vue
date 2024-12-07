@@ -81,6 +81,7 @@
                   <q-btn
                     no-caps
                     class="button q-mb-lg q-mt-sm"
+                    size="lg"
                     @click="() => onScannerDecode(manualAddress)"
                   >
                     <div class="ellipsis" style="max-width:min(200px, 75vw)">
@@ -147,6 +148,7 @@
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :convertToFiatAmount="convertToFiatAmount"
                       :setMaximumSendAmount="setMaximumSendAmount"
+                      :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
                       @on-qr-scanner-click="onQRScannerClick"
                       @read-only-state="readonlyState"
                       @on-input-focus="onInputFocus"
@@ -155,6 +157,7 @@
                       @on-empty-recipient="onEmptyRecipient"
                       @on-selected-denomination-change="onSelectedDenomination"
                       @on-qr-uploader-click="onQRUploaderClick"
+                      @on-selected-change-address="onUserSelectedChangeAddress"
                       :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
@@ -184,6 +187,7 @@
                     @on-empty-recipient="onEmptyRecipient"
                     @on-selected-denomination-change="onSelectedDenomination"
                     @on-qr-uploader-click="onQRUploaderClick"
+                    @on-selected-change-address="onUserSelectedChangeAddress"
                     :key="generateKeys(index)"
                     ref="sendPageRef"
                   />
@@ -215,8 +219,9 @@
                   </a>
                 </div>
               </div>
-              <div class="add-recipient-button" v-if="showAddRecipientButton && !disableSending" @click.prevent="addAnotherRecipient">
-                <q-btn :label="$t('AddAnotherRecipient')" class="button" />
+              <!-- <div class="add-recipient-button" v-if="showAddRecipientButton && !disableSending" @click.prevent="addAnotherRecipient"> -->
+              <div class="add-recipient-button" v-if="!disableSending" @click.prevent="addAnotherRecipient">
+                <q-btn v-if="showAddRecipientButton" :label="$t('AddAnotherRecipient')" class="button" />
               </div>
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
@@ -345,7 +350,10 @@
 
 <script>
 import { markRaw } from '@vue/reactivity'
-import { getMnemonic, Wallet, Address } from '../../wallet'
+import { decodePrivateKeyWif } from '@bitauth/libauth'
+import { getMnemonic, Wallet, loadWallet, Address } from '../../wallet'
+import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils';
+import { isTokenAddress } from 'src/utils/address-utils';
 import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
 import ProgressLoader from '../../components/ProgressLoader'
@@ -375,7 +383,6 @@ import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import QRUploader from 'src/components/QRUploader'
 import { pushNotificationsManager } from 'src/boot/push-notifications'
-
 const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const sBCHWalletType = 'SmartBCH'
@@ -394,6 +401,7 @@ export default {
     SendPageForm,
     QRUploader
   },
+
   props: {
     network: {
       type: String,
@@ -529,7 +537,8 @@ export default {
       totalFiatAmountSent: 0,
       actualWalletBalance: { balance: 0, spendable: 0 },
       currentWalletBalance: 0,
-      isLegacyAddress: false
+      isLegacyAddress: false,
+      userSelectedChangeAddress: ''
     }
   },
 
@@ -627,6 +636,7 @@ export default {
       )
     },
     showAddRecipientButton () {
+      if (this.assetId?.startsWith('ct')) return false
       if (this.walletType === sBCHWalletType) return false
       return (
         this.showSlider &&
@@ -640,6 +650,12 @@ export default {
     },
     isMultipleRecipient () {
       return !(this.isNFT || this.walletType === sBCHWalletType)
+    },
+    connectedApps() {
+      const distinct = (value, index, list) => {
+        return list.findIndex((item) => item.address === value.address && item.app_url === value.app_url) == index
+      }
+      return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
     },
     recipientAddresses () {
       if (this.jpp?.parsed?.outputs !== undefined) {
@@ -690,7 +706,7 @@ export default {
     manualAddress (address) {
       this.isLegacyAddress = new Address(address).isLegacyAddress()
       this.inputExtras[this.currentActiveRecipientIndex].isLegacyAddress = this.isLegacyAddress
-    }
+    },
   },
 
   methods: {
@@ -1202,10 +1218,9 @@ export default {
 
     validateAddress (address) {
       const vm = this
-      let addressObj = new Address(address)
+      const addressObj = new Address(address)
       let addressIsValid = false
       let formattedAddress
-
       try {
         if (vm.walletType === sBCHWalletType) {
           if (addressObj.isSep20Address()) {
@@ -1217,11 +1232,21 @@ export default {
         }
         if (vm.walletType === 'bch') {
           if (vm.isCashToken) {
-            addressIsValid = isValidTokenAddress(address)
+            // addressIsValid = isValidTokenAddress(address)
+            addressIsValid = isTokenAddress(address)
             formattedAddress = address
           } else {
-            if (isValidTokenAddress(address)) {
-              addressIsValid = true
+            // if (isValidTokenAddress(address)) {
+            //   addressIsValid = true
+            //   formattedAddress = address
+            // } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
+            //   if (addressObj.isValidBCHAddress(vm.isChipnet)) {
+            //     addressIsValid = true
+            //     formattedAddress = addressObj.toCashAddress(address)
+            //   }
+            // }
+            if (isTokenAddress(address)) {
+              addressIsValid = false // Address should not be a token address
               formattedAddress = address
             } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
               if (addressObj.isValidBCHAddress(vm.isChipnet)) {
@@ -1266,7 +1291,9 @@ export default {
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
     },
-
+    getAddressFromThisWallet () {
+      return this.wallet.lastAddress
+    },
     async handleSubmit () {
       const vm = this
       const toSendData = vm.sendDataMultiple
@@ -1405,7 +1432,11 @@ export default {
       })
 
       if (toSendBCHRecipients.length > 0) {
-        const changeAddress = vm.getChangeAddress('bch')
+        let changeAddress = this.getChangeAddress('bch')
+
+        if (token?.tokenId && this.userSelectedChangeAddress) {
+          changeAddress = this.userSelectedChangeAddress
+        }
         getWalletByNetwork(vm.wallet, 'bch')
           .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
@@ -1645,10 +1676,27 @@ export default {
     },
     onQRUploaderClick () {
       this.$refs['qr-upload'].$refs['q-file'].pickFiles()
+    },
+    onUserSelectedChangeAddress (changeAddress) {
+      console.log('USER SELECTED CHANGE ADDRESS', changeAddress)
+      this.userSelectedChangeAddress = changeAddress
+    },
+    setDefaultFtChangeAddress () {
+      if (this.connectedApps?.[0]) {
+        if (!this.userSelectedChangeAddress) {
+          this.userSelectedChangeAddress = this.connectedApps[0].wallet_address
+        }
+      }
     }
   },
 
-  mounted () {
+  async beforeMount() {
+    await this.$store.dispatch('global/loadWalletLastAddressIndex')
+    await this.$store.dispatch('global/loadWalletAddresses')
+    await this.$store.dispatch('global/loadWalletConnectedApps')
+  },
+
+  async mounted () {
     const vm = this
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
@@ -1693,7 +1741,18 @@ export default {
 
     if (this.inputExtras.length === 1) {
       this.inputExtras[0].selectedDenomination = this.denomination
+    } 
+
+    if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
+      await vm.$store.dispatch('global/loadWalletLastAddressIndex')  
     }
+    if (!vm.$store.getters['global/walletConnectedApps']) {
+      await vm.$store.dispatch('global/loadWalletConnectedApps')
+    }
+    if (!vm.$store.getters['global/walletAddresses']) {
+      await vm.$store.dispatch('global/loadWalletAddresses')  
+    }
+    vm.setDefaultFtChangeAddress()
   },
 
   unmounted () {

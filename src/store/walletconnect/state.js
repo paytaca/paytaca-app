@@ -1,6 +1,9 @@
 export default function () {
   return {
     sessionKeyPeerId: '<key>:<peer-id>',
+    settings: {
+      addressDisplayFormat: 'cashaddr' /* 'cashaddr' | 'tokenaddr' */
+    },
     callRequests: [
       /*
       {
