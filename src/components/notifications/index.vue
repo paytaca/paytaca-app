@@ -24,42 +24,93 @@
       </div>
 
       <div>
-        <q-pull-to-refresh @refresh="refreshNotifsList">
-          <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
-            <q-btn
-              flat
-              round
-              icon="refresh"
-              :disable="isLoading"
-              @click="refreshNotifsList()"
-            />
-            <!-- <q-btn
-              flat
-              round
-              :disable="isLoading"
-              icon="delete"
-            /> -->
-            <q-btn
-              flat
-              round
-              :disable="isLoading"
-              icon="filter_alt"
-              @click="openFilterDialog"
-            />
-          </div>
+        <div
+          class="row justify-end items-center q-mb-sm q-gutter-x-md"
+          v-if="notifsList.length > 0"
+        >
+          <q-btn
+            v-if="isCheckboxClicked"
+            flat
+            round
+            :disable="isLoading"
+            icon="cancel"
+            @click="isCheckboxClicked = false"
+          />
+          <q-btn
+            flat
+            round
+            :disable="isLoading"
+            :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
+            :color="isCheckboxClicked ? 'red' : 'white'"
+            @click="massDeleteNotifs"
+          />
+          <q-btn
+            flat
+            round
+            icon="refresh"
+            :disable="isLoading"
+            @click="refreshNotifsList()"
+          />
+          <q-btn
+            flat
+            round
+            icon="mark_chat_read"
+            :disable="isLoading"
+            @click="markAllAsRead()"
+          />
+          <q-btn
+            flat
+            round
+            :disable="isLoading"
+            icon="filter_alt"
+            @click="openFilterDialog"
+          />
+        </div>
 
-          <template v-if="isLoading">
-            <q-card-section class="q-pt-sm flex flex-center">
-              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-            </q-card-section>
-          </template>
+        <template v-if="isLoading">
+          <q-card-section class="q-pt-sm flex flex-center">
+            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          </q-card-section>
+        </template>
 
-          <template v-else>
-            <div v-if="notifsList.length > 0">
-              <div
-                class="q-pb-sm q-gutter-y-sm"
-                style="height: 70vh; overflow-y: scroll;"
-              >
+        <template v-else>
+          <div v-if="notifsList.length > 0">
+            <div
+              class="q-pb-sm q-gutter-y-sm col-12"
+              style="height: 70vh; overflow-y: scroll;"
+            >
+              <template v-if="isCheckboxClicked">
+                <div
+                  v-for="(notif, index) in notifsList"
+                  :key="`notif-${index}`"
+                  class="row"
+                >
+                  <div class="col-2 flex flex-center">
+                    <q-checkbox
+                      v-model="checkboxList[index]"
+                    />
+                  </div>
+
+                  <q-slide-item
+                    v-if="!notif.is_hidden"
+                    left-color="red"
+                    right-color="red"
+                    class="col-10 pt-card-2 text-bow item-border"
+                    :class="getDarkModeClass(darkMode)"
+                    :key="`notif-${index}`"
+                  >
+                    <NotificationBody
+                      :title="notif.title"
+                      :message="notif.message"
+                      :notif_type="parseNotifType(notif.notif_type)"
+                      :date_posted="formatDate(notif.date_posted)"
+                      :is_read="notif.is_read"
+                    />
+                  </q-slide-item>
+                </div>
+              </template>
+
+              <template v-else>
                 <transition-group
                   appear
                   leave-active-class="animated zoomOut fast"
@@ -67,15 +118,15 @@
                   :key="`notif-${index}`"
                 >
                   <q-slide-item
+                    v-if="!notif.is_hidden"
                     left-color="red"
                     right-color="red"
-                    class="pt-card-2 text-bow item-border"
+                    class="col-12 pt-card-2 text-bow item-border"
                     :class="getDarkModeClass(darkMode)"
                     :key="`notif-${index}`"
                     @left="(event) => onSwipe(event, index)"
                     @right="(event) => onSwipe(event, index)"
                     @click="clickRedirect(notif)"
-                    v-if="!notif.is_hidden"
                   >
                     <template v-slot:left>
                       <q-icon name="delete" /> {{ $t('Delete') }}
@@ -88,50 +139,44 @@
                       appear
                       leave-active-class="animated zoomOut fast"
                     >
-                      <div class="row q-py-sm q-px-md">
-                        <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                          {{ notif.title }}
-                        </span><br/>
-                        <span class="col-12">{{ notif.message }}</span>
-                        <span
-                          class="col-12 q-mt-xs text-caption"
-                          align="right"
-                          style="color: gray;"
-                        >
-                          {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                        </span>
-                      </div>
+                      <NotificationBody
+                        :title="notif.title"
+                        :message="notif.message"
+                        :notif_type="parseNotifType(notif.notif_type)"
+                        :date_posted="formatDate(notif.date_posted)"
+                        :is_read="notif.is_read"
+                      />
                     </transition>
                   </q-slide-item>
                 </transition-group>
-              </div>
-
-              <div class="row flex-center q-mt-sm">
-                <q-pagination
-                  padding="xs"
-                  :modelValue="notifsPage"
-                  :max="maxPages"
-                  :max-pages="6"
-                  :dark="darkMode"
-                  :class="getDarkModeClass(darkMode)"
-                  :hide-below-pages="2"
-                  @update:modelValue="(val) => {
-                    notifsPage = val
-                    refreshNotifsList(null)
-                  }"
-                />
-              </div>
+              </template>
             </div>
 
-            <div
-              class="text-center text-subtitle1"
-              style="color: gray"
-              v-else
-            >
-              No notifications
+            <div class="row flex-center q-mt-lg">
+              <q-pagination
+                padding="xs"
+                :modelValue="notifsPage"
+                :max="maxPages"
+                :max-pages="6"
+                :dark="darkMode"
+                :class="getDarkModeClass(darkMode)"
+                :hide-below-pages="2"
+                @update:modelValue="(val) => {
+                  notifsPage = val
+                  refreshNotifsList(null)
+                }"
+              />
             </div>
-          </template>
-        </q-pull-to-refresh>
+          </div>
+
+          <div
+            class="q-mt-lg text-center text-subtitle1"
+            style="color: gray"
+            v-else
+          >
+            {{ $t('NoNotifications') }}
+          </div>
+        </template>
       </div>
     </q-card>
   </q-dialog>
@@ -142,25 +187,35 @@ import ago from 's-ago'
 
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import {
-  getWalletNotifications, parseNotifType, hideItemUpdate
+  getWalletNotifications,
+  parseNotifType,
+  hideItemUpdate,
+  massHideNotifs,
+  markWalletNotifsAsRead
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
+import NotificationBody from './NotificationBody.vue'
 
 export default {
   name: 'Notifications',
 
   components: {
-    ProgressLoader
+    ProgressLoader,
+    NotificationBody
   },
 
   data () {
     return {
       notifsList: [],
+      checkboxList: null,
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR'],
+
       isLoading: false,
+      isCheckboxClicked: false,
+
       notifsPage: 1,
-      notifsTypes: ['GE', 'MP', 'CB', 'AH', 'RP', 'GI', 'TR'],
       maxPages: 0
     }
   },
@@ -189,15 +244,23 @@ export default {
     async refreshNotifsList (done) {
       const vm = this
 
-      if (done) done()
+      try {
+        if (done) done()
 
-      vm.isLoading = true
-      const respData = await getWalletNotifications(
-        vm.currentWalletHash, this.notifsTypes, this.notifsPage
-      )
-      vm.notifsList = respData.list
-      vm.maxPages = respData.max
-      vm.isLoading = false
+        vm.isLoading = true
+        const respData = await getWalletNotifications(
+          vm.currentWalletHash, this.notifsTypes, this.notifsPage
+        )
+        vm.notifsList = respData.list
+        vm.maxPages = respData.max
+        this.resetCheckboxList()
+        vm.isLoading = false
+      } catch (error) {
+        // fallback when an error occurs after deleting last remaining notif
+        vm.notifsList = []
+        vm.maxPages = 0
+        vm.isLoading = false
+      }
     },
     async onSwipe (event, index) {
       const vm = this
@@ -231,7 +294,6 @@ export default {
 
       switch (notif.notif_type) {
         case 'TR': {
-          console.log('transaction notif yey')
           const url = notif.extra_url
           if (url !== '') {
             // automatically hide JPP payment request notifications after clicking
@@ -245,20 +307,20 @@ export default {
               network: 'BCH',
               address: url
             }
-            vm.$router.push({
-              name: 'transaction-send',
-              query
-            })
+            vm.$router.push({ name: 'transaction-send', query })
+          } else {
+            console.log('transaction dialog yey')
           }
           break
         } case 'MP': {
-          console.log('marketplace notif yey')
+          const orderId = notif.message.match(/#(\d+)/)[1]
+          vm.$router.push({ name: 'app-marketplace-order', params: { orderId } })
           break
         } case 'AH': {
-          console.log('anyhedge notif yey')
+          vm.$router.push({ name: 'anyhedge' })
           break
         } case 'RP': {
-          console.log('p2p exchange notif yey')
+          vm.$router.push({ name: 'exchange' })
           break
         } case 'CB': {
           console.log('cashback notif yey')
@@ -267,9 +329,44 @@ export default {
           break
       }
     },
+    resetCheckboxList () {
+      if (this.isCheckboxClicked) {
+        this.checkboxList = new Array(this.notifsList.length).fill(false)
+      }
+    },
+    async massDeleteNotifs () {
+      const vm = this
+
+      if (!vm.isCheckboxClicked) vm.isCheckboxClicked = true
+      else if (vm.checkboxList.filter(a => a === true).length > 0) {
+        const checkboxTrueList = []
+
+        vm.checkboxList.forEach((check, i) => {
+          if (check) checkboxTrueList.push(i)
+        })
+
+        const notifsIds = vm.notifsList
+          .filter((a, i) => checkboxTrueList.includes(i))
+          .map(b => b.id)
+
+        await massHideNotifs(notifsIds)
+        await vm.refreshNotifsList(null)
+        vm.isCheckboxClicked = false
+      }
+    },
+    async markAllAsRead () {
+      await markWalletNotifsAsRead(this.currentWalletHash)
+      await this.refreshNotifsList(null)
+    },
 
     formatDate (date) {
       return ago(new Date(date))
+    }
+  },
+
+  watch: {
+    isCheckboxClicked (value) {
+      this.resetCheckboxList()
     }
   }
 }

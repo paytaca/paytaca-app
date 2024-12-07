@@ -41,7 +41,7 @@
             <div class="col col-qr-code q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <img :src="asset.logo || getFallbackAssetLogo(asset)" height="50" alt="" class="receive-icon-asset">
+                  <img :src="getImageUrl(asset)" height="50" alt="" class="receive-icon-asset">
                   <qr-code :text="addressAmountFormat" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
                 </div>
               </div>
@@ -256,6 +256,10 @@ export default {
 
       tempAddress += this.amount ? '?amount=' + tempAmount : ''
 
+      if (this.assetId.startsWith('ct/')) {
+        tempAddress += '?c=' + this.assetId.split('/')[1]
+      }
+
       return tempAddress
     }
   },
@@ -384,6 +388,17 @@ export default {
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
+    },
+    getImageUrl (asset) {
+      if (asset.logo) {
+        if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+        } else {
+          return asset.logo
+        }
+      } else {
+        return this.getFallbackAssetLogo(asset)
+      }
     },
     getScreenWidth () {
       const divBounds = document.body.getBoundingClientRect()
@@ -521,9 +536,6 @@ export default {
         dropRate: 3
       })
       if (!vm.$q.platform.is.mobile) {
-        if (isCashToken) {
-          amount = convertTokenAmount(amount, decimals)
-        }
         vm.$q.notify({
           classes: 'br-15 text-body1',
           message: `${amount} ${symbol} received!`,
@@ -561,6 +573,7 @@ export default {
       vm.$connect(url)
       vm.$options.sockets.onmessage = async function (message) {
         const data = JSON.parse(message.data)
+        console.log('DATA', data)
         const tokenType = vm.assetId.split('/')[0]
         const tokenId = vm.assetId.split('/')[1]
         const isListedToken = tokenType === 'ct' && !tokenId.includes('unlisted')
@@ -568,9 +581,9 @@ export default {
         if (assetType === 'slp' || isListedToken) {
           if (data.token_id.split('/')[1] === tokenId) {
             vm.notifyOnReceive(
-              BigInt(data.amount) / (BigInt(10) ** BigInt(data.token_decimals)),
+              data.amount / (10 ** data.token_decimals),
               data.token_symbol.toUpperCase(),
-              vm.asset.logo || vm.getFallbackAssetLogo(vm.asset),
+              vm.getImageUrl(vm.asset),
               tokenType === 'ct' ? vm.asset.decimals : 0,
               tokenType === 'ct'
             )
@@ -585,7 +598,7 @@ export default {
           vm.notifyOnReceive(
             amount,
             data.token_symbol.toUpperCase(),
-            vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
+            vm.getImageUrl(vm.asset)
           )
 
           // if unlisted token is detected, add to front of list
@@ -630,7 +643,7 @@ export default {
           vm.notifyOnReceive(
             tx.amount,
             vm.asset.symbol,
-            vm.asset.logo || vm.getFallbackAssetLogo(vm.asset)
+            vm.getImageUrl(vm.asset)
           )
         }
       ).then(listener => {

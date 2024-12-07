@@ -42,7 +42,7 @@
             <div class="q-mx-sm">
               <div class="row justify-between no-wrap q-mx-lg">
                 <span>Quantity</span>
-                <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} {{ adData.isTradeAmountFiat ? adData.fiatCurrency.symbol : adData.cryptoCurrency.symbol }}</span>
+                <span class="text-nowrap q-ml-xs">{{ parseFloat(adData.tradeAmount) }} {{ adData.isTradeLimitsFiat ? adData.fiatCurrency.symbol : adData.cryptoCurrency.symbol }}</span>
               </div>
               <!-- <div class="row justify-between no-wrap q-mx-lg">
                 <q-space/>

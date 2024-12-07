@@ -18,10 +18,15 @@
               <div class="text-weight-bold lg-font-size q-pt-sm">
                 <span id="target-name">{{ user.name }}</span>
                 <q-icon
+                class="q-ml-xs"
+                size="1em"
+                color="green"
+                name="circle"/>
+                <q-icon
                   @click="editNickname = true"
                   v-if="user?.self"
-                  size="sm"
-                  name='o_edit'
+                  size="xs"
+                  name='edit_square'
                   class="button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
                 />

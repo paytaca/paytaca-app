@@ -161,6 +161,8 @@
               @click="resetFilters('orders')"
             />
             <q-btn
+              :loading="loadFilterButton"
+              :disable="loadFilterButton"
               rounded
               no-caps
               :label="$t('Filter')"
@@ -293,6 +295,8 @@
                 @click="resetFilters('store')"
               />
               <q-btn
+                :loading="loadFilterButton"
+                :disable="loadFilterButton"
                 rounded
                 no-caps
                 :label="$t('Filter')"
@@ -375,7 +379,8 @@ export default {
       showTradeTypeHint: false,
       showOwnershipHint: false,
       showAppealableStatusHint: false,
-      hintMessage: this.$t('SelectedAdFilterOptionHint')
+      hintMessage: this.$t('SelectedAdFilterOptionHint'),
+      loadFilterButton: false
     }
   },
   emits: ['back', 'submit'],
@@ -423,6 +428,8 @@ export default {
     },
     submitData () {
       const vm = this
+      vm.loadFilterButton = true
+
       switch (vm.type) {
         case 'filterSellAd':
         case 'filterBuyAd':

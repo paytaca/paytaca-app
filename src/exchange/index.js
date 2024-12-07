@@ -1,6 +1,7 @@
 import { i18n } from "src/boot/i18n"
 const { t } = i18n.global
 
+export const SATOSHI_PER_BCH = 10 ** 8
 
 export function formatOrderStatus (value) {
   switch (value) {
@@ -194,4 +195,20 @@ export function makeid (length) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength))
   }
   return result
+}
+
+export function fiatToBch (fiatAmount, price) {
+  return parseFloat(fiatAmount) / parseFloat(price)
+}
+
+export function bchToFiat (bchAmount, price) {
+  return bchAmount * price
+}
+
+export function bchToSatoshi (bch) {
+  return Math.floor(bch * SATOSHI_PER_BCH)
+}
+
+export function satoshiToBch (satoshi) {
+  return satoshi / SATOSHI_PER_BCH
 }

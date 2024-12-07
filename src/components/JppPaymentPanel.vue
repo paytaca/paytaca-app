@@ -1,6 +1,6 @@
 <template>
   <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-    <q-card-section>
+    <q-card-section style="margin-top: -3.5em;">
         <div class="text-h6 ellipsis">{{$t('Payment')}}</div>
         <div class="row items-center no-wrap q-gutter-xs">
           <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('PaymentID')}}:</div>
@@ -46,7 +46,7 @@
             {{$t('Recipient')}}{{ jpp?.parsed?.outputs?.length > 1 ? 's' : '' }}:
           </div>
           <div
-            v-for="(output, index) in jpp?.parsed?.outputs" :key="index"
+            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)" :key="index"
             class="row no-wrap items-start q-mb-sm q-gutter-x-xs"
           >
             <div class="q-space">
@@ -62,7 +62,16 @@
             </div>
             <div class="text-right">{{ output.amount / 10 ** 8 }} {{$t('BCH')}}</div>
           </div>
-          <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mb-sm text-subtitle1">
+          <strong v-if="jpp?.parsed?.outputs?.length > 10">
+            {{
+              $t(
+                "AndMoreAddresses",
+                { addressCount: jpp?.parsed?.outputs?.length - 10 },
+                `and ${jpp?.parsed?.outputs?.length - 10} more addresses`
+              )
+            }}
+          </strong>
+          <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mt-sm q-mb-sm text-subtitle1">
             <div class="q-space">{{$t('Total')}}:</div>
             <div>{{ jpp.total / 10 ** 8 }} {{$t('BCH')}}</div>
           </div>

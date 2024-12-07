@@ -160,10 +160,15 @@
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container">
-      {{ parseAssetDenomination(selectedDenomination, {
-        ...asset,
-        balance: currentWalletBalance
-      }) }}
+      <span v-if="asset.id === 'bch'">
+        {{ parseAssetDenomination(selectedDenomination, {
+          ...asset,
+          balance: currentWalletBalance
+        }) }}
+      </span>
+      <span v-else>
+        {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
+      </span>
       <template v-if="asset.id === 'bch' && setAmountInFiat">
         {{ `= ${parseFiatCurrency(convertToFiatAmount(currentWalletBalance), currentSendPageCurrency())}` }}
       </template>
@@ -203,6 +208,7 @@
 import { copyToClipboard } from 'quasar'
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import ConfirmSetMax from 'src/pages/transaction/dialog/ConfirmSetMax.vue'
+import { convertTokenAmount } from 'src/wallet/chipnet'
 import {
   parseAssetDenomination,
   getAssetDenomination,
@@ -363,6 +369,7 @@ export default {
     customNumberFormatting,
     shortenAddressForDisplay,
     convertCashAddress,
+    convertTokenAmount,
     onQRScannerClick (value) {
       this.$emit('on-qr-scanner-click', value)
     },
@@ -441,7 +448,12 @@ export default {
 
   watch: {
     amount: function (value) {
-      this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
+      if (this.asset.id.startsWith('ct/')) {
+        this.balanceExceeded = value > (this.asset.balance / (10 ** this.asset.decimals))
+      }
+      if (this.asset.id === 'bch') {
+        this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
+      }
       this.$emit('on-balance-exceeded', this.balanceExceeded)
     }
   }

@@ -1,5 +1,7 @@
 import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
+import { Capacitor } from '@capacitor/core'
+import { BigNumber } from 'ethers'
 
 const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
@@ -76,12 +78,10 @@ export function parseCashbackMessage (message, amountBch, amountFiat, merchantNa
 
 const NOTIFS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}devicenotif/` })
 const NOTIF_TYPES = {
-  GE: $t('General'),
   MP: $t('Marketplace'),
   CB: $t('Cashback'),
   AH: 'AnyHedge',
-  RP: 'Ramp P2P',
-  GI: $t('Gifts'),
+  RP: 'P2P Exchange',
   TR: $t('Transactions')
 }
 
@@ -114,10 +114,114 @@ export function parseNotifType (type) {
 export async function hideItemUpdate (item) {
   await NOTIFS_URL
     .patch(`notification/${item.id}/`, { is_hidden: true })
+    .then(response => { /* notif hidden successfully */ })
+    .catch(error => { console.log(error) })
+}
+
+export async function massHideNotifs (notifsIds) {
+  await NOTIFS_URL
+    .post('notification/mass_delete_notifications/', { notif_ids: notifsIds })
+    .then(response => { /* mass delete successful */ })
+    .catch(error => console.log(error))
+}
+
+export async function markWalletNotifsAsRead (walletHash) {
+  await NOTIFS_URL
+    .post('notification/mark_wallet_notifs_as_read/', { wallet_hash: walletHash })
+    .then(response => { /* marking successful */ })
+    .catch(error => console.log(error))
+}
+
+export async function getWalletUnreadNotifs (walletHash) {
+  let count = 0
+  await NOTIFS_URL
+    .post('notification/get_unread_notifs/', { wallet_hash: walletHash })
+    .then(response => { count = response.data.unread_notifs_count })
+    .catch(error => console.log(error))
+  return count
+}
+
+// ========== PUSH NOTIFICATIONS SETTINGS ========== //
+
+export function parseDeviceId (deviceId) {
+  const platform = Capacitor.getPlatform()
+  if (platform === 'ios') {
+    return deviceId
+  } else if (platform === 'android') {
+    return BigNumber.from('0x' + deviceId).toString()
+  }
+}
+
+export async function getPushNotifConfigs (deviceId) {
+  let data = null
+
+  await NOTIFS_URL.post(
+    '/wallethashdevice/get_push_notifs_settings/',
+    { device_id: deviceId }
+  )
     .then(response => {
-      // notif hidden successfully
+      data = response.data
     })
     .catch(error => {
+      console.log(error)
+    })
+
+  return data
+}
+
+export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId) {
+  let respId = deviceNotifTypesId
+
+  if (respId !== -1) { // patch
+    if (type) {
+      const data = {}
+      if (type.db_col === 'is_events_promotions_enabled') {
+        data.is_events_promotions_enabled = type.value
+      } else if (type.db_col === 'is_by_country_enabled') {
+        data.is_by_country_enabled = type.value
+      } else if (type.db_col === 'is_by_city_enabled') {
+        data.is_by_city_enabled = type.value
+      } else if (type.db_col === 'country') data.country = type.value
+      else if (type.db_col === 'city') data.city = type.value
+
+      await NOTIFS_URL.patch(
+        `devicenotiftype/${respId}/`,
+        data
+      ).then(response => {
+        console.log('Device notif type updated successfully.')
+      }).catch(error => {
+        console.log(error)
+      })
+    }
+  } else { // post
+    const platform = Capacitor.getPlatform()
+
+    const data = {
+      apns_device: undefined,
+      gcm_device: undefined
+    }
+
+    if (platform === 'ios') data.apns_device = deviceId
+    else if (platform === 'android') data.gcm_device = deviceId
+
+    await NOTIFS_URL
+      .post('devicenotiftype/create_device_notif_type/', data)
+      .then(response => {
+        respId = response.data.id
+      }).catch(error => {
+        console.log(error)
+      })
+  }
+
+  return respId
+}
+
+export async function deleteDeviceNotifType (deviceNotifTypesId) {
+  await NOTIFS_URL
+    .delete(`devicenotiftype/${deviceNotifTypesId}/`)
+    .then(response => {
+      console.log('Device notif type deleted successfully.')
+    }).catch(error => {
       console.log(error)
     })
 }

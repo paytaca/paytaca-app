@@ -8,6 +8,7 @@ import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
 import { BigNumber } from 'ethers'
 import { Platform } from 'quasar'
+import axios from 'axios';
 
 
 const PushNotificationSettings = registerPlugin('PushNotificationSettings'); 
@@ -274,6 +275,11 @@ class PushNotificationsManager {
       data,
     )
 
+    await axios.post(
+      `${process.env.ENGAGEMENT_HUB_URL}devicenotif/subscribe/`,
+      data
+    )
+
     this.subscriptionInfo = response?.data
     return response
   }
@@ -300,6 +306,11 @@ class PushNotificationsManager {
     const response = await this.watchtower.BCH._api.post(
       '/push-notifications/unsubscribe/',
       data,
+    )
+
+    await axios.post(
+      `${process.env.ENGAGEMENT_HUB_URL}devicenotif/unsubscribe/`,
+      data
     )
 
     console.log('Unsubscribed to push notifications', {

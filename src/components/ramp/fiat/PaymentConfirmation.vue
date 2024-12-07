@@ -186,9 +186,10 @@
       <div class="row justify-center" v-if="countDown !== null">
         <q-btn
           v-if="!sendingBch"
+          :loading="loadAppealButton"
           flat
           no-caps
-          :disable="countDown !== ''"
+          :disable="countDown !== '' || loadAppealButton"
           :label="appealBtnLabel"
           color="blue-6"
           @click="onOpenAppealForm"
@@ -213,7 +214,7 @@
   }"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
-  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false"/>
+  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false" @loadAppeal="loadAppealButton = true; showDragSlide = false"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
@@ -222,7 +223,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
-import { formatCurrency } from 'src/exchange'
+import { bchToFiat, formatCurrency, satoshiToBch } from 'src/exchange'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -242,7 +243,6 @@ export default {
       contractBalance: null,
       order: null,
       txid: null,
-      lockedPrice: '',
       isloaded: false,
       countDown: null,
       timer: null,
@@ -259,7 +259,8 @@ export default {
       peerInfo: {},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
-      attachmentUrl: null
+      attachmentUrl: null,
+      loadAppealButton: false
     }
   },
   components: {
@@ -305,7 +306,7 @@ export default {
       return lock
     },
     fiatAmount () {
-      const amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+      const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
       return this.formatCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '')
     }
   },
@@ -326,7 +327,6 @@ export default {
       vm.appealCountdown()
       vm.isloaded = true
       vm.fetchContractBalance()
-      vm.lockedPrice = this.formatCurrency(vm.data.order?.locked_price, vm.data.order?.ad?.fiat_currency?.symbol)
     },
     cancelAttachment (method) {
       method.attachment = null
@@ -458,7 +458,7 @@ export default {
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
       const keypair = await wallet.keypair(sellerMember.address_path)
-      await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.crypto_amount)
+      await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {
           if (result.success) {
             const txid = result.txInfo.txid

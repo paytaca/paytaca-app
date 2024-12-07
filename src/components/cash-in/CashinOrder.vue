@@ -2,7 +2,7 @@
   <div class="text-center" :class="[state !== 'confirm_payment' ? 'q-mt-md q-pt-lg' : '', darkMode ? 'text-blue-6' : 'text-blue-8']" style="font-size: 20px;">
     {{ order?.id ? `Order #${order?.id}` : ''}}
   </div>
-  <CashinConfirmPayment v-if="state === 'confirm_payment'"
+  <CashinConfirmPayment ref="cashinConfirmPaymentRef" v-if="state === 'confirm_payment'"
     :key="confirmPaymentKey"
     :order="order"
     :uploading="uploading"
@@ -48,9 +48,9 @@
         Cancel this Order?
       </div>
       <div class="row q-pt-sm q-mx-lg q-px-lg">
-        <q-btn v-if="confirmCancel || confirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="state = 'await_status'"/>
-        <q-btn v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
-        <q-btn v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder()"/>
+        <q-btn v-if="confirmCancel || confirmAppeal" :disable="loadConfirmCancel || loadConfirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="onDismissCancel"/>
+        <q-btn :loading="loadConfirmCancel" :disable="loadConfirmCancel" v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
+        <q-btn :loading="loadConfirmAppeal" :disable="loadConfirmAppeal" v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder()"/>
       </div>
     <!-- </div> -->
   </div>
@@ -74,6 +74,7 @@
     </div>
     <div class="row justify-center q-pt-md">
       <q-btn
+        :disable="loadAppeal"
         flat
         label="Cancel"
         :color="darkMode ? 'grey-5' : 'grey-6'"
@@ -81,11 +82,12 @@
         @click="state = 'await_status'"
       />
       <q-btn
+        :loading="loadAppeal"
         flat
         label="Continue"
         color="red-6"
         size="md"
-        :disable="selectedReasons.length === 0"
+        :disable="selectedReasons.length === 0 || loadAppeal"
         @click="appealOrder('RLS')"
       />
     </div>
@@ -109,6 +111,7 @@ import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import CashinConfirmPayment from './CashinConfirmPayment.vue'
+import { satoshiToBch } from 'src/exchange'
 
 export default {
   components: {
@@ -138,7 +141,10 @@ export default {
         this.$t('AppealFormReasonOpt1'),
         this.$t('AppealFormReasonOpt2'),
         this.$t('AppealFormReasonOpt3')
-      ]
+      ],
+      loadConfirmAppeal: false,
+      loadConfirmCancel: false,
+      loadAppeal: false
     }
   },
   emits: ['confirm-payment', 'new-order', 'refetch-cashin-alert'],
@@ -295,7 +301,7 @@ export default {
         case 'RLS': {
           this.state = 'completed'
           this.statusTitle = 'Funds Released!'
-          const amount = Number(Number(this.order?.crypto_amount).toFixed(8))
+          const amount = satoshiToBch(this.order?.trade_amount)
           this.statusMessage = `${amount} BCH has been sent to you`
           this.order?.transactions?.forEach((tx) => {
             if (tx.action === 'RELEASE') {
@@ -365,6 +371,15 @@ export default {
       this.state = 'cancel_order'
       this.confirmCancel = true
     },
+    onDismissCancel () {
+      if (this.confirmAppeal) {
+        this.state = 'confirm_payment'
+      } else {
+        this.state = 'await_status'
+      }
+      this.confirmAppeal = false
+      this.confirmCancel = false
+    },
     async fetchAppeal () {
       const vm = this
       const url = `/ramp-p2p/order/${vm.order.id}/appeal/`
@@ -385,10 +400,14 @@ export default {
         })
     },
     appealOrder (type = 'RFN') {
-      if (type === 'RLS') {
-        this.appealReasons = this.selectedReasons
+      if (type === 'RFN') {
+        this.loadConfirmAppeal = true
       }
 
+      if (type === 'RLS') {
+        this.appealReasons = this.selectedReasons
+        this.loadAppeal = true
+      }
       const vm = this
       const url = '/ramp-p2p/appeal/'
       const data = {
@@ -418,6 +437,7 @@ export default {
     },
     cancelOrder () {
       const vm = this
+      vm.loadConfirmCancel = true
       const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       backend.post(url, {}, { authorize: true })
         .then(response => {

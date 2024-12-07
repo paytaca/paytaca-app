@@ -1,7 +1,7 @@
 <template>
   <q-btn
     flat
-    class="col-10"
+    :class="isMobile ? 'col-10' : 'col-12'"
     align="left"
     @click="showMultiWalletDialog"
   >
@@ -64,6 +64,9 @@ export default {
       if (this.walletName) return this.walletName
       const walletIndex = this.$store.getters['global/getWalletIndex']
       return `Personal Wallet #${walletIndex + 1}`
+    },
+    isMobile () {
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     }
   },
 

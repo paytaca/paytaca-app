@@ -148,6 +148,8 @@ export class Storefront {
   }
 
   /**
+   * @typedef {'local_delivery' | 'store_pickup' | 'shipping'} DeliveryType
+   * 
    * @param {Object} data 
    * @param {Number} data.id
    * @param {Boolean} data.active
@@ -156,6 +158,7 @@ export class Storefront {
    * @param {String} data.image_url
    * @param {String} [data.phone_number]
    * @param {{ code:String, symbol:String }} data.currency
+   * @param {DeliveryType[]} data.delivery_types
    * @param {String} data.open_status
    * @param {[String, String]} [data.next_open_hours]
    * @param {{ average_rating: String | Number, count: Number }} [data.orders_review_summary]
@@ -176,6 +179,7 @@ export class Storefront {
       code: data?.currency?.code,
       symbol: data?.currency?.symbol,
     }
+    this.deliveryTypes = data?.delivery_types
     this.openStatus = data?.open_status
     if (data?.next_open_hours?.[0] && data?.next_open_hours?.[1]) {
       this.nextOpenHours = [
@@ -201,6 +205,12 @@ export class Storefront {
     else if (this.location) this.location = undefined
 
     this.distance = data?.distance
+  }
+
+  get isStorepickupOnly() {
+    if (!Array.isArray(this.deliveryTypes)) return
+
+    return this.deliveryTypes.length === 1 && this.deliveryTypes[0] === Checkout.DeliveryTypes.STORE_PICKUP
   }
 
   get isOpen() {

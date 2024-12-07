@@ -59,7 +59,7 @@
             </template>
           </div>
           <div
-            v-for="(output, index) in jpp?.parsed?.outputs" :key="index"
+            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)" :key="index"
             class="row no-wrap items-start q-mb-sm q-gutter-x-xs"
           >
             <div class="q-space">
@@ -75,6 +75,15 @@
             </div>
             <div class="text-right">{{ output.amount / 10 ** 8 }} BCH</div>
           </div>
+          <strong v-if="jpp?.parsed?.outputs?.length > 10">
+            {{
+              $t(
+                "AndMoreAddresses",
+                { addressCount: jpp?.parsed?.outputs?.length - 10 },
+                `and ${jpp?.parsed?.outputs?.length - 10} more addresses`
+              )
+            }}
+          </strong>
           <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mb-sm text-subtitle1">
             <div class="q-space">{{ $t('Total') }}:</div>
             <div>{{ jpp.total / 10 ** 8 }} BCH</div>

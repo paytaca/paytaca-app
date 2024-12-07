@@ -50,7 +50,7 @@
               <q-icon name="error" left/>
               {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0].recipientAddress === ''">
+            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
               <div class="col-12">
                 <q-input
                   bottom-slots
@@ -133,7 +133,7 @@
                     v-model="expandedItems[`R${index + 1}`]"
                     :label="`${$t('Recipient')} #${index + 1}`"
                     :class="getDarkModeClass(darkMode)"
-                  >
+                  > 
                     <SendPageForm
                       :recipient="sendDataMultiple[index]"
                       :inputExtras="inputExtras[index]"
@@ -261,24 +261,35 @@
                 <p class="amount-label">
                   {{
                     isCashToken
-                      ? totalAmountSent
+                      ? totalAmountSent.toLocaleString('en-us', {maximumFractionDigits: asset.decimals})
                       : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
                   }} {{ isCashToken ? asset.symbol : denomination }}
                 </p>
-                <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
-                  ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
-                </p>
-                <p v-else class="amount-fiat-label">
-                  ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
-                </p>
+                <template v-if="!isCashToken">
+                  <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
+                    ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
+                  </p>
+                  <p v-else class="amount-fiat-label">
+                    ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
+                  </p>
+                </template>
               </template>
 
               <p class="to-label">{{ $t('To') }}</p>
-              <template v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
+              <template v-for="(recipient, index) in recipientAddresses.slice(0, 10)" v-bind:key="index">
                 <div class="q-px-xs recipient-address">
-                  {{ recipient.recipientAddress }}
+                  {{ recipient }}
                 </div>
               </template>
+              <strong v-if="recipientAddresses.length > 10">
+                {{
+                  $t(
+                    "AndMoreAddresses",
+                    { addressCount: recipientAddresses.length - 10 },
+                    `and ${recipientAddresses.length - 10} more addresses`
+                  )
+                }}
+              </strong>
               <div class="text-center q-mt-lg">
                 <div class="text-grey">{{ $t('ReferenceId')}}</div>
                 <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
@@ -309,7 +320,7 @@
                 {{ formattedTxTimestamp }}
               </div>
 
-              <div v-if="sendDataMultiple[0].paymentAckMemo" class="row justify-center">
+              <div v-if="jpp && sendDataMultiple[0]?.paymentAckMemo !== undefined" class="row justify-center">
                 <div
                   class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
                   :class="getDarkModeClass(darkMode, 'text-white', '')"
@@ -352,7 +363,6 @@ import { NativeAudio } from '@capacitor-community/native-audio'
 import QrScanner from '../../components/qr-scanner.vue'
 import { VOffline } from 'v-offline'
 import {
-  convertCashAddress,
   isValidTokenAddress,
   getWalletByNetwork,
   convertTokenAmount,
@@ -646,6 +656,13 @@ export default {
         return list.findIndex((item) => item.address === value.address && item.app_url === value.app_url) == index
       }
       return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
+    },
+    recipientAddresses () {
+      if (this.jpp?.parsed?.outputs !== undefined) {
+        return this.jpp.parsed.outputs.map(value => value.address)
+      } else {
+        return this.sendDataMultiple.map(value => value.recipientAddress)
+      }
     }
   },
 
@@ -892,7 +909,7 @@ export default {
       this.totalAmountSent = jppAmount
       this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
       this.sendDataMultiple[0].amount = jppAmount
-      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.map(output => output.address).join(', ')
+      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.slice(0, 10).map(output => output.address).join(', ')
       this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
       this.txTimestamp = Date.now()
@@ -978,6 +995,20 @@ export default {
         }
       }
 
+      if (this.asset.id.startsWith('ct/')) {
+        if (this.asset.decimals === 0) {
+          currentAmount = currentAmount.toString().replace('.', '');
+        } else {
+          const parts = currentAmount.toString().split('.');
+          
+          if (parts.length > 1) { // Ensure there's a decimal part
+            // Truncate the decimal part to the desired length
+            parts[1] = parts[1].slice(0, this.asset.decimals);
+            currentAmount = parts.join('.'); // Recombine the integer and decimal parts
+          }
+        }
+      }
+
       // Set the new amount
       if (this.setAmountInFiat) {
         currentInputExtras.sendAmountInFiat = currentAmount
@@ -1046,6 +1077,7 @@ export default {
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     async slideToSubmit (reset=() => {}) {
+      console.log('SLIDE')
       if (this.bip21Expires) {
         const expires = parseInt(this.bip21Expires)
         const now = Math.floor(Date.now() / 1000)
@@ -1346,7 +1378,7 @@ export default {
                 toSendBCHRecipients.push({
                   address: recipientAddress,
                   amount: sendData.amount,
-                  tokenAmount: tokenAmount * (10 ** vm.asset.decimals) || 0
+                  tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
                 })
               } else {
                 toSendBCHRecipients.push({

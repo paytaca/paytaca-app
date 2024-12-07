@@ -13,6 +13,7 @@ import StoreListings from 'src/components/ramp/fiat/StoreListings.vue'
 import { bus } from 'src/wallet/event-bus.js'
 
 export default {
+  inheritAttrs: false,
   components: {
     HeaderNav,
     StoreListings
@@ -28,6 +29,11 @@ export default {
   methods: {
     refreshPage () {
       this.storeListingsKey++
+    }
+  },
+  mounted () {
+    if ('ad_id' in this.$route.query) {
+      this.$router?.push({ name: 'p2p-store-form', params: { ad: this.$route.query.ad_id } })
     }
   }
 }

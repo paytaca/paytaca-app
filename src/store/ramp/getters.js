@@ -1,3 +1,10 @@
+export function featureToggles (state) {
+  return state.featureToggles
+}
+
+export function showAdLimitMessage (state) {
+  return state.showAdLimitMessage
+}
 
 export function cashinOrderList (state) {
   return state.cashinOrderList

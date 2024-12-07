@@ -53,6 +53,7 @@ export default {
     formatOrderStatus,
     formatDate,
     isStatusRead (status) {
+      if (!this.traderType) return true
       return (this.traderType === 'SELLER' && !!status.seller_read_at) || (this.traderType === 'BUYER' && !!status.buyer_read_at)
     },
     async fetchStatusList () {

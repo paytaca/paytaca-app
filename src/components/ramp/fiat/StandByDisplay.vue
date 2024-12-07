@@ -140,6 +140,8 @@
         <div v-if="!displayContractInfo" class="q-mt-sm q-px-md q-mb-sm">
           <div class="row q-pt-sm" v-if="type === 'ongoing' && hasCancel">
             <q-btn
+              :loading="loadCancelButton"
+              :disable="loadCancelButton"
               rounded
               no-caps
               :label="$t('CancelOrder')"
@@ -153,6 +155,7 @@
         <div v-if="showAppealBtn">
           <div class="row q-pt-xs q-px-md">
             <q-btn
+              :loading="loadAppealButton"
               flat
               no-caps
               :disable="appealCountdown !== null"
@@ -176,7 +179,7 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" />
+    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" @loadAppeal="loadAppealButton = true"/>
     <!-- <MiscDialogs
       :type="'appeal'"
       @back="openDialog = false"
@@ -243,7 +246,9 @@ export default {
       byFiat: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
-      attachmentUrl: null
+      attachmentUrl: null,
+      loadCancelButton: false,
+      loadAppealButton: false
     }
   },
   props: {
@@ -309,20 +314,6 @@ export default {
     hasCancel () {
       const stat = ['SBM', 'CNF', 'ESCRW_PN']
       return stat.includes(this.data?.order?.status.value)
-    },
-    cryptoAmount () {
-      let amount = 0
-      if (this.byFiat) {
-        amount = this.formatCurrency(parseFloat(this.data.order?.crypto_amount) * parseFloat(this.data.order?.locked_price), this.data.order?.ad?.fiat_currency?.symbol)
-      } else {
-        amount = this.formatCurrency(parseFloat(this.data.order?.crypto_amount))
-      }
-      return amount
-    },
-    fiatAmount () {
-      let amount = Number(parseFloat(this.data?.order?.crypto_amount) * parseFloat(this.data?.order?.locked_price))
-      if (amount > 1) amount = amount.toFixed(2)
-      return this.formatCurrency(amount)
     },
     statusColor () {
       const stat = this.data?.order?.status.value
@@ -479,9 +470,7 @@ export default {
       this.showUserProfile = true
     },
     onViewAd (id) {
-      backend.get('/ramp-p2p/ad/snapshot/',
-        { authorize: true, params: { ad_snapshot_id: id } }
-      )
+      backend.get(`/ramp-p2p/ad/snapshot/${id}/`, { authorize: true })
         .then(response => {
           this.adSnapshot = response.data
           this.showAdSnapshot = true

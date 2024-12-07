@@ -5,7 +5,7 @@
         <div class="col-1">
            <q-icon
             size="md" name="arrow_back" class="text-grad"
-            @click="$router.push('/apps')"
+            @click="onAbortLogin"
             :style="`margin-top: ${$q.platform.is.ios ? '-5px' : '0'}`"/>
         </div>
         <div class="col-10">
@@ -79,11 +79,12 @@ import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Dialog } from 'quasar'
-import { getAuthToken, saveAuthToken, deleteAuthToken } from 'src/exchange/auth'
+import { getAuthToken, saveAuthToken, deleteAuthToken, createAuthAbortController, abortAuthController } from 'src/exchange/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { loadChatIdentity } from 'src/exchange/chat'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import axios from 'axios'
 
 export default {
   data () {
@@ -96,7 +97,6 @@ export default {
       dialog: false,
       user: null,
       usernickname: '',
-      // rampWallet: null,
       isLoading: true,
       register: false,
       loggingIn: false,
@@ -109,7 +109,8 @@ export default {
       retry: {
         loadChatIdentity: false,
         updateChatIdentityId: false
-      }
+      },
+      authController: null
     }
   },
   emits: ['loggedIn', 'cancel'],
@@ -125,10 +126,10 @@ export default {
     }
   },
   mounted () {
-    this.$store.dispatch('ramp/migrateStoreOrderFilters')
     this.dialog = true
     if (this.error) this.errorMessage = this.error
-    NativeBiometric.isAvailable().then(() => { this.hasBiometric = true })
+    this.checkBiometric()
+    this.loadAuthAbortController()
     this.loadUser()
   },
   beforeUnmount () {
@@ -137,11 +138,21 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    checkBiometric () {
+      NativeBiometric.isAvailable().then(() => { this.hasBiometric = true })
+    },
+    loadAuthAbortController () {
+      this.authController = createAuthAbortController()
+    },
+    onAbortLogin () {
+      abortAuthController()
+      this.$router.push('/apps')
+    },
     async loadUser (forceLogin = false) {
       const vm = this
       try {
-        const { data: user } = await backend.get('/auth/')
-        // console.log('user:', user)
+        const { data: user } = await backend.get('/auth/', { signal: this.authController?.signal })
+
         vm.user = user
         vm.usernickname = user?.name
         vm.isLoading = true
@@ -150,6 +161,7 @@ export default {
         vm.hintMessage = vm.$t('LoggingYouIn')
         const token = await getAuthToken()
 
+        console.log('Logging in')
         if (!token) forceLogin = true
         if (!user.is_authenticated || forceLogin) {
           await vm.login()
@@ -159,15 +171,19 @@ export default {
         vm.hintMessage = this.$t('LoadingChatIdentity')
         const usertype = user.is_arbiter ? 'arbiter' : 'peer'
         const params = { name: user.name, chat_identity_id: user.chat_identity_id }
+        if (this.authController?.signal?.aborted) return
         await loadChatIdentity(usertype, params)
-
         await vm.savePubkeyAndAddress()
+
         vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
         vm.$store.commit('ramp/updateUser', user)
         vm.isLoading = false
       } catch (error) {
         vm.isLoading = false
         console.error(error.response || error)
+        if (axios.isCancel(error)) {
+          console.error('Request canceled:', error?.message)
+        }
         if (error.response) {
           if (error.response.status === 404) {
             vm.register = true
@@ -185,7 +201,7 @@ export default {
       deleteAuthToken()
       try {
         vm.loggingIn = true
-        const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
+        const { data: { otp } } = await backend.get(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, { signal: this.authController?.signal })
         const keypair = await wallet.keypair()
         const signature = await wallet.signMessage(keypair.privateKey, otp)
         const body = {
@@ -193,8 +209,8 @@ export default {
           signature: signature,
           public_key: keypair.publicKey
         }
-        const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body)
-        if (vm.user) {
+        const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body, { signal: this.authController?.signal })
+        if (vm.user && !this.authController?.signal?.aborted) {
           saveAuthToken(loginResponse.data.token)
         }
       } catch (error) {
@@ -215,6 +231,11 @@ export default {
     savePubkeyAndAddress () {
       return new Promise((resolve, reject) => {
         const vm = this
+        if (vm.authController?.signal?.aborted) {
+          console.log('savePubkeyAndAddress aborted')
+          return
+        }
+
         vm.hintMessage = this.$t('UpdatingPubkeyAndAddress')
         const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
         wallet.pubkey().then(async pubkey => {
@@ -223,14 +244,13 @@ export default {
             address: await wallet.address(),
             address_path: wallet.addressPath()
           }
-          console.log('payload:', payload)
           if (payload.public_key === vm.user.public_key &&
               payload.address === vm.user.address &&
               payload.address_path === vm.user.address_path) {
             console.log('Local wallet keys match server keys')
             resolve(vm.user)
           } else {
-            backend.patch(`/ramp-p2p/${usertype}/detail`, payload, { authorize: true })
+            backend.patch(`/ramp-p2p/${usertype}/`, payload, { authorize: true, signal: this.authController.signal })
               .then(response => {
                 console.log('Updated pubkey and address:', response.data)
                 resolve(response)
@@ -253,9 +273,7 @@ export default {
     },
     async onRegisterUser () {
       this.loggingIn = true
-      // register user
       await this.registerUser()
-      // load new user
       await this.loadUser(true)
     },
     async registerUser () {
