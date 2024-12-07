@@ -67,9 +67,11 @@ class Watchtower extends WatchtowerSdk {
       appIcon/*?:string*/,
       privateKey/*: Uint8Array*/ /* For signing */
     })/*: Promise<boolean>*/ {
+
+    if (!appName || !appUrl) return false
+
     const nonce = await this.getNonce()
     if (nonce) {
-      if (!appName || !appUrl) return false
       const message = `${nonce}|${address}|${appName}|${appUrl}`
       const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey) /*as Uint8Array*/
       let pkToCashAddress = privateKeyToCashAddress(privateKey)
