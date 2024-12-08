@@ -131,11 +131,9 @@
             {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
           </div>
           <div class="flex flex-center" style="margin-top: 30px;">
-            <div class="flex flex-center col-qr-code" @click="copyToClipboard(qrCodeContents)">
-              <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" />
+            <div class="flex flex-center" @click="copyToClipboard(qrCodeContents)">
+              <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="300" />
             </div>
-            <!-- <div class="flex flex-center myStyle">
-            </div> -->
           </div>
           <p style="font-size: 18px;">{{ $t('ScanClaimGift') }}</p>
           <div class="">
@@ -399,15 +397,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-    .col-qr-code {
-    margin: 10px;
-    text-align: center;
-    width: 23em;
-    height: 23em;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    background: white;
-  }
   .fontStyle {
     font-size:medium;
   }

@@ -2,7 +2,7 @@
   <q-dialog persistent ref="dialog">
     <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div>
-        <div id="screenshot-qr" class="col q-py-md col-qr-code">
+        <div id="screenshot-qr" class="col q-py-md">
           <p style="color: black; margin-bottom: 0;">
             {{ shardth === 1 ? $t('FirstShard') : shardth === 2 ? $t('SecondShard') : $t('ExtraShard') }}
           </p>
@@ -16,7 +16,7 @@
             }}
           </p>
           <div class="flex flex-center">
-            <qr-code :text="shardText" color="#253933" :size="qrSize" error-level="H" />
+            <qr-code :text="shardText" :size="qrSize" />
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@ export default {
 
   data () {
     return {
-      qrSize: 200
+      qrSize: 300
     }
   },
 
@@ -72,18 +72,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-  .col-qr-code {
-    margin: auto;
-    text-align: center;
-    width: 80vw;
-    border: 4px solid #ed5f59;
-    background: white;
-  }
-  @media screen and (min-width: 500px) {
-    .col-qr-code {
-      width: 60vw;
-    }
-  }
-</style>

@@ -163,9 +163,7 @@
               <div class="q-space text-h5">{{ $t('ScanToPay') }}</div>
             </div>
             <div class="row items-center justify-center">
-              <div class="col-qr-code">
-                <qr-code :text="qrCodeData"/>
-              </div>
+              <qr-code :text="qrCodeData" :size="300"/>
             </div>
             <q-input
               dense
@@ -295,13 +293,3 @@ export default defineComponent({
   }
 })
 </script>
-<style lang="scss" scoped>
-  .col-qr-code {
-    display: flex;
-    justify-content: center;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    background: white;
-    padding: 12px;
-  }
-</style>
