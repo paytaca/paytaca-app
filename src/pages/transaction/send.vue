@@ -1236,17 +1236,8 @@ export default {
             addressIsValid = isTokenAddress(address)
             formattedAddress = address
           } else {
-            // if (isValidTokenAddress(address)) {
-            //   addressIsValid = true
-            //   formattedAddress = address
-            // } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
-            //   if (addressObj.isValidBCHAddress(vm.isChipnet)) {
-            //     addressIsValid = true
-            //     formattedAddress = addressObj.toCashAddress(address)
-            //   }
-            // }
-            if (isTokenAddress(address)) {
-              addressIsValid = false // Address should not be a token address
+            if (isValidTokenAddress(address)) {
+              addressIsValid = true
               formattedAddress = address
             } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
               if (addressObj.isValidBCHAddress(vm.isChipnet)) {
