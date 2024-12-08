@@ -257,7 +257,10 @@ export default {
       tempAddress += this.amount ? '?amount=' + tempAmount : ''
 
       if (this.assetId.startsWith('ct/')) {
-        tempAddress += '?c=' + this.assetId.split('/')[1]
+        const category = this.assetId.split('/')[1]
+        if (category !== 'unlisted') {
+          tempAddress += '?c=' + category
+        }
       }
 
       return tempAddress

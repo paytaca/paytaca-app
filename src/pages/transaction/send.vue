@@ -350,9 +350,7 @@
 
 <script>
 import { markRaw } from '@vue/reactivity'
-import { decodePrivateKeyWif } from '@bitauth/libauth'
-import { getMnemonic, Wallet, loadWallet, Address } from '../../wallet'
-import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils';
+import { getMnemonic, Wallet, Address } from '../../wallet'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
@@ -525,7 +523,7 @@ export default {
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       showQrScanner: false,
-      setAmountInFiat: false,
+      setAmountInFiat: true,
       balanceExceeded: false,
       computingMax: false,
       selectedDenomination: 'BCH',
