@@ -2,7 +2,7 @@
     <q-item>
       <q-item-section side>
         <q-avatar rounded size="48px">
-          <img :src="metadata?.icons?.[0]">
+          <img :src="metadata?.icons?.[0].replace('http://', 'https://')">
           <!-- <q-badge floating color="teal">online</q-badge> -->
         </q-avatar>
       </q-item-section>
