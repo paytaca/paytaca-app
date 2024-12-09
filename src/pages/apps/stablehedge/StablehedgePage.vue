@@ -15,6 +15,7 @@
         :ref="el => redemptionContractCardsRef = el"
         v-for="redemptionContract in redemptionContracts" :key="redemptionContract?.address"
         :redemptionContract="redemptionContract"
+        @refetch="() => refreshRedemptionContract(redemptionContract)"
       />
       <LimitOffsetPagination
         :pagination-props="{
@@ -101,6 +102,20 @@ export default defineComponent({
         })
     }
 
+    function refreshRedemptionContract(data) {
+      const address = data.address
+      const addressParam = encodeURIComponent(address)
+      const backend = getStablehedgeBackend(isChipnet.value)
+      return backend.get(`stablehedge/redemption-contracts/${addressParam}/`)
+        .then(response => {
+          const responseData = response?.data
+          const index = redemptionContracts.value
+            .find(redemptionContract => redemptionContract?.address === address)
+
+          if (index >= 0) redemptionContracts.value[index] = responseData
+        })
+    }
+
     async function refreshPage(done=() => {}) {
       try {
         await fetchRedemptionContracts()
@@ -125,6 +140,7 @@ export default defineComponent({
       redemptionContractsPagination,
       redemptionContracts,
       fetchRedemptionContracts,
+      refreshRedemptionContract,
 
       refreshPage,
     }

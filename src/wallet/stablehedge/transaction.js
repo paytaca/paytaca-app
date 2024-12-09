@@ -1,10 +1,11 @@
 import { SignatureTemplate } from "cashscript";
 import { binToHex, lockingBytecodeToCashAddress } from "@bitauth/libauth";
 import { getTxid } from "src/utils/crypto";
-import { mockSignatureTemplate, TransactionBalancer, watchtowerUtxoToCashscript } from "./transaction-utils";
+import { calculateInputSize, mockSignatureTemplate, TransactionBalancer, watchtowerUtxoToCashscript } from "./transaction-utils";
 import { StablehedgeRPC } from "./rpc";
 import { getStablehedgeBackend } from "./api";
 import { getTreasuryContractInstance } from "./treasury-contract";
+import { getRedemptionContractInstance } from "./redemption-contract";
 
 /**
  * @param {Object} opts 
@@ -290,6 +291,108 @@ export async function waitRedemptionContractTxs(opts) {
  */
 
 /**
+ * 
+ * @param {Object} opts 
+ * @param {Number} [opts.locktime]
+ * @param {import("./wallet").StablehedgeWallet} opts.wallet
+ * @param {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} opts.redemptionContract
+ * @param {UpdateLoadingCallback} [opts.updateLoading]
+ */
+export async function consolidateToReserveUtxo(opts) {
+  const updateLoading = typeof opts?.updateLoading === 'function'
+    ? opts?.updateLoading
+    : () => {}
+
+  const wallet = opts?.wallet
+  const apiBackend = wallet.apiBackend
+  const redemptionContract = opts?.redemptionContract
+  const tokenCategory = redemptionContract.fiat_token.category
+
+  updateLoading({ message: 'Fetching locktime' })
+  const locktime = Number.isSafeInteger(opts?.locktime)
+    ? opts?.locktime
+    : await wallet.getBlockheight()
+
+  updateLoading({ message: 'Fetching contract artifact' })
+  const contract = await getRedemptionContractInstance({ redemptionContract })
+
+  updateLoading({ message: 'Fetching contract UTXOs' })
+  const addressParam = encodeURIComponent(contract.address)
+  const tokenAddressParam = encodeURIComponent(contract.tokenAddress)
+
+  const bchUtxosResp = await apiBackend.get(`utxo/bch/${addressParam}/`)
+  /** @type {import("src/wallet/stablehedge/wallet").WatchtowerUtxo[]} */
+  const bchUtxos = bchUtxosResp.data?.utxos
+
+  const fiatTokenUtxosResp = await apiBackend.get(`utxo/ct/${tokenAddressParam}/${tokenCategory}/`)
+  /** @type {import("src/wallet/stablehedge/wallet").WatchtowerUtxo[]} */
+  const fiatTokenUtxos = fiatTokenUtxosResp.data?.utxos.filter(utxo => utxo?.tokenid === tokenCategory)
+  if (!bchUtxos.length || !fiatTokenUtxos.length) throw 'No UTXO found'
+
+  updateLoading({ message: 'Fetching & signing auth token' })
+  const signedAuthKey = await wallet.fetchSignedAuthkey({
+    locktime: locktime,
+    authTokenId: redemptionContract?.auth_token_id,
+  })
+  if (typeof signedAuthKey === 'string') throw signedAuthKey
+  const signedAuthKeyTokenDetails = {
+    category: binToHex(signedAuthKey.source.token.category),
+    amount: signedAuthKey.source.token.amount,
+    nft: {
+      capability: signedAuthKey.source.token.nft.capability,
+      commitment: binToHex(signedAuthKey.source.token.nft.commitment),
+    }
+  }
+  const mockAuthkeySignatureTemplate = mockSignatureTemplate(signedAuthKey.signatureData)
+
+  const cashscriptTx = contract.functions.unlockWithNft(false)
+  const inputSize = calculateInputSize(cashscriptTx)
+  const txBuilder = new TransactionBalancer({ inputSizeCalculator: () => inputSize })
+  txBuilder.inputs.push(
+    ...bchUtxos.map(watchtowerUtxoToCashscript),
+    ...fiatTokenUtxos.map(watchtowerUtxoToCashscript),
+  )
+  txBuilder.outputs.push({
+    to: contract.tokenAddress,
+    amount: 1000n,
+    token: { category: redemptionContract.fiat_token.category, amount: 0n },
+  })
+
+  txBuilder.inputs.splice(1, 0, {
+    txid: binToHex(signedAuthKey.input.outpointTransactionHash),
+    vout: signedAuthKey.input.outpointIndex,
+    satoshis: signedAuthKey.source.valueSatoshis,
+    token: signedAuthKeyTokenDetails,
+    template: mockAuthkeySignatureTemplate,
+  });
+  txBuilder.outputs.splice(1, 0, {
+    to: lockingBytecodeToCashAddress(
+      signedAuthKey.output.lockingBytecode,
+      wallet.isChipnet ? 'bchtest' : 'bitcoincash',
+      { tokenSupport: true },
+    ),
+    amount: signedAuthKey.source.valueSatoshis,
+    token: signedAuthKeyTokenDetails,
+  });
+
+  if (txBuilder.excessSats < 0) throw 'Insufficient balance'
+
+  txBuilder.outputs[0].amount += txBuilder.excessSats
+
+  const tokenChange = txBuilder.tokenChange(redemptionContract.fiat_token.category)
+  txBuilder.outputs[0].token.amount += tokenChange
+
+  const transaction = cashscriptTx
+    .from(txBuilder.inputs)
+    .to(txBuilder.outputs)
+    .withTime(locktime)
+
+  console.log({ transaction, locktime })
+
+  return transaction
+}
+
+/**
  * Only supports BCH for now
  * 
  * @param {Object} opts 
@@ -345,7 +448,9 @@ export async function createTreasuryContractTransaction(opts) {
   if (!bchUtxos.length) throw 'No UTXOs found'
 
   updateLoading({ message: 'Building transaction' })
-  const txBuilder = new TransactionBalancer()
+  const cashscriptTx = contract.functions.unlockWithNft(false)
+  const inputSize = calculateInputSize(cashscriptTx)
+  const txBuilder = new TransactionBalancer({ inputSizeCalculator: () => inputSize })
   txBuilder.outputs.push(...opts?.recipients)
 
   for(var i = 0; i < bchUtxos?.length; i++) {
@@ -386,11 +491,11 @@ export async function createTreasuryContractTransaction(opts) {
     changeOutput.amount += txBuilder.excessSats
   }
 
-  console.log({ locktime })
-  const transaction = await contract.functions.unlockWithNft(false)
+  const transaction = cashscriptTx
     .from(txBuilder.inputs)
     .to(txBuilder.outputs)
     .withTime(locktime)
+  console.log({ locktime, transaction, txBuilder })
 
   return transaction
 }

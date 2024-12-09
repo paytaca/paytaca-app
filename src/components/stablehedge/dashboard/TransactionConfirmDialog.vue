@@ -22,7 +22,7 @@
           v-close-popup
         />
       </div>
-      <q-card-section>
+      <q-card-section style="max-height:calc(80vh - 4rem);overflow-y:auto;">
         <TransactionDetailsPanel :transaction="parsedTransactionDetails"/>
       </q-card-section>
       <q-card-actions class="justify-around">

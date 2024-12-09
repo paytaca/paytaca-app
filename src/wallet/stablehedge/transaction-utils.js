@@ -10,14 +10,15 @@ import { P2PKH_INPUT_SIZE } from "cashscript/dist/constants";
  * @param {Transaction} transaction
  */
 export function calculateInputSize(transaction) {
+  const redeemScript = transaction.redeemScript || transaction.contract?.redeemScript
   const placeholderArgs = transaction.args.map((arg) => (arg instanceof SignatureTemplate ? placeholder(65) : arg));
   // Create a placeholder preimage of the correct size
   const placeholderPreimage = transaction.abiFunction.covenant
-      ? placeholder(getPreimageSize(scriptToBytecode(transaction.contract.redeemScript)))
+      ? placeholder(getPreimageSize(scriptToBytecode(redeemScript)))
       : undefined;
   // Create a placeholder input script for size calculation using the placeholder
   // arguments and correctly sized placeholder preimage
-  const placeholderScript = createInputScript(transaction.contract.redeemScript, placeholderArgs, transaction.selector, placeholderPreimage);
+  const placeholderScript = createInputScript(redeemScript, placeholderArgs, transaction.selector, placeholderPreimage);
 
   // Add one extra byte per input to over-estimate tx-in count
   const contractInputSize = getInputSize(placeholderScript) + 1;
@@ -140,12 +141,21 @@ export function watchtowerUtxoToCashscript(utxo) {
 
 
 export class TransactionBalancer {
-  constructor() {
+  /**
+   * @callback InputSizeCalculator
+   * @returns {Number | undefined}
+   * 
+   * @param {Object} opts
+   * @param {InputSizeCalculator} opts.inputSizeCalculator
+   */
+  constructor(opts) {
     /** @type {import("cashscript").Utxo[]} */
     this.inputs = []
 
     /** @type {import("cashscript").Recipient[]} */
     this.outputs = []
+
+    this.inputSizeCalculator = opts?.inputSizeCalculator
 
     this.feePerByte = 1
     this.locktime = NaN
@@ -164,7 +174,11 @@ export class TransactionBalancer {
   }
 
   get txSize() {
-    const inputsSize = BigInt(this.inputs.length * P2PKH_INPUT_SIZE)
+    const inputsSize = this.inputs
+      .map(input => this.inputSizeCalculator?.(input) || P2PKH_INPUT_SIZE)
+      .map(BigInt)
+      .reduce((subtotal, size) => subtotal + size, 0n)
+
     const outputsSize = this.outputs
       .map(getOutputSize).map(BigInt)
       .reduce((subtotal, size) => subtotal + size, 0n)

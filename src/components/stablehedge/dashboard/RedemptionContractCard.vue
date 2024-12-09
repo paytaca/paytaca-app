@@ -9,16 +9,23 @@
       touch-position
       class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)"
     >
-      <q-item clickable v-close-popup @click="() => showDialog = true">
-        <q-item-section>
-          <q-item-label>More</q-item-label>
-        </q-item-section>
-      </q-item>  
-      <q-item clickable v-close-popup @click="() => showTreasuryContractDialog = true">
-        <q-item-section>
-          <q-item-label>Treasury contract</q-item-label>
-        </q-item-section>
-      </q-item>  
+      <q-list separator>
+        <q-item clickable v-close-popup @click="() => showDialog = true">
+          <q-item-section>
+            <q-item-label>More</q-item-label>
+          </q-item-section>
+        </q-item>  
+        <q-item clickable v-close-popup @click="() => consolidateReserveUtxo()">
+          <q-item-section>
+            <q-item-label>Consolidate reserve UTXO</q-item-label>
+          </q-item-section>
+        </q-item>  
+        <q-item clickable v-close-popup @click="() => showTreasuryContractDialog = true">
+          <q-item-section>
+            <q-item-label>Treasury contract</q-item-label>
+          </q-item-section>
+        </q-item>  
+      </q-list>
     </q-menu>
     <q-card-section>
       <div class="row items-center">
@@ -206,28 +213,35 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { getAssetDenomination } from 'src/utils/denomination-utils';
 import { toTokenAddress } from 'src/utils/crypto';
+import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
+import { consolidateToReserveUtxo } from 'src/wallet/stablehedge/transaction';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { stablehedgePriceTracker } from 'src/wallet/stablehedge/price-tracker'
+import { getMnemonic } from 'src/wallet';
 import { Chart } from 'chart.js/auto';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { getCurrentInstance, computed, defineComponent, onMounted, ref, watch, inject, onUnmounted, capitalize } from 'vue';
 import TreasuryContractDialog from './TreasuryContractDialog.vue';
+import TransactionConfirmDialog from './TransactionConfirmDialog.vue';
 
 export default defineComponent({
   name: 'RedemptionContractCard',
   components: {
     TreasuryContractDialog,
   },
+  emits: [
+    'refetch',
+  ],
   props: {
     redemptionContract: {
       /** @returns {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} */
       default: () => {}
     },
   },
-  setup(props) {
+  setup(props, { emit: $emit }) {
     const instance = getCurrentInstance()
 
     const $q = useQuasar()
@@ -579,6 +593,80 @@ export default defineComponent({
       })
     }
 
+    async function getStablehedgeWallet() {
+      const walletIndex = $store.getters['global/getWalletIndex']
+      const isChipnet = $store.getters['global/isChipnet']
+      const mnemonic = await getMnemonic(walletIndex)
+      const wallet = new StablehedgeWallet(
+        mnemonic, undefined, isChipnet ? 'chipnet' : 'mainnet',
+      )
+      return wallet
+    }
+
+    async function consolidateReserveUtxo() {
+      const loadingKey = 'consolidate-redemption-contract-reserve-utxo'
+      try {
+        const wallet = await getStablehedgeWallet()
+        const redemptionContractData = props.redemptionContract
+
+        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const transaction = await consolidateToReserveUtxo({
+          locktime: 0,
+          wallet: wallet,
+          redemptionContract: redemptionContractData,
+          updateLoading: updateLoading,
+        })
+
+        const txHex = await transaction.build()
+        $q.loading.hide(loadingKey)
+        const proceed = await new Promise(resolve => {
+          $q.dialog({
+            component: TransactionConfirmDialog,
+            componentProps: {
+              transaction: { inputs: transaction.inputs, outputs: transaction.outputs },
+            },
+          }).onOk(() => resolve(true))
+            .onCancel(() => resolve(false))
+            .onDismiss(() => resolve(false))
+        })
+        if (!proceed) return
+
+        updateLoading = $q.loading.show({ group: loadingKey })
+        updateLoading({ message: 'Broadcasting transaction' })
+        const broadcastResult = await wallet.broadcast(txHex)
+        if (broadcastResult.data?.error) {
+          throw broadcastResult?.data?.error
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: $t('Success'),
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+        $emit('refetch')
+      } catch(error) {
+        console.error(error)
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
     /** ------- <Formatters -------  */
     function denominateSats(satoshis) {
       return denominateBch(satoshis / 10 ** 8)
@@ -638,8 +726,9 @@ export default defineComponent({
       summaryPanelLabel,
       moveSummaryPanel,
       chartRef,
-
       parsed24HrVolumeChartData,
+
+      consolidateReserveUtxo,
 
       denominateSats,
       denominateBch,
