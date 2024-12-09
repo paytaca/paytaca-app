@@ -48,12 +48,13 @@ export default {
   async mounted () {
     const vm = this
 
-    vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
-
-    vm.notifSocket = new WebSocket(
-      `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
-    )
-    this.addListenersToSocket()
+    if (this.isMobile) {
+      vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
+      vm.notifSocket = new WebSocket(
+        `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
+      )
+      vm.addListenersToSocket()
+    }
   },
 
   methods: {
@@ -65,7 +66,9 @@ export default {
       vm.$q.dialog({
         component: Notifications
       }).onDismiss(async () => {
-        vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
+        if (this.isMobile) {
+          vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
+        }
       })
     },
     addListenersToSocket () {
@@ -81,8 +84,11 @@ export default {
       })
 
       vm.notifSocket.addEventListener('close', (event) => {
-        vm.notifSocket.open()
         console.log('Notification websocket closed. Reopening websocket...')
+        vm.notifSocket = new WebSocket(
+          `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
+        )
+        vm.addListenersToSocket()
       })
 
       vm.notifSocket.addEventListener('error', (event) => {
