@@ -129,7 +129,7 @@ export default {
 
   data () {
     return {
-      enablePushNotifs: false,
+      enablePushNotifs: true,
       isEnablePushNotifsLoading: false,
       isEnableEventsAndPromos: false,
       isEnableEventsAndPromosIsLoading: false,
@@ -172,25 +172,34 @@ export default {
     const vm = this
     vm.isEnablePushNotifsLoading = true
 
-    const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
-    await getPushNotifConfigs(deviceId)
-      .then(async data => {
-        vm.enablePushNotifs = data.is_enabled
-        const configs = data.push_notif_configs
-        if (Object.keys(configs).length > 0) {
-          vm.deviceNotifTypesId = configs.id
-          vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
-          vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
-          vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
-          vm.eventsAndPromosSubList[0].value = configs.country
-          vm.eventsAndPromosSubList[1].value = configs.city
+    // check if push notifs are enabled
+    // if enabled, turn on enable push notifications by default
+    // else turn it off
 
-          const countryLabel = configs.country ? this.$t('UpdateCountry') : this.$t('EnterCountry')
-          const cityLabel = configs.city ? this.$t('UpdateCity') : this.$t('EnterCity')
-          vm.eventsAndPromosSubList[0].inputLabel = countryLabel
-          vm.eventsAndPromosSubList[1].inputLabel = cityLabel
-        } else await vm.handleNotifTypesSubscription(null)
-      })
+    await vm.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+    if (!vm.$pushNotifications.isEnabled && !vm.promptedPushNotifications) {
+      vm.enablePushNotifs = false
+    } else {
+      const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
+      await getPushNotifConfigs(deviceId)
+        .then(async data => {
+          vm.enablePushNotifs = data.is_enabled
+          const configs = data.push_notif_configs
+          if (Object.keys(configs).length > 0) {
+            vm.deviceNotifTypesId = configs.id
+            vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
+            vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
+            vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
+            vm.eventsAndPromosSubList[0].value = configs.country
+            vm.eventsAndPromosSubList[1].value = configs.city
+
+            const countryLabel = configs.country ? this.$t('UpdateCountry') : this.$t('EnterCountry')
+            const cityLabel = configs.city ? this.$t('UpdateCity') : this.$t('EnterCity')
+            vm.eventsAndPromosSubList[0].inputLabel = countryLabel
+            vm.eventsAndPromosSubList[1].inputLabel = cityLabel
+          } else await vm.handleNotifTypesSubscription(null)
+        })
+    }
 
     this.isEnablePushNotifsLoading = false
   },
