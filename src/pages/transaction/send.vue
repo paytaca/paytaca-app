@@ -523,7 +523,7 @@ export default {
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       showQrScanner: false,
-      setAmountInFiat: true,
+      setAmountInFiat: false,
       balanceExceeded: false,
       computingMax: false,
       selectedDenomination: 'BCH',
@@ -807,6 +807,8 @@ export default {
 
       const valid = this.checkAddress(address)
       if (valid) {
+        this.setDefaultFtChangeAddress()
+
         // check for BIP21
         this.onBIP21Amount(content)
 
@@ -1238,6 +1240,7 @@ export default {
               addressIsValid = true
               formattedAddress = address
             } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
+              vm.setAmountInFiat = true
               if (addressObj.isValidBCHAddress(vm.isChipnet)) {
                 addressIsValid = true
                 formattedAddress = addressObj.toCashAddress(address)
@@ -1741,7 +1744,6 @@ export default {
     if (!vm.$store.getters['global/walletAddresses']) {
       await vm.$store.dispatch('global/loadWalletAddresses')  
     }
-    vm.setDefaultFtChangeAddress()
   },
 
   unmounted () {
