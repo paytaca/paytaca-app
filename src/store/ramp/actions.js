@@ -338,7 +338,6 @@ export function fetchPaymentTypes (context, { currency = null }) {
     backend.get('/ramp-p2p/payment-type', { params: { currency: currency }, authorize: true })
       .then(response => {
         const paymentTypes = response.data
-
         // adding new payment type to default payment type filter
         if (previousPT) {
           if (paymentTypes.length > previousPT.length) {
@@ -462,7 +461,6 @@ export function fetchFeatureToggles (context) {
   return new Promise((resolve, reject) => {
     backend.get('/ramp-p2p/feature-toggles/')
       .then(response => {
-        console.log('fetchFeatureToggles:', response.data)
         context.commit('updateFeatureToggles', response.data)
         resolve(response.data)
       })

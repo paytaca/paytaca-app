@@ -670,7 +670,9 @@ export default {
             floating: true
           },
           payment_types: defaultPaymentTypes.map(e => e.id),
-          time_limits: [15, 30, 45, 60]
+          time_limits: [15, 30, 45, 60],
+          order_amount: null,
+          order_amount_currency: null
         }
         this.updateStoreFilters(filters)
       }
