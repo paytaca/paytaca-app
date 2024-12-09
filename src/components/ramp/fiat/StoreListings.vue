@@ -27,8 +27,17 @@
             </div>
           </div>
           <div class="q-ml-md">
-            <span><q-badge outline color="blue" rounded @click="openFilterSelection('amount')">Amount <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
-            <span class="q-pl-xs"><q-badge outline color="blue" rounded @click="openFilterSelection('paymentTypes')">Payment Types <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
+            <span>
+              <q-badge :outline="!filters.order_amount" color="blue" rounded @click="openFilterSelection('amount')">
+                Amount{{ filters.order_amount ? `: ${filters.order_amount} ${amountFilterCurrency}` : ''}}
+                <q-icon size="xs" name='mdi-menu-down'/>
+              </q-badge>
+            </span>
+            <span class="q-pl-xs">
+              <q-badge :outline="defaultPaymentTypes" color="blue" rounded @click="openFilterSelection('paymentTypes')">
+                Payment Types <q-icon size="xs" name='mdi-menu-down'/>
+              </q-badge>
+            </span>
           </div>
         </div>
         <div v-else class="q-px-lg q-mx-xs">
@@ -242,6 +251,13 @@ export default {
     }
   },
   computed: {
+    amountFilterCurrency () {
+      if (this.filters?.order_amount_currency === 'BCH') return 'BCH'
+      if (this.selectedCurrency?.symbol !== 'All') {
+        return this.selectedCurrency?.symbol
+      }
+      return ''
+    },
     minHeight () {
       return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
     },
@@ -264,6 +280,11 @@ export default {
     hasMoreData () {
       this.updatePaginationValues()
       return (this.pageNumber < this.totalPages)
+    },
+    defaultPaymentTypes () {
+      if (!this.filters?.payment_types) return true
+      const paymentTypesLen = this.$store.getters['ramp/paymentTypes'](this.selectedCurrency?.symbol)?.length
+      return paymentTypesLen === this.filters?.payment_types.length
     }
   },
   async mounted () {

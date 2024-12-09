@@ -1,6 +1,6 @@
 <!-- Individual Filtering in Store Page -->
 <template>
-  <q-dialog ref="dialog" full-width persistent position="top" transition-show="slide-down" @before-hide="customKeyboard = 'dismiss'" no-shake>
+  <q-dialog ref="dialog" full-width position="top" transition-show="slide-down" @before-hide="customKeyboard = 'dismiss'" no-shake>
     <q-card class="br-15 pt-card-2 text-bow">
       <div class="text-right q-pr-lg q-pt-md">
         <q-icon size="sm" color="red" name="close" @click="closeDialog()"/>
@@ -63,7 +63,8 @@
             </q-badge>
           </div>
         </div>
-        <div class="text-center q-pt-xs">
+        <div class="text-center q-pt-md q-gutter-sm">
+          <q-btn :disable="loadFilterButton || (type ==='type' && !amount) || (type === 'paymentTypes' && filter.payment_types.length === 0)" rounded class="text-center q-mt-sm" outline :label="type === 'amount' ? 'clear' : 'unselect all'" @click="onClearClick"/>
           <q-btn :loading="loadFilterButton" :disable="loadFilterButton" rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
         </div>
       </div>
@@ -77,16 +78,14 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-
-import customKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue';
+import customKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       paymentTypes: [],
-      amount: 0,
-      // selectedPaymentTypes: [],
+      amount: null,
       filter: null,
       byFiat: true,
       readonlyState: false,
@@ -112,11 +111,19 @@ export default {
   },
   mounted () {
     this.filter = this.filterData
+    this.amount = this.filter?.order_amount
+    this.byFiat = this.filter?.order_amount_currency !== 'BCH'
     this.paymentTypes = this.$store.getters['ramp/paymentTypes'](this.currency.symbol || 'All')
-    // this.selectedPaymentTypes = this.filter.payment_types
   },
   methods: {
     getDarkModeClass,
+    onClearClick () {
+      if (this.type === 'amount') this.amount = null
+      if (this.type === 'paymentTypes') this.unselectAllPaymentTypes()
+    },
+    unselectAllPaymentTypes () {
+      this.filter.payment_types = []
+    },
     selectAllPaymentTypes () {
       this.filter.payment_types = this.paymentTypes.map(e => e.id)
     },
@@ -145,7 +152,7 @@ export default {
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
       let proceed = false
-      receiveAmount = this.amount
+      receiveAmount = this.amount || 0
 
       // see if # of decimal valid
       let temp = receiveAmount.toString()
