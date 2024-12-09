@@ -339,7 +339,6 @@ export default {
       this.$refs.filePickerRef[index].pickFiles()
     },
     onRejectedFilePick (rejectedEntries) {
-      console.log('onRejectedFilePick:', rejectedEntries)
       let message = 'File did not pass validation constraints'
       if (rejectedEntries.length > 0 && rejectedEntries[0]?.failedPropValidation === 'max-file-size') {
         message = 'File size should not exceed 5MB'
@@ -460,6 +459,7 @@ export default {
       const keypair = await wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {
+          console.log(result)
           if (result.success) {
             const txid = result.txInfo.txid
             const txidData = {
@@ -473,7 +473,7 @@ export default {
             vm.$emit('verify-release', txid)
           } else {
             let errorMessage = result.reason
-            if (vm.contractBalance > 0 && result.reason.toLowerCase().includes('insufficient funds: available (0)')) {
+            if (vm.contractBalance > 0 && result?.reason?.toLowerCase()?.includes('insufficient funds: available (0)')) {
               errorMessage = 'Possible pending contract UTXO, please try again later.'
             }
             vm.sendErrors = [errorMessage]
