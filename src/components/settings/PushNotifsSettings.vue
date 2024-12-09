@@ -114,7 +114,8 @@ import {
   getPushNotifConfigs,
   updateDeviceNotifType,
   parseDeviceId,
-  deleteDeviceNotifType
+  deleteDeviceNotifType,
+  getCountryCityData
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -144,7 +145,7 @@ export default {
           isLoading: false,
           subLabel: this.$t('CountrySubLabel'),
           inputLabel: this.$t('EnterCountry'),
-          value: ''
+          value: null
         },
         {
           label: this.$t('ByCity'),
@@ -153,9 +154,10 @@ export default {
           isLoading: false,
           subLabel: this.$t('CitySubLabel'),
           inputLabel: this.$t('EnterCity'),
-          value: ''
+          value: null
         }
-      ]
+      ],
+      countryCityData: []
     }
   },
 
@@ -199,6 +201,30 @@ export default {
             vm.eventsAndPromosSubList[1].inputLabel = cityLabel
           } else await vm.handleNotifTypesSubscription(null)
         })
+    }
+
+    vm.countryCityData = await getCountryCityData()
+    // set country and city value
+    const currentCountry = vm.eventsAndPromosSubList[0].value
+    const currentCity = vm.eventsAndPromosSubList[1].value
+
+    if (currentCountry) {
+      const country = vm.countryCityData
+        .filter(a => a.id === currentCountry)
+        .map(b => {
+          return {
+            label: b.name,
+            value: b.id,
+            subLabel: ''
+          }
+        })
+      vm.eventsAndPromosSubList[0].value = country[0]
+    }
+
+    if (currentCity) {
+      const choices = this.parseCities()
+      const city = choices.filter(a => a.id === currentCity)
+      vm.eventsAndPromosSubList[1].value = city[0]
     }
 
     this.isEnablePushNotifsLoading = false
@@ -265,18 +291,60 @@ export default {
       const vm = this
 
       const enterTypeText = enterType === 0 ? 'Country' : 'City'
+
+      let choices = []
+      if (enterType === 0) {
+        choices = vm.countryCityData.map(a => {
+          return {
+            label: a.name,
+            value: a.id,
+            subLabel: ''
+          }
+        })
+      } else {
+        const countryId = vm.eventsAndPromosSubList[0].value?.value
+        if (countryId) {
+          const country = vm.countryCityData.filter(a => a.id === countryId)
+          choices = country[0].cities.map(b => {
+            return {
+              label: b.name,
+              value: b.id,
+              subLabel: country.name
+            }
+          })
+        } else {
+          choices = this.parseCities()
+          choices = choices.sort((a, b) => a.label.localeCompare(b.label))
+        }
+      }
+
       vm.$q.dialog({
         component: EnterCountryCityDialog,
         componentProps: {
           currentName: vm.eventsAndPromosSubList[enterType].value,
           enterType: enterTypeText,
-          deviceNotifTypesId: vm.deviceNotifTypesId
+          deviceNotifTypesId: vm.deviceNotifTypesId,
+          choices
         }
       }).onOk(response => {
         vm.eventsAndPromosSubList[enterType].value = response
         const inputLabel = this.$t(`${response ? 'Update' : 'Enter'}${enterTypeText}`)
         vm.eventsAndPromosSubList[enterType].inputLabel = inputLabel
       })
+    },
+
+    parseCities () {
+      const choices = []
+      this.countryCityData.forEach((country) => {
+        country.cities.forEach((city) => {
+          choices.push({
+            label: city.name,
+            value: city.id,
+            subLabel: country.name
+          })
+        })
+      })
+      return choices
     }
   }
 }
