@@ -107,8 +107,7 @@
           :key="inputExtras.amountFormatted"
         >
           <template v-slot:append>
-            <!-- TODO: UNDO shortening of asset symbol,  -->
-            {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol?.replace(asset.symbol.slice(4, asset.symbol.length - 1), '...') }}
+            {{ asset.symbol }}
             <DenominatorTextDropdown
               v-if="!recipient.fixedAmount"
               @on-selected-denomination="onSelectedDenomination"

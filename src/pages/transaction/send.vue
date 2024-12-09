@@ -792,6 +792,15 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0]) {
+        const vm = this
+        if (paymentUriData?.otherParams?.c) {
+          if (paymentUriData?.otherParams?.c !== vm.asset.id.split('ct/')[1]) {
+            vm.$router.push({
+              name: 'transaction-send-select-asset',
+              query: { error: 'token-mismatch' }
+            })
+          }
+        }
         currency = paymentUriData.outputs[0].amount?.currency
         this.paymentCurrency = currency
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
