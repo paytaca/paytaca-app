@@ -2,7 +2,6 @@
   <q-card flat bordered :dark="darkMode" class="text-bow br-15">
     <q-card-section bordered class="pt-card" :class="getDarkModeClass(darkMode)" style="overflow-x: auto;">
       <div v-if="type !== 'appeal'">
-        <!-- <div class="xs-font-size">{{ $t('TradingWith') }}</div> -->
         <div class="xs-font-size">{{ tradeTypeLabel() }}</div>
         <div class="row justify-end">
             <div class="col q-py-none">
@@ -32,7 +31,9 @@
                   @click="onViewReviews"/>
                   <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
-                <div v-if="!counterparty?.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}</div>
+                <div v-if="counterparty && counterparty?.is_online === false" class="row xs-font-size text-grey">
+                  Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}
+                </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
                 <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
