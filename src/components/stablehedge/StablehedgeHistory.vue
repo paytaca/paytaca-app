@@ -26,7 +26,7 @@
             >
               <template v-if="record?.status === 'pending'">{{ $t('Pending') }}</template>
               <template v-if="record?.status === 'failed'">{{ $t('Failed') }}</template>
-              <template v-else>{{ $record?.status }}</template>
+              <template v-else>{{ record?.status }}</template>
             </q-badge>
           </div>
           <div class="transactions-wallet date" :class="getDarkModeClass(darkMode)">

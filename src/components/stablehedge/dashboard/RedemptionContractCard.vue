@@ -88,39 +88,94 @@
           <div class="chart-container row items-center justify-center q-mb-sm">
             <canvas ref="chartRef"></canvas>
           </div>
-          <div class="row items-center justify-around q-mb-sm">
+          <div class="row items-center justify-around no-wrap q-mb-sm">
             <q-btn flat padding="sm lg" icon="keyboard_arrow_left" @click="() => moveSummaryPanel(-1)"/>
-            <div class="text-h6">{{ summaryPanelLabel }}</div>
+            <div class="text-h6 text-center">{{ summaryPanelLabel }}</div>
             <q-btn flat padding="sm lg" icon="keyboard_arrow_right" @click="() => moveSummaryPanel(1)"/>
           </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">Volume (24 hr): </div>
-            <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
-          </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">Total Value:</div>
-            <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
-          </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">Ideal Value:</div>
-            <div>
-              <q-icon v-bind="summaryData?.expectedDiffPctgIcon" class="q-mr-xs"/>
-              {{ denominateBch(summaryData?.expectedBchValue) }}
-            </div>
-          </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">Tokens in circulation:</div>
-            <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
-          </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">Redeemable tokens:</div>
-            <div>
-              {{ formatTokenUnits(summaryData?.redeemableTokens) }}
-              <span v-if="summaryData?.redeemableTokensPctg">
-                ({{ summaryData?.redeemableTokensPctg }}%)
-              </span>
-            </div>
-          </div>
+          <q-tab-panels v-model="summaryPanel" animated class="pt-card-2" :class="getDarkModeClass(darkMode)">
+            <q-tab-panel name="bchValueComparison" class="q-pa-none">
+              <div class="row items-center">
+                <div class="text-grey q-space">Current Total Value:</div>
+                <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
+              </div>
+              <div class="row items-center">
+                <div class="text-grey q-space">Ideal Value:</div>
+                <div>
+                  <q-icon v-bind="summaryData?.expectedDiffPctgIcon" class="q-mr-xs"/>
+                  {{ denominateBch(summaryData?.expectedBchValue) }}
+                </div>
+              </div>
+              <q-banner class="q-my-sm rounded-borders pt-card text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="row items-start no-wrap q-space">
+                  <div class="text-subtitle1 q-pr-sm">
+                    Total value in contract is
+                    <span :class="`text-${summaryData?.expectedDiffPctgIcon?.color}`">
+                      {{ denominateBch(Math.abs(summaryData?.expectedBchValueDiff)) }}
+                    </span>
+                    {{ summaryData?.expectedDiffPctg < 0 ? 'below' : 'above' }}
+                    ideal value
+                  </div>
+                  <div>
+                    <q-icon name="info" size="1.2rem" class="q-my-sm">
+                      <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                        Comparison between total value in the contract/s and the ideal value to
+                        peg the asset value in circulation
+                      </q-menu>
+                    </q-icon>
+                  </div>
+                </div>
+              </q-banner>
+            </q-tab-panel>
+            <q-tab-panel name="bchValueBreakdown" class="q-pa-none">
+              <div class="row items-center">
+                <div class="text-grey q-space">Redeemable:</div>
+                <div>{{ denominateSats(redemptionContract?.redeemable || 0) }}</div>
+              </div>
+              <template v-if="parsedTreasuryContractBalance">
+                <div class="row items-center">
+                  <div class="text-grey q-space">Treasury contract:</div>
+                  <div>{{ denominateBch(parsedTreasuryContractBalance?.spendableBch) }}</div>
+                </div>
+                <div class="row items-center">
+                  <div class="text-grey q-space">Short value:</div>
+                  <div>{{ denominateBch(parsedTreasuryContractBalance?.totalShortedBchValue) }}</div>
+                </div>
+              </template>
+              <q-separator spaced/>
+              <div class="row items-center text-subtitle1">
+                <div class="text-grey q-space">Total Value:</div>
+                <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
+              </div>
+            </q-tab-panel>
+            <q-tab-panel name="token" class="q-pa-none">    
+              <div class="row items-center">
+                <div class="text-grey q-space">Tokens in circulation:</div>
+                <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
+              </div>
+              <div class="row items-center">
+                <div class="text-grey q-space">Redeemable tokens:</div>
+                <div>
+                  {{ formatTokenUnits(summaryData?.redeemableTokens) }}
+                  <span v-if="summaryData?.redeemableTokensPctg">
+                    ({{ summaryData?.redeemableTokensPctg }}%)
+                  </span>
+                </div>
+              </div>
+              <q-banner
+                v-if="summaryData?.redeemableDiffBchValue < 0"
+                class="q-my-sm rounded-borders pt-card text-bow" :class="getDarkModeClass(darkMode)"
+              >
+                <div class="text-subtitlw`">
+                  Redemption contract needs
+                  <span class="text-weight-medium">
+                    {{ denominateBch(Math.abs(summaryData?.redeemableDiffBchValue)) }}
+                  </span>
+                  to redeem all tokens in circulation
+                </div>
+              </q-banner>
+            </q-tab-panel>
+          </q-tab-panels>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -138,7 +193,7 @@ import { toTokenAddress } from 'src/utils/crypto';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { stablehedgePriceTracker } from 'src/wallet/stablehedge/price-tracker'
-import { Chart } from 'chart.js';
+import { Chart } from 'chart.js/auto';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
@@ -151,7 +206,10 @@ export default defineComponent({
     TreasuryContractDialog,
   },
   props: {
-    redemptionContract: Object,
+    redemptionContract: {
+      /** @returns {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} */
+      default: () => {}
+    },
   },
   setup(props) {
     const instance = getCurrentInstance()
@@ -266,19 +324,24 @@ export default defineComponent({
       const genesisSupply = parseInt(props.redemptionContract?.fiat_token?.genesis_supply)
       const tokensInCirculation = genesisSupply - props.redemptionContract?.reserve_supply
 
-      let redeemableTokens, redeemableTokensPctg
+      let redeemableTokens, redeemableTokensPctg, tokensInCirculationBchValue, redeemableDiffBchValue
       if (Number.isSafeInteger(priceUnitPerBch.value)) {
         redeemableTokens = Math.floor(redeemableBch * priceUnitPerBch.value)
         redeemableTokensPctg = tokensInCirculation
           ? Math.round(redeemableTokens * 100 / tokensInCirculation) : 0
+
+        tokensInCirculationBchValue = tokensInCirculation / priceUnitPerBch.value
+        redeemableDiffBchValue = redeemableBch - tokensInCirculationBchValue
       }
 
-      let expectedBchValue, expectedDiffPctg
+
+      let expectedBchValue, expectedBchValueDiff, expectedDiffPctg
       if (Number.isSafeInteger(tokensInCirculation) && Number.isSafeInteger(priceUnitPerBch.value)) {
         expectedBchValue = Number(
           tokenToSatoshis(tokensInCirculation, priceUnitPerBch.value)
         ) / 10 ** 8
-        expectedDiffPctg = Math.round((totalBchValue / expectedBchValue) * 100) || 0
+        expectedBchValueDiff = totalBchValue - expectedBchValue
+        expectedDiffPctg = Math.round((expectedBchValueDiff / expectedBchValue) * 100) || 0
       }
 
       const expectedDiffPctgIcon = {
@@ -292,16 +355,20 @@ export default defineComponent({
         tokensInCirculation,
         redeemableTokens,
         redeemableTokensPctg,
+        redeemableBch,
+        tokensInCirculationBchValue,
+        redeemableDiffBchValue,
         expectedBchValue,
+        expectedBchValueDiff,
         expectedDiffPctg,
         expectedDiffPctgIcon,
       }
     })
 
     const showDialog = ref(false)
-    /** @type {import("vue").Ref<'idealBchValue' | 'bchValue' | 'token'>} */
-    const summaryPanel = ref('idealBchValue')
-    const summaryPanels = ['idealBchValue', 'bchValue', 'token']
+    /** @type {import("vue").Ref<'bchValueComparison' | 'bchValueBreakdown' | 'token'>} */
+    const summaryPanel = ref('bchValueComparison')
+    const summaryPanels = ['bchValueComparison', 'bchValueBreakdown', 'token']
     function moveSummaryPanel(delta=1) {
       const index = summaryPanels.indexOf(summaryPanel.value)
       let newIndex = index + delta
@@ -311,12 +378,11 @@ export default defineComponent({
       summaryPanel.value = summaryPanels[newIndex]
     }
     const summaryPanelLabel = computed(() => {
-      console.log('summaryPanel.value', summaryPanel.value)
       switch(summaryPanel.value) {
-        case 'idealBchValue':
-          return `Ideal ${denomination.value} value`
-        case 'bchValue':
-          return `${denomination.value} value`
+        case 'bchValueComparison':
+          return `Contract value`
+        case 'bchValueBreakdown':
+          return `Contract assets`
         case 'token':
           return `Token circulation`
       }
@@ -361,10 +427,10 @@ export default defineComponent({
       if (!showDialog.value) return
       chartObj?.destroy?.()
       switch(summaryPanel.value) {
-        case 'idealBchValue':
-          chartObj = createIdealBchValueChart(chartRef.value)
+        case 'bchValueComparison':
+          chartObj = createBchValueComparisonChart(chartRef.value)
           break;
-        case 'bchValue':
+        case 'bchValueBreakdown':
           chartObj = createBchValueChart(chartRef.value)
           break;
         case 'token':
@@ -373,7 +439,7 @@ export default defineComponent({
       }
     }, 500)
 
-    function createIdealBchValueChart(ref) {
+    function createBchValueComparisonChart(ref) {
       return new Chart(ref, {
         type: 'bar',
         data: {
@@ -433,9 +499,13 @@ export default defineComponent({
       return new Chart(ref, {
         type: 'bar',
         data: {
-          labels: [`Tokens in circulation`, `Redeemable tokens`],
+          labels: [`Tokens in circulation`, `Redeemable tokens`, `Reserve supply`],
           datasets: [{
-            data: [summaryData.value.tokensInCirculation, summaryData.value.redeemableTokens],
+            data: [
+              summaryData.value.tokensInCirculation,
+              summaryData.value.redeemableTokens,
+              props.redemptionContract.reserve_supply,
+            ],
             backgroundColor: getChartColors(2),
           }]
         },
@@ -505,6 +575,7 @@ export default defineComponent({
       summaryData,
 
       showDialog,
+      summaryPanel,
       summaryPanelLabel,
       moveSummaryPanel,
       chartRef,
