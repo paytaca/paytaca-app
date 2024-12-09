@@ -56,12 +56,12 @@ export function getBlockChainNetwork () {
   return isChipnet ? 'chipnet' : 'mainnet'
 }
 
-export function convertTokenAmount (amount, decimals, isBCH=false, isSLP=false) {
+export function convertTokenAmount (amount, decimals, decimalPlaces=2, isBCH=false, isSLP=false) {
   if (isBCH || isSLP) return amount
   if (amount === 0) return amount
   const parsedAmount = parseInt(amount) || 0
-  const parsedDecimals = parseInt(decimals) || 0
-  return BigInt(parsedAmount) / (BigInt(10) ** BigInt(parsedDecimals))
+  const finalAmount = parsedAmount / (10 ** decimals)
+  return finalAmount.toLocaleString('en-us', {maximumFractionDigits: decimalPlaces})
 }
 
 export function convertToTokenAmountWithDecimals(amount, decimals, isBCH=false, isSLP=false) {

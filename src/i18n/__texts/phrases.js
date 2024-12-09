@@ -1119,6 +1119,9 @@ const phrases = {
       EnterCity: 'Enter city',
       UpdateCountry: 'Update country',
       UpdateCity: 'Update city'
+    },
+    {
+      NoNotifications: 'No notifications'
     }
   ],
   dynamic: [

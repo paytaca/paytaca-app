@@ -10,28 +10,33 @@
       </div>
 
       <q-card-section v-if="asset">
-        <div style="text-align: center; font-size: 20px;">
+        <div style="text-align: center; font-size: 24px;">
           <p class="pt-label" :class="getDarkModeClass(darkMode)">
             {{ asset.symbol }}
           </p>
         </div>
         <div style="text-align: center;">
-          <img :src="asset.logo || fallbackAssetLogo" height="50" class="q-mr-xs">
+          <img :src="getImageUrl(asset)" height="50" class="q-mr-xs">
         </div>
-        <div style="text-align: center;">
+        <div style="text-align: center; font-size: 18px; margin-top: 6px;">
           {{ formatBalance(asset) }}
         </div>
         <div style="text-align: center; margin-top: 10px;" v-if="asset.id !== 'bch'">
           <a
             :href="assetLink"
-            style="text-decoration: none; color: gray;"
+            style="text-decoration: none; color: gray; font-size: 17px; font-family: monospace;"
             target="_blank"
           >
-            {{ asset.id.split('/')[1].slice(0, 7) }}...
+            {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
             <q-icon name="exit_to_app" class="button button-text-primary dark" size="sm" />
           </a>
+          <div style="text-align: center; font-size: 13px; margin-top: 6px;">
+            <p class="pt-label" :class="getDarkModeClass(darkMode)">
+              Decimals: {{ asset.decimals }}
+            </p>
+          </div>
         </div>
-        <div style="margin-top: 20px; margin-bottom: 10px; text-align: center;">
+        <div style="margin-top: 38px; margin-bottom: 10px; text-align: center;">
           <q-btn @click="send" rounded class="q-mr-sm button" :label="$t('Send')" no-caps>
             &nbsp;&nbsp;&nbsp;
             <q-icon class="text-white">
@@ -93,7 +98,7 @@ export default {
       if (this.isSep20) return `https://sonar.cash/address/${tokenId}`
 
       if (tokenType === 'ct')
-        return `https://explorer.bitcoinunlimited.info/tx/${tokenId}`
+        return `https://tokenexplorer.cash/?tokenId=${tokenId}`
       return `https://simpleledger.info/#token/${tokenId}`
     },
     fallbackAssetLogo () {
@@ -110,6 +115,17 @@ export default {
         this.asset = asset
         this.$refs.dialog.show()
       } catch (err) {}
+    },
+    getImageUrl (asset) {
+      if (asset.logo) {
+        if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+        } else {
+          return asset.logo
+        }
+      } else {
+        return this.getFallbackAssetLogo
+      }
     },
     onOKClick () {
       this.hide()
@@ -145,7 +161,7 @@ export default {
     formatBalance (asset) {
       if (asset.id.includes('ct') || asset.id.includes('sep20')) {
         const convertedBalance = asset.balance / 10 ** asset.decimals
-        return `${convertedBalance || 0} ${asset.symbol}`
+        return `${(convertedBalance || 0).toLocaleString('en-us', {maximumFractionDigits: asset.decimals})} ${asset.symbol}`
       } else if (asset.id.includes('bch')) {
         return this.parseAssetDenomination(this.denomination, asset)
       }

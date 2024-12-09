@@ -21,7 +21,7 @@
           <q-badge v-if="order?.has_unread_status" floating rounded color="red"/>
         </q-btn>
       </div>
-      <div ref="scrollTargetRef" :style="`height: ${scrollHeight}px`" style="overflow:auto;">
+      <div :style="`height: ${scrollHeight}px`" style="overflow:auto;">
         <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
           <div class="q-mx-lg q-px-sm q-mb-sm">
             <TradeInfoCard
@@ -37,6 +37,7 @@
           <!-- Ad Owner Confirm / Decline -->
           <ReceiveOrder
             v-if="state === 'order-confirm-decline'"
+            ref="receiveOrderRef"
             :data="receiveOrderData"
             :errorMessage="receiveOrderError"
             @confirm="confirmingOrder"
@@ -64,6 +65,7 @@
           <!-- Waiting Page -->
           <div v-if="state === 'standby-view'">
             <StandByDisplay
+              ref="standbyRef"
               :key="standByDisplayKey"
               :data="standByDisplayData"
               @send-feedback="sendFeedback"
@@ -102,17 +104,19 @@
     <AdSnapshotDialog :key="adSnapshotDialogKey" v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog :key="userProfileDialogKey" v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
     <ChatDialog :key="chatDialogKey" v-if="openChat" :order="order" @close="openChat=false"/>
-    <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
+    <ContractProgressDialog v-if="showContractLoading" :message="contractLoadingMessage"/>
     <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" :trader-type="userTraderType" @back="showStatusHistory=false; order.has_unread_status=false" />
+    <NoticeBoardDialog v-if="showNoticeDialog" :type="noticeType" action="orders" :message="errorMessage" @hide="showNoticeDialog = false"/>
   </template>
 <script>
-import { formatCurrency, formatDate } from 'src/exchange'
+import { bchToFiat, formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { ref } from 'vue'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/exchange/chat'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { WebSocketManager } from 'src/exchange/websocket/manager'
+import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -130,12 +134,6 @@ import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractPro
 import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
 
 export default {
-  setup () {
-    const scrollTargetRef = ref(null)
-    return {
-      scrollTargetRef
-    }
-  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -178,6 +176,7 @@ export default {
       chatDialogKey: 0,
 
       errorMessages: [],
+      errorMessage: null,
       selectedPaymentMethods: [],
       autoReconWebSocket: true,
       reconnectingWebSocket: false,
@@ -192,7 +191,10 @@ export default {
       sendingBch: false,
       verifyingTx: false,
       showStatusHistory: false,
-      receiveOrderError: null
+      receiveOrderError: null,
+      orderWebSocketManager: null,
+      noticeType: 'info',
+      showNoticeDialog: false
     }
   },
   components: {
@@ -209,7 +211,8 @@ export default {
     UserProfileDialog,
     ContractProgressDialog,
     HeaderNav,
-    OrderStatusDialog
+    OrderStatusDialog,
+    NoticeBoardDialog
   },
   props: {
     notifType: {
@@ -225,10 +228,10 @@ export default {
       }
       return this.order?.ad?.trade_type === 'BUY' ? 'BUYER' : 'SELLER'
     },
-    showContractProgDialog () {
+    showContractLoading () {
       return this.sendingBch || this.verifyingTx
     },
-    contractProgMsg () {
+    contractLoadingMessage () {
       if (this.sendingBch) {
         return this.$t('SendingBchPleaseWait')
       }
@@ -320,7 +323,7 @@ export default {
       }
     },
     transferAmount () {
-      return Number(this.order.crypto_amount)
+      return Number(this.order.trade_amount)
     },
     getAdLimits () {
       if (!this.ad) return
@@ -332,10 +335,7 @@ export default {
       }
     },
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price))
-    },
-    cryptoAmount () {
-      return (this.fiatAmount / this.order.locked_price).toFixed(8)
+      return bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
     },
     hasChat () {
       const stat = ['RFN', 'RLS', 'CNCL']
@@ -376,12 +376,12 @@ export default {
   },
   async mounted () {
     await this.loadData()
-    this.setupWebsocket(20, 1000)
+    this.setupWebSocket()
     this.setupChatWebsocket(20, 1000)
   },
   beforeUnmount () {
     this.autoReconWebSocket = false
-    this.closeWSConnection()
+    this.orderWebSocketManager?.closeConnection()
     this.closeChatWSConnection()
   },
   methods: {
@@ -405,7 +405,7 @@ export default {
         await vm.generateContract()
       }
       vm.isloaded = true
-      vm.fetchAd()
+      await vm.fetchAd()
       vm.fetchFeedback().then(() => {
         if (this.notifType === 'new_message') { this.openChat = true }
       })
@@ -465,7 +465,7 @@ export default {
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
-          vm.generateContract()
+          await vm.generateContract()
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'ESCROW')
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
@@ -542,46 +542,42 @@ export default {
     isPdPendingRelease (status) {
       return status === 'PD'
     },
-    fetchOrder () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = `/ramp-p2p/order/${this.$route.params?.order}/`
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.order = response.data
-            vm.updateStatus(vm.order.status)
-            vm.updateOrderReadAt()
-            const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-            const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
-            vm.chatRef = chatRef
-            if (vm.order?.chat_session_ref !== chatRef) {
-              updateOrderChatSessionRef(vm.order?.id, chatRef)
-              fetchChatSession(chatRef)
-                .then(res => {
-                  vm.hasUnread = res.data.unread_count > 0
-                })
-                .catch(error => {
-                  console.log(error)
-                  if (error.response?.status === 404) {
-                    vm.createGroupChat(vm.order?.id, chatRef)
-                  }
-                })
+    async fetchOrder () {
+      const vm = this
+      const url = `/ramp-p2p/order/${this.$route.params?.order}/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.order = response.data
+          vm.updateStatus(vm.order.status)
+          vm.updateOrderReadAt()
+          const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+          const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+          vm.chatRef = chatRef
+          if (vm.order?.chat_session_ref !== chatRef) {
+            updateOrderChatSessionRef(vm.order?.id, chatRef)
+            fetchChatSession(chatRef)
+              .then(res => {
+                vm.hasUnread = res.data.unread_count > 0
+              })
+              .catch(error => {
+                console.log(error)
+                if (error.response?.status === 404) {
+                  vm.createGroupChat(vm.order?.id, chatRef)
+                }
+              })
+          }
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     },
     async createGroupChat (orderId, chatRef) {
       if (!orderId) throw Error(`Missing required parameter: orderId (${orderId})`)
@@ -615,29 +611,25 @@ export default {
           })
       })
     },
-    fetchAd () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = `/ramp-p2p/ad/${vm.order.ad.id}/`
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.ad = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+    async fetchAd () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.order.id}/ad/snapshot/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.ad = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-          .finally(() => { this.reloadChildComponents() })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
+        .finally(() => { this.reloadChildComponents() })
     },
     confirmOrder () {
       const vm = this
@@ -682,28 +674,24 @@ export default {
           }
         })
     },
-    fetchFees () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = '/ramp-p2p/order/contract/fees/'
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.fees = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+    async fetchFees () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.order?.id}/contract/fees/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.fees = response.data
+        })
+        .catch(error => {
+          console.error(error.response || error)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     },
     fetchContract () {
       return new Promise((resolve, reject) => {
@@ -730,15 +718,15 @@ export default {
     },
     async generateContract () {
       const vm = this
-      const fees = await vm.fetchFees()
+      await vm.fetchFees()
       await vm.fetchContract().then(async contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
         const fees_ = {
-          arbitrationFee: fees.breakdown?.arbitration_fee,
-          serviceFee: fees.breakdown?.service_fee,
-          contractFee: fees.breakdown?.hardcoded_fee
+          arbitrationFee: vm.fees?.breakdown?.arbitration_fee,
+          serviceFee: vm.fees?.breakdown?.service_fee,
+          contractFee: vm.fees?.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
@@ -881,10 +869,13 @@ export default {
       vm.isloaded = false
       switch (vm.dialogType) {
         case 'confirmCancelOrder':
+          if (this.$refs.standbyRef) { this.$refs.standbyRef.loadCancelButton = true }
+          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadDeclineButton = true }
           vm.cancelOrder()
           vm.onBack()
           break
         case 'confirmOrder':
+          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadConfirmButton = true }
           vm.confirmOrder()
           break
       }
@@ -968,38 +959,36 @@ export default {
         }
       }
     },
-    setupWebsocket (retries, delayDuration) {
-      const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.order.id}/`
-      this.websocket.watchtower = new WebSocket(wsWatchtowerUrl)
-      this.websocket.watchtower.onopen = () => {
-        console.log('WebSocket connection established to ' + wsWatchtowerUrl)
-      }
-      this.websocket.watchtower.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log('WebSocket data:', data)
-        if (data?.txdata) {
-          this.verifyingTx = false
-          this.sendingBch = false
+    setupWebSocket () {
+      const url = `${getBackendWsUrl()}order/${this.order.id}/`
+      this.orderWebSocketManager = new WebSocketManager()
+      this.orderWebSocketManager.setWebSocketUrl(url)
+      this.orderWebSocketManager.subscribeToMessages((message) => {
+        if (message?.success) {
+          if (message?.txdata) {
+            this.verifyingTx = false
+            this.sendingBch = false
+          }
+          this.fetchOrder()
+            .then(() => {
+              if (message?.contract_address) {
+                this.fetchContract().then(() => { this.escrowTransferKey++ })
+              }
+            })
+        } else {
+          this.handleError(message)
         }
-        this.fetchOrder()
-          .then(() => {
-            if (data?.contract_address) {
-              this.fetchContract().then(() => { this.escrowTransferKey++ })
-            }
-          })
-      }
-      this.websocket.watchtower.onclose = () => {
-        console.log('WebSocket connection closed.')
-        if (this.autoReconWebSocket && retries > 0) {
-          this.reconnectingWebSocket = true
-          console.log(`Websocket reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupWebsocket(retries - 1, delayDuration * 2))
-        }
+      })
+    },
+    handleError (data) {
+      if ((data?.action === 'ESCROW' || data?.action === 'RELEASE') && this.userTraderType === 'SELLER') {
+        this.noticeType = 'error'
+        this.errorMessage = data?.error
+        this.showNoticeDialog = true
       }
     },
     closeWSConnection () {
-      if (this.websocket.watchtower) this.websocket.watchtower.close()
+      this.websocket?.watchtower?.close()
     },
     closeChatWSConnection () {
       if (this.websocket.chat) this.websocket.chat.close()

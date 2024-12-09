@@ -74,8 +74,9 @@
         filled
         dense
         hide-bottom-space
-        :dark="darkMode"
         v-model="transferAmount"
+        :loading="!transferAmount"
+        :dark="darkMode"
         :error="balanceExceeded"
         :error-message="balanceExceeded? $t('Insufficient balance') : ''">
         <template #append>
@@ -107,7 +108,7 @@
       </div>
     </div>
     <!-- Warning message for when no currency arbiter is available for ad -->
-    <div v-if="!hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+    <div v-if="!loading && !hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
       There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
     </div>
     <RampDragSlide
@@ -134,6 +135,8 @@ import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import RampContract from 'src/exchange/contract'
+import packageInfo from '../../../../package.json'
+import { bchToFiat, satoshiToBch } from 'src/exchange'
 
 export default {
   data () {
@@ -199,16 +202,13 @@ export default {
       return false
     },
     fiatAmount () {
-      let amount = Number(parseFloat(this.order?.crypto_amount) * parseFloat(this.order?.locked_price))
+      let amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
       if (amount > 1) amount = amount.toFixed(2)
       return this.$parent.formattedCurrency(amount)
     }
   },
   async mounted () {
-    const vm = this
-    vm.loading = true
-    vm.loadData()
-    vm.loadContract()
+    await this.loadData()
   },
   methods: {
     getDarkModeClass,
@@ -245,21 +245,14 @@ export default {
         }
       }
     },
-    loadData () {
-      const vm = this
-      vm.order = vm.data.order
-      vm.fees = vm.data.fees
-      vm.updateTransferAmount(vm.data.transferAmount)
-      if (vm.contractAddress) {
-        vm.$emit('refresh')
-      }
-    },
-    updateTransferAmount (transferAmount) {
-      this.transferAmount = transferAmount
-      if (this.fees) {
-        this.transferAmount += this.fees.total / 100000000
-      }
-      this.transferAmount = parseFloat(this.transferAmount.toFixed(8))
+    async loadData () {
+      this.loading = true
+      this.order = this.data.order
+      await this.fetchFees()
+      await this.loadContract()
+      const transferAmount = this.data.transferAmount
+      this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
+      this.loading = false
     },
     async completePayment () {
       const vm = this
@@ -341,40 +334,34 @@ export default {
           }
         })
     },
-    fetchArbiters () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        backend.get('ramp-p2p/arbiter/', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
-          .then(response => {
-            vm.arbiterOptions = response.data
-            if (vm.arbiterOptions.length > 0) {
-              if (!vm.selectedArbiter) {
-                vm.selectedArbiter = vm.arbiterOptions[0]
-              } else {
-                vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
-                  return Number(obj.id) === vm.selectedArbiter.id
-                })
-              }
+    async fetchArbiters () {
+      const vm = this
+      await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
+        .then(response => {
+          vm.arbiterOptions = response.data
+          if (vm.arbiterOptions.length > 0) {
+            if (!vm.selectedArbiter) {
+              vm.selectedArbiter = vm.arbiterOptions[0]
             } else {
-              vm.selectedArbiter = null
-              vm.contractAddress = null
+              vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
+                return Number(obj.id) === vm.selectedArbiter.id
+              })
             }
-            resolve(response.data)
-            vm.loading = false
-          })
-          .catch(error => {
-            console.error(error.response)
-            if (error.response) {
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
+          } else {
+            vm.selectedArbiter = null
+            vm.contractAddress = null
+          }
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            vm.loading = false
-            reject(error)
-          })
-      })
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     generateContractAddress (force = false) {
       return new Promise((resolve, reject) => {
@@ -384,7 +371,7 @@ export default {
           arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
-        backend.post('/ramp-p2p/order/contract/', body, { authorize: true })
+        backend.post('/ramp-p2p/order/contract/', body, { headers: { version: packageInfo.version }, authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
             vm.loading = false
@@ -439,15 +426,15 @@ export default {
     },
     async generateContract () {
       const vm = this
-      const fees = await vm.fetchFees()
+      await vm.fetchFees()
       await vm.fetchContract(vm.order.id).then(contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
         const fees_ = {
-          arbitrationFee: fees.breakdown?.arbitration_fee,
-          serviceFee: fees.breakdown?.service_fee,
-          contractFee: fees.breakdown?.hardcoded_fee
+          arbitrationFee: vm.fees.breakdown?.arbitration_fee,
+          serviceFee: vm.fees.breakdown?.service_fee,
+          contractFee: vm.fees.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         const isChipnet = vm.$store.getters['global/isChipnet']
@@ -475,26 +462,23 @@ export default {
           })
       })
     },
-    fetchFees () {
-      return new Promise((resolve, reject) => {
-        const url = '/ramp-p2p/order/contract/fees/'
-        backend.get(url, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
+    async fetchFees () {
+      const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          this.fees = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            reject(error)
-          })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     }
   }
 }

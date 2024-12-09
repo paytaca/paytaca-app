@@ -118,6 +118,31 @@ export async function hideItemUpdate (item) {
     .catch(error => { console.log(error) })
 }
 
+export async function massHideNotifs (notifsIds) {
+  await NOTIFS_URL
+    .post('notification/mass_delete_notifications/', { notif_ids: notifsIds })
+    .then(response => { /* mass delete successful */ })
+    .catch(error => console.log(error))
+}
+
+export async function markWalletNotifsAsRead (walletHash) {
+  await NOTIFS_URL
+    .post('notification/mark_wallet_notifs_as_read/', { wallet_hash: walletHash })
+    .then(response => { /* marking successful */ })
+    .catch(error => console.log(error))
+}
+
+export async function getWalletUnreadNotifs (walletHash) {
+  let count = 0
+  await NOTIFS_URL
+    .post('notification/get_unread_notifs/', { wallet_hash: walletHash })
+    .then(response => { count = response.data.unread_notifs_count })
+    .catch(error => console.log(error))
+  return count
+}
+
+// ========== PUSH NOTIFICATIONS SETTINGS ========== //
+
 export function parseDeviceId (deviceId) {
   const platform = Capacitor.getPlatform()
   if (platform === 'ios') {
@@ -148,24 +173,26 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
   let respId = deviceNotifTypesId
 
   if (respId !== -1) { // patch
-    const data = {}
-    if (type.db_col === 'is_events_promotions_enabled') {
-      data.is_events_promotions_enabled = type.value
-    } else if (type.db_col === 'is_by_country_enabled') {
-      data.is_by_country_enabled = type.value
-    } else if (type.db_col === 'is_by_city_enabled') {
-      data.is_by_city_enabled = type.value
-    } else if (type.db_col === 'country') data.country = type.value
-    else if (type.db_col === 'city') data.city = type.value
+    if (type) {
+      const data = {}
+      if (type.db_col === 'is_events_promotions_enabled') {
+        data.is_events_promotions_enabled = type.value
+      } else if (type.db_col === 'is_by_country_enabled') {
+        data.is_by_country_enabled = type.value
+      } else if (type.db_col === 'is_by_city_enabled') {
+        data.is_by_city_enabled = type.value
+      } else if (type.db_col === 'country') data.country = type.value
+      else if (type.db_col === 'city') data.city = type.value
 
-    await NOTIFS_URL.patch(
-      `devicenotiftype/${respId}/`,
-      data
-    ).then(response => {
-      console.log('Device notif type updated successfully.')
-    }).catch(error => {
-      console.log(error)
-    })
+      await NOTIFS_URL.patch(
+        `devicenotiftype/${respId}/`,
+        data
+      ).then(response => {
+        console.log('Device notif type updated successfully.')
+      }).catch(error => {
+        console.log(error)
+      })
+    }
   } else { // post
     const platform = Capacitor.getPlatform()
 

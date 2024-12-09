@@ -156,7 +156,7 @@ export default {
       return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
     tradeAmountCurrency (ad) {
-      return (ad.trade_amount_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
     },
     tradeLimitsCurrency (ad) {
       return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
@@ -165,9 +165,7 @@ export default {
       return getAppealCooldown(appealCooldownChoice)
     },
     async fetchAdSnapshot () {
-      await backend.get('/ramp-p2p/ad/snapshot/',
-        { authorize: true, params: { order_id: this.orderId } }
-      )
+      await backend.get(`/ramp-p2p/order/${this.orderId}/ad/snapshot/`, { authorize: true })
         .then(response => {
           this.snapshot = response.data
           this.showAdSnapshot = true

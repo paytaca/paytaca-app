@@ -28,11 +28,8 @@
           <q-item class="q-px-none">
             <q-item-section side top class="asset-logo">
               <img
-                :src="(denominationTabSelected === $t('DEEM')) && transaction.asset.symbol === 'BCH'
-                  ? 'assets/img/theme/payhero/deem-logo.png'
-                  : transaction.asset.logo || fallbackAssetLogo
-                "
-                alt=""
+                :src="getImageUrl(transaction.asset)"
+                alt="asset-logo"
                 height="30"
               />
             </q-item-section>
@@ -569,6 +566,21 @@ export default {
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
+    },
+    getImageUrl (asset) {
+      if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
+        return 'assets/img/theme/payhero/deem-logo.png'
+      } else {
+        if (asset.logo) {
+          if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+            return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          } else {
+            return asset.logo
+          }
+        } else {
+          return this.fallbackAssetLogo
+        }
+      }
     },
     displayAnyhedgeContract(contractAddress) {
       const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash

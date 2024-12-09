@@ -22,3 +22,21 @@ export function deleteAuthToken () {
   SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
   console.log('P2P Exchange auth token deleted')
 }
+
+let authController = null
+export function createAuthAbortController () {
+  authController = new AbortController()
+  return authController
+}
+
+export function getAuthAbortController () {
+  return authController
+}
+
+export function abortAuthController () {
+  if (authController) {
+    authController.abort()
+    deleteAuthToken()
+    console.log('Authentication aborted')
+  }
+}

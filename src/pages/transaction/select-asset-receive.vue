@@ -51,10 +51,7 @@
             <div class="row q-pt-sm q-pb-xs q-pl-md">
               <div>
                 <img
-                  :src="denomination === $t('DEEM') && asset.symbol === 'BCH'
-                    ? 'assets/img/theme/payhero/deem-logo.png'
-                    : asset.logo || getFallbackAssetLogo(asset)
-                  "
+                  :src="getImageUrl(asset)"
                   width="50"
                   alt=""
                 >
@@ -67,7 +64,14 @@
                   {{ asset.name }}
                 </p>
                 <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  <span v-if="!asset.name.includes('New')">{{ parseAssetDenomination(denomination, asset, false, 16) }}</span>
+                  <template v-if="!asset.name.includes('New')">
+                    <span v-if="asset.id.startsWith('ct/')">
+                      {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }}
+                    </span>
+                    <span v-else>
+                      {{ parseAssetDenomination(denomination, asset, false, 16) }}
+                    </span>
+                  </template>
                   {{ asset.name.includes('New') ? asset.symbol : '' }}
                 </p>
               </div>
@@ -229,6 +233,21 @@ export default {
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
+    },
+    getImageUrl (asset) {
+      if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
+        return 'assets/img/theme/payhero/deem-logo.png'
+      } else {
+        if (asset.logo) {
+          if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+            return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          } else {
+            return asset.logo
+          }
+        } else {
+          return this.getFallbackAssetLogo(asset)
+        }
+      }
     },
     async checkIfFirstTimeReceiver (asset) {
       // check wallet/assets if balance is zero and no transactions were made

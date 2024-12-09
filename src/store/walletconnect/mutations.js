@@ -40,3 +40,7 @@ export function removeCallRequest (state, callRequestId) {
 export function clearCallRequests (state) {
   state.callRequests = []
 }
+
+export function setAddressDisplayFormatSetting (state, addressDisplayFormat /* 'tokenaddr' | 'cashaddr'*/) {
+  state.settings.addressDisplayFormat = addressDisplayFormat
+}

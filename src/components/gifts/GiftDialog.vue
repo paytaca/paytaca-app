@@ -13,9 +13,7 @@
       <q-card-section style="max-height:calc(90vh - 3.5rem);overflow-y:auto" class="q-pt-sm">
         <div class="text-center text-h5 q-mb-md">{{ $t('Amount') }}: {{ amount }} BCH</div>
         <div class="row justify-center q-mb-md">
-          <div class="col-qr-code">
-            <qr-code :text="qrCodeContents"/>
-          </div>
+          <qr-code :text="qrCodeContents" :size="300"/>
         </div>
         <div
           class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders q-mb-sm"
@@ -73,13 +71,3 @@ function copyToClipboard (value, message=t('CopiedToClipboard')) {
   })
 }
 </script>
-<style lang="scss" scoped>
-  .col-qr-code {
-    display: flex;
-    justify-content: center;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    background: white;
-    padding: 12px;
-  }
-</style>

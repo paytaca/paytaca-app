@@ -72,12 +72,13 @@
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { extractWifFromUrl } from 'src/wallet/sweep'
-
+import { parsePayPro } from 'src/utils/pay-pro'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import HeaderNav from 'src/components/header-nav'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
+import { isTokenAddress } from 'src/utils/address-utils';
 
 export default {
   name: 'QRReader',
@@ -256,6 +257,8 @@ export default {
           window.setTimeout(resolve, 250)
         })
 
+        const payProData = await parsePayPro(value)
+
         if (value.includes('gifts.paytaca.com')) {
           // redirect to gifts page
           const loadingDialog = vm.loadingDialog()
@@ -277,24 +280,51 @@ export default {
           setTimeout(() => {
             loadingDialog.hide()
           }, 700)
-          if (value.includes('bitcoincash:q') || value.includes('bitcoincash:p') ||
-              value.includes('bitcoincash:?') || value.includes('bchtest:q')
+
+          if (value.includes('bitcoincash:q') || value.includes('bitcoincash:z') || value.includes('bitcoincash:p') || value.includes('bitcoincash:r') ||
+              value.includes('bchtest:q') || value.includes('bchtest:z') || value.includes('bchtest:p') || value.includes('bchtest:r')
           ) {
-            const query = {
-              assetId: vm.$store.getters['assets/getAssets'][0].id,
-              tokenType: 1,
-              network: 'BCH',
-              address: value
+            let query
+            let fallback = false
+            if (payProData.valid) {
+              query = {
+                network: 'BCH',
+                address: payProData.recipient
+              }
+              if (payProData.paypro.category) {
+                query.assetId = `ct/${payProData.paypro.category}`
+                // TODO - Check first if the requested token exists before routing
+                vm.$router.push({
+                  name: 'transaction-send',
+                  query
+                })
+              } else {
+                fallback = true
+              }
+            } else {
+              fallback = true
             }
-            vm.$router.push({
-              name: 'transaction-send',
-              query
-            })
-          } else {
-            vm.$router.push({
-              name: 'transaction-send-select-asset',
-              query: { address: value }
-            })
+
+            // Fallback to BCH
+            if (fallback) {
+              if (isTokenAddress(value)) {
+                vm.$router.push({
+                  name: 'transaction-send-select-asset',
+                  query: { address: value }
+                })
+              } else {
+                query = {
+                  assetId: vm.$store.getters['assets/getAssets'][0].id,
+                  tokenType: 1,
+                  network: 'BCH',
+                  address: value
+                }
+                vm.$router.push({
+                  name: 'transaction-send',
+                  query
+                })
+              }
+            }
           }
         } else if (parseWalletConnectUri(value)) {
           const loadingDialog = vm.loadingDialog()

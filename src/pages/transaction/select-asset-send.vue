@@ -48,10 +48,7 @@
             <div class="row q-pt-sm q-pb-xs q-pl-md">
               <div>
                 <img
-                  :src="denomination === $t('DEEM') && asset.symbol === 'BCH'
-                    ? 'assets/img/theme/payhero/deem-logo.png'
-                    : asset.logo || getFallbackAssetLogo(asset)
-                  "
+                  :src="getImageUrl(asset)"
                   width="50"
                   alt=""
                 />
@@ -63,7 +60,10 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
+                <p v-if="asset.id.startsWith('ct/')" class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
+                  {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }}
+                </p>
+                <p v-else class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
                   {{ parseAssetDenomination(denomination, asset) }}
                 </p>
               </div>
@@ -193,6 +193,21 @@ export default {
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
+    },
+    getImageUrl (asset) {
+      if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
+        return 'assets/img/theme/payhero/deem-logo.png'
+      } else {
+        if (asset.logo) {
+          if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+            return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          } else {
+            return asset.logo
+          }
+        } else {
+          return this.getFallbackAssetLogo(asset)
+        }
+      }
     },
     redirectToSend (asset) {
       const query = {

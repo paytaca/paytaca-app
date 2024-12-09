@@ -1,0 +1,33 @@
+import { CashAddressType, decodeCashAddress, encodeCashAddress, CashAddressNetworkPrefix} from '@bitauth/libauth'
+
+/**
+ * Util function
+ * @return true if address is a token address
+ */
+export const isTokenAddress = (address /* :string */) => {
+  const { type } = decodeCashAddress(address)
+  return type === CashAddressType.p2pkhWithTokens || type === CashAddressType.p2shWithTokens
+}
+
+/**
+ * Shortens address for display
+ * @return bchtest:qz97d...fwe if address is bchtest:qz97djdjktl0dvawp79a73jlq7cy95stcvx8sk9fwe
+ */
+export const shortenAddressForDisplay = (address /* :string */) => {
+  let startIndex = 16
+  if (address?.startsWith('bchtest:')) {
+    startIndex = 12
+  }
+  return address.replace(address.slice(startIndex, address.length - 4), '...')
+}
+
+export const toP2pkhTestAddress = (p2pkhAddress /* :string */) => {
+  const decodedAddress = decodeCashAddress(p2pkhAddress)
+  return encodeCashAddress(CashAddressNetworkPrefix.testnet, CashAddressType.p2pkh, decodedAddress.payload)
+}
+
+export const toP2pkhTestTokenAddress = (p2pkhAddress /* :string */) => {
+  const decodedAddress = decodeCashAddress(p2pkhAddress)
+  return encodeCashAddress(CashAddressNetworkPrefix.testnet, CashAddressType.p2pkhWithTokens, decodedAddress.payload)
+}
+

@@ -18,12 +18,11 @@ function getBcmrBackend() {
 
 
 export const IPFS_DOMAINS = [
+  'https://ipfs.paytaca.com/ipfs/',
   'https://nftstorage.link/ipfs/',
-  'https://w3s.link/ipfs/',
-  'https://hardbin.com/ipfs',
   'https://cloudflare-ipfs.com/ipfs/',
 ]
-export function convertIpfsUrl(url='', baseURL='https://nftstorage.link/ipfs/') {
+export function convertIpfsUrl(url='', baseURL='https://ipfs.paytaca.com/ipfs/') {
   if (typeof url !== 'string') return url
   if (!url.startsWith('ipfs://')) return url
   return url.replace('ipfs://', baseURL)

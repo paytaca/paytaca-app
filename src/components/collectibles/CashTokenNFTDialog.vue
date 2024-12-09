@@ -232,7 +232,14 @@ const transactionUrl = computed(() => `https://3xpl.com/bitcoin-cash/transaction
 watch(() => [props.nft?.imageUrl], () => forceFallbackImage.value = false)
 const forceFallbackImage = ref(false)
 const imageUrl = computed(() => {
-  if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrlFull) return props.nft?.parsedMetadata?.imageUrlFull
+  if (!forceFallbackImage.value && props.nft?.parsedMetadata?.imageUrlFull) {
+    const imgUrl = props.nft?.parsedMetadata?.imageUrlFull
+    if (imgUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+      return imgUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+    } else {
+      return imgUrl
+    }
+  }
   return $store.getters['global/getDefaultAssetLogo']?.(`${props.nft?.category}|${props.nft?.commitment}`)
 })
 

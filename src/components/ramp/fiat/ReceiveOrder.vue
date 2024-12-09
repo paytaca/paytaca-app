@@ -11,15 +11,18 @@
       </div>
       <div class="row q-pt-md q-px-sm">
         <q-btn
+          :loading="loadConfirmButton"
           rounded
           label='confirm'
           class="q-space text-white q-mx-md button"
-          :disable="balanceExceeded === true"
+          :disable="disableButton || this.balanceExceeded === true"
           @click="$emit('confirm')"
         />
       </div>
       <div class="row q-pt-sm q-pb-md q-px-sm">
         <q-btn
+          :loading="loadDeclineButton"
+          :disable="disableButton"
           rounded
           label='decline'
           class="q-space text-white q-mx-md"
@@ -33,7 +36,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getAppealCooldown, formatCurrency } from 'src/exchange'
+import { getAppealCooldown, formatCurrency, satoshiToBch, bchToFiat } from 'src/exchange'
 
 export default {
   data () {
@@ -46,6 +49,8 @@ export default {
       amount: null,
       price: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      loadConfirmButton: false,
+      loadDeclineButton: false
     }
   },
   props: {
@@ -59,10 +64,10 @@ export default {
     },
     balanceExceeded () {
       if (this.order?.ad?.trade_type === 'BUY' && this.order?.is_ad_owner) return false
-      return (parseFloat(this.order.crypto_amount) > parseFloat(this.balance))
+      return (satoshiToBch(this.order?.trade_amount) > parseFloat(this.balance))
     },
     fiatAmount () {
-      return (parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)).toFixed(2)
+      return bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
     },
     cryptoAmount () {
       return (this.fiatAmount / this.order.locked_price).toFixed(2)
@@ -81,6 +86,9 @@ export default {
         }
       }).join(' ')
       return msg
+    },
+    disableButton () {
+      return this.loadConfirmButton || this.loadDeclineButton
     }
   },
   watch: {
@@ -103,9 +111,9 @@ export default {
     updateInput () {
       let amount = 0
       if (this.byFiat) {
-        amount = parseFloat(this.order.crypto_amount) * parseFloat(this.order.locked_price)
+        amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
       } else {
-        amount = parseFloat(this.order.crypto_amount)
+        amount = satoshiToBch(this.order?.trade_amount)
       }
       this.amount = Number(amount)
     }

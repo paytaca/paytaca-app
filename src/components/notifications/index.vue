@@ -24,7 +24,26 @@
       </div>
 
       <div>
-        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
+        <div
+          class="row justify-end items-center q-mb-sm q-gutter-x-md"
+          v-if="notifsList.length > 0"
+        >
+          <q-btn
+            v-if="isCheckboxClicked"
+            flat
+            round
+            :disable="isLoading"
+            icon="cancel"
+            @click="isCheckboxClicked = false"
+          />
+          <q-btn
+            flat
+            round
+            :disable="isLoading"
+            :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
+            :color="isCheckboxClicked ? 'red' : 'white'"
+            @click="massDeleteNotifs"
+          />
           <q-btn
             flat
             round
@@ -32,12 +51,13 @@
             :disable="isLoading"
             @click="refreshNotifsList()"
           />
-          <!-- <q-btn
+          <q-btn
             flat
             round
+            icon="mark_chat_read"
             :disable="isLoading"
-            icon="delete"
-          /> -->
+            @click="markAllAsRead()"
+          />
           <q-btn
             flat
             round
@@ -56,52 +76,80 @@
         <template v-else>
           <div v-if="notifsList.length > 0">
             <div
-              class="q-pb-sm q-gutter-y-sm"
+              class="q-pb-sm q-gutter-y-sm col-12"
               style="height: 70vh; overflow-y: scroll;"
             >
-              <transition-group
-                appear
-                leave-active-class="animated zoomOut fast"
-                v-for="(notif, index) in notifsList"
-                :key="`notif-${index}`"
-              >
-                <q-slide-item
-                  left-color="red"
-                  right-color="red"
-                  class="pt-card-2 text-bow item-border"
-                  :class="getDarkModeClass(darkMode)"
+              <template v-if="isCheckboxClicked">
+                <div
+                  v-for="(notif, index) in notifsList"
                   :key="`notif-${index}`"
-                  @left="(event) => onSwipe(event, index)"
-                  @right="(event) => onSwipe(event, index)"
-                  v-if="!notif.is_hidden"
+                  class="row"
                 >
-                  <template v-slot:left>
-                    <q-icon name="delete" /> {{ $t('Delete') }}
-                  </template>
-                  <template v-slot:right>
-                    {{ $t('Delete') }} <q-icon name="delete" />
-                  </template>
+                  <div class="col-2 flex flex-center">
+                    <q-checkbox
+                      v-model="checkboxList[index]"
+                    />
+                  </div>
 
-                  <transition
-                    appear
-                    leave-active-class="animated zoomOut fast"
+                  <q-slide-item
+                    v-if="!notif.is_hidden"
+                    left-color="red"
+                    right-color="red"
+                    class="col-10 pt-card-2 text-bow item-border"
+                    :class="getDarkModeClass(darkMode)"
+                    :key="`notif-${index}`"
                   >
-                    <div class="row q-py-sm q-px-md">
-                      <span class="row col-12 q-mb-sm text-bold" style="font-size: 17px;">
-                        {{ notif.title }}
-                      </span><br/>
-                      <span class="col-12">{{ notif.message }}</span>
-                      <span
-                        class="col-12 q-mt-xs text-caption"
-                        align="right"
-                        style="color: gray;"
-                      >
-                        {{ parseNotifType(notif.notif_type) }} | {{ formatDate(notif.date_posted) }}
-                      </span>
-                    </div>
-                  </transition>
-                </q-slide-item>
-              </transition-group>
+                    <NotificationBody
+                      :title="notif.title"
+                      :message="notif.message"
+                      :notif_type="parseNotifType(notif.notif_type)"
+                      :date_posted="formatDate(notif.date_posted)"
+                      :is_read="notif.is_read"
+                    />
+                  </q-slide-item>
+                </div>
+              </template>
+
+              <template v-else>
+                <transition-group
+                  appear
+                  leave-active-class="animated zoomOut fast"
+                  v-for="(notif, index) in notifsList"
+                  :key="`notif-${index}`"
+                >
+                  <q-slide-item
+                    v-if="!notif.is_hidden"
+                    left-color="red"
+                    right-color="red"
+                    class="col-12 pt-card-2 text-bow item-border"
+                    :class="getDarkModeClass(darkMode)"
+                    :key="`notif-${index}`"
+                    @left="(event) => onSwipe(event, index)"
+                    @right="(event) => onSwipe(event, index)"
+                    @click="clickRedirect(notif)"
+                  >
+                    <template v-slot:left>
+                      <q-icon name="delete" /> {{ $t('Delete') }}
+                    </template>
+                    <template v-slot:right>
+                      {{ $t('Delete') }} <q-icon name="delete" />
+                    </template>
+
+                    <transition
+                      appear
+                      leave-active-class="animated zoomOut fast"
+                    >
+                      <NotificationBody
+                        :title="notif.title"
+                        :message="notif.message"
+                        :notif_type="parseNotifType(notif.notif_type)"
+                        :date_posted="formatDate(notif.date_posted)"
+                        :is_read="notif.is_read"
+                      />
+                    </transition>
+                  </q-slide-item>
+                </transition-group>
+              </template>
             </div>
 
             <div class="row flex-center q-mt-lg">
@@ -122,11 +170,11 @@
           </div>
 
           <div
-            class="text-center text-subtitle1"
+            class="q-mt-lg text-center text-subtitle1"
             style="color: gray"
             v-else
           >
-            No notifications
+            {{ $t('NoNotifications') }}
           </div>
         </template>
       </div>
@@ -139,25 +187,35 @@ import ago from 's-ago'
 
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import {
-  getWalletNotifications, parseNotifType, hideItemUpdate
+  getWalletNotifications,
+  parseNotifType,
+  hideItemUpdate,
+  massHideNotifs,
+  markWalletNotifsAsRead
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
+import NotificationBody from './NotificationBody.vue'
 
 export default {
   name: 'Notifications',
 
   components: {
-    ProgressLoader
+    ProgressLoader,
+    NotificationBody
   },
 
   data () {
     return {
       notifsList: [],
-      isLoading: false,
-      notifsPage: 1,
+      checkboxList: null,
       notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR'],
+
+      isLoading: false,
+      isCheckboxClicked: false,
+
+      notifsPage: 1,
       maxPages: 0
     }
   },
@@ -186,15 +244,23 @@ export default {
     async refreshNotifsList (done) {
       const vm = this
 
-      if (done) done()
+      try {
+        if (done) done()
 
-      vm.isLoading = true
-      const respData = await getWalletNotifications(
-        vm.currentWalletHash, this.notifsTypes, this.notifsPage
-      )
-      vm.notifsList = respData.list
-      vm.maxPages = respData.max
-      vm.isLoading = false
+        vm.isLoading = true
+        const respData = await getWalletNotifications(
+          vm.currentWalletHash, this.notifsTypes, this.notifsPage
+        )
+        vm.notifsList = respData.list
+        vm.maxPages = respData.max
+        this.resetCheckboxList()
+        vm.isLoading = false
+      } catch (error) {
+        // fallback when an error occurs after deleting last remaining notif
+        vm.notifsList = []
+        vm.maxPages = 0
+        vm.isLoading = false
+      }
     },
     async onSwipe (event, index) {
       const vm = this
@@ -228,7 +294,6 @@ export default {
 
       switch (notif.notif_type) {
         case 'TR': {
-          console.log('transaction notif yey')
           const url = notif.extra_url
           if (url !== '') {
             // automatically hide JPP payment request notifications after clicking
@@ -242,20 +307,20 @@ export default {
               network: 'BCH',
               address: url
             }
-            vm.$router.push({
-              name: 'transaction-send',
-              query
-            })
+            vm.$router.push({ name: 'transaction-send', query })
+          } else {
+            console.log('transaction dialog yey')
           }
           break
         } case 'MP': {
-          console.log('marketplace notif yey')
+          const orderId = notif.message.match(/#(\d+)/)[1]
+          vm.$router.push({ name: 'app-marketplace-order', params: { orderId } })
           break
         } case 'AH': {
-          console.log('anyhedge notif yey')
+          vm.$router.push({ name: 'anyhedge' })
           break
         } case 'RP': {
-          console.log('p2p exchange notif yey')
+          vm.$router.push({ name: 'exchange' })
           break
         } case 'CB': {
           console.log('cashback notif yey')
@@ -264,9 +329,44 @@ export default {
           break
       }
     },
+    resetCheckboxList () {
+      if (this.isCheckboxClicked) {
+        this.checkboxList = new Array(this.notifsList.length).fill(false)
+      }
+    },
+    async massDeleteNotifs () {
+      const vm = this
+
+      if (!vm.isCheckboxClicked) vm.isCheckboxClicked = true
+      else if (vm.checkboxList.filter(a => a === true).length > 0) {
+        const checkboxTrueList = []
+
+        vm.checkboxList.forEach((check, i) => {
+          if (check) checkboxTrueList.push(i)
+        })
+
+        const notifsIds = vm.notifsList
+          .filter((a, i) => checkboxTrueList.includes(i))
+          .map(b => b.id)
+
+        await massHideNotifs(notifsIds)
+        await vm.refreshNotifsList(null)
+        vm.isCheckboxClicked = false
+      }
+    },
+    async markAllAsRead () {
+      await markWalletNotifsAsRead(this.currentWalletHash)
+      await this.refreshNotifsList(null)
+    },
 
     formatDate (date) {
       return ago(new Date(date))
+    }
+  },
+
+  watch: {
+    isCheckboxClicked (value) {
+      this.resetCheckboxList()
     }
   }
 }

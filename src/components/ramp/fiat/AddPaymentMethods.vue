@@ -92,7 +92,7 @@
           <q-btn outline rounded no-caps label="Select Methods" class="q-space text-white" color="blue-6" @click="addMethod"></q-btn>
         </div>
         <div class="row q-pt-xs q-mx-md" v-if="type !== 'Profile'">
-          <q-btn :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white" color="blue-6" @click="submitPaymentMethod()" />
+          <q-btn :loading="loadSubmitButton" :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white" color="blue-6" @click="submitPaymentMethod()" />
         </div>
         <div class="row q-mx-md q-py-md" v-if="type === 'Profile'">
           <q-btn v-if="paymentMethods.length - paymentTypeOpts.length !== 0" outline rounded no-caps label='Add Method' class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod"/>
@@ -191,6 +191,7 @@ export default {
       showMiscDialogs: false,
       fiatOption: null,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
+      loadSubmitButton: false
     }
   },
   emits: ['submit', 'back'],
@@ -248,6 +249,9 @@ export default {
     disableSubmit () {
       let isDisabled = false
       if (this.paymentMethods.length === 0) {
+        isDisabled = true
+      }
+      if (this.loadSubmitButton) {
         isDisabled = true
       }
       if (this.selectedMethods.length === 0 && this.type === 'General') {
@@ -489,6 +493,7 @@ export default {
       vm.isloaded = true
     },
     async savePaymentMethod (info) {
+      console.log('saving Payment method here')
       const vm = this
       let url = '/ramp-p2p/payment-method/'
       const body = {
@@ -497,10 +502,11 @@ export default {
         identifier_format: info.identifier_format
       }
       if (vm.dialogType === 'editPaymentMethod') {
-        url = url + vm.selectedMethodIndex
+        url = `${url}${vm.selectedMethodIndex}/`
       } else {
         body.payment_type = info.payment_type.id
       }
+
       switch (vm.dialogType) {
         case 'addMethodFromAd':
         case 'createPaymentMethod':
@@ -529,6 +535,7 @@ export default {
         }
         case 'editPaymentMethod': {
           // editing payment method
+          console.log('HEERRREEE:', url)
           backend.patch(url, body, { authorize: true })
             .then(() => {
               vm.dialogType = ''

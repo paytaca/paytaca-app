@@ -2,27 +2,33 @@
   <div :class="getDarkModeClass(darkMode)" class="q-mx-md q-mb-lg text-bow" :style="`height: ${minHeight}px;`">
     <div class="q-mb-sm q-pb-sm">
       <q-pull-to-refresh @refresh="refreshData">
-        <div class="row items-center q-px-sm" v-if="!showSearch">
-          <!-- currency dialog -->
-          <div class="col-auto">
-            <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
-              <span v-if="isAllCurrencies">{{ $t('All') }}</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+        <div class="items-center q-px-sm" v-if="!showSearch">
+          <div class="row">
+            <!-- currency dialog -->
+            <div class="col-auto">
+              <div v-if="selectedCurrency" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
+                <span v-if="isAllCurrencies">{{ $t('All') }}</span><span v-else>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
+              </div>
+            </div>
+            <q-space />
+            <!-- filters -->
+            <div class="col-auto q-pr-md">
+              <q-btn
+                unelevated
+                ripple
+                dense
+                size="md"
+                icon="search"
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                @click="searchState('focus')">
+              </q-btn>
+              <FilterComponent :key="filterComponentKey" type="store" :currency="selectedCurrency?.symbol" :transactionType="transactionType" @filter="onFilterListings"/>
             </div>
           </div>
-          <q-space />
-          <!-- filters -->
-          <div class="col-auto q-pr-md">
-            <q-btn
-              unelevated
-              ripple
-              dense
-              size="md"
-              icon="search"
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
-              @click="searchState('focus')">
-            </q-btn>
-            <FilterComponent :key="filterComponentKey" type="store" :currency="selectedCurrency?.symbol" :transactionType="transactionType" @filter="onFilterListings"/>
+          <div class="q-ml-md">
+            <span><q-badge outline color="blue" rounded @click="openFilterSelection('amount')">Amount <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
+            <span class="q-pl-xs"><q-badge outline color="blue" rounded @click="openFilterSelection('paymentTypes')">Payment Types <q-icon size="xs" name='mdi-menu-down'/></q-badge></span>
           </div>
         </div>
         <div v-else class="q-px-lg q-mx-xs">
@@ -111,8 +117,8 @@
                             {{
                               $t(
                                 'TradeCount',
-                                { count: listing.trade_count },
-                                `${ listing.trade_count || 0 } trades`
+                                { count: listing.owner?.trade_count },
+                                `${ listing.owner?.trade_count || 0 } trades`
                               )
                             }}
                           </span>
@@ -120,8 +126,8 @@
                             {{
                               $t(
                                 'CompletionPercentage',
-                                { percentage: formatCompletionRate(listing.completion_rate) },
-                                `${ formatCompletionRate(listing.completion_rate) }% completion`
+                                { percentage: formatCompletionRate(listing.owner?.completion_rate) },
+                                `${ formatCompletionRate(listing.owner?.completion_rate) }% completion`
                               )
                             }}
                           </span><br>
@@ -135,7 +141,7 @@
                         <div class="sm-font-size">
                           <div class="row">
                             <span class="col-3">{{ $t('Quantity') }}</span>
-                            <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_amount_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
+                            <span class="col">{{ formatCurrency(listing.trade_amount, listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : null) }} {{ listing.trade_limits_in_fiat ? listing.fiat_currency.symbol : listing.crypto_currency.symbol }}</span>
                           </div>
                           <div class="row">
                             <span class="col-3">Limit</span>
@@ -167,6 +173,7 @@
 <script>
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
+import FilterSelectionDialog from './dialogs/FilterSelectionDialog.vue'
 import { formatCurrency } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -269,26 +276,18 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
-    minTradeAmount (ad) {
-      let tradeAmount = parseFloat(ad.trade_amount)
-      let tradeCeiling = parseFloat(ad.trade_ceiling)
-      if (ad.trade_limits_in_fiat) {
-        // if trade_limits in fiat and trade_amount in BCH
-        // convert trade_amount to fiat
-        if (!ad.trade_amount_in_fiat) {
-          tradeAmount = tradeAmount * ad.price
+    openFilterSelection (type) {
+      this.$q.dialog({
+        component: FilterSelectionDialog,
+        componentProps: {
+          type: type,
+          filterData: this.filters,
+          currency: this.selectedCurrency
         }
-        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
-      } else {
-        // If trade_limits in BCH and trade_amount in fiat:
-        // convert trade amount to BCH
-        if (ad.trade_amount_in_fiat) {
-          tradeAmount = tradeAmount / ad.price
-        }
-        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
-      }
-      const amounts = [tradeAmount, tradeCeiling]
-      return Math.min.apply(null, amounts)
+      })
+        .onOk(filter => {
+          this.onFilterListings(filter)
+        })
     },
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
@@ -330,10 +329,6 @@ export default {
     async fetchPaymentTypes () {
       const vm = this
       await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
-        .then(() => {
-          const paymentTypes = vm.$store.getters['ramp/paymentTypes'](this.selectedCurrency.symbol)
-          console.log('paymentTypes:', paymentTypes)
-        })
         .catch(error => {
           console.error(error)
           if (error.response) {
@@ -473,13 +468,6 @@ export default {
     },
     formatCompletionRate (value) {
       return Math.floor(value).toString()
-    },
-    maxAmount (tradeAmount, tradeCeiling) {
-      if (parseFloat(tradeAmount) < parseFloat(tradeCeiling)) {
-        return parseFloat(tradeAmount)
-      } else {
-        return parseFloat(tradeCeiling)
-      }
     },
     preventPull (e) {
       let parent = e.target

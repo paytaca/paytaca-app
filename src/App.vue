@@ -54,7 +54,7 @@ export default {
       const walletHashes = [
         getWalletByNetwork(wallet, 'bch').getWalletHash(),
         getWalletByNetwork(wallet, 'slp').getWalletHash(),
-        wallet.sBCH.getWalletHash(),
+        // wallet.sBCH.getWalletHash(),
       ]
 
       await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)

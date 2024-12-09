@@ -4,11 +4,13 @@
   </div>
   <div v-else>
     <router-view :key="$route.path"></router-view>
+    <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
     <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
   </div>
   <RampLogin v-if="showLogin" @logged-in="showLogin = false"/>
 </template>
 <script>
+import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
 import FooterMenu from 'src/components/ramp/fiat/footerMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -26,7 +28,6 @@ export default {
       network: 'BCH',
       menu: 'store',
       isLoading: true,
-      rampWalllet: null,
       proceed: false,
       createUser: false,
       initStatusType: 'ONGOING',
@@ -39,13 +40,17 @@ export default {
       },
       showLogin: false,
       previousRoute: null,
-      reconnectWebsocket: true
+      reconnectWebsocket: true,
+      showNoticeBoard: false,
+      noticeBoardMessage: null,
+      noticeBoardType: null
     }
   },
   components: {
     FooterMenu,
     RampLogin,
-    ProgressLoader
+    ProgressLoader,
+    NoticeBoardDialog
   },
   props: {
     notif: {
@@ -60,6 +65,11 @@ export default {
         vm.previousRoute = '/apps'
       }
     })
+  },
+  computed: {
+    multipleAdLimitMessage () {
+      return 'You currently have multiple ads for the same currency. Please note that you\'re now only allowed to have 1 active ad per currency and trade type.'
+    }
   },
   beforeRouteLeave (to, from, next) {
     if (to.name === 'apps-dashboard') {
@@ -89,6 +99,7 @@ export default {
     bus.on('show-menu', this.showMenu)
     bus.on('update-unread-count', this.updateUnreadCount)
     bus.on('session-expired', this.handleSessionEvent)
+    bus.on('post-notice', this.postNotice)
   },
   async mounted () {
     this.isLoading = false
@@ -99,11 +110,19 @@ export default {
     this.fetchUser()
     this.setupWebsocket()
   },
-  // async beforeUnmount () {
-  // this.$store.commit('ramp/resetPaymentTypes')
-  // },
   methods: {
     isNotDefaultTheme,
+    postNotice (type, message) {
+      this.showNoticeBoard = true
+      this.noticeBoardType = type
+      switch (type) {
+        case 'ad-limit':
+          this.noticeBoardMessage = this.multipleAdLimitMessage
+          break
+        default:
+          this.noticeBoardMessage = message
+      }
+    },
     handleSessionEvent () {
       this.showLogin = true
     },

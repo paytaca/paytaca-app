@@ -13,15 +13,7 @@
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown ref="multi-wallet-component" />
-              <div class="col-2 flex justify-end" v-if="isMobile">
-                <q-btn
-                  flat
-                  icon="notifications"
-                  class="text-bow"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="openNotificationsDialog"
-                />
-              </div>
+              <NotificationButton @hide-multi-wallet-dialog="hideMultiWalletDialog" />
             </div>
 
             <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
@@ -419,6 +411,7 @@ import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vu
 import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
+import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 
 const sep20IdRegexp = /sep20\/(.*)/
 
@@ -439,6 +432,7 @@ export default {
     StablehedgeButtons,
     StablehedgeHistory,
     StablehedgeMarketsDialog,
+    NotificationButton
   },
   directives: {
     dragscroll
@@ -702,6 +696,9 @@ export default {
         .filter(Boolean)
         .map(assetId => updateAssetBalanceOnLoad(assetId, this.wallet, this.$store))
     },
+    fetchFeatureToggles () {
+      this.$store.dispatch('ramp/fetchFeatureToggles')
+    },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
@@ -717,7 +714,8 @@ export default {
           })
       }
     },
-    openCashIn () {
+    async openCashIn () {
+      await this.checkCashinAvailable()
       this.$q.dialog({
         component: CashIn,
         componentProps: {
@@ -726,6 +724,7 @@ export default {
       })
     },
     async checkCashinAvailable () {
+      this.hasCashin = false
       // check network
       if (this.selectedNetwork === 'BCH') {
         // check availableCashinFiat is empty to avoid duplicate requests
@@ -767,16 +766,19 @@ export default {
       }
     },
     async checkCashinAlert () {
-      const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-      await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
-        .then(response => {
-          this.hasCashinAlert = response.data.has_cashin_alerts
-        })
-        .catch(error => {
-          console.log(error.response || error)
-        })
+      if (this.hasCashin) {
+        const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
+        await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
+          .then(response => {
+            this.hasCashinAlert = response.data.has_cashin_alerts
+          })
+          .catch(error => {
+            console.log(error.response || error)
+          })
+      }
     },
     setupCashinWebSocket () {
+      this.closeCashinWebSocket()
       const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
       const url = `${getBackendWsUrl()}${walletHash}/cash-in/`
       this.websocketManager = new WebSocketManager()
@@ -787,7 +789,7 @@ export default {
       })
     },
     closeCashinWebSocket () {
-      this.websocketManager.closeConnection()
+      this.websocketManager?.closeConnection()
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()
@@ -893,7 +895,7 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
-      vm.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
+      vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
       const txCheck = setInterval(function () {
         if (transaction) {
@@ -1174,7 +1176,9 @@ export default {
         vm.$refs['transaction-list-component'].getTransactions()
 
         vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-        vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        if (this.selectedNetwork === 'sBCH') {
+          vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        }
         offlineNotif()
       } else {
         vm.balanceLoaded = true
@@ -1361,25 +1365,7 @@ export default {
               const minReqVer = response.data?.min_required_version
 
               if (appVer !== latestVer) {
-                const appV = appVer.split('.').map(Number)
-                const minV = minReqVer.split('.').map(Number)
-
-                let openVersionUpdate = false
-
-                for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
-                  const v1 = appV[i] || 0
-                  const v2 = minV[i] || 0
-
-                  if (v1 < v2) {
-                    openVersionUpdate = true
-                    break
-                  } else if (v1 > v2) {
-                    openVersionUpdate = false
-                    break
-                  } else {
-                    openVersionUpdate = false
-                  }
-                }
+                const openVersionUpdate = this.checkOutdatedVersion(appVer, minReqVer)
 
                 // open version update dialog
                 if (openVersionUpdate) {
@@ -1395,16 +1381,34 @@ export default {
           })
       }
     },
+    checkOutdatedVersion (appVer, minReqVer) {
+      let isOutdated = false
+      const appV = appVer.split('.').map(Number)
+      const minV = minReqVer.split('.').map(Number)
+
+      for (let i = 0; i < Math.max(appV.length, minV.length); i++) {
+        const v1 = appV[i] || 0
+        const v2 = minV[i] || 0
+
+        if (v1 < v2) {
+          isOutdated = true
+          break
+        } else if (v1 > v2) {
+          isOutdated = false
+          break
+        } else {
+          isOutdated = false
+        }
+      }
+      return isOutdated
+    },
     resetCashinOrderPagination () {
       this.$store.commit('ramp/resetCashinOrderList')
       this.$store.commit('ramp/resetCashinOrderListPage')
       this.$store.commit('ramp/resetCashinOrderListTotalPage')
     },
-    openNotificationsDialog () {
+    hideMultiWalletDialog () {
       this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
-      this.$q.dialog({
-        component: Notifications
-      })
     }
   },
 
@@ -1424,12 +1428,13 @@ export default {
   },
   async mounted () {
     const vm = this
-    this.checkVersionUpdate()
+    await this.checkVersionUpdate()
     this.checkCashinAvailable()
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
     stablehedgePriceTracker.subscribe('main-page')
+    this.fetchFeatureToggles()
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 
@@ -1511,13 +1516,23 @@ export default {
     }
 
     // Check for slow internet and/or accessibility of the backend
-    axios.get('https://watchtower.cash', { timeout: 1000 * 60 }).then((resp) => {
+    let onlineStatus = true
+    axios.get('https://watchtower.cash/api/status/', { timeout: 1000 * 60 }).then((resp) => {
       console.log('ONLINE')
+      if (resp.status === 200) {
+        if (resp.data.status !== 'up') {
+          onlineStatus = false
+        }
+      }
     }).catch((error) => {
-      console.log(error)
-      vm.$store.dispatch('global/updateConnectivityStatus', false)
-      vm.balanceLoaded = true
-      vm.transactionsLoaded = true
+      console.log('OFFLINE', error)
+      onlineStatus = false
+    }).finally(() => {
+      if (!onlineStatus) {
+        vm.$store.dispatch('global/updateConnectivityStatus', false)
+        vm.balanceLoaded = true
+        vm.transactionsLoaded = true
+      }
     })
 
     vm.$store.dispatch('market/updateAssetPrices', {})
