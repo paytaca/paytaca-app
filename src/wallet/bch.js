@@ -4,6 +4,7 @@ import sha256 from 'js-sha256'
 import * as openpgp from 'openpgp/lightweight'
 import { getWatchtowerApiUrl, getBlockChainNetwork, convertCashAddress } from './chipnet'
 import { convertIpfsUrl } from './cashtokens'
+import { isTokenAddress } from '../utils/address-utils'
 import axios from 'axios'
 
 const bchjs = new BCHJS()
@@ -455,7 +456,10 @@ export function decodeBIP0021URI(paymentUri, opts) {
   const urlObject = new URL(paymentUri)
   if (!urlObject?.protocol || !urlObject?.pathname) return
 
-  if (!bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)) return
+  if (!isTokenAddress(`${urlObject.protocol}${urlObject.pathname}`)) {
+    // only check if not token address, bchjs is not cashtoken aware?
+    if (!bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)) return
+  }
 
   response.address = urlObject.protocol + urlObject.pathname
 

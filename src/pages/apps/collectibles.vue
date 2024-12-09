@@ -53,15 +53,11 @@
       />
     </q-tabs>
     <div v-if="showAddress" class="flex flex-center" style="padding-top: 30px;">
-      <div class="q-pa-md br-15 col-qr-code text-center">
-        <img src="/ct-logo.png" height="50" class="receive-icon-asset" alt="">
+      <div class="q-pa-md br-15 justify-center">
         <qr-code
           :text="receivingAddress"
-          style="width: 200px;"
-          color="#253933"
-          :size="200"
-          error-level="H"
-          class="q-mb-sm q-ml-auto q-mr-auto"
+          :size="300"
+          icon="/ct-logo.png"
           @click="copyAddress(receivingAddress)"
         />
       </div>
@@ -396,19 +392,6 @@ export default {
     right: 10px;
     z-index: 150 !important;
     color: #3b7bf6;
-  }
-  .col-qr-code {
-    background: white;
-    border: 4px solid #ed5f59;
-    padding: 30px;
-  }
-  .receive-icon-asset {
-    position: absolute;
-    margin-top: 73px;
-    margin-left: -25px;
-    background: white;
-    border-radius: 50%;
-    padding: 4px;
   }
   .receiving-address-container {
     padding: 20px 40px;

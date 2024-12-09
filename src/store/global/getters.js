@@ -230,3 +230,37 @@ export function getConnectedSites (state) {
 export function denomination (state) {
   return state.denomination
 }
+
+export function walletAddresses (state) {
+  if (state.isChipnet) {
+    return state.chipnet__wallets.bch.walletAddresses
+  }
+  return state.wallets.bch.walletAddresses
+}
+
+export function walletConnectedApps (state) {
+  if (state.isChipnet) {
+    return state.chipnet__wallets.bch.connectedApps
+  }
+  return state.wallets.bch.connectedApps
+}
+
+export function lastUsedAddressAtAppUrl (state) {
+  return function (appUrl) {
+    let connectedApps = state.wallets.bch.connectedApps
+    if (state.isChipnet) {
+      connectedApps = state.chipnet__wallets.bch.connectedApps
+    }
+    return connectedApps?.find((connectedApp) => {
+      return connectedApp.app_url === appUrl
+    })
+  }
+}
+
+export function lastAddressAndIndex (state) {
+  if (state.isChipnet) {
+    return state.chipnet__wallets.bch.lastAddressAndIndex
+  }
+  return state.wallets.bch.lastAddressAndIndex
+}
+

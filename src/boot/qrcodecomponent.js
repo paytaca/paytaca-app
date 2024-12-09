@@ -1,6 +1,6 @@
 import { boot } from 'quasar/wrappers'
-import VueQRCodeComponent from 'vue-qrcode-component'
+import QrCodeComponent from 'src/components/QrCodeComponent.vue'
 
 export default boot(({ app }) => {
-  app.component('qr-code', VueQRCodeComponent)
+  app.component('qr-code', QrCodeComponent)
 })

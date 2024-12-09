@@ -32,26 +32,22 @@
 
         <div class="row col-12 flex-center">
           <div class="col qr-code-container" @click="copyToClipboard(address)">
-            <div class="col col-qr-code q-pl-sm q-pr-sm">
+            <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div v-if="!isCt" class="col row justify-center q-pt-md">
-                  <img src="bch-logo.png" height="50" alt="" class="receive-icon-asset">
                   <qr-code
                     class="q-mb-sm"
-                    color="#253933"
-                    error-level="H"
                     :text="addressAmountFormat"
-                    :size="200"
+                    :size="300"
+                    icon="bch-logo.png"
                   />
                 </div>
                 <div v-else class="col row justify-center q-pt-md">
-                  <img src="ct-logo.png" height="50" alt="" class="receive-icon-asset">
                   <qr-code
                     class="q-mb-sm"
-                    color="#253933"
-                    error-level="H"
                     :text="addressAmountFormat"
-                    :size="200"
+                    :size="300"
+                    icon="ct-logo.png"
                   />
                 </div>
               </div>
@@ -418,26 +414,9 @@ export default {
       margin-top: 46px;
     }
   }
-  .col-qr-code {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    width: 300px;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    padding: 25px 10px 32px 10px;
-    background: white;
-  }
   .qr-code-text {
     font-size: 18px;
     color: #000;
-  }
-  .receive-icon-asset {
-    position: absolute;
-    margin-top: 73px;
-    background: white;
-    border-radius: 50%;
-    padding: 4px;
   }
   .copy-container {
     padding: 0px 20px 0px 20px;

@@ -38,11 +38,10 @@
       <template v-else>
         <div class="row">
           <div class="col qr-code-container" @click="copyToClipboard(address)">
-            <div class="col col-qr-code q-pl-sm q-pr-sm">
+            <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <img :src="getImageUrl(asset)" height="50" alt="" class="receive-icon-asset">
-                  <qr-code :text="addressAmountFormat" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+                  <qr-code :text="addressAmountFormat" :size="300" :icon="getImageUrl(asset)" class="q-mb-sm"></qr-code>
                 </div>
               </div>
             </div>
@@ -173,8 +172,7 @@ import { NativeAudio } from '@capacitor-community/native-audio'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
-  convertCashAddress,
-  convertTokenAmount,
+  convertCashAddress
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
@@ -257,7 +255,10 @@ export default {
       tempAddress += this.amount ? '?amount=' + tempAmount : ''
 
       if (this.assetId.startsWith('ct/')) {
-        tempAddress += '?c=' + this.assetId.split('/')[1]
+        const category = this.assetId.split('/')[1]
+        if (category !== 'unlisted') {
+          tempAddress += '?c=' + category
+        }
       }
 
       return tempAddress
@@ -755,26 +756,9 @@ export default {
       margin-top: 66px;
     }
   }
-  .col-qr-code {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    width: 300px;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    padding: 25px 10px 32px 10px;
-    background: white;
-  }
   .qr-code-text {
     font-size: 18px;
     color: #000;
-  }
-  .receive-icon-asset {
-    position: absolute;
-    margin-top: 73px;
-    background: white;
-    border-radius: 50%;
-    padding: 4px;
   }
   .copy-container {
     padding: 20px 40px 0px 40px;

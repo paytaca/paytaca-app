@@ -28,9 +28,7 @@
               v-else
               :key="qrCodePxSize"
               :text="qrCodeData"
-              color="#253933"
               :size="qrCodePxSize"
-              error-level="H"
             />
           </div>
           <div class="row items-center justify-end">
@@ -168,7 +166,7 @@ async function generateLinkCode(opts) {
     })
 }
 
-const qrCodePxSize = ref(250)
+const qrCodePxSize = ref(300)
 onMounted(() => resizeQrSize())
 function resizeQrSize() {
   let minViewport = Math.min(window.innerWidth - 70, window.innerHeight - 55, 400)

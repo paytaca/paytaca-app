@@ -74,8 +74,9 @@
         filled
         dense
         hide-bottom-space
-        :dark="darkMode"
         v-model="transferAmount"
+        :loading="!transferAmount"
+        :dark="darkMode"
         :error="balanceExceeded"
         :error-message="balanceExceeded? $t('Insufficient balance') : ''">
         <template #append>
@@ -107,7 +108,7 @@
       </div>
     </div>
     <!-- Warning message for when no currency arbiter is available for ad -->
-    <div v-if="!hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+    <div v-if="!loading && !hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
       There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
     </div>
     <RampDragSlide
@@ -207,9 +208,7 @@ export default {
     }
   },
   async mounted () {
-    const vm = this
-    vm.loading = true
-    await vm.loadData()
+    await this.loadData()
   },
   methods: {
     getDarkModeClass,
@@ -247,14 +246,13 @@ export default {
       }
     },
     async loadData () {
+      this.loading = true
       this.order = this.data.order
       await this.fetchFees()
+      await this.loadContract()
       const transferAmount = this.data.transferAmount
       this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
-      if (this.contractAddress) {
-        this.$emit('refresh')
-      }
-      this.loadContract()
+      this.loading = false
     },
     async completePayment () {
       const vm = this
@@ -336,40 +334,34 @@ export default {
           }
         })
     },
-    fetchArbiters () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        backend.get('ramp-p2p/arbiter/', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
-          .then(response => {
-            vm.arbiterOptions = response.data
-            if (vm.arbiterOptions.length > 0) {
-              if (!vm.selectedArbiter) {
-                vm.selectedArbiter = vm.arbiterOptions[0]
-              } else {
-                vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
-                  return Number(obj.id) === vm.selectedArbiter.id
-                })
-              }
+    async fetchArbiters () {
+      const vm = this
+      await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
+        .then(response => {
+          vm.arbiterOptions = response.data
+          if (vm.arbiterOptions.length > 0) {
+            if (!vm.selectedArbiter) {
+              vm.selectedArbiter = vm.arbiterOptions[0]
             } else {
-              vm.selectedArbiter = null
-              vm.contractAddress = null
+              vm.selectedArbiter = vm.arbiterOptions.find(function (obj) {
+                return Number(obj.id) === vm.selectedArbiter.id
+              })
             }
-            resolve(response.data)
-            vm.loading = false
-          })
-          .catch(error => {
-            console.error(error.response)
-            if (error.response) {
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
+          } else {
+            vm.selectedArbiter = null
+            vm.contractAddress = null
+          }
+        })
+        .catch(error => {
+          console.error(error.response)
+          if (error.response) {
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            vm.loading = false
-            reject(error)
-          })
-      })
+          } else {
+            bus.emit('network-error')
+          }
+        })
     },
     generateContractAddress (force = false) {
       return new Promise((resolve, reject) => {

@@ -572,7 +572,7 @@
                         @click.stop="() => copyToClipboard(bchPaymentData?.url)"
                       />
                     </div>
-                    <div class="col-qr-code"><qr-code :text="bchPaymentData?.url"/></div>
+                    <qr-code :text="bchPaymentData?.url" :size="300" />
                     <div class="text-center">
                       <div class="text-h6">{{ bchPaymentData?.bchAmount }} BCH</div>
                       <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1" style="line-height:0.75em;">
@@ -2130,15 +2130,6 @@ table.items-table td {
 }
 </style>
 <style lang="scss" scoped>
-  .col-qr-code {
-    display: flex;
-    justify-content: center;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    background: white;
-    padding: 12px;
-  }
-
   .payment-mode-panels.q-tab-panels {
     background: inherit;
   }

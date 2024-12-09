@@ -78,6 +78,7 @@ import HeaderNav from 'src/components/header-nav'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
+import { isTokenAddress } from 'src/utils/address-utils';
 
 export default {
   name: 'QRReader',
@@ -297,7 +298,6 @@ export default {
                   name: 'transaction-send',
                   query
                 })
-                console.log(query)
               } else {
                 fallback = true
               }
@@ -307,22 +307,24 @@ export default {
 
             // Fallback to BCH
             if (fallback) {
-              query = {
-                assetId: vm.$store.getters['assets/getAssets'][0].id,
-                tokenType: 1,
-                network: 'BCH',
-                address: value
+              if (isTokenAddress(value)) {
+                vm.$router.push({
+                  name: 'transaction-send-select-asset',
+                  query: { address: value }
+                })
+              } else {
+                query = {
+                  assetId: vm.$store.getters['assets/getAssets'][0].id,
+                  tokenType: 1,
+                  network: 'BCH',
+                  address: value
+                }
+                vm.$router.push({
+                  name: 'transaction-send',
+                  query
+                })
               }
-              vm.$router.push({
-                name: 'transaction-send',
-                query
-              })
             }
-          } else {
-            vm.$router.push({
-              name: 'transaction-send-select-asset',
-              query: { address: value }
-            })
           }
         } else if (parseWalletConnectUri(value)) {
           const loadingDialog = vm.loadingDialog()

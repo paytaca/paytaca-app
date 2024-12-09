@@ -16,11 +16,11 @@
 
         <div class="row q-pt-md">
           <div class="col qr-code-container">
-            <div class="col col-qr-code q-pl-sm q-pr-sm q-pt-md">
+            <div class="col q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
                   <div v-html="shiftInfo.shift_info.deposit.icon" class="receive-icon-asset"></div>
-                  <qr-code :text="depositAddress" color="#253933" :size="200" error-level="H" class="q-mb-sm"></qr-code>
+                  <qr-code :text="depositAddress" :size="300" class="q-mb-sm"></qr-code>
                 </div>
               </div>
             </div>
@@ -250,29 +250,20 @@ export default {
     padding-left: 28px;
     padding-right: 28px;
   }
-  .col-qr-code {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    width: 300px;
-    border-radius: 16px;
-    border: 4px solid #ed5f59;
-    padding: 25px 10px 32px 10px;
-    background: white;
-  }
   .qr-code-text {
     font-size: 18px;
     color: #000;
   }
   .receive-icon-asset {
     position: absolute;
-    margin-top: 73px;
+    margin-top: 130px;
     background: white;
     border-radius: 50%;
     padding: 4px;
     height: 60px;
     width: 60px;
     border-radius: 50%;
+    z-index: 1000;
   }
   .copy-address-container {
     padding: 20px 40px 0px 40px;
