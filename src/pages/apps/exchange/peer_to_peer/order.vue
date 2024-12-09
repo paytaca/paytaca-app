@@ -104,7 +104,7 @@
     <AdSnapshotDialog :key="adSnapshotDialogKey" v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog :key="userProfileDialogKey" v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
     <ChatDialog :key="chatDialogKey" v-if="openChat" :order="order" @close="openChat=false"/>
-    <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
+    <ContractProgressDialog v-if="showContractLoading" :message="contractLoadingMessage"/>
     <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" :trader-type="userTraderType" @back="showStatusHistory=false; order.has_unread_status=false" />
     <NoticeBoardDialog v-if="showNoticeDialog" :type="noticeType" action="orders" :message="errorMessage" @hide="showNoticeDialog = false"/>
   </template>
@@ -228,10 +228,10 @@ export default {
       }
       return this.order?.ad?.trade_type === 'BUY' ? 'BUYER' : 'SELLER'
     },
-    showContractProgDialog () {
+    showContractLoading () {
       return this.sendingBch || this.verifyingTx
     },
-    contractProgMsg () {
+    contractLoadingMessage () {
       if (this.sendingBch) {
         return this.$t('SendingBchPleaseWait')
       }
@@ -465,7 +465,7 @@ export default {
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
-          vm.generateContract()
+          await vm.generateContract()
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'ESCROW')
           vm.verifyAction = 'ESCROW'
           let state = 'standby-view'
@@ -542,46 +542,42 @@ export default {
     isPdPendingRelease (status) {
       return status === 'PD'
     },
-    fetchOrder () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = `/ramp-p2p/order/${this.$route.params?.order}/`
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.order = response.data
-            vm.updateStatus(vm.order.status)
-            vm.updateOrderReadAt()
-            const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-            const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
-            vm.chatRef = chatRef
-            if (vm.order?.chat_session_ref !== chatRef) {
-              updateOrderChatSessionRef(vm.order?.id, chatRef)
-              fetchChatSession(chatRef)
-                .then(res => {
-                  vm.hasUnread = res.data.unread_count > 0
-                })
-                .catch(error => {
-                  console.log(error)
-                  if (error.response?.status === 404) {
-                    vm.createGroupChat(vm.order?.id, chatRef)
-                  }
-                })
+    async fetchOrder () {
+      const vm = this
+      const url = `/ramp-p2p/order/${this.$route.params?.order}/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.order = response.data
+          vm.updateStatus(vm.order.status)
+          vm.updateOrderReadAt()
+          const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+          const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+          vm.chatRef = chatRef
+          if (vm.order?.chat_session_ref !== chatRef) {
+            updateOrderChatSessionRef(vm.order?.id, chatRef)
+            fetchChatSession(chatRef)
+              .then(res => {
+                vm.hasUnread = res.data.unread_count > 0
+              })
+              .catch(error => {
+                console.log(error)
+                if (error.response?.status === 404) {
+                  vm.createGroupChat(vm.order?.id, chatRef)
+                }
+              })
+          }
+        })
+        .catch(error => {
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
             }
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     },
     async createGroupChat (orderId, chatRef) {
       if (!orderId) throw Error(`Missing required parameter: orderId (${orderId})`)
@@ -681,7 +677,7 @@ export default {
     async fetchFees () {
       const vm = this
       const url = `/ramp-p2p/order/${vm.order?.id}/contract/fees/`
-      backend.get(url, { authorize: true })
+      await backend.get(url, { authorize: true })
         .then(response => {
           vm.fees = response.data
         })
@@ -968,7 +964,6 @@ export default {
       this.orderWebSocketManager = new WebSocketManager()
       this.orderWebSocketManager.setWebSocketUrl(url)
       this.orderWebSocketManager.subscribeToMessages((message) => {
-        console.log('Message:', message)
         if (message?.success) {
           if (message?.txdata) {
             this.verifyingTx = false
@@ -986,8 +981,6 @@ export default {
       })
     },
     handleError (data) {
-      console.log('handleError:', data)
-      console.log('userTraderType:', this.userTraderType)
       if ((data?.action === 'ESCROW' || data?.action === 'RELEASE') && this.userTraderType === 'SELLER') {
         this.noticeType = 'error'
         this.errorMessage = data?.error

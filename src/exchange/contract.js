@@ -23,7 +23,6 @@ export class RampContract {
     this.publicKeys = publicKeys
     this.addresses = addresses
     this.fees = fees
-    console.log('fees:', fees)
     this.network = 'chipnet'
     if (!isChipnet) this.network = 'mainnet'
     this.initialize()
@@ -33,7 +32,7 @@ export class RampContract {
    * Initializes the contract by compiling its source code,
    * generating the contract parameters, and creating a new Contract instance.
    */
-  async initialize () {
+  initialize () {
     const artifact = compileString(escrowSrcCode)
     let provider = new ElectrumNetworkProvider()
     if (this.network === 'chipnet') provider = new ElectrumNetworkProvider(this.network)

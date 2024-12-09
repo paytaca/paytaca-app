@@ -1,8 +1,8 @@
 <template>
-  <q-dialog v-model="sendingBch" persistent seamless full-width position="bottom">
+  <q-dialog v-model="sendingBch" persistent no-shake backdrop-filter="blur(0.8px)">
     <q-card class="text-bow q-py-sm pt-card" :class="getDarkModeClass(darkMode)">
-      <div class="q-mx-lg q-px-md q-my-sm">
-        <q-spinner class="q-mr-sm"/>{{ message }}
+      <div class="q-mx-lg q-px-xs q-my-sm">
+        <q-spinner class="q-mr-md"/>{{ message }}
       </div>
     </q-card>
   </q-dialog>

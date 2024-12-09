@@ -185,7 +185,6 @@ export default {
       let url = `/ramp-p2p/order/${vm.orderId}/`
       url = vm.action === 'RELEASE' ? `${url}verify-release/` : `${url}verify-refund/`
       vm.verifyingTx = true
-      // setTimeout(() => {vm.verifyingTx = false}, 5000)
       const body = { txid: this.transactionId }
       await backend.post(url, body, { authorize: true })
         .then(response => { console.log(response.data) })
