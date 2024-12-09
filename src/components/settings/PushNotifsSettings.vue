@@ -114,7 +114,8 @@ import {
   getPushNotifConfigs,
   updateDeviceNotifType,
   parseDeviceId,
-  deleteDeviceNotifType
+  deleteDeviceNotifType,
+  getCountryCityData
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -129,7 +130,7 @@ export default {
 
   data () {
     return {
-      enablePushNotifs: false,
+      enablePushNotifs: true,
       isEnablePushNotifsLoading: false,
       isEnableEventsAndPromos: false,
       isEnableEventsAndPromosIsLoading: false,
@@ -144,7 +145,7 @@ export default {
           isLoading: false,
           subLabel: this.$t('CountrySubLabel'),
           inputLabel: this.$t('EnterCountry'),
-          value: ''
+          value: null
         },
         {
           label: this.$t('ByCity'),
@@ -153,9 +154,10 @@ export default {
           isLoading: false,
           subLabel: this.$t('CitySubLabel'),
           inputLabel: this.$t('EnterCity'),
-          value: ''
+          value: null
         }
-      ]
+      ],
+      countryCityData: []
     }
   },
 
@@ -172,25 +174,58 @@ export default {
     const vm = this
     vm.isEnablePushNotifsLoading = true
 
-    const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
-    await getPushNotifConfigs(deviceId)
-      .then(async data => {
-        vm.enablePushNotifs = data.is_enabled
-        const configs = data.push_notif_configs
-        if (Object.keys(configs).length > 0) {
-          vm.deviceNotifTypesId = configs.id
-          vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
-          vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
-          vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
-          vm.eventsAndPromosSubList[0].value = configs.country
-          vm.eventsAndPromosSubList[1].value = configs.city
+    // check if push notifs are enabled
+    // if enabled, turn on enable push notifications by default
+    // else turn it off
 
-          const countryLabel = configs.country ? this.$t('UpdateCountry') : this.$t('EnterCountry')
-          const cityLabel = configs.city ? this.$t('UpdateCity') : this.$t('EnterCity')
-          vm.eventsAndPromosSubList[0].inputLabel = countryLabel
-          vm.eventsAndPromosSubList[1].inputLabel = cityLabel
-        } else await vm.handleNotifTypesSubscription(null)
-      })
+    await vm.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+    if (!vm.$pushNotifications.isEnabled && !vm.promptedPushNotifications) {
+      vm.enablePushNotifs = false
+    } else {
+      const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
+      await getPushNotifConfigs(deviceId)
+        .then(async data => {
+          vm.enablePushNotifs = data.is_enabled
+          const configs = data.push_notif_configs
+          if (Object.keys(configs).length > 0) {
+            vm.deviceNotifTypesId = configs.id
+            vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
+            vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
+            vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
+            vm.eventsAndPromosSubList[0].value = configs.country
+            vm.eventsAndPromosSubList[1].value = configs.city
+
+            const countryLabel = configs.country ? this.$t('UpdateCountry') : this.$t('EnterCountry')
+            const cityLabel = configs.city ? this.$t('UpdateCity') : this.$t('EnterCity')
+            vm.eventsAndPromosSubList[0].inputLabel = countryLabel
+            vm.eventsAndPromosSubList[1].inputLabel = cityLabel
+          } else await vm.handleNotifTypesSubscription(null)
+        })
+    }
+
+    vm.countryCityData = await getCountryCityData()
+    // set country and city value
+    const currentCountry = vm.eventsAndPromosSubList[0].value
+    const currentCity = vm.eventsAndPromosSubList[1].value
+
+    if (currentCountry) {
+      const country = vm.countryCityData
+        .filter(a => a.id === currentCountry)
+        .map(b => {
+          return {
+            label: b.name,
+            value: b.id,
+            subLabel: ''
+          }
+        })
+      vm.eventsAndPromosSubList[0].value = country[0]
+    }
+
+    if (currentCity) {
+      const choices = this.parseCities()
+      const city = choices.filter(a => a.id === currentCity)
+      vm.eventsAndPromosSubList[1].value = city[0]
+    }
 
     this.isEnablePushNotifsLoading = false
   },
@@ -256,18 +291,60 @@ export default {
       const vm = this
 
       const enterTypeText = enterType === 0 ? 'Country' : 'City'
+
+      let choices = []
+      if (enterType === 0) {
+        choices = vm.countryCityData.map(a => {
+          return {
+            label: a.name,
+            value: a.id,
+            subLabel: ''
+          }
+        })
+      } else {
+        const countryId = vm.eventsAndPromosSubList[0].value?.value
+        if (countryId) {
+          const country = vm.countryCityData.filter(a => a.id === countryId)
+          choices = country[0].cities.map(b => {
+            return {
+              label: b.name,
+              value: b.id,
+              subLabel: country.name
+            }
+          })
+        } else {
+          choices = this.parseCities()
+          choices = choices.sort((a, b) => a.label.localeCompare(b.label))
+        }
+      }
+
       vm.$q.dialog({
         component: EnterCountryCityDialog,
         componentProps: {
           currentName: vm.eventsAndPromosSubList[enterType].value,
           enterType: enterTypeText,
-          deviceNotifTypesId: vm.deviceNotifTypesId
+          deviceNotifTypesId: vm.deviceNotifTypesId,
+          choices
         }
       }).onOk(response => {
         vm.eventsAndPromosSubList[enterType].value = response
         const inputLabel = this.$t(`${response ? 'Update' : 'Enter'}${enterTypeText}`)
         vm.eventsAndPromosSubList[enterType].inputLabel = inputLabel
       })
+    },
+
+    parseCities () {
+      const choices = []
+      this.countryCityData.forEach((country) => {
+        country.cities.forEach((city) => {
+          choices.push({
+            label: city.name,
+            value: city.id,
+            subLabel: country.name
+          })
+        })
+      })
+      return choices
     }
   }
 }

@@ -225,3 +225,13 @@ export async function deleteDeviceNotifType (deviceNotifTypesId) {
       console.log(error)
     })
 }
+
+export async function getCountryCityData () {
+  let data = []
+  await NOTIFS_URL
+    .get('devicenotiftype/get_country_and_city/')
+    .then(response => { data = response.data })
+    .catch(error => console.log(error))
+
+  return data
+}
