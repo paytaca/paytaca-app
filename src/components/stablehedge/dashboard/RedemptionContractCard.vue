@@ -15,7 +15,7 @@
             <q-item-label>More</q-item-label>
           </q-item-section>
         </q-item>  
-        <q-item clickable v-close-popup @click="() => consolidateReserveUtxo()">
+        <q-item v-if="hasAuthToken" clickable v-close-popup @click="() => consolidateReserveUtxo()">
           <q-item-section>
             <q-item-label>Consolidate reserve UTXO</q-item-label>
           </q-item-section>
@@ -569,15 +569,16 @@ export default defineComponent({
     })
 
     function createTokenChart(ref) {
+      const tokenDecimals = parseInt(decimals.value) || 0
       return new Chart(ref, {
         type: 'bar',
         data: {
           labels: [`Tokens in circulation`, `Redeemable tokens`, `Reserve supply`],
           datasets: [{
             data: [
-              summaryData.value.tokensInCirculation,
-              summaryData.value.redeemableTokens,
-              props.redemptionContract.reserve_supply,
+              summaryData.value.tokensInCirculation / 10 ** tokenDecimals,
+              summaryData.value.redeemableTokens / 10 ** tokenDecimals,
+              props.redemptionContract.reserve_supply / 10 ** tokenDecimals,
             ],
             backgroundColor: getChartColors(2),
           }]
@@ -601,6 +602,23 @@ export default defineComponent({
         mnemonic, undefined, isChipnet ? 'chipnet' : 'mainnet',
       )
       return wallet
+    }
+
+    /** @type {import("vue").Ref<import("src/wallet/stablehedge/wallet").WatchtowerUtxo>} */
+    const authTokenUtxo = ref()
+    const hasAuthToken = computed(() => {
+      if (!authTokenUtxo.value?.tokenid) return false
+      return authTokenUtxo.value?.tokenid === props.redemptionContract?.auth_token_id
+    })
+    onMounted(() => getAuthTokenUtxo())
+    watch(() => [props.redemptionContract?.auth_token_id], () => getAuthTokenUtxo())
+    async function getAuthTokenUtxo() {
+      const authTokenId = props.redemptionContract?.auth_token_id
+      if (!authTokenId) authTokenUtxo.value = null
+
+      const wallet = await getStablehedgeWallet()
+      const utxos = await wallet.getUtxos(authTokenId, true)
+      authTokenUtxo.value = utxos[0]
     }
 
     async function consolidateReserveUtxo() {
@@ -728,6 +746,8 @@ export default defineComponent({
       chartRef,
       parsed24HrVolumeChartData,
 
+      authTokenUtxo,
+      hasAuthToken,
       consolidateReserveUtxo,
 
       denominateSats,

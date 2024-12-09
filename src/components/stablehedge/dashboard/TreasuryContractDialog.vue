@@ -78,7 +78,7 @@
             </div>
           </div>
         </div>
-        <div class="q-mt-sm q-gutter-sm">
+        <div v-if="hasAuthToken" class="q-mt-sm q-gutter-sm">
           <q-btn
             no-caps label="Transfer BCH"
             color="brandblue"
@@ -287,6 +287,23 @@ export default defineComponent({
       return wallet
     }
 
+    /** @type {import("vue").Ref<import("src/wallet/stablehedge/wallet").WatchtowerUtxo>} */
+    const authTokenUtxo = ref()
+    const hasAuthToken = computed(() => {
+      if (!authTokenUtxo.value?.tokenid) return false
+      return authTokenUtxo.value?.tokenid === treasuryContract.value?.auth_token_id
+    })
+    onMounted(() => getAuthTokenUtxo())
+    watch(() => [treasuryContract.value?.auth_token_id], () => getAuthTokenUtxo())
+    async function getAuthTokenUtxo() {
+      const authTokenId = treasuryContract.value?.auth_token_id
+      if (!authTokenId) authTokenUtxo.value = null
+
+      const wallet = await getStablehedgeWallet()
+      const utxos = await wallet.getUtxos(authTokenId, true)
+      authTokenUtxo.value = utxos[0]
+    }
+
     const showSendAmountForm = ref(false)
     const maxSendableAmount = computed(() => {
       const P2PKH_INPUT_SIZE = 32 + 4 + 1 + 1 + 65 + 1 + 33 + 4;
@@ -424,6 +441,9 @@ export default defineComponent({
       fetchShortPositions,
       hedgePositionDetailDialog,
       openHedgePositionDialog,
+
+      authTokenUtxo,
+      hasAuthToken,
 
       showSendAmountForm,
       maxSendableAmount,

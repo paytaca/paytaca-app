@@ -22,6 +22,16 @@
         />
       </div>
       <q-card-section style="max-height: calc(80vh - 5rem);overflow-y:auto;">
+        <div class="row items-center q-mb-sm">
+          <q-space/>
+          <q-btn
+            flat
+            no-caps label="Go to page"
+            icon-right="keyboard_arrow_right"
+            class="q-r-mr-lg"
+            :to="{ name: 'app-stablehedge' }"
+          />
+        </div>
         <RedemptionContractMarketInfo
           v-for="redemptionContract in redemptionContracts" :key="redemptionContract?.address"
           :redemptionContract="redemptionContract"
