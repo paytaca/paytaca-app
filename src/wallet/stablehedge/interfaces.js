@@ -15,7 +15,7 @@
  * @property {String} [treasury_contract_address]
  * @property {Number | null} redeemable
  * @property {Number | null} reserve_supply
- * @property {Number} volume_24_hr
+ * @property {{ inject: Number, deposit: Number, redeem: Number }} volume_24_hr
  * 
  * 
  * @typedef {Object} TreasuryContractApiData

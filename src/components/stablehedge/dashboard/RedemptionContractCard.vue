@@ -94,6 +94,22 @@
             <q-btn flat padding="sm lg" icon="keyboard_arrow_right" @click="() => moveSummaryPanel(1)"/>
           </div>
           <q-tab-panels v-model="summaryPanel" animated class="pt-card-2" :class="getDarkModeClass(darkMode)">
+            <q-tab-panel name="volume24hr" class="q-pa-none">
+              <div
+                v-for="(data, index) in parsed24HrVolumeChartData" :key="index"
+                class="row items-center"
+              >
+                <div class="text-grey q-space">{{ data?.label }}</div>
+                <div>{{ denominateBch(data?.value) }}</div>
+              </div>
+              <template v-if="parsed24HrVolumeChartData?.length > 1">
+                <q-separator spaced/>
+                <div class="text-subtitle1 row items-center">
+                  <div class="text-grey q-space">Total:</div>
+                  <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
+                </div>
+              </template>
+            </q-tab-panel>
             <q-tab-panel name="bchValueComparison" class="q-pa-none">
               <div class="row items-center">
                 <div class="text-grey q-space">Current Total Value:</div>
@@ -197,7 +213,7 @@ import { Chart } from 'chart.js/auto';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { getCurrentInstance, computed, defineComponent, onMounted, ref, watch, inject, onUnmounted } from 'vue';
+import { getCurrentInstance, computed, defineComponent, onMounted, ref, watch, inject, onUnmounted, capitalize } from 'vue';
 import TreasuryContractDialog from './TreasuryContractDialog.vue';
 
 export default defineComponent({
@@ -349,8 +365,12 @@ export default defineComponent({
         color: expectedDiffPctg < 0 ? 'red' : 'green',
       }
 
+      const totalVolumeSats = (props.redemptionContract?.volume_24_hr?.inject || 0) +
+                              (props.redemptionContract?.volume_24_hr?.deposit || 0) +
+                              (props.redemptionContract?.volume_24_hr?.redeem || 0)
+
       return {
-        volume24hrBch: props.redemptionContract?.volume_24_hr / 10 ** 8,
+        volume24hrBch: totalVolumeSats / 10 ** 8,
         totalBchValue,
         tokensInCirculation,
         redeemableTokens,
@@ -366,9 +386,10 @@ export default defineComponent({
     })
 
     const showDialog = ref(false)
-    /** @type {import("vue").Ref<'bchValueComparison' | 'bchValueBreakdown' | 'token'>} */
-    const summaryPanel = ref('bchValueComparison')
-    const summaryPanels = ['bchValueComparison', 'bchValueBreakdown', 'token']
+    const summaryPanels = ['volume24hr', 'bchValueComparison', 'bchValueBreakdown', 'token']
+    /** @type {import("vue").Ref<'volume24hr' | 'bchValueComparison' | 'bchValueBreakdown' | 'token'>} */
+    const summaryPanel = ref(summaryPanels[0])
+
     function moveSummaryPanel(delta=1) {
       const index = summaryPanels.indexOf(summaryPanel.value)
       let newIndex = index + delta
@@ -379,6 +400,8 @@ export default defineComponent({
     }
     const summaryPanelLabel = computed(() => {
       switch(summaryPanel.value) {
+        case 'volume24hr':
+          return `Volume (24 hours)`
         case 'bchValueComparison':
           return `Contract value`
         case 'bchValueBreakdown':
@@ -427,6 +450,9 @@ export default defineComponent({
       if (!showDialog.value) return
       chartObj?.destroy?.()
       switch(summaryPanel.value) {
+        case 'volume24hr':
+          chartObj = create24hrVolumeChart(chartRef.value)
+          break;
         case 'bchValueComparison':
           chartObj = createBchValueComparisonChart(chartRef.value)
           break;
@@ -438,6 +464,39 @@ export default defineComponent({
           break;
       }
     }, 500)
+
+    function create24hrVolumeChart(ref) {
+      return new Chart(ref, {
+        type: 'bar',
+        data: {
+          labels: parsed24HrVolumeChartData.value.map(data => data.label),
+          datasets: [{
+            data: parsed24HrVolumeChartData.value.map(data => data.value),
+            backgroundColor: getChartColors(parsed24HrVolumeChartData.value.length),
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          devicePixelRatio: 4,
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          }
+        }
+      })
+    }
+    const parsed24HrVolumeChartData = computed(() => {
+      const data = props.redemptionContract?.volume_24_hr
+      return Object.getOwnPropertyNames(data)
+        .map(txType => {
+          const label = capitalize(txType).replaceAll('_', ' ')
+          const satoshis = parseInt(data[txType])
+          if (!Number.isSafeInteger(satoshis)) return
+          const value = satoshis / 10 ** 8
+          return { label, value }
+        })
+        .filter(Boolean)
+    })
 
     function createBchValueComparisonChart(ref) {
       return new Chart(ref, {
@@ -579,6 +638,8 @@ export default defineComponent({
       summaryPanelLabel,
       moveSummaryPanel,
       chartRef,
+
+      parsed24HrVolumeChartData,
 
       denominateSats,
       denominateBch,

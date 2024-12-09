@@ -8,9 +8,6 @@
           {{ pricePerDenomination }} {{ currency }}/{{ denomination }}
         </div>
       </div>
-      <div v-if="showChart" class="chart-container row items-center justify-center q-mb-sm">
-        <canvas ref="chart"></canvas>
-      </div>
       <div class="row items-center">
         <div class="text-grey q-space">Volume (24 hr): </div>
         <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
@@ -99,7 +96,6 @@ export default defineComponent({
       /** @returns {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} */
       default: () => {}
     },
-    showChart: Boolean,
   },
   setup(props) {
     const instance = getCurrentInstance()
@@ -226,8 +222,12 @@ export default defineComponent({
         color: expectedDiffPctg < 0 ? 'red' : 'green',
       }
 
+      const totalVolumeSats = (props.redemptionContract?.volume_24_hr?.inject || 0) +
+                              (props.redemptionContract?.volume_24_hr?.deposit || 0) +
+                              (props.redemptionContract?.volume_24_hr?.redeem || 0)
+
       return {
-        volume24hrBch: props.redemptionContract?.volume_24_hr / 10 ** 8,
+        volume24hrBch: totalVolumeSats / 10 ** 8,
         totalBchValue,
         tokensInCirculation,
         redeemableTokens,
@@ -235,75 +235,6 @@ export default defineComponent({
         expectedBchValue,
         expectedDiffPctg,
         expectedDiffPctgIcon,
-      }
-    })
-
-    /** @type {Chart} */
-    let chartObj
-    const chart = ref()
-    watch(summaryData, () => loadChart(), { deep: true })
-    watch(() => props.showChart, () => loadChart())
-    onUnmounted(() => chartObj?.destroy?.())
-    const loadChart = debounce(() => {
-      chartObj?.destroy?.()
-      if (!props.showChart) return console.log('Skipping chart creation')
-      console.log('Creating chart', bchValuePieCharData.value)
-      chartObj = new Chart(chart.value, {
-        type: 'pie',
-        data: bchValuePieCharData.value,
-        options: {
-          devicePixelRatio: 4,
-          responsive: true,
-          animation: false,
-          plugins: {
-            legend: {
-              display: false,
-            },
-          }
-        }
-      })
-    }, 500)
-
-    const chartColors = computed(() => {
-      // From https://coolors.co/image-picker - screnshot of main page
-      if (isNotDefaultTheme.value) {
-        return [
-          { name: 'Bone', hex: '#DCD8CC' },
-          { name: 'Marian blue', hex: '#2B4570' },
-          { name: 'Gold (metallic)', hex: '#CFB362' },
-          { name: 'Glaucous', hex: '#768BB4' },
-          { name: 'Prussian blue', hex: '#1A2838' },
-        ]
-      }
-      return [
-        { name: 'Sapphire', hex: '#2C5AB6' },
-        { name: 'Chinese Violet', hex: '#675672' },
-        { name: 'Marian blue', hex: '#29427B' },
-        { name: 'Blush', hex: '#EA5484' },
-        { name: 'Prussian blue', hex: '#27384D' },
-      ]
-    })
-
-    const bchValuePieCharData = computed(() => {
-      const colors = chartColors.value
-      const redeemableBch = (props.redemptionContract.redeemable || 0) / 10 ** 8
-      const data = [
-        { label: 'Redeemable', value: redeemableBch },
-      ]
-      if (parsedTreasuryContractBalance.value) {
-        data.push(
-          { label: 'Treasury contract', value: parsedTreasuryContractBalance.value.spendableBch },
-          { label: 'Short value', value: parsedTreasuryContractBalance.value.totalShortedBchValue },
-        )
-      }
-
-      return {
-        labels: data.map(_data => _data?.label),
-        datasets: [{
-          label: `${denomination.value} value`,
-          data: data.map(_data => _data.value),
-          backgroundColor: data.map((_, index) => colors[index % colors.length]?.hex),
-        }]
       }
     })
 
@@ -349,8 +280,6 @@ export default defineComponent({
       fetchingTreasuryContractBalance,
       parsedTreasuryContractBalance,
       summaryData,
-
-      chart,
 
       denominateSats,
       denominateBch,
