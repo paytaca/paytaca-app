@@ -247,7 +247,12 @@ export default {
         tempAmount = this.convertFiatToSelectedAsset(this.amount)
       }
 
-      tempAddress += this.amount ? '?amount=' + tempAmount : ''
+      if (this.assetId.startsWith('ct/')) {
+        const tokenAmount = parseFloat(tempAmount) * (10 ** this.asset.decimals)
+        tempAddress += this.amount ? '?f=' + Math.round(tokenAmount) : ''
+      } else {
+        tempAddress += this.amount ? '?amount=' + tempAmount : ''
+      }
 
       if (this.assetId.startsWith('ct/')) {
         const category = this.assetId.split('/')[1]
