@@ -11,7 +11,7 @@
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
         <div class="text-h6 q-space q-mt-sm">
-          Stablehedge Markets
+          {{ $t('StablehedgeMarkets') }}
         </div>
         <q-btn
           flat

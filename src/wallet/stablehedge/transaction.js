@@ -7,6 +7,9 @@ import { getStablehedgeBackend } from "./api";
 import { getTreasuryContractInstance } from "./treasury-contract";
 import { getRedemptionContractInstance } from "./redemption-contract";
 
+import { i18n } from "src/boot/i18n";
+
+const { t: $t } = i18n.global
 /**
  * @param {Object} opts 
  * @param {import("./wallet").StablehedgeWallet} opts.wallet
@@ -308,15 +311,15 @@ export async function consolidateToReserveUtxo(opts) {
   const redemptionContract = opts?.redemptionContract
   const tokenCategory = redemptionContract.fiat_token.category
 
-  updateLoading({ message: 'Fetching locktime' })
+  updateLoading({ message: $t('FetchingLocktime') })
   const locktime = Number.isSafeInteger(opts?.locktime)
     ? opts?.locktime
     : await wallet.getBlockheight()
 
-  updateLoading({ message: 'Fetching contract artifact' })
+  updateLoading({ message: $t('FetchingContractArtifact') })
   const contract = await getRedemptionContractInstance({ redemptionContract })
 
-  updateLoading({ message: 'Fetching contract UTXOs' })
+  updateLoading({ message: $t('FetchingUtxos') })
   const addressParam = encodeURIComponent(contract.address)
   const tokenAddressParam = encodeURIComponent(contract.tokenAddress)
 
@@ -327,9 +330,9 @@ export async function consolidateToReserveUtxo(opts) {
   const fiatTokenUtxosResp = await apiBackend.get(`utxo/ct/${tokenAddressParam}/${tokenCategory}/`)
   /** @type {import("src/wallet/stablehedge/wallet").WatchtowerUtxo[]} */
   const fiatTokenUtxos = fiatTokenUtxosResp.data?.utxos.filter(utxo => utxo?.tokenid === tokenCategory)
-  if (!bchUtxos.length || !fiatTokenUtxos.length) throw 'No UTXO found'
+  if (!bchUtxos.length || !fiatTokenUtxos.length) throw $t('NoUtxoFound')
 
-  updateLoading({ message: 'Fetching & signing auth token' })
+  updateLoading({ message: $t('FetchingAndSigningAuthToken') })
   const signedAuthKey = await wallet.fetchSignedAuthkey({
     locktime: locktime,
     authTokenId: redemptionContract?.auth_token_id,
@@ -375,7 +378,7 @@ export async function consolidateToReserveUtxo(opts) {
     token: signedAuthKeyTokenDetails,
   });
 
-  if (txBuilder.excessSats < 0) throw 'Insufficient balance'
+  if (txBuilder.excessSats < 0) throw $t('InsufficientBalance')
 
   txBuilder.outputs[0].amount += txBuilder.excessSats
 
@@ -410,15 +413,15 @@ export async function createTreasuryContractTransaction(opts) {
   const wallet = opts?.wallet
   const treasuryContract = opts?.treasuryContract
 
-  updateLoading({ message: 'Fetching locktime' })
+  updateLoading({ message: $t('FetchingLocktime') })
   const locktime = Number.isSafeInteger(opts?.locktime)
     ? opts?.locktime
     : await wallet.getBlockheight()
 
-  updateLoading({ message: 'Fetching contract artifact' })
+  updateLoading({ message: $t('FetchingContractArtifact') })
   const contract = await getTreasuryContractInstance({ treasuryContract })
 
-  updateLoading({ message: 'Fetching & signing auth token' })
+  updateLoading({ message: $t('FetchingAndSigningAuthToken') })
   const signedAuthKey = await wallet.fetchSignedAuthkey({
     locktime: locktime,
     authTokenId: treasuryContract?.auth_token_id,
@@ -435,19 +438,19 @@ export async function createTreasuryContractTransaction(opts) {
   const mockAuthkeySignatureTemplate = mockSignatureTemplate(signedAuthKey.signatureData)
 
   if (opts?.recipients?.find(output => output?.token)) {
-    throw 'Sending tokens not supported'
+    throw $t('Sending tokens not supported')
   }
 
   const addressParam = encodeURIComponent(treasuryContract?.address)
-  updateLoading({ message: 'Fetching contract UTXOs' })
+  updateLoading({ message: $t('FetchingUtxos') })
   const utxosResp = await wallet.apiBackend.get(`utxo/bch/${addressParam}/`)
   /** @type {import('src/wallet/stablehedge/wallet').WatchtowerUtxo[]} */
   const utxos = utxosResp?.data?.utxos
   const bchUtxos = utxos.filter(utxo => !utxo?.tokenid)
 
-  if (!bchUtxos.length) throw 'No UTXOs found'
+  if (!bchUtxos.length) throw $t('NoUtxoFound')
 
-  updateLoading({ message: 'Building transaction' })
+  updateLoading({ message: $t('BuildingTransaction') })
   const cashscriptTx = contract.functions.unlockWithNft(false)
   const inputSize = calculateInputSize(cashscriptTx)
   const txBuilder = new TransactionBalancer({ inputSizeCalculator: () => inputSize })
@@ -478,7 +481,7 @@ export async function createTreasuryContractTransaction(opts) {
 
   if (txBuilder.excessSats < 0n) {
     console.error('Not enough balance', txBuilder)
-    throw 'Not enough balance'
+    throw $t('NotEnoughForSendAmount')
   }
   if (txBuilder.excessSats > 546n) {
     const changeOutput = {

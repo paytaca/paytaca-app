@@ -9,12 +9,12 @@
         </div>
       </div>
       <div class="row items-center">
-        <div class="text-grey q-space">Volume (24 hr): </div>
+        <div class="text-grey q-space">{{ $t('Volume24hr')}}</div>
         <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
       </div>
       <div class="row items-center" style="position:relative;" v-ripple @click.stop="() => expandBchValue = !expandBchValue">
         <div class="text-grey q-space">
-          {{ denomination }} value:
+          {{ denomination }} {{ $t('Value') }}:
           <q-icon :name="expandBchValue ? 'expand_less' : 'expand_more'"/>
         </div>
         <q-skeleton
@@ -29,7 +29,7 @@
       <q-slide-transition>
         <div v-if="expandBchValue" class="q-pl-md">
           <div class="row items-center">
-            <div class="text-grey q-space">Ideal Value:</div>
+            <div class="text-grey q-space">{{ $t('IdealValue' )}}:</div>
             <q-skeleton
               v-if="fetchingTreasuryContractBalance && !treasuryContractBalanceLoaded" type="text"
               style="min-width:4rem"
@@ -37,12 +37,12 @@
             <div v-else>{{ denominateBch(summaryData?.expectedBchValue) }}</div>
           </div>
           <div class="row items-center">
-            <div class="text-grey q-space">Redeemable:</div>
+            <div class="text-grey q-space">{{ $t('Redeemable') }}:</div>
             <div>{{ denominateSats(redemptionContract?.redeemable || 0) }}</div>
           </div>
           <template v-if="parsedTreasuryContractBalance">
             <div class="row items-center">
-              <div class="text-grey q-space">Treasury contract:</div>
+              <div class="text-grey q-space">{{ $t('TreasuryContract') }}:</div>
 
               <q-skeleton
                 v-if="fetchingTreasuryContractBalance && !treasuryContractBalanceLoaded" type="text"
@@ -51,7 +51,7 @@
               <div v-else>{{ denominateBch(parsedTreasuryContractBalance?.spendableBch) }}</div>
             </div>
             <div class="row items-center">
-              <div class="text-grey q-space">Short value:</div>
+              <div class="text-grey q-space">{{ $t('ShortValue') }}:</div>
               <q-skeleton
                 v-if="fetchingTreasuryContractBalance && !treasuryContractBalanceLoaded" type="text"
                 style="min-width:4rem"
@@ -62,11 +62,11 @@
         </div>
       </q-slide-transition>
       <div class="row items-center">
-        <div class="text-grey q-space">Tokens in circulation:</div>
+        <div class="text-grey q-space">{{ $t('TokensInCirculation') }}:</div>
         <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
       </div>
       <div class="row items-center">
-        <div class="text-grey q-space">Redeemable tokens:</div>
+        <div class="text-grey q-space">{{ $t('RedeemableTokens') }}:</div>
         <div>
           {{ formatTokenUnits(summaryData?.redeemableTokens) }}
           <span v-if="summaryData?.redeemableTokensPctg">
@@ -83,8 +83,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
-import Chart from 'chart.js/auto'
-import { debounce } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { computed, defineComponent, watch, onMounted, onUnmounted, ref, getCurrentInstance } from 'vue';

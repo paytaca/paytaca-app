@@ -13,7 +13,7 @@
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
         <div class="text-h6 q-space q-mt-sm">
-          Treasury Contract
+          {{ $t('TreasuryContract') }}
         </div>
         <q-btn
           flat
@@ -45,25 +45,25 @@
         </div>
         <div class="row items-center justify-between no-wrap q-mt-sm">
           <div>
-            <div>Spendable</div>
+            <div>{{ $t('Spendable') }}</div>
             <div class="text-weight-medium">{{ denominateBch(parsedTreasuryContractBalance?.spendableBch) }}</div>
           </div>
           <div class="text-right">
-            <div>In short position/s</div>
+            <div>{{ $t('InShortPositions') }}</div>
             <div class="text-weight-medium">{{ formatTokenUnits(parsedTreasuryContractBalance?.shortUnitValue) }}</div>
           </div>
         </div>
         <q-separator spaced />
         <div>
           <div class="row items-center">
-            <div class="q-space text-h6">Short positions</div>
+            <div class="q-space text-h6">{{ $t('ShortPositions') }}</div>
             <q-btn flat padding="sm" icon="refresh" @click="() => fetchShortPositions()"/>
           </div>
           <div v-if="fetchingShortPositions" class="text-center">
             <q-spinner color="brandblue" size="2rem"/>
           </div>
           <div v-if="!shortPositions?.length" class="text-grey text-center">
-            No short positions
+            {{ $t('NoShortPositions') }}
           </div>
           <div
             v-for="shortPosition in shortPositions" :key="shortPosition?.address"
@@ -80,7 +80,7 @@
         </div>
         <div v-if="hasAuthToken" class="q-mt-sm q-gutter-sm">
           <q-btn
-            no-caps label="Transfer BCH"
+            no-caps :label="$t('TransferBCH')"
             color="brandblue"
             @click="() => showSendAmountForm = true"
           />
@@ -93,7 +93,7 @@
     />
     <SendBCHFormDialog
       v-model="showSendAmountForm"
-      title="Enter amount to send"
+      :title="$t('EnterAmount')"
       :maxSatoshis="parseInt(maxSendableAmount)"
       @ok="sendTreasuryContractBCH"
     />
@@ -347,7 +347,7 @@ export default defineComponent({
         if (!proceed) return
 
         updateLoading = $q.loading.show({ group: loadingKey })
-        updateLoading({ message: 'Broadcasting transaction' })
+        updateLoading({ message: $t('BroadcastingTransaction') })
         const broadcastResult = await wallet.broadcast(txHex)
         if (broadcastResult.data?.error) {
           throw broadcastResult?.data?.error

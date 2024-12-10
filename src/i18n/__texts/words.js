@@ -369,6 +369,11 @@ const words = [
     Freeze: "Freeze",
     Unfreeze: "Unfreeze",
     Failed: "Failed",
+    Value: "Value",
+    Redeemable: "Redeemable",
+    Spendable: "Spendable",
+    below: "below",
+    above: "above",
   }
 ]
 

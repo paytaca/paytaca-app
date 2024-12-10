@@ -12,17 +12,17 @@
       <q-list separator>
         <q-item clickable v-close-popup @click="() => showDialog = true">
           <q-item-section>
-            <q-item-label>More</q-item-label>
+            <q-item-label>{{ $t('ShowMore') }}</q-item-label>
           </q-item-section>
         </q-item>  
         <q-item v-if="hasAuthToken" clickable v-close-popup @click="() => consolidateReserveUtxo()">
           <q-item-section>
-            <q-item-label>Consolidate reserve UTXO</q-item-label>
+            <q-item-label>{{ $t('ConsolidateReserveUtxo') }}</q-item-label>
           </q-item-section>
         </q-item>  
         <q-item clickable v-close-popup @click="() => showTreasuryContractDialog = true">
           <q-item-section>
-            <q-item-label>Treasury contract</q-item-label>
+            <q-item-label>{{ $t('TreasuryContract') }}</q-item-label>
           </q-item-section>
         </q-item>  
       </q-list>
@@ -53,32 +53,32 @@
       </div>
       <div class="row items-start no-wrap">
         <div>
-          <div class="text-grey">Redemption contract</div>
+          <div class="text-grey">{{ $t('RedemptionContract') }}</div>
           <div>{{ denominateSats(redemptionContract?.redeemable || 0) }}</div>
           <div>{{ formatTokenUnits(redemptionContract?.reserve_supply || 0) }}</div>
         </div>
         <q-space/>
         <div v-if="redemptionContract?.treasury_contract_address" class="text-right">
-          <div class="text-grey">Treasury contract</div>
+          <div class="text-grey">{{ $t('TreasuryContract') }}</div>
           <div>{{ denominateBch(parsedTreasuryContractBalance?.spendableBch) }}</div>
           <div>{{ formatTokenUnits(parsedTreasuryContractBalance?.shortUnitValue) }}</div>
         </div>
       </div>
       <q-separator spaced/>
       <div class="row items-center">
-        <div class="text-grey q-space">Volume (24 hr): </div>
+        <div class="text-grey q-space">{{ $t('Volume24hr') }}: </div>
         <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
       </div>
       <div class="row items-center">
-        <div class="text-grey q-space">Total Value:</div>
+        <div class="text-grey q-space">{{ $t('TotalValue') }}:</div>
         <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
       </div>
       <div class="row items-center">
-        <div class="text-grey q-space">Tokens in circulation:</div>
+        <div class="text-grey q-space">{{ $t('TokensInCirculation') }}:</div>
         <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
       </div>
       <div class="row items-center">
-        <div class="text-grey q-space">Ideal Value:</div>
+        <div class="text-grey q-space">{{ $t('IdealValue') }}:</div>
         <div>
           <q-icon v-bind="summaryData?.expectedDiffPctgIcon" class="q-mr-xs"/>
           {{ denominateBch(summaryData?.expectedBchValue) }}
@@ -88,7 +88,7 @@
     <q-dialog v-model="showDialog" position="bottom">
       <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
-          <div class="text-h6 q-space q-mt-sm">Redemption contract</div>
+          <div class="text-h6 q-space q-mt-sm">{{ $t('RedemptionContract') }}</div>
           <q-btn flat padding="sm" icon="close" class="close-button" v-close-popup/>
         </div>
         <q-card-section>
@@ -112,18 +112,18 @@
               <template v-if="parsed24HrVolumeChartData?.length > 1">
                 <q-separator spaced/>
                 <div class="text-subtitle1 row items-center">
-                  <div class="text-grey q-space">Total:</div>
+                  <div class="text-grey q-space">{{ $t('Total') }}:</div>
                   <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
                 </div>
               </template>
             </q-tab-panel>
             <q-tab-panel name="bchValueComparison" class="q-pa-none">
               <div class="row items-center">
-                <div class="text-grey q-space">Current Total Value:</div>
+                <div class="text-grey q-space">{{ $t('CurrentTotalValue') }}:</div>
                 <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
               </div>
               <div class="row items-center">
-                <div class="text-grey q-space">Ideal Value:</div>
+                <div class="text-grey q-space">{{ $t('IdealValue') }}:</div>
                 <div>
                   <q-icon v-bind="summaryData?.expectedDiffPctgIcon" class="q-mr-xs"/>
                   {{ denominateBch(summaryData?.expectedBchValue) }}
@@ -132,18 +132,17 @@
               <q-banner class="q-my-sm rounded-borders pt-card text-bow" :class="getDarkModeClass(darkMode)">
                 <div class="row items-start no-wrap q-space">
                   <div class="text-subtitle1 q-pr-sm">
-                    Total value in contract is
+                    {{ $t('TotalValueInContractIs') }}
                     <span :class="`text-${summaryData?.expectedDiffPctgIcon?.color}`">
                       {{ denominateBch(Math.abs(summaryData?.expectedBchValueDiff)) }}
                     </span>
-                    {{ summaryData?.expectedDiffPctg < 0 ? 'below' : 'above' }}
-                    ideal value
+                    {{ $t(summaryData?.expectedDiffPctg < 0 ? 'below' : 'above') }}
+                    {{ $t('idealValue') }}
                   </div>
                   <div>
                     <q-icon name="info" size="1.2rem" class="q-my-sm">
                       <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
-                        Comparison between total value in the contract/s and the ideal value to
-                        peg the asset value in circulation
+                        {{ $t('IdealValueComparisonText') }}
                       </q-menu>
                     </q-icon>
                   </div>
@@ -152,32 +151,32 @@
             </q-tab-panel>
             <q-tab-panel name="bchValueBreakdown" class="q-pa-none">
               <div class="row items-center">
-                <div class="text-grey q-space">Redeemable:</div>
+                <div class="text-grey q-space">{{ $t('Redeemable') }}:</div>
                 <div>{{ denominateSats(redemptionContract?.redeemable || 0) }}</div>
               </div>
               <template v-if="parsedTreasuryContractBalance">
                 <div class="row items-center">
-                  <div class="text-grey q-space">Treasury contract:</div>
+                  <div class="text-grey q-space">{{ $t('TreasuryContract') }}:</div>
                   <div>{{ denominateBch(parsedTreasuryContractBalance?.spendableBch) }}</div>
                 </div>
                 <div class="row items-center">
-                  <div class="text-grey q-space">Short value:</div>
+                  <div class="text-grey q-space">{{ $t('ShortValue') }}:</div>
                   <div>{{ denominateBch(parsedTreasuryContractBalance?.totalShortedBchValue) }}</div>
                 </div>
               </template>
               <q-separator spaced/>
               <div class="row items-center text-subtitle1">
-                <div class="text-grey q-space">Total Value:</div>
+                <div class="text-grey q-space">{{ $t('TotalValue') }}:</div>
                 <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
               </div>
             </q-tab-panel>
             <q-tab-panel name="token" class="q-pa-none">    
               <div class="row items-center">
-                <div class="text-grey q-space">Tokens in circulation:</div>
+                <div class="text-grey q-space">{{ $t('TokensInCirculation' )}}:</div>
                 <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
               </div>
               <div class="row items-center">
-                <div class="text-grey q-space">Redeemable tokens:</div>
+                <div class="text-grey q-space">{{ $t('RedeemableTokens' )}}:</div>
                 <div>
                   {{ formatTokenUnits(summaryData?.redeemableTokens) }}
                   <span v-if="summaryData?.redeemableTokensPctg">
@@ -190,11 +189,11 @@
                 class="q-my-sm rounded-borders pt-card text-bow" :class="getDarkModeClass(darkMode)"
               >
                 <div class="text-subtitlw`">
-                  Redemption contract needs
+                  {{ $t('RedemptionContractNeeds') }}
                   <span class="text-weight-medium">
                     {{ denominateBch(Math.abs(summaryData?.redeemableDiffBchValue)) }}
                   </span>
-                  to redeem all tokens in circulation
+                  {{ $t('toRedeemAllTokensInCirculation') }}
                 </div>
               </q-banner>
             </q-tab-panel>
@@ -415,13 +414,13 @@ export default defineComponent({
     const summaryPanelLabel = computed(() => {
       switch(summaryPanel.value) {
         case 'volume24hr':
-          return `Volume (24 hours)`
+          return $t('Volume24hr')
         case 'bchValueComparison':
-          return `Contract value`
+          return $t('ContractValue')
         case 'bchValueBreakdown':
-          return `Contract assets`
+          return $t('ContractAssets')
         case 'token':
-          return `Token circulation`
+          return $t('TokensInCirculation')
       }
     })
     
@@ -516,7 +515,7 @@ export default defineComponent({
       return new Chart(ref, {
         type: 'bar',
         data: {
-          labels: [`${denomination.value} value`, `Ideal ${denomination.value} value`],
+          labels: [`${denomination.value} ${$t('Value')}`, $t('IdealValue')],
           datasets: [{
             data: [summaryData.value.totalBchValue, summaryData.value.expectedBchValue],
             backgroundColor: getChartColors(2),
@@ -549,19 +548,19 @@ export default defineComponent({
     const bchValuePieChartData = computed(() => {
       const redeemableBch = (props.redemptionContract.redeemable || 0) / 10 ** 8
       const data = [
-        { label: 'Redeemable', value: redeemableBch },
+        { label: $t('Redeemable'), value: redeemableBch },
       ]
       if (parsedTreasuryContractBalance.value) {
         data.push(
-          { label: 'Treasury contract', value: parsedTreasuryContractBalance.value.spendableBch },
-          { label: 'Short value', value: parsedTreasuryContractBalance.value.totalShortedBchValue },
+          { label: $t('TreasuryContract'), value: parsedTreasuryContractBalance.value.spendableBch },
+          { label: $t('ShortValue'), value: parsedTreasuryContractBalance.value.totalShortedBchValue },
         )
       }
 
       return {
         labels: data.map(_data => _data?.label),
         datasets: [{
-          label: `${denomination.value} value`,
+          label: `${denomination.value} ${$t('Value')}`,
           data: data.map(_data => _data.value),
           backgroundColor: getChartColors(data?.length),
         }]
@@ -573,7 +572,7 @@ export default defineComponent({
       return new Chart(ref, {
         type: 'bar',
         data: {
-          labels: [`Tokens in circulation`, `Redeemable tokens`, `Reserve supply`],
+          labels: [$t('TokensInCirculation'), $t('RedeemableTokens'), $t('ReserveSupply')],
           datasets: [{
             data: [
               summaryData.value.tokensInCirculation / 10 ** tokenDecimals,
@@ -650,7 +649,7 @@ export default defineComponent({
         if (!proceed) return
 
         updateLoading = $q.loading.show({ group: loadingKey })
-        updateLoading({ message: 'Broadcasting transaction' })
+        updateLoading({ message: $t('BroadcastingTransaction') })
         const broadcastResult = await wallet.broadcast(txHex)
         if (broadcastResult.data?.error) {
           throw broadcastResult?.data?.error
