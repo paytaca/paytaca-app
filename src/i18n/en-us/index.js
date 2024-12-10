@@ -1080,7 +1080,7 @@ export default {
   SelectBCHDenomination: "BCH Denomination",
   SelectCampaign: "Select Campaign",
   SelectChangeAddress: "Select Change Address",
-  SelectChangeAddressHelp: "Some of your accounts were used on one or more(D)apps. Click below if you want to send the change to one of this account.",
+  SelectChangeAddressHelp: "Some of your accounts were used on one or more (D)apps. Click below if you want to send the change to one of this account.",
   SelectChangeAddressHint: "Paytaca detected that one ore more of your accounts were used on (D)apps. You may choose to send the change to one of this address.",
   SelectCollection: "Select Collection",
   SelectCurrency: "Select Currency",

@@ -88,12 +88,11 @@
                   {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
-                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
+                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
                 </div>
               </div>
             </div>
             <div
-              v-if="asset.symbol === 'BCH'"
               class="text-center button button-text-primary"
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
@@ -135,12 +134,13 @@
           >
             <template v-slot:append>
               <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}
+                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol}}
               </div>
             </template>
           </q-input>
         </div>
         <div
+          v-if="assetId === 'bch'"
           class="q-pt-md text-subtitle1 button button-text-primary set-amount-button"
           :class="getDarkModeClass(darkMode)"
           @click="setAmountInFiat = !setAmountInFiat"
@@ -348,6 +348,21 @@ export default {
           finalAmount += key !== '.' ? key.toString() : ''
         }
       }
+
+      if (this.asset.id.startsWith('ct/')) {
+        if (this.asset.decimals === 0) {
+          finalAmount = finalAmount.toString().replace('.', '');
+        } else {
+          const parts = finalAmount.toString().split('.');
+          
+          if (parts.length > 1) { // Ensure there's a decimal part
+            // Truncate the decimal part to the desired length
+            parts[1] = parts[1].slice(0, this.asset.decimals);
+            finalAmount = parts.join('.'); // Recombine the integer and decimal parts
+          }
+        }
+      }
+
       // // Set the new amount
       this.tempAmount = finalAmount
     },
@@ -716,6 +731,9 @@ export default {
       }
     } else {
       vm.asset = vm.getAsset(vm.assetId)
+      if (vm.assetId.startsWith('ct/')) {
+        vm.setAmountInFiat = false
+      }
     }
   }
 }

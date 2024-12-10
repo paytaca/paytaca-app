@@ -856,7 +856,7 @@ export default {
           this.sliderStatus = true
           currentInputExtras.amountFormatted = this.customNumberFormatting(amount)
           if (this.setAmountInFiat) {
-            currentInputExtras.sendAmountInFiat = this.customNumberFormatting(amount)
+            currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
           } else {
             currentRecipient.amount = this.customNumberFormatting(amount)
           }
@@ -1086,7 +1086,6 @@ export default {
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     async slideToSubmit (reset=() => {}) {
-      console.log('SLIDE')
       if (this.bip21Expires) {
         const expires = parseInt(this.bip21Expires)
         const now = Math.floor(Date.now() / 1000)
