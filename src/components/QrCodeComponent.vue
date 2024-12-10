@@ -1,5 +1,6 @@
 <template>
   <div class="col row justify-center">
+    <q-skeleton v-if="loading" :height="size + 'px'" :width="size + 'px'" class="q-mb-sm"/>
     <img
       v-if="icon"
       class="icon"
@@ -38,6 +39,11 @@ export default {
       default: 60
     }
   },
+  data () {
+    return {
+      loading: true
+    }
+  },
   mounted() {
     this.renderQRCode();
   },
@@ -51,11 +57,11 @@ export default {
 
       if (container) {
         container.innerHTML = ''; // Clear the container before rendering new QR code
-        container.addEventListener('codeRendered', () => {
-          document
-            .getElementById(this.name + '-qr')
-            .animateQRCode('FadeInCenterOut');
-        });
+        // container.addEventListener('codeRendered', () => {
+        //   document
+        //     .getElementById(this.name + '-qr')
+        //     .animateQRCode('FadeInCenterOut');
+        // });
 
         setTimeout(() => {
           container.innerHTML = `
@@ -74,15 +80,16 @@ export default {
               </qr-code>
             </div>
           `;
-        }, 100);
+          vm.loading = false
+        }, 50);
       }
     },
-    animate() {
+    animate(animation) {
       const container = document.getElementById(this.name);
       if (container) {
         document
           .getElementById(this.name + '-qr')
-          .animateQRCode('RadialRipple');
+          .animateQRCode(animation);
       }
     }
   }

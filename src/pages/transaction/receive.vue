@@ -32,10 +32,7 @@
           </q-list>
         </q-menu>
       </q-icon>
-      <div class="text-center" style="padding-top: 80px;" v-if="generatingAddress">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </div>
-      <template v-else>
+      <div>
         <div class="row">
           <div class="col qr-code-container" @click="copyToClipboard(address)">
             <div class="col q-pl-sm q-pr-sm">
@@ -110,7 +107,7 @@
             </div>
           </div>
         </div>
-      </template>
+      </div>
     </div>
     <div v-if="amountDialog">
       <div class="text-right">
@@ -164,7 +161,6 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import ProgressLoader from '../../components/ProgressLoader'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
@@ -185,7 +181,7 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav, ProgressLoader, customKeyboard },
+  components: { HeaderNav, customKeyboard },
   data () {
     return {
       sBCHListener: null,
@@ -195,7 +191,6 @@ export default {
       assetLoaded: false,
       legacy: false,
       lnsName: '',
-      generatingAddress: false,
       generateAddressOnLeave: false,
       copying: false,
       amount: '',
@@ -407,7 +402,6 @@ export default {
     },
     generateNewAddress () {
       const vm = this
-      vm.generatingAddress = true
       const lastAddressIndex = vm.getLastAddressIndex()
       const newAddressIndex = lastAddressIndex + 1
 
@@ -425,7 +419,6 @@ export default {
               lastChangeAddress: addresses.change,
               lastAddressIndex: newAddressIndex
             })
-            vm.generatingAddress = false
             vm.$store.dispatch('chat/addIdentity', result.pgpIdentity)
             try { vm.setupListener() } catch {}
           })
@@ -438,7 +431,6 @@ export default {
               lastChangeAddress: addresses.change,
               lastAddressIndex: newAddressIndex
             })
-            vm.generatingAddress = false
             try { vm.setupListener() } catch {}
           })
         }

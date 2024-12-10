@@ -36,10 +36,7 @@
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
-      <div class="row flex-center" v-if="isRetrieving">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </div>
-      <div style="overflow-y: scroll;" v-else>
+      <div style="overflow-y: scroll;">
         <div
           v-for="(asset, index) in assets"
           :key="index"
@@ -107,7 +104,6 @@ import AssetFilter from '../../components/AssetFilter'
 import { getMnemonic, Wallet } from 'src/wallet'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
-import ProgressLoader from 'src/components/ProgressLoader'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { convertTokenAmount, getWalletByNetwork } from 'src/wallet/chipnet'
@@ -120,7 +116,6 @@ export default {
   components: {
     HeaderNav,
     AssetFilter,
-    ProgressLoader,
     FirstTimeReceiverWarning
   },
   data () {
@@ -133,8 +128,7 @@ export default {
       result: '',
       error: '',
       isCashToken: true,
-      wallet: null,
-      isRetrieving: false
+      wallet: null
     }
   },
   computed: {
@@ -251,12 +245,10 @@ export default {
     },
     async checkIfFirstTimeReceiver (asset) {
       // check wallet/assets if balance is zero and no transactions were made
-      this.isRetrieving = true
       const assetBalance = asset.balance ?? 0
       const transactionsLength = this.selectedNetwork === 'sBCH'
         ? await this.getSbchTransactions(asset)
         : await this.getBchTransactions(asset)
-      this.isRetrieving = false
 
       if (assetBalance === 0 && transactionsLength === 0 && asset.id.split('/')[1] !== 'unlisted') {
         this.$q.dialog({ component: FirstTimeReceiverWarning })
