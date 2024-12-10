@@ -32,6 +32,15 @@
             :to="{ name: 'app-stablehedge' }"
           />
         </div>
+        <div v-if="fetchingRedemptionContracts" class="row items-center justify-center">
+          <ProgressLoader/>
+        </div>
+        <div
+          v-else-if="redemptionContractsLoaded && redemptionContracts?.length === 0"
+          class="text-grey text-center text-h5 q-py-md"
+        >
+          {{ $t('NoData') }}
+        </div>
         <RedemptionContractMarketInfo
           v-for="redemptionContract in redemptionContracts" :key="redemptionContract?.address"
           :redemptionContract="redemptionContract"
@@ -63,12 +72,14 @@ import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
 import RedemptionContractMarketInfo from 'src/components/stablehedge/dashboard/RedemptionContractMarketInfo.vue';
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default defineComponent({
   name: 'StablehedgeMarketsDialog',
   components: {
     LimitOffsetPagination,
     RedemptionContractMarketInfo,
+    ProgressLoader,
   },
   emits: [
     'update:modelValue',
@@ -101,6 +112,7 @@ export default defineComponent({
       const params = {
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
+        verified: true,
       }
       const backend = getStablehedgeBackend(isChipnet.value)
       fetchingRedemptionContracts.value = true

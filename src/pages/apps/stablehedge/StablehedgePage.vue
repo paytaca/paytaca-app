@@ -1,6 +1,6 @@
 <template>
   <q-pull-to-refresh id="app-container" :class="getDarkModeClass(darkMode)" @refresh="refreshPage">
-    <header-nav :title="$t('Stablehedge')" backnavpath="/apps" class="apps-header" />
+    <header-nav :title="$t('Stablehedge')" class="apps-header" />
     <div class="q-pa-sm">
       <div v-if="fetchingRedemptionContracts" class="text-center">
         <q-spinner size="3rem" color="brandblue"/>
@@ -68,6 +68,7 @@ export default defineComponent({
       const params = {
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
+        verified: true,
       }
       const backend = getStablehedgeBackend(isChipnet.value)
       fetchingRedemptionContracts.value = true

@@ -114,6 +114,7 @@ export default defineComponent({
         const params = {
           has_treasury_contract: true,
           currencies: currencies.join(','),
+          verified: true,
         }
 
         updateLoading({ message: $t('SearchingForContracts') })
