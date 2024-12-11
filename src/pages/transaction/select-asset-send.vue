@@ -231,8 +231,20 @@ export default {
     if (this.$route.query.error === 'token-mismatch') {
       this.$router.replace({ path: this.$route.path })
       this.$q.dialog({
-        title: 'Token Mismatch Error',
+        title: 'Token Mismatch',
         message: 'The recipient requires a token that is different from what you are trying to send.',
+        persistent: true,
+        seamless: true,
+        ok: true,
+        class:`pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      })
+    }
+
+    if (this.$route.query.error === 'token-not-found') {
+      this.$router.replace({ path: this.$route.path })
+      this.$q.dialog({
+        title: 'Token Not Found',
+        message: 'The recipient requires a token that was not found in your wallet.',
         persistent: true,
         seamless: true,
         ok: true,

@@ -799,6 +799,14 @@ export default {
 
       if (paymentUriData?.outputs?.[0]) {
         const vm = this
+
+        if (vm.asset.symbol === undefined) {
+          vm.$router.push({
+            name: 'transaction-send-select-asset',
+            query: { error: 'token-not-found' }
+          })
+        }
+        
         if (paymentUriData?.otherParams?.c) {
           if (paymentUriData?.otherParams?.c !== vm.asset.id.split('ct/')[1]) {
             vm.$router.push({
