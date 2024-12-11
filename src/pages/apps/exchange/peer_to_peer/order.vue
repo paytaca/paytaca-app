@@ -982,9 +982,6 @@ export default {
         this.showNoticeDialog = true
       }
     },
-    closeWSConnection () {
-      this.websocket?.watchtower?.close()
-    },
     closeChatWSConnection () {
       if (this.websocket.chat) this.websocket.chat.close()
     },
