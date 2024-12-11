@@ -36,11 +36,11 @@
         class="q-pb-sm"
         dense
         filled
-        :readonly="disableTxidInput"
+        readonly
         :dark="darkMode"
         :loading="!txidLoaded"
         v-model="transactionId">
-          <template v-slot:append v-if="transactionId && disableTxidInput">
+          <template v-slot:append v-if="transactionId">
             <q-icon size="sm" name="content_copy" @click="copyToClipboard(transactionId)"/>
           </template>
       </q-input>
@@ -109,10 +109,11 @@ export default {
   },
   emits: ['back', 'updatePageName', 'verifying-tx'],
   props: {
-    escrowContract: Object,
-    orderId: Number,
-    txid: String,
-    action: String
+    data: Object
+    // escrowContract: Object,
+    // orderId: Number,
+    // txid: String,
+    // action: String
   },
   watch: {
     txidLoaded () {
@@ -134,39 +135,35 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    loadTransactionId () {
-      if (this.txid) {
-        this.transactionId = this.txid
+    async loadTransactionId () {
+      if (this.data?.txid) {
+        this.transactionId = this.data?.txid
       }
       if (!this.transactionId) {
-        this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.orderId, this.action)
+        this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
       }
+      if (this.transactionId) this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContractBalance()
-      this.fetchContract()
+      this.fetchContract().then(this.fetchContractBalance())
     },
     fetchContractBalance () {
-      if (!this.escrowContract) return 0
-      this.escrowContract.getBalance()
-        .then(balance => {
-          this.contract.balance = balance
-          this.balanceLoaded = true
-        })
+      return new Promise((resolve, reject) => {
+        if (!this.data?.escrow) return 0
+        this.data?.escrow?.getBalance()
+          .then(balance => {
+            this.contract.balance = balance
+            this.balanceLoaded = true
+            resolve(balance)
+          })
+          .catch(error => reject(error))
+      })
     },
-    fetchContract () {
+    async fetchContract () {
       const vm = this
-      vm.loading = true
-      backend.get(`/ramp-p2p/order/${vm.orderId}/contract/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true })
         .then(response => {
-          console.log(response.data)
           vm.contract = response.data
-          if (!vm.transactionId) {
-            const transactions = response.data.transactions
-            const tx = transactions.filter(transaction => transaction.action === vm.action)
-            console.log('tx:', tx)
-          }
-          vm.txidLoaded = true
         })
         .catch(error => {
           if (error.response) {
@@ -182,8 +179,8 @@ export default {
     },
     async verify () {
       const vm = this
-      let url = `/ramp-p2p/order/${vm.orderId}/`
-      url = vm.action === 'RELEASE' ? `${url}verify-release/` : `${url}verify-refund/`
+      let url = `/ramp-p2p/order/${vm.data?.orderId}/`
+      url = vm.data?.action === 'RELEASE' ? `${url}verify-release/` : `${url}verify-refund/`
       vm.verifyingTx = true
       const body = { txid: this.transactionId }
       await backend.post(url, body, { authorize: true })
@@ -211,15 +208,15 @@ export default {
     },
     checkTransferStatus () {
       if (this.balanceLoaded && this.txidLoaded) {
-        if (this.transactionId) {
-          if (this.contract.balance === 0) {
-            this.submitAction()
-          }
+        this.verifyingTx = true
+        if (this.contract.balance === 0) {
+          this.submitAction()
+        } else {
+          this.verifyingTx = false
+          // poll for balance with exponential backoff
+          this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
         }
-        if (!this.transactionId || this.contract.balance > 0) {
-          this.disableTxidInput = false
-          this.hideBtn = false
-        }
+        this.loading = false
       }
     },
     copyToClipboard (value) {
@@ -230,6 +227,22 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
+    },
+    exponentialBackoff (fn, retries, delayDuration) {
+      return fn()
+        .then(balance => {
+          if (balance > 0 && retries > 0) {
+            console.log(`Attempt failed. Retrying in ${delayDuration / 1000} seconds...`)
+            return this.delay(delayDuration)
+              .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
+          } else {
+            this.disableBtn = false
+          }
+        })
+        .catch(error => console.error(error))
     }
   }
 }

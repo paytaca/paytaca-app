@@ -392,7 +392,7 @@ export default {
         return
       }
       await this.loadData()
-      this.reloadChildComponents()
+      // this.reloadChildComponents()
       if (done) done()
     },
     async loadData () {
@@ -402,11 +402,11 @@ export default {
       if (vm.order.contract) {
         await vm.generateContract()
       }
-      vm.isloaded = true
       await vm.fetchAd()
       vm.fetchFeedback().then(() => {
         if (this.notifType === 'new_message') { this.openChat = true }
       })
+      vm.isloaded = true
     },
     onVerifyingTx (verifying) {
       this.verifyingTx = verifying
@@ -517,14 +517,17 @@ export default {
         case 'RFN': // Refunded
           vm.state = 'standby-view'
           vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
+          vm.standByDisplayKey++
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
           vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
+          vm.standByDisplayKey++
           break
         default:
           // includes status = CNCL, APL, RFN_PN, RLS_PN
-          this.state = 'standby-view'
+          vm.state = 'standby-view'
+          vm.standByDisplayKey++
           break
       }
     },
@@ -730,6 +733,7 @@ export default {
       backend.post('/ramp-p2p/appeal/', data, { authorize: true })
         .then(response => {
           vm.updateStatus(response.data.status.status)
+          vm.standByDisplayKey++
         })
         .then(vm.addArbiterToChat())
         .catch(error => {
