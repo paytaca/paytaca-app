@@ -1,5 +1,5 @@
 <template>
-   <q-dialog ref="dialog" persistent full-width seamless>
+   <q-dialog ref="dialog" persistent full-width seamless class="no-click-outside">
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-px-sm q-pt-sm">
         <div class="text-subtitle1 q-space q-mt-sm pt-label" :class="getDarkModeClass(darkMode)">{{ title }}</div>

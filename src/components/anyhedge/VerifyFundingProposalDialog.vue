@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onHide()" :persistent="loading" seamless>
+  <q-dialog ref="dialogRef" @hide="onHide()" :persistent="loading" seamless class="no-click-outside">
     <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-h6">
         {{ title }}

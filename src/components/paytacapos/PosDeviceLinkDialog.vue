@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
+  <q-dialog ref="dialogRef" @hide="onDialogHide" seamless class="no-click-outside">
     <q-resize-observer @resize="resizeQrSize" />
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">

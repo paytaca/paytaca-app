@@ -8,6 +8,7 @@
     no-backdrop-dismiss
     no-shake
     seamless
+    class="no-click-outside"
   >
     <q-card
       class="br-15 pt-card-2 text-bow hedge-confirm-container"

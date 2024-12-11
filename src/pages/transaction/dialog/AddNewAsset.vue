@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
+  <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless class="no-click-outside">
     <q-card class="q-dialog-plugin br-15 q-pb-sm pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section class="text-weight-medium pt-label" :class="getDarkModeClass(darkMode)">
           <span>{{ addTokenTitle }}</span>

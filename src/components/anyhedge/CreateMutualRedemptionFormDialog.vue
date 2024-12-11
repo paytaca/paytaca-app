@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless>
+  <q-dialog ref="dialogRef" @hide="onDialogHide" :persistent="loading" seamless class="no-click-outside">
     <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ $t('MutualRedemptionProposal') }}</div>
