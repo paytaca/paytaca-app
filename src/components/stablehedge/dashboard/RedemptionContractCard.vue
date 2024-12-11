@@ -20,6 +20,11 @@
             <q-item-label>{{ $t('ConsolidateReserveUtxo') }}</q-item-label>
           </q-item-section>
         </q-item>  
+        <q-item v-if="hasAuthToken" clickable v-close-popup @click="() => sweepContract()">
+          <q-item-section>
+            <q-item-label>{{ $t('Sweep') }}</q-item-label>
+          </q-item-section>
+        </q-item>  
         <q-item clickable v-close-popup @click="() => showTreasuryContractDialog = true">
           <q-item-section>
             <q-item-label>{{ $t('TreasuryContract') }}</q-item-label>
@@ -213,7 +218,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { getAssetDenomination } from 'src/utils/denomination-utils';
 import { toTokenAddress } from 'src/utils/crypto';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
-import { consolidateToReserveUtxo } from 'src/wallet/stablehedge/transaction';
+import { consolidateToReserveUtxo, sweepContractWithAuthToken } from 'src/wallet/stablehedge/transaction';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { stablehedgePriceTracker } from 'src/wallet/stablehedge/price-tracker'
@@ -684,6 +689,90 @@ export default defineComponent({
       }
     }
 
+    async function getSweepRecipient() {
+      return new Promise(resolve => {
+        $q.dialog({
+          class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+          color: 'brandblue',
+          title: $t('Sweep'),
+          position: 'bottom',
+          prompt: {
+            label: $t('Recipient') + ' ' + $t('Address'),
+            autogrow: true,
+            model: '',
+          },
+        }).onOk(resolve).onDismiss(() => resolve())
+      })
+    }
+
+    async function sweepContract() {
+      const loadingKey = 'sweep-redemption-contract'
+      try {
+        const recipientAddress = await getSweepRecipient()
+        if (!recipientAddress) return
+
+        const wallet = await getStablehedgeWallet()
+        const redemptionContractData = props.redemptionContract
+
+        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const transaction = await sweepContractWithAuthToken({
+          locktime: 0,
+          wallet: wallet,
+          redemptionContract: redemptionContractData,
+          recipientAddress: recipientAddress,
+          updateLoading: updateLoading,
+        })
+
+        const txHex = await transaction.build()
+        $q.loading.hide(loadingKey)
+        const proceed = await new Promise(resolve => {
+          $q.dialog({
+            component: TransactionConfirmDialog,
+            componentProps: {
+              transaction: { inputs: transaction.inputs, outputs: transaction.outputs },
+            },
+          }).onOk(() => resolve(true))
+            .onCancel(() => resolve(false))
+            .onDismiss(() => resolve(false))
+        })
+        if (!proceed) return
+
+        updateLoading = $q.loading.show({ group: loadingKey })
+        updateLoading({ message: $t('BroadcastingTransaction') })
+        const broadcastResult = await wallet.broadcast(txHex)
+        if (broadcastResult.data?.error) {
+          throw broadcastResult?.data?.error
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: $t('Success'),
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+        $emit('refetch')
+      } catch(error) {
+        console.error(error)
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
     /** ------- <Formatters -------  */
     function denominateSats(satoshis) {
       return denominateBch(satoshis / 10 ** 8)
@@ -748,6 +837,7 @@ export default defineComponent({
       authTokenUtxo,
       hasAuthToken,
       consolidateReserveUtxo,
+      sweepContract,
 
       denominateSats,
       denominateBch,
