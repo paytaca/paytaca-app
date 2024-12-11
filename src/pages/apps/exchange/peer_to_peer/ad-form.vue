@@ -106,7 +106,7 @@
               </div>
               <div class="row justify-between">
                 <span class="col text-left text-weight-bold md-font-size">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(priceAmount).replace(/[^\d.,-]/g, '') }}</span>
-                <span class="col text-right md-font-size" style="float: right;">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(marketPrice).replace(/[^\d.,-]/g, '') }}</span>
+                <span :class="isBlinking ? 'blink': ''" class="col text-right md-font-size" style="float: right;">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(marketPrice).replace(/[^\d.,-]/g, '') }}</span>
               </div>
             </div>
           </div>
@@ -284,7 +284,7 @@ import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { bchToSatoshi, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
+import { bchToSatoshi, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
@@ -292,6 +292,7 @@ import DisplayConfirmation from 'src/components/ramp/fiat/DisplayConfirmation.vu
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
+import { WebSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   setup () {
@@ -394,7 +395,8 @@ export default {
       arbiterOptions: [],
       transactionType: null,
       previousRoute: null,
-      adsState: null
+      adsState: null,
+      isBlinking: false
     }
   },
   created () {
@@ -402,22 +404,6 @@ export default {
     bus.on('relogged', this.loadFormData)
   },
   watch: {
-    // setTradeQuantityInFiat (value) {
-    //   if (this.loading) return
-    //   if (value) {
-    //     let amount = this.adData.tradeAmount * this.marketPrice
-    //     if (amount % 1 !== 0) {
-    //       amount = amount.toFixed(2)
-    //     }
-    //     this.adData.tradeAmount = amount
-    //   } else {
-    //     let amount = this.adData.tradeAmount / this.marketPrice
-    //     if (amount % 1 !== 0) {
-    //       amount = amount.toFixed(8)
-    //     }
-    //     this.adData.tradeAmount = amount
-    //   }
-    // },
     setTradeLimitsInFiat (value) {
       if (this.loading) return
       if (value) {
@@ -892,27 +878,26 @@ export default {
       return price
     },
     closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
+      this.websocket?.closeConnection()
     },
     setupWebsocket () {
       const wsUrl = `${getBackendWsUrl()}market-price/${this.selectedCurrency.symbol}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        const price = parseFloat(data.price)
-        if (price) {
-          this.marketPrice = price.toFixed(2)
-          console.log('Updated market price to :', this.marketPrice)
+      this.websocket = new WebSocketManager()
+      this.websocket.setWebSocketUrl(wsUrl)
+      this.websocket.subscribeToMessages((message) => {
+        if (message?.price) {
+          const price = parseFloat(message?.price)?.toFixed(2)
+          if (price && this.marketPrice !== price) {
+            this.marketPrice = price
+            console.log('Updated market price to :', this.marketPrice)
+            this.startBlinking()
+          }
         }
-      }
-      this.websocket.onclose = () => {
-        console.log('WebSocket connection closed.')
-      }
+      })
+    },
+    startBlinking () {
+      this.isBlinking = true
+      setTimeout(() => { this.isBlinking = false }, 5000)
     },
     decPriceValue () {
       this.priceValue = Number((this.priceValue - 0.1).toFixed(2))
@@ -1025,4 +1010,18 @@ export default {
   color: #fff; /* Text color for dark mode */
   border: 1px solid #fbc02d; /* Border color */
 }
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.blink { animation: blink 1.5s 5; }
 </style>

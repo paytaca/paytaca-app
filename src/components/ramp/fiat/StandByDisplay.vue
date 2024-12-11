@@ -180,11 +180,6 @@
   <!-- Dialogs -->
   <div v-if="openDialog">
     <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" @loadAppeal="loadAppealButton = true"/>
-    <!-- <MiscDialogs
-      :type="'appeal'"
-      @back="openDialog = false"
-      @submit="onSubmitAppeal"
-    /> -->
       <div class="row q-pt-xs q-mb-lg q-pb-lg q-mx-md" v-if="forRelease">
         <q-btn
           rounded
@@ -387,10 +382,6 @@ export default {
   },
   async mounted () {
     this.loadData()
-    setTimeout(() => {
-      this.isloaded = true
-      // bus.emit('show-chat')
-    }, 500)
   },
   beforeUnmount () {
     clearInterval(this.timer)
@@ -401,15 +392,16 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     openURL,
-    loadData () {
+    async loadData () {
       if (this.isAppealed) {
-        this.fetchAppeal()
+        await this.fetchAppeal()
       }
       this.startAppealCountdown()
       this.checkStatus()
-      this.fetchContractBalance()
+      await this.fetchContractBalance()
       this.lockedPrice = this.formatCurrency(this.data.order?.locked_price, this.data.order?.ad?.fiat_currency?.symbol)
       this.feedback = this.data.feedback
+      this.isloaded = true
     },
     dynamicVal (field) {
       if (field.model_ref === 'order') {
@@ -425,11 +417,12 @@ export default {
       this.showAttachmentDialog = true
       this.attachmentUrl = url
     },
-    fetchAppeal () {
+    async fetchAppeal () {
       const vm = this
-      backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: true })
         .then(response => {
           vm.appeal = response.data?.appeal
+          console.log('appeal:', vm.appeal)
         })
         .catch(error => {
           if (error.response) {
@@ -441,10 +434,10 @@ export default {
           }
         })
     },
-    fetchContractBalance () {
+    async fetchContractBalance () {
       const vm = this
       if (this.data?.escrow) {
-        vm.data?.escrow?.getBalance(vm.data?.contractAddress)
+        await vm.data?.escrow?.getBalance(vm.data?.contractAddress)
           .then(balance => {
             vm.contractBalance = balance.toString()
           })

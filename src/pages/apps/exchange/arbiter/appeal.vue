@@ -70,10 +70,7 @@
           <AppealTransfer
             v-if="state === 'tx-confirmation'"
             :key="appealTransferKey"
-            :escrowContract="escrowContract"
-            :orderId="appeal?.order?.id"
-            :txid="txid"
-            :action="selectedAction"
+            :data="appealTransferData"
             @back="$emit('back')"
             @update-page-name="(val) => {$emit('updatePageName', val)}"
             @verifying-tx="onVerifyingTx"
@@ -165,6 +162,14 @@ export default {
   },
   emits: ['back', 'updatePageName'],
   computed: {
+    appealTransferData () {
+      return {
+        escrow: this.escrowContract,
+        orderId: this.appeal?.order?.id,
+        txid: this.txid,
+        action: this.selectedAction
+      }
+    },
     showContractProgDialog () {
       return this.sendingBch || this.verifyingTx
     },

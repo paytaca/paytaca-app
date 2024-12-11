@@ -38,19 +38,12 @@
       <q-input
         filled
         dense
-        :readonly="disableTxidInput"
+        readonly
         :dark="darkMode"
         :loading="!txidLoaded && !transactionId"
         v-model="transactionId"
         @click="copyToClipboard(transactionId)"
         class="q-mb-md">
-        <template v-slot:append>
-          <q-icon
-            size="sm"
-            name='edit'
-            color="blue-grey-6"
-            @click="disableTxidInput = false"/>
-        </template>
       </q-input>
       <div v-if="errorMessage" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
         <q-icon name="error" size="1.2em" class="q-pr-xs"/>{{ errorMessage }}
@@ -92,7 +85,6 @@ export default {
       verifyingTx: false,
       txidLoaded: false,
       balanceLoaded: false,
-      disableTxidInput: true,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -102,7 +94,6 @@ export default {
   },
   watch: {
     txidLoaded () {
-      console.log('txidLoaded:', this.txidLoaded)
       this.checkTransferStatus()
     },
     balanceLoaded () {
@@ -250,9 +241,6 @@ export default {
         switch (this.data?.action) {
           case 'RELEASE':
             if (this.contract.balance === 0) {
-              if (!this.transactionId) {
-                this.disableTxidInput = false
-              }
               this.submitAction()
             } else {
               this.verifyingTx = false
@@ -262,9 +250,6 @@ export default {
             break
           case 'ESCROW':
             if (this.contract.balance > 0) {
-              if (!this.transactionId) {
-                this.disableTxidInput = false
-              }
               this.submitAction()
             } else {
               this.verifyingTx = false
@@ -288,9 +273,6 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
-    },
     retryBalance (balance) {
       switch (this.data?.action) {
         case 'RELEASE':
@@ -302,6 +284,9 @@ export default {
         default:
           return false
       }
+    },
+    delay (duration) {
+      return new Promise(resolve => setTimeout(resolve, duration))
     },
     exponentialBackoff (fn, retries, delayDuration) {
       return fn()
