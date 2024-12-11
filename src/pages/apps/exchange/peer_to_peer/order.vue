@@ -5,9 +5,7 @@
     </div>
     <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-center text-weight-bold">
-        <!-- <div class="row justify-between"> -->
           <div padding="none none" class="lg-font-size" flat dense>{{ headerTitle.toUpperCase() }}</div>
-        <!-- </div> -->
         <div class="text-center subtext sm-font-size q-mb-sm">
           {{
             $t(
@@ -518,22 +516,16 @@ export default {
         }
         case 'RFN': // Refunded
           vm.state = 'standby-view'
-          vm.standByDisplayKey++
           vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
           break
         case 'RLS': // Released
           vm.state = 'standby-view'
-          vm.standByDisplayKey++
           vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
           break
         default:
           // includes status = CNCL, APL, RFN_PN, RLS_PN
           this.state = 'standby-view'
-          vm.standByDisplayKey++
           break
-      }
-      if (vm.state === 'standby-view') {
-        vm.standByDisplayKey++
       }
     },
     isStatusCompleted (status) {
@@ -629,7 +621,6 @@ export default {
             bus.emit('network-error')
           }
         })
-        .finally(() => { this.reloadChildComponents() })
     },
     confirmOrder () {
       const vm = this
