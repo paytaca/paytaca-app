@@ -267,8 +267,10 @@ export default defineComponent({
         }
       }).onOk(results => {
         console.log(results)
-        const successResults = results?.filter?.(result => result?.success).map(result => result?.txData)
-        const errors = results?.filter?.(result => !result?.success)
+        const successResults = results
+          ?.filter(result => result?.success && result?.txData?.status !== 'failed')
+          .map(result => result?.txData)
+        const errors = results?.filter?.(result => !result?.success || result?.txData?.status === 'failed')
         const errorMessage = errors.reduce((msg, error) => {
           if (error?.txData?.resultMessage) return error?.txData?.resultMessage
           if (error?.error) return error?.error
