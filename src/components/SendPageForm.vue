@@ -72,7 +72,7 @@
         :model-value="convertCashAddress(selectedChangeAddress, isChipnet, true)" 
         readonly
         filled
-        :dense="dense">
+        dense>
         <template v-slot:label>
           {{ $t('SendTokenChangeTo') }} 
         </template>
@@ -100,8 +100,8 @@
           :label="$t('Amount')"
           :dark="darkMode"
           :loading="computingMax"
-          :disabled="setAmountInFiat || inputExtras.isBip21"
-          :readonly="setAmountInFiat || inputExtras.isBip21"
+          :disabled="setAmountInFiat || recipient.fixedAmount || inputExtras.isBip21"
+          :readonly="setAmountInFiat || recipient.fixedAmount || inputExtras.isBip21"
           :error="balanceExceeded"
           :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
           :key="inputExtras.amountFormatted"

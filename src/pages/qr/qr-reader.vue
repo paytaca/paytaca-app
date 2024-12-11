@@ -293,6 +293,11 @@ export default {
               }
               if (payProData.paypro.category) {
                 query.assetId = `ct/${payProData.paypro.category}`
+
+                if (payProData.paypro.fungible) {
+                  query.fungible = payProData.paypro.fungible
+                }
+
                 // TODO - Check first if the requested token exists before routing
                 vm.$router.push({
                   name: 'transaction-send',
@@ -315,7 +320,6 @@ export default {
               } else {
                 query = {
                   assetId: vm.$store.getters['assets/getAssets'][0].id,
-                  tokenType: 1,
                   network: 'BCH',
                   address: value
                 }

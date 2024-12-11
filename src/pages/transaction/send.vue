@@ -427,6 +427,10 @@ export default {
       type: Number,
       required: false
     },
+    fungible: {
+      type: String,
+      required: false
+    },
     fixed: {
       type: Boolean,
       required: false
@@ -863,6 +867,16 @@ export default {
             currentRecipient.amount = this.customNumberFormatting(amount)
           }
           currentRecipient.fixedAmount = true
+        }
+
+        if (this.fungible) {
+          const tokenAmount = Math.round(parseInt(this.fungible) / (10 ** this.asset.decimals) || 0)
+          currentRecipient.amount = tokenAmount
+          currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', {maximumFractionDigits: this.asset.decimals})
+          currentRecipient.fixedAmount = true
+
+          this.customKeyboardState = 'dismiss'
+          this.sliderStatus = true
         }
 
         // call cashback API to check if merchant is part of campaign
