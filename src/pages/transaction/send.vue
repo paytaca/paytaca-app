@@ -757,6 +757,7 @@ export default {
       let amount = null
       let amountValue = null
       let currency = null
+      let fungibleTokenAmount = null
       const rawPaymentUri = ''
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
@@ -815,6 +816,11 @@ export default {
             })
           }
         }
+
+        if (paymentUriData?.otherParams?.f) {
+          fungibleTokenAmount = paymentUriData?.otherParams?.f
+        }
+
         currency = paymentUriData.outputs[0].amount?.currency
         this.paymentCurrency = currency
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
@@ -877,8 +883,8 @@ export default {
           currentRecipient.fixedAmount = true
         }
 
-        if (this.fungible) {
-          const tokenAmount = Math.round(parseInt(this.fungible) / (10 ** this.asset.decimals) || 0)
+        if (this.fungible || fungibleTokenAmount) {
+          const tokenAmount = Math.round(parseInt(this.fungible || fungibleTokenAmount) / (10 ** this.asset.decimals) || 0)
           currentRecipient.amount = tokenAmount
           currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', {maximumFractionDigits: this.asset.decimals})
           currentRecipient.fixedAmount = true
