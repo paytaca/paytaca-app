@@ -742,12 +742,14 @@ export default {
         'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
       ).format(dateObj)
     },
-    async onScannerDecode(content) {
+    async onScannerDecode (content) {
       this.disableSending = false
       this.bip21Expires = null
       this.showQrScanner = false
       this.sliderStatus = false
-      let address = Array.isArray(content) ? content[0].rawValue : content
+
+      content = Array.isArray(content) ? content[0].rawValue : content
+      let address = content
       let amount = null
       let amountValue = null
       let currency = null
