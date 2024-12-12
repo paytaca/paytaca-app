@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" full-width seamless>
+  <q-dialog ref="dialog" full-width seamless class="no-click-outside">
     <q-card
       class="br-15 price-chart-card text-bow"
       :class="getDarkModeClass(darkMode)"
@@ -272,8 +272,6 @@ export default {
     await this.loadData()
     this.createChart()
     this.refreshData()
-
-    console.log(this.$refs.dialog)
 
     document.addEventListener('backbutton', () => {
       this.$refs.dialog.hide()

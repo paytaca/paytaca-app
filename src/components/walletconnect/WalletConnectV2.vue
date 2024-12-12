@@ -423,7 +423,7 @@ const connectNewSession = async(uri='', prompt=true) => {
   if (prompt) {
     $q.dialog({
       title: $t('NewSession'),
-      class: 'q-pb-lg q-px-sm',
+      class: `q-pb-lg q-px-sm br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)} new-session`,
       prompt: {
         label: $t('SessionURL'),
         placeholder: $t('PasteURL'),
@@ -448,7 +448,6 @@ const connectNewSession = async(uri='', prompt=true) => {
       },
       position: 'bottom',
       seamless: true,
-      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
     })
       .onOk(async (_uri) => await pairURI(_uri))
   } else {
@@ -913,5 +912,12 @@ defineExpose({
 }
 .action-button {
   z-index: 10;
+}
+</style>
+
+<style lang="scss">
+.q-dialog.no-pointer-events:has(.new-session) {
+  pointer-events: bounding-box !important;
+  background-color: rgba($color: #000000, $alpha: 0.3) !important;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="innerVal" full-width seamless ref="nftDialog">
+  <q-dialog v-model="innerVal" full-width seamless ref="nftDialog" class="no-click-outside">
     <q-card style="max-width:90vw;" class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="row items-start no-wrap nft-dialog-header" >
         <div class="text-h6 q-space" :class="{'text-grad': darkMode}" style="text-overflow:clip">

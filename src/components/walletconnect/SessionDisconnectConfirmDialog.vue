@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" persistent seamless>
+  <q-dialog ref="dialogRef" persistent seamless class="no-click-outside">
     <q-card class="q-dialog-plugin br-15 q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-black">
         <div class="text-grad">
