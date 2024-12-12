@@ -212,7 +212,7 @@ export default {
         },
         persistent: true,
         seamless: true,
-        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)} remove-token`
       })
         .onOk(() => this.removeAddedIgnoredAssets())
         .onDismiss(next)
