@@ -372,7 +372,7 @@ export default {
         component: ShareDialog,
         componentProps: {
           // adShareUrl: `${window.location.origin}/#/apps/exchange/ad/${this.ad.id}`
-          adShareUrl: `${baseURL}/ramp-p2p/ad/share/?id=${this.ad.id}`
+          adShareUrl: `https://p2p.paytaca.com/ad/share/?id=${this.ad.id}`
         }
       })
     },

@@ -110,7 +110,7 @@ export default function ({ store }) {
       Router.push({ name: 'transaction-send', query: query })
     } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
       Router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
-    } else if (url.host === baseURL && url.pathname.match('/api/ramp-p2p/ad/share/?')) {
+    } else if (url.host === 'p2p.paytaca.com' && url.pathname.match('/ad/share/?')) {
       Router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
     }
   })

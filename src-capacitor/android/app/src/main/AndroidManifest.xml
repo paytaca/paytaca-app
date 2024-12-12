@@ -62,6 +62,7 @@
 
                 <data android:scheme="https" />
                 <data android:host="gifts.paytaca.com" pathPrefix="/claim"/>
+                <data android:host="p2p.paytaca.com" pathPrefix="/ad"/>
             </intent-filter>
         </activity>
 

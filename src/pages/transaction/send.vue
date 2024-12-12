@@ -427,6 +427,10 @@ export default {
       type: Number,
       required: false
     },
+    fungible: {
+      type: String,
+      required: false
+    },
     fixed: {
       type: Boolean,
       required: false
@@ -753,6 +757,7 @@ export default {
       let amount = null
       let amountValue = null
       let currency = null
+      let fungibleTokenAmount = null
       const rawPaymentUri = ''
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
@@ -795,6 +800,14 @@ export default {
 
       if (paymentUriData?.outputs?.[0]) {
         const vm = this
+
+        if (vm.asset.symbol === undefined) {
+          vm.$router.push({
+            name: 'transaction-send-select-asset',
+            query: { error: 'token-not-found' }
+          })
+        }
+        
         if (paymentUriData?.otherParams?.c) {
           if (paymentUriData?.otherParams?.c !== vm.asset.id.split('ct/')[1]) {
             vm.$router.push({
@@ -803,6 +816,11 @@ export default {
             })
           }
         }
+
+        if (paymentUriData?.otherParams?.f) {
+          fungibleTokenAmount = paymentUriData?.otherParams?.f
+        }
+
         currency = paymentUriData.outputs[0].amount?.currency
         this.paymentCurrency = currency
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
@@ -863,6 +881,16 @@ export default {
             currentRecipient.amount = this.customNumberFormatting(amount)
           }
           currentRecipient.fixedAmount = true
+        }
+
+        if (this.fungible || fungibleTokenAmount) {
+          const tokenAmount = Math.round(parseInt(this.fungible || fungibleTokenAmount) / (10 ** this.asset.decimals) || 0)
+          currentRecipient.amount = tokenAmount
+          currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', {maximumFractionDigits: this.asset.decimals})
+          currentRecipient.fixedAmount = true
+
+          this.customKeyboardState = 'dismiss'
+          this.sliderStatus = true
         }
 
         // call cashback API to check if merchant is part of campaign
