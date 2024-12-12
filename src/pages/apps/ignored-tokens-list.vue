@@ -189,7 +189,7 @@ export default {
         cancel: true,
         persistent: true,
         seamless: true,
-        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)} remove-token`
       })
         .onOk(() => {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
@@ -237,4 +237,11 @@ export default {
       padding-bottom: 16px;
     }
   }
+</style>
+
+<style lang="scss">
+.q-dialog.no-pointer-events:has(.remove-token) {
+  pointer-events: bounding-box !important;
+  background-color: rgba($color: #000000, $alpha: 0.3) !important;
+}
 </style>
