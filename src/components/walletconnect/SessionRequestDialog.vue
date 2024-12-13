@@ -1,5 +1,5 @@
 <template>
-    <q-dialog ref="dialogRef" @hide="onDialogHide" seamless class="no-click-outside">
+    <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
       <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
         <SessionInfo 
           :session = "sessionRequest" session-type="request" :flat="true" hide-session-id hide-topic

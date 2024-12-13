@@ -914,10 +914,3 @@ defineExpose({
   z-index: 10;
 }
 </style>
-
-<style lang="scss">
-.q-dialog.no-pointer-events:has(.new-session) {
-  pointer-events: bounding-box !important;
-  background-color: rgba($color: #000000, $alpha: 0.3) !important;
-}
-</style>
