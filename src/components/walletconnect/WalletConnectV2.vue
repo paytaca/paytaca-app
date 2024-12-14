@@ -510,8 +510,15 @@ const disconnectSession = async (activeSession) => {
         class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => resolve()).onCancel(() => reject())
     }) 
+
+    // NOTE: Remove all sessions for now, allowing multiple sessions was problematic
+
     activeSessions.value && delete activeSessions.value[activeSession.topic]
+    activeSessions.value = {}
+    
     sessionTopicWalletAddressMapping.value[activeSession.topic] && delete sessionTopicWalletAddressMapping.value[activeSession.topic]
+    sessionTopicWalletAddressMapping.value = {}
+
     await web3Wallet.value.disconnectSession({
       topic: activeSession.topic,
       reason: getSdkError('USER_DISCONNECTED')
@@ -566,6 +573,8 @@ const rejectSessionProposal = async (sessionProposal) => {
 const approveSessionProposal = async (sessionProposal) => {
   // Choose the first address by default
   let selectedAddress = walletAddresses.value?.[0]
+
+  console.log('PROPOSAL', sessionProposal)
 
   if (walletAddresses.value?.length > 1) {
     // let user select the address wallet has more than 1 address
@@ -723,7 +732,6 @@ const respondToGetAccountsRequest = async (sessionRequest) => {
 }
 
 const respondToSessionRequest = async (sessionRequest) => {
-  console.log('Session Request', sessionRequest)
   try {
     processingSession.value[sessionRequest.id] = 'Confirming'
     const id = sessionRequest?.id
@@ -743,7 +751,6 @@ const respondToSessionRequest = async (sessionRequest) => {
     
     switch(method) {
       case 'bch_getAddresses':
-        break;
       case 'bch_getAccounts':
         await respondToGetAccountsRequest(sessionRequest)
         break;

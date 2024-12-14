@@ -86,7 +86,9 @@ const peerMetadata = computed(() => {
   if (props.sessionType === 'request') {
     // props.session is a sessionRequest object 
     // and session is a property of the sessionRequest object
-    return structuredClone(props.session.session.peer.metadata)
+    if (props.session.session) {
+      return structuredClone(props.session.session.peer.metadata)
+    }
   }
   return {}
 })
