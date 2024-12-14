@@ -258,7 +258,7 @@ export default {
         const tokenAmount = parseFloat(tempAmount) * (10 ** this.asset.decimals)
         tempAddress += this.amount ? '&f=' + Math.round(tokenAmount) : ''
       } else {
-        tempAddress += this.amount ? '&amount=' + tempAmount : ''
+        tempAddress += this.amount ? '?amount=' + tempAmount : ''
       }
 
       return tempAddress
