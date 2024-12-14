@@ -723,6 +723,7 @@ const respondToGetAccountsRequest = async (sessionRequest) => {
 }
 
 const respondToSessionRequest = async (sessionRequest) => {
+  console.log('Session Request', sessionRequest)
   try {
     processingSession.value[sessionRequest.id] = 'Confirming'
     const id = sessionRequest?.id
@@ -742,6 +743,7 @@ const respondToSessionRequest = async (sessionRequest) => {
     
     switch(method) {
       case 'bch_getAddresses':
+        break;
       case 'bch_getAccounts':
         await respondToGetAccountsRequest(sessionRequest)
         break;
@@ -754,7 +756,7 @@ const respondToSessionRequest = async (sessionRequest) => {
         break;
       default:
         // respond with error
-        const response = { 
+        const response = {
           id, jsonrpc: '2.0', result: undefined,
            error: { code: -32601, reason: 'Method not found' } 
         };
