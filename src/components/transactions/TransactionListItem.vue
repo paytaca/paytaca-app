@@ -15,24 +15,34 @@
             :class="[getDarkModeClass(darkMode), {'q-mt-sm': !marketValueData?.marketValue }]"
           >
             <div v-if="transaction?.record_type === 'outgoing'">
-              {{
-                `${parseAssetDenomination(
-                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                  ...asset,
-                  balance: transaction?.amount,
-                  thousandSeparator: true
-                })}`
-              }}
+              <template v-if="transaction.asset.id.startsWith('ct/')">
+                {{ formatTokenAmount(transaction) }}
+              </template>
+              <template v-else>
+                {{
+                  `${parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...asset,
+                    balance: transaction?.amount,
+                    thousandSeparator: true
+                  })}`
+                }}
+              </template>
             </div>
             <div v-else>
-              {{
-                `${parseAssetDenomination(
-                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                  ...asset,
-                  balance: transaction?.amount,
-                  thousandSeparator: true
-                })}`
-              }}
+              <template v-if="transaction.asset.id.startsWith('ct/')">
+                {{ formatTokenAmount(transaction) }}
+              </template>
+              <template v-else>
+                {{
+                  `${parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...asset,
+                    balance: transaction?.amount,
+                    thousandSeparator: true
+                  })}`
+                }}
+              </template>
             </div>
             <div
               v-if="marketValueData?.marketValue"
@@ -84,6 +94,7 @@ import { useI18n } from 'vue-i18n'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
+import { startOfMinute } from 'date-fns'
 
 const $store = useStore()
 const $t = useI18n().t
@@ -153,6 +164,12 @@ const badges = computed(() => {
 
 function formatDate (date) {
   return ago(new Date(date))
+}
+
+function formatTokenAmount (transaction) {
+  const amount = transaction.amount / (10 ** transaction.asset.decimals)
+  const amountString = amount.toLocaleString('en-us', {maximumFractionDigits: transaction.asset.decimals})
+  return `${amountString} ${transaction.asset.symbol}`
 }
 </script>
 <style scoped>
