@@ -884,7 +884,8 @@ export default {
         }
 
         if (this.fungible || fungibleTokenAmount) {
-          const tokenAmount = Math.round(parseInt(this.fungible || fungibleTokenAmount) / (10 ** this.asset.decimals) || 0)
+
+          const tokenAmount = parseInt(this.fungible || fungibleTokenAmount) / (10 ** this.asset.decimals) || 0
           currentRecipient.amount = tokenAmount
           currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', {maximumFractionDigits: this.asset.decimals})
           currentRecipient.fixedAmount = true

@@ -297,7 +297,6 @@ export default {
                 if (payProData.paypro.fungible) {
                   query.fungible = payProData.paypro.fungible
                 }
-
                 vm.$router.push({
                   name: 'transaction-send',
                   query
