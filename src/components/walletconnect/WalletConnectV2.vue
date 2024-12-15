@@ -894,7 +894,6 @@ watchEffect(() => {
 })
 
 onBeforeMount(async () => {
-  loading.value = 'Loading...'
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
@@ -908,6 +907,7 @@ onBeforeMount(async () => {
 
 onMounted(async () => {
   try {
+    loading.value = 'Loading...'
     await loadWeb3Wallet()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
@@ -920,7 +920,7 @@ onMounted(async () => {
       await $store.dispatch('global/loadWalletAddresses')  
     }
     walletAddresses.value = $store.getters['global/walletAddresses']
-  } catch (error) { loading.value = undefined }
+  } catch (error) {} finally { loading.value = undefined}
 })
 
 onUnmounted(() => {
