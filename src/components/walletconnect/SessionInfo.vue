@@ -12,7 +12,11 @@
             </span>
           </slot>
         </q-chip>
-        <slot name="top-right"></slot>
+        <slot name="top-right">
+          <div @click="copyToClipboard" @mousedown.stop.prevent>
+            <q-icon name="fas fa-copy" style="font-size: 14px;" />
+          </div>
+        </slot>
       </div>
       <template v-if="sessionType==='proposal'">
           <PeerInfo :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"> 
@@ -63,9 +67,11 @@
   </q-card>
 </template>
 <script setup>
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
+import { useQuasar } from 'quasar'
 import PeerInfo from './PeerInfo.vue'
 import { shortenAddressForDisplay } from '../../utils/address-utils'
+import { toTokenAddress } from 'src/marketplace/escrow/utils'
 
 const props = defineProps({
     sessionType: { type: String, required: true }, /* proposal | request | active */
@@ -103,6 +109,36 @@ const account = computed(() => {
   
   return ''
 })
+
+const $q = useQuasar()
+const $copyText = inject('$copyText')
+
+async function copyToClipboard() {
+  if (account.value) {
+    try {
+      let address = account.value.replace('bch:', '')
+      if (props.addressDisplayFormat === 'tokenaddr') {
+        address = toTokenAddress(address)
+      }
+      $copyText(address)
+      // Use Quasar's notification system to show success
+      $q.notify({
+        message: 'Copied to clipboard',
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      });
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      $q.notify({
+        message: 'Failed to copy',
+        timeout: 800,
+        color: 'negative',
+        icon: 'mdi-clipboard-off'
+      });
+    }
+  }
+}
 
 </script>
 
@@ -152,4 +188,13 @@ const account = computed(() => {
   font-size: x-small;
 }
 
+.q-card {
+  position: relative; /* Ensure the card is positioned */
+  z-index: 1; /* Or a lower index if the child should overlay it */
+}
+
+.q-icon {
+  position: relative;
+  z-index: 10; /* Ensure the icon is clickable over the card */
+}
 </style>
