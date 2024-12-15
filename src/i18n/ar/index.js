@@ -398,6 +398,7 @@ export default {
   English: "إنجليزي",
   EnterAmount: "أدخل المبلغ",
   EnterCashPointCategoryID: "أدخل معرف فئة CashPoint",
+  EnterCashTokenCategory: "أدخل فئة CashToken / معرف الرمز المميز",
   EnterCashTokenCategoryID: "أدخل معرف فئة CashToken",
   EnterCity: "أدخل المدينة",
   EnterCountry: "أدخل البلد",

@@ -398,6 +398,7 @@ export default {
   English: "英語",
   EnterAmount: "量を入力します",
   EnterCashPointCategoryID: "CashPointカテゴリIDを入力します",
+  EnterCashTokenCategory: "CashTokenカテゴリ /トークンIDを入力します",
   EnterCashTokenCategoryID: "CashTokenカテゴリIDを入力します",
   EnterCity: "都市に入ります",
   EnterCountry: "国に入ります",

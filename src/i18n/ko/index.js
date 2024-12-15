@@ -398,6 +398,7 @@ export default {
   English: "영어",
   EnterAmount: "금액을 입력하십시오",
   EnterCashPointCategoryID: "CashPoint 카테고리 ID를 입력하십시오",
+  EnterCashTokenCategory: "CashToken 범주 / 토큰 ID를 입력하십시오",
   EnterCashTokenCategoryID: "CashToken 카테고리 ID를 입력하십시오",
   EnterCity: "도시에 들어갑니다",
   EnterCountry: "국가에 들어갑니다",

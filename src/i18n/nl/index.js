@@ -398,6 +398,7 @@ export default {
   English: "Engels",
   EnterAmount: "Voer het bedrag in",
   EnterCashPointCategoryID: "Voer cashpoint categorie -ID in",
+  EnterCashTokenCategory: "Voer cashtoken categorie / token -ID in",
   EnterCashTokenCategoryID: "Voer cashtoken categorie ID in",
   EnterCity: "Betreed de stad",
   EnterCountry: "Betreed het land",

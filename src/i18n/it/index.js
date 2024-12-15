@@ -398,6 +398,7 @@ export default {
   English: "Inglese",
   EnterAmount: "Immettere l'importo",
   EnterCashPointCategoryID: "Immettere ID categoria Cashpoint",
+  EnterCashTokenCategory: "Immettere CashToken Categoria / Token ID",
   EnterCashTokenCategoryID: "Immettere ID categoria CashToken",
   EnterCity: "Entra in città",
   EnterCountry: "Entrare nel paese",

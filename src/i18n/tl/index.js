@@ -398,6 +398,7 @@ export default {
   English: "Ingles",
   EnterAmount: "Ipasok ang Halaga",
   EnterCashPointCategoryID: "Ipasok ang kategorya ng cashpoint",
+  EnterCashTokenCategory: "Ipasok ang kategorya ng CashToken / Token ID",
   EnterCashTokenCategoryID: "Ipasok ang CashToken Category ID",
   EnterCity: "Ipasok ang Lungsod",
   EnterCountry: "Pumasok sa bansa",

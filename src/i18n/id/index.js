@@ -398,6 +398,7 @@ export default {
   English: "Bahasa inggris",
   EnterAmount: "Masukkan jumlah",
   EnterCashPointCategoryID: "Masukkan ID Kategori Cashpoint",
+  EnterCashTokenCategory: "Masukkan Kategori CashToken / Token ID",
   EnterCashTokenCategoryID: "Masukkan ID Kategori CashToken",
   EnterCity: "Masukkan Kota",
   EnterCountry: "Masukkan negara",

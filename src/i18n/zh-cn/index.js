@@ -398,6 +398,7 @@ export default {
   English: "英语",
   EnterAmount: "输入金额",
   EnterCashPointCategoryID: "输入CashPoint类别ID",
+  EnterCashTokenCategory: "输入CashToken类别 /令牌ID",
   EnterCashTokenCategoryID: "输入CashToken类别ID",
   EnterCity: "进入城市",
   EnterCountry: "进入国家",

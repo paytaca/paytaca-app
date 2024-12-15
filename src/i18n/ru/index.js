@@ -398,6 +398,7 @@ export default {
   English: "Английский",
   EnterAmount: "Введите сумму",
   EnterCashPointCategoryID: "Введите идентификатор категории CashPoint",
+  EnterCashTokenCategory: "Введите категорию CashToken / Token ID",
   EnterCashTokenCategoryID: "Введите идентификатор категории CashToken",
   EnterCity: "Войти в город",
   EnterCountry: "Войти в страну",

@@ -140,7 +140,7 @@ export default {
       if (this.isSep20)
         this.$t('Enter_SEP20_ContractAddress')
       if (this.isCashToken)
-        return this.$t(this.isHongKong(this.currentCountry) ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategoryID')
+        return this.$t(this.isHongKong(this.currentCountry) ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategory')
       return this.$t(this.isHongKong(this.currentCountry) ? 'Enter_SLP_PointId' : 'Enter_SLP_TokenId')
     },
     theme () {

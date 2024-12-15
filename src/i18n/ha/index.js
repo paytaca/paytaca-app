@@ -398,6 +398,7 @@ export default {
   English: "Na turanci",
   EnterAmount: "Shigar da adadin",
   EnterCashPointCategoryID: "Shigar ID na CASH",
+  EnterCashTokenCategory: "Shigar da Cashtoken Cashtoken / Token ID",
   EnterCashTokenCategoryID: "Shigar da ID na Cashtoken",
   EnterCity: "Shigar da City",
   EnterCountry: "Shigar da ƙasa",
