@@ -303,7 +303,7 @@ const loadActiveSessions = async ({showLoading} = {showLoading: true}) => {
   try {
     if (web3Wallet.value) {
       activeSessions.value = await web3Wallet.value.getActiveSessions()
-    }  
+    }
     mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
     return activeSessions.value
   } catch (error) {} finally { 
@@ -511,18 +511,43 @@ const disconnectSession = async (activeSession) => {
       }).onOk(() => resolve()).onCancel(() => reject())
     }) 
 
-    // NOTE: Remove all sessions for now, allowing multiple sessions was problematic
-
-    activeSessions.value && delete activeSessions.value[activeSession.topic]
-    activeSessions.value = {}
+    const firstSessionUrl = activeSession.peer.metadata.url
     
+    activeSessions.value && delete activeSessions.value[activeSession.topic]
     sessionTopicWalletAddressMapping.value[activeSession.topic] && delete sessionTopicWalletAddressMapping.value[activeSession.topic]
-    sessionTopicWalletAddressMapping.value = {}
-
+    
     await web3Wallet.value.disconnectSession({
       topic: activeSession.topic,
       reason: getSdkError('USER_DISCONNECTED')
     })
+
+    // Disconnect all remaining sessions that match the first session's URL
+    if (firstSessionUrl && activeSessions.value) {
+      const disconnectPromises = Object.keys(activeSessions.value).map(async (sessionTopic) => {
+        const session = activeSessions.value[sessionTopic];
+
+        // Check if the session's URL matches the first session's URL
+        if (session.peer?.metadata?.url === firstSessionUrl) {
+          // Remove the session from the activeSessions mapping
+          delete activeSessions.value[sessionTopic];
+
+          // Remove the corresponding wallet address mapping for the session
+          if (sessionTopicWalletAddressMapping.value[sessionTopic]) {
+            delete sessionTopicWalletAddressMapping.value[sessionTopic];
+          }
+
+          // Disconnect the matching session from the wallet
+          await web3Wallet.value.disconnectSession({
+            topic: sessionTopic,
+            reason: getSdkError('USER_DISCONNECTED'),
+          });
+        }
+      });
+
+      // Wait for all disconnections to complete
+      await Promise.all(disconnectPromises);
+    }
+
     await loadActiveSessions({ showLoading: false})
   } catch (error) {
     console.log('🚀 ~ disconnectSession ~ error:', error)
@@ -573,8 +598,6 @@ const rejectSessionProposal = async (sessionProposal) => {
 const approveSessionProposal = async (sessionProposal) => {
   // Choose the first address by default
   let selectedAddress = walletAddresses.value?.[0]
-
-  console.log('PROPOSAL', sessionProposal)
 
   if (walletAddresses.value?.length > 1) {
     // let user select the address wallet has more than 1 address

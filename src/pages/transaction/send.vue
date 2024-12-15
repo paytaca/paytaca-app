@@ -84,7 +84,7 @@
                     size="lg"
                     @click="() => onScannerDecode(manualAddress)"
                   >
-                    <div class="ellipsis" style="max-width:min(200px, 75vw)">
+                    <div class="ellipsis" style="max-width:min(230px, 75vw); font-size: 17px;">
                       {{ $t('SendTo', {}, 'Send to') }}
                       {{ manualAddress }}
                     </div>
