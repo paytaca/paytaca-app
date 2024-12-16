@@ -106,7 +106,7 @@ export default {
   },
   components: {
     HeaderNav,
-    AssetFilter,
+    AssetFilter
   },
   data () {
     return {
@@ -148,28 +148,30 @@ export default {
       }
     },
     assets () {
-      if (this.selectedNetwork === 'sBCH') {
-        const assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
+      const vm = this
+
+      if (vm.selectedNetwork === 'sBCH') {
+        const assets = vm.$store.getters['sep20/getAssets'].filter(Boolean)
         return assets.map((item) => {
           if (item?.id === 'bch') {
             item = Object.assign({}, item, {
               name: 'Smart Bitcoin Cash',
               symbol: 'sBCH',
-              logo: 'sep20-logo.png',
-            },)
+              logo: 'sep20-logo.png'
+            })
           }
           return item
         })
       }
 
-      const vm = this
-      const assets = this.$store.getters['assets/getAssets'].filter(function (item) {
+      const assets = vm.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item?.id === 'bch'
           const tokenType = item?.id?.split?.('/')?.[0]
 
-          if (vm.isCashToken)
+          if (vm.isCashToken) {
             return tokenType === 'ct' || isBch
+          }
           return tokenType === 'slp' || isBch
         }
       })
@@ -177,7 +179,7 @@ export default {
       if (vm.address !== '' && vm.address.includes('bitcoincash:zq')) {
         return assets.splice(1)
       }
-      
+
       return assets
     }
   },
@@ -236,7 +238,7 @@ export default {
         persistent: true,
         seamless: true,
         ok: true,
-        class:`pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
     }
 
@@ -248,7 +250,7 @@ export default {
         persistent: true,
         seamless: true,
         ok: true,
-        class:`pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
     }
 
