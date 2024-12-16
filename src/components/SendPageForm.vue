@@ -72,7 +72,7 @@
         :model-value="convertCashAddress(selectedChangeAddress, isChipnet, true)" 
         readonly
         filled
-        :dense="dense">
+        dense>
         <template v-slot:label>
           {{ $t('SendTokenChangeTo') }} 
         </template>
@@ -100,15 +100,14 @@
           :label="$t('Amount')"
           :dark="darkMode"
           :loading="computingMax"
-          :disabled="setAmountInFiat || inputExtras.isBip21"
-          :readonly="setAmountInFiat || inputExtras.isBip21"
+          :disabled="setAmountInFiat || recipient.fixedAmount || inputExtras.isBip21"
+          :readonly="setAmountInFiat || recipient.fixedAmount || inputExtras.isBip21"
           :error="balanceExceeded"
           :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
           :key="inputExtras.amountFormatted"
         >
           <template v-slot:append>
-            <!-- TODO: UNDO shortening of asset symbol,  -->
-            {{ asset.symbol === 'BCH' ? selectedDenomination : asset.symbol?.replace(asset.symbol.slice(4, asset.symbol.length - 1), '...') }}
+            {{ asset.symbol }}
             <DenominatorTextDropdown
               v-if="!recipient.fixedAmount"
               @on-selected-denomination="onSelectedDenomination"

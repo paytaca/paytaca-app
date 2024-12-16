@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="val" seamless persistent @hide="onClose()">
+  <q-dialog v-model="val" seamless persistent @hide="onClose()" class="no-click-outside">
     <q-card class="q-dialog-plugin br-15 pt-card" :class="getDarkModeClass(darkMode)">
       <div class="row items-center no-wrap q-pb-sm">
         <div :class="['q-ml-md', darkMode ? 'text-white' : 'text-black']">
@@ -324,10 +324,11 @@ export default {
     async updateList (opts = { includeIgnored: false, autoOpen: false }) {
       this.loading = true
 
-      await Promise.all([this.updateMainchainList(opts), this.updateSmartchainList(opts)])
+      // await Promise.all([this.updateMainchainList(opts), this.updateSmartchainList(opts)])
+      await Promise.all([this.updateMainchainList(opts)])
       this.loading = false
 
-      const count = this.parsedMainchainTokens.length + this.parsedSmartchainTokens.length
+      const count = this.parsedMainchainTokens.length // + this.parsedSmartchainTokens.length
       if (!count) return
 
       if (opts.autoOpen) {
@@ -356,7 +357,7 @@ export default {
       }
     },
     onClose () {
-      this.$store.dispatch('sep20/updateTokenIcons', { all: false })
+      // this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
     }

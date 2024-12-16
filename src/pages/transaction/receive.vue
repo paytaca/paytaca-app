@@ -32,10 +32,7 @@
           </q-list>
         </q-menu>
       </q-icon>
-      <div class="text-center" style="padding-top: 80px;" v-if="generatingAddress">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </div>
-      <template v-else>
+      <div>
         <div class="row">
           <div class="col qr-code-container" @click="copyToClipboard(address)">
             <div class="col q-pl-sm q-pr-sm">
@@ -91,12 +88,11 @@
                   {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
-                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
+                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
                 </div>
               </div>
             </div>
             <div
-              v-if="asset.symbol === 'BCH'"
               class="text-center button button-text-primary"
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
@@ -110,7 +106,7 @@
             </div>
           </div>
         </div>
-      </template>
+      </div>
     </div>
     <div v-if="amountDialog">
       <div class="text-right">
@@ -138,12 +134,13 @@
           >
             <template v-slot:append>
               <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}
+                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol}}
               </div>
             </template>
           </q-input>
         </div>
         <div
+          v-if="assetId === 'bch'"
           class="q-pt-md text-subtitle1 button button-text-primary set-amount-button"
           :class="getDarkModeClass(darkMode)"
           @click="setAmountInFiat = !setAmountInFiat"
@@ -164,7 +161,6 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import ProgressLoader from '../../components/ProgressLoader'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
@@ -185,7 +181,7 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav, ProgressLoader, customKeyboard },
+  components: { HeaderNav, customKeyboard },
   data () {
     return {
       sBCHListener: null,
@@ -195,7 +191,6 @@ export default {
       assetLoaded: false,
       legacy: false,
       lnsName: '',
-      generatingAddress: false,
       generateAddressOnLeave: false,
       copying: false,
       amount: '',
@@ -252,13 +247,18 @@ export default {
         tempAmount = this.convertFiatToSelectedAsset(this.amount)
       }
 
-      tempAddress += this.amount ? '?amount=' + tempAmount : ''
-
       if (this.assetId.startsWith('ct/')) {
         const category = this.assetId.split('/')[1]
         if (category !== 'unlisted') {
           tempAddress += '?c=' + category
         }
+      }
+
+      if (this.assetId.startsWith('ct/')) {
+        const tokenAmount = parseFloat(tempAmount) * (10 ** this.asset.decimals)
+        tempAddress += this.amount ? '&f=' + Math.round(tokenAmount) : ''
+      } else {
+        tempAddress += this.amount ? '?amount=' + tempAmount : ''
       }
 
       return tempAddress
@@ -353,6 +353,21 @@ export default {
           finalAmount += key !== '.' ? key.toString() : ''
         }
       }
+
+      if (this.asset.id.startsWith('ct/')) {
+        if (this.asset.decimals === 0) {
+          finalAmount = finalAmount.toString().replace('.', '');
+        } else {
+          const parts = finalAmount.toString().split('.');
+          
+          if (parts.length > 1) { // Ensure there's a decimal part
+            // Truncate the decimal part to the desired length
+            parts[1] = parts[1].slice(0, this.asset.decimals);
+            finalAmount = parts.join('.'); // Recombine the integer and decimal parts
+          }
+        }
+      }
+
       // // Set the new amount
       this.tempAmount = finalAmount
     },
@@ -407,7 +422,6 @@ export default {
     },
     generateNewAddress () {
       const vm = this
-      vm.generatingAddress = true
       const lastAddressIndex = vm.getLastAddressIndex()
       const newAddressIndex = lastAddressIndex + 1
 
@@ -425,7 +439,6 @@ export default {
               lastChangeAddress: addresses.change,
               lastAddressIndex: newAddressIndex
             })
-            vm.generatingAddress = false
             vm.$store.dispatch('chat/addIdentity', result.pgpIdentity)
             try { vm.setupListener() } catch {}
           })
@@ -438,7 +451,6 @@ export default {
               lastChangeAddress: addresses.change,
               lastAddressIndex: newAddressIndex
             })
-            vm.generatingAddress = false
             try { vm.setupListener() } catch {}
           })
         }
@@ -724,6 +736,9 @@ export default {
       }
     } else {
       vm.asset = vm.getAsset(vm.assetId)
+      if (vm.assetId.startsWith('ct/')) {
+        vm.setAmountInFiat = false
+      }
     }
   }
 }

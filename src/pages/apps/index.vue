@@ -78,6 +78,14 @@ export default {
           }
         },
         {
+          name: this.$t('WalletConnect'),
+          iconName: 'mdi-connection',
+          path: '/apps/wallet-connect',
+          iconStyle: 'font-size: 4.2em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Gifts'),
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
@@ -139,14 +147,6 @@ export default {
           path: '/apps/ramp/crypto',
           active: true,
           iconStyle: 'font-size: 4.7em',
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('WalletConnect'),
-          iconName: 'mdi-connection',
-          path: '/apps/wallet-connect',
-          iconStyle: 'font-size: 4.2em',
-          active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
         // {

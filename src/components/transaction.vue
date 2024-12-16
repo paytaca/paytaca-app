@@ -50,11 +50,16 @@
                   })}` }}
                 </template>
                 <template v-else>
-                  {{ `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...transaction.asset,
-                    balance: transaction.amount
-                  })}` }}
+                  <template v-if="transaction.asset.id.startsWith('ct/')">
+                    {{ formatTokenAmount(transaction) }}
+                  </template>
+                  <template v-else>
+                    {{ `${parseAssetDenomination(
+                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                      ...transaction.asset,
+                      balance: transaction.amount
+                    })}` }}
+                  </template>
                 </template>
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
@@ -641,6 +646,11 @@ export default {
           console.error(error)
           dialog.update({ message: 'Unable to fetch data' })
         })
+    },
+    formatTokenAmount (transaction) {
+      const amount = transaction.amount / (10 ** transaction.asset.decimals)
+      const amountString = amount.toLocaleString('en-us', {maximumFractionDigits: transaction.asset.decimals})
+      return `${amountString} ${transaction.asset.symbol}`
     },
     computeYield () {
       const fiatAmount = this.transactionAmountMarketValue

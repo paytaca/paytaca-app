@@ -5,7 +5,7 @@
 const phrases = {
   static: [
     {
-      AdvanceBackupMethods: 'Advance Backup Methods',
+      AdvanceBackupMethods: 'Advanced Backup Methods',
       AutoGenerateAddress: 'Auto generate address',
       AutoGenerateAddressToolTip: 'A new address will be generated after receiving assets',
       AnyHedge: "AnyHedge",
@@ -167,6 +167,11 @@ const phrases = {
       RestoreFromSeedPhrase: "Restore From Seed Phrase",
       RemoveDeviceFailed: "Remove Device Failed",
       RemovePOSDevice: "Remove POS device",
+      TokenMismatch: "Token Mismatch",
+      TokenMismatchMessage: "The recipient requires a token that is different from what you are trying to send.",
+      TokenNotFound: "Token Not Found",
+      TokenNotFoundMessage: "The recipient requires a token that was not found in your wallet."
+
     },
     {
       SalesReport: "Sales Report",
@@ -255,7 +260,7 @@ const phrases = {
       AddFungibleCashToken: "Add Fungible CashToken",
       AssetValueNote: "Asset value is based on prices at the time of transaction",
       CreateOrImportWallet: "Create/Import Wallet",
-      EnterCashTokenCategoryID: "Enter CashToken category ID",
+      EnterCashTokenCategory: "Enter CashToken Category / Token ID",
       ManageIgnoredTokens: "Manage Ignored Tokens",
       ManageTokens: "Manage Tokens",
       ScanForTokens: "Scan for Tokens",

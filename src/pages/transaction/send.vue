@@ -84,7 +84,7 @@
                     size="lg"
                     @click="() => onScannerDecode(manualAddress)"
                   >
-                    <div class="ellipsis" style="max-width:min(200px, 75vw)">
+                    <div class="ellipsis" style="max-width:min(230px, 75vw); font-size: 17px;">
                       {{ $t('SendTo', {}, 'Send to') }}
                       {{ manualAddress }}
                     </div>
@@ -427,6 +427,10 @@ export default {
       type: Number,
       required: false
     },
+    fungible: {
+      type: String,
+      required: false
+    },
     fixed: {
       type: Boolean,
       required: false
@@ -742,15 +746,18 @@ export default {
         'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
       ).format(dateObj)
     },
-    async onScannerDecode(content) {
+    async onScannerDecode (content) {
       this.disableSending = false
       this.bip21Expires = null
       this.showQrScanner = false
       this.sliderStatus = false
-      let address = Array.isArray(content) ? content[0].rawValue : content
+
+      content = Array.isArray(content) ? content[0].rawValue : content
+      let address = content
       let amount = null
       let amountValue = null
       let currency = null
+      let fungibleTokenAmount = null
       const rawPaymentUri = ''
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
@@ -792,6 +799,28 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0]) {
+        const vm = this
+
+        if (vm.asset.symbol === undefined) {
+          vm.$router.push({
+            name: 'transaction-send-select-asset',
+            query: { error: 'token-not-found' }
+          })
+        }
+        
+        if (paymentUriData?.otherParams?.c) {
+          if (paymentUriData?.otherParams?.c !== vm.asset.id.split('ct/')[1]) {
+            vm.$router.push({
+              name: 'transaction-send-select-asset',
+              query: { error: 'token-mismatch' }
+            })
+          }
+        }
+
+        if (paymentUriData?.otherParams?.f) {
+          fungibleTokenAmount = paymentUriData?.otherParams?.f
+        }
+
         currency = paymentUriData.outputs[0].amount?.currency
         this.paymentCurrency = currency
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
@@ -847,11 +876,22 @@ export default {
           this.sliderStatus = true
           currentInputExtras.amountFormatted = this.customNumberFormatting(amount)
           if (this.setAmountInFiat) {
-            currentInputExtras.sendAmountInFiat = this.customNumberFormatting(amount)
+            currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
           } else {
             currentRecipient.amount = this.customNumberFormatting(amount)
           }
           currentRecipient.fixedAmount = true
+        }
+
+        if (this.fungible || fungibleTokenAmount) {
+
+          const tokenAmount = parseInt(this.fungible || fungibleTokenAmount) / (10 ** this.asset.decimals) || 0
+          currentRecipient.amount = tokenAmount
+          currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', {maximumFractionDigits: this.asset.decimals})
+          currentRecipient.fixedAmount = true
+
+          this.customKeyboardState = 'dismiss'
+          this.sliderStatus = true
         }
 
         // call cashback API to check if merchant is part of campaign
@@ -1077,7 +1117,6 @@ export default {
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     async slideToSubmit (reset=() => {}) {
-      console.log('SLIDE')
       if (this.bip21Expires) {
         const expires = parseInt(this.bip21Expires)
         const now = Math.floor(Date.now() / 1000)

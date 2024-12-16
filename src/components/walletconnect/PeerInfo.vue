@@ -38,7 +38,7 @@ defineProps({
      * 
      */
     metadata: {}, // wallet connect session
-    sessionId: String,
+    sessionId: Number,
     sessionTopic: String,
 })
 </script>

@@ -47,7 +47,9 @@ export default {
           floating: true
         },
         payment_types: [],
-        time_limits: [15, 30, 45, 60]
+        time_limits: [15, 30, 45, 60],
+        order_amount: null,
+        order_amount_currency: null
       },
       defaultOngoingOrderFilters: {
         sort_type: 'ascending',

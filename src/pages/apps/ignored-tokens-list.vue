@@ -189,7 +189,7 @@ export default {
         cancel: true,
         persistent: true,
         seamless: true,
-        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)} remove-token`
       })
         .onOk(() => {
           if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
@@ -197,30 +197,38 @@ export default {
         })
     }
   },
-  beforeRouteLeave (to, from, next) {
+  async beforeRouteLeave (to, from, next) {
+    const elem = document.getElementsByClassName('remove-token')
+
     if (this.hasIgnoredAssetsAdded) {
-      this.$q.dialog({
-        message: this.$t('RemoveIgnoredTokenPrompt'),
-        ok: {
-          noCaps: true,
-          label: this.$t('Remove')
-        },
-        cancel: {
-          noCaps: true,
-          label: this.$t('Keep'),
-          flat: true
-        },
-        persistent: true,
-        seamless: true,
-        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
-      })
-        .onOk(() => this.removeAddedIgnoredAssets())
-        .onDismiss(next)
+      // prevent dialog from opening twice
+      if (elem.length === 0) {
+        this.$q.dialog({
+          message: this.$t('RemoveIgnoredTokenPrompt'),
+          ok: {
+            noCaps: true,
+            label: this.$t('Remove')
+          },
+          cancel: {
+            noCaps: true,
+            label: this.$t('Keep'),
+            flat: true
+          },
+          persistent: true,
+          seamless: true,
+          class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)} remove-token`
+        })
+          .onOk(() => this.removeAddedIgnoredAssets())
+          .onDismiss(next)
+      }
+
+      // timeout to properly resolve store commits and dispatches
+      // eslint-disable-next-line promise/param-names
+      await new Promise(r => setTimeout(r, 2000))
 
       this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
-      return
     }
 
     next()

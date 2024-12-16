@@ -61,7 +61,7 @@
                   {{ asset.name }}
                 </p>
                 <p v-if="asset.id.startsWith('ct/')" class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }}
+                  {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
                 </p>
                 <p v-else class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
                   {{ parseAssetDenomination(denomination, asset) }}
@@ -227,6 +227,30 @@ export default {
     vm.$store.dispatch('market/updateAssetPrices', {})
     const assets = vm.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+
+    if (this.$route.query.error === 'token-mismatch') {
+      this.$router.replace({ path: this.$route.path })
+      this.$q.dialog({
+        title: this.$('TokenMismatch'),
+        message: this.$t('TokenMismatchMessage'),
+        persistent: true,
+        seamless: true,
+        ok: true,
+        class:`pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      })
+    }
+
+    if (this.$route.query.error === 'token-not-found') {
+      this.$router.replace({ path: this.$route.path })
+      this.$q.dialog({
+        title: this.$t('TokenNotFound'),
+        message: this.$t('TokenNotFoundMessage'),
+        persistent: true,
+        seamless: true,
+        ok: true,
+        class:`pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      })
+    }
 
     // update balance of assets
     await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {

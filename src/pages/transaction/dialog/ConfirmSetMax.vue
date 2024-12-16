@@ -3,6 +3,7 @@
     persistent
     seamless
     ref="dialogRef"
+    class="no-click-outside"
   >
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-h6">{{ $t('Warning') }}</q-card-section>
@@ -12,6 +13,7 @@
           flat
           v-close-popup
           class="max-button button button-text-primary"
+          @click="onDialogHide()"
           :class="getDarkModeClass(darkMode)"
           :label="$t('No')"
         />
@@ -19,7 +21,7 @@
           flat
           v-close-popup
           class="max-button button button-text-primary"
-          @click="onOKClick()"
+          @click="onOKClick(), onDialogHide()"
           :class="getDarkModeClass(darkMode)"
           :label="$t('Yes')"
         />

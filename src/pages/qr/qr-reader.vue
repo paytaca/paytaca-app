@@ -281,10 +281,10 @@ export default {
             loadingDialog.hide()
           }, 700)
 
+          let query
           if (value.includes('bitcoincash:q') || value.includes('bitcoincash:z') || value.includes('bitcoincash:p') || value.includes('bitcoincash:r') ||
               value.includes('bchtest:q') || value.includes('bchtest:z') || value.includes('bchtest:p') || value.includes('bchtest:r')
           ) {
-            let query
             let fallback = false
             if (payProData.valid) {
               query = {
@@ -293,7 +293,10 @@ export default {
               }
               if (payProData.paypro.category) {
                 query.assetId = `ct/${payProData.paypro.category}`
-                // TODO - Check first if the requested token exists before routing
+
+                if (payProData.paypro.fungible) {
+                  query.fungible = payProData.paypro.fungible
+                }
                 vm.$router.push({
                   name: 'transaction-send',
                   query
@@ -315,7 +318,6 @@ export default {
               } else {
                 query = {
                   assetId: vm.$store.getters['assets/getAssets'][0].id,
-                  tokenType: 1,
                   network: 'BCH',
                   address: value
                 }
@@ -325,6 +327,23 @@ export default {
                 })
               }
             }
+          } else if (value.includes('bitcoincash:?r')) {
+            query = {
+              assetId: vm.$store.getters['assets/getAssets'][0].id,
+              network: 'BCH',
+              paymentUrl: String(value)
+            }
+            vm.$router.push({
+              name: 'transaction-send',
+              query
+            })
+          } else {
+            vm.$q.notify({
+              message: vm.$t('UnidentifiedQRCode'),
+              timeout: 800,
+              color: 'red-9',
+              icon: 'mdi-qrcode-remove'
+            })
           }
         } else if (parseWalletConnectUri(value)) {
           const loadingDialog = vm.loadingDialog()

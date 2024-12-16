@@ -1,6 +1,5 @@
 <template>
-  
-  <q-dialog ref="dialogRef" @hide="onDialogHide" seamless>
+  <q-dialog ref="dialogRef" @hide="onDialogHide" seamless class="no-click-outside">
     <q-card :class="getDarkModeClass(darkMode)" class="br-15 pt-card-2 text-bow" style="min-width:300px;">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">{{ $t('FilterOffersList')}}</div>

@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless>
+  <q-dialog ref="dialog" @hide="onDialogHide" :persistent="true" seamless class="no-click-outside">
     <q-card class="q-dialog-plugin br-15 q-pb-sm pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section class="text-weight-medium pt-label" :class="getDarkModeClass(darkMode)">
           <span>{{ addTokenTitle }}</span>
@@ -58,18 +58,7 @@
               @click="onCancelClick"
             />
             <template v-if="asset">
-              <template v-if="asset.is_nft">
-                <q-btn
-                  rounded
-                  class="text-white button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  padding="0.5em 2em 0.5em 2em"
-                  :label="$t('View at Collectibles')"
-                  @click="$router.push('/apps/collectibles'); hide()"
-                />
-              </template>
-              <template v-else>
-                <q-btn
+              <q-btn
                   rounded
                   class="text-white button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
@@ -78,7 +67,6 @@
                   type="submit"
                   :disable="addBtnDisabled"
                 />
-              </template>
             </template>
           </q-card-actions>
         </q-form>
@@ -152,7 +140,7 @@ export default {
       if (this.isSep20)
         this.$t('Enter_SEP20_ContractAddress')
       if (this.isCashToken)
-        return this.$t(this.isHongKong(this.currentCountry) ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategoryID')
+        return this.$t(this.isHongKong(this.currentCountry) ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategory')
       return this.$t(this.isHongKong(this.currentCountry) ? 'Enter_SLP_PointId' : 'Enter_SLP_TokenId')
     },
     theme () {
@@ -235,7 +223,7 @@ export default {
     },
     addAsset () {
       if (!this.asset?.id) return console.error('No asset id found. Skipping adding new asset')
-      if (this.asset?.is_nft) return console.error('Asset is nft. Skipping adding new asset')
+      // if (this.asset?.is_nft) return console.error('Asset is nft. Skipping adding new asset')
 
       if (this.isSep20) {
         this.$store.commit('sep20/addNewAsset', this.asset)

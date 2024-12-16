@@ -6,21 +6,21 @@ import BCHJS from '@psf/bch-js';
 
 const bchjs = new BCHJS()
 export const walletConnect2Core = new Core({
-  projectId: 'b7c10b6ffc9f3911c913020d9fbb2d51',
+  projectId: process.env.WALLETCONNECT_PROJECT_ID,
 })
 
 let _web3wallet
 /**
  * @returns {Promise<import('@walletconnect/web3wallet').IWeb3Wallet>}
  */
-export async function initWeb3Wallet(opts={forceCreate: false}) {
+export async function initWeb3Wallet(opts={forceCreate: true}) {
   if (!_web3wallet || opts?.forceCreate) {
     _web3wallet = await Web3Wallet.init({
       core: walletConnect2Core,
       metadata: {
         name: 'Paytaca',
         description: 'Paytaca - BCH Wallet App',
-        url: 'www.paytaca.com',
+        url: 'https://www.paytaca.com',
         icons: ['https://walletconnect.org/walletconnect-logo.png'],
       }
     })

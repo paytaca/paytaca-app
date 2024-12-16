@@ -156,7 +156,9 @@ export function updateStoreSellFilterPaymentTypes (state, { paymentTypes = [], c
         floating: true
       },
       payment_types: paymentTypes,
-      time_limits: [15, 30, 45, 60]
+      time_limits: [15, 30, 45, 60],
+      order_amount: null,
+      order_amount_currency: null
     }
   } else {
     if (!state.storeSellFilters[currency]) state.storeSellFilters[currency] = {}
@@ -175,7 +177,9 @@ export function updateStoreBuyFilterPaymentTypes (state, { paymentTypes = [], cu
         floating: true
       },
       payment_types: paymentTypes,
-      time_limits: [15, 30, 45, 60]
+      time_limits: [15, 30, 45, 60],
+      order_amount: null,
+      order_amount_currency: null
     }
   } else {
     if (!state.storeBuyFilters[currency]) state.storeBuyFilters[currency] = {}
@@ -250,7 +254,9 @@ export function resetStoreBuyFilters (state, currency) {
       floating: true
     },
     payment_types: paymentTypes.map(p => p.id),
-    time_limits: [15, 30, 45, 60]
+    time_limits: [15, 30, 45, 60],
+    order_amount: null,
+    order_amount_currency: null
   }
 }
 
@@ -264,7 +270,9 @@ export function resetStoreSellFilters (state, currency) {
       floating: true
     },
     payment_types: paymentTypes.map(p => p.id),
-    time_limits: [15, 30, 45, 60]
+    time_limits: [15, 30, 45, 60],
+    order_amount: null,
+    order_amount_currency: null
   }
 }
 

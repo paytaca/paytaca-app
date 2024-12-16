@@ -107,6 +107,7 @@ import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
+import { startOfMinute } from 'date-fns'
 
 const $store = useStore()
 const $t = useI18n().t
@@ -184,6 +185,12 @@ const isStablehedgeTx = computed(() => Boolean(stablehedgeTxData.value))
 
 function formatDate (date) {
   return ago(new Date(date))
+}
+
+function formatTokenAmount (transaction) {
+  const amount = transaction.amount / (10 ** transaction.asset.decimals)
+  const amountString = amount.toLocaleString('en-us', {maximumFractionDigits: transaction.asset.decimals})
+  return `${amountString} ${transaction.asset.symbol}`
 }
 </script>
 <style scoped>

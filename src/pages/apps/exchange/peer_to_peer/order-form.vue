@@ -7,7 +7,7 @@
           <!-- Form Body -->
           <div v-if="isloaded">
             <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
-              {{ ad.trade_type === 'SELL' ? 'BUY' : 'SELL'}} BY FIAT
+              {{ ad.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
             </div>
             <q-btn v-if="adShareLinkEnabled !== false" :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
             <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
@@ -372,7 +372,7 @@ export default {
         component: ShareDialog,
         componentProps: {
           // adShareUrl: `${window.location.origin}/#/apps/exchange/ad/${this.ad.id}`
-          adShareUrl: `${baseURL}/ramp-p2p/ad/share/?id=${this.ad.id}`
+          adShareUrl: `https://p2p.paytaca.com/ad/share/?id=${this.ad.id}`
         }
       })
     },

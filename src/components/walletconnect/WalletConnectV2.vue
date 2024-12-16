@@ -303,7 +303,7 @@ const loadActiveSessions = async ({showLoading} = {showLoading: true}) => {
   try {
     if (web3Wallet.value) {
       activeSessions.value = await web3Wallet.value.getActiveSessions()
-    }  
+    }
     mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
     return activeSessions.value
   } catch (error) {} finally { 
@@ -423,7 +423,7 @@ const connectNewSession = async(uri='', prompt=true) => {
   if (prompt) {
     $q.dialog({
       title: $t('NewSession'),
-      class: 'q-pb-lg q-px-sm',
+      class: `q-pb-lg q-px-sm br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)} new-session`,
       prompt: {
         label: $t('SessionURL'),
         placeholder: $t('PasteURL'),
@@ -448,7 +448,6 @@ const connectNewSession = async(uri='', prompt=true) => {
       },
       position: 'bottom',
       seamless: true,
-      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
     })
       .onOk(async (_uri) => await pairURI(_uri))
   } else {
@@ -511,12 +510,44 @@ const disconnectSession = async (activeSession) => {
         class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => resolve()).onCancel(() => reject())
     }) 
+
+    const firstSessionUrl = activeSession.peer.metadata.url
+    
     activeSessions.value && delete activeSessions.value[activeSession.topic]
     sessionTopicWalletAddressMapping.value[activeSession.topic] && delete sessionTopicWalletAddressMapping.value[activeSession.topic]
+    
     await web3Wallet.value.disconnectSession({
       topic: activeSession.topic,
       reason: getSdkError('USER_DISCONNECTED')
     })
+
+    // Disconnect all remaining sessions that match the first session's URL
+    if (firstSessionUrl && activeSessions.value) {
+      const disconnectPromises = Object.keys(activeSessions.value).map(async (sessionTopic) => {
+        const session = activeSessions.value[sessionTopic];
+
+        // Check if the session's URL matches the first session's URL
+        if (session.peer?.metadata?.url === firstSessionUrl) {
+          // Remove the session from the activeSessions mapping
+          delete activeSessions.value[sessionTopic];
+
+          // Remove the corresponding wallet address mapping for the session
+          if (sessionTopicWalletAddressMapping.value[sessionTopic]) {
+            delete sessionTopicWalletAddressMapping.value[sessionTopic];
+          }
+
+          // Disconnect the matching session from the wallet
+          await web3Wallet.value.disconnectSession({
+            topic: sessionTopic,
+            reason: getSdkError('USER_DISCONNECTED'),
+          });
+        }
+      });
+
+      // Wait for all disconnections to complete
+      await Promise.all(disconnectPromises);
+    }
+
     await loadActiveSessions({ showLoading: false})
   } catch (error) {
     console.log('🚀 ~ disconnectSession ~ error:', error)
@@ -755,7 +786,7 @@ const respondToSessionRequest = async (sessionRequest) => {
         break;
       default:
         // respond with error
-        const response = { 
+        const response = {
           id, jsonrpc: '2.0', result: undefined,
            error: { code: -32601, reason: 'Method not found' } 
         };
