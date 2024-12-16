@@ -133,7 +133,7 @@
                     v-model="expandedItems[`R${index + 1}`]"
                     :label="`${$t('Recipient')} #${index + 1}`"
                     :class="getDarkModeClass(darkMode)"
-                  > 
+                  >
                     <SendPageForm
                       :recipient="sendDataMultiple[index]"
                       :inputExtras="inputExtras[index]"
@@ -351,7 +351,7 @@
 <script>
 import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet, Address } from '../../wallet'
-import { isTokenAddress } from 'src/utils/address-utils';
+import { isTokenAddress } from 'src/utils/address-utils'
 import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
 import JppPaymentPanel from '../../components/JppPaymentPanel.vue'
 import ProgressLoader from '../../components/ProgressLoader'
@@ -363,7 +363,7 @@ import { VOffline } from 'v-offline'
 import {
   isValidTokenAddress,
   getWalletByNetwork,
-  convertTokenAmount,
+  convertTokenAmount
 } from 'src/wallet/chipnet'
 import {
   parseAssetDenomination,
@@ -375,7 +375,6 @@ import {
 import { getNetworkTimeDiff } from 'src/utils/time'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { getCashbackAmount } from 'src/utils/engagementhub-utils'
-import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
@@ -395,7 +394,6 @@ export default {
     customKeyboard,
     QrScanner,
     VOffline,
-    DenominatorTextDropdown,
     SendPageForm,
     QRUploader
   },
@@ -447,21 +445,21 @@ export default {
     /** For NFTs; name of nft */
     name: {
       type: String,
-      required: false,
+      required: false
     },
     /** For Cashtoken NFTs */
     commitment: {
       type: String,
-      required: false,
+      required: false
     },
     /** For Cashtoken NFTs */
     capability: {
       type: String,
-      required: false,
+      required: false
     },
     paymentUrl: {
       type: String,
-      required: false,
+      required: false
     },
     backPath: {
       type: String,
@@ -557,7 +555,7 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    formattedTxTimestamp() {
+    formattedTxTimestamp () {
       const dateObj = new Date(this.txTimestamp)
 
       if (!dateObj.getTime()) return ''
@@ -565,7 +563,7 @@ export default {
       const langs = [this.$store.getters['global/language'], 'en-US']
       return new Intl.DateTimeFormat(langs, {
         dateStyle: 'medium',
-        timeStyle: 'full',
+        timeStyle: 'full'
       }).format(dateObj)
     },
     currentCountry () {
@@ -599,7 +597,7 @@ export default {
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
     },
-    defaultNftImage() {
+    defaultNftImage () {
       if (!this.isNFT) return ''
       if (this.image && !this.forceUseDefaultNftImage) return ''
       const tokenId = this.assetId.split('slp/')[1]
@@ -653,9 +651,9 @@ export default {
     isMultipleRecipient () {
       return !(this.isNFT || this.walletType === sBCHWalletType)
     },
-    connectedApps() {
+    connectedApps () {
       const distinct = (value, index, list) => {
-        return list.findIndex((item) => item.address === value.address && item.app_url === value.app_url) == index
+        return list.findIndex((item) => item.address === value.address && item.app_url === value.app_url) === index
       }
       return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
     },
@@ -689,7 +687,7 @@ export default {
           this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
         }
 
-        for (var index = 0; index < this.sendDataMultiple.length; index++) {
+        for (let index = 0; index < this.sendDataMultiple.length; index++) {
           const amount = this.sendDataMultiple[index]?.amount
 
           if (!amount || amount <= 0) return
@@ -708,7 +706,7 @@ export default {
     manualAddress (address) {
       this.isLegacyAddress = new Address(address).isLegacyAddress()
       this.inputExtras[this.currentActiveRecipientIndex].isLegacyAddress = this.isLegacyAddress
-    },
+    }
   },
 
   methods: {
@@ -720,7 +718,7 @@ export default {
     customNumberFormatting,
     getDarkModeClass,
     isNotDefaultTheme,
-    updateNetworkDiff() {
+    updateNetworkDiff () {
       return getNetworkTimeDiff().then(result => {
         if (!result?.timeDifference) return result
         this.networkTimeDiff = result.timeDifference
@@ -729,8 +727,9 @@ export default {
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
-      if (this.isCashToken)
+      if (this.isCashToken) {
         url = 'https://explorer.bitcoinunlimited.info/tx/'
+      }
 
       if (this.isChipnet) {
         url = 'https://chipnet.imaginary.cash/tx/'
@@ -807,7 +806,7 @@ export default {
             query: { error: 'token-not-found' }
           })
         }
-        
+
         if (paymentUriData?.otherParams?.c) {
           if (paymentUriData?.otherParams?.c !== vm.asset.id.split('ct/')[1]) {
             vm.$router.push({
@@ -884,10 +883,9 @@ export default {
         }
 
         if (this.fungible || fungibleTokenAmount) {
-
           const tokenAmount = parseInt(this.fungible || fungibleTokenAmount) / (10 ** this.asset.decimals) || 0
           currentRecipient.amount = tokenAmount
-          currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', {maximumFractionDigits: this.asset.decimals})
+          currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', { maximumFractionDigits: this.asset.decimals })
           currentRecipient.fixedAmount = true
 
           this.customKeyboardState = 'dismiss'
@@ -910,7 +908,7 @@ export default {
         currentInputExtras.cashbackData = response
       }
     },
-    handleJPP(paymentUri) {
+    handleJPP (paymentUri) {
       const dialog = this.$q.dialog({
         title: 'Invoice',
         message: 'Fetching invoice data',
@@ -918,7 +916,7 @@ export default {
         persistent: true,
         seamless: true,
         ok: false,
-        class:`pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
 
       JSONPaymentProtocol.fetch(paymentUri)
@@ -1037,14 +1035,14 @@ export default {
 
       if (this.asset.id.startsWith('ct/')) {
         if (this.asset.decimals === 0) {
-          currentAmount = currentAmount.toString().replace('.', '');
+          currentAmount = currentAmount.toString().replace('.', '')
         } else {
-          const parts = currentAmount.toString().split('.');
-          
+          const parts = currentAmount.toString().split('.')
+
           if (parts.length > 1) { // Ensure there's a decimal part
             // Truncate the decimal part to the desired length
-            parts[1] = parts[1].slice(0, this.asset.decimals);
-            currentAmount = parts.join('.'); // Recombine the integer and decimal parts
+            parts[1] = parts[1].slice(0, this.asset.decimals)
+            currentAmount = parts.join('.') // Recombine the integer and decimal parts
           }
         }
       }
@@ -1116,7 +1114,7 @@ export default {
       }
       return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
-    async slideToSubmit (reset=() => {}) {
+    async slideToSubmit (reset = () => {}) {
       if (this.bip21Expires) {
         const expires = parseInt(this.bip21Expires)
         const now = Math.floor(Date.now() / 1000)
@@ -1133,7 +1131,7 @@ export default {
       }
 
       this.$q.dialog({
-        component: SecurityCheckDialog,
+        component: SecurityCheckDialog
       })
         .onOk(() => this.sendTransaction())
         .onDismiss(() => reset?.())
@@ -1481,7 +1479,7 @@ export default {
         }
         const changeAddresses = {
           bch: vm.getChangeAddress('bch'),
-          slp: vm.getChangeAddress('slp'),
+          slp: vm.getChangeAddress('slp')
         }
 
         getWalletByNetwork(vm.wallet, 'slp')
@@ -1693,11 +1691,11 @@ export default {
     onEmptyRecipient (value) {
       this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
     },
-    onSelectedDenomination(value) {
+    onSelectedDenomination (value) {
       this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value.denomination
       this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = value.amountFormatted
     },
-    async initWallet() {
+    async initWallet () {
       const walletIndex = this.$store.getters['global/getWalletIndex']
       const mnemonic = await getMnemonic(walletIndex)
       const wallet = new Wallet(mnemonic, this.network)
@@ -1721,7 +1719,7 @@ export default {
     }
   },
 
-  async beforeMount() {
+  async beforeMount () {
     await this.$store.dispatch('global/loadWalletLastAddressIndex')
     await this.$store.dispatch('global/loadWalletAddresses')
     await this.$store.dispatch('global/loadWalletConnectedApps')
@@ -1737,8 +1735,7 @@ export default {
     } else if (vm.assetId.indexOf('slp/') > -1) {
       vm.walletType = 'slp'
     } else {
-      if (vm.assetId.indexOf('ct/') > -1)
-        vm.isCashToken = true
+      if (vm.assetId.indexOf('ct/') > -1) vm.isCashToken = true
       vm.walletType = 'bch'
     }
 
@@ -1772,22 +1769,22 @@ export default {
 
     if (this.inputExtras.length === 1) {
       this.inputExtras[0].selectedDenomination = this.denomination
-    } 
+    }
 
     if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
-      await vm.$store.dispatch('global/loadWalletLastAddressIndex')  
+      await vm.$store.dispatch('global/loadWalletLastAddressIndex')
     }
     if (!vm.$store.getters['global/walletConnectedApps']) {
       await vm.$store.dispatch('global/loadWalletConnectedApps')
     }
     if (!vm.$store.getters['global/walletAddresses']) {
-      await vm.$store.dispatch('global/loadWalletAddresses')  
+      await vm.$store.dispatch('global/loadWalletAddresses')
     }
   },
 
   unmounted () {
     NativeAudio.unload({
-      assetId: 'send-success',
+      assetId: 'send-success'
     })
   },
 

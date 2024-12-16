@@ -164,6 +164,7 @@ export default {
         })
       }
 
+      // eslint-disable-next-line array-callback-return
       const assets = vm.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item?.id === 'bch'
