@@ -1,5 +1,67 @@
 <template>
   <div class="col row justify-center">
+    <div id="qr-code">
+      <img
+        v-if="icon"
+        class="icon justify-center"
+        :src="icon"
+        :width="iconSize"
+        :style="{'margin-top': ((size / 2) - (iconSize / 2)) + 'px', 'margin-left': -(iconSize / 2) + 'px'}"
+      />
+      <VueQRCodeComponent :text="text" :size="size" error-level="H"></VueQRCodeComponent>
+    </div>
+  </div>
+</template>
+
+<script>
+import VueQRCodeComponent from 'vue-qrcode-component'
+
+export default {
+  components: {
+    VueQRCodeComponent
+  },
+  props: {
+    name: {
+      type: String,
+      default: 'bch-qr'
+    },
+    text: {
+      type: String,
+      required: true
+    },
+    size: {
+      type: Number,
+      required: true
+    },
+    icon: {
+      type: String,
+      default: null
+    },
+    iconSize: {
+      type: Number,
+      default: 50
+    }
+  }
+}
+</script>
+
+<style>
+  #qr-code {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    /* border: 4px solid #ed5f59; */
+  }
+  .icon {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    padding: 4px;
+    z-index: 1000;
+  }
+</style>
+<!-- <template>
+  <div class="col row justify-center">
     <q-skeleton v-if="loading" :height="size + 'px'" :width="size + 'px'" class="q-mb-sm"/>
     <img
       v-if="icon"
@@ -36,7 +98,7 @@ export default {
     },
     iconSize: {
       type: Number,
-      default: 60
+      default: 40
     }
   },
   data () {
@@ -57,23 +119,21 @@ export default {
 
       if (container) {
         container.innerHTML = ''; // Clear the container before rendering new QR code
-        // container.addEventListener('codeRendered', () => {
-        //   document
-        //     .getElementById(this.name + '-qr')
-        //     .animateQRCode('FadeInCenterOut');
-        // });
 
         setTimeout(() => {
           container.innerHTML = `
             <div>
               <qr-code
                 id="${vm.name + '-qr'}"
+                squares="true"
                 contents="${vm.text}"
                 style="
-                  width: ${vm.size}px;
-                  height: ${vm.size}px;
+                  width: 30vw;
+                  min-width: ${vm.size }px;
+                  min-height: ${vm.size }px;
                   background-color: #fff;
                   border-radius: 10px;
+                  padding: 30px;
                   border: 4px solid #ed5f59;
                 "
               >
@@ -104,4 +164,4 @@ export default {
   padding: 4px;
   z-index: 1000;
 }
-</style>
+</style> -->
