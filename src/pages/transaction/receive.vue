@@ -63,11 +63,11 @@
             </div>
           </div>
         </div>
-        <div v-if="!isCt" class="row flex-center">
+        <div v-if="!isCt && asset.id ==='bch'" class="row flex-center">
           <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
           <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
         </div>
-        <div class="row q-mt-md" v-if="walletType === 'bch' && !isCt && showLegacy">
+        <div class="row q-mt-md" v-if="walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
             class="text-bow"
@@ -87,7 +87,7 @@
                 @click="copyToClipboard(addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ address.substring(0, 19) }}...{{ address.substring(address.length - 7) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
+                {{ address.substring(0, 16) }}...{{ address.substring(address.length - 4) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
               </div>
               <div v-if="lnsName" class="text-center text-caption" style="color: #000 !important;">
                 {{ lnsName }}

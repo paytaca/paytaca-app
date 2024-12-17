@@ -249,7 +249,7 @@ export default {
     },
     displayAddress (address) {
       if (address) {
-        return address.substring(0, 18) + '...' + address.substring(address.length - 7)
+        return address.substring(0, 16) + '...' + address.substring(address.length - 4)
       }
     },
     setAmount (key) {
