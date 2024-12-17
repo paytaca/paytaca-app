@@ -4,7 +4,7 @@
     <template v-if="assetId === 'bch'">
       <img
         id="bch-logo"
-        src="/icons/bitcoin-cash-circle.svg"
+        src="bitcoin-cash-circle.svg"
         :width="iconSize"
         :height="iconSize"
         :style="{'margin-top': (padding + (size / 2) - (iconSize / 2)) + 'px'}"
