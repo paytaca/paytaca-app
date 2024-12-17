@@ -38,7 +38,7 @@
             <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <qr-code :text="addressAmountFormat" :size="300" :icon="getImageUrl(asset)" class="q-mb-sm"></qr-code>
+                  <qr-code :asset-id="asset.id" :text="addressAmountFormat" :size="220" :icon="getImageUrl(asset)" class="q-mb-sm"></qr-code>
                 </div>
               </div>
             </div>
