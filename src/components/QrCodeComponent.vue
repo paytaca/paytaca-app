@@ -99,6 +99,8 @@ export default {
   border-radius: 50%;
   padding: 4px;
   z-index: 1000;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #qr svg {
@@ -108,11 +110,15 @@ export default {
   padding: 35px;
   background-color: white;
   border-radius: 12px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 #bch-logo {
   position: absolute;
   background: white;
   border-radius: 50%;
   padding: 4px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 </style>
