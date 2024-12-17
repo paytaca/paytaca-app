@@ -621,6 +621,7 @@ export default {
   LastName: "Huling Pangalan",
   LeavingPage: "Umaalis sa pahina",
   LegacyAddress: "Address ng legacy",
+  LegacyAddressFormat: "Format ng legacy",
   LegacyAddressWarning: "Nag -paste ka ng isang legacy address.Mangyaring tiyakin na ito ay isang <span class=\"highlighted-word\">BCH deposit address</span>, hindi isang BTC Deposit Address.",
   Leverage: "Leverage",
   LightMode: "Light mode",

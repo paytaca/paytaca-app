@@ -621,6 +621,7 @@ export default {
   LastName: "Nama Belakang",
   LeavingPage: "Meninggalkan halaman",
   LegacyAddress: "Alamat warisan",
+  LegacyAddressFormat: "Format Legacy",
   LegacyAddressWarning: "Anda menempelkan alamat warisan.Pastikan itu adalah <span class=\"highlighted-word\">BCH deposit address</span>, bukan alamat setoran BTC.",
   Leverage: "Manfaat",
   LightMode: "Mode Cahaya",

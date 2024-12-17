@@ -621,6 +621,7 @@ export default {
   LastName: "성",
   LeavingPage: "페이지를 떠나",
   LegacyAddress: "레거시 주소",
+  LegacyAddressFormat: "레거시 형식",
   LegacyAddressWarning: "당신은 레거시 주소를 붙여 넣었습니다.BTC 예금 주소가 아닌 <span class=\"highlighted-word\">BCH deposit address</span>인지 확인하십시오.",
   Leverage: "영향력",
   LightMode: "라이트 모드",

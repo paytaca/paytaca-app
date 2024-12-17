@@ -621,6 +621,7 @@ export default {
   LastName: "Achternaam",
   LeavingPage: "Page verlaten",
   LegacyAddress: "Legacy Adres",
+  LegacyAddressFormat: "Legacy -formaat",
   LegacyAddressWarning: "Je hebt een legacy -adres geplakt.Zorg ervoor dat het een <span class=\"highlighted-word\">BCH deposit address</span>, geen BTC-stortingsadres.",
   Leverage: "Hefboom",
   LightMode: "Lichtmodus",

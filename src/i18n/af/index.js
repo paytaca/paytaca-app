@@ -621,6 +621,7 @@ export default {
   LastName: "Van",
   LeavingPage: "Verlaat bladsy",
   LegacyAddress: "Nalatenskapadres",
+  LegacyAddressFormat: "Legacy -formaat",
   LegacyAddressWarning: "U het 'n nalatenskaplike adres geplak.Maak seker dat dit 'n <span class=\"highlighted-word\">BCH deposit address</span> is, nie 'n BTC-deposito-adres nie.",
   Leverage: "Hefboomfinansiering",
   LightMode: "Ligte modus",

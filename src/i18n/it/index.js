@@ -621,6 +621,7 @@ export default {
   LastName: "Cognome",
   LeavingPage: "Lasciando pagina",
   LegacyAddress: "Indirizzo legacy",
+  LegacyAddressFormat: "Formato legacy",
   LegacyAddressWarning: "Hai incollato un indirizzo legacy.Assicurati che sia un <span class=\"highlighted-word\">BCH deposit address</span>, non un indirizzo di deposito BTC.",
   Leverage: "Leva",
   LightMode: "Modalità di luce",

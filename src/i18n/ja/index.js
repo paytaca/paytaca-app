@@ -621,6 +621,7 @@ export default {
   LastName: "苗字",
   LeavingPage: "ページを離れる",
   LegacyAddress: "レガシーアドレス",
+  LegacyAddressFormat: "レガシー形式",
   LegacyAddressWarning: "レガシーアドレスを貼り付けました。BTCデポジットアドレスではなく、<span class=\"highlighted-word\">BCH deposit address</span>であることを確認してください。",
   Leverage: "てこの作用",
   LightMode: "ライトモード",

@@ -621,6 +621,7 @@ export default {
   LastName: "姓",
   LeavingPage: "离开页面",
   LegacyAddress: "遗产地址",
+  LegacyAddressFormat: "旧格式",
   LegacyAddressWarning: "您粘贴了一个遗产地址。请确保它是<span class=\"highlighted-word\">BCH deposit address</span>而不是BTC存款地址。",
   Leverage: "杠杆作用",
   LightMode: "光模式",

@@ -1,26 +1,37 @@
 <template>
   <div class="col row justify-center">
-    <q-skeleton v-if="loading" :height="size + 'px'" :width="size + 'px'" class="q-mb-sm"/>
-    <img
-      v-if="icon"
-      class="icon"
-      :src="icon"
-      :width="iconSize"
-      :style="{'margin-top': ((size / 2) - (iconSize / 2)) + 'px'}"
-    />
-    <div :id="name"></div>
+    <q-skeleton style="border-radius: 12px;" v-if="loading" :height="(padding + 30 + size) + 'px'" :width="(padding + 30 + size) + 'px'" class="q-mb-sm"/>
+    <template v-if="assetId === 'bch' && !icon">
+      <img
+        id="bch-logo"
+        src="bitcoin-cash-circle.svg"
+        :width="iconSize"
+        :height="iconSize"
+        :style="{'margin-top': (padding + (size / 2) - (iconSize / 2)) + 'px'}"
+        alt="BCH logo" 
+      />
+    </template>
+    <template v-else>
+      <img
+        v-if="icon && !loading"
+        class="icon"
+        :src="icon"
+        :width="iconSize"
+        :style="{'margin-top': (padding + (size / 2) - (iconSize / 2)) + 'px'}"
+      />
+    </template>
+    <div id="qr"></div>
   </div>
 </template>
 
 <script>
-import * as qr from '@bitjson/qr-code'
-qr.defineCustomElements(window)
+var QRCode = require("qrcode-svg")
 
 export default {
   props: {
-    name: {
+    assetId: {
       type: String,
-      default: 'bch-qr'
+      default: 'bch',
     },
     text: {
       type: String,
@@ -36,12 +47,13 @@ export default {
     },
     iconSize: {
       type: Number,
-      default: 60
+      default: 50
     }
   },
   data () {
     return {
-      loading: true
+      loading: true,
+      padding: 35
     }
   },
   mounted() {
@@ -52,44 +64,28 @@ export default {
   },
   methods: {
     renderQRCode() {
-      const vm = this;
-      const container = document.getElementById(vm.name);
+      const vm = this
+      const container = document.getElementById("qr")
 
       if (container) {
-        container.innerHTML = ''; // Clear the container before rendering new QR code
-        // container.addEventListener('codeRendered', () => {
-        //   document
-        //     .getElementById(this.name + '-qr')
-        //     .animateQRCode('FadeInCenterOut');
-        // });
-
         setTimeout(() => {
-          container.innerHTML = `
-            <div>
-              <qr-code
-                id="${vm.name + '-qr'}"
-                contents="${vm.text}"
-                style="
-                  width: ${vm.size}px;
-                  height: ${vm.size}px;
-                  background-color: #fff;
-                  border-radius: 10px;
-                  border: 4px solid #ed5f59;
-                "
-              >
-              </qr-code>
-            </div>
-          `;
+          const qrcode = new QRCode({
+            content: vm.text,
+            width: vm.size,
+            height: vm.size,
+            join: true,
+            ecl: "M",
+            padding: 0
+          })
+          
+          const parser = new DOMParser();
+          const svgDoc = parser.parseFromString(qrcode.svg(), "image/svg+xml");
+          const svgElement = svgDoc.documentElement;
+
+          container.innerHTML = ''; // Clear previous content
+          container.appendChild(svgElement); // Append the SVG element
           vm.loading = false
-        }, 50);
-      }
-    },
-    animate(animation) {
-      const container = document.getElementById(this.name);
-      if (container) {
-        document
-          .getElementById(this.name + '-qr')
-          .animateQRCode(animation);
+        }, 700)
       }
     }
   }
@@ -103,5 +99,28 @@ export default {
   border-radius: 50%;
   padding: 4px;
   z-index: 1000;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 35px;
+  background-color: white;
+  border-radius: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+#bch-logo {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  padding: 4px;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
 }
 </style>
