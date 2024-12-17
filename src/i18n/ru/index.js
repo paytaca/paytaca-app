@@ -602,6 +602,7 @@ export default {
   LastName: "Фамилия",
   LeavingPage: "Оставить страницу",
   LegacyAddress: "Наследие адрес",
+  LegacyAddressFormat: "Наследие формат",
   LegacyAddressWarning: "Вы встали на устаревший адрес.Пожалуйста, убедитесь, что это A <span class=\"highlighted-word\">BCH deposit address</span>, а не адрес депозита BTC.",
   Leverage: "Использовать",
   LightMode: "Легкий режим",

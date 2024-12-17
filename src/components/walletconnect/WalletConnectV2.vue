@@ -213,7 +213,7 @@ import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount, watchEffec
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { convertCashAddress } from 'src/wallet/chipnet';
-import { Wallet, loadWallet } from 'src/wallet';
+import { loadWallet } from 'src/wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import Watchtower from 'src/lib/watchtower'
 import { useQuasar } from 'quasar';

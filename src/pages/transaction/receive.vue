@@ -33,26 +33,49 @@
         </q-menu>
       </q-icon>
       <div>
+        <div v-if="asset.id ==='bch'" class="row flex-center">
+          <div class="row flex-center" style="margin-top: 20px;">
+            <q-img @click="isCt = false" src="bitcoin-cash-circle.svg" height="35px" width="35px" />
+            <span @click="isCt = false">&nbsp;BCH</span>
+            <q-toggle
+              v-model="isCt"
+              class="text-bow"
+              style="margin: auto;"
+              keep-color
+              color="teal-5"
+              size="lg"
+              checked-icon="img:ct-logo.png"
+              unchecked-icon="img:bch-logo.png"
+              :class="getDarkModeClass(darkMode)"
+            />
+            <q-img @click="isCt = true" src="ct-logo.png" height="35px" width="35px" />
+            <span @click="isCt = true">&nbsp;{{ $t('CashToken') }}</span>
+          </div>
+        </div>
         <div class="row">
-          <div class="col qr-code-container" @click="copyToClipboard(address)">
+          <div class="col qr-code-container">
             <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <qr-code :asset-id="asset.id" :text="addressAmountFormat" :size="220" :icon="getImageUrl(asset)" class="q-mb-sm"></qr-code>
+                  <qr-code :text="addressAmountFormat" :size="240" :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)" class="q-mb-sm"></qr-code>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div class="row q-mt-md" v-if="walletType === 'bch' && assetId.indexOf('ct/') === -1">
+        <div v-if="!isCt" class="row flex-center">
+          <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
+          <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
+        </div>
+        <div class="row q-mt-md" v-if="walletType === 'bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
             class="text-bow"
-            style="margin: auto;"
+            style="margin-left: auto; margin-right: auto; margin-top: -10px;"
             :class="getDarkModeClass(darkMode)"
             keep-color
             color="blue-9"
-            :label="$t('LegacyAddress')"
+            :label="$t('LegacyAddressFormat')"
           />
         </div>
         <div class="row">
@@ -61,11 +84,10 @@
               <div
                 class="text-nowrap text-bow"
                 style="letter-spacing: 1px;"
-                @click="copyToClipboard(address)"
+                @click="copyToClipboard(addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ address }}
-                <p class="copy-address-button">{{ $t('ClickToCopyAddress') }}</p>
+                {{ address.substring(0, 19) }}...{{ address.substring(address.length - 7) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
               </div>
               <div v-if="lnsName" class="text-center text-caption" style="color: #000 !important;">
                 {{ lnsName }}
@@ -80,11 +102,10 @@
                 />
               </div>
             </span>
-
             <div v-if="amount" class="text-center">
-              <q-separator class="q-mb-sm q-mx-md" style="height: 2px;" />
+              <q-separator class="q-mb-sm q-mx-md q-mt-md" style="height: 2px;" />
               <div class="text-bow" :class="getDarkModeClass(darkMode)">
-                <div class="receive-label">
+                <div class="receive-label q-mt-md">
                   {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
@@ -93,7 +114,8 @@
               </div>
             </div>
             <div
-              class="text-center button button-text-primary"
+              v-if="!isCt"
+              class="text-center button button-text-primary q-pt-md"
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
             >
@@ -172,7 +194,6 @@ import {
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
-
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
 
@@ -187,9 +208,11 @@ export default {
       sBCHListener: null,
       activeBtn: 'btn-bch',
       walletType: '',
+      isCt: false,
       asset: {},
       assetLoaded: false,
       legacy: false,
+      showLegacy: false,
       lnsName: '',
       generateAddressOnLeave: false,
       copying: false,
@@ -233,7 +256,12 @@ export default {
       } else if (this.legacy) {
         return this.convertToLegacyAddress(address)
       } else {
-        return address
+        let _address
+        if (this.isCt) {
+          return convertCashAddress(address, this.$store.getters['global/isChipnet'], true)
+        } else {
+          return address
+        }
       }
     },
     selectedAssetMarketPrice() {
@@ -748,6 +776,10 @@ export default {
   body {
     overflow: hidden;
   }
+  .q-icon {
+    position: relative;
+    z-index: 10; /* Ensure the icon is clickable over the card */
+  }
   #context-menu {
     position: fixed;
     top: 16px;
@@ -755,7 +787,7 @@ export default {
     z-index: 150;
   }
   .qr-code-container {
-    margin-top: 40px;
+    margin-top: 20px;
     padding-left: 28px;
     padding-right: 28px;
   }
@@ -772,16 +804,14 @@ export default {
     }
   }
   .qr-code-text {
+    font-family: monospace;
     font-size: 18px;
+    font-weight: 20px;
     color: #000;
   }
   .copy-container {
     padding: 20px 40px 0px 40px;
     overflow-wrap: break-word;
-    .copy-address-button {
-      font-size: 12px;
-      margin-top: 7px;
-    }
     .receive-label {
       font-size: 15px;
       letter-spacing: 1px;

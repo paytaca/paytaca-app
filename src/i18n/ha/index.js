@@ -602,6 +602,7 @@ export default {
   LastName: "Sunan mahaifa",
   LeavingPage: "Barin Page",
   LegacyAddress: "Adireshin gado",
+  LegacyAddressFormat: "Tsarin kafa",
   LegacyAddressWarning: "Ka fitar da adireshin gado.Da fatan za a tabbatar cewa ƙaramin sparar aji ne = \"Ma'anar-Word\"> Adireshin ajiya na BCH <span class=\"highlighted-word\">BCH deposit address</span> ba adireshin ajiya na BCH ba.",
   Leverage: "Leverage",
   LightMode: "Yanayin haske",

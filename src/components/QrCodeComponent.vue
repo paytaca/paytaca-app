@@ -1,7 +1,7 @@
 <template>
   <div class="col row justify-center">
     <q-skeleton style="border-radius: 12px;" v-if="loading" :height="(padding + 30 + size) + 'px'" :width="(padding + 30 + size) + 'px'" class="q-mb-sm"/>
-    <template v-if="assetId === 'bch'">
+    <template v-if="assetId === 'bch' && !icon">
       <img
         id="bch-logo"
         src="bitcoin-cash-circle.svg"
@@ -31,7 +31,7 @@ export default {
   props: {
     assetId: {
       type: String,
-      required: true,
+      default: 'bch',
     },
     text: {
       type: String,
@@ -112,6 +112,7 @@ export default {
   border-radius: 12px;
   user-select: none;
   -webkit-user-select: none;
+  pointer-events: none;
 }
 #bch-logo {
   position: absolute;
@@ -120,5 +121,6 @@ export default {
   padding: 4px;
   user-select: none;
   -webkit-user-select: none;
+  pointer-events: none;
 }
 </style>

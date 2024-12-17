@@ -31,22 +31,22 @@
         </div>
 
         <div class="row col-12 flex-center">
-          <div class="col qr-code-container" @click="copyToClipboard(address)">
+          <div class="col qr-code-container">
             <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div v-if="!isCt" class="col row justify-center q-pt-md">
                   <qr-code
                     class="q-mb-sm"
                     :text="addressAmountFormat"
-                    :size="300"
-                    icon="bch-logo.png"
+                    :size="240"
+                    icon="bitcoin-cash-circle.svg"
                   />
                 </div>
                 <div v-else class="col row justify-center q-pt-md">
                   <qr-code
                     class="q-mb-sm"
                     :text="addressAmountFormat"
-                    :size="300"
+                    :size="240"
                     icon="ct-logo.png"
                   />
                 </div>
@@ -55,7 +55,12 @@
           </div>
         </div>
 
-        <div v-if="!isCt" class="row col-12 flex-center q-mt-sm">
+        <div v-if="!isCt" class="row flex-center">
+          <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
+          <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
+        </div>
+  
+        <div v-if="!isCt && showLegacy" class="row col-12 flex-center q-mt-sm">
           <q-toggle
             v-model="legacy"
             class="text-bow"
@@ -63,38 +68,36 @@
             :class="getDarkModeClass(darkMode)"
             keep-color
             color="blue-9"
-            :label="$t('LegacyAddress')"
+            :label="$t('LegacyAddressFormat')"
           />
         </div>
 
-        <div class="row col-12 flex-center">
-          <div class="col copy-container" :style="isCt ? 'padding-top: 20px' : 'padding-top: 0px'">
+        <div class="row col-12 flex-center q-pb-md">
+          <div class="col copy-container">
             <span class="qr-code-text text-weight-light text-center">
               <div
                 class="text-nowrap text-bow"
                 style="letter-spacing: 1px;"
-                @click="copyToClipboard(address)"
+                @click="copyToClipboard(addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ address }}
-                <p class="copy-address-button">{{ $t('ClickToCopyAddress') }}</p>
+                {{ displayAddress(address) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
               </div>
             </span>
           </div>
         </div>
-        <div v-if="amount && !isCt" class="text-center row col-12 flex-center">
-          <q-separator class="q-mb-sm q-mx-md" style="height: 2px;" />
+        <div v-if="amount && !isCt" class="text-center row col-12 flex-center">          
           <div class="text-bow" :class="getDarkModeClass(darkMode)">
-            <div class="receive-label">
+            <div class="receive-label q-mt-md" style="font-size: 15px;">
               {{ $t('YouWillReceive') }}
             </div>
-            <div class="text-weight-light receive-amount-label">
+            <div class="text-weight-light receive-amount-label" style="font-size: 18px;">
               {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
             </div>
           </div>
         </div>
         <div
-          class="text-center button button-text-primary q-pb-lg"
+          class="row col-12 flex-center text-center button button-text-primary q-pb-lg"
           style="font-size: 18px;"
           :class="getDarkModeClass(darkMode)"
           v-if="!isCt"
@@ -181,6 +184,7 @@ export default {
       generatingAddress: false,
       isCt: false,
       legacy: false,
+      showLegacy: false,
       addresses: [],
       incomingTransactions: [],
       amountDialog: false,
@@ -203,11 +207,13 @@ export default {
       return this.$store.getters['global/isChipnet']
     },
     address () {
+      let formattedAddress = ''
       if (this.legacy) {
-        return this.convertToLegacyAddress(this.addresses[0])
+        formattedAddress = this.convertToLegacyAddress(this.addresses[0]) 
+      } else {
+        formattedAddress = this.addresses[this.isCt ? 1 : 0]
       }
-
-      return this.addresses[this.isCt ? 1 : 0]
+      return formattedAddress
     },
     addressAmountFormat () {
       let tempAddress = this.address
@@ -240,6 +246,11 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
+    },
+    displayAddress (address) {
+      if (address) {
+        return address.substring(0, 18) + '...' + address.substring(address.length - 7)
+      }
     },
     setAmount (key) {
       let receiveAmount, finalAmount, tempAmountFormatted = ''
@@ -399,6 +410,10 @@ export default {
   body {
     overflow: hidden;
   }
+  .q-icon {
+    position: relative;
+    z-index: 10; /* Ensure the icon is clickable over the card */
+  }
   .qr-code-container {
     margin-top: 20px;
   }
@@ -415,23 +430,18 @@ export default {
     }
   }
   .qr-code-text {
+    font-family: monospace;
     font-size: 18px;
     color: #000;
   }
   .copy-container {
-    padding: 0px 20px 0px 20px;
+    padding: 20px 20px 0px 20px;
     overflow-wrap: break-word;
     text-wrap: wrap;
-    .copy-address-button {
-      font-size: 12px;
-      margin-top: 7px;
-    }
     .receive-label {
-      font-size: 15px;
       letter-spacing: 1px;
     }
     .receive-amount-label {
-      font-size: 18px;
       letter-spacing: 1px;
     }
   }

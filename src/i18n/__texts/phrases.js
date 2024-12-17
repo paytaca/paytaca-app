@@ -96,7 +96,7 @@ const phrases = {
       InputWalletConnectUri: "Input Wallet Connect URI",
       InsufficientBalance: "Insufficient balance",
       InvalidAddress: "Invalid address",
-      LegacyAddress: "Legacy Address",
+      LegacyAddressFormat: "Legacy format",
       LeavingPage: "Leaving page",
       LogIn: "Log In",
       MinerFee: "Miner fee",
