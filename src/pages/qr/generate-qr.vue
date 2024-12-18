@@ -33,14 +33,14 @@
         <div class="row col-12 flex-center">
           <div class="col qr-code-container">
             <div class="col q-pl-sm q-pr-sm">
-              <div class="row text-center" @click="copyToClipboard(addressAmountFormat)">
+              <div class="row text-center" @click="copyToClipboard(isCt ? address : addressAmountFormat)">
                 <div v-if="!isCt" class="col row justify-center q-pt-md">
                   <qr-code
                     class="q-mb-sm"
                     :text="addressAmountFormat"
                     border-width="3px"
                     border-color="#ed5f59"
-                    :size="200"
+                    :size="220"
                     icon="bitcoin-cash-circle.svg"
                   />
                 </div>
@@ -48,7 +48,7 @@
                   <qr-code
                     class="q-mb-sm"
                     :text="address"
-                    :size="200"
+                    :size="220"
                     icon="ct-logo.png"
                   />
                 </div>
@@ -80,7 +80,7 @@
               <div
                 class="text-nowrap text-bow"
                 style="letter-spacing: 1px;"
-                @click="copyToClipboard(addressAmountFormat)"
+                @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
                 {{ displayAddress(address) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
@@ -317,16 +317,7 @@ export default {
     },
     copyToClipboard (value) {
       const vm = this
-      let tempAddress = value
-      let tempAmount = this.amount
-
-      if (this.setAmountInFiat && this.amount) {
-        tempAmount = this.convertFiatToSelectedAsset(this.amount)
-      }
-
-      tempAddress += this.amount ? '?amount=' + tempAmount : ''
-
-      vm.$copyText(tempAddress)
+      vm.$copyText(value)
       vm.$q.notify({
         message: vm.$t('CopiedToClipboard'),
         timeout: 800,
@@ -433,7 +424,7 @@ export default {
   }
   .qr-code-text {
     font-family: monospace;
-    font-size: 15px;
+    font-size: 17px;
     color: #000;
   }
   .copy-container {

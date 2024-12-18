@@ -55,13 +55,13 @@
         <div class="row">
           <div class="col qr-code-container">
             <div class="col q-pl-sm q-pr-sm">
-              <div class="row text-center">
+              <div class="row text-center" @click="copyToClipboard(isCt ? address : addressAmountFormat)">
                 <div class="col row justify-center q-pt-md">
                   <qr-code
                     :text="isCt ? address : addressAmountFormat"
                     border-width="3px"
                     border-color="#ed5f59"
-                    :size="200"
+                    :size="220"
                     :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)"
                     class="q-mb-sm"
                   >
@@ -92,7 +92,7 @@
               <div
                 class="text-nowrap text-bow"
                 style="letter-spacing: 1px;"
-                @click="copyToClipboard(addressAmountFormat)"
+                @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
                 {{ address.substring(0, 16) }}...{{ address.substring(address.length - 4) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
@@ -537,16 +537,7 @@ export default {
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyToClipboard (value) {
-      let tempAddress = value
-      let tempAmount = this.amount
-
-      if (this.setAmountInFiat && this.amount) {
-        tempAmount = this.convertFiatToSelectedAsset(this.amount)
-      }
-
-      tempAddress += this.amount ? '?amount=' + tempAmount : ''
-
-      this.$copyText(tempAddress)
+      this.$copyText(value)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
         timeout: 800,
@@ -813,7 +804,7 @@ export default {
   }
   .qr-code-text {
     font-family: monospace;
-    font-size: 15px;
+    font-size: 17px;
     color: #000;
   }
   .copy-container {
