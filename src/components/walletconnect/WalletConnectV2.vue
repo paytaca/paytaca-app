@@ -318,6 +318,7 @@ const loadSessionProposals = async ({showLoading} = {showLoading: true}) => {
   try {
     if (web3Wallet.value) {
       sessionProposals.value = await web3Wallet.value.getPendingSessionProposals()
+      console.log('SESSION PROPOSALS', sessionProposals.value)
     }  
   } catch (error) {} finally { 
     if (showLoading) {
@@ -516,37 +517,39 @@ const disconnectSession = async (activeSession) => {
     activeSessions.value && delete activeSessions.value[activeSession.topic]
     sessionTopicWalletAddressMapping.value[activeSession.topic] && delete sessionTopicWalletAddressMapping.value[activeSession.topic]
     
+    console.log('DISCONNECTING...', activeSession.topic)
     await web3Wallet.value.disconnectSession({
       topic: activeSession.topic,
       reason: getSdkError('USER_DISCONNECTED')
     })
 
-    // Disconnect all remaining sessions that match the first session's URL
-    if (firstSessionUrl && activeSessions.value) {
-      const disconnectPromises = Object.keys(activeSessions.value).map(async (sessionTopic) => {
-        const session = activeSessions.value[sessionTopic];
+    // // Disconnect all remaining sessions that match the first session's URL
+    // if (firstSessionUrl && activeSessions.value) {
+    //   const disconnectPromises = Object.keys(activeSessions.value).map(async (sessionTopic) => {
+    //     console.log('DISCONNECTING...', sessionTopic)
+    //     const session = activeSessions.value[sessionTopic];
 
-        // Check if the session's URL matches the first session's URL
-        if (session.peer?.metadata?.url === firstSessionUrl) {
-          // Remove the session from the activeSessions mapping
-          delete activeSessions.value[sessionTopic];
+    //     // Check if the session's URL matches the first session's URL
+    //     if (session.peer?.metadata?.url === firstSessionUrl) {
+    //       // Remove the session from the activeSessions mapping
+    //       delete activeSessions.value[sessionTopic];
 
-          // Remove the corresponding wallet address mapping for the session
-          if (sessionTopicWalletAddressMapping.value[sessionTopic]) {
-            delete sessionTopicWalletAddressMapping.value[sessionTopic];
-          }
+    //       // Remove the corresponding wallet address mapping for the session
+    //       if (sessionTopicWalletAddressMapping.value[sessionTopic]) {
+    //         delete sessionTopicWalletAddressMapping.value[sessionTopic];
+    //       }
 
-          // Disconnect the matching session from the wallet
-          await web3Wallet.value.disconnectSession({
-            topic: sessionTopic,
-            reason: getSdkError('USER_DISCONNECTED'),
-          });
-        }
-      });
+    //       // Disconnect the matching session from the wallet
+    //       await web3Wallet.value.disconnectSession({
+    //         topic: sessionTopic,
+    //         reason: getSdkError('USER_DISCONNECTED'),
+    //       });
+    //     }
+    //   });
 
-      // Wait for all disconnections to complete
-      await Promise.all(disconnectPromises);
-    }
+    //   // Wait for all disconnections to complete
+    //   await Promise.all(disconnectPromises);
+    // }
 
     await loadActiveSessions({ showLoading: false})
   } catch (error) {
@@ -738,11 +741,12 @@ const respondToSignMessageRequest = async (sessionRequest) => {
 }
 
 const respondToGetAccountsRequest = async (sessionRequest) => {
-  if (!['bch_getAddresses', 'bch_getAccounts'].includes(sessionRequest.params.request.method)) return 
+  if (!['bch_getAddresses', 'bch_getAccounts'].includes(sessionRequest.params.request.method)) return
+  const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined };
   try {
-    const response = { id, jsonrpc: '2.0', result: undefined, error: undefined };
-    response.result = activeSessions.value[sessionRequest?.topic]?.namespaces?.bch?.accounts
-    await web3Wallet.value.respondSessionRequest({ topic, response })
+    response.result = activeSessions.value[sessionRequest?.topic]?.namespaces?.bch?.accounts.map((addr) => addr.replace('bch:', ''))
+    console.log('RESPONSE', response)
+    await web3Wallet.value.respondSessionRequest({ topic: sessionRequest?.topic, response })
   } catch(err) {
     console.error(err)
     response.error = {
@@ -774,6 +778,8 @@ const respondToSessionRequest = async (sessionRequest) => {
     
     switch(method) {
       case 'bch_getAddresses':
+        await respondToGetAccountsRequest(sessionRequest)
+        break;
       case 'bch_getAccounts':
         await respondToGetAccountsRequest(sessionRequest)
         break;
