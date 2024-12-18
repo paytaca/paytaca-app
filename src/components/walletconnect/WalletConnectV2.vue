@@ -599,6 +599,14 @@ const rejectSessionProposal = async (sessionProposal) => {
 }
 
 const approveSessionProposal = async (sessionProposal) => {
+  console.log('SESSION PROPOSAL', sessionProposal)
+
+  const proposalExpiry = sessionProposal.expiryTimestamp; // Assuming expiry is a timestamp in seconds
+  const currentTime = Math.floor(Date.now() / 1000);
+
+  if (currentTime > proposalExpiry) {
+    throw new Error('Session proposal has expired.');
+  }
   // Choose the first address by default
   let selectedAddress = walletAddresses.value?.[0]
 
@@ -610,7 +618,7 @@ const approveSessionProposal = async (sessionProposal) => {
     if (!selectedAddress) {
       processingSession.value[sessionProposal.pairingTopic] = ''
       return 
-    } 
+    }
   }
   sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic] = selectedAddress
   delete processingSession.value[sessionProposal.pairingTopic]
@@ -638,10 +646,12 @@ const approveSessionProposal = async (sessionProposal) => {
       proposal: sessionProposal,
       supportedNamespaces: namespaces,
     })
+    console.log('APPROVED NAMESPACES', approvedNamespaces)
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
       namespaces: approvedNamespaces,
     })
+    console.log('SESSION', session)
     activeSessions.value[session.topic] = session
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
@@ -849,6 +859,7 @@ const onAuthRequest = async (...args) => {
 }
 
 const onSessionDelete = async ({ topic }) => {
+  console.log('SESSION DELETED', topic)
   delete activeSessions.value?.[topic]
   await loadActiveSessions()
 }
