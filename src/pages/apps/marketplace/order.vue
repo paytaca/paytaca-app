@@ -639,8 +639,8 @@
           </div>
           <div class="row items-center justify-center">
             <div class="col-qr-code">
-              <q-skeleton v-if="creatingPayment" height="250px" width="250px"/>
-              <qr-code v-else :text="bchPaymentData?.url" :size="250"/>
+              <q-skeleton v-if="creatingPayment" height="200px" width="200px"/>
+              <qr-code v-else :text="bchPaymentData?.url" :size="200"/>
             </div>
           </div>
           <div v-if="creatingPayment" class="q-gutter-sm column items-center q-mt-sm">

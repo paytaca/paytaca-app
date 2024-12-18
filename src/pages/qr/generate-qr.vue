@@ -33,22 +33,22 @@
         <div class="row col-12 flex-center">
           <div class="col qr-code-container">
             <div class="col q-pl-sm q-pr-sm">
-              <div class="row text-center">
+              <div class="row text-center" @click="copyToClipboard(addressAmountFormat)">
                 <div v-if="!isCt" class="col row justify-center q-pt-md">
                   <qr-code
                     class="q-mb-sm"
                     :text="addressAmountFormat"
                     border-width="3px"
                     border-color="#ed5f59"
-                    :size="240"
+                    :size="200"
                     icon="bitcoin-cash-circle.svg"
                   />
                 </div>
                 <div v-else class="col row justify-center q-pt-md">
                   <qr-code
                     class="q-mb-sm"
-                    :text="addressAmountFormat"
-                    :size="240"
+                    :text="address"
+                    :size="200"
                     icon="ct-logo.png"
                   />
                 </div>
@@ -88,7 +88,7 @@
             </span>
           </div>
         </div>
-        <div v-if="amount && !isCt" class="text-center row col-12 flex-center">          
+        <div v-if="amount && !isCt" class="text-center row col-12 flex-center">   
           <div class="text-bow" :class="getDarkModeClass(darkMode)">
             <div class="receive-label q-mt-md" style="font-size: 15px;">
               {{ $t('YouWillReceive') }}
@@ -99,7 +99,7 @@
           </div>
         </div>
         <div
-          class="row col-12 flex-center text-center button button-text-primary q-pb-lg"
+          class="row col-12 flex-center text-center button button-text-primary q-mt-sm"
           style="font-size: 18px;"
           :class="getDarkModeClass(darkMode)"
           v-if="!isCt"
@@ -433,7 +433,7 @@ export default {
   }
   .qr-code-text {
     font-family: monospace;
-    font-size: 18px;
+    font-size: 15px;
     color: #000;
   }
   .copy-container {

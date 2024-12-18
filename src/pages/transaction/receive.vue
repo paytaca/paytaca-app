@@ -58,10 +58,10 @@
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
                   <qr-code
-                    :text="addressAmountFormat"
+                    :text="isCt ? address : addressAmountFormat"
                     border-width="3px"
                     border-color="#ed5f59"
-                    :size="240"
+                    :size="200"
                     :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)"
                     class="q-mb-sm"
                   >
@@ -110,7 +110,7 @@
                 />
               </div>
             </span>
-            <div v-if="amount" class="text-center">
+            <div v-if="amount && !isCt" class="text-center">
               <q-separator class="q-mb-sm q-mx-md q-mt-md" style="height: 2px;" />
               <div class="text-bow" :class="getDarkModeClass(darkMode)">
                 <div class="receive-label q-mt-md">
@@ -813,8 +813,7 @@ export default {
   }
   .qr-code-text {
     font-family: monospace;
-    font-size: 18px;
-    font-weight: 20px;
+    font-size: 15px;
     color: #000;
   }
   .copy-container {
