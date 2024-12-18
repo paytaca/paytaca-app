@@ -651,11 +651,13 @@ const approveSessionProposal = async (sessionProposal) => {
       id: sessionProposal?.id,
       namespaces: approvedNamespaces,
     })
+    await web3Wallet.value.getActiveSessions()
     console.log('SESSION', session)
     activeSessions.value[session.topic] = session
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
     await saveConnectedApp(session)
+    
     Promise.all([
       loadSessionProposals(),
       $store.dispatch('global/loadWalletConnectedApps')
