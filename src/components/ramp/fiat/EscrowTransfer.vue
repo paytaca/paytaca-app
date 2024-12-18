@@ -363,6 +363,19 @@ export default {
           }
         })
     },
+    getPlatform () {
+      let platform = null
+      if (this.$q.platform.is.mobile) {
+        platform = 'android'
+      }
+      if (this.$q.platform.is.ios) {
+        platform = 'ios'
+      }
+      if (this.$q.platform.is.bex) {
+        platform = 'web'
+      }
+      return platform
+    },
     generateContractAddress (force = false) {
       return new Promise((resolve, reject) => {
         const vm = this
@@ -371,7 +384,11 @@ export default {
           arbiter_id: vm.selectedArbiter?.id,
           force: force
         }
-        backend.post('/ramp-p2p/order/contract/', body, { headers: { version: packageInfo.version }, authorize: true })
+        const headers = {
+          version: packageInfo.version,
+          platform: this.getPlatform()
+        }
+        backend.post('/ramp-p2p/order/contract/', body, { headers: headers, authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
             vm.loading = false
