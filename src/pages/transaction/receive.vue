@@ -57,7 +57,15 @@
             <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md">
-                  <qr-code :text="addressAmountFormat" :size="240" :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)" class="q-mb-sm"></qr-code>
+                  <qr-code
+                    :text="addressAmountFormat"
+                    border-width="3px"
+                    border-color="#ed5f59"
+                    :size="240"
+                    :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)"
+                    class="q-mb-sm"
+                  >
+                  </qr-code>
                 </div>
               </div>
             </div>

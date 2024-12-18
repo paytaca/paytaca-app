@@ -16,7 +16,7 @@
             }}
           </p>
           <div class="flex flex-center">
-            <qr-code :text="shardText" :size="qrSize" />
+            <qr-code :qr-id="shardth" :text="shardText" :size="qrSize" />
           </div>
         </div>
       </div>

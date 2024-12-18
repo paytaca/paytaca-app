@@ -1,5 +1,5 @@
 <template>
-  <div class="col row justify-center">
+  <div class="col row justify-center qr">
     <q-skeleton style="border-radius: 12px;" v-if="loading" :height="(padding + 30 + size) + 'px'" :width="(padding + 30 + size) + 'px'" class="q-mb-sm"/>
     <template v-if="assetId === 'bch' && !icon">
       <img
@@ -20,7 +20,7 @@
         :style="{'margin-top': (padding + (size / 2) - (iconSize / 2)) + 'px'}"
       />
     </template>
-    <div id="qr"></div>
+    <div :id="`qr-${qrId}`"></div>
   </div>
 </template>
 
@@ -29,9 +29,13 @@ var QRCode = require("qrcode-svg")
 
 export default {
   props: {
+    qrId: {
+      type: Number,
+      default: 0
+    },
     assetId: {
       type: String,
-      default: 'bch',
+      default: '',
     },
     text: {
       type: String,
@@ -47,7 +51,15 @@ export default {
     },
     iconSize: {
       type: Number,
-      default: 50
+      default: 40
+    },
+    borderWidth: {
+      type: String,
+      default: '0px'
+    },
+    borderColor: {
+      type: String,
+      default: 'red'
     }
   },
   data () {
@@ -65,7 +77,8 @@ export default {
   methods: {
     renderQRCode() {
       const vm = this
-      const container = document.getElementById("qr")
+      console.log('QR ID', vm.qrId)
+      const container = document.getElementById(`qr-${vm.qrId}`)
 
       if (container) {
         setTimeout(() => {
@@ -103,13 +116,16 @@ export default {
   -webkit-user-select: none;
 }
 
-#qr svg {
+.qr svg {
   display: block;
   width: 100%;
   height: auto;
   padding: 35px;
   background-color: white;
-  border-radius: 12px;
+  border-radius: 10px;
+  border-style: solid;
+  border-width: v-bind(borderWidth);
+  border-color: v-bind(borderColor);
   user-select: none;
   -webkit-user-select: none;
   pointer-events: none;

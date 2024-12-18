@@ -38,6 +38,8 @@
                   <qr-code
                     class="q-mb-sm"
                     :text="addressAmountFormat"
+                    border-width="3px"
+                    border-color="#ed5f59"
                     :size="240"
                     icon="bitcoin-cash-circle.svg"
                   />
