@@ -4,7 +4,7 @@
       <div class="col-xs-12 text-right q-mb-md">
         <q-btn icon="settings" flat dense>
           <q-menu fit anchor="bottom start" self="top end" class="br-15 pt-card q-py-md" :class="getDarkModeClass(darkMode)">
-            <q-item>  
+            <q-item>
               <q-item-section>
                 {{ $t('AddressDisplayFormat') }}
               </q-item-section>
@@ -54,6 +54,10 @@
                 >
                 </q-toggle>
               </q-item-section>
+            </q-item>
+            <q-separator></q-separator>
+            <q-item>
+              <span @click="resetWallectConnect">Reset Wallet Connect<q-icon name="danger" /></span>
             </q-item>
           </q-menu>
         </q-btn>
@@ -211,7 +215,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount, watchEffect } from 'vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
+import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { convertCashAddress } from 'src/wallet/chipnet';
 import { loadWallet } from 'src/wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
@@ -820,6 +824,22 @@ const rejectSessionRequest = async (sessionRequest) => {
   
 }
 
+const disconnectAllSessions = async () => {
+  const sessions = await web3Wallet.value.getActiveSessions()
+  for (const topic of Object.keys(sessions)) {
+    await web3Wallet.value.disconnectSession({
+      topic: topic,
+      reason: getSdkError('USER_DISCONNECTED')
+    })
+  }
+}
+
+const resetWallectConnect = async () => {
+  await disconnectAllSessions()
+  await resetWallectConnectDatabase()
+  await loadActiveSessions()
+  alert('Reset done!')
+}
 
 const loadWeb3Wallet = async () => {
   web3WalletPromise.value = initWeb3Wallet()
@@ -900,6 +920,7 @@ onMounted(async () => {
   try {
     loading.value = 'Loading...'
     await loadWeb3Wallet()
+    loadActiveSessions()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
       await $store.dispatch('global/loadWalletLastAddressIndex')  
