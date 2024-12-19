@@ -5,7 +5,7 @@
         filled
         label-slot
         v-model="recipientAddress"
-        @focus="onInputFocus(index)"
+        @focus="onInputFocus(index, '')"
         @blur="onEmptyRecipient"
         class="recipient-input"
         :disabled="disableRecipientInput"
@@ -28,13 +28,13 @@
             class="btn-scan button text-white bg-grad"
             icon="mdi-qrcode"
             size="md"
-            @click="onQRScannerClick(true), onInputFocus(index)"
+            @click="onQRScannerClick(true), onInputFocus(index, '')"
           />
           <q-btn
             round
             class="q-ml-sm btn-scan button text-white bg-grad"
             icon="upload"
-            @click="onQRUploaderClick(), onInputFocus(index)"
+            @click="onQRUploaderClick(), onInputFocus(index, '')"
           />
         </template>
       </q-input>
@@ -78,13 +78,13 @@
           filled
           v-model="amountFormatted"
           ref="amountInput"
-          @focus="readonlyState(true), onInputFocus(index)"
+          @focus="readonlyState(true), onInputFocus(index, 'bch')"
           @blur="readonlyState(false)"
           :label="$t('Amount')"
           :dark="darkMode"
           :loading="computingMax"
-          :disabled="setAmountInFiat || recipient.fixedAmount || inputExtras.isBip21"
-          :readonly="setAmountInFiat || recipient.fixedAmount || inputExtras.isBip21"
+          :disabled="recipient.fixedAmount || inputExtras.isBip21"
+          :readonly="recipient.fixedAmount || inputExtras.isBip21"
           :error="balanceExceeded"
           :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
           :key="inputExtras.amountFormatted"
@@ -101,16 +101,18 @@
             />
           </template>
         </q-input>
-        <div
-          v-if="sendAmountMarketValue && !setAmountInFiat"
-          class="text-body2 text-grey q-mt-sm q-px-sm"
-        >
-          {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-        </div>
+        <!--
+          <div
+            v-if="sendAmountMarketValue && !setAmountInFiat"
+            class="text-body2 text-grey q-mt-sm q-px-sm"
+          >
+            {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
+          </div>
+        -->
       </div>
     </div>
 
-    <div class="row" v-if="!isNFT && setAmountInFiat && asset.id === 'bch'">
+    <div class="row" v-if="!isNFT && asset.id === 'bch'">
       <div class="col q-mt-xs">
         <q-input
           type="text"
@@ -118,10 +120,12 @@
           filled
           ref="fiatInput"
           v-model="sendAmountInFiat"
-          @focus="readonlyState(true), onInputFocus(index)"
+          @focus="readonlyState(true), onInputFocus(index, 'fiat')"
           @blur="readonlyState(false)"
           :disabled="inputExtras.isBip21"
           :readonly="inputExtras.isBip21"
+          :error="balanceExceeded"
+          :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
           :label="$t('Amount')"
           :dark="darkMode"
           :key="inputExtras.sendAmountInFiat"
@@ -130,12 +134,6 @@
             {{ String(currentSendPageCurrency()).toUpperCase() }}
           </template>
         </q-input>
-        <div
-          v-if="sendAmountMarketValue && !setAmountInFiat"
-          class="text-body2 text-grey q-mt-sm q-px-sm"
-        >
-          {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-        </div>
       </div>
     </div>
   </template>
@@ -151,15 +149,15 @@
       <span v-else>
         {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
       </span>
-      <template v-if="asset.id === 'bch' && setAmountInFiat">
+      <template v-if="asset.id === 'bch'">
         {{ ` = ${parseFiatCurrency(convertToFiatAmount(currentWalletBalance), currentSendPageCurrency())}` }}
       </template>
       <a
         href="#"
-        v-if="!computingMax || (setAmountInFiat && !recipient.sending)"
+        v-if="!computingMax || !recipient.sending"
         class="max-button text-grad"
         :class="getDarkModeClass(darkMode)"
-        @click.prevent="onInputFocus(index), handleMaxClick()"
+        @click.prevent="onInputFocus(index, ''), handleMaxClick()"
       >
         {{ $t('MAX') }}
       </a>
@@ -213,7 +211,6 @@ export default {
     index: { type: Number },
     showQrScanner: { type: Boolean },
     computingMax: { type: Boolean },
-    setAmountInFiat: { type: Boolean },
     selectedAssetMarketPrice: { type: Number },
     isNFT: { type: Boolean },
     currentWalletBalance: { type: Number },
@@ -350,8 +347,8 @@ export default {
           this.setMaximumSendAmount()
         })
     },
-    onInputFocus (value) {
-      this.$emit('on-input-focus', value)
+    onInputFocus (index, field) {
+      this.$emit('on-input-focus', { index, field })
     },
     onSelectedDenomination (value) {
       this.selectedDenomination = value

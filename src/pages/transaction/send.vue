@@ -141,7 +141,6 @@
                       :index="index"
                       :showQrScanner="showQrScanner"
                       :computingMax="computingMax"
-                      :setAmountInFiat="setAmountInFiat"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
                       :currentWalletBalance="currentWalletBalance"
@@ -172,7 +171,6 @@
                     :index="index"
                     :showQrScanner="showQrScanner"
                     :computingMax="computingMax"
-                    :setAmountInFiat="setAmountInFiat"
                     :selectedAssetMarketPrice="selectedAssetMarketPrice"
                     :isNFT="isNFT"
                     :currentWalletBalance="currentWalletBalance"
@@ -200,7 +198,7 @@
                 </p>
               </div>
 
-              <div
+              <!-- <div
                 class="row"
                 style="margin-top: -15px;"
                 v-if="!sendDataMultiple[0].fixedAmount && !isNFT && asset.id === 'bch'"
@@ -218,7 +216,7 @@
                     ` }}
                   </a>
                 </div>
-              </div>
+              </div> -->
               <!-- <div class="add-recipient-button" v-if="showAddRecipientButton && !disableSending" @click.prevent="addAnotherRecipient"> -->
               <div class="add-recipient-button" v-if="!disableSending" @click.prevent="addAnotherRecipient">
                 <q-btn v-if="showAddRecipientButton" :label="$t('AddAnotherRecipient')" class="button" />
@@ -525,7 +523,7 @@ export default {
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       showQrScanner: false,
-      setAmountInFiat: false,
+      // setAmountInFiat: false,
       balanceExceeded: false,
       computingMax: false,
       selectedDenomination: 'BCH',
@@ -538,7 +536,8 @@ export default {
       actualWalletBalance: { balance: 0, spendable: 0 },
       currentWalletBalance: 0,
       isLegacyAddress: false,
-      userSelectedChangeAddress: ''
+      userSelectedChangeAddress: '',
+      focusedInputField: null
     }
   },
 
@@ -667,11 +666,11 @@ export default {
   },
 
   watch: {
-    setAmountInFiat: function (value) {
-      if (value) {
-        this.balanceExceeded = false
-      }
-    },
+    // setAmountInFiat: function (value) {
+    //   if (value) {
+    //     this.balanceExceeded = false
+    //   }
+    // },
     sendAmountInFiat: function (amount) {
       if (!this.inputExtras[this.currentActiveRecipientIndex].setMax) {
         const fiatToAsset = this.convertFiatToSelectedAsset(amount) || 0
@@ -694,12 +693,13 @@ export default {
           const amountInFiat = parseFloat(this.inputExtras[index].sendAmountInFiat)
 
           // if set to input BCH or if fiat amount is none (happens sometimes)
-          if (!this.setAmountInFiat || !amountInFiat) {
+          if (/*!this.setAmountInFiat || */!amountInFiat) {
             const amountInFiat = this.convertToFiatAmount(amount)
             this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
-          } else {
-            this.recomputeAmount(this.sendDataMultiple[index], this.inputExtras[index], amountInFiat)
           }
+          // else {
+            this.recomputeAmount(this.sendDataMultiple[index], this.inputExtras[index], amountInFiat)
+          // }
         }
       }
     },
@@ -874,11 +874,11 @@ export default {
         if (amountValue !== null) {
           this.sliderStatus = true
           currentInputExtras.amountFormatted = this.customNumberFormatting(amount)
-          if (this.setAmountInFiat) {
+          // if (this.setAmountInFiat) {
             currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
-          } else {
+          // } else {
             currentRecipient.amount = this.customNumberFormatting(amount)
-          }
+          // }
           currentRecipient.fixedAmount = true
         }
 
@@ -992,17 +992,22 @@ export default {
 
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
-      let currentSendAmount, currentAmount
       const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
         .$refs.amountInput.nativeEl.selectionStart
       const fiatCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
         .$refs.fiatInput?.nativeEl.selectionStart
 
-      if (this.setAmountInFiat) {
+      let currentSendAmount, currentAmount
+      let caret = null
+      if (this.focusedInputField === 'fiat') caret = fiatCaretPosition
+      else if (this.focusedInputField === 'bch') caret = amountCaretPosition
+
+      // if (this.setAmountInFiat) {
+      if (this.focusedInputField === 'fiat') {
         currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
-      } else {
+      } else if (this.focusedInputField === 'bch') {
         currentSendAmount = currentInputExtras.amountFormatted ?? ''
-      }
+      } else currentSendAmount = 0
 
       if (key === '.' && currentSendAmount === '') {
         currentAmount = '0.'
@@ -1016,20 +1021,14 @@ export default {
             } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
               currentAmount = 0
             } else {
-              currentAmount = this.adjustSplicedAmount(
-                currentAmount, fiatCaretPosition ?? amountCaretPosition, key.toString()
-              )
+              currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
             }
           } else {
-            currentAmount = this.adjustSplicedAmount(
-              currentAmount, fiatCaretPosition ?? amountCaretPosition, key.toString()
-            )
+            currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
           }
         } else {
           const tbaKey = key !== '.' ? key.toString() : ''
-          currentAmount = this.adjustSplicedAmount(
-            currentAmount, fiatCaretPosition ?? amountCaretPosition, tbaKey
-          )
+          currentAmount = this.adjustSplicedAmount(currentAmount, caret, tbaKey)
         }
       }
 
@@ -1048,12 +1047,14 @@ export default {
       }
 
       // Set the new amount
-      if (this.setAmountInFiat) {
+      // if (this.setAmountInFiat) {
+      if (this.focusedInputField === 'fiat') {
         currentInputExtras.sendAmountInFiat = currentAmount
         this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
-      } else {
+      } else if (this.focusedInputField === 'bch') {
         currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
         currentInputExtras.amountFormatted = currentAmount
+        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount) || 0
       }
 
       this.adjustWalletBalance()
@@ -1072,25 +1073,26 @@ export default {
 
       if (action === 'backspace') {
         // Backspace
-        if (this.setAmountInFiat && fiatCaretPosition > -1) {
+        if (/*this.setAmountInFiat && */this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
           const currentAmount = this.adjustSplicedAmount(
             String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
           )
           currentInputExtras.sendAmountInFiat = currentAmount
           this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
-        } else if (!this.setAmountInFiat && amountCaretPosition > -1) {
+        } else if (/*!this.setAmountInFiat && */this.focusedInputField === 'bch' && amountCaretPosition > -1) {
           currentInputExtras.amountFormatted = this.adjustSplicedAmount(
             String(currentInputExtras.amountFormatted), amountCaretPosition
           )
           currentRecipient.amount = convertToBCH(
             currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
           )
+          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount)
         }
       } else if (action === 'delete') {
         // Delete
-        if (this.setAmountInFiat) {
-          currentInputExtras.sendAmountInFiat = ''
-        }
+        // if (this.setAmountInFiat) {
+        currentInputExtras.sendAmountInFiat = ''
+        // }
         currentRecipient.amount = ''
         currentInputExtras.amountFormatted = ''
       } else {
@@ -1190,10 +1192,10 @@ export default {
           currentRecipient.amount = this.asset.spendable
         }
         currentInputExtras.amountFormatted = spendableAsset
-        if (this.setAmountInFiat) {
+        // if (this.setAmountInFiat) {
           const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
           currentInputExtras.sendAmountInFiat = convertedFiat
-        }
+        // }
       } else {
         if (this.asset.id.startsWith('ct/')) {
           currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
@@ -1277,7 +1279,7 @@ export default {
               addressIsValid = true
               formattedAddress = address
             } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
-              vm.setAmountInFiat = true
+              // vm.setAmountInFiat = true
               if (addressObj.isValidBCHAddress(vm.isChipnet)) {
                 addressIsValid = true
                 formattedAddress = addressObj.toCashAddress(address)
@@ -1583,22 +1585,23 @@ export default {
       this.sliderStatus = true
     },
     onInputFocus (value) {
-      this.currentActiveRecipientIndex = value
+      this.currentActiveRecipientIndex = value.index
+      this.focusedInputField = value.field
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
     },
-    onSetAmountToFiatClick () {
-      this.setAmountInFiat = !this.setAmountInFiat
-      this.sliderStatus = false
-      this.sendDataMultiple.forEach((data) => {
-        data.amount = 0
-      })
-      this.inputExtras.forEach((input) => {
-        input.amountFormatted = 0
-      })
-      this.currentWalletBalance = this.asset.balance
-    },
+    // onSetAmountToFiatClick () {
+    //   this.setAmountInFiat = !this.setAmountInFiat
+    //   this.sliderStatus = false
+    //   this.sendDataMultiple.forEach((data) => {
+    //     data.amount = 0
+    //   })
+    //   this.inputExtras.forEach((input) => {
+    //     input.amountFormatted = 0
+    //   })
+    //   this.currentWalletBalance = this.asset.balance
+    // },
     onBIP21Amount (value) {
       const amount = this.getBIP21Amount(value)
       if (!Number.isNaN(amount)) {
@@ -1617,9 +1620,9 @@ export default {
         currentInputExtras.emptyRecipient = false
         this.sliderStatus = true
 
-        if (this.setAmountInFiat) {
+        // if (this.setAmountInFiat) {
           currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
-        }
+        // }
 
         const addressParse = new URLSearchParams(value.split('?')[1])
         if (addressParse.has('expires')) {
@@ -1645,7 +1648,7 @@ export default {
         const recipientAddress = value.split('?')[0]
         if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
           setTimeout(function () {
-            vm.setAmountInFiat = true
+            // vm.setAmountInFiat = true
             vm.customKeyboardState = 'show'
           })
         } else {
