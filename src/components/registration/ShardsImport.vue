@@ -62,9 +62,10 @@
     <div class="row flex flex-center q-gutter-md q-mt-xs">
       <template v-if="retrievedCodes[0] !== null">
         <qr-code
+          :qr-id="0"
           :text="retrievedCodes[0]"
           color="#253933"
-          :size="140"
+          :size="200"
           class="qr-div-code"
           :class="qrCodeDivClass"
         />
@@ -74,9 +75,10 @@
       </template>
       <template v-if="retrievedCodes[1] !== null">
         <qr-code
+          :qr-id="1"
           :text="retrievedCodes[1]"
           color="#253933"
-          :size="140"
+          :size="200"
           class="qr-div-code"
           :class="qrCodeDivClass"
         />
