@@ -602,6 +602,7 @@ export default {
   LastName: "Nom de famille",
   LeavingPage: "Page de départ",
   LegacyAddress: "Adresse héritée",
+  LegacyAddressFormat: "Format hérité",
   LegacyAddressWarning: "Vous avez collé une adresse héritée.Veuillez vous assurer qu'il s'agit d'un <span class=\"highlighted-word\">BCH deposit address</span>, pas une adresse de dépôt BTC.",
   Leverage: "Effet de levier",
   LightMode: "Mode léger",

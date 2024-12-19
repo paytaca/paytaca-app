@@ -602,6 +602,7 @@ export default {
   LastName: "Last name",
   LeavingPage: "Leaving page",
   LegacyAddress: "Legacy Address",
+  LegacyAddressFormat: "Legacy format",
   LegacyAddressWarning: "You pasted a legacy address. Please make sure that it is a <span class=\"highlighted-word\">BCH deposit address</span>, not a BTC deposit address.",
   Leverage: "Leverage",
   LightMode: "Light Mode",
