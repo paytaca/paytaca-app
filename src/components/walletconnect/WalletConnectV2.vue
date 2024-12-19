@@ -523,34 +523,6 @@ const disconnectSession = async (activeSession) => {
       reason: getSdkError('USER_DISCONNECTED')
     })
 
-    // // Disconnect all remaining sessions that match the first session's URL
-    // if (firstSessionUrl && activeSessions.value) {
-    //   const disconnectPromises = Object.keys(activeSessions.value).map(async (sessionTopic) => {
-    //     console.log('DISCONNECTING...', sessionTopic)
-    //     const session = activeSessions.value[sessionTopic];
-
-    //     // Check if the session's URL matches the first session's URL
-    //     if (session.peer?.metadata?.url === firstSessionUrl) {
-    //       // Remove the session from the activeSessions mapping
-    //       delete activeSessions.value[sessionTopic];
-
-    //       // Remove the corresponding wallet address mapping for the session
-    //       if (sessionTopicWalletAddressMapping.value[sessionTopic]) {
-    //         delete sessionTopicWalletAddressMapping.value[sessionTopic];
-    //       }
-
-    //       // Disconnect the matching session from the wallet
-    //       await web3Wallet.value.disconnectSession({
-    //         topic: sessionTopic,
-    //         reason: getSdkError('USER_DISCONNECTED'),
-    //       });
-    //     }
-    //   });
-
-    //   // Wait for all disconnections to complete
-    //   await Promise.all(disconnectPromises);
-    // }
-
     await loadActiveSessions({ showLoading: false})
   } catch (error) {
     console.log('🚀 ~ disconnectSession ~ error:', error)
@@ -758,14 +730,14 @@ const respondToGetAccountsRequest = async (sessionRequest) => {
   try {
     response.result = activeSessions.value[sessionRequest?.topic]?.namespaces?.bch?.accounts.map((addr) => addr.replace('bch:', ''))
     console.log('RESPONSE', response)
-    await web3Wallet.value.respondSessionRequest({ topic: sessionRequest?.topic, response })
   } catch(err) {
     console.error(err)
     response.error = {
       code: -1,
-      reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error',
+      reason: err?.name === 'GetBCHAccountsError' ? err?.message : 'Unknown error',
     }
   } finally {
+    await web3Wallet.value.respondSessionRequest({ topic: sessionRequest?.topic, response })
     loadSessionRequests()
   }
 }
