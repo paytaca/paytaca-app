@@ -65,7 +65,6 @@
           :text="retrievedCodes[0]"
           color="#253933"
           :size="140"
-          error-level="H"
           class="qr-div-code"
           :class="qrCodeDivClass"
         />
@@ -78,7 +77,6 @@
           :text="retrievedCodes[1]"
           color="#253933"
           :size="140"
-          error-level="H"
           class="qr-div-code"
           :class="qrCodeDivClass"
         />

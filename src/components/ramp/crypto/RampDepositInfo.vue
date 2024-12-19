@@ -20,7 +20,7 @@
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
                   <div v-html="shiftInfo.shift_info.deposit.icon" class="receive-icon-asset"></div>
-                  <qr-code :text="depositAddress" :size="300" class="q-mb-sm"></qr-code>
+                  <qr-code :text="depositAddress" :size="200" class="q-mb-sm"></qr-code>
                 </div>
               </div>
             </div>
@@ -247,8 +247,8 @@ export default {
 </script>
 <style lang="scss" scoped>
   .qr-code-container {
-    padding-left: 28px;
-    padding-right: 28px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
   .qr-code-text {
     font-size: 18px;
@@ -256,12 +256,12 @@ export default {
   }
   .receive-icon-asset {
     position: absolute;
-    margin-top: 130px;
+    margin-top: 107px;
     background: white;
     border-radius: 50%;
     padding: 4px;
-    height: 60px;
-    width: 60px;
+    height: 45px;
+    width: 45px;
     border-radius: 50%;
     z-index: 1000;
   }

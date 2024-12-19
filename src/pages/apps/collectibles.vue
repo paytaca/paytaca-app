@@ -56,7 +56,7 @@
       <div class="q-pa-md br-15 justify-center">
         <qr-code
           :text="receivingAddress"
-          :size="300"
+          :size="200"
           icon="/ct-logo.png"
           @click="copyAddress(receivingAddress)"
         />

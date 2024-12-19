@@ -120,7 +120,7 @@ export default {
   display: block;
   width: 100%;
   height: auto;
-  padding: 35px;
+  padding: 30px;
   background-color: white;
   border-radius: 10px;
   border-style: solid;

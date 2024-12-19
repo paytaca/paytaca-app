@@ -572,7 +572,7 @@
                         @click.stop="() => copyToClipboard(bchPaymentData?.url)"
                       />
                     </div>
-                    <qr-code :text="bchPaymentData?.url" :size="300" />
+                    <qr-code :text="bchPaymentData?.url" :size="200" asset-id="bch" />
                     <div class="text-center">
                       <div class="text-h6">{{ bchPaymentData?.bchAmount }} BCH</div>
                       <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1" style="line-height:0.75em;">

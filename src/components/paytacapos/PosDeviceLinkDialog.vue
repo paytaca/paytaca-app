@@ -166,15 +166,15 @@ async function generateLinkCode(opts) {
     })
 }
 
-const qrCodePxSize = ref(300)
-onMounted(() => resizeQrSize())
-function resizeQrSize() {
-  let minViewport = Math.min(window.innerWidth - 70, window.innerHeight - 55, 400)
-  let size = Math.max(window.innerWidth - 70, 250)
-  console.log({ minViewport, size })
-  size = Math.min(size, minViewport)
-  qrCodePxSize.value = size
-}
+const qrCodePxSize = ref(200)
+// onMounted(() => resizeQrSize())
+// function resizeQrSize() {
+//   // let minViewport = Math.min(window.innerWidth - 70, window.innerHeight - 55, 400)
+//   // let size = Math.max(window.innerWidth - 70, 250)
+//   // console.log({ minViewport, size })
+//   // size = Math.min(size, minViewport)
+//   // qrCodePxSize.value = size
+// }
 
 const qrCodeDataLink = computed(() => `app://com.paytaca.pos/link?code=${qrCodeDataB64.value}`)
 const qrCodeDataB64 = computed(() => btoa(qrCodeData.value))

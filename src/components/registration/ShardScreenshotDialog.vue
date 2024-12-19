@@ -46,7 +46,7 @@ export default {
 
   data () {
     return {
-      qrSize: 300
+      qrSize: 200
     }
   },
 
@@ -68,7 +68,6 @@ export default {
     })
 
     const screenWidth = vm.$q.screen.width
-    vm.qrSize = screenWidth >= 500 ? 400 : screenWidth - 100
   }
 }
 </script>
