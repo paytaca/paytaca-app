@@ -697,8 +697,8 @@ export default {
             const amountInFiat = this.convertToFiatAmount(amount)
             this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
           }
+          this.recomputeAmount(this.sendDataMultiple[index], this.inputExtras[index], amountInFiat)
           // else {
-            this.recomputeAmount(this.sendDataMultiple[index], this.inputExtras[index], amountInFiat)
           // }
         }
       }
@@ -710,6 +710,7 @@ export default {
   },
 
   methods: {
+    // ========== imported methods ==========
     convertTokenAmount,
     parseAssetDenomination,
     getAssetDenomination,
@@ -718,33 +719,19 @@ export default {
     customNumberFormatting,
     getDarkModeClass,
     isNotDefaultTheme,
-    updateNetworkDiff () {
-      return getNetworkTimeDiff().then(result => {
-        if (!result?.timeDifference) return result
-        this.networkTimeDiff = result.timeDifference
-      })
+
+    // ========== processing(?) methods ==========
+    // on component mount
+    async initWallet () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
+      const wallet = new Wallet(mnemonic, this.network)
+      this.wallet = markRaw(wallet)
+      if (this.isSmartBch) this.wallet.sBCH.getOrInitWallet()
+      return { wallet }
     },
-    getExplorerLink (txid) {
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
-      if (this.isCashToken) {
-        url = 'https://explorer.bitcoinunlimited.info/tx/'
-      }
-
-      if (this.isChipnet) {
-        url = 'https://chipnet.imaginary.cash/tx/'
-      }
-
-      return `${url}${txid}`
-    },
-    formatTimestampToText (timestamp) {
-      if (!Number.isSafeInteger(timestamp)) return ''
-
-      const dateObj = new Date(timestamp)
-      return new Intl.DateTimeFormat(
-        'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
-      ).format(dateObj)
-    },
+    // handling recipient address input
     async onScannerDecode (content) {
       this.disableSending = false
       this.bip21Expires = null
@@ -767,34 +754,19 @@ export default {
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
+        console.error(error)
         if (error?.message === 'PaymentRequestIsExpired') {
-          this.$q.notify({
-            type: 'negative',
-            color: 'red-4',
-            timeout: 3000,
-            message: this.$t(error.message)
-          })
+          this.raiseNotifyError(this.$t(error.message))
           return
         }
         if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
-          this.$q.notify({
-            type: 'negative',
-            color: 'red-4',
-            timeout: 3000,
-            message: this.$t('InvalidAddressFormat')
-          })
+          this.raiseNotifyError(this.$t('InvalidAddressFormat'))
           return
         }
         if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
-          this.$q.notify({
-            type: 'negative',
-            color: 'red-4',
-            timeout: 3000,
-            message: this.$t('MultipleRecipientsUnsupported')
-          })
+          this.raiseNotifyError(this.$t('MultipleRecipientsUnsupported'))
           return
         }
-        console.error(error)
       }
 
       if (paymentUriData?.outputs?.[0]) {
@@ -908,353 +880,6 @@ export default {
         currentInputExtras.cashbackData = response
       }
     },
-    handleJPP (paymentUri) {
-      const dialog = this.$q.dialog({
-        title: 'Invoice',
-        message: 'Fetching invoice data',
-        progress: true,
-        persistent: true,
-        seamless: true,
-        ok: false,
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
-      })
-
-      JSONPaymentProtocol.fetch(paymentUri)
-        .then(jpp => {
-          this.jpp = markRaw(jpp)
-          dialog.hide()
-        })
-        .catch(error => {
-          let message = 'Failed to fetch invoice data'
-          if (typeof error?.response?.data === 'string') {
-            if (error?.response?.data?.indexOf('expired') >= 0) message = 'Invoice is expired'
-            else if (error?.response?.data?.length <= 1000) message = error?.response?.data
-          }
-          if (error?.name === 'JsonPaymentProtocolError' && error?.message) {
-            message = error?.message
-          }
-          dialog.update({ message: message })
-          console.error(error)
-        })
-        .finally(() => {
-          dialog.update({ persistent: false, progress: false, ok: true })
-        })
-    },
-    onJppPaymentSucess () {
-      this.$forceUpdate()
-      this.txid = this.jpp?.txids?.[0]
-      const jppAmount = this.jpp.total / 10 ** 8
-      this.totalAmountSent = jppAmount
-      this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
-      this.sendDataMultiple[0].amount = jppAmount
-      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.slice(0, 10).map(output => output.address).join(', ')
-      this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
-      this.playSound(true)
-      this.txTimestamp = Date.now()
-      this.sending = false
-      this.sent = true
-    },
-    readonlyState (state) {
-      this.amountInputState = state
-      if (this.amountInputState) {
-        if (this.$store.getters['global/getConnectivityStatus']) {
-          this.customKeyboardState = 'show'
-        }
-      } else {
-        this.adjustWalletBalance()
-      }
-    },
-    convertToFiatAmount (amount) {
-      const parsedAmount = Number(amount)
-      if (!parsedAmount) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
-      if (!computedBalance) return ''
-
-      if (computedBalance > 0.01) {
-        return computedBalance.toFixed(2)
-      } else {
-        return computedBalance.toFixed(4)
-      }
-    },
-    convertFiatToSelectedAsset (amount) {
-      const parsedAmount = Number(amount)
-      if (!parsedAmount) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
-      return computedBalance.toFixed(8)
-    },
-    setAmount (key) {
-      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
-        this.customKeyboardState = 'dismiss'
-        return console.warn('Custom keyboard input without target field, hiding keyboard', { key })
-      }
-
-      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
-      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
-      const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
-        .$refs.amountInput.nativeEl.selectionStart
-      const fiatCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
-        .$refs.fiatInput?.nativeEl.selectionStart
-
-      let currentSendAmount, currentAmount
-      let caret = null
-      if (this.focusedInputField === 'fiat') caret = fiatCaretPosition
-      else if (this.focusedInputField === 'bch') caret = amountCaretPosition
-
-      // if (this.setAmountInFiat) {
-      if (this.focusedInputField === 'fiat') {
-        currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
-      } else if (this.focusedInputField === 'bch') {
-        currentSendAmount = currentInputExtras.amountFormatted ?? ''
-      } else currentSendAmount = 0
-
-      if (key === '.' && currentSendAmount === '') {
-        currentAmount = '0.'
-      } else {
-        currentAmount = currentSendAmount.toString()
-        const hasPeriod = currentAmount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(currentAmount) === 0) {
-            if (Number(key) > 0) {
-              currentAmount = key
-            } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
-              currentAmount = 0
-            } else {
-              currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
-            }
-          } else {
-            currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
-          }
-        } else {
-          const tbaKey = key !== '.' ? key.toString() : ''
-          currentAmount = this.adjustSplicedAmount(currentAmount, caret, tbaKey)
-        }
-      }
-
-      if (this.asset.id.startsWith('ct/')) {
-        if (this.asset.decimals === 0) {
-          currentAmount = currentAmount.toString().replace('.', '')
-        } else {
-          const parts = currentAmount.toString().split('.')
-
-          if (parts.length > 1) { // Ensure there's a decimal part
-            // Truncate the decimal part to the desired length
-            parts[1] = parts[1].slice(0, this.asset.decimals)
-            currentAmount = parts.join('.') // Recombine the integer and decimal parts
-          }
-        }
-      }
-
-      // Set the new amount
-      // if (this.setAmountInFiat) {
-      if (this.focusedInputField === 'fiat') {
-        currentInputExtras.sendAmountInFiat = currentAmount
-        this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
-      } else if (this.focusedInputField === 'bch') {
-        currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
-        currentInputExtras.amountFormatted = currentAmount
-        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount) || 0
-      }
-
-      this.adjustWalletBalance()
-    },
-    makeKeyAction (action) {
-      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
-        this.customKeyboardState = 'dismiss'
-        return console.warn('Custom keyboard input without target field, hiding keyboard', { action })
-      }
-      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
-      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex] ?? ''
-      const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
-        .$refs.amountInput.nativeEl.selectionStart - 1
-      const fiatCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
-        .$refs.fiatInput?.nativeEl.selectionStart - 1
-
-      if (action === 'backspace') {
-        // Backspace
-        if (/*this.setAmountInFiat && */this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
-          const currentAmount = this.adjustSplicedAmount(
-            String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
-          )
-          currentInputExtras.sendAmountInFiat = currentAmount
-          this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
-        } else if (/*!this.setAmountInFiat && */this.focusedInputField === 'bch' && amountCaretPosition > -1) {
-          currentInputExtras.amountFormatted = this.adjustSplicedAmount(
-            String(currentInputExtras.amountFormatted), amountCaretPosition
-          )
-          currentRecipient.amount = convertToBCH(
-            currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
-          )
-          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount)
-        }
-      } else if (action === 'delete') {
-        // Delete
-        // if (this.setAmountInFiat) {
-        currentInputExtras.sendAmountInFiat = ''
-        // }
-        currentRecipient.amount = ''
-        currentInputExtras.amountFormatted = ''
-      } else {
-        // Enabled submit slider
-        this.sliderStatus = !currentInputExtras.balanceExceeded
-        this.customKeyboardState = 'dismiss'
-      }
-
-      this.adjustWalletBalance()
-    },
-    recomputeAmount (currentRecipient, currentInputExtras, amount) {
-      const converted = this.convertFiatToSelectedAsset(amount)
-      currentRecipient.amount = converted
-      currentInputExtras.amountFormatted = this.customNumberFormatting(
-        getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
-      )
-    },
-    adjustSplicedAmount (amountString, caretPosition, addedItem = null) {
-      if (addedItem) {
-        return amountString.split('').toSpliced(caretPosition, 0, addedItem).join('')
-      }
-      return amountString.split('').toSpliced(caretPosition, 1).join('')
-    },
-    async slideToSubmit (reset = () => {}) {
-      if (this.bip21Expires) {
-        const expires = parseInt(this.bip21Expires)
-        const now = Math.floor(Date.now() / 1000)
-        if (now >= expires) {
-          this.disableSending = true
-          this.$q.notify({
-            type: 'negative',
-            color: 'red-4',
-            timeout: 3000,
-            message: this.$t('PaymentRequestIsExpired')
-          })
-          return
-        }
-      }
-
-      this.$q.dialog({
-        component: SecurityCheckDialog
-      })
-        .onOk(() => this.sendTransaction())
-        .onDismiss(() => reset?.())
-    },
-    sendTransaction () {
-      this.customKeyboardState = 'dismiss'
-      this.handleSubmit()
-    },
-    getAsset (id) {
-      let getter = 'assets/getAsset'
-      if (this.isSmartBch) {
-        getter = 'sep20/getAsset'
-      }
-      const assets = this.$store.getters[getter](id)
-
-      let asset
-      if (assets.length > 0) {
-        asset = assets[0]
-      } else {
-        asset = {
-          id: this.assetId,
-          symbol: this.symbol
-        }
-      }
-
-      if (id?.startsWith?.('ct/') && asset) {
-        asset.decimals = parseInt(asset.decimals) || 0
-      }
-      return asset
-    },
-    async setMaximumSendAmount () {
-      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
-      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
-      currentInputExtras.setMax = true
-      let spendableAsset = 0
-
-      if (this.asset.id === 'bch') {
-        if (this.isSmartBch) {
-          this.computingMax = true
-          spendableAsset = await this.wallet.sBCH.getMaxSpendableBch(
-            String(this.asset.balance),
-            this.sendDataMultiple[0].recipient
-          )
-          currentRecipient.amount = parseFloat(spendableAsset)
-          this.computingMax = false
-          if (spendableAsset < 0) {
-            this.$q.notify({
-              type: 'negative',
-              color: 'red-4',
-              timeout: 3000,
-              message: this.$t('NotEnoughForGasFee')
-            })
-          }
-        } else {
-          spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
-          currentRecipient.amount = this.asset.spendable
-        }
-        currentInputExtras.amountFormatted = spendableAsset
-        // if (this.setAmountInFiat) {
-          const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
-          currentInputExtras.sendAmountInFiat = convertedFiat
-        // }
-      } else {
-        if (this.asset.id.startsWith('ct/')) {
-          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
-        } else {
-          currentRecipient.amount = this.asset.balance
-        }
-        currentInputExtras.amountFormatted = currentRecipient.amount
-      }
-
-      // remove recipients except for the one where MAX was clicked
-      const remainingRecipient = this.sendDataMultiple.filter((_a, i) => i === this.currentActiveRecipientIndex)
-      const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentActiveRecipientIndex)
-
-      this.sendDataMultiple = remainingRecipient
-      this.inputExtras = remainingInputExtras
-      this.currentActiveRecipientIndex = 0
-      this.expandedItems = { R1: true }
-      this.adjustWalletBalance()
-      this.sliderStatus = true
-    },
-    getBIP21Amount (bip21Uri) {
-      const addressParse = new URLSearchParams(bip21Uri.split('?')[1])
-      if (addressParse.has('amount')) {
-        const amount = parseFloat(addressParse.get('amount'))
-        return amount
-      }
-      return NaN
-    },
-    checkAddress (address) {
-      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
-
-      if (address.indexOf('?') > -1) {
-        const amount = this.getBIP21Amount(address)
-        address = address.split('?')[0]
-
-        if (!Number.isNaN(amount)) currentRecipient.amount = amount
-
-        if (amount > 0) this.sliderStatus = true
-      }
-      const addressValidation = this.validateAddress(address)
-      if (addressValidation.valid) {
-        currentRecipient.recipientAddress = addressValidation.address
-        return true
-      } else {
-        this.$q.notify({
-          type: 'negative',
-          color: 'red-4',
-          timeout: 3000,
-          message: this.$t('InvalidAddress')
-        })
-        this.sliderStatus = false
-        return false
-      }
-    },
-
-    getWallet (type) {
-      return this.$store.getters['global/getWallet'](type)
-    },
-
     validateAddress (address) {
       const vm = this
       const addressObj = new Address(address)
@@ -1303,27 +928,26 @@ export default {
       }
     },
 
-    validateAmount (amount) {
-      let valid = false
-      if (amount > 0) {
-        valid = true
+    // sending
+    async slideToSubmit (reset = () => {}) {
+      if (this.bip21Expires) {
+        const expires = parseInt(this.bip21Expires)
+        const now = Math.floor(Date.now() / 1000)
+        if (now >= expires) {
+          this.disableSending = true
+          this.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
+          return
+        }
       }
-      return valid
-    },
 
-    playSound (success) {
-      if (success) {
-        NativeAudio.play({
-          assetId: 'send-success'
+      this.$q.dialog({
+        component: SecurityCheckDialog
+      })
+        .onOk(() => {
+          this.customKeyboardState = 'dismiss'
+          this.handleSubmit()
         })
-      }
-    },
-
-    getChangeAddress (walletType) {
-      return this.$store.getters['global/getChangeAddress'](walletType)
-    },
-    getAddressFromThisWallet () {
-      return this.wallet.lastAddress
+        .onDismiss(() => reset?.())
     },
     async handleSubmit () {
       const vm = this
@@ -1468,6 +1092,8 @@ export default {
         if (token?.tokenId && this.userSelectedChangeAddress) {
           changeAddress = this.userSelectedChangeAddress
         }
+        console.log('entered hereee')
+        console.log(toSendBCHRecipients)
         getWalletByNetwork(vm.wallet, 'bch')
           .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
@@ -1487,6 +1113,516 @@ export default {
         getWalletByNetwork(vm.wallet, 'slp')
           .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
           .then(result => vm.promiseResponseHandler(result, vm.walletType))
+      }
+    },
+
+    // jpp
+    handleJPP (paymentUri) {
+      const dialog = this.$q.dialog({
+        title: 'Invoice',
+        message: 'Fetching invoice data',
+        progress: true,
+        persistent: true,
+        seamless: true,
+        ok: false,
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      })
+
+      JSONPaymentProtocol.fetch(paymentUri)
+        .then(jpp => {
+          this.jpp = markRaw(jpp)
+          dialog.hide()
+        })
+        .catch(error => {
+          let message = 'Failed to fetch invoice data'
+          if (typeof error?.response?.data === 'string') {
+            if (error?.response?.data?.indexOf('expired') >= 0) message = 'Invoice is expired'
+            else if (error?.response?.data?.length <= 1000) message = error?.response?.data
+          }
+          if (error?.name === 'JsonPaymentProtocolError' && error?.message) {
+            message = error?.message
+          }
+          dialog.update({ message: message })
+          console.error(error)
+        })
+        .finally(() => {
+          dialog.update({ persistent: false, progress: false, ok: true })
+        })
+    },
+    onJppPaymentSucess () {
+      this.$forceUpdate()
+      this.txid = this.jpp?.txids?.[0]
+      const jppAmount = this.jpp.total / 10 ** 8
+      this.totalAmountSent = jppAmount
+      this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
+      this.sendDataMultiple[0].amount = jppAmount
+      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs.slice(0, 10).map(output => output.address).join(', ')
+      this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
+      this.playSound(true)
+      this.txTimestamp = Date.now()
+      this.sending = false
+      this.sent = true
+    },
+
+    // bip21
+    onBIP21Amount (value) {
+      const amount = this.getBIP21Amount(value)
+      if (!Number.isNaN(amount)) {
+        const currentSendData = this.sendDataMultiple[this.currentActiveRecipientIndex]
+        const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+
+        currentSendData.amount = amount
+        currentSendData.fixedAmount = true
+        currentSendData.recipientAddress = value.split('?')[0]
+        currentSendData.fixedRecipientAddress = true
+
+        currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
+          this.denomination, amount
+        ))
+        currentInputExtras.isBip21 = true
+        currentInputExtras.emptyRecipient = false
+        this.sliderStatus = true
+
+        // if (this.setAmountInFiat) {
+        // }
+        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
+
+        const addressParse = new URLSearchParams(value.split('?')[1])
+        if (addressParse.has('expires')) {
+          const expires = parseInt(addressParse.get('expires'))
+          this.bip21Expires = expires
+          const now = Math.floor(Date.now() / 1000)
+          if (now >= expires) {
+            this.disableSending = true
+            this.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
+          }
+          return false
+        }
+
+        this.disableSending = false
+        return true
+      } else if (!this.isNFT) {
+        const vm = this
+        const recipientAddress = value.split('?')[0]
+        if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
+          setTimeout(function () {
+            // vm.setAmountInFiat = true
+            vm.customKeyboardState = 'show'
+          })
+        } else {
+          vm.customKeyboardState = 'show'
+        }
+      }
+
+      if (value && this.isNFT) {
+        this.sliderStatus = true
+      }
+
+      return false
+    },
+
+    // max button
+    async setMaximumSendAmount () {
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      currentInputExtras.setMax = true
+      let spendableAsset = 0
+
+      if (this.asset.id === 'bch') {
+        if (this.isSmartBch) {
+          this.computingMax = true
+          spendableAsset = await this.wallet.sBCH.getMaxSpendableBch(
+            String(this.asset.balance),
+            this.sendDataMultiple[0].recipient
+          )
+          currentRecipient.amount = parseFloat(spendableAsset)
+          this.computingMax = false
+          if (spendableAsset < 0) this.raiseNotifyError(this.$t('NotEnoughForGasFee'))
+        } else {
+          spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+          currentRecipient.amount = this.asset.spendable
+        }
+        currentInputExtras.amountFormatted = spendableAsset
+        // if (this.setAmountInFiat) {
+        // }
+        const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
+        currentInputExtras.sendAmountInFiat = convertedFiat
+      } else {
+        if (this.asset.id.startsWith('ct/')) {
+          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
+        } else {
+          currentRecipient.amount = this.asset.balance
+        }
+        currentInputExtras.amountFormatted = currentRecipient.amount
+      }
+
+      // remove recipients except for the one where MAX was clicked
+      const remainingRecipient = this.sendDataMultiple.filter((_a, i) => i === this.currentActiveRecipientIndex)
+      const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentActiveRecipientIndex)
+
+      this.sendDataMultiple = remainingRecipient
+      this.inputExtras = remainingInputExtras
+      this.currentActiveRecipientIndex = 0
+      this.expandedItems = { R1: true }
+      this.adjustWalletBalance()
+      this.sliderStatus = true
+    },
+
+    // keyboard
+    setAmount (key) {
+      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
+        this.customKeyboardState = 'dismiss'
+        return console.warn('Custom keyboard input without target field, hiding keyboard', { key })
+      }
+
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.amountInput.nativeEl.selectionStart
+      const fiatCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.fiatInput?.nativeEl.selectionStart
+
+      let currentSendAmount, currentAmount
+      let caret = null
+      if (this.focusedInputField === 'fiat') caret = fiatCaretPosition
+      else if (this.focusedInputField === 'bch') caret = amountCaretPosition
+
+      // if (this.setAmountInFiat) {
+      if (this.focusedInputField === 'fiat') {
+        currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
+      } else if (this.focusedInputField === 'bch') {
+        currentSendAmount = currentInputExtras.amountFormatted ?? ''
+      } else currentSendAmount = 0
+
+      if (key === '.' && currentSendAmount === '') {
+        currentAmount = '0.'
+      } else {
+        currentAmount = currentSendAmount.toString()
+        const hasPeriod = currentAmount.indexOf('.')
+        if (hasPeriod < 1) {
+          if (Number(currentAmount) === 0) {
+            if (Number(key) > 0) {
+              currentAmount = key
+            } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
+              currentAmount = 0
+            } else {
+              currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
+            }
+          } else {
+            currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
+          }
+        } else {
+          const tbaKey = key !== '.' ? key.toString() : ''
+          currentAmount = this.adjustSplicedAmount(currentAmount, caret, tbaKey)
+        }
+      }
+
+      if (this.asset.id.startsWith('ct/')) {
+        if (this.asset.decimals === 0) {
+          currentAmount = currentAmount.toString().replace('.', '')
+        } else {
+          const parts = currentAmount.toString().split('.')
+
+          if (parts.length > 1) { // Ensure there's a decimal part
+            // Truncate the decimal part to the desired length
+            parts[1] = parts[1].slice(0, this.asset.decimals)
+            currentAmount = parts.join('.') // Recombine the integer and decimal parts
+          }
+        }
+      }
+
+      // Set the new amount
+      // if (this.setAmountInFiat) {
+      if (this.focusedInputField === 'fiat') {
+        currentInputExtras.sendAmountInFiat = currentAmount
+        this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
+      } else if (this.focusedInputField === 'bch') {
+        currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
+        currentInputExtras.amountFormatted = currentAmount
+        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount) || 0
+      }
+
+      this.adjustWalletBalance()
+    },
+    makeKeyAction (action) {
+      if (!this.$refs.sendPageRef[this.currentActiveRecipientIndex].$refs.amountInput) {
+        this.customKeyboardState = 'dismiss'
+        return console.warn('Custom keyboard input without target field, hiding keyboard', { action })
+      }
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex] ?? ''
+      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex] ?? ''
+      const amountCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.amountInput.nativeEl.selectionStart - 1
+      const fiatCaretPosition = this.$refs.sendPageRef[this.currentActiveRecipientIndex]
+        .$refs.fiatInput?.nativeEl.selectionStart - 1
+
+      if (action === 'backspace') {
+        // Backspace
+        if (/*this.setAmountInFiat && */this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
+          const currentAmount = this.adjustSplicedAmount(
+            String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
+          )
+          currentInputExtras.sendAmountInFiat = currentAmount
+          this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
+        } else if (/*!this.setAmountInFiat && */this.focusedInputField === 'bch' && amountCaretPosition > -1) {
+          currentInputExtras.amountFormatted = this.adjustSplicedAmount(
+            String(currentInputExtras.amountFormatted), amountCaretPosition
+          )
+          currentRecipient.amount = convertToBCH(
+            currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
+          )
+          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount)
+        }
+      } else if (action === 'delete') {
+        // Delete
+        // if (this.setAmountInFiat) {
+        currentInputExtras.sendAmountInFiat = ''
+        // }
+        currentRecipient.amount = ''
+        currentInputExtras.amountFormatted = ''
+      } else {
+        // Enabled submit slider
+        this.sliderStatus = !currentInputExtras.balanceExceeded
+        this.customKeyboardState = 'dismiss'
+      }
+
+      this.adjustWalletBalance()
+    },
+
+    // add/remove recipient
+    addAnotherRecipient () {
+      const recipientsLength = this.sendDataMultiple.length
+
+      if (recipientsLength < 5) {
+        this.sendDataMultiple.push({
+          amount: 0,
+          fixedAmount: false,
+          recipientAddress: '',
+          rawPaymentUri: '', // for scanning qr data
+          responseOTP: '',
+          paymentAckMemo: '',
+          fixedRecipientAddress: false
+        })
+        this.inputExtras.push({
+          amountFormatted: 0,
+          sendAmountInFiat: 0,
+          balanceExceeded: false,
+          scannedRecipientAddress: false,
+          setMax: false,
+          emptyRecipient: true,
+          selectedDenomination: this.denomination,
+          isBip21: false,
+          isLegacyAddress: false,
+          cashbackData: null
+        })
+        for (let i = 1; i <= recipientsLength; i++) {
+          this.expandedItems[`R${i}`] = false
+        }
+        this.sliderStatus = false
+      } else this.raiseNotifyError(this.$t('CannotAddRecipient'))
+    },
+    removeLastRecipient () {
+      this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
+      delete this.expandedItems[`R${this.sendDataMultiple.length}`]
+      this.sendDataMultiple.pop()
+      this.inputExtras.pop()
+      this.sliderStatus = true
+    },
+
+    // emitted methods
+    onInputFocus (value) {
+      this.currentActiveRecipientIndex = value.index
+      this.focusedInputField = value.field
+    },
+    onQRScannerClick (value) {
+      this.showQrScanner = value
+    },
+    onBalanceExceeded (value) {
+      try {
+        this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
+      } catch {}
+    },
+    onRecipientInput (value) {
+      this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value === ''
+      this.inputExtras[this.currentActiveRecipientIndex].isLegacyAddress = new Address(value).isLegacyAddress()
+    },
+    onEmptyRecipient (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
+    },
+    onSelectedDenomination (value) {
+      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value.denomination
+      this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = value.amountFormatted
+    },
+    onQRUploaderClick () {
+      this.$refs['qr-upload'].$refs['q-file'].pickFiles()
+    },
+    onUserSelectedChangeAddress (changeAddress) {
+      console.log('USER SELECTED CHANGE ADDRESS', changeAddress)
+      this.userSelectedChangeAddress = changeAddress
+    },
+
+    // ========== util methods ==========
+    // getters
+    getAsset (id) {
+      let getter = 'assets/getAsset'
+      if (this.isSmartBch) getter = 'sep20/getAsset'
+      const assets = this.$store.getters[getter](id)
+
+      let asset
+      if (assets.length > 0) asset = assets[0]
+      else asset = { id: this.assetId,symbol: this.symbol }
+
+      if (id?.startsWith?.('ct/') && asset) {
+        asset.decimals = parseInt(asset.decimals) || 0
+      }
+      return asset
+    },
+    getBIP21Amount (bip21Uri) {
+      const addressParse = new URLSearchParams(bip21Uri.split('?')[1])
+      if (addressParse.has('amount')) {
+        const amount = parseFloat(addressParse.get('amount'))
+        return amount
+      }
+      return NaN
+    },
+    getWallet (type) {
+      return this.$store.getters['global/getWallet'](type)
+    },
+    getChangeAddress (walletType) {
+      return this.$store.getters['global/getChangeAddress'](walletType)
+    },
+    getAddressFromThisWallet () {
+      return this.wallet.lastAddress
+    },
+    getExplorerLink (txid) {
+      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+      if (this.isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
+      if (this.isChipnet) url = 'https://chipnet.imaginary.cash/tx/'
+      return `${url}${txid}`
+    },
+    currentSendPageCurrency () {
+      return this.paymentCurrency ?? this.selectedMarketCurrency
+    },
+    generateKeys (index) {
+      const keys = []
+      keys.push(...Object.entries(this.sendDataMultiple[index]))
+      keys.push(...Object.entries(this.inputExtras[index]))
+      return keys
+    },
+
+    // setters
+    updateNetworkDiff () {
+      return getNetworkTimeDiff().then(result => {
+        if (!result?.timeDifference) return result
+        this.networkTimeDiff = result.timeDifference
+      })
+    },
+    readonlyState (state) {
+      this.amountInputState = state
+      if (this.amountInputState) {
+        if (this.$store.getters['global/getConnectivityStatus']) {
+          this.customKeyboardState = 'show'
+        }
+      } else {
+        this.adjustWalletBalance()
+      }
+    },
+    setDefaultFtChangeAddress () {
+      if (this.connectedApps?.[0]) {
+        if (!this.userSelectedChangeAddress) {
+          this.userSelectedChangeAddress = this.connectedApps[0].wallet_address
+        }
+      }
+    },
+
+    // amount and balance conversion and adjustment
+    convertToFiatAmount (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
+      if (!computedBalance) return ''
+
+      if (computedBalance > 0.01) return computedBalance.toFixed(2)
+      else return computedBalance.toFixed(4)
+    },
+    convertFiatToSelectedAsset (amount) {
+      const parsedAmount = Number(amount)
+      if (!parsedAmount) return ''
+      if (!this.selectedAssetMarketPrice) return ''
+      const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
+      return computedBalance.toFixed(8)
+    },
+    recomputeAmount (currentRecipient, currentInputExtras, amount) {
+      const converted = this.convertFiatToSelectedAsset(amount)
+      currentRecipient.amount = converted
+      currentInputExtras.amountFormatted = this.customNumberFormatting(
+        getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
+      )
+    },
+    adjustSplicedAmount (amountString, caretPosition, addedItem = null) {
+      if (addedItem) {
+        return amountString.split('').toSpliced(caretPosition, 0, addedItem).join('')
+      }
+      return amountString.split('').toSpliced(caretPosition, 1).join('')
+    },
+    adjustWalletBalance () {
+      const isToken = this.asset.id.startsWith('ct/')
+      const tokenDenominator = 10 ** this.asset.decimals
+
+      const totalAmount = this.sendDataMultiple
+        .map(a => Number(a.amount))
+        .reduce((acc, curr) => acc + curr, 0)
+        .toFixed(8)
+      const walletBalance = this.asset.balance
+      this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
+      // for tokens ('ct/'), convert back to original decimals
+      if (isToken) this.currentWalletBalance *= tokenDenominator
+    },
+
+    // uncategorized
+    formatTimestampToText (timestamp) {
+      if (!Number.isSafeInteger(timestamp)) return ''
+
+      const dateObj = new Date(timestamp)
+      return new Intl.DateTimeFormat(
+        'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
+      ).format(dateObj)
+    },
+    checkAddress (address) {
+      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
+
+      if (address.indexOf('?') > -1) {
+        const amount = this.getBIP21Amount(address)
+        address = address.split('?')[0]
+
+        if (!Number.isNaN(amount)) currentRecipient.amount = amount
+        if (amount > 0) this.sliderStatus = true
+      }
+
+      const addressValidation = this.validateAddress(address)
+      if (addressValidation.valid) {
+        currentRecipient.recipientAddress = addressValidation.address
+        return true
+      } else {
+        this.raiseNotifyError(this.$t('InvalidAddress'))
+        this.sliderStatus = false
+        return false
+      }
+    },
+    validateAmount (amount) {
+      let valid = false
+      if (amount > 0) {
+        valid = true
+      }
+      return amount > 0
+    },
+    playSound (success) {
+      if (success) {
+        NativeAudio.play({
+          assetId: 'send-success'
+        })
       }
     },
     promiseResponseHandler (result, walletType) {
@@ -1536,61 +1672,7 @@ export default {
         offlineNotif()
       }
     },
-    currentSendPageCurrency () {
-      return this.paymentCurrency ?? this.selectedMarketCurrency
-    },
-    addAnotherRecipient () {
-      const recipientsLength = this.sendDataMultiple.length
 
-      if (recipientsLength < 5) {
-        this.sendDataMultiple.push({
-          amount: 0,
-          fixedAmount: false,
-          recipientAddress: '',
-          rawPaymentUri: '', // for scanning qr data
-          responseOTP: '',
-          paymentAckMemo: '',
-          fixedRecipientAddress: false
-        })
-        this.inputExtras.push({
-          amountFormatted: 0,
-          sendAmountInFiat: 0,
-          balanceExceeded: false,
-          scannedRecipientAddress: false,
-          setMax: false,
-          emptyRecipient: true,
-          selectedDenomination: this.denomination,
-          isBip21: false,
-          isLegacyAddress: false,
-          cashbackData: null
-        })
-        for (let i = 1; i <= recipientsLength; i++) {
-          this.expandedItems[`R${i}`] = false
-        }
-        this.sliderStatus = false
-      } else {
-        this.$q.notify({
-          type: 'negative',
-          color: 'red-4',
-          timeout: 3000,
-          message: this.$t('CannotAddRecipient')
-        })
-      }
-    },
-    removeLastRecipient () {
-      this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
-      delete this.expandedItems[`R${this.sendDataMultiple.length}`]
-      this.sendDataMultiple.pop()
-      this.inputExtras.pop()
-      this.sliderStatus = true
-    },
-    onInputFocus (value) {
-      this.currentActiveRecipientIndex = value.index
-      this.focusedInputField = value.field
-    },
-    onQRScannerClick (value) {
-      this.showQrScanner = value
-    },
     // onSetAmountToFiatClick () {
     //   this.setAmountInFiat = !this.setAmountInFiat
     //   this.sliderStatus = false
@@ -1602,124 +1684,6 @@ export default {
     //   })
     //   this.currentWalletBalance = this.asset.balance
     // },
-    onBIP21Amount (value) {
-      const amount = this.getBIP21Amount(value)
-      if (!Number.isNaN(amount)) {
-        const currentSendData = this.sendDataMultiple[this.currentActiveRecipientIndex]
-        const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
-
-        currentSendData.amount = amount
-        currentSendData.fixedAmount = true
-        currentSendData.recipientAddress = value.split('?')[0]
-        currentSendData.fixedRecipientAddress = true
-
-        currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
-          this.denomination, amount
-        ))
-        currentInputExtras.isBip21 = true
-        currentInputExtras.emptyRecipient = false
-        this.sliderStatus = true
-
-        // if (this.setAmountInFiat) {
-          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
-        // }
-
-        const addressParse = new URLSearchParams(value.split('?')[1])
-        if (addressParse.has('expires')) {
-          const expires = parseInt(addressParse.get('expires'))
-          this.bip21Expires = expires
-          const now = Math.floor(Date.now() / 1000)
-          if (now >= expires) {
-            this.disableSending = true
-            this.$q.notify({
-              type: 'negative',
-              color: 'red-4',
-              timeout: 3000,
-              message: this.$t('PaymentRequestIsExpired')
-            })
-          }
-          return false
-        }
-
-        this.disableSending = false
-        return true
-      } else if (!this.isNFT) {
-        const vm = this
-        const recipientAddress = value.split('?')[0]
-        if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
-          setTimeout(function () {
-            // vm.setAmountInFiat = true
-            vm.customKeyboardState = 'show'
-          })
-        } else {
-          vm.customKeyboardState = 'show'
-        }
-      }
-
-      if (value && this.isNFT) {
-        this.sliderStatus = true
-      }
-
-      return false
-    },
-    generateKeys (index) {
-      const keys = []
-      keys.push(...Object.entries(this.sendDataMultiple[index]))
-      keys.push(...Object.entries(this.inputExtras[index]))
-      return keys
-    },
-    adjustWalletBalance () {
-      const isToken = this.asset.id.startsWith('ct/')
-      const tokenDenominator = 10 ** this.asset.decimals
-
-      const totalAmount = this.sendDataMultiple
-        .map(a => Number(a.amount))
-        .reduce((acc, curr) => acc + curr, 0)
-        .toFixed(8)
-      const walletBalance = this.asset.balance
-      this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
-      // for tokens ('ct/'), convert back to original decimals
-      if (isToken) this.currentWalletBalance *= tokenDenominator
-    },
-    onBalanceExceeded (value) {
-      try {
-        this.inputExtras[this.currentActiveRecipientIndex].balanceExceeded = value
-      } catch {}
-    },
-    onRecipientInput (value) {
-      this.sendDataMultiple[this.currentActiveRecipientIndex].recipientAddress = value
-      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value === ''
-      this.inputExtras[this.currentActiveRecipientIndex].isLegacyAddress = new Address(value).isLegacyAddress()
-    },
-    onEmptyRecipient (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].emptyRecipient = value
-    },
-    onSelectedDenomination (value) {
-      this.inputExtras[this.currentActiveRecipientIndex].selectedDenomination = value.denomination
-      this.inputExtras[this.currentActiveRecipientIndex].amountFormatted = value.amountFormatted
-    },
-    async initWallet () {
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
-      const wallet = new Wallet(mnemonic, this.network)
-      this.wallet = markRaw(wallet)
-      if (this.isSmartBch) this.wallet.sBCH.getOrInitWallet()
-      return { wallet }
-    },
-    onQRUploaderClick () {
-      this.$refs['qr-upload'].$refs['q-file'].pickFiles()
-    },
-    onUserSelectedChangeAddress (changeAddress) {
-      console.log('USER SELECTED CHANGE ADDRESS', changeAddress)
-      this.userSelectedChangeAddress = changeAddress
-    },
-    setDefaultFtChangeAddress () {
-      if (this.connectedApps?.[0]) {
-        if (!this.userSelectedChangeAddress) {
-          this.userSelectedChangeAddress = this.connectedApps[0].wallet_address
-        }
-      }
-    }
   },
 
   async beforeMount () {
