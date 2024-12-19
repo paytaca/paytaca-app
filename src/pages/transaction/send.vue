@@ -733,45 +733,131 @@ export default {
 
     // handling recipient address input
     async onScannerDecode (content) {
-      this.disableSending = false
-      this.bip21Expires = null
-      this.showQrScanner = false
-      this.sliderStatus = false
+      const vm = this
+
+      vm.disableSending = false
+      vm.bip21Expires = null
+      vm.showQrScanner = false
+      vm.sliderStatus = false
 
       content = Array.isArray(content) ? content[0].rawValue : content
-      let address = content
       let amount = null
+      let address = null
       let amountValue = null
       let currency = null
       let fungibleTokenAmount = null
       const rawPaymentUri = ''
-      const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
-      const currentInputExtras = this.inputExtras[this.currentActiveRecipientIndex]
+      const currentRecipient = vm.sendDataMultiple[vm.currentActiveRecipientIndex]
+      const currentInputExtras = vm.inputExtras[vm.currentActiveRecipientIndex]
 
-      let paymentUriData
+      const paymentUriData = vm.handlePaymentUri(content, currentRecipient)
+      if (paymentUriData) {
+        [address, amountValue, currency, fungibleTokenAmount] = paymentUriData
+      } else return
+
+      const valid = vm.checkAddress(address)
+      if (valid) {
+        vm.setDefaultFtChangeAddress()
+
+        // check for BIP21
+        vm.onBIP21Amount(content)
+
+        currentRecipient.recipientAddress = address
+        currentRecipient.rawPaymentUri = rawPaymentUri
+        currentInputExtras.scannedRecipientAddress = true
+        currentInputExtras.emptyRecipient = false
+
+        if (typeof currency === 'string') {
+          const newSelectedCurrency = vm.currencyOptions.find(_currency => _currency?.symbol === currency)
+          if (newSelectedCurrency?.symbol) {
+            amount = (amountValue / vm.selectedAssetMarketPrice).toFixed(8)
+
+            currentInputExtras.amountFormatted = vm.customNumberFormatting(amount)
+            currentInputExtras.sendAmountInFiat = vm.convertToFiatAmount(amount)
+            currentRecipient.amount = vm.customNumberFormatting(amount)
+            currentRecipient.fixedAmount = true
+          } else if (!newSelectedCurrency?.symbol && amount) {
+            vm.raiseNotifyError(
+              vm.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
+            )
+            currentRecipient.recipientAddress = ''
+            currentRecipient.rawPaymentUri = ''
+
+            return
+          }
+        }
+
+        // if (content.includes('?amount')) {
+        //   console.log(vm.getBIP21Amount(content))
+        //   amountValue = content.split('?amount=')[1]
+        //   amount = amountValue
+        // }
+        // console.log('amountValue', amountValue)
+
+        // if (!isBip && amountValue !== null) {
+        //   vm.sliderStatus = true
+        //   // if (vm.setAmountInFiat) {
+        //     // } else {
+        //       // }
+        //   currentInputExtras.amountFormatted = vm.customNumberFormatting(amount)
+        //   currentInputExtras.sendAmountInFiat = vm.convertToFiatAmount(amount)
+        //   currentRecipient.amount = vm.customNumberFormatting(amount)
+        //   currentRecipient.fixedAmount = true
+        // }
+
+        if (vm.fungible || fungibleTokenAmount) {
+          const tokenAmount = parseInt(vm.fungible || fungibleTokenAmount) / (10 ** vm.asset.decimals) || 0
+          currentRecipient.amount = tokenAmount
+          currentInputExtras.amountFormatted = tokenAmount.toLocaleString(
+            'en-us', { maximumFractionDigits: vm.asset.decimals }
+          )
+          currentRecipient.fixedAmount = true
+
+          vm.customKeyboardState = 'dismiss'
+          vm.sliderStatus = true
+        }
+
+        // call cashback API to check if merchant is part of campaign
+        // and check and compute if customer is eligible for cashback
+        const payloadAmount = parseFloat(parseFloat(`${currentRecipient.amount}`) * (10 ** 8)).toFixed(2)
+        const payload = {
+          token: 'bch',
+          txid: '-',
+          recipient: currentRecipient.recipientAddress,
+          sender_0: vm.$store.getters['global/getWallet']('bch')?.lastAddress,
+          decimals: 8,
+          value: payloadAmount,
+          device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
+        }
+        const response = await getCashbackAmount(payload)
+        currentInputExtras.cashbackData = response
+      }
+    },
+
+    // payment uri
+    handlePaymentUri (content, currentRecipient) {
+      const vm = this
+
+      let address = content
+      let amountValue = null
+      let currency = null
+      let fungibleTokenAmount = null
+      let paymentUriData = null
+
       try {
-        paymentUriData = parsePaymentUri(content, { chain: this.isSmartBch ? 'smart' : 'main', networkTimeDiff: this.networkTimeDiff })
+        paymentUriData = parsePaymentUri(
+          content,
+          { chain: vm.isSmartBch ? 'smart' : 'main', networkTimeDiff: vm.networkTimeDiff }
+        )
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        if (error?.message === 'PaymentRequestIsExpired') {
-          this.raiseNotifyError(this.$t(error.message))
-          return
-        }
-        if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
-          this.raiseNotifyError(this.$t('InvalidAddressFormat'))
-          return
-        }
-        if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
-          this.raiseNotifyError(this.$t('MultipleRecipientsUnsupported'))
-          return
-        }
+        vm.paymentUriPromiseResponseHandler(error)
+        return
       }
 
       if (paymentUriData?.outputs?.[0]) {
-        const vm = this
-
         if (vm.asset.symbol === undefined) {
           vm.$router.push({
             name: 'transaction-send-select-asset',
@@ -788,332 +874,25 @@ export default {
           }
         }
 
-        if (paymentUriData?.otherParams?.f) {
-          fungibleTokenAmount = paymentUriData?.otherParams?.f
-        }
+        if (paymentUriData?.otherParams?.f) fungibleTokenAmount = paymentUriData?.otherParams?.f
 
         currency = paymentUriData.outputs[0].amount?.currency
-        this.paymentCurrency = currency
-        this.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
+        vm.paymentCurrency = currency
+        vm.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
 
         amountValue = paymentUriData.outputs[0].amount?.value
-        this.payloadAmount = paymentUriData.outputs[0].amount?.value
+        vm.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
         currentRecipient.fixedRecipientAddress = true
       }
 
       // skip the usual route when found a valid JSON payment protocol url
-      if (paymentUriData?.jpp?.valid) return this.handleJPP(paymentUriData.jpp.paymentUri)
-
-      const valid = this.checkAddress(address)
-      if (valid) {
-        this.setDefaultFtChangeAddress()
-
-        // check for BIP21
-        this.onBIP21Amount(content)
-
-        currentRecipient.recipientAddress = address
-        currentRecipient.rawPaymentUri = rawPaymentUri
-        currentInputExtras.scannedRecipientAddress = true
-        currentInputExtras.emptyRecipient = false
-
-        if (typeof currency === 'string') {
-          const newSelectedCurrency = this.currencyOptions
-            .find(_currency => _currency?.symbol === currency)
-          if (newSelectedCurrency?.symbol) {
-            amount = (amountValue / this.selectedAssetMarketPrice).toFixed(8)
-          } else if (!newSelectedCurrency?.symbol && amount) {
-            this.$q.notify({
-              type: 'negative',
-              color: 'red-4',
-              timeout: 3000,
-              message: this.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
-            })
-
-            currentRecipient.recipientAddress = ''
-            currentRecipient.rawPaymentUri = ''
-
-            return
-          }
-        } else {
-          amount = this.customNumberFormatting(amountValue)
-        }
-
-        if (content.includes('?amount')) {
-          amountValue = content.split('?amount=')[1]
-          amount = amountValue
-        }
-        if (amountValue !== null) {
-          this.sliderStatus = true
-          currentInputExtras.amountFormatted = this.customNumberFormatting(amount)
-          // if (this.setAmountInFiat) {
-            currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
-          // } else {
-            currentRecipient.amount = this.customNumberFormatting(amount)
-          // }
-          currentRecipient.fixedAmount = true
-        }
-
-        if (this.fungible || fungibleTokenAmount) {
-          const tokenAmount = parseInt(this.fungible || fungibleTokenAmount) / (10 ** this.asset.decimals) || 0
-          currentRecipient.amount = tokenAmount
-          currentInputExtras.amountFormatted = tokenAmount.toLocaleString('en-us', { maximumFractionDigits: this.asset.decimals })
-          currentRecipient.fixedAmount = true
-
-          this.customKeyboardState = 'dismiss'
-          this.sliderStatus = true
-        }
-
-        // call cashback API to check if merchant is part of campaign
-        // and check and compute if customer is eligible for cashback
-        const payloadAmount = parseFloat(parseFloat(`${currentRecipient.amount}`) * (10 ** 8)).toFixed(2)
-        const payload = {
-          token: 'bch',
-          txid: '-',
-          recipient: currentRecipient.recipientAddress,
-          sender_0: this.$store.getters['global/getWallet']('bch')?.lastAddress,
-          decimals: 8,
-          value: payloadAmount,
-          device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
-        }
-        const response = await getCashbackAmount(payload)
-        currentInputExtras.cashbackData = response
-      }
-    },
-    validateAddress (address) {
-      const vm = this
-      const addressObj = new Address(address)
-      let addressIsValid = false
-      let formattedAddress
-      try {
-        if (vm.walletType === sBCHWalletType) {
-          if (addressObj.isSep20Address()) {
-            addressIsValid = true
-          }
-          if (addressIsValid) {
-            formattedAddress = addressObj.address
-          }
-        }
-        if (vm.walletType === 'bch') {
-          if (vm.isCashToken) {
-            // addressIsValid = isValidTokenAddress(address)
-            addressIsValid = isTokenAddress(address)
-            formattedAddress = address
-          } else {
-            if (isValidTokenAddress(address)) {
-              addressIsValid = true
-              formattedAddress = address
-            } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
-              // vm.setAmountInFiat = true
-              if (addressObj.isValidBCHAddress(vm.isChipnet)) {
-                addressIsValid = true
-                formattedAddress = addressObj.toCashAddress(address)
-              }
-            }
-          }
-        }
-        if (vm.walletType === 'slp') {
-          if (addressObj.isSLPAddress() && addressObj.isMainnetSLPAddress()) {
-            addressIsValid = true
-            formattedAddress = addressObj.toSLPAddress(address)
-          }
-        }
-      } catch (err) {
-        addressIsValid = false
-        console.log(err)
-      }
-      return {
-        valid: addressIsValid,
-        address: formattedAddress
-      }
-    },
-
-    // sending
-    async slideToSubmit (reset = () => {}) {
-      if (this.bip21Expires) {
-        const expires = parseInt(this.bip21Expires)
-        const now = Math.floor(Date.now() / 1000)
-        if (now >= expires) {
-          this.disableSending = true
-          this.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
-          return
-        }
-      }
-
-      this.$q.dialog({
-        component: SecurityCheckDialog
-      })
-        .onOk(() => {
-          this.customKeyboardState = 'dismiss'
-          this.handleSubmit()
-        })
-        .onDismiss(() => reset?.())
-    },
-    async handleSubmit () {
-      const vm = this
-      const toSendData = vm.sendDataMultiple
-      const toSendBCHRecipients = []
-      const toSendSLPRecipients = []
-
-      // check if total amount being sent is greater than current wallet amount
-      const totalAmount = toSendData
-        .map(a => Number(a.amount))
-        .reduce((acc, curr) => acc + curr, 0)
-        .toFixed(8)
-
-      if (totalAmount > vm.asset.balance) {
-        vm.raiseNotifyError(vm.$t('TotalAmountError'))
+      if (paymentUriData?.jpp?.valid) {
+        vm.handleJPP(paymentUriData.jpp.paymentUri)
         return
       }
 
-      vm.totalAmountSent = parseFloat(totalAmount)
-
-      if (vm.asset.id === 'bch') {
-        vm.totalFiatAmountSent = vm.inputExtras
-          .map(a => Number(a.sendAmountInFiat))
-          .reduce((acc, curr) => acc + curr, 0)
-          .toFixed(2)
-      } else {
-        vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
-      }
-
-      let token // bch token
-      toSendData.forEach(async sendData => {
-        const address = sendData.recipientAddress
-        const addressObj = new Address(address)
-        const addressIsValid = this.validateAddress(address).valid
-        const amountIsValid = this.validateAmount(sendData.amount)
-
-        if (addressIsValid && amountIsValid) {
-          vm.sending = true
-          vm.sliderStatus = false
-
-          switch (vm.walletType) {
-            case sBCHWalletType: {
-              await vm.wallet.sBCH.getOrInitWallet()
-              let promise = null
-              if (sep20IdRegexp.test(vm.assetId)) {
-                const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
-                promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(sendData.amount), addressObj.address)
-              } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
-                const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
-                const tokenId = vm.assetId.match(erc721IdRegexp)[2]
-                promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
-              } else {
-                promise = vm.wallet.sBCH.sendBch(String(sendData.amount), addressObj.address)
-              }
-
-              if (promise) {
-                promise.then(result => vm.promiseResponseHandler(result, vm.walletType))
-              }
-
-              break
-            } case 'slp': {
-              const recipientAddress = addressObj.toSLPAddress()
-
-              toSendSLPRecipients.push({
-                address: recipientAddress,
-                amount: sendData.amount
-              })
-
-              break
-            } case 'bch': {
-              const recipientAddress = addressObj.toCashAddress()
-              const tokenId = vm.assetId.split('ct/')[1]
-
-              if (tokenId) {
-                const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
-                token = {
-                  tokenId: tokenId,
-                  commitment: vm.commitment || undefined,
-                  capability: vm.capability || undefined,
-                  txid: vm.$route.query.txid,
-                  vout: vm.$route.query.vout
-                }
-                toSendBCHRecipients.push({
-                  address: recipientAddress,
-                  amount: sendData.amount,
-                  tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
-                })
-              } else {
-                toSendBCHRecipients.push({
-                  address: recipientAddress,
-                  amount: sendData.amount,
-                  tokenAmount: undefined
-                })
-              }
-
-              break
-            } default:
-              try {
-                const w = await window.TestNetWallet.named('mywallet')
-                const { txId } = await w.send([
-                  // eslint-disable-next-line no-undef
-                  new TokenSendRequest({
-                    cashaddr: address,
-                    amount: sendData.amount,
-                    tokenId: vm.assetId.split('/')[1]
-                  })
-                ])
-                vm.txid = txId
-                vm.sent = true
-                vm.txTimestamp = Date.now()
-                vm.playSound(true)
-              } catch (e) {
-                vm.raiseNotifyError(e.message)
-              }
-              vm.sending = false
-
-              break
-          }
-        } else {
-          vm.sending = false
-          vm.sliderStatus = true
-
-          if (!addressIsValid) {
-            vm.raiseNotifyError(vm.$t(
-              'InvalidRecipient',
-              { walletType: vm.walletType.toUpperCase() },
-              `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
-            ))
-            throw new Error('Invalid recipient')
-          }
-          if (!amountIsValid) {
-            vm.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
-            throw new Error('Send amount greater than zero')
-          }
-          throw new Error('Error in sending to recipient(s)')
-        }
-      })
-
-      if (toSendBCHRecipients.length > 0) {
-        let changeAddress = this.getChangeAddress('bch')
-
-        if (token?.tokenId && this.userSelectedChangeAddress) {
-          changeAddress = this.userSelectedChangeAddress
-        }
-        console.log('entered hereee')
-        console.log(toSendBCHRecipients)
-        getWalletByNetwork(vm.wallet, 'bch')
-          .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
-          .then(result => vm.promiseResponseHandler(result, vm.walletType))
-      } else if (toSendSLPRecipients.length > 0) {
-        const tokenId = vm.assetId.split('slp/')[1]
-        const bchWallet = vm.getWallet('bch')
-        const feeFunder = {
-          walletHash: bchWallet.walletHash,
-          mnemonic: vm.wallet.mnemonic,
-          derivationPath: bchWallet.derivationPath
-        }
-        const changeAddresses = {
-          bch: vm.getChangeAddress('bch'),
-          slp: vm.getChangeAddress('slp')
-        }
-
-        getWalletByNetwork(vm.wallet, 'slp')
-          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
-          .then(result => vm.promiseResponseHandler(result, vm.walletType))
-      }
+      return [address, amountValue, currency, fungibleTokenAmount]
     },
 
     // jpp
@@ -1179,13 +958,13 @@ export default {
         currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
           this.denomination, amount
         ))
+        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
         currentInputExtras.isBip21 = true
         currentInputExtras.emptyRecipient = false
         this.sliderStatus = true
 
         // if (this.setAmountInFiat) {
         // }
-        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
 
         const addressParse = new URLSearchParams(value.split('?')[1])
         if (addressParse.has('expires')) {
@@ -1209,14 +988,10 @@ export default {
             // vm.setAmountInFiat = true
             vm.customKeyboardState = 'show'
           })
-        } else {
-          vm.customKeyboardState = 'show'
-        }
+        } else vm.customKeyboardState = 'show'
       }
 
-      if (value && this.isNFT) {
-        this.sliderStatus = true
-      }
+      if (value && this.isNFT) this.sliderStatus = true
 
       return false
     },
@@ -1429,6 +1204,194 @@ export default {
       this.sliderStatus = true
     },
 
+    // sending
+    async slideToSubmit (reset = () => {}) {
+      const vm = this
+
+      if (vm.bip21Expires) {
+        const expires = parseInt(vm.bip21Expires)
+        const now = Math.floor(Date.now() / 1000)
+        if (now >= expires) {
+          vm.disableSending = true
+          vm.raiseNotifyError(vm.$t('PaymentRequestIsExpired'))
+          return
+        }
+      }
+
+      vm.$q.dialog({
+        component: SecurityCheckDialog
+      })
+        .onOk(() => {
+          vm.customKeyboardState = 'dismiss'
+          vm.handleSubmit()
+        })
+        .onDismiss(() => reset?.())
+    },
+    async handleSubmit () {
+      const vm = this
+      const toSendData = vm.sendDataMultiple
+      const toSendBCHRecipients = []
+      const toSendSLPRecipients = []
+
+      // check if total amount being sent is greater than current wallet amount
+      const totalAmount = toSendData
+        .map(a => Number(a.amount))
+        .reduce((acc, curr) => acc + curr, 0)
+        .toFixed(8)
+
+      if (totalAmount > vm.asset.balance) {
+        vm.raiseNotifyError(vm.$t('TotalAmountError'))
+        return
+      }
+
+      vm.totalAmountSent = parseFloat(totalAmount)
+
+      if (vm.asset.id === 'bch') {
+        vm.totalFiatAmountSent = vm.inputExtras
+          .map(a => Number(a.sendAmountInFiat))
+          .reduce((acc, curr) => acc + curr, 0)
+          .toFixed(2)
+      } else {
+        vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
+      }
+
+      let token // bch token
+      toSendData.forEach(async sendData => {
+        const address = sendData.recipientAddress
+        const addressObj = new Address(address)
+        const addressIsValid = this.validateAddress(address).valid
+        const amountIsValid = sendData.amount > 0
+
+        if (addressIsValid && amountIsValid) {
+          vm.sending = true
+          vm.sliderStatus = false
+
+          switch (vm.walletType) {
+            case sBCHWalletType: {
+              await vm.wallet.sBCH.getOrInitWallet()
+              let promise = null
+              if (sep20IdRegexp.test(vm.assetId)) {
+                const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
+                promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(sendData.amount), addressObj.address)
+              } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
+                const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
+                const tokenId = vm.assetId.match(erc721IdRegexp)[2]
+                promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
+              } else {
+                promise = vm.wallet.sBCH.sendBch(String(sendData.amount), addressObj.address)
+              }
+
+              if (promise) {
+                promise.then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+              }
+
+              break
+            } case 'slp': {
+              const recipientAddress = addressObj.toSLPAddress()
+
+              toSendSLPRecipients.push({
+                address: recipientAddress,
+                amount: sendData.amount
+              })
+
+              break
+            } case 'bch': {
+              const recipientAddress = addressObj.toCashAddress()
+              const tokenId = vm.assetId.split('ct/')[1]
+
+              if (tokenId) {
+                const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
+                token = {
+                  tokenId: tokenId,
+                  commitment: vm.commitment || undefined,
+                  capability: vm.capability || undefined,
+                  txid: vm.$route.query.txid,
+                  vout: vm.$route.query.vout
+                }
+                toSendBCHRecipients.push({
+                  address: recipientAddress,
+                  amount: sendData.amount,
+                  tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
+                })
+              } else {
+                toSendBCHRecipients.push({
+                  address: recipientAddress,
+                  amount: sendData.amount,
+                  tokenAmount: undefined
+                })
+              }
+
+              break
+            } default:
+              try {
+                const w = await window.TestNetWallet.named('mywallet')
+                const { txId } = await w.send([
+                  // eslint-disable-next-line no-undef
+                  new TokenSendRequest({
+                    cashaddr: address,
+                    amount: sendData.amount,
+                    tokenId: vm.assetId.split('/')[1]
+                  })
+                ])
+                vm.txid = txId
+                vm.sent = true
+                vm.txTimestamp = Date.now()
+                vm.playSound(true)
+              } catch (e) {
+                vm.raiseNotifyError(e.message)
+              }
+              vm.sending = false
+
+              break
+          }
+        } else {
+          vm.sending = false
+          vm.sliderStatus = true
+
+          if (!addressIsValid) {
+            vm.raiseNotifyError(vm.$t(
+              'InvalidRecipient',
+              { walletType: vm.walletType.toUpperCase() },
+              `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
+            ))
+            throw new Error('Invalid recipient')
+          }
+          if (!amountIsValid) {
+            vm.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
+            throw new Error('Send amount greater than zero')
+          }
+          throw new Error('Error in sending to recipient(s)')
+        }
+      })
+
+      if (toSendBCHRecipients.length > 0) {
+        let changeAddress = this.getChangeAddress('bch')
+
+        if (token?.tokenId && this.userSelectedChangeAddress) {
+          changeAddress = this.userSelectedChangeAddress
+        }
+        getWalletByNetwork(vm.wallet, 'bch')
+          .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
+          .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+      } else if (toSendSLPRecipients.length > 0) {
+        const tokenId = vm.assetId.split('slp/')[1]
+        const bchWallet = vm.getWallet('bch')
+        const feeFunder = {
+          walletHash: bchWallet.walletHash,
+          mnemonic: vm.wallet.mnemonic,
+          derivationPath: bchWallet.derivationPath
+        }
+        const changeAddresses = {
+          bch: vm.getChangeAddress('bch'),
+          slp: vm.getChangeAddress('slp')
+        }
+
+        getWalletByNetwork(vm.wallet, 'slp')
+          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
+          .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+      }
+    },
+
     // emitted methods
     onInputFocus (value) {
       this.currentActiveRecipientIndex = value.index
@@ -1491,9 +1454,6 @@ export default {
     },
     getChangeAddress (walletType) {
       return this.$store.getters['global/getChangeAddress'](walletType)
-    },
-    getAddressFromThisWallet () {
-      return this.wallet.lastAddress
     },
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
@@ -1581,15 +1541,7 @@ export default {
       if (isToken) this.currentWalletBalance *= tokenDenominator
     },
 
-    // uncategorized
-    formatTimestampToText (timestamp) {
-      if (!Number.isSafeInteger(timestamp)) return ''
-
-      const dateObj = new Date(timestamp)
-      return new Intl.DateTimeFormat(
-        'en-US', { dateStyle: 'medium', timeStyle: 'medium' }
-      ).format(dateObj)
-    },
+    // address checking/validation
     checkAddress (address) {
       const currentRecipient = this.sendDataMultiple[this.currentActiveRecipientIndex]
 
@@ -1611,21 +1563,67 @@ export default {
         return false
       }
     },
-    validateAmount (amount) {
-      let valid = false
-      if (amount > 0) {
-        valid = true
+    validateAddress (address) {
+      const vm = this
+      const addressObj = new Address(address)
+      let addressIsValid = false
+      let formattedAddress
+      try {
+        if (vm.walletType === sBCHWalletType) {
+          if (addressObj.isSep20Address()) {
+            addressIsValid = true
+          }
+          if (addressIsValid) {
+            formattedAddress = addressObj.address
+          }
+        }
+        if (vm.walletType === 'bch') {
+          if (vm.isCashToken) {
+            // addressIsValid = isValidTokenAddress(address)
+            addressIsValid = isTokenAddress(address)
+            formattedAddress = address
+          } else {
+            if (isValidTokenAddress(address)) {
+              addressIsValid = true
+              formattedAddress = address
+            } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
+              // vm.setAmountInFiat = true
+              if (addressObj.isValidBCHAddress(vm.isChipnet)) {
+                addressIsValid = true
+                formattedAddress = addressObj.toCashAddress(address)
+              }
+            }
+          }
+        }
+        if (vm.walletType === 'slp') {
+          if (addressObj.isSLPAddress() && addressObj.isMainnetSLPAddress()) {
+            addressIsValid = true
+            formattedAddress = addressObj.toSLPAddress(address)
+          }
+        }
+      } catch (err) {
+        addressIsValid = false
+        console.log(err)
       }
-      return amount > 0
-    },
-    playSound (success) {
-      if (success) {
-        NativeAudio.play({
-          assetId: 'send-success'
-        })
+      return {
+        valid: addressIsValid,
+        address: formattedAddress
       }
     },
-    promiseResponseHandler (result, walletType) {
+
+    // error handling
+    paymentUriPromiseResponseHandler (error) {
+      const vm = this
+
+      if (error?.message === 'PaymentRequestIsExpired') {
+        vm.raiseNotifyError(vm.$t(error.message))
+      } else if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
+        vm.raiseNotifyError(vm.$t('InvalidAddressFormat'))
+      } else if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
+        vm.raiseNotifyError(vm.$t('MultipleRecipientsUnsupported'))
+      }
+    },
+    submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
       if (result.success) {
@@ -1657,6 +1655,15 @@ export default {
         message: message
       })
     },
+
+    // uncategorized
+    playSound (success) {
+      if (success) {
+        NativeAudio.play({
+          assetId: 'send-success'
+        })
+      }
+    },
     onConnectivityChange (online) {
       this.$store.dispatch('global/updateConnectivityStatus', online)
       const offlineNotif = this.$q.notify({
@@ -1668,10 +1675,8 @@ export default {
         message: this.$t('SendPageOffline')
       })
 
-      if (online) {
-        offlineNotif()
-      }
-    },
+      if (online) offlineNotif()
+    }
 
     // onSetAmountToFiatClick () {
     //   this.setAmountInFiat = !this.setAmountInFiat
