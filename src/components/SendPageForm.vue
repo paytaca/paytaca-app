@@ -101,14 +101,6 @@
             />
           </template>
         </q-input>
-        <!--
-          <div
-            v-if="sendAmountMarketValue && !setAmountInFiat"
-            class="text-body2 text-grey q-mt-sm q-px-sm"
-          >
-            {{ `~ ${parseFiatCurrency(sendAmountMarketValue, currentSendPageCurrency())}` }}
-          </div>
-        -->
       </div>
     </div>
 
