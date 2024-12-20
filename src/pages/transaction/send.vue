@@ -693,7 +693,7 @@ export default {
           const amountInFiat = parseFloat(this.inputExtras[index].sendAmountInFiat)
 
           // if set to input BCH or if fiat amount is none (happens sometimes)
-          if (/*!this.setAmountInFiat || */!amountInFiat) {
+          if (/* !this.setAmountInFiat || */!amountInFiat) {
             const amountInFiat = this.convertToFiatAmount(amount)
             this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
           }
@@ -720,7 +720,7 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
 
-    // ========== processing(?) methods ==========
+    // ========== main methods ==========
     // on component mount
     async initWallet () {
       const walletIndex = this.$store.getters['global/getWalletIndex']
@@ -1218,9 +1218,7 @@ export default {
         }
       }
 
-      vm.$q.dialog({
-        component: SecurityCheckDialog
-      })
+      vm.$q.dialog({ component: SecurityCheckDialog })
         .onOk(() => {
           vm.customKeyboardState = 'dismiss'
           vm.handleSubmit()
@@ -1230,8 +1228,6 @@ export default {
     async handleSubmit () {
       const vm = this
       const toSendData = vm.sendDataMultiple
-      const toSendBCHRecipients = []
-      const toSendSLPRecipients = []
 
       // check if total amount being sent is greater than current wallet amount
       const totalAmount = toSendData
@@ -1245,135 +1241,44 @@ export default {
       }
 
       vm.totalAmountSent = parseFloat(totalAmount)
-
       if (vm.asset.id === 'bch') {
         vm.totalFiatAmountSent = vm.inputExtras
           .map(a => Number(a.sendAmountInFiat))
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(2)
-      } else {
-        vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
+      } else vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
+
+      let token = null // bch token
+      let toSendBchRecipients = []
+      let toSendSlpRecipients = []
+      switch (vm.walletType) {
+        case sBCHWalletType:
+          await vm.processSbchData(toSendData)
+          break
+        case 'slp': {
+          const slpData = vm.processSlpData(toSendData)
+          toSendSlpRecipients = slpData
+          break
+        } case 'bch': {
+          const [bchToken, bchData] = vm.processBchData(toSendData)
+          token = bchToken
+          toSendBchRecipients = bchData
+          break
+        } default:
+          await vm.processTestWallet(toSendData)
+          break
       }
 
-      let token // bch token
-      toSendData.forEach(async sendData => {
-        const address = sendData.recipientAddress
-        const addressObj = new Address(address)
-        const addressIsValid = this.validateAddress(address).valid
-        const amountIsValid = sendData.amount > 0
-
-        if (addressIsValid && amountIsValid) {
-          vm.sending = true
-          vm.sliderStatus = false
-
-          switch (vm.walletType) {
-            case sBCHWalletType: {
-              await vm.wallet.sBCH.getOrInitWallet()
-              let promise = null
-              if (sep20IdRegexp.test(vm.assetId)) {
-                const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
-                promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(sendData.amount), addressObj.address)
-              } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
-                const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
-                const tokenId = vm.assetId.match(erc721IdRegexp)[2]
-                promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
-              } else {
-                promise = vm.wallet.sBCH.sendBch(String(sendData.amount), addressObj.address)
-              }
-
-              if (promise) {
-                promise.then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
-              }
-
-              break
-            } case 'slp': {
-              const recipientAddress = addressObj.toSLPAddress()
-
-              toSendSLPRecipients.push({
-                address: recipientAddress,
-                amount: sendData.amount
-              })
-
-              break
-            } case 'bch': {
-              const recipientAddress = addressObj.toCashAddress()
-              const tokenId = vm.assetId.split('ct/')[1]
-
-              if (tokenId) {
-                const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
-                token = {
-                  tokenId: tokenId,
-                  commitment: vm.commitment || undefined,
-                  capability: vm.capability || undefined,
-                  txid: vm.$route.query.txid,
-                  vout: vm.$route.query.vout
-                }
-                toSendBCHRecipients.push({
-                  address: recipientAddress,
-                  amount: sendData.amount,
-                  tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
-                })
-              } else {
-                toSendBCHRecipients.push({
-                  address: recipientAddress,
-                  amount: sendData.amount,
-                  tokenAmount: undefined
-                })
-              }
-
-              break
-            } default:
-              try {
-                const w = await window.TestNetWallet.named('mywallet')
-                const { txId } = await w.send([
-                  // eslint-disable-next-line no-undef
-                  new TokenSendRequest({
-                    cashaddr: address,
-                    amount: sendData.amount,
-                    tokenId: vm.assetId.split('/')[1]
-                  })
-                ])
-                vm.txid = txId
-                vm.sent = true
-                vm.txTimestamp = Date.now()
-                vm.playSound(true)
-              } catch (e) {
-                vm.raiseNotifyError(e.message)
-              }
-              vm.sending = false
-
-              break
-          }
-        } else {
-          vm.sending = false
-          vm.sliderStatus = true
-
-          if (!addressIsValid) {
-            vm.raiseNotifyError(vm.$t(
-              'InvalidRecipient',
-              { walletType: vm.walletType.toUpperCase() },
-              `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
-            ))
-            throw new Error('Invalid recipient')
-          }
-          if (!amountIsValid) {
-            vm.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
-            throw new Error('Send amount greater than zero')
-          }
-          throw new Error('Error in sending to recipient(s)')
-        }
-      })
-
-      if (toSendBCHRecipients.length > 0) {
+      if (toSendBchRecipients.length > 0) {
         let changeAddress = this.getChangeAddress('bch')
 
         if (token?.tokenId && this.userSelectedChangeAddress) {
           changeAddress = this.userSelectedChangeAddress
         }
         getWalletByNetwork(vm.wallet, 'bch')
-          .sendBch(0, '', changeAddress, token, undefined, toSendBCHRecipients)
+          .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients)
           .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
-      } else if (toSendSLPRecipients.length > 0) {
+      } else if (toSendSlpRecipients.length > 0) {
         const tokenId = vm.assetId.split('slp/')[1]
         const bchWallet = vm.getWallet('bch')
         const feeFunder = {
@@ -1387,9 +1292,142 @@ export default {
         }
 
         getWalletByNetwork(vm.wallet, 'slp')
-          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSLPRecipients)
+          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
           .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
       }
+    },
+    async processSbchData (toSendData) {
+      const vm = this
+
+      toSendData.forEach(async sendData => {
+        const address = sendData.recipientAddress
+        const addressObj = new Address(address)
+        const addressIsValid = this.validateAddress(address).valid
+        const amountIsValid = sendData.amount > 0
+
+        if (addressIsValid && amountIsValid) {
+          vm.sending = true
+          vm.sliderStatus = false
+
+          await vm.wallet.sBCH.getOrInitWallet()
+          let promise = null
+          if (sep20IdRegexp.test(vm.assetId)) {
+            const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
+            promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(sendData.amount), addressObj.address)
+          } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
+            const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
+            const tokenId = vm.assetId.match(erc721IdRegexp)[2]
+            promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
+          } else {
+            promise = vm.wallet.sBCH.sendBch(String(sendData.amount), addressObj.address)
+          }
+
+          if (promise) {
+            promise.then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+          }
+        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+      })
+    },
+    processSlpData (toSendData) {
+      const vm = this
+      const toSendSlpRecipients = []
+
+      toSendData.forEach(sendData => {
+        const address = sendData.recipientAddress
+        const addressObj = new Address(address)
+        const addressIsValid = this.validateAddress(address).valid
+        const amountIsValid = sendData.amount > 0
+
+        if (addressIsValid && amountIsValid) {
+          vm.sending = true
+          vm.sliderStatus = false
+
+          const recipientAddress = addressObj.toSLPAddress()
+          toSendSlpRecipients.push({
+            address: recipientAddress,
+            amount: sendData.amount
+          })
+        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+      })
+
+      return toSendSlpRecipients
+    },
+    processBchData (toSendData) {
+      const vm = this
+      const toSendBchRecipients = []
+      const tokenId = vm.assetId.split('ct/')[1]
+      let token = null
+
+      toSendData.forEach(sendData => {
+        const address = sendData.recipientAddress
+        const addressObj = new Address(address)
+        const addressIsValid = this.validateAddress(address).valid
+        const amountIsValid = sendData.amount > 0
+
+        if (addressIsValid && amountIsValid) {
+          vm.sending = true
+          vm.sliderStatus = false
+
+          const recipientAddress = addressObj.toCashAddress()
+          if (tokenId) {
+            const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
+            token = {
+              tokenId: tokenId,
+              commitment: vm.commitment || undefined,
+              capability: vm.capability || undefined,
+              txid: vm.$route.query.txid,
+              vout: vm.$route.query.vout
+            }
+            toSendBchRecipients.push({
+              address: recipientAddress,
+              amount: sendData.amount,
+              tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
+            })
+          } else {
+            toSendBchRecipients.push({
+              address: recipientAddress,
+              amount: sendData.amount,
+              tokenAmount: undefined
+            })
+          }
+        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+      })
+
+      return [token, toSendBchRecipients]
+    },
+    async processTestWallet (toSendData) {
+      const vm = this
+
+      toSendData.forEach(async sendData => {
+        const address = sendData.recipientAddress
+        const addressIsValid = this.validateAddress(address).valid
+        const amountIsValid = sendData.amount > 0
+
+        if (addressIsValid && amountIsValid) {
+          vm.sending = true
+          vm.sliderStatus = false
+
+          try {
+            const w = await window.TestNetWallet.named('mywallet')
+            const { txId } = await w.send([
+              // eslint-disable-next-line no-undef
+              new TokenSendRequest({
+                cashaddr: address,
+                amount: sendData.amount,
+                tokenId: vm.assetId.split('/')[1]
+              })
+            ])
+            vm.txid = txId
+            vm.sent = true
+            vm.txTimestamp = Date.now()
+            vm.playSound(true)
+          } catch (e) {
+            vm.raiseNotifyError(e.message)
+          }
+        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+      })
+
+      vm.sending = false
     },
 
     // emitted methods
@@ -1622,6 +1660,26 @@ export default {
       } else if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
         vm.raiseNotifyError(vm.$t('MultipleRecipientsUnsupported'))
       }
+    },
+    sendingPromiseResponseHandler (addressIsValid, amountIsValid) {
+      const vm = this
+
+      vm.sending = false
+      vm.sliderStatus = true
+
+      if (!addressIsValid) {
+        vm.raiseNotifyError(vm.$t(
+          'InvalidRecipient',
+          { walletType: vm.walletType.toUpperCase() },
+          `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
+        ))
+        throw new Error('Invalid recipient')
+      }
+      if (!amountIsValid) {
+        vm.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
+        throw new Error('Send amount greater than zero')
+      }
+      throw new Error('Error in sending to recipient(s)')
     },
     submitPromiseResponseHandler (result, walletType) {
       const vm = this
