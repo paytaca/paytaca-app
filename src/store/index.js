@@ -12,7 +12,6 @@ import paytacapos from './paytacapos'
 import sep20 from './sep20'
 import walletconnect from './walletconnect'
 import gifts from './gifts'
-import chat from './chat'
 import notification from './notification'
 import ramp from './ramp'
 
@@ -39,7 +38,6 @@ export const Store = createStore({
     sep20,
     walletconnect,
     gifts,
-    chat,
     notification,
     ramp
   },

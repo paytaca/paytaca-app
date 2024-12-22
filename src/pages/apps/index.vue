@@ -149,19 +149,6 @@ export default {
           iconStyle: 'font-size: 4.7em',
           smartBCHOnly: false
         },
-        // {
-        //   name: this.$t('Sweep'),
-        //   iconName: 'mdi-broom',
-        //   path: '/apps/sweep',
-        //   active: !this.$store.getters['global/isChipnet'],
-        //   smartBCHOnly: false
-        // },
-        // {
-        //   name: 'Chat',
-        //   iconName: 'mdi-chat',
-        //   path: '/apps/chat/',
-        //   active: true
-        // },
         {
           name: this.$t('WalletInfo'),
           iconName: 'info',

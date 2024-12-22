@@ -475,7 +475,6 @@ export default {
               lastChangeAddress: addresses.change,
               lastAddressIndex: newAddressIndex
             })
-            vm.$store.dispatch('chat/addIdentity', result.pgpIdentity)
             try { vm.setupListener() } catch {}
           })
         }

@@ -69,7 +69,6 @@
     "mqtt": "^4.3.7",
     "net": "^1.0.2",
     "node-fetch": "^2.7.0",
-    "openpgp": "^5.5.0",
     "qrcode": "^1.5.1",
     "qrcode-svg": "^1.1.0",
     "quasar": "^2.7.7",
