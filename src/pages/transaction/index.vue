@@ -669,9 +669,9 @@ export default {
           vm.selectedAsset = setAsset
         }
         vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
-        vm.assets.map(function (asset) {
-          return vm.getBalance(asset.id)
-        })
+        // vm.assets.map(function (asset) {
+        //   return vm.getBalance(asset.id)
+        // })
         vm.$refs['transaction-list-component'].getTransactions()
       }
     },
@@ -930,61 +930,63 @@ export default {
         // location.reload()
       }
 
-      if (vm.selectedNetwork === 'BCH') {
-        // Create change addresses if nothing is set yet
-        // This is to make sure that v1 wallets auto-upgrades to v2 wallets
-        const bchChangeAddress = vm.getChangeAddress('bch')
-        getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({ addresses }) {
-          if (bchChangeAddress.length === 0) {
-            vm.$store.commit('global/updateWallet', {
-              type: 'bch',
-              walletHash: getWalletByNetwork(vm.wallet, 'bch').walletHash,
-              derivationPath: getWalletByNetwork(vm.wallet, 'bch').derivationPath,
-              lastAddress: addresses.receiving,
-              lastChangeAddress: addresses.change,
-              lastAddressIndex: 0,
-            })
-          }
-        })
-        const slpChangeAddress = vm.getChangeAddress('slp')
-        if (slpChangeAddress.length === 0) {
-          getWalletByNetwork(vm.wallet, 'slp').getNewAddressSet(0).then(function (addresses) {
-            vm.$store.commit('global/updateWallet', {
-              type: 'slp',
-              walletHash: getWalletByNetwork(vm.wallet, 'slp').walletHash,
-              derivationPath: getWalletByNetwork(vm.wallet, 'slp').derivationPath,
-              lastAddress: addresses.receiving,
-              lastChangeAddress: addresses.change,
-              lastAddressIndex: 0
-            })
-          })
-        }
-      } else if (vm.selectedNetwork === 'sBCH') {
-        const lastAddress = vm.getWallet('sbch').lastAddress
-        let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
-        if (lastAddress.length === 0) {
-          await vm.wallet.sBCH.getOrInitWallet()
-          subscribeSbchAddress = true
-          vm.$store.commit('global/updateWallet', {
-            type: 'sbch',
-            derivationPath: vm.wallet.sBCH.derivationPath,
-            walletHash: vm.wallet.sBCH.walletHash,
-            lastAddress: vm.wallet.sBCH._wallet ? vm.wallet.sBCH._wallet.address : ''
-          })
+      // COMMENTED OUT SINCE V1 WALLETS ARE ALREADY NOT IN USE
+      //
+      // if (vm.selectedNetwork === 'BCH') {
+      //   // Create change addresses if nothing is set yet
+      //   // This is to make sure that v1 wallets auto-upgrades to v2 wallets
+      //   const bchChangeAddress = vm.getChangeAddress('bch')
+      //   getWalletByNetwork(vm.wallet, 'bch').getNewAddressSet(0).then(function ({ addresses }) {
+      //     if (bchChangeAddress.length === 0) {
+      //       vm.$store.commit('global/updateWallet', {
+      //         type: 'bch',
+      //         walletHash: getWalletByNetwork(vm.wallet, 'bch').walletHash,
+      //         derivationPath: getWalletByNetwork(vm.wallet, 'bch').derivationPath,
+      //         lastAddress: addresses.receiving,
+      //         lastChangeAddress: addresses.change,
+      //         lastAddressIndex: 0,
+      //       })
+      //     }
+      //   })
+      //   const slpChangeAddress = vm.getChangeAddress('slp')
+      //   if (slpChangeAddress.length === 0) {
+      //     getWalletByNetwork(vm.wallet, 'slp').getNewAddressSet(0).then(function (addresses) {
+      //       vm.$store.commit('global/updateWallet', {
+      //         type: 'slp',
+      //         walletHash: getWalletByNetwork(vm.wallet, 'slp').walletHash,
+      //         derivationPath: getWalletByNetwork(vm.wallet, 'slp').derivationPath,
+      //         lastAddress: addresses.receiving,
+      //         lastChangeAddress: addresses.change,
+      //         lastAddressIndex: 0
+      //       })
+      //     })
+      //   }
+      // } else if (vm.selectedNetwork === 'sBCH') {
+      //   const lastAddress = vm.getWallet('sbch').lastAddress
+      //   let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
+      //   if (lastAddress.length === 0) {
+      //     await vm.wallet.sBCH.getOrInitWallet()
+      //     subscribeSbchAddress = true
+      //     vm.$store.commit('global/updateWallet', {
+      //       type: 'sbch',
+      //       derivationPath: vm.wallet.sBCH.derivationPath,
+      //       walletHash: vm.wallet.sBCH.walletHash,
+      //       lastAddress: vm.wallet.sBCH._wallet ? vm.wallet.sBCH._wallet.address : ''
+      //     })
 
-          if (subscribeSbchAddress) {
-            wallet.sBCH.subscribeWallet()
-              .then(response => {
-                if (response && response.success) {
-                  vm.$store.commit('global/setWalletSubscribed', {
-                    type: 'sbch',
-                    subscribed: true
-                  })
-                }
-              })
-          }
-        }
-      }
+      //     if (subscribeSbchAddress) {
+      //       wallet.sBCH.subscribeWallet()
+      //         .then(response => {
+      //           if (response && response.success) {
+      //             vm.$store.commit('global/setWalletSubscribed', {
+      //               type: 'sbch',
+      //               subscribed: true
+      //             })
+      //           }
+      //         })
+      //     }
+      //   }
+      // }
     },
     async onConnectivityChange (online) {
       const vm = this
@@ -999,7 +1001,6 @@ export default {
       })
       if (online === true) {
         if (!vm.wallet) await vm.loadWallets()
-        vm.assets.map((asset) => vm.getBalance(asset.id))
 
         if (Array.isArray(vm.assets) && vm.assets.length > 0) {
           const selectedAssetExists = vm.assets.find(asset => asset?.id == vm.selectedAsset?.id)
@@ -1347,25 +1348,28 @@ export default {
       })
     }
 
-    // Check for slow internet and/or accessibility of the backend
-    let onlineStatus = true
-    axios.get('https://watchtower.cash/api/status/', { timeout: 1000 * 60 }).then((resp) => {
-      console.log('ONLINE')
-      if (resp.status === 200) {
-        if (resp.data.status !== 'up') {
-          onlineStatus = false
-        }
-      }
-    }).catch((error) => {
-      console.log('OFFLINE', error)
-      onlineStatus = false
-    }).finally(() => {
-      if (!onlineStatus) {
-        vm.$store.dispatch('global/updateConnectivityStatus', false)
-        vm.balanceLoaded = true
-        vm.transactionsLoaded = true
-      }
-    })
+    // TODO: Replace this with a websocket connection that periodically
+    // updates the app about watchtower status
+    //
+    // // Check for slow internet and/or accessibility of the backend
+    // let onlineStatus = true
+    // axios.get('https://watchtower.cash/api/status/', { timeout: 1000 * 60 }).then((resp) => {
+    //   console.log('ONLINE')
+    //   if (resp.status === 200) {
+    //     if (resp.data.status !== 'up') {
+    //       onlineStatus = false
+    //     }
+    //   }
+    // }).catch((error) => {
+    //   console.log('OFFLINE', error)
+    //   onlineStatus = false
+    // }).finally(() => {
+    //   if (!onlineStatus) {
+    //     vm.$store.dispatch('global/updateConnectivityStatus', false)
+    //     vm.balanceLoaded = true
+    //     vm.transactionsLoaded = true
+    //   }
+    // })
 
     vm.$store.dispatch('market/updateAssetPrices', {})
     vm.computeWalletYield()
