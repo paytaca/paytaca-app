@@ -1729,6 +1729,8 @@ export default {
 
   async mounted () {
     const vm = this
+    console.log('PAYMENT URL', vm.paymentUrl)
+    
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 

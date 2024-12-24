@@ -290,11 +290,17 @@ export default {
     },
     async clickRedirect (notif) {
       const vm = this
+      console.log('NOTIF', notif)
+
       vm.$refs['notifs-dialog'].hide()
 
       switch (notif.notif_type) {
         case 'TR': {
-          const url = notif.extra_url
+          const data = notif.extra_data
+          let url = null
+          if (data.startsWith('bitcoincash:') || data.startsWith('bchtest:')) {
+            url = data
+          }
           if (url !== '') {
             // automatically hide JPP payment request notifications after clicking
             if (url.includes('bitcoincash:?')) {
@@ -303,9 +309,8 @@ export default {
 
             const query = {
               assetId: vm.$store.getters['assets/getAssets'][0].id,
-              tokenType: 1,
               network: 'BCH',
-              address: url
+              paymentUrl: url
             }
             vm.$router.push({ name: 'transaction-send', query })
           } else {

@@ -669,9 +669,9 @@ export default {
           vm.selectedAsset = setAsset
         }
         vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
-        // vm.assets.map(function (asset) {
-        //   return vm.getBalance(asset.id)
-        // })
+        vm.assets.map(function (asset) {
+          return vm.getBalance(asset.id)
+        })
         vm.$refs['transaction-list-component'].getTransactions()
       }
     },
@@ -801,8 +801,9 @@ export default {
     },
     refresh (done) {
       this.checkCashinAlert()
-      this.getBalance(this.bchAsset.id)
-      this.getBalance(this.selectedAsset.id)
+      this.assets.map(function (asset) {
+        return vm.getBalance(asset.id)
+      })
       this.transactions = []
       this.$refs['transaction-list-component'].getTransactions()
       done()
@@ -989,6 +990,7 @@ export default {
       // }
     },
     async onConnectivityChange (online) {
+      console.log("CONNECTIVITY CHANGE")
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
       const offlineNotif = vm.$q.notify({
