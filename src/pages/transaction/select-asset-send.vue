@@ -1,30 +1,6 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
-    <q-tabs
-      dense
-      v-if="enableSmartBCH"
-      active-color="brandblue"
-      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
-      :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
-      class="col-12 q-px-lg pp-fcolor"
-      :modelValue="selectedNetwork"
-      @update:modelValue="changeNetwork"
-    >
-      <q-tab
-        name="BCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.BCH.name"
-      />
-      <q-tab
-        name="sBCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.sBCH.name"
-        :disable="isChipnet"
-      />
-    </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
@@ -114,10 +90,7 @@ export default {
   },
   data () {
     return {
-      networks: {
-        BCH: { name: 'BCH' },
-        sBCH: { name: 'SmartBCH' }
-      },
+      networks: { BCH: { name: 'BCH' } },
       activeBtn: 'btn-bch',
       result: '',
       error: '',
@@ -140,9 +113,6 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
-    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -154,29 +124,13 @@ export default {
     assets () {
       const vm = this
 
-      if (vm.selectedNetwork === 'sBCH') {
-        const assets = vm.$store.getters['sep20/getAssets'].filter(Boolean)
-        return assets.map((item) => {
-          if (item?.id === 'bch') {
-            item = Object.assign({}, item, {
-              name: 'Smart Bitcoin Cash',
-              symbol: 'sBCH',
-              logo: 'sep20-logo.png'
-            })
-          }
-          return item
-        })
-      }
-
       // eslint-disable-next-line array-callback-return
       const assets = vm.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item?.id === 'bch'
           const tokenType = item?.id?.split?.('/')?.[0]
 
-          if (vm.isCashToken) {
-            return tokenType === 'ct' || isBch
-          }
+          if (vm.isCashToken) return tokenType === 'ct' || isBch
           return tokenType === 'slp' || isBch
         }
       })
@@ -197,9 +151,6 @@ export default {
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
-    },
-    changeNetwork (newNetwork = 'BCH') {
-      this.selectedNetwork = newNetwork
     },
     getImageUrl (asset) {
       if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
@@ -256,7 +207,7 @@ export default {
         persistent: true,
         seamless: true,
         ok: true,
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)} no-click-outside`
       })
     }
 
@@ -264,7 +215,6 @@ export default {
     await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
       let wallet = new Wallet(mnemonic, vm.network)
       wallet = markRaw(wallet)
-      if (vm.selectedNetwork === 'sBCH') wallet.sBCH.getOrInitWallet()
 
       assets.forEach(async (asset) => {
         await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)

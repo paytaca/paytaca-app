@@ -124,7 +124,7 @@
           >
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
-                <template v-if="isMultipleRecipient">
+                <template v-if="!isNFT">
                   <q-expansion-item
                     default-opened
                     dense
@@ -274,24 +274,13 @@
               </div>
               <div class="q-px-xs tx-id">
                 txid: {{ txid.slice(0, 8) }}<span style="font-size: 18px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
-                <template v-if="walletType === 'SmartBCH'">
-                  <a
-                    class="button button-text-primary view-explorer-button"
-                    :class="getDarkModeClass(darkMode)"
-                    :href="'https://sonar.cash/tx/' + txid" target="_blank"
-                  >
-                    {{ $t('ViewInExplorer') }}
-                  </a>
-                </template>
-                <template v-else>
-                  <a
-                    class="button button-text-primary view-explorer-button"
-                    :class="getDarkModeClass(darkMode)"
-                    :href="getExplorerLink(txid)" target="_blank"
-                  >
-                    {{ $t('ViewInExplorer') }}
-                  </a>
-                </template>
+                <a
+                  class="button button-text-primary view-explorer-button"
+                  :class="getDarkModeClass(darkMode)"
+                  :href="getExplorerLink(txid)" target="_blank"
+                >
+                  {{ $t('ViewInExplorer') }}
+                </a>
               </div>
               <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-sm">
                 {{ formattedTxTimestamp }}
@@ -359,9 +348,7 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 
-const sep20IdRegexp = /sep20\/(.*)/
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
-const sBCHWalletType = 'SmartBCH'
 
 export default {
   name: 'Send-page',
@@ -482,8 +469,8 @@ export default {
       /** @type {Wallet} */
       wallet: null,
       walletType: '',
-      isSLP: !this.isSmartBCH && this.assetId?.startsWith?.('slp/'),
-      isCashToken: !this.isSmartBCH && this.assetId?.startsWith?.('ct/'),
+      isSLP: this.assetId?.startsWith?.('slp/'),
+      isCashToken: this.assetId?.startsWith?.('ct/'),
       forceUseDefaultNftImage: false,
       manualAddress: '',
       scannedRecipientAddress: false,
@@ -550,14 +537,11 @@ export default {
 
       return true
     },
-    isSmartBch () {
-      return this.network === 'sBCH'
-    },
     isERC721 () {
-      return this.isSmartBch && erc721IdRegexp.test(this.assetId)
+      return erc721IdRegexp.test(this.assetId)
     },
     isNFT () {
-      if (this.isSmartBch && erc721IdRegexp.test(this.assetId)) return true
+      if (this.isERC721) return true
       if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
@@ -602,7 +586,6 @@ export default {
     },
     showAddRecipientButton () {
       if (this.assetId?.startsWith('ct')) return false
-      if (this.walletType === sBCHWalletType) return false
       return (
         this.showSlider &&
         !this.isNFT &&
@@ -612,9 +595,6 @@ export default {
           .map(data => data.setMax)
           .findIndex(i => i) < 0
       )
-    },
-    isMultipleRecipient () {
-      return !(this.isNFT || this.walletType === sBCHWalletType)
     },
     connectedApps () {
       const distinct = (value, index, list) => {
@@ -689,7 +669,6 @@ export default {
       const mnemonic = await getMnemonic(walletIndex)
       const wallet = new Wallet(mnemonic, this.network)
       this.wallet = markRaw(wallet)
-      if (this.isSmartBch) this.wallet.sBCH.getOrInitWallet()
       return { wallet }
     },
 
@@ -791,7 +770,7 @@ export default {
       try {
         paymentUriData = parsePaymentUri(
           content,
-          { chain: vm.isSmartBch ? 'smart' : 'main', networkTimeDiff: vm.networkTimeDiff }
+          { chain: 'main', networkTimeDiff: vm.networkTimeDiff }
         )
 
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
@@ -943,19 +922,8 @@ export default {
       let spendableAsset = 0
 
       if (this.asset.id === 'bch') {
-        if (this.isSmartBch) {
-          this.computingMax = true
-          spendableAsset = await this.wallet.sBCH.getMaxSpendableBch(
-            String(this.asset.balance),
-            this.sendDataMultiple[0].recipient
-          )
-          currentRecipient.amount = parseFloat(spendableAsset)
-          this.computingMax = false
-          if (spendableAsset < 0) this.raiseNotifyError(this.$t('NotEnoughForGasFee'))
-        } else {
-          spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
-          currentRecipient.amount = this.asset.spendable
-        }
+        spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+        currentRecipient.amount = this.asset.spendable
         currentInputExtras.amountFormatted = spendableAsset
         const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
         currentInputExtras.sendAmountInFiat = convertedFiat
@@ -1190,9 +1158,6 @@ export default {
       let toSendBchRecipients = []
       let toSendSlpRecipients = []
       switch (vm.walletType) {
-        case sBCHWalletType:
-          await vm.processSbchData(toSendData)
-          break
         case 'slp': {
           const slpData = vm.processSlpData(toSendData)
           toSendSlpRecipients = slpData
@@ -1233,38 +1198,6 @@ export default {
           .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
           .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
       }
-    },
-    async processSbchData (toSendData) {
-      const vm = this
-
-      toSendData.forEach(async sendData => {
-        const address = sendData.recipientAddress
-        const addressObj = new Address(address)
-        const addressIsValid = this.validateAddress(address).valid
-        const amountIsValid = sendData.amount > 0
-
-        if (addressIsValid && amountIsValid) {
-          vm.sending = true
-          vm.sliderStatus = false
-
-          await vm.wallet.sBCH.getOrInitWallet()
-          let promise = null
-          if (sep20IdRegexp.test(vm.assetId)) {
-            const contractAddress = vm.assetId.match(sep20IdRegexp)[1]
-            promise = vm.wallet.sBCH.sendSep20Token(contractAddress, String(sendData.amount), addressObj.address)
-          } else if (this.isNFT && erc721IdRegexp.test(vm.assetId)) {
-            const contractAddress = vm.assetId.match(erc721IdRegexp)[1]
-            const tokenId = vm.assetId.match(erc721IdRegexp)[2]
-            promise = vm.wallet.sBCH.sendERC721Token(contractAddress, tokenId, addressObj.address)
-          } else {
-            promise = vm.wallet.sBCH.sendBch(String(sendData.amount), addressObj.address)
-          }
-
-          if (promise) {
-            promise.then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
-          }
-        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
-      })
     },
     processSlpData (toSendData) {
       const vm = this
@@ -1403,8 +1336,7 @@ export default {
     // ========== util methods ==========
     // getters
     getAsset (id) {
-      let getter = 'assets/getAsset'
-      if (this.isSmartBch) getter = 'sep20/getAsset'
+      const getter = 'assets/getAsset'
       const assets = this.$store.getters[getter](id)
 
       let asset
@@ -1542,10 +1474,6 @@ export default {
       let addressIsValid = false
       let formattedAddress
       try {
-        if (vm.walletType === sBCHWalletType) {
-          if (addressObj.isSep20Address()) addressIsValid = true
-          if (addressIsValid) formattedAddress = addressObj.address
-        }
         if (vm.walletType === 'bch') {
           if (vm.isCashToken) {
             addressIsValid = isTokenAddress(address)
@@ -1674,8 +1602,7 @@ export default {
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 
-    if (vm.isSmartBch) vm.walletType = sBCHWalletType
-    else if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
+    if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
     else {
       if (vm.assetId.indexOf('ct/') > -1) vm.isCashToken = true
       vm.walletType = 'bch'
