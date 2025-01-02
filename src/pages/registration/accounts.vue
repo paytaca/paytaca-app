@@ -493,7 +493,6 @@ export default {
 
         await bchWallet.getNewAddressSet(0).then(function (response) {
           const addresses = response?.addresses || null
-          const pgpIdentity = response?.pgpIdentity || null
 
           vm.$store.commit('global/updateWallet', {
             isChipnet,
@@ -504,7 +503,6 @@ export default {
             lastChangeAddress: addresses !== null ? addresses.change : '',
             lastAddressIndex: 0,
           })
-          vm.$store.dispatch('chat/addIdentity', pgpIdentity)
           vm.steps += 1
           try {
             vm.$store.dispatch('global/refetchWalletPreferences')

@@ -1,7 +1,6 @@
 import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
-import * as openpgp from 'openpgp/lightweight'
 import { getWatchtowerApiUrl, getBlockChainNetwork, convertCashAddress } from './chipnet'
 import { convertIpfsUrl } from './cashtokens'
 import { isTokenAddress } from '../utils/address-utils'
@@ -96,42 +95,14 @@ export class BchWallet {
     let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
     let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
 
-    // Generate a new PGP key
-    const userID = receivingAddress.split(':')[1]
-    const email = userID + '@bchmail.site'
-    const { privateKey, publicKey, revocationCertificate } = await openpgp.generateKey({
-      curve: 'p521',
-      userIDs: [{ name: userID, email: email }]
-    })
-
-    const public_key_hash = sha256(publicKey)
-    const signature = await this.signMessage(public_key_hash, index)
-    const pgpInfo = {
-      bch_address: receivingAddress,
-      user_id: userID,
-      email: email,
-      public_key: Buffer.from(publicKey).toString('base64'),
-      public_key_hash: public_key_hash,
-      signature: Buffer.from(signature).toString('base64')
-    }
-
     if (this.isChipnet) {
       receivingAddress = convertCashAddress(receivingAddress, this.isChipnet, false)
       changeAddress = convertCashAddress(changeAddress, this.isChipnet, false)
     }
 
-    const pgpIdentity = {
-      address: receivingAddress,
-      userId: userID,
-      email: email,
-      publicKey: publicKey,
-      privateKey: privateKey
-    }
     return {
       receiving: receivingAddress,
-      change: changeAddress,
-      pgpInfo: pgpInfo,
-      pgpIdentity: pgpIdentity,
+      change: changeAddress
     }
   }
 
@@ -143,15 +114,13 @@ export class BchWallet {
       addresses: addressSet,
       projectId: this.projectId,
       walletHash: this.walletHash,
-      addressIndex: index,
-      chatIdentity: addresses.pgpInfo
+      addressIndex: index
     }
     const result = await this.watchtower.subscribe(data)
 
     if (result.success) {
       return {
-        addresses: addressSet,
-        pgpIdentity: addresses.pgpIdentity,
+        addresses: addressSet
       }
     } else {
       return null

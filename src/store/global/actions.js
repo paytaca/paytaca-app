@@ -3,7 +3,7 @@ import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from "src/marketplace/chat/encryption"
-import { loadWallet } from '../../wallet'
+import { loadLibauthHdWallet } from '../../wallet'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils';
 import { toP2pkhTestAddress } from "../../utils/address-utils"
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
@@ -266,13 +266,13 @@ export async function loadWalletAddresses (context) {
   }
 
   const walletIndex = context.getters['getWalletIndex']
-  const wallet = await loadWallet('BCH', walletIndex)
+  const libauthWallet = await loadLibauthHdWallet(walletIndex, Boolean(context.state.isChipnet))
   
   const stopAtIndex = lastIndex + 1 // include lastIndex
   const walletAddresses = []
   for (let i = 0; i < stopAtIndex; i++ ) {
       try {
-      const wif = await wallet.BCH.getPrivateKey(`0/${i}`)
+      const wif = libauthWallet.getPrivateKeyWifAt(`0/${i}`)
       const decodedPrivkey = decodePrivateKeyWif(wif)
       let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
       

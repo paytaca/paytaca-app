@@ -4,7 +4,7 @@
       <div class="col-xs-12 text-right q-mb-md">
         <q-btn icon="settings" flat dense>
           <q-menu fit anchor="bottom start" self="top end" class="br-15 pt-card q-py-md" :class="getDarkModeClass(darkMode)">
-            <q-item>  
+            <q-item>
               <q-item-section>
                 {{ $t('AddressDisplayFormat') }}
               </q-item-section>
@@ -54,6 +54,10 @@
                 >
                 </q-toggle>
               </q-item-section>
+            </q-item>
+            <q-separator></q-separator>
+            <q-item>
+              <span @click="resetWallectConnect">Reset Wallet Connect<q-icon name="danger" /></span>
             </q-item>
           </q-menu>
         </q-btn>
@@ -211,7 +215,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount, watchEffect } from 'vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { initWeb3Wallet, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
+import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { convertCashAddress } from 'src/wallet/chipnet';
 import { loadWallet } from 'src/wallet';
 import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
@@ -318,6 +322,7 @@ const loadSessionProposals = async ({showLoading} = {showLoading: true}) => {
   try {
     if (web3Wallet.value) {
       sessionProposals.value = await web3Wallet.value.getPendingSessionProposals()
+      console.log('SESSION PROPOSALS', sessionProposals.value)
     }  
   } catch (error) {} finally { 
     if (showLoading) {
@@ -516,37 +521,11 @@ const disconnectSession = async (activeSession) => {
     activeSessions.value && delete activeSessions.value[activeSession.topic]
     sessionTopicWalletAddressMapping.value[activeSession.topic] && delete sessionTopicWalletAddressMapping.value[activeSession.topic]
     
+    console.log('DISCONNECTING...', activeSession.topic)
     await web3Wallet.value.disconnectSession({
       topic: activeSession.topic,
       reason: getSdkError('USER_DISCONNECTED')
     })
-
-    // Disconnect all remaining sessions that match the first session's URL
-    if (firstSessionUrl && activeSessions.value) {
-      const disconnectPromises = Object.keys(activeSessions.value).map(async (sessionTopic) => {
-        const session = activeSessions.value[sessionTopic];
-
-        // Check if the session's URL matches the first session's URL
-        if (session.peer?.metadata?.url === firstSessionUrl) {
-          // Remove the session from the activeSessions mapping
-          delete activeSessions.value[sessionTopic];
-
-          // Remove the corresponding wallet address mapping for the session
-          if (sessionTopicWalletAddressMapping.value[sessionTopic]) {
-            delete sessionTopicWalletAddressMapping.value[sessionTopic];
-          }
-
-          // Disconnect the matching session from the wallet
-          await web3Wallet.value.disconnectSession({
-            topic: sessionTopic,
-            reason: getSdkError('USER_DISCONNECTED'),
-          });
-        }
-      });
-
-      // Wait for all disconnections to complete
-      await Promise.all(disconnectPromises);
-    }
 
     await loadActiveSessions({ showLoading: false})
   } catch (error) {
@@ -596,6 +575,14 @@ const rejectSessionProposal = async (sessionProposal) => {
 }
 
 const approveSessionProposal = async (sessionProposal) => {
+  console.log('SESSION PROPOSAL', sessionProposal)
+
+  const proposalExpiry = sessionProposal.expiryTimestamp; // Assuming expiry is a timestamp in seconds
+  const currentTime = Math.floor(Date.now() / 1000);
+
+  if (currentTime > proposalExpiry) {
+    throw new Error('Session proposal has expired.');
+  }
   // Choose the first address by default
   let selectedAddress = walletAddresses.value?.[0]
 
@@ -607,7 +594,7 @@ const approveSessionProposal = async (sessionProposal) => {
     if (!selectedAddress) {
       processingSession.value[sessionProposal.pairingTopic] = ''
       return 
-    } 
+    }
   }
   sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic] = selectedAddress
   delete processingSession.value[sessionProposal.pairingTopic]
@@ -635,14 +622,18 @@ const approveSessionProposal = async (sessionProposal) => {
       proposal: sessionProposal,
       supportedNamespaces: namespaces,
     })
+    console.log('APPROVED NAMESPACES', approvedNamespaces)
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
       namespaces: approvedNamespaces,
     })
+    await web3Wallet.value.getActiveSessions()
+    console.log('SESSION', session)
     activeSessions.value[session.topic] = session
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
     await saveConnectedApp(session)
+    
     Promise.all([
       loadSessionProposals(),
       $store.dispatch('global/loadWalletConnectedApps')
@@ -738,18 +729,19 @@ const respondToSignMessageRequest = async (sessionRequest) => {
 }
 
 const respondToGetAccountsRequest = async (sessionRequest) => {
-  if (!['bch_getAddresses', 'bch_getAccounts'].includes(sessionRequest.params.request.method)) return 
+  if (!['bch_getAddresses', 'bch_getAccounts'].includes(sessionRequest.params.request.method)) return
+  const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined };
   try {
-    const response = { id, jsonrpc: '2.0', result: undefined, error: undefined };
-    response.result = activeSessions.value[sessionRequest?.topic]?.namespaces?.bch?.accounts
-    await web3Wallet.value.respondSessionRequest({ topic, response })
+    response.result = activeSessions.value[sessionRequest?.topic]?.namespaces?.bch?.accounts.map((addr) => addr.replace('bch:', ''))
+    console.log('RESPONSE', response)
   } catch(err) {
     console.error(err)
     response.error = {
       code: -1,
-      reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error',
+      reason: err?.name === 'GetBCHAccountsError' ? err?.message : 'Unknown error',
     }
   } finally {
+    await web3Wallet.value.respondSessionRequest({ topic: sessionRequest?.topic, response })
     loadSessionRequests()
   }
 }
@@ -774,6 +766,8 @@ const respondToSessionRequest = async (sessionRequest) => {
     
     switch(method) {
       case 'bch_getAddresses':
+        await respondToGetAccountsRequest(sessionRequest)
+        break;
       case 'bch_getAccounts':
         await respondToGetAccountsRequest(sessionRequest)
         break;
@@ -830,6 +824,22 @@ const rejectSessionRequest = async (sessionRequest) => {
   
 }
 
+const disconnectAllSessions = async () => {
+  const sessions = await web3Wallet.value.getActiveSessions()
+  for (const topic of Object.keys(sessions)) {
+    await web3Wallet.value.disconnectSession({
+      topic: topic,
+      reason: getSdkError('USER_DISCONNECTED')
+    })
+  }
+}
+
+const resetWallectConnect = async () => {
+  await disconnectAllSessions()
+  await resetWallectConnectDatabase()
+  await loadActiveSessions()
+  alert('Reset done!')
+}
 
 const loadWeb3Wallet = async () => {
   web3WalletPromise.value = initWeb3Wallet()
@@ -843,6 +853,7 @@ const onAuthRequest = async (...args) => {
 }
 
 const onSessionDelete = async ({ topic }) => {
+  console.log('SESSION DELETED', topic)
   delete activeSessions.value?.[topic]
   await loadActiveSessions()
 }
@@ -909,6 +920,7 @@ onMounted(async () => {
   try {
     loading.value = 'Loading...'
     await loadWeb3Wallet()
+    loadActiveSessions()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
       await $store.dispatch('global/loadWalletLastAddressIndex')  

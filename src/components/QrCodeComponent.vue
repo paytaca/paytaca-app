@@ -86,8 +86,9 @@ export default {
             content: vm.text,
             width: vm.size,
             height: vm.size,
+            swap: true,
             join: true,
-            ecl: "M",
+            ecl: "Q",
             padding: 0
           })
           

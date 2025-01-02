@@ -6,15 +6,19 @@
           <q-avatar class="q-mr-sm">
             <q-badge :color="sessionType==='proposal'? 'warning': 'green'"></q-badge>
           </q-avatar>
-          <slot name="account"> 
-            <span v-if="account" class="text-caption">
-              {{ addressDisplayFormatter ? addressDisplayFormatter(account.replace('bch:', '')) : shortenAddressForDisplay(account.replace('bch:', '')) }} <q-badge color="grey" size="sm">{{ addressDisplayFormat }}</q-badge>
-            </span>
+          <slot name="account">
+            <div @click="copyToClipboard" style="z-index: 1000;">
+              <span v-if="account" class="text-caption">
+                {{ addressDisplayFormatter ? addressDisplayFormatter(account.replace('bch:', '')) : shortenAddressForDisplay(account.replace('bch:', '')) }}
+                <q-icon name="fas fa-copy" style="font-size: 14px;" />
+              </span>
+            </div>
           </slot>
         </q-chip>
         <slot name="top-right">
-          <div @click="copyToClipboard" @mousedown.stop.prevent>
-            <q-icon name="fas fa-copy" style="font-size: 14px;" />
+          <div @click="selectAssetToSend(account.replace('bch:', ''))" @mousedown.stop.prevent style="font-family: 'Rubik', sans-serif; font-size: 13px; z-index: 1000; cursor: pointer;">
+            <span>Deposit</span>&nbsp;
+            <q-icon name="fas fa-arrows-down-to-line" style="font-size: 14px;" />
           </div>
         </slot>
       </div>
@@ -69,6 +73,7 @@
 <script setup>
 import { computed, inject } from 'vue'
 import { useQuasar } from 'quasar'
+import { useRouter } from "vue-router";
 import PeerInfo from './PeerInfo.vue'
 import { shortenAddressForDisplay } from '../../utils/address-utils'
 import { toTokenAddress } from 'src/marketplace/escrow/utils'
@@ -111,7 +116,13 @@ const account = computed(() => {
 })
 
 const $q = useQuasar()
+const $router = useRouter()
 const $copyText = inject('$copyText')
+
+async function selectAssetToSend(address) {
+  const tokenAddress = toTokenAddress(address)
+  $router.push('/send/select-asset/?address=' + tokenAddress + '&back-path=/apps/wallet-connect')
+}
 
 async function copyToClipboard() {
   if (account.value) {

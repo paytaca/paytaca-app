@@ -39,6 +39,77 @@ export const web3wallet = ''
 //   }
 // })
 
+export async function resetWallectConnectDatabase() {
+  const request = indexedDB.open('WALLET_CONNECT_V2_INDEXED_DB');
+
+  request.onerror = (event) => {
+      console.error("Error opening database:", event.target.error);
+  };
+
+  request.onsuccess = (event) => {
+      const db = event.target.result;
+
+      db.objectStoreNames.forEach((storeName) => {
+          const transaction = db.transaction(storeName, "readwrite");
+          const objectStore = transaction.objectStore(storeName);
+
+          const getAllKeysRequest = objectStore.getAllKeys();
+
+          getAllKeysRequest.onsuccess = () => {
+              const keys = getAllKeysRequest.result;
+
+              keys.forEach((key) => {
+                  const getRequest = objectStore.get(key);
+
+                  getRequest.onsuccess = () => {
+                      let record = getRequest.result;
+
+                      if (record && typeof record === "object") {
+                          // Create a clone to avoid modifying the original
+                          const clonedRecord = JSON.parse(JSON.stringify(record));
+
+                          // Set all properties of the cloned record to empty strings
+                          Object.keys(clonedRecord).forEach((prop) => {
+                              clonedRecord[prop] = "";
+                          });
+
+                          const updateRequest = objectStore.put(clonedRecord, key);
+                          updateRequest.onerror = (err) => {
+                              console.error(`Failed to update key ${key}:`, err.target.error);
+                          };
+                          updateRequest.onsuccess = () => {
+                              console.log(`Key ${key} updated successfully.`);
+                          };
+                      } else {
+                          // If the value is not an object, simply replace it with an empty string
+                          const updateRequest = objectStore.put("", key);
+                          updateRequest.onerror = (err) => {
+                              console.error(`Failed to update key ${key}:`, err.target.error);
+                          };
+                          updateRequest.onsuccess = () => {
+                              console.log(`Key ${key} updated successfully.`);
+                          };
+                      }
+                  };
+
+                  getRequest.onerror = () => {
+                      console.error(`Failed to retrieve key ${key}.`);
+                  };
+              });
+          };
+
+          getAllKeysRequest.onerror = () => {
+              console.error("Failed to retrieve keys from the object store.");
+          };
+      });
+  };
+
+  request.onupgradeneeded = () => {
+      console.error(
+          "The database requires an upgrade, no existing keys can be updated."
+      );
+  };
+}
 
 export function parseSessionRequest(sessionRequest) {
   const parsedSessionRequest = parseExtendedJson(JSON.stringify(sessionRequest))

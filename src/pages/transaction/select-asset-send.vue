@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('Send')" backnavpath="/"></header-nav>
+    <header-nav :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
     <q-tabs
       dense
       v-if="enableSmartBCH"
@@ -102,6 +102,10 @@ export default {
     address: {
       type: String,
       default: ''
+    },
+    backPath: {
+      type: String,
+      default: null
     }
   },
   components: {
@@ -217,7 +221,8 @@ export default {
         assetId: asset.id,
         tokenType: 1,
         network: this.selectedNetwork,
-        address: this.address
+        address: this.address,
+        backPath: this.backPath
       }
       this.$router.push({
         name: 'transaction-send',
