@@ -259,7 +259,7 @@ const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
 const sessionProposals = ref([])
 const sessionRequests = ref([])
 const web3Wallet = ref()
-const web3WalletPromise = ref()
+// const web3WalletPromise = ref()
 
 // const bchWallet = computed(() => $store.getters['global/getWallet']('bch'))
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -466,7 +466,7 @@ const pairURI = async(uri) => {
   if (!uri) return
   try {
     if (!web3Wallet.value) {
-      await loadWeb3Wallet()
+      await loadWeb3Wallet($store.getters['global/isChipnet'])
     }
     loading.value = $t('HandshakingWithPeer')
     const prevSessionProposalsLength = sessionProposals.value?.length
@@ -841,11 +841,13 @@ const resetWallectConnect = async () => {
   alert('Reset done!')
 }
 
-const loadWeb3Wallet = async () => {
-  web3WalletPromise.value = initWeb3Wallet()
-  const _web3Wallet = await web3WalletPromise.value
-  web3Wallet.value = _web3Wallet
-  window.w3w = _web3Wallet
+const loadWeb3Wallet = async (chipnet) => {
+  // web3WalletPromise.value = initWeb3Wallet(chipnet)
+  // const _web3Wallet = await web3WalletPromise.value
+  // web3Wallet.value = _web3Wallet
+  // window.w3w = _web3Wallet
+  web3Wallet.value = await initWeb3Wallet(chipnet)
+  window.w3w = web3Wallet.value
 }
 
 const onAuthRequest = async (...args) => {
@@ -904,6 +906,10 @@ watchEffect(() => {
   mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
 })
 
+watch(() => $store.getters['global/isChipnet'], (chipnet) => {
+  console.log('CHIPNET CHANGED', chipnet)
+})
+
 onBeforeMount(async () => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
@@ -919,7 +925,7 @@ onBeforeMount(async () => {
 onMounted(async () => {
   try {
     loading.value = 'Loading...'
-    await loadWeb3Wallet()
+    await loadWeb3Wallet($store.getters['global/isChipnet'])
     loadActiveSessions()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
@@ -945,8 +951,8 @@ defineExpose({
   onScannerDecode,
   // statusUpdate,
   refreshComponent,
-  web3Wallet,
-  web3WalletPromise,
+  // web3Wallet,
+  // web3WalletPromise,
   connectNewSession,
 })
 </script>
