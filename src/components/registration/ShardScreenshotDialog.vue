@@ -16,7 +16,7 @@
             }}
           </p>
           <div class="flex flex-center">
-            <qr-code :text="shardText" :size="qrSize" />
+            <qr-code :qr-id="shardth" :text="shardText" :size="qrSize" />
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@ export default {
 
   data () {
     return {
-      qrSize: 300
+      qrSize: 200
     }
   },
 
@@ -68,7 +68,6 @@ export default {
     })
 
     const screenWidth = vm.$q.screen.width
-    vm.qrSize = screenWidth >= 500 ? 400 : screenWidth - 100
   }
 }
 </script>

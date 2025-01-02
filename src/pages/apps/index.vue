@@ -141,26 +141,13 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: true
         },
-        {
-          name: this.$t('CryptoSwap'),
-          iconName: 'mdi-swap-horizontal-bold',
-          path: '/apps/ramp/crypto',
-          active: true,
-          iconStyle: 'font-size: 4.7em',
-          smartBCHOnly: false
-        },
         // {
-        //   name: this.$t('Sweep'),
-        //   iconName: 'mdi-broom',
-        //   path: '/apps/sweep',
-        //   active: !this.$store.getters['global/isChipnet'],
+        //   name: this.$t('CryptoSwap'),
+        //   iconName: 'mdi-swap-horizontal-bold',
+        //   path: '/apps/ramp/crypto',
+        //   active: true,
+        //   iconStyle: 'font-size: 4.7em',
         //   smartBCHOnly: false
-        // },
-        // {
-        //   name: 'Chat',
-        //   iconName: 'mdi-chat',
-        //   path: '/apps/chat/',
-        //   active: true
         // },
         {
           name: this.$t('WalletInfo'),

@@ -163,7 +163,7 @@
               <div class="q-space text-h5">{{ $t('ScanToPay') }}</div>
             </div>
             <div class="row items-center justify-center">
-              <qr-code :text="qrCodeData" :size="300"/>
+              <qr-code :text="qrCodeData" :size="200"/>
             </div>
             <q-input
               dense

@@ -1,6 +1,7 @@
 import { SlpWallet } from './slp'
 import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
+import { LibauthHDWallet } from './bch-libauth'
 import aes256 from 'aes256'
 
 import 'capacitor-secure-storage-plugin'
@@ -72,6 +73,12 @@ export async function loadWallet(network = 'BCH', index = 0) {
   const mnemonic = await getMnemonic(index)
   return new Wallet(mnemonic, network)
 }
+
+export async function loadLibauthHdWallet(index=0, chipnet=false) {
+  const mnemonic = await getMnemonic(index)
+  return new LibauthHDWallet(mnemonic, undefined, chipnet ? 'chipnet' : 'mainnet')
+}
+
 
 export async function generateMnemonic (index = 0) {
   let key = 'mn'

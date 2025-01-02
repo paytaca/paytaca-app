@@ -8,7 +8,7 @@
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || name || '')"
-        :backnavpath="backPath"
+        :backnavpath="!backPath ? '/' : backPath"
       ></header-nav>
       <q-banner
         v-if="assetId.startsWith('slp/')"
@@ -465,7 +465,7 @@ export default {
     },
     backPath: {
       type: String,
-      default: '/'
+      default: null
     }
   },
   data () {
@@ -1729,6 +1729,8 @@ export default {
 
   async mounted () {
     const vm = this
+    console.log('PAYMENT URL', vm.paymentUrl)
+    
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 

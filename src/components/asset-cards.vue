@@ -12,12 +12,14 @@
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
       v-touch-pan="handlePan"
     >
-      <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
-        <img :src="getImageUrl(asset)" height="30" class="q-mr-xs" alt="">
-        <p class="col q-pl-sm text-right asset-symbol" :class="{'text-grad' : isNotDefaultTheme}">
-          {{ asset.symbol }}
-        </p>
-      </div>
+      <q-intersection>
+        <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
+          <img :src="getImageUrl(asset)" height="30" class="q-mr-xs" alt="">
+          <p class="col q-pl-sm text-right asset-symbol" :class="{'text-grad' : isNotDefaultTheme}">
+            {{ asset.symbol }}
+          </p>
+        </div>
+      </q-intersection>
       <div class="row" style="margin-top: -7px;">
         <q-space />
         <div v-if="!balanceLoaded && !manageAssets && asset.id === selectedAsset.id" style="width: 100%;">

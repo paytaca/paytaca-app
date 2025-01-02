@@ -98,8 +98,6 @@
 <script>
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { deleteAuthToken } from 'src/exchange/auth'
-import { decryptWalletName } from 'src/marketplace/chat/encryption'
 
 import renameDialog from './renameDialog.vue'
 import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
