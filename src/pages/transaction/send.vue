@@ -622,7 +622,7 @@ export default {
           (item) => item.address === value.address && item.app_url === value.app_url
         ) === index
       }
-      
+
       return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
     },
     recipientAddresses () {
@@ -994,7 +994,7 @@ export default {
       const fiatCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
         .$refs.fiatInput?.nativeEl.selectionStart
 
-      let currentSendAmount, currentAmount
+      let currentSendAmount
       let caret = null
       if (this.focusedInputField === 'fiat') caret = fiatCaretPosition
       else if (this.focusedInputField === 'bch') caret = amountCaretPosition
@@ -1005,42 +1005,7 @@ export default {
         currentSendAmount = currentInputExtras.amountFormatted ?? ''
       } else currentSendAmount = 0
 
-      if (key === '.' && currentSendAmount === '') {
-        currentAmount = '0.'
-      } else {
-        currentAmount = currentSendAmount.toString()
-        const hasPeriod = currentAmount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(currentAmount) === 0) {
-            if (Number(key) > 0) {
-              currentAmount = key
-            } else if (Number(currentAmount) === Number(key)) { // Check amount if still zero
-              currentAmount = 0
-            } else {
-              currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
-            }
-          } else {
-            currentAmount = this.adjustSplicedAmount(currentAmount, caret, key.toString())
-          }
-        } else {
-          const tbaKey = key !== '.' ? key.toString() : ''
-          currentAmount = this.adjustSplicedAmount(currentAmount, caret, tbaKey)
-        }
-      }
-
-      if (this.asset.id.startsWith('ct/')) {
-        if (this.asset.decimals === 0) {
-          currentAmount = currentAmount.toString().replace('.', '')
-        } else {
-          const parts = currentAmount.toString().split('.')
-
-          if (parts.length > 1) { // Ensure there's a decimal part
-            // Truncate the decimal part to the desired length
-            parts[1] = parts[1].slice(0, this.asset.decimals)
-            currentAmount = parts.join('.') // Recombine the integer and decimal parts
-          }
-        }
-      }
+      const currentAmount = this.parseKey(key, currentSendAmount, caret)
 
       // Set the new amount
       if (this.focusedInputField === 'fiat') {
@@ -1054,6 +1019,49 @@ export default {
 
       this.adjustWalletBalance()
     },
+    // TODO separate this function to a reusable util function for custom keyboard
+    parseKey (key, inputText, caret) {
+      let amount = '0'
+
+      if (key === '.' && inputText === '') {
+        amount = '0.'
+      } else {
+        amount = inputText.toString()
+        const hasPeriod = amount.indexOf('.')
+        if (hasPeriod < 1) {
+          if (Number(amount) === 0 && Number(amount) === Number(key)) {
+            amount = '0'
+          } else {
+            amount = this.adjustSplicedAmount(amount, caret, key.toString())
+          }
+        } else {
+          const tbaKey = key !== '.' ? key.toString() : ''
+          amount = this.adjustSplicedAmount(amount, caret, tbaKey)
+        }
+      }
+
+      amount = this.parseCtKey(amount)
+
+      return amount
+    },
+    parseCtKey (amount) {
+      if (this.asset.id.startsWith('ct/')) {
+        if (this.asset.decimals === 0) {
+          amount = amount.toString().replace('.', '')
+        } else {
+          const parts = amount.toString().split('.')
+
+          if (parts.length > 1) { // Ensure there's a decimal part
+            // Truncate the decimal part to the desired length
+            parts[1] = parts[1].slice(0, this.asset.decimals)
+            amount = parts.join('.') // Recombine the integer and decimal parts
+          }
+        }
+      }
+
+      return amount
+    },
+
     makeKeyAction (action) {
       if (!this.$refs.sendPageRef[this.currentRecipientIndex].$refs.amountInput) {
         this.customKeyboardState = 'dismiss'
@@ -1067,7 +1075,6 @@ export default {
         .$refs.fiatInput?.nativeEl.selectionStart - 1
 
       if (action === 'backspace') {
-        // Backspace
         if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
           const currentAmount = this.adjustSplicedAmount(
             String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
@@ -1084,7 +1091,6 @@ export default {
           currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount)
         }
       } else if (action === 'delete') {
-        // Delete
         currentInputExtras.sendAmountInFiat = ''
         currentRecipient.amount = ''
         currentInputExtras.amountFormatted = ''
@@ -1664,8 +1670,7 @@ export default {
 
   async mounted () {
     const vm = this
-    console.log('PAYMENT URL', vm.paymentUrl)
-    
+
     vm.updateNetworkDiff()
     vm.asset = vm.getAsset(vm.assetId)
 
