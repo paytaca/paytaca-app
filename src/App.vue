@@ -1,5 +1,8 @@
 <template>
-    <router-view />
+    <div>
+      <router-view />
+      <v-offline @detected-condition="onConnectivityChange" />
+    </div>
 </template>
 
 <script>
@@ -9,6 +12,7 @@ import { useStore } from "vuex"
 import { useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
+import { VOffline } from 'v-offline'
 
 // Handle JSON serialization of BigInt
 // Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
@@ -18,6 +22,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
+  components: { VOffline },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -43,10 +48,28 @@ export default {
     return {
       promptedPushNotifications: false,
       subscribedPushNotifications: false,
-      assetPricesUpdateIntervalId: null
+      assetPricesUpdateIntervalId: null,
+      offlineNotif: null
     }
   },
   methods: {
+    async onConnectivityChange (online) {
+      console.log("CONNECTIVITY CHANGE", online)
+      const vm = this
+      vm.$store.dispatch('global/updateConnectivityStatus', online)
+      if (online) {
+        if (vm.offlineNotif) vm.offlineNotif()
+      } else {
+        vm.offlineNotif = vm.$q.notify({
+          type: 'negative',
+          icon: 'signal_wifi_off',
+          iconColor: 'primary',
+          color: 'red-4',
+          timeout: 0,
+          message: vm.$t('NoInternetConnectionNotice')
+        })
+      }
+    },
     async subscribePushNotifications() {
       if (this.subscribedPushNotifications) return
       const multiWalletIndex = this.$store.getters['global/getWalletIndex']
@@ -199,6 +222,13 @@ export default {
   },
   async mounted () {
     const vm = this
+
+    // if (navigator.onLine) {
+    //   vm.onConnectivityChange(true)
+    // } else {
+    //   vm.onConnectivityChange(false)
+    // }
+
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
     if (mnemonic) {
