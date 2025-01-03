@@ -6,7 +6,6 @@
           <q-resize-observer @resize="onFixedSectionResize" />
           <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
-            <v-offline @detected-condition="onConnectivityChange" />
 
             <div
               class="row q-px-sm q-pt-sm"
@@ -373,6 +372,7 @@
 
 <script>
 import axios from 'axios'
+import { mapState } from 'vuex'
 import Watchtower from 'watchtower-cash-js'
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
@@ -385,7 +385,6 @@ import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { sha256 } from 'js-sha256'
-import { VOffline } from 'v-offline'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
@@ -425,7 +424,6 @@ export default {
     AssetCards,
     pinDialog,
     securityOptionDialog,
-    VOffline,
     connectedDialog,
     AssetFilter,
     MultiWalletDropdown,
@@ -482,6 +480,9 @@ export default {
   },
 
   watch: {
+    online(newValue, oldValue) {
+      this.onConnectivityChange(newValue)
+    },
     showTokens (n, o) {
       this.$store.commit('global/showTokens')
     },
@@ -513,6 +514,7 @@ export default {
   },
 
   computed: {
+    ...mapState('global', ['online']),
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
@@ -1156,17 +1158,7 @@ export default {
       // }
     },
     async onConnectivityChange (online) {
-      console.log("CONNECTIVITY CHANGE")
       const vm = this
-      vm.$store.dispatch('global/updateConnectivityStatus', online)
-      const offlineNotif = vm.$q.notify({
-        type: 'negative',
-        icon: 'signal_wifi_off',
-        iconColor: 'primary',
-        color: 'red-4',
-        timeout: 0,
-        message: this.$t('NoInternetConnectionNotice')
-      })
       if (online === true) {
         if (!vm.wallet) await vm.loadWallets()
 
@@ -1182,7 +1174,6 @@ export default {
         if (this.selectedNetwork === 'sBCH') {
           vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
         }
-        offlineNotif()
       } else {
         vm.balanceLoaded = true
         vm.transactionsLoaded = true

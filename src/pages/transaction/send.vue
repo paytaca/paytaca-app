@@ -33,7 +33,6 @@
           :class="sent ? 'q-mt-md sent' : 'q-mt-xs'"
         >
           <div class="q-pa-md enter-address-container">
-            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
             <div v-if="isNFT && !sent" class="nft-container">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
@@ -359,7 +358,6 @@ import HeaderNav from '../../components/header-nav'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import QrScanner from '../../components/qr-scanner.vue'
-import { VOffline } from 'v-offline'
 import {
   isValidTokenAddress,
   getWalletByNetwork,
@@ -394,7 +392,6 @@ export default {
     HeaderNav,
     customKeyboard,
     QrScanner,
-    VOffline,
     DenominatorTextDropdown,
     SendPageForm,
     QRUploader
@@ -1521,21 +1518,6 @@ export default {
         message: message
       })
     },
-    onConnectivityChange (online) {
-      this.$store.dispatch('global/updateConnectivityStatus', online)
-      const offlineNotif = this.$q.notify({
-        type: 'negative',
-        icon: 'signal_wifi_off',
-        iconColor: 'primary',
-        color: 'red-4',
-        timeout: 0,
-        message: this.$t('SendPageOffline')
-      })
-
-      if (online) {
-        offlineNotif()
-      }
-    },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
     },
@@ -1760,10 +1742,6 @@ export default {
     // Load wallets
     vm.initWallet()
       .then(() => vm.adjustWalletBalance())
-
-    if (navigator.onLine) {
-      vm.onConnectivityChange(true)
-    }
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 

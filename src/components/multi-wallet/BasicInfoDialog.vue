@@ -83,6 +83,9 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    isChipnet() {
+      return this.$store.getters['global/isChipnet']
+    },
     denomination () {
       return this.$store.getters['global/denomination']
     },
@@ -96,7 +99,10 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getAssetData () {
-      return this.$store.getters['assets/getVault'][this.vaultIndex]?.asset[0]
+      const index = this.vaultIndex
+      return this.isChipnet
+        ? this.$store.getters['assets/getVault'][index].chipnet_assets[0]
+        : this.$store.getters['assets/getVault'][index].asset[0]
     },
     getAssetMarketBalance (asset) {
       if (!asset?.id) return ''
