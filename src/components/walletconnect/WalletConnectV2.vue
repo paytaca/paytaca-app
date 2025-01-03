@@ -351,8 +351,13 @@ const loadSessionRequests = async ({showLoading} = {showLoading: true}) => {
   try {
     loading.value = showLoading && $t('LoadingRequests')
     if (web3Wallet.value) {
-      sessionRequests.value = await web3Wallet.value.getPendingSessionRequests()
-
+      const requests = await web3Wallet.value.getPendingSessionRequests()
+      console.log('🚀 ~ loadSessionRequests ~ requests:', requests)
+      
+      const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET: CHAINID_MAINNET
+      sessionRequests.value = requests.filter((r) => {
+        return r.params?.chainId == chainIdFilter
+      })
       sessionRequests.value = sessionRequests.value.map(sessionRequest => {
         const parsedSessionRequest = parseSessionRequest(sessionRequest)
 
