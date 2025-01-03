@@ -309,7 +309,11 @@ const loadActiveSessions = async ({showLoading} = {showLoading: true}) => {
     if (web3Wallet.value) {
       const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET: CHAINID_MAINNET
       const sessions = await web3Wallet.value.getActiveSessions()
-      activeSessions.value = sessions
+      activeSessions.value = Object.fromEntries(
+          Object.entries(sessions).filter(([topicKey, sessionValue]) => {
+            return sessionValue.namespaces?.bch?.chains?.includes(chainIdFilter)
+        })
+      )
       console.log('🚀 ~ loadActiveSessions ~ activeSessions:', activeSessions.value)
       
     }
