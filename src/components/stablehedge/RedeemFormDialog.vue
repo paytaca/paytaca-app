@@ -46,7 +46,11 @@
                 outlined
                 v-model="amounts[index]"
                 :suffix="denomination"
-                bottom-slots
+                :rules="[
+                  val => parseFloat(val) > 0 || $t('InvalidAmount'),
+                  val => parseFloat(val) <= maxDenominatedRedeemableBchPerPair[index] ||
+                    $t('MustBeLessThan', { amount: maxDenominatedRedeemableBchPerPair[index] + ' ' + denomination }),
+                ]"
               >
                 <template v-slot:hint>
                   <div v-if="tokenAmounts[index]" class="text-grey">
@@ -75,7 +79,11 @@
               outlined
               v-model="denominatedAmount"
               :suffix="denomination"
-              bottom-slots
+              :rules="[
+                val => parseFloat(val) > 0 || $t('InvalidAmount'),
+                val => parseFloat(val) <= totalDenominatedRedeemableBch ||
+                  $t('MustBeLessThan', { amount: totalDenominatedRedeemableBch + ' ' + denomination }),
+              ]"
             />
             <div
               v-if="Number.isFinite(totalDenominatedRedeemableBch)"

@@ -35,6 +35,7 @@
             bottom-slots
             :rules="[
               val => parseFloat(val) > minAmount || $t('MustBeGreaterThan', { amount: minAmount + ' ' + tokenCurrency }),
+              val => parseFloat(val) <= maxAmount || $t('MustBeLessThan', { amount: maxAmount + ' ' + tokenCurrency}),
             ]"
           >
             <template v-slot:hint>
