@@ -226,8 +226,9 @@ export default defineComponent({
       })
     })
     const maxDenominatedRedeemableBchPerPair = computed(() => {
-      return maxRedeemableSatsPerPair.value.map(sats => sats / 10 ** 8)
+      return maxRedeemableSatsPerPair.value
         .map(bch => bch * denominationPerBchRate.value)
+        .map(sats => sats / 10 ** 8)
     })
     const totalRedeemableSats = computed(() => {
       return maxRedeemableSatsPerPair.value.reduce((subtotal, sats) => {
