@@ -19,25 +19,42 @@
         v-if="lastSearch == inputVal && inputVal"
         v-model="showSuggestions" fit no-focus
         class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)"
+        max-height="60vh;"
       >
         <template v-if="filteredStorefronts?.length">
           <div class="text-caption text-grey">Shops</div>
           <div
             v-for="storefront in filteredStorefronts" :key="storefront?.id"
-            class="q-px-sm q-py-xs"
+            class="q-px-sm q-py-sm"
+            :class="storefront?.inPrelaunch === true ? 'text-grey' : ''"
             style="position:relative"
-            v-ripple
-            @click="() => {
-              $router.push({ name: 'app-marketplace-storefront', params: { storefrontId:storefront?.id }})
-            }"
+            v-ripple="!storefront?.inPrelaunch"
+            @click="() => onStorefrontClick(storefront)"
           >
-            <div class="row items-center">
-              <div
-                class="text-subtitle1"
-                v-html="highlightSearch(storefront?.name, lastSearch)"
-              ></div>
+            <div class="row no-wrap items-center">
+              <div>
+                <div
+                  class="text-subtitle1"
+                  style="line-height:1.25;"
+                  v-html="highlightSearch(storefront?.name, lastSearch)"
+                ></div>
+                <div class="text-grey" style="line-height:0.9;">
+                  <template v-if="storefront?.inPrelaunch === true">
+                    Will be live soon!
+                  </template>
+                  <template v-else-if="!storefront?.isOpen && storefront?.openingTimeText">
+                    {{ storefront?.openingTimeText }}
+                  </template>
+                  <template v-else-if="!storefront?.isOpen">
+                    Closed
+                  </template>
+                </div>
+              </div>
               <q-space/>
-              <div v-if="storefront?.distance" class="text-grey">
+              <div
+                v-if="storefront?.distance"
+                class="text-grey" style="text-wrap:nowrap;"
+              >
                 ~{{ round(storefront?.distance/1000, 2) }} km
               </div>
             </div>
@@ -51,11 +68,10 @@
         <div
           v-for="(product, index) in products" :key="product?.id"
           class="q-px-sm q-py-xs"
+          :class="storefronts?.[product?.storefrontId]?.inPrelaunch === true ? 'text-grey' : ''"
           style="position:relative"
           v-ripple
-          @click="() => {
-            $router.push({ name: 'app-marketplace-product', params: { productId: product?.id }})
-          }"
+          @click="() => onProductClick(product)"
         >
           <div class="row items-start no-wrap">
             <img
@@ -75,17 +91,31 @@
                   v-if="product?.categories?.some?.(category => category?.toLowerCase?.().includes(lastSearch?.toLowerCase()))"
                   class="q-gutter-xs"
                 >
-                  <q-badge v-for="category in product?.categories"
-                    dense color="brandblue" rounded
-                  >
+                  <q-badge v-for="category in product?.categories" dense color="brandblue" rounded>
                     {{ category }}
                   </q-badge>
                 </div>
               </div>
-              <div v-if="storefronts?.[product?.storefrontId]" class="row items-center">
-                <div>{{ storefronts?.[product?.storefrontId]?.name }}</div>
+              <div v-if="storefronts?.[product?.storefrontId]" class="row no-wrap items-start">
+                <div>
+                  <div>{{ storefronts?.[product?.storefrontId]?.name }}</div>
+                  <div class="text-grey text-caption" style="line-height:0.9;">
+                    <template v-if="storefronts?.[product?.storefrontId]?.inPrelaunch === true">
+                      Will be live soon!
+                    </template>
+                    <template v-else-if="!storefronts?.[product?.storefrontId]?.isOpen && storefronts?.[product?.storefrontId]?.openingTimeText">
+                      {{ storefronts?.[product?.storefrontId]?.openingTimeText }}
+                    </template>
+                    <template v-else-if="!storefronts?.[product?.storefrontId]?.isOpen">
+                      Closed
+                    </template>
+                  </div>
+                </div>
                 <q-space/>
-                <div v-if="storefronts?.[product?.storefrontId]?.distance" class="text-grey">
+                <div
+                  v-if="storefronts?.[product?.storefrontId]?.distance"
+                  class="text-grey" style="text-wrap:nowrap;"
+                >
                   ~{{ round(storefronts?.[product?.storefrontId]?.distance/1000, 2) }} km
                 </div>
               </div>
@@ -102,6 +132,7 @@ import { backend } from "src/marketplace/backend";
 import { Product, Storefront } from "src/marketplace/objects";
 import { getISOWithTimezone, round } from "src/marketplace/utils";
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { computed, ref } from "vue";
 
@@ -113,6 +144,7 @@ const props = defineProps({
   },
 })
 
+const $router = useRouter()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -174,4 +206,20 @@ function highlightSearch(val='', search='') {
         val.substring(index+search?.length)
 }
 
+function onStorefrontClick(storefront=Storefront.parse()) {
+  if (storefront.inPrelaunch === true) return
+  $router.push({
+    name: 'app-marketplace-storefront',
+    params: { storefrontId:storefront?.id },
+  })
+}
+
+function onProductClick(product=Product.parse()) {
+  const storefront = storefronts.value[product?.storefrontId]
+  if (storefront?.inPrelaunch === true) return
+  $router.push({
+    name: 'app-marketplace-product',
+    params: { productId: product?.id },
+  })
+}
 </script>
