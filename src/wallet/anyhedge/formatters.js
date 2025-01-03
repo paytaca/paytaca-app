@@ -191,6 +191,7 @@ export function ellipsisText (value, config) {
  * @property {Number} high_liquidation_multiplier
  * @property {String} [starting_oracle_message]
  * @property {String} [starting_oracle_signature]
+ * @property {Boolean} is_simple_hedge
  * @property {Number} [cancelled_at]
  * @property {String} [cancelled_by]
  * @property {String|null} funding_tx_hash
@@ -227,7 +228,7 @@ export async function parseHedgePositionData(data) {
     shortPayoutAddress: data.short_address,
     longPayoutAddress: data.long_address,
     enableMutualRedemption: 1n,
-    isSimpleHedge: 1n, // NOTE: from v2 migration, not sure yet if to keep static
+    isSimpleHedge: data?.is_simple_hedge === false ? 0n : 1n,
   }
 
   const contractData = await compileContract(contractCreationParameters, data.anyhedge_contract_version)
