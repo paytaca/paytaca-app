@@ -177,12 +177,11 @@ export async function searchUtxo(opts) {
  */
 export function getRedemptionContractTxStatus(opts) {
   const backend = getStablehedgeBackend(opts?.chipnet)
-  return backend.get(`stablehedge/redemption-contract-transactions/${opts?.id}/`)
+  return backend.get(`stablehedge/redemption-contract-transactions/${opts?.id}/history_detail/`)
     .then(response => {
       const data = response?.data
       return {
         ...data,
-        id: data?.id,
         id: data?.id,
         status: data?.status,
         txid: data?.txid,
@@ -223,69 +222,115 @@ export async function waitRedemptionContractTx(opts) {
  * @returns {Promise<{ id: Number, status: String, txid: String, message: String }[]>}
  */
 export async function waitRedemptionContractTxs(opts) {
-  const txStatusResults = await Promise.all(
-    opts?.ids.map(async (id) => {
-      return {
-        id: id,
-        data: await getRedemptionContractTxStatus({ id, chipnet: opts?.chipnet})
-          .then(result => {
-            if (['success', 'failed'].includes(result?.status)) return result
-          })
-          .catch(console.error)
-      }
+  /**
+   * @type {Function[]} resolve or reject functions of manually created promises,
+   *  will call them all at the end of function to handle unresolved promises
+   *  which might cause memory leaks */
+  const promiseCleanupCallbacks = []
+
+  try {
+    const txStatusResults = opts?.ids.map(id => {
+      return { id: id, data: null }
     })
-  )
-  const allResolved = () => txStatusResults.every(result => Boolean(result.data?.id))
+    const allResolved = () => txStatusResults.every(result => Boolean(result.data?.id))
+  
+    const timeoutDuration = parseInt(opts?.timeout) || 60 * 1000
+    const timeoutPromise = new Promise((resolve, reject) => {
+      setTimeout(resolve, timeoutDuration)
+      promiseCleanupCallbacks.push(reject)
+    })
+  
+    const stablehedgeRpc = new StablehedgeRPC({ chipnet: opts?.chipnet })
+    const eventName = 'redemption_contract_tx_result'
 
-  if (allResolved()) return txStatusResults.map(result => result?.data)
+    stablehedgeRpc.connect()
 
-  const stablehedgeRpc = new StablehedgeRPC({ chipnet: opts?.chipnet })
-  const eventName = 'redemption_contract_tx_result'
-  return new Promise(resolve => {
-    const resolveResults = () => resolve(txStatusResults.map(result => result?.data || 'timeout'))
-    const onTimeout = () => resolveResults()
-    const timeoutId = setTimeout(onTimeout, parseInt(opts?.timeout) || 60 * 1000)
+    const connectPromise = new Promise((resolve, reject) => {
+      stablehedgeRpc.client.onOpen(async () => {
+        txStatusResults.map(async result => {
+          const eventParams = { id: parseInt(result.id) }
+          await stablehedgeRpc.client.call('subscribe', [eventName, eventParams])
+            .catch(console.error)
+          resolve()
+        })
+      })
+    })
+  
+    const websocketListenerPromise = new Promise((resolve, reject) => {
+      promiseCleanupCallbacks.push(reject)
+      const notificationHandler = (notification) => {
+        const eventName = notification?.event
+        const data = notification?.data
+        if (eventName !== eventName) return
+  
+        const parseEventData = {
+          ...data,
+          id: data?.id,
+          status: data?.status,
+          txid: data?.txid,
+          message: data?.message,
+        }
+        txStatusResults.forEach(result => {
+          if (result?.id != result?.id) return
+          result.data = parseEventData
+        })
+  
+        if (allResolved()) resolve()
+      }
+  
+      stablehedgeRpc.client.onNotification = [notificationHandler]
+      stablehedgeRpc.client.onOpen(() => {
+        txStatusResults.forEach(result => {
+          const eventParams = { id: parseInt(result.id) }
+          stablehedgeRpc.client.call('subscribe', [eventName, eventParams])
+        })
+      })
+    })
+
+    const apiFetch = () => new Promise(async (resolve, reject) => {
+      promiseCleanupCallbacks.push(reject)
+
+      const apiFetchPromises = txStatusResults.map(async result => {
+        const id = result?.id
+        const apiResult = await getRedemptionContractTxStatus({ id, chipnet: opts?.chipnet })
+        if (!['success', 'failed'].includes(apiResult?.status)) return
+        txStatusResults.forEach(result => {
+          if (result?.id != id) return
+          result.data = apiResult
+        })
+      })
+      await Promise.allSettled(apiFetchPromises)
+      if (allResolved()) resolve()
+    })
 
     /**
-     * @param {{ event: String, data: any }} notification 
+     * We do fetch only after the websocket listener has finished subscribing.
+     * 
+     * This is to prevent cases where the fetch finishes and server fires the event
+     * all before the websocket has finished event subscription.
+     * 
+     * When this happens the fetch result is outdated
+     * while the websocket listener has missed the event being fired.
      */
-    const notificationHandler = (notification) => {
-      const eventName = notification?.event
-      const data = notification?.data
-      if (eventName !== eventName) return
+    const connectAndApiFetchPromise = connectPromise.catch(console.error).then(() => apiFetch())
 
-      const parseEventData = {
-        ...data,
-        id: data?.id,
-        status: data?.status,
-        txid: data?.txid,
-        message: data?.message,
-      }
-      txStatusResults.forEach(result => {
-        if (result?.id != result?.id) return
-        result.data = parseEventData
-      })
+    console.log('Racing promises')
+    console.log([
+      timeoutPromise,
+      websocketListenerPromise,
+      connectAndApiFetchPromise,
+    ])
+    await Promise.race([
+      timeoutPromise,
+      websocketListenerPromise,
+      connectAndApiFetchPromise,
+    ])
 
-      if (allResolved()) {
-        clearTimeout(timeoutId)
-        resolveResults()
-      }
-    }
-
-    stablehedgeRpc.client.onNotification = [notificationHandler]
-    stablehedgeRpc.client.onOpen(() => {
-      txStatusResults.forEach(result => {
-        const eventParams = { id: parseInt(result.id) }
-        stablehedgeRpc.client.call('subscribe', [eventName, eventParams])
-      })
-    })
-    stablehedgeRpc.connect()
-  })
-  .finally(() => {
-    stablehedgeRpc.disconnect()
-  })
+    return txStatusResults.map(result => result?.data || 'timeout')
+  } finally {
+    promiseCleanupCallbacks?.forEach(func => func?.())
+  }
 }
-
 
 /**
  * @callback UpdateLoadingCallback
