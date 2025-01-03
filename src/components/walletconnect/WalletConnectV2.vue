@@ -232,11 +232,12 @@ import SessionRequestDialog from './SessionRequestDialog.vue'
 const $emit = defineEmits([
   'request-scanner',  
 ])
+const CHAINID_MAINNET = 'bch:bitcoincash'
+const CHAINID_CHIPNET = 'bch:bchtest'
 
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const $store = useStore()
-
 const loading = ref/* <string> */()
 const processingSession = ref ({}) /* <{ [topicOrId: string | number]: [processingMessage: string] }> */ 
 const watchtower = ref()
@@ -306,7 +307,11 @@ const loadActiveSessions = async ({showLoading} = {showLoading: true}) => {
   loading.value = showLoading && $t('CheckingForActiveConnections')
   try {
     if (web3Wallet.value) {
-      activeSessions.value = await web3Wallet.value.getActiveSessions()
+      const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET: CHAINID_MAINNET
+      const sessions = await web3Wallet.value.getActiveSessions()
+      activeSessions.value = sessions
+      console.log('🚀 ~ loadActiveSessions ~ activeSessions:', activeSessions.value)
+      
     }
     mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
     return activeSessions.value
@@ -321,7 +326,11 @@ const loadSessionProposals = async ({showLoading} = {showLoading: true}) => {
   } 
   try {
     if (web3Wallet.value) {
-      sessionProposals.value = await web3Wallet.value.getPendingSessionProposals()
+      const proposals = await web3Wallet.value.getPendingSessionProposals()
+      const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET: CHAINID_MAINNET
+      sessionProposals.value = proposals.filter((p) => {
+        return p.requiredNamespaces?.bch?.chains?.includes(chainIdFilter)
+      })
       console.log('SESSION PROPOSALS', sessionProposals.value)
     }  
   } catch (error) {} finally { 
@@ -601,7 +610,7 @@ const approveSessionProposal = async (sessionProposal) => {
   processingSession.value[sessionProposal.pairingTopic] = 'Connecting'
   try {
     const chains = [
-      $store.getters['global/isChipnet'] ? 'bch:bchtest' : 'bch:bitcoincash'
+      $store.getters['global/isChipnet'] ? CHAINID_CHIPNET : CHAINID_MAINNET
     ]
     const namespaces = {
       bch: {
@@ -752,7 +761,7 @@ const respondToSessionRequest = async (sessionRequest) => {
     const id = sessionRequest?.id
     const topic = sessionRequest?.topic
 
-    if (!['bch:bitcoincash', 'bch:bchtest'].includes(sessionRequest?.params?.chainId)) {
+    if (![CHAINID_MAINNET, CHAINID_CHIPNET].includes(sessionRequest?.params?.chainId)) {
       await web3Wallet.value.respondSessionRequest({
           topic,
           response: { id, jsonrpc: '2.0', error: { code: -32601, reason: 'Chain not supported' } },
@@ -842,10 +851,12 @@ const resetWallectConnect = async () => {
 }
 
 const loadWeb3Wallet = async (chipnet) => {
+  console.log('🚀 ~ loadWeb3Wal ~ chipnet:', chipnet)
   // web3WalletPromise.value = initWeb3Wallet(chipnet)
   // const _web3Wallet = await web3WalletPromise.value
   // web3Wallet.value = _web3Wallet
   // window.w3w = _web3Wallet
+  
   web3Wallet.value = await initWeb3Wallet(chipnet)
   window.w3w = web3Wallet.value
 }
