@@ -4,8 +4,8 @@ const baseURLs = {
   mainnet: 'https://watchtower.cash/api',
   chipnet: 'https://chipnet.watchtower.cash/api',
 
-  mainnet: 'http://localhost:8000/api',
-  chipnet: 'http://localhost:8000/api',
+  // mainnet: 'http://localhost:8000/api',
+  // chipnet: 'http://localhost:8000/api',
 }
 
 /** @typedef {import("axios").AxiosInstance} AxiosInstance */
