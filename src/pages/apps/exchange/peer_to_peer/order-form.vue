@@ -127,9 +127,9 @@
                   <div v-if="ad.trade_type === 'BUY'">
                     <q-separator :dark="darkMode" class="q-mt-sm"/>
                     <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
-                      <span>{{ $t('Balance') }}</span>
+                      <span>{{ $t('Fee') }}<br>{{ $t('Balance') }}</span>
                       <span class="text-nowrap q-ml-xs">
-                        {{ balance }} BCH
+                        {{ satoshiToBch(fees?.total) }} BCH<br>{{ balance }} BCH
                       </span>
                     </div>
                   </div>
@@ -224,7 +224,7 @@ import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
-import { bchToSatoshi, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
+import { bchToSatoshi, satoshiToBch, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
@@ -268,6 +268,7 @@ export default {
       state: 'initial',
       byFiat: false,
       amount: 0,
+      fees: null,
       amountError: null,
       order: null,
       openDialog: false,
@@ -329,7 +330,13 @@ export default {
       } else {
         value = this.amount
       }
-      return this.balance < parseFloat(value)
+
+      if (this.ad.trade_type === 'BUY') {
+        const transferAmount = parseFloat(value) + satoshiToBch(this.fees?.total)
+        return this.balance < transferAmount
+      } else {
+        return this.balance < parseFloat(value)
+      }
     },
     isOwner () {
       return this.ad.is_owned
@@ -366,6 +373,7 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
+    satoshiToBch,
     openShareDialog () {
       const baseURL = this.$store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
       this.$q.dialog({
@@ -384,6 +392,7 @@ export default {
       vm.isloaded = false
       await vm.fetchAd()
       await vm.fetchArbiters()
+      await vm.fetchFees()
       vm.setupWebsocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
@@ -579,6 +588,25 @@ export default {
           })
       })
     },
+    async fetchFees () { // need backend update
+      const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          this.fees = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            this.fees = { total: 3000 } // REMOVE THIS LATER
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
+    },
     createGroupChat (orderId, members, createdAt) {
       const vm = this
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
@@ -612,6 +640,7 @@ export default {
           amount = Number((amount / this.ad.price).toFixed(8))
         }
       }
+
       if (amount < tradeFloor) {
         valid = false
         this.amountError = this.$t('FiatOrderAmountErrMsg1')

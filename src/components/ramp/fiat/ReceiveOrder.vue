@@ -5,6 +5,7 @@
       :class="getDarkModeClass(darkMode)">
       <div class="row justify-between sm-font-size subtext q-pt-xs q-mx-md q-px-sm">
         <span class="text-nowrap q-ml-xs" :style="balanceExceeded ? 'color:red' : ''">
+          {{ $t('Fee') }}: {{ satoshiToBch(fees?.total) }} BCH<br>
           {{ $t('Balance') }}: {{ bchBalance }} BCH
         </span>
         <div class="text-red q-mr-xs" v-if="errorMessage"><q-icon name="o_info" /> <span>{{ errorMsg }}</span></div>
@@ -35,6 +36,8 @@
   </div>
 </template>
 <script>
+import { bus } from 'src/wallet/event-bus.js'
+import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAppealCooldown, formatCurrency, satoshiToBch, bchToFiat } from 'src/exchange'
 
@@ -50,7 +53,8 @@ export default {
       price: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       loadConfirmButton: false,
-      loadDeclineButton: false
+      loadDeclineButton: false,
+      fees: null
     }
   },
   props: {
@@ -64,7 +68,9 @@ export default {
     },
     balanceExceeded () {
       if (this.order?.ad?.trade_type === 'BUY' && this.order?.is_ad_owner) return false
-      return (satoshiToBch(this.order?.trade_amount) > parseFloat(this.balance))
+
+      const transferAmount = satoshiToBch(this.order?.trade_amount + this.fees?.total)
+      return (transferAmount > parseFloat(this.balance))
     },
     fiatAmount () {
       return bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
@@ -98,6 +104,7 @@ export default {
   },
   async mounted () {
     this.order = this.data?.order
+    this.fetchFees()
     this.price = this.formatCurrency(this.order?.locked_price, this.order?.ad?.fiat_currency?.symbol)
     this.updateInput()
     this.isloaded = true
@@ -105,6 +112,7 @@ export default {
   methods: {
     formatCurrency,
     getDarkModeClass,
+    satoshiToBch,
     formattedPlt (value) {
       return getAppealCooldown(value)
     },
@@ -116,6 +124,25 @@ export default {
         amount = satoshiToBch(this.order?.trade_amount)
       }
       this.amount = Number(amount)
+    },
+    async fetchFees () { // need backend update
+      const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          this.fees = response.data
+        })
+        .catch(error => {
+          if (error.response) {
+            this.fees = { total: 3000 } // REMOVE THIS LATER
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            console.error(error)
+            bus.emit('network-error')
+          }
+        })
     }
   }
 }
