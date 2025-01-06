@@ -1,10 +1,10 @@
 import escrowSrcCode from 'src/cashscripts/escrow.cash'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
 import { compileString } from 'cashc'
-import { backend } from './backend'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
-
+import Watchtower from 'watchtower-cash-js'
+import { Store } from 'src/store'
 const bchjs = new BCHJS()
 
 /**
@@ -85,8 +85,8 @@ export class RampContract {
   async getBalance (address = '') {
     if (!address) address = this.contract.address
     try {
-      const response = await backend.get(`/balance/bch/${address}`)
-      // console.log(response)
+      const watchtower = new Watchtower(Store.getters['global/isChipnet'])
+      const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
       return response.data.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)

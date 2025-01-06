@@ -5,7 +5,7 @@
         <div class="xs-font-size">{{ tradeTypeLabel() }}</div>
         <div class="row justify-end">
             <div class="col q-py-none">
-                <div style="overflow-x: auto; max-width: 125px;">
+                <div style="overflow-x: auto; max-width: 200px;">
                   <q-btn flat no-caps dense
                       padding="none"
                       color="primary"
@@ -31,7 +31,7 @@
                   @click="onViewReviews"/>
                   <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
-                <div v-if="counterparty && counterparty?.is_online === false" class="row xs-font-size text-grey">
+                <div v-if="counterparty && counterparty?.last_online_at && counterparty?.is_online === false" class="row xs-font-size text-grey">
                   Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}
                 </div>
             </div>

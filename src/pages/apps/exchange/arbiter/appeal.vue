@@ -402,29 +402,6 @@ export default {
           })
       })
     },
-    fetchFees () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = '/ramp-p2p/order/contract/fees/'
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.fees = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
-    },
     async fetchChatUnread (chatRef) {
       const user = this.$store.getters['ramp/getUser']
       await fetchChatMembers(chatRef).then(response => {

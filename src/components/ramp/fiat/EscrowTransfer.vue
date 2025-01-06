@@ -274,7 +274,8 @@ export default {
         if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
-          const result = await (await wallet.raw()).sendBch(vm.transferAmount, vm.contractAddress)
+          const rawWallet = await wallet.raw()
+          const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress)
           console.log('sendBch:', result)
           if (result?.success) {
             vm.txid = result.txid
