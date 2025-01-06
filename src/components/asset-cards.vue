@@ -118,7 +118,7 @@ export default {
           return asset.logo
         }
       } else {
-        return getFallbackAssetLogo(asset)
+        return this.getFallbackAssetLogo(asset)
       }
     },
     selectAsset (event, asset) {
