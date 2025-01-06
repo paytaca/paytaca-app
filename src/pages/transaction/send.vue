@@ -145,7 +145,6 @@
                       :isNFT="isNFT"
                       :currentWalletBalance="currentWalletBalance"
                       :currentSendPageCurrency="currentSendPageCurrency"
-                      :convertToFiatAmount="convertToFiatAmount"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
                       @on-qr-scanner-click="onQRScannerClick"
@@ -175,7 +174,6 @@
                     :isNFT="isNFT"
                     :currentWalletBalance="currentWalletBalance"
                     :currentSendPageCurrency="currentSendPageCurrency"
-                    :convertToFiatAmount="convertToFiatAmount"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     @on-qr-scanner-click="onQRScannerClick"
                     @read-only-state="readonlyState"
@@ -320,12 +318,10 @@ import { NativeAudio } from '@capacitor-community/native-audio'
 import { pushNotificationsManager } from 'src/boot/push-notifications'
 import { getMnemonic, Wallet, Address } from 'src/wallet'
 import { getNetworkTimeDiff } from 'src/utils/time'
-import { isTokenAddress } from 'src/utils/address-utils'
 import { getCashbackAmount } from 'src/utils/engagementhub-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { JSONPaymentProtocol, parsePaymentUri } from 'src/wallet/payment-uri'
+import { parsePaymentUri } from 'src/wallet/payment-uri'
 import {
-  isValidTokenAddress,
   getWalletByNetwork,
   convertTokenAmount
 } from 'src/wallet/chipnet'
@@ -337,6 +333,7 @@ import {
   customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
+import * as sendPageUtils from 'src/utils/send-page-utils'
 
 import { VOffline } from 'v-offline'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
@@ -618,7 +615,7 @@ export default {
   watch: {
     sendAmountInFiat: function (amount) {
       if (!this.inputExtras[this.currentRecipientIndex].setMax) {
-        const fiatToAsset = this.convertFiatToSelectedAsset(amount) || 0
+        const fiatToAsset = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice) || 0
         this.sendDataMultiple[this.currentRecipientIndex].amount = fiatToAsset
 
         const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
@@ -692,7 +689,7 @@ export default {
       const currentRecipient = vm.sendDataMultiple[vm.currentRecipientIndex]
       const currentInputExtras = vm.inputExtras[vm.currentRecipientIndex]
 
-      const paymentUriData = vm.handlePaymentUri(content, currentRecipient)
+      const paymentUriData = await vm.handlePaymentUri(content, currentRecipient)
       if (paymentUriData) {
         [address, amountValue, currency, fungibleTokenAmount] = paymentUriData
       } else return
@@ -719,7 +716,7 @@ export default {
             currentRecipient.amount = vm.customNumberFormatting(amount)
             currentRecipient.fixedAmount = true
           } else if (!newSelectedCurrency?.symbol && amount) {
-            vm.raiseNotifyError(
+            sendPageUtils.raiseNotifyError(
               vm.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
             )
             currentRecipient.recipientAddress = ''
@@ -748,7 +745,7 @@ export default {
           token: 'bch',
           txid: '-',
           recipient: currentRecipient.recipientAddress,
-          sender_0: vm.$store.getters['global/getWallet']('bch')?.lastAddress,
+          sender_0: sendPageUtils.getWallet('bch')?.lastAddress,
           decimals: 8,
           value: payloadAmount,
           device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
@@ -759,7 +756,7 @@ export default {
     },
 
     // payment uri
-    handlePaymentUri (content, currentRecipient) {
+    async handlePaymentUri (content, currentRecipient) {
       const vm = this
 
       let address = content
@@ -777,7 +774,7 @@ export default {
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        vm.paymentUriPromiseResponseHandler(error)
+        sendPageUtils.paymentUriPromiseResponseHandler(error)
         return
       }
 
@@ -812,7 +809,7 @@ export default {
 
       // skip the usual route when found a valid JSON payment protocol url
       if (paymentUriData?.jpp?.valid) {
-        vm.handleJPP(paymentUriData.jpp.paymentUri)
+        this.jpp = await sendPageUtils.handleJpp(paymentUriData.jpp.paymentUri, this.darkMode)
         return
       }
 
@@ -820,38 +817,6 @@ export default {
     },
 
     // jpp
-    handleJPP (paymentUri) {
-      const dialog = this.$q.dialog({
-        title: 'Invoice',
-        message: 'Fetching invoice data',
-        progress: true,
-        persistent: true,
-        seamless: true,
-        ok: false,
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
-      })
-
-      JSONPaymentProtocol.fetch(paymentUri)
-        .then(jpp => {
-          this.jpp = markRaw(jpp)
-          dialog.hide()
-        })
-        .catch(error => {
-          let message = 'Failed to fetch invoice data'
-          if (typeof error?.response?.data === 'string') {
-            if (error?.response?.data?.indexOf('expired') >= 0) message = 'Invoice is expired'
-            else if (error?.response?.data?.length <= 1000) message = error?.response?.data
-          }
-          if (error?.name === 'JsonPaymentProtocolError' && error?.message) {
-            message = error?.message
-          }
-          dialog.update({ message: message })
-          console.error(error)
-        })
-        .finally(() => {
-          dialog.update({ persistent: false, progress: false, ok: true })
-        })
-    },
     onJppPaymentSucess () {
       this.$forceUpdate()
       this.txid = this.jpp?.txids?.[0]
@@ -870,7 +835,7 @@ export default {
 
     // bip21
     onBIP21Amount (value) {
-      const amount = this.getBIP21Amount(value)
+      const amount = sendPageUtils.getBIP21Amount(value)
       if (!Number.isNaN(amount)) {
         const currentSendData = this.sendDataMultiple[this.currentRecipientIndex]
         const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
@@ -895,7 +860,7 @@ export default {
           const now = Math.floor(Date.now() / 1000)
           if (now >= expires) {
             this.disableSending = true
-            this.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
+            sendPageUtils.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
           }
           return false
         }
@@ -1044,8 +1009,8 @@ export default {
           fixedRecipientAddress: false
         })
         this.inputExtras.push({
-          amountFormatted: 0,
-          sendAmountInFiat: 0,
+          amountFormatted: '',
+          sendAmountInFiat: '',
           balanceExceeded: false,
           scannedRecipientAddress: false,
           setMax: false,
@@ -1059,7 +1024,7 @@ export default {
           this.expandedItems[`R${i}`] = false
         }
         this.sliderStatus = false
-      } else this.raiseNotifyError(this.$t('CannotAddRecipient'))
+      } else sendPageUtils.raiseNotifyError(this.$t('CannotAddRecipient'))
     },
     removeLastRecipient () {
       this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
@@ -1078,7 +1043,7 @@ export default {
         const now = Math.floor(Date.now() / 1000)
         if (now >= expires) {
           vm.disableSending = true
-          vm.raiseNotifyError(vm.$t('PaymentRequestIsExpired'))
+          sendPageUtils.raiseNotifyError(vm.$t('PaymentRequestIsExpired'))
           return
         }
       }
@@ -1101,7 +1066,7 @@ export default {
         .toFixed(8)
 
       if (totalAmount > vm.asset.balance) {
-        vm.raiseNotifyError(vm.$t('TotalAmountError'))
+        sendPageUtils.raiseNotifyError(vm.$t('TotalAmountError'))
         return
       }
 
@@ -1132,7 +1097,7 @@ export default {
       }
 
       if (toSendBchRecipients.length > 0) {
-        let changeAddress = this.getChangeAddress('bch')
+        let changeAddress = sendPageUtils.getChangeAddress('bch')
 
         if (token?.tokenId && this.userSelectedChangeAddress) {
           changeAddress = this.userSelectedChangeAddress
@@ -1142,15 +1107,15 @@ export default {
           .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
       } else if (toSendSlpRecipients.length > 0) {
         const tokenId = vm.assetId.split('slp/')[1]
-        const bchWallet = vm.getWallet('bch')
+        const bchWallet = sendPageUtils.getWallet('bch')
         const feeFunder = {
           walletHash: bchWallet.walletHash,
           mnemonic: vm.wallet.mnemonic,
           derivationPath: bchWallet.derivationPath
         }
         const changeAddresses = {
-          bch: vm.getChangeAddress('bch'),
-          slp: vm.getChangeAddress('slp')
+          bch: sendPageUtils.getChangeAddress('bch'),
+          slp: sendPageUtils.getChangeAddress('slp')
         }
 
         getWalletByNetwork(vm.wallet, 'slp')
@@ -1252,7 +1217,7 @@ export default {
             vm.txTimestamp = Date.now()
             vm.playSound(true)
           } catch (e) {
-            vm.raiseNotifyError(e.message)
+            sendPageUtils.raiseNotifyError(e.message)
           }
         } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
       })
@@ -1294,33 +1259,6 @@ export default {
 
     // ========== util methods ==========
     // getters
-    getAsset (id) {
-      const getter = 'assets/getAsset'
-      const assets = this.$store.getters[getter](id)
-
-      let asset
-      if (assets.length > 0) asset = assets[0]
-      else asset = { id: this.assetId, symbol: this.symbol }
-
-      if (id?.startsWith?.('ct/') && asset) {
-        asset.decimals = parseInt(asset.decimals) || 0
-      }
-      return asset
-    },
-    getBIP21Amount (bip21Uri) {
-      const addressParse = new URLSearchParams(bip21Uri.split('?')[1])
-      if (addressParse.has('amount')) {
-        const amount = parseFloat(addressParse.get('amount'))
-        return amount
-      }
-      return NaN
-    },
-    getWallet (type) {
-      return this.$store.getters['global/getWallet'](type)
-    },
-    getChangeAddress (walletType) {
-      return this.$store.getters['global/getChangeAddress'](walletType)
-    },
     getExplorerLink (txid) {
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
       if (this.isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
@@ -1362,41 +1300,19 @@ export default {
 
     // amount and balance conversion and adjustment
     convertToFiatAmount (amount) {
-      const parsedAmount = Number(amount)
-      if (!parsedAmount) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-
-      const computedBalance = Number(parsedAmount || 0) * Number(this.selectedAssetMarketPrice)
-      if (!computedBalance) return ''
-      if (computedBalance > 0.01) return computedBalance.toFixed(2)
-      else return computedBalance.toFixed(4)
-    },
-    convertFiatToSelectedAsset (amount) {
-      const parsedAmount = Number(amount)
-      if (!parsedAmount) return ''
-      if (!this.selectedAssetMarketPrice) return ''
-      const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
-      return computedBalance.toFixed(8)
+      return sendPageUtils.convertToFiatAmount(amount, this.selectedAssetMarketPrice)
     },
     recomputeAmount (currentRecipient, currentInputExtras, amount) {
-      const converted = this.convertFiatToSelectedAsset(amount)
+      const converted = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice)
       currentRecipient.amount = converted
       currentInputExtras.amountFormatted = this.customNumberFormatting(
         getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
       )
     },
     adjustWalletBalance () {
-      const isToken = this.asset.id.startsWith('ct/')
-      const tokenDenominator = 10 ** this.asset.decimals
-
-      const totalAmount = this.sendDataMultiple
-        .map(a => Number(a.amount))
-        .reduce((acc, curr) => acc + curr, 0)
-        .toFixed(8)
-      const walletBalance = this.asset.balance
-      this.currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
-      // for tokens ('ct/'), convert back to original decimals
-      if (isToken) this.currentWalletBalance *= tokenDenominator
+      this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
+        this.asset, this.sendDataMultiple.map(a => Number(a.amount))
+      )
     },
 
     // address checking/validation
@@ -1404,7 +1320,7 @@ export default {
       const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
 
       if (address.indexOf('?') > -1) {
-        const amount = this.getBIP21Amount(address)
+        const amount = sendPageUtils.getBIP21Amount(address)
         address = address.split('?')[0]
 
         if (!Number.isNaN(amount)) currentRecipient.amount = amount
@@ -1416,61 +1332,18 @@ export default {
         currentRecipient.recipientAddress = addressValidation.address
         return true
       } else {
-        this.raiseNotifyError(this.$t('InvalidAddress'))
+        sendPageUtils.raiseNotifyError(this.$t('InvalidAddress'))
         this.sliderStatus = false
         return false
       }
     },
     validateAddress (address) {
-      const vm = this
-      const addressObj = new Address(address)
-      let addressIsValid = false
-      let formattedAddress
-
-      try {
-        if (vm.walletType === 'bch') {
-          if (!vm.isCashToken) {
-            addressIsValid = true
-
-            if (isValidTokenAddress(address)) {
-              formattedAddress = address
-            } else if (
-              (addressObj.isLegacyAddress() || addressObj.isCashAddress()) &&
-              addressObj.isValidBCHAddress(vm.isChipnet)
-            ) {
-              formattedAddress = addressObj.toCashAddress(address)
-            }
-          } else {
-            addressIsValid = isTokenAddress(address)
-            formattedAddress = address
-          }
-        }
-        if (vm.walletType === 'slp') {
-          if (addressObj.isSLPAddress() && addressObj.isMainnetSLPAddress()) {
-            addressIsValid = true
-            formattedAddress = addressObj.toSLPAddress(address)
-          }
-        }
-      } catch (err) {
-        addressIsValid = false
-        console.log(err)
-      }
-
-      return { valid: addressIsValid, address: formattedAddress }
+      return sendPageUtils.validateAddress(
+        address, this.walletType, this.isCashToken, this.isChipnet
+      )
     },
 
     // error handling
-    paymentUriPromiseResponseHandler (error) {
-      const vm = this
-
-      if (error?.message === 'PaymentRequestIsExpired') {
-        vm.raiseNotifyError(vm.$t(error.message))
-      } else if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
-        vm.raiseNotifyError(vm.$t('InvalidAddressFormat'))
-      } else if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
-        vm.raiseNotifyError(vm.$t('MultipleRecipientsUnsupported'))
-      }
-    },
     sendingPromiseResponseHandler (addressIsValid, amountIsValid) {
       const vm = this
 
@@ -1478,7 +1351,7 @@ export default {
       vm.sliderStatus = true
 
       if (!addressIsValid) {
-        vm.raiseNotifyError(vm.$t(
+        sendPageUtils.raiseNotifyError(vm.$t(
           'InvalidRecipient',
           { walletType: vm.walletType.toUpperCase() },
           `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
@@ -1486,7 +1359,7 @@ export default {
         throw new Error('Invalid recipient')
       }
       if (!amountIsValid) {
-        vm.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
+        sendPageUtils.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
         throw new Error('Send amount greater than zero')
       }
       throw new Error('Error in sending to recipient(s)')
@@ -1494,34 +1367,13 @@ export default {
     submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
-      if (!result.success) {
-        if (result.error.indexOf('not enough balance in sender') > -1) {
-          if (walletType === 'bch') vm.raiseNotifyError(vm.$t('NotEnoughForBoth'))
-          else if (walletType === 'slp') vm.raiseNotifyError(vm.$t('NotEnoughForSendAmount'))
-        } else if (result.error.indexOf('has insufficient priority') > -1) {
-          vm.raiseNotifyError(vm.$t('NotEnoughForTransactionFee'))
-        } else if (result.error.indexOf('not enough balance in fee funder') > -1) {
-          vm.raiseNotifyError(vm.$t('NotEnoughBchForFee'))
-        } else if (result.error) {
-          vm.raiseNotifyError(result.error)
-        } else {
-          vm.raiseNotifyError(vm.$t('UnknownError'))
-        }
-      } else {
+      if (result.success) {
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
         vm.playSound(true)
         vm.sending = false
         vm.sent = true
-      }
-    },
-    raiseNotifyError (message) {
-      this.$q.notify({
-        type: 'negative',
-        color: 'red-4',
-        timeout: 3000,
-        message: message
-      })
+      } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
 
     // uncategorized
@@ -1553,7 +1405,7 @@ export default {
     const vm = this
 
     vm.updateNetworkDiff()
-    vm.asset = vm.getAsset(vm.assetId)
+    vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
 
     if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
     else {

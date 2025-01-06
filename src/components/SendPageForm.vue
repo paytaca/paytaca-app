@@ -142,7 +142,9 @@
         {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
       </span>
       <template v-if="asset.id === 'bch'">
-        {{ ` = ${parseFiatCurrency(convertToFiatAmount(currentWalletBalance), currentSendPageCurrency())}` }}
+        {{ ` = ${parseFiatCurrency(
+          convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
+          }` }}
       </template>
       <a
         href="#"
@@ -180,6 +182,8 @@ import {
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
+import { convertToFiatAmount } from 'src/utils/send-page-utils'
+
 import SelectChangeAddress from './SelectChangeAddress.vue'
 
 export default {
@@ -208,7 +212,6 @@ export default {
     currentWalletBalance: { type: Number },
 
     currentSendPageCurrency: { type: Function },
-    convertToFiatAmount: { type: Function },
     setMaximumSendAmount: { type: Function },
     defaultSelectedFtChangeAddress: { type: String }
   },
@@ -327,6 +330,8 @@ export default {
     shortenAddressForDisplay,
     convertCashAddress,
     convertTokenAmount,
+    convertToFiatAmount,
+
     onQRScannerClick (value) {
       this.$emit('on-qr-scanner-click', value)
     },
@@ -362,7 +367,7 @@ export default {
       const message = this.inputExtras.cashbackData.message
       const amountBch = this.inputExtras.cashbackData.cashback_amount
       const amountFiat = parseFiatCurrency(
-        this.convertToFiatAmount(this.inputExtras.cashbackData.cashback_amount),
+        convertToFiatAmount(this.inputExtras.cashbackData.cashback_amount),
         this.currentSendPageCurrency()
       )
       const merchantName = this.inputExtras.cashbackData.merchant_name
