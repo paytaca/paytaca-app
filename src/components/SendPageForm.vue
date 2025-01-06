@@ -49,6 +49,14 @@
     :class="getDarkModeClass(darkMode)"
     v-html="$t('LegacyAddressWarning')"
   />
+  <div
+    v-if="inputExtras.isWalletAddress"
+    style="border: 2px solid orange;"
+    class="q-mx-md q-mb-md q-pa-sm text-center text-body2 text-bow"
+    :class="getDarkModeClass(darkMode)"
+  >
+    You are about to send funds to your own address. This will combine unspent transaction outputs into a single transaction. If this is not your intended action, please enter another address.
+  </div>
   <div class="col-12">
     <q-input
         v-if="assetIsFT && hasFTChange && hasFTChangeAddressOption && selectedChangeAddress"

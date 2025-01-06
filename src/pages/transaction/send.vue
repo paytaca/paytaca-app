@@ -76,6 +76,14 @@
                 :class="getDarkModeClass(darkMode)"
                 v-html="$t('LegacyAddressWarning')"
               />
+              <div
+                v-if="isWalletAddress"
+                style="border: 2px solid orange;"
+                class="q-mx-md q-mb-md q-pa-sm text-center text-subtitle2 text-bow"
+                :class="getDarkModeClass(darkMode)"
+              >
+                You are about to send funds to your own address. This will combine unspent transaction outputs into a single transaction. If this is not your intended action, please enter another address.
+              </div>
               <q-slide-transition :duration="750">
                 <div v-if="manualAddress && validateAddress(manualAddress)?.valid" class="text-center">
                   <q-btn
@@ -445,7 +453,6 @@ export default {
         amount: null,
         fixedAmount: false,
         recipientAddress: '',
-        rawPaymentUri: '', // for scanning qr data
         paymentAckMemo: '' //,
         // fixedRecipientAddress: false
       }],
@@ -459,6 +466,7 @@ export default {
         selectedDenomination: 'BCH',
         isBip21: false,
         isLegacyAddress: false,
+        isWalletAddress: false,
         cashbackData: null
       }],
       expandedItems: {},
@@ -494,6 +502,7 @@ export default {
       totalFiatAmountSent: 0,
       currentWalletBalance: 0,
       isLegacyAddress: false,
+      isWalletAddress: false,
       userSelectedChangeAddress: '',
       focusedInputField: ''
     }
@@ -644,8 +653,18 @@ export default {
       }
     },
     manualAddress (address) {
-      this.isLegacyAddress = new Address(address).isLegacyAddress()
-      this.inputExtras[this.currentRecipientIndex].isLegacyAddress = this.isLegacyAddress
+      const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
+        address,
+        this.sendDataMultiple.map(a => a.recipientAddress),
+        sendPageUtils.getWallet('bch')?.lastAddress
+      )
+
+      if (isDuplicate) sendPageUtils.raiseNotifyError('You already added this address.')
+
+      this.isLegacyAddress = isLegacy
+      this.isWalletAddress = isWalletAddress
+      this.inputExtras[this.currentRecipientIndex].isLegacyAddress = isLegacy
+      this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
     }
   },
 
@@ -685,16 +704,40 @@ export default {
       let amountValue = null
       let currency = null
       let fungibleTokenAmount = null
-      const rawPaymentUri = ''
       const currentRecipient = vm.sendDataMultiple[vm.currentRecipientIndex]
       const currentInputExtras = vm.inputExtras[vm.currentRecipientIndex]
+
+      // check if address is a legacy address, it is a duplicate,
+      // or if it is the same as the current wallet's address
+      const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
+        content,
+        vm.sendDataMultiple.map(a => a.recipientAddress),
+        sendPageUtils.getWallet('bch')?.lastAddress
+      )
+
+      if (isDuplicate) {
+        sendPageUtils.raiseNotifyError('You already added this address.')
+        return
+      }
+
+      if (isWalletAddress) {
+        currentInputExtras.isWalletAddress = isWalletAddress
+        vm.isWalletAddress = isWalletAddress
+      }
+
+      if (isLegacy) {
+        currentRecipient.recipientAddress = content.split('?')[0]
+        currentInputExtras.emptyRecipient = false
+        currentInputExtras.isLegacyAddress = isLegacy
+        return
+      }
 
       const paymentUriData = await vm.handlePaymentUri(content, currentRecipient)
       if (paymentUriData) {
         [address, amountValue, currency, fungibleTokenAmount] = paymentUriData
       } else return
 
-      const valid = vm.checkAddress(address)
+      const valid = vm.checkAddressValidity(address)
       if (valid) {
         vm.setDefaultFtChangeAddress()
 
@@ -702,7 +745,6 @@ export default {
         vm.onBIP21Amount(content)
 
         currentRecipient.recipientAddress = address
-        currentRecipient.rawPaymentUri = rawPaymentUri
         // currentInputExtras.scannedRecipientAddress = true
         currentInputExtras.emptyRecipient = false
 
@@ -720,7 +762,6 @@ export default {
               vm.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
             )
             currentRecipient.recipientAddress = ''
-            currentRecipient.rawPaymentUri = ''
 
             return
           }
@@ -1004,7 +1045,6 @@ export default {
           amount: 0,
           fixedAmount: false,
           recipientAddress: '',
-          rawPaymentUri: '', // for scanning qr data
           paymentAckMemo: '' //,
           // fixedRecipientAddress: false
         })
@@ -1239,9 +1279,23 @@ export default {
       } catch {}
     },
     onRecipientInput (value) {
+      const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
+        value ?? '',
+        this.sendDataMultiple.map(a => a.recipientAddress),
+        sendPageUtils.getWallet('bch')?.lastAddress
+      )
+
+      if (isDuplicate) {
+        sendPageUtils.raiseNotifyError('You already added this address.')
+        return
+      }
+
       this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
-      this.inputExtras[this.currentRecipientIndex].isLegacyAddress = new Address(value).isLegacyAddress()
+      this.isLegacyAddress = isLegacy
+      this.isWalletAddress = isWalletAddress
+      this.inputExtras[this.currentRecipientIndex].isLegacyAddress = isLegacy
+      this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
@@ -1316,7 +1370,7 @@ export default {
     },
 
     // address checking/validation
-    checkAddress (address) {
+    checkAddressValidity (address) {
       const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
 
       if (address.indexOf('?') > -1) {

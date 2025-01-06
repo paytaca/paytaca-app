@@ -188,3 +188,30 @@ export function submitPromiseErrorResponseHandler (result, walletType) {
     raiseNotifyError($t('UnknownError'))
   }
 }
+
+export function addressPrechecks (content, recipientList, walletAddress) {
+  const address = content.split('?')[0]
+  const isLegacy = checkIfLegacyAddress(address)
+
+  return [
+    isLegacy,
+    checkDuplicateRecipient(address, recipientList),
+    checkIfWalletAddress(address, walletAddress, isLegacy)
+  ]
+}
+
+export function checkIfLegacyAddress (address) {
+  return new Address(address).isLegacyAddress()
+}
+
+function checkDuplicateRecipient (recipient, recipientList) {
+  return recipientList.findIndex(a => a === recipient) > -1 &&
+    recipient && recipientList.length > 1
+}
+
+function checkIfWalletAddress (address, walletAddress, isLegacy) {
+  if (isLegacy) {
+    return address === new Address(walletAddress).toLegacyAddress()
+  }
+  return address === walletAddress
+}
