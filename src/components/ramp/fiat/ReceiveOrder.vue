@@ -5,7 +5,7 @@
       :class="getDarkModeClass(darkMode)">
       <div class="row justify-between sm-font-size subtext q-pt-xs q-mx-md q-px-sm">
         <span class="text-nowrap q-ml-xs" :style="balanceExceeded ? 'color:red' : ''">
-          {{ $t('Fee') }}: {{ satoshiToBch(fees?.total) }} BCH<br>
+          {{ $t('Fee') }}: {{ satoshiToBch(fees) }} BCH<br>
           {{ $t('Balance') }}: {{ bchBalance }} BCH
         </span>
         <div class="text-red q-mr-xs" v-if="errorMessage"><q-icon name="o_info" /> <span>{{ errorMsg }}</span></div>
@@ -69,7 +69,7 @@ export default {
     balanceExceeded () {
       if (this.order?.ad?.trade_type === 'BUY' && this.order?.is_ad_owner) return false
 
-      const transferAmount = satoshiToBch(this.order?.trade_amount + this.fees?.total)
+      const transferAmount = satoshiToBch(this.order?.trade_amount + this.fees)
       return (transferAmount > parseFloat(this.balance))
     },
     fiatAmount () {
@@ -125,15 +125,15 @@ export default {
       }
       this.amount = Number(amount)
     },
-    async fetchFees () { // need backend update
-      const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
-      await backend.get(url, { authorize: true })
+    async fetchFees () {
+      const url = `ramp-p2p/utils/calculate-fees/?sats_trade_amount=${this.order?.trade_amount}`
+      await backend.get(url)
         .then(response => {
-          this.fees = response.data
+          const tempFee = response.data
+          this.fees = Object.values(tempFee).reduce((a, b) => a + b, 0)
         })
         .catch(error => {
           if (error.response) {
-            this.fees = { total: 3000 } // REMOVE THIS LATER
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')

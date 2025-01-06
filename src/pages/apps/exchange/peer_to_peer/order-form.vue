@@ -129,7 +129,7 @@
                     <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
                       <span>{{ $t('Fee') }}<br>{{ $t('Balance') }}</span>
                       <span class="text-nowrap q-ml-xs">
-                        {{ satoshiToBch(fees?.total) }} BCH<br>{{ balance }} BCH
+                        {{ satoshiToBch(fees) }} BCH<br>{{ balance }} BCH
                       </span>
                     </div>
                   </div>
@@ -226,6 +226,7 @@ import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialo
 import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
 import { bchToSatoshi, satoshiToBch, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
+import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
@@ -332,7 +333,7 @@ export default {
       }
 
       if (this.ad.trade_type === 'BUY') {
-        const transferAmount = parseFloat(value) + satoshiToBch(this.fees?.total)
+        const transferAmount = parseFloat(value) + satoshiToBch(this.fees)
         return this.balance < transferAmount
       } else {
         return this.balance < parseFloat(value)
@@ -357,6 +358,11 @@ export default {
     marketPrice (val) {
       // polling ad info whenever market price update
       this.fetchAd()
+    },
+    amount (val) {
+      if (this.ad.trade_type === 'BUY') {
+        this.fetchFees()
+      }
     }
   },
   async created () {
@@ -392,7 +398,6 @@ export default {
       vm.isloaded = false
       await vm.fetchAd()
       await vm.fetchArbiters()
-      await vm.fetchFees()
       vm.setupWebsocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
@@ -588,15 +593,15 @@ export default {
           })
       })
     },
-    async fetchFees () { // need backend update
-      const url = `/ramp-p2p/order/${this.order?.id}/contract/fees/`
-      await backend.get(url, { authorize: true })
+    async fetchFees () {
+      const url = `ramp-p2p/utils/calculate-fees/?sats_trade_amount=${this.getTradeAmount()}`
+      await backend.get(url)
         .then(response => {
-          this.fees = response.data
+          const tempFee = response.data
+          this.fees = Object.values(tempFee).reduce((a, b) => a + b, 0)
         })
         .catch(error => {
           if (error.response) {
-            this.fees = { total: 3000 } // REMOVE THIS LATER
             console.error(error.response)
             if (error.response.status === 403) {
               bus.emit('session-expired')
