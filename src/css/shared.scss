@@ -6,6 +6,8 @@
 
 /* ----- VARIABLES ----- */
 $brand_blue: rgb(60, 100, 246);
+$brand_dark: #212f3d;
+$brand_light: #f9f8ff;
 $close_button: red;
 $font-family_1: "Rubik", sans-serif;
 
@@ -31,6 +33,25 @@ $font-family_1: "Rubik", sans-serif;
   transition: 0.1s;
 }
 
+/*
+In scss files:
+@include genColorClasses(#1234, 'brand');
+@include genColorClasses(#4321, 'brand2');
+
+In html/template:
+<q-btn color="brand" text-color="brand2" />
+<div class="bg-brand text-brand2">
+*/
+@mixin gen-color-classes($color, $name) {
+  .bg-#{$name} {
+    background: $color !important;
+  }
+  .text-#{$name} {
+    color: $color !important;
+  }
+}
+
+
 /* ----- CLASSES ----- */
 .br-15 {
   border-radius: 15px !important;
@@ -46,13 +67,9 @@ $font-family_1: "Rubik", sans-serif;
   border-radius: 40px !important;
 }
 
-.text-brandblue {
-  color: $brand_blue !important;
-}
-
-.bg-brandblue {
-  background: $brand_blue !important;
-}
+@include gen-color-classes($brand_blue, 'brandblue');
+@include gen-color-classes($brand_dark, 'branddark');
+@include gen-color-classes($brand_light, 'brandlight');
 
 .pp-fcolor {
   color: #000 !important;
