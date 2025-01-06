@@ -336,6 +336,7 @@ import {
   convertToBCH,
   customNumberFormatting
 } from 'src/utils/denomination-utils'
+import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 
 import { VOffline } from 'v-offline'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
@@ -452,8 +453,8 @@ export default {
         fixedRecipientAddress: false
       }],
       inputExtras: [{
-        amountFormatted: 0,
-        sendAmountInFiat: 0,
+        amountFormatted: '',
+        sendAmountInFiat: '',
         balanceExceeded: false,
         scannedRecipientAddress: false,
         setMax: false,
@@ -973,7 +974,7 @@ export default {
         currentSendAmount = currentInputExtras.amountFormatted ?? ''
       } else currentSendAmount = 0
 
-      const currentAmount = this.parseKey(key, currentSendAmount, caret)
+      const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
 
       // Set the new amount
       if (this.focusedInputField === 'fiat') {
@@ -986,48 +987,6 @@ export default {
       }
 
       this.adjustWalletBalance()
-    },
-    // TODO separate this function to a reusable util function for custom keyboard
-    parseKey (key, inputText, caret) {
-      let amount = '0'
-
-      if (key === '.' && inputText === '') {
-        amount = '0.'
-      } else {
-        amount = inputText.toString()
-        const hasPeriod = amount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(amount) === 0 && Number(amount) === Number(key)) {
-            amount = '0'
-          } else {
-            amount = this.adjustSplicedAmount(amount, caret, key.toString())
-          }
-        } else {
-          const tbaKey = key !== '.' ? key.toString() : ''
-          amount = this.adjustSplicedAmount(amount, caret, tbaKey)
-        }
-      }
-
-      amount = this.parseCtKey(amount)
-
-      return amount
-    },
-    parseCtKey (amount) {
-      if (this.asset.id.startsWith('ct/')) {
-        if (this.asset.decimals === 0) {
-          amount = amount.toString().replace('.', '')
-        } else {
-          const parts = amount.toString().split('.')
-
-          if (parts.length > 1) { // Ensure there's a decimal part
-            // Truncate the decimal part to the desired length
-            parts[1] = parts[1].slice(0, this.asset.decimals)
-            amount = parts.join('.') // Recombine the integer and decimal parts
-          }
-        }
-      }
-
-      return amount
     },
 
     makeKeyAction (action) {
@@ -1044,13 +1003,13 @@ export default {
 
       if (action === 'backspace') {
         if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
-          const currentAmount = this.adjustSplicedAmount(
+          const currentAmount = adjustSplicedAmount(
             String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
           )
           currentInputExtras.sendAmountInFiat = currentAmount
           this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
         } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
-          currentInputExtras.amountFormatted = this.adjustSplicedAmount(
+          currentInputExtras.amountFormatted = adjustSplicedAmount(
             String(currentInputExtras.amountFormatted), amountCaretPosition
           )
           currentRecipient.amount = convertToBCH(
@@ -1425,12 +1384,6 @@ export default {
       currentInputExtras.amountFormatted = this.customNumberFormatting(
         getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
       )
-    },
-    adjustSplicedAmount (amountString, caretPosition, addedItem = null) {
-      if (addedItem) {
-        return amountString.split('').toSpliced(caretPosition, 0, addedItem).join('')
-      }
-      return amountString.split('').toSpliced(caretPosition, 1).join('')
     },
     adjustWalletBalance () {
       const isToken = this.asset.id.startsWith('ct/')
