@@ -15,7 +15,28 @@
               <NotificationButton @hide-multi-wallet-dialog="hideMultiWalletDialog" />
             </div>
 
-            <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
+            <div class="row" :class="enableSmartBCH || enableStablehedge ? 'q-pt-lg': 'q-pt-sm'">
+              <template v-if="enableStablehedge">
+                <q-tabs
+                  class="col-12 q-px-sm q-pb-md"
+                  v-model="stablehedgeView"
+                  style="margin-top: -25px;"
+                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
+                >
+                  <q-tab
+                    :name="false"
+                    class="network-selection-tab"
+                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
+                    label="BCH"
+                  />
+                  <q-tab
+                    :name="true"
+                    class="network-selection-tab"
+                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
+                    :label="$t('Stablehedge')"
+                  />
+                </q-tabs>
+              </template>
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
@@ -143,11 +164,11 @@
                       <div v-if="selectedNetwork === 'sBCH'">
                         <img src="sep20-logo.png" alt="" style="height: 75px;"/>
                       </div>
-                      <div v-else @click.stop="() => toggleStablehedgeView()">
+                      <div v-else>
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
-                            : stablehedgeView ? 'stablehedge-bch-logo.png' : 'bch-logo.png'
+                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch-logo.png' : 'bch-logo.png'
                           "
                           alt=""
                           style="height: 75px;"
@@ -534,6 +555,9 @@ export default {
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    enableStablehedge () {
+      return this.$store.getters['global/enableStablehedge']
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']

@@ -43,6 +43,10 @@ export function showTokens (state) {
   return state.showTokens
 }
 
+export function enableStablehedge (state) {
+  return state.enableStablehedge
+}
+
 export function enableSmartBCH (state) {
   return state.enableSmartBCH
 }

@@ -95,6 +95,11 @@ export function showTokens (state) {
   state.showTokens = !state.showTokens
 }
 
+export function enableStablehedge(state, value) {
+  value = value === undefined ? !state.enableStablehedge : Boolean(value)
+  state.enableStablehedge = value
+}
+
 export function enableSmartBCH (state) {
   state.enableSmartBCH = !state.enableSmartBCH
 }

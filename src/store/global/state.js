@@ -29,6 +29,7 @@ export default function () {
     isChipnet: false,
     autoGenerateAddress: false,
     showTokens: true,
+    enableStablehedge: false,
     enableSmartBCH: false,
     wallets: {
       bch: {
