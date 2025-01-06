@@ -652,14 +652,14 @@ export async function sweepContractWithAuthToken(opts) {
     })
   }
 
-  txBuilder.inputs.splice(1, 0, {
+  const authTokenInput = {
     txid: binToHex(signedAuthKey.input.outpointTransactionHash),
     vout: signedAuthKey.input.outpointIndex,
     satoshis: signedAuthKey.source.valueSatoshis,
     token: signedAuthKeyTokenDetails,
     template: mockAuthkeySignatureTemplate,
-  });
-  txBuilder.outputs.splice(1, 0, {
+  }
+  const authTokenOutput = {
     to: lockingBytecodeToCashAddress(
       signedAuthKey.output.lockingBytecode,
       wallet.isChipnet ? 'bchtest' : 'bitcoincash',
@@ -667,7 +667,10 @@ export async function sweepContractWithAuthToken(opts) {
     ),
     amount: signedAuthKey.source.valueSatoshis,
     token: signedAuthKeyTokenDetails,
-  });
+  }
+
+  txBuilder.inputs.splice(1, 0, authTokenInput);
+  txBuilder.outputs.splice(1, 0, authTokenOutput);
 
   if (txBuilder.excessSats < 0n) throw $t('InsufficientBalance')
 
@@ -680,6 +683,19 @@ export async function sweepContractWithAuthToken(opts) {
     txBuilder.outputs.push(changeOutput)
 
     changeOutput.amount += txBuilder.excessSats
+  }
+
+  /**
+   * In cases where only BCH is swept and no cashtokens,
+   * there are no outputs when the authtoken output is added in the list
+   * since the change output is always all the BCH swept.
+   * 
+   * This results in the auth token being added before the change output
+   * causing it to be in index 0 when it's supposed to be in index 1
+   */
+  if (txBuilder.outputs.indexOf(authTokenOutput) != 1) {
+    txBuilder.outputs = txBuilder.outputs.filter(output => output !== authTokenOutput)
+    txBuilder.outputs.splice(1, 0, authTokenOutput);
   }
 
   const transaction = cashscriptTx
