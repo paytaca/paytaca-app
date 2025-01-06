@@ -1426,21 +1426,23 @@ export default {
       const addressObj = new Address(address)
       let addressIsValid = false
       let formattedAddress
+
       try {
         if (vm.walletType === 'bch') {
-          if (vm.isCashToken) {
+          if (!vm.isCashToken) {
+            addressIsValid = true
+
+            if (isValidTokenAddress(address)) {
+              formattedAddress = address
+            } else if (
+              (addressObj.isLegacyAddress() || addressObj.isCashAddress()) &&
+              addressObj.isValidBCHAddress(vm.isChipnet)
+            ) {
+              formattedAddress = addressObj.toCashAddress(address)
+            }
+          } else {
             addressIsValid = isTokenAddress(address)
             formattedAddress = address
-          } else {
-            if (isValidTokenAddress(address)) {
-              addressIsValid = true
-              formattedAddress = address
-            } else if (addressObj.isLegacyAddress() || addressObj.isCashAddress()) {
-              if (addressObj.isValidBCHAddress(vm.isChipnet)) {
-                addressIsValid = true
-                formattedAddress = addressObj.toCashAddress(address)
-              }
-            }
           }
         }
         if (vm.walletType === 'slp') {
@@ -1453,10 +1455,8 @@ export default {
         addressIsValid = false
         console.log(err)
       }
-      return {
-        valid: addressIsValid,
-        address: formattedAddress
-      }
+
+      return { valid: addressIsValid, address: formattedAddress }
     },
 
     // error handling
@@ -1494,13 +1494,7 @@ export default {
     submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
-      if (result.success) {
-        vm.txid = result.txid
-        vm.txTimestamp = Date.now()
-        vm.playSound(true)
-        vm.sending = false
-        vm.sent = true
-      } else {
+      if (!result.success) {
         if (result.error.indexOf('not enough balance in sender') > -1) {
           if (walletType === 'bch') vm.raiseNotifyError(vm.$t('NotEnoughForBoth'))
           else if (walletType === 'slp') vm.raiseNotifyError(vm.$t('NotEnoughForSendAmount'))
@@ -1513,6 +1507,12 @@ export default {
         } else {
           vm.raiseNotifyError(vm.$t('UnknownError'))
         }
+      } else {
+        vm.txid = result.txid
+        vm.txTimestamp = Date.now()
+        vm.playSound(true)
+        vm.sending = false
+        vm.sent = true
       }
     },
     raiseNotifyError (message) {
