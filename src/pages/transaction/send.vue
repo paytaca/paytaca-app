@@ -587,7 +587,7 @@ export default {
       return (
         this.showSlider &&
         !this.isNFT &&
-        this.sendDataMultiple.length < 5 &&
+        this.sendDataMultiple.length < 10 &&
         // check if user clicked MAX on any recipient (disable button if yes)
         this.inputExtras
           .map(data => data.setMax)
@@ -999,7 +999,7 @@ export default {
     addAnotherRecipient () {
       const recipientsLength = this.sendDataMultiple.length
 
-      if (recipientsLength < 5) {
+      if (recipientsLength < 10) {
         this.sendDataMultiple.push({
           amount: 0,
           fixedAmount: false,
