@@ -10,6 +10,7 @@
       placeholder="Search product / shop"
       color="brandblue"
       debounce="500"
+      :bg-color="$q.dark.isActive ? 'dark' : 'white'"
       @update:model-value="() => search()"
     >
       <template v-slot:append>

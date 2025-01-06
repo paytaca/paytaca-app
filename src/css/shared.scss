@@ -102,14 +102,19 @@ $font-family_1: "Rubik", sans-serif;
   }
 }
 
+div#q-app:has(.marketplace-container) {
+  height: 100vh;
+  overflow: unset;
+}
+
 .marketplace-container {
   min-height: 100vh;
-  padding-top: 70px;
+  // padding-top: 70px;
   padding-bottom: 50px;
 
   .header-nav {
-    position: fixed;
-    top: 0;
+    position: sticky;
+    top: -1px;
     width: 100%;
     z-index: 100 !important;
   }
