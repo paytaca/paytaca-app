@@ -4,12 +4,12 @@
       <q-input
         filled
         label-slot
+        clearable
+        clear-icon="close"
         v-model="recipientAddress"
         @focus="onInputFocus(index, '')"
         @blur="onEmptyRecipient"
         class="recipient-input"
-        :disabled="disableRecipientInput"
-        :readonly="disableRecipientInput"
         :error="emptyRecipient"
         :error-message="emptyRecipient ? $t('EmptyRecipient') : ''"
         :dark="darkMode"
@@ -19,13 +19,15 @@
           inputExtras.scannedRecipientAddress
         ]"
       >
+      <!-- :disabled="disableRecipientInput"
+      :readonly="disableRecipientInput" -->
         <template v-slot:label>
           {{ $t('Recipient') }}
         </template>
         <template v-slot:append>
           <q-btn
             round
-            class="btn-scan button text-white bg-grad"
+            class="q-ml-xs btn-scan button text-white bg-grad"
             icon="mdi-qrcode"
             size="md"
             @click="onQRScannerClick(true), onInputFocus(index, '')"
@@ -280,9 +282,9 @@ export default {
     denomination () {
       return this.$store.getters['global/denomination']
     },
-    disableRecipientInput () {
-      return this.recipient.fixedRecipientAddress || this.inputExtras.scannedRecipientAddress
-    },
+    // disableRecipientInput () {
+    //   return this.recipient.fixedRecipientAddress || this.inputExtras.scannedRecipientAddress
+    // },
     sendAmountMarketValue () {
       const parsedAmount = Number(this.amount)
       if (!parsedAmount) return ''

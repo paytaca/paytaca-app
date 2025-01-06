@@ -446,14 +446,14 @@ export default {
         fixedAmount: false,
         recipientAddress: '',
         rawPaymentUri: '', // for scanning qr data
-        paymentAckMemo: '',
-        fixedRecipientAddress: false
+        paymentAckMemo: '' //,
+        // fixedRecipientAddress: false
       }],
       inputExtras: [{
         amountFormatted: '',
         sendAmountInFiat: '',
         balanceExceeded: false,
-        scannedRecipientAddress: false,
+        // scannedRecipientAddress: false,
         setMax: false,
         emptyRecipient: false,
         selectedDenomination: 'BCH',
@@ -471,7 +471,7 @@ export default {
       isCashToken: this.assetId?.startsWith?.('ct/'),
       forceUseDefaultNftImage: false,
       manualAddress: '',
-      scannedRecipientAddress: false,
+      // scannedRecipientAddress: false,
       networkTimeDiff: 0,
       disableSending: false,
       jpp: null,
@@ -703,7 +703,7 @@ export default {
 
         currentRecipient.recipientAddress = address
         currentRecipient.rawPaymentUri = rawPaymentUri
-        currentInputExtras.scannedRecipientAddress = true
+        // currentInputExtras.scannedRecipientAddress = true
         currentInputExtras.emptyRecipient = false
 
         if (typeof currency === 'string') {
@@ -804,7 +804,7 @@ export default {
         amountValue = paymentUriData.outputs[0].amount?.value
         vm.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
-        currentRecipient.fixedRecipientAddress = true
+        // currentRecipient.fixedRecipientAddress = true
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -843,7 +843,7 @@ export default {
         currentSendData.amount = amount
         currentSendData.fixedAmount = true
         currentSendData.recipientAddress = value.split('?')[0]
-        currentSendData.fixedRecipientAddress = true
+        // currentSendData.fixedRecipientAddress = true
 
         currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
           this.denomination, amount
@@ -1005,14 +1005,14 @@ export default {
           fixedAmount: false,
           recipientAddress: '',
           rawPaymentUri: '', // for scanning qr data
-          paymentAckMemo: '',
-          fixedRecipientAddress: false
+          paymentAckMemo: '' //,
+          // fixedRecipientAddress: false
         })
         this.inputExtras.push({
           amountFormatted: '',
           sendAmountInFiat: '',
           balanceExceeded: false,
-          scannedRecipientAddress: false,
+          // scannedRecipientAddress: false,
           setMax: false,
           emptyRecipient: true,
           selectedDenomination: this.denomination,
@@ -1462,7 +1462,7 @@ export default {
       vm.sendDataMultiple[0].amount = vm.amount
       vm.sendDataMultiple[0].fixedAmount = vm.fixed
       vm.sendDataMultiple[0].recipientAddress = vm.recipient
-      vm.sendDataMultiple[0].fixedRecipientAddress = true
+      // vm.sendDataMultiple[0].fixedRecipientAddress = true
       vm.scanner.show = false
       vm.sliderStatus = true
     }
