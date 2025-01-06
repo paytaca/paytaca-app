@@ -2,6 +2,7 @@
   <div>
     <div class="row items-center q-gutter-y-xs">
       <div class="col-xs-12 text-right q-mb-md">
+        <!-- <q-btn icon="refresh" @click.stop="() => refreshComponent()" flat></q-btn> -->
         <q-btn icon="settings" flat dense>
           <q-menu fit anchor="bottom start" self="top end" class="br-15 pt-card q-py-md" :class="getDarkModeClass(darkMode)">
             <q-item>
@@ -313,9 +314,7 @@ const loadActiveSessions = async ({showLoading} = {showLoading: true}) => {
           Object.entries(sessions).filter(([topicKey, sessionValue]) => {
             return sessionValue.namespaces?.bch?.chains?.includes(chainIdFilter)
         })
-      )
-      console.log('🚀 ~ loadActiveSessions ~ activeSessions:', activeSessions.value)
-      
+      )      
     }
     mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
     return activeSessions.value
@@ -347,12 +346,22 @@ const loadSessionProposals = async ({showLoading} = {showLoading: true}) => {
 /**
  * Check for session requests, i.e signature requests, get accounts requests
  */
-const loadSessionRequests = async ({showLoading} = {showLoading: true}) => {
+const loadSessionRequests = async ({showLoading} = {showLoading: true}, sessionRequest = null) => {
   try {
     loading.value = showLoading && $t('LoadingRequests')
+
     if (web3Wallet.value) {
-      const requests = await web3Wallet.value.getPendingSessionRequests()
-      console.log('🚀 ~ loadSessionRequests ~ requests:', requests)
+      
+      let requests = []  
+
+      if (sessionRequest?.id && !sessionRequests.value?.find((s) => s.id === sessionRequest.id)) {
+        requests = [sessionRequest]
+      }
+
+      if (!sessionRequest) {
+        requests = await web3Wallet.value.getPendingSessionRequests()
+      }
+      
       
       const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET: CHAINID_MAINNET
       sessionRequests.value = requests.filter((r) => {
@@ -361,9 +370,13 @@ const loadSessionRequests = async ({showLoading} = {showLoading: true}) => {
       sessionRequests.value = sessionRequests.value.map(sessionRequest => {
         const parsedSessionRequest = parseSessionRequest(sessionRequest)
 
-        parsedSessionRequest.session = activeSessions.value[parsedSessionRequest?.topic]
-        const defaultTopic = Object.getOwnPropertyNames(activeSessions.value)[0]
-        if (!parsedSessionRequest.session) parsedSessionRequest.session = activeSessions.value[defaultTopic]
+        parsedSessionRequest.session = activeSessions.value[parsedSessionRequest.topic]
+        // console.log('🚀 ~ loadSessionRequests ~ parsedSessionRequest?.topic:', parsedSessionRequest?.topic)
+        // const defaultTopic = Object.getOwnPropertyNames(activeSessions.value)[0]
+        // console.log('🚀 ~ loadSessionRequests ~ defaultTopic:', defaultTopic)
+        // console.log('🚀 ~ loadSessionRequests ~ activeSessions:', activeSessions.value)
+        // // if (!parsedSessionRequest.session) parsedSessionRequest.session = activeSessions.value[defaultTopic]
+        // if (!parsedSessionRequest.session) parsedSessionRequest.session = activeSessions.value[parsedSessionRequest.topic]
         return parsedSessionRequest
       })
 
@@ -390,7 +403,7 @@ const loadSessionRequests = async ({showLoading} = {showLoading: true}) => {
  * and maps each topic with corresponding wallet
  * data
  */
-const mapSessionTopicWithAddress = async (activeSessions, walletAddresses) => {
+const mapSessionTopicWithAddress = (activeSessions, walletAddresses) => {
   for (const topic in activeSessions) {
     activeSessions?.[topic]?.namespaces?.bch?.accounts?.forEach((account) => {
       const addressInfo = walletAddresses.find((addressInfo) => {
@@ -887,8 +900,25 @@ const onSessionProposal = async (sessionProposal) => {
   loadSessionProposals({showLoading: false})
 }
 
-const onSessionRequest = async (sessionRequestData) => {
-  await loadSessionRequests()
+const onSessionRequest = async (sessionRequest) => {
+  console.log('🚀 ~ onSessionRequest ~ sessionRequestData:', sessionRequest)
+  await loadSessionRequests({showLoading: true}, sessionRequest)
+  
+}
+
+const onSessionUpdate = async (data) => {
+  console.log('🚀 ~ onSessionUpdate ~ data:', data)
+  await loadActiveSessions()
+}
+
+const onSessionEvent = async (data) => {
+  console.log('🚀 ~ onSessionEvent ~ data:', data)
+  await loadActiveSessions()
+}
+
+const onSessionExpire = async (data) => {
+  console.log('🚀 ~ onSessionExpire ~ data:', data)
+  await loadActiveSessions()
 }
 
 /**
@@ -899,6 +929,9 @@ const attachEventListeners = (_web3Wallet) => {
   _web3Wallet?.on?.('session_proposal', onSessionProposal)
   _web3Wallet?.on?.('session_request', onSessionRequest)
   _web3Wallet?.on?.('session_delete', onSessionDelete)
+  _web3Wallet?.on?.('session_update', onSessionUpdate)
+  _web3Wallet?.on?.('session_event', onSessionEvent)
+  _web3Wallet?.on?.('session_expire', onSessionExpire)
 }
 
 /**
@@ -909,6 +942,9 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_proposal', onSessionProposal)
   _web3Wallet?.off?.('session_request', onSessionRequest)
   _web3Wallet?.off?.('session_delete', onSessionDelete)
+  _web3Wallet?.off?.('session_update', onSessionUpdate)
+  _web3Wallet?.off?.('session_event', onSessionEvent)
+  _web3Wallet?.off?.('session_expire', onSessionExpire)
 }
 
 const refreshComponent = async () => {
@@ -917,9 +953,10 @@ const refreshComponent = async () => {
   await $store.dispatch('global/loadWalletConnectedApps')
   wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
-  await loadSessionRequests()
-  await loadSessionProposals()
-  await loadActiveSessions()
+  walletAddresses.value = $store.getters['global/walletAddresses']
+  await loadSessionRequests({showLoading: true})
+  await loadSessionProposals({showLoading: true})
+  await loadActiveSessions({showLoading: true})
 }
 
 watchEffect(() => {
@@ -929,6 +966,7 @@ watchEffect(() => {
 watch(() => $store.getters['global/isChipnet'], (chipnet) => {
   console.log('CHIPNET CHANGED', chipnet)
 })
+
 
 onBeforeMount(async () => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
