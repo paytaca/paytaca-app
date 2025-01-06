@@ -11,11 +11,11 @@
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm q-mt-md">
+    <div class="q-mx-sm q-my-sm">
       <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 
-    <div class="q-px-md q-py-md">
+    <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
       <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
     </div>
 
@@ -246,7 +246,6 @@ import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-window.s = $store
 
 const initialized = ref(false)
 function resetPage() {
@@ -460,5 +459,11 @@ table.orders-table {
 }
 table.orders-table td {
   vertical-align: top;
+}
+
+.sticky-below-header {
+  position: sticky;
+  top: 70px;
+  z-index: 10 !important;
 }
 </style>
