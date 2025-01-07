@@ -332,7 +332,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 import { mapState } from 'vuex'
 import Watchtower from 'watchtower-cash-js'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
@@ -545,9 +544,6 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
-    fetchFeatureToggles () {
-      this.$store.dispatch('ramp/fetchFeatureToggles')
-    },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
@@ -1260,7 +1256,6 @@ export default {
     this.setupCashinWebSocket()
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
-    this.fetchFeatureToggles()
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 

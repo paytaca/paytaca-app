@@ -1,13 +1,27 @@
-import Watchtower from "watchtower-cash-js"
+import Watchtower from 'watchtower-cash-js'
 import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
-import { decryptWalletName } from "src/marketplace/chat/encryption"
+import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { loadLibauthHdWallet } from '../../wallet'
-import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils';
-import { toP2pkhTestAddress } from "../../utils/address-utils"
+import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
+import { toP2pkhTestAddress } from '../../utils/address-utils'
+import { backend } from 'src/exchange/backend'
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
+
+export function fetchAppControl (context) {
+  return new Promise((resolve, reject) => {
+    backend.get('/app-control/')
+      .then(response => {
+        context.commit('updateAppControl', response.data)
+        resolve(response.data)
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
 
 export function updateOnboardingStep (context, status) {
   context.commit('updateOnboardingStep', status)
@@ -34,7 +48,7 @@ export function updateTransactions (context, data) {
  * @param {String} data.walletHash
  * @param {Number} data.age
  */
-export async function updateUtxoScanTaskStatus(context, data) {
+export async function updateUtxoScanTaskStatus (context, data) {
   const walletHash = data?.walletHash
   if (!walletHash) return { success: false, error: '`walletHash` required' }
 
@@ -53,7 +67,7 @@ export async function updateUtxoScanTaskStatus(context, data) {
     taskId: taskInfo.taskId,
     status: newTaskInfo.status,
     completedAt: newTaskInfo.date_done ? (new Date(newTaskInfo.date_done + '-0000')) * 1 : taskInfo.completedAt,
-    queueInfo: newTaskInfo?.queue_info,
+    queueInfo: newTaskInfo?.queue_info
   }
   context.commit('setUtxoScanTask', updatedTaskInfo)
   return { success: true, taskInfo: updatedTaskInfo }
@@ -63,8 +77,8 @@ export function updateConnectivityStatus (context, online) {
   context.commit('updateConnectivityStatus', online)
 }
 
-export async function refetchWalletPreferences(context) {
-  const walletHash = context.getters['getWallet']('bch')?.walletHash
+export async function refetchWalletPreferences (context) {
+  const walletHash = context.getters.getWallet('bch')?.walletHash
   if (!walletHash) return Promise.reject('wallet hash not found')
   try {
     const preferencesResponse = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
@@ -80,11 +94,11 @@ export async function fetchWalletName (context, walletHash) {
 }
 
 /**
- * @param {Object} context 
+ * @param {Object} context
  * @param {Object} opts
  * @param {Number} opts.walletIndex
  */
-export async function syncWalletName(context, opts) {
+export async function syncWalletName (context, opts) {
   const vault = context.getters.getVault?.[opts?.walletIndex]
   if (!vault) throw new Error('No vault found')
 
@@ -112,7 +126,7 @@ export async function updateWalletNameInPreferences (context, data) {
     const decryptedName = decryptWalletName(data.walletName, walletHash)
     console.log('Updating wallet name: ', data.walletIndex, decryptedName)
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
-  } catch(error) {
+  } catch (error) {
     console.error(error)
     context.dispatch('syncWalletName', { walletIndex: data?.walletIndex })
   }
@@ -124,16 +138,16 @@ export async function updateWalletNameInPreferences (context, data) {
  * @param {Object} data
  * @param {String} data.selected_currency
  */
-export async function updateWalletPreferences(context, data) {
+export async function updateWalletPreferences (context, data) {
   const selectedCurrency = data?.selected_currency
   if (selectedCurrency) {
     const currency = context.rootGetters['market/currencyOptions']?.find(currencyOpt => currencyOpt?.symbol === selectedCurrency)
-    if(currency) context.commit('market/updateSelectedCurrency', currency, { root: true })
+    if (currency) context.commit('market/updateSelectedCurrency', currency, { root: true })
   }
 }
 
-export async function saveWalletPreferences(context) {
-  const walletHash = context.getters['getWallet']('bch')?.walletHash
+export async function saveWalletPreferences (context) {
+  const walletHash = context.getters.getWallet('bch')?.walletHash
   if (!walletHash) return Promise.reject('wallet hash not found')
   const data = {}
 
@@ -148,7 +162,7 @@ export async function saveWalletPreferences(context) {
 
 export async function saveExistingWallet (context) {
   const vault = context.getters.getVault
-  
+
   // check if vault keys are valid
   if (vault.length > 0) {
     if (vault[0]) {
@@ -159,7 +173,7 @@ export async function saveExistingWallet (context) {
   }
 
   if (context.getters.isVaultEmpty) {
-    const walletHash = context.getters['getWallet']('bch')?.walletHash
+    const walletHash = context.getters.getWallet('bch')?.walletHash
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
       wallet = JSON.stringify(wallet)
@@ -186,7 +200,7 @@ export async function switchWallet (context, index) {
         context.commit(
           'assets/updateVaultSnapshot',
           { index: currentIndex, snapshot: asset },
-          { root: true },
+          { root: true }
         )
         context.commit('assets/updatedCurrentAssets', index, { root: true })
         context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
@@ -199,9 +213,9 @@ export async function switchWallet (context, index) {
 
         const wallet = context.getters.getAllWalletTypes
         const chipnet = context.getters.getAllChipnetTypes
-      
+
         const walletName = context.getters.getVault[currentIndex].name
-      
+
         const info = {
           index: currentIndex,
           walletSnapshot: wallet,
@@ -211,9 +225,9 @@ export async function switchWallet (context, index) {
         context.commit('updateWalletSnapshot', info)
         context.commit('updateWalletIndex', index)
         context.commit('updateCurrentWallet', index)
-  
+
         resolve()
-      } catch(error) {
+      } catch (error) {
         reject(error)
       }
     }, 1000)
@@ -232,13 +246,14 @@ export async function deleteWallet (context, index) {
 /**
  * Fetch and loads last address and index from server (watchtower)
  */
-export async function loadWalletLastAddressIndex(context) {
+export async function loadWalletLastAddressIndex (context) {
   const w = new WatchtowerExtended(context.state.isChipnet)
-  const wallet = context.state.isChipnet ? 
-    context.state.chipnet__wallets.bch: context.state.wallets.bch
-    
+  const wallet = context.state.isChipnet
+    ? context.state.chipnet__wallets.bch
+    : context.state.wallets.bch
+
   try {
-    const lastAddressAndIndex = await w.getLastExternalAddressIndex(wallet.walletHash)  
+    const lastAddressAndIndex = await w.getLastExternalAddressIndex(wallet.walletHash)
     context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
   } catch (error) {
     // on error just use the existing
@@ -247,48 +262,45 @@ export async function loadWalletLastAddressIndex(context) {
       address_index: wallet.lastAddressIndex
     })
   }
-}  
-
+}
 
 /**
- * @return the BCH addresses of wallet 
+ * @return the BCH addresses of wallet
  */
 export async function loadWalletAddresses (context) {
-
-  let lastIndex = 
-    context.state.wallets.bch.lastAddressAndIndex?.address_index || 
+  let lastIndex =
+    context.state.wallets.bch.lastAddressAndIndex?.address_index ||
     context.state.wallets.bch.lastAddressIndex
 
   if (context.state.isChipnet) {
-    lastIndex = 
-    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index || 
+    lastIndex =
+    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index ||
     context.state.chipnet__wallets.bch.lastAddressIndex
   }
 
-  const walletIndex = context.getters['getWalletIndex']
+  const walletIndex = context.getters.getWalletIndex
   const libauthWallet = await loadLibauthHdWallet(walletIndex, Boolean(context.state.isChipnet))
-  
+
   const stopAtIndex = lastIndex + 1 // include lastIndex
   const walletAddresses = []
-  for (let i = 0; i < stopAtIndex; i++ ) {
-      try {
+  for (let i = 0; i < stopAtIndex; i++) {
+    try {
       const wif = libauthWallet.getPrivateKeyWifAt(`0/${i}`)
       const decodedPrivkey = decodePrivateKeyWif(wif)
       let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
-      
+
       if (context.state.isChipnet) {
-          // to test address
-          cashAddress = toP2pkhTestAddress(cashAddress)
+        // to test address
+        cashAddress = toP2pkhTestAddress(cashAddress)
       }
       walletAddresses.push({ address_index: i, address: cashAddress, wif: wif })
-      } catch (error) {
-          console.log(error)
-          break
-      }
+    } catch (error) {
+      console.log(error)
+      break
+    }
   }
   context.commit('setWalletAddresses', walletAddresses)
 }
-
 
 // type ConnectedApp = {
 //   app_url/*:string*/,
@@ -300,8 +312,9 @@ export async function loadWalletAddresses (context) {
 
 export async function loadWalletConnectedApps (context) {
   const w = new WatchtowerExtended(context.state.isChipnet)
-  const walletHash = context.state.isChipnet ? 
-    context.state.chipnet__wallets.bch.walletHash: context.state.wallets.bch.walletHash
+  const walletHash = context.state.isChipnet
+    ? context.state.chipnet__wallets.bch.walletHash
+    : context.state.wallets.bch.walletHash
   const connectedApps = await w.getWalletConnectedApps(walletHash)
   context.commit('setWalletConnectedApps', connectedApps)
 }

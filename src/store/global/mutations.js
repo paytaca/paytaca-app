@@ -1,6 +1,10 @@
 import { deleteMnemonic } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 
+export function updateAppControl (state, data) {
+  state.appControl = data
+}
+
 function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
   const walletType = details.type
