@@ -6,6 +6,8 @@
         label-slot
         clearable
         clear-icon="close"
+        :disabled="inputExtras.isBip21"
+        :readonly="inputExtras.isBip21"
         v-model="recipientAddress"
         @focus="onInputFocus(index, '')"
         @blur="onEmptyRecipient"
@@ -43,7 +45,7 @@
     </div>
   </div>
   <div
-    v-if="isLegacyAddress"
+    v-if="inputExtras.isLegacyAddress"
     style="border: 2px solid orange;"
     class="q-mx-md q-mb-md q-pa-sm text-center text-body2 text-bow"
     :class="getDarkModeClass(darkMode)"
@@ -59,25 +61,26 @@
   </div>
   <div class="col-12">
     <q-input
-        v-if="assetIsFT && hasFTChange && hasFTChangeAddressOption && selectedChangeAddress"
-        label-slot
-        bottom-slots
-        :model-value="convertCashAddress(selectedChangeAddress, isChipnet, true)"
-        readonly
-        filled
-        dense>
-        <template v-slot:label>
-          {{ $t('SendTokenChangeTo') }}
-        </template>
-        <template v-slot:prepend>
-          <q-btn dense flat icon="help" no-caps @click.stop="showWillSendChangeToHelp "/>
-        </template>
-        <template v-slot:append>
-          <q-btn class="text-grad" flat @click.stop=openSelectChangeAddressDialog>
-            <q-icon name="edit" class="text-grad"></q-icon>
-          </q-btn>
-        </template>
-      </q-input>
+      v-if="assetIsFT && hasFTChange && hasFTChangeAddressOption && selectedChangeAddress"
+      label-slot
+      bottom-slots
+      :model-value="convertCashAddress(selectedChangeAddress, isChipnet, true)"
+      readonly
+      filled
+      dense
+    >
+      <template v-slot:label>
+        {{ $t('SendTokenChangeTo') }}
+      </template>
+      <template v-slot:prepend>
+        <q-btn dense flat icon="help" no-caps @click.stop="showWillSendChangeToHelp "/>
+      </template>
+      <template v-slot:append>
+        <q-btn class="text-grad" flat @click.stop=openSelectChangeAddressDialog>
+          <q-icon name="edit" class="text-grad"></q-icon>
+        </q-btn>
+      </template>
+    </q-input>
   </div>
   <template v-if="$store.state.global.online !== false">
     <div class="row" v-if="!isNFT">
@@ -154,7 +157,7 @@
       <template v-if="asset.id === 'bch'">
         {{ ` = ${parseFiatCurrency(
           convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
-          }` }}
+        }` }}
       </template>
       <a
         href="#"
@@ -172,9 +175,7 @@
     :class="getDarkModeClass(darkMode)"
     v-if="inputExtras.cashbackData && inputExtras.cashbackData.cashback_amount > -1"
   >
-    <span
-      v-html="cashbackAmountText()"
-    ></span>
+    <span v-html="cashbackAmountText()"></span>
   </q-card>
 </template>
 
@@ -246,7 +247,6 @@ export default {
       balanceExceeded: false,
       emptyRecipient: false,
       selectedDenomination: 'BCH',
-      isLegacyAddress: false,
       changeAddresses: [],
       selectedChangeAddress: ''
     }
@@ -256,7 +256,6 @@ export default {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
     this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
-    this.isLegacyAddress = this.inputExtras.isLegacyAddress
     if (this.inputExtras.isBip21) {
       this.selectedDenomination = 'BCH'
     } else {

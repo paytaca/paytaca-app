@@ -9,7 +9,7 @@
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || name || '')"
         :backnavpath="!backPath ? '/' : backPath"
-      ></header-nav>
+      />
       <q-banner
         v-if="assetId.startsWith('slp/')"
         inline-actions
@@ -47,8 +47,7 @@
               </div>
             </div>
             <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
-              <q-icon name="error" left/>
-              {{ scanner.error }}
+              <q-icon name="error" left/> {{ scanner.error }}
             </div>
             <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
               <div class="col-12">
