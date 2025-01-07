@@ -97,6 +97,7 @@
               :address-display-formatter="formatAddressForDisplay"
               :address-display-format="settings.addressDisplayFormat"
               session-type="request">
+              
               <template v-slot:top-right>
                 <q-btn class="action-button" icon="open_in_full" dense @click.stop="() => openSessionRequestDialog(sessionRequest)"></q-btn>
               </template>
@@ -277,7 +278,7 @@ const formatAddressForDisplay = (address) => {
   if (settings.value?.addressDisplayFormat === 'tokenaddr') {
     return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
   }
-  return shortenAddressForDisplay(address)
+  return shortenAddressForDisplay(convertCashAddress(address), $store.getters['global/isChipnet'], false)
 }
 
 const onScannerDecode = async (content) => {
@@ -824,20 +825,24 @@ const openSessionRequestDialog = (sessionRequest) => {
       addressDisplayFormat: settings.value?.addressDisplayFormat
     },
     cancel: true,
-  }).onOk(({ response }) => {
+  }).onOk(async ({ response }) => {
+    console.log('🚀 ~ openSessionRequestDialog ~ response:', response)
+    
     if (response === 'confirm') {
-      return respondToSessionRequest(sessionRequest)  
+      return await respondToSessionRequest(sessionRequest)  
     }
     if (response === 'reject') {
-      return rejectSessionRequest(sessionRequest)
+      return await rejectSessionRequest(sessionRequest)
     }
   })
 }
 
 const rejectSessionRequest = async (sessionRequest) => {
+  console.log('🚀 ~ rejectSessionRequest ~ sessionRequest:', sessionRequest)
   const id = sessionRequest?.id
   const topic = sessionRequest?.topic
   try {
+    
     await web3Wallet.value.respondSessionRequest({
       topic,
       response: { id, jsonrpc: '2.0', error: { code: 5000, reason: 'User rejected' } }
