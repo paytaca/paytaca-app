@@ -939,11 +939,6 @@ export default {
 
     // keyboard
     setAmount (key) {
-      if (!this.$refs.sendPageRef[this.currentRecipientIndex].$refs.amountInput) {
-        this.customKeyboardState = 'dismiss'
-        return console.warn('Custom keyboard input without target field, hiding keyboard', { key })
-      }
-
       const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const amountCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
@@ -978,12 +973,8 @@ export default {
     },
 
     makeKeyAction (action) {
-      if (!this.$refs.sendPageRef[this.currentRecipientIndex].$refs.amountInput) {
-        this.customKeyboardState = 'dismiss'
-        return console.warn('Custom keyboard input without target field, hiding keyboard', { action })
-      }
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex] ?? ''
-      const currentInputExtras = this.inputExtras[this.currentRecipientIndex] ?? ''
+      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const amountCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
         .$refs.amountInput.nativeEl.selectionStart - 1
       const fiatCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
