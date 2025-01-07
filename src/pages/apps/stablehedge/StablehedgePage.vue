@@ -11,24 +11,59 @@
       >
         {{ $t('NoData') }}
       </div>
-      <RedemptionContractCard
-        :ref="el => redemptionContractCardsRef = el"
-        v-for="redemptionContract in redemptionContracts" :key="redemptionContract?.address"
-        :redemptionContract="redemptionContract"
-        @refetch="() => refreshRedemptionContract(redemptionContract)"
-      />
-      <LimitOffsetPagination
-        :pagination-props="{
-          maxPages: 6,
-          padding: 'xs',
-          dark: darkMode,
-          class: ['justify-center', getDarkModeClass(darkMode)],
-          disable: fetchingRedemptionContracts,
-        }"
-        class="q-my-sm"
-        :hide-below-pages="2"
-        :modelValue="redemptionContractsPagination"
-        @update:modelValue="fetchRedemptionContracts"
+
+      <div class="row justify-end q-px-sm q-mb-md">
+        <div>
+          <q-select
+            dense
+            borderless
+            v-model="selectedRedemptionContract"
+            :options="redemptionContracts"
+            :option-label="contract => contract?.address"
+            style="min-width:50px;"
+          >
+            <template v-slot:selected-item="ctx">
+              <div v-if="ctx?.opt?.address" class="q-ma-xs ellipsis">
+                <div v-if="ctx?.opt?.fiat_token?.currency">{{ ctx?.opt?.fiat_token?.currency }}</div>
+                <div v-else>{{ ctx?.opt?.address }}</div>
+              </div>
+              <div v-else class="text-grey">
+                Select
+              </div>
+            </template>
+            <template v-slot:option="ctx">
+              <q-item
+                clickable
+                @click="() => ctx.toggleOption(ctx.opt)"
+                v-bind="ctx.itemProps"
+              >
+                <q-item-section>
+                  <q-item-label v-if="ctx?.opt?.fiat_token?.currency">{{ ctx?.opt?.fiat_token?.currency }}</q-item-label>
+                  <q-item-label style="word-break:break-all;">{{ ctx?.opt?.address }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+          <LimitOffsetPagination
+            :pagination-props="{
+              maxPages: 6,
+              padding: 'xs',
+              dark: darkMode,
+              class: ['justify-center', getDarkModeClass(darkMode)],
+              disable: fetchingRedemptionContracts,
+            }"
+            class="q-my-sm"
+            :hide-below-pages="2"
+            :modelValue="redemptionContractsPagination"
+            @update:modelValue="fetchRedemptionContracts"
+          />
+        </div>
+      </div>
+      <RedemptionContractMarketPanel
+        v-if="selectedRedemptionContract?.address"
+        ref="redemptionContractMarketPanelRef"
+        :redemptionContract="selectedRedemptionContract"
+        @refetch="() => refreshRedemptionContract(selectedRedemptionContract)"
       />
     </div>
   </q-pull-to-refresh>
@@ -41,7 +76,7 @@ import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, ref } from 'vue';
 import HeaderNav from 'src/components/header-nav.vue';
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
-import RedemptionContractCard from 'src/components/stablehedge/dashboard/RedemptionContractCard.vue';
+import RedemptionContractMarketPanel from 'src/components/stablehedge/dashboard/RedemptionContractMarketPanel.vue';
 
 
 export default defineComponent({
@@ -49,7 +84,7 @@ export default defineComponent({
   components: {
     HeaderNav,
     LimitOffsetPagination,
-    RedemptionContractCard,
+    RedemptionContractMarketPanel,
   },
   setup() {
     const $store = useStore()
@@ -58,7 +93,9 @@ export default defineComponent({
 
     onMounted(() => refreshPage())
 
-    const redemptionContractCardsRef = ref()
+    const selectedRedemptionContract = ref()
+
+    const redemptionContractMarketPanelRef = ref()
 
     const fetchingRedemptionContracts = ref(false)
     const redemptionContractsLoaded = ref(false)
@@ -95,12 +132,22 @@ export default defineComponent({
             if (!fiatToken?.category) return
             $store.commit('stablehedge/saveTokenData', fiatToken)
           })
+          autoSelectRedemptionContract()
           return response
         })
         .finally(() => {
           fetchingRedemptionContracts.value = false
           redemptionContractsLoaded.value = true
         })
+    }
+
+    function autoSelectRedemptionContract() {
+      let index = redemptionContracts.value.findIndex(redemptionContract => {
+        return redemptionContract?.address === selectedRedemptionContract.value?.address
+      })
+
+      if (index < 0) index = 0
+      selectedRedemptionContract.value = redemptionContracts.value[index]
     }
 
     function refreshRedemptionContract(data) {
@@ -120,13 +167,7 @@ export default defineComponent({
     async function refreshPage(done=() => {}) {
       try {
         await fetchRedemptionContracts()
-        if (Array.isArray(redemptionContractCardsRef.value)) {
-          await Promise.all(redemptionContractCardsRef.value.map(component => {
-            return component?.fetchTreasuryContractBalance?.()
-          }))
-        } else {
-          await redemptionContractCardsRef.value?.fetchTreasuryContractBalance?.()
-        }
+        await redemptionContractMarketPanelRef.value?.fetchTreasuryContractBalance?.()
       } finally {
         done?.()
       }
@@ -134,7 +175,8 @@ export default defineComponent({
 
     return {
       darkMode, getDarkModeClass,
-      redemptionContractCardsRef,
+      selectedRedemptionContract,
+      redemptionContractMarketPanelRef,
 
       fetchingRedemptionContracts,
       redemptionContractsLoaded,
