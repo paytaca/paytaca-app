@@ -250,6 +250,5 @@ function addRemoveClass (element, isFocus) {
   } else {
     element?.classList.remove('q-field--focused')
     element?.classList.remove('q-field--highlighted')
-    element?.classList.remove('q-field--float')
   }
 }
