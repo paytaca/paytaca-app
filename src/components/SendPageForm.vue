@@ -272,7 +272,7 @@ export default {
         return this.recipient.recipientAddress
       },
       set (value) {
-        this.emptyRecipient = value === ''
+        this.emptyRecipient = !!value
         this.$emit('on-recipient-input', value)
       }
     },

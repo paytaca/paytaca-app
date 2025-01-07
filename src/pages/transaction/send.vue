@@ -566,21 +566,16 @@ export default {
     showSlider () {
       if (this.sliderStatus && this.isNFT && !this.sending) return true
       return (
-        !this.sending &&
-        !this.sent &&
-        this.sliderStatus &&
+        !this.sending && !this.sent && this.sliderStatus &&
         // check if amount is greater than zero
-        this.sendDataMultiple
-          .map(data => data.amount > 0)
-          .findIndex(i => !i) < 0 &&
+        this.sendDataMultiple.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
         // check if there are any amount that exceeded current balance
-        this.inputExtras
-          .map(data => data.balanceExceeded)
-          .findIndex(i => i) < 0 &&
+        this.inputExtras.map(a => a.balanceExceeded).findIndex(i => i) < 0 &&
         // check if there are any empty recipients
-        this.inputExtras
-          .map(data => data.emptyRecipient)
-          .findIndex(i => i) < 0
+        (
+          this.inputExtras.map(a => a.emptyRecipient).findIndex(i => i) < 0 &&
+          this.sendDataMultiple.map(a => !!a.recipientAddress).findIndex(i => !i) < 0
+        )
       )
     },
     showAddRecipientButton () {
@@ -1267,6 +1262,7 @@ export default {
 
       if (isDuplicate) {
         sendPageUtils.raiseNotifyError('You already added this address.')
+        this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = ''
         return
       }
 
