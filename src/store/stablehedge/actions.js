@@ -62,7 +62,8 @@ export function updateTokenPrices(context, opts) {
   if (!categories?.length) return Promise.resolve()
 
   const params = {
-    categories: categories.join(',')
+    categories: categories.join(','),
+    max_age: 90,
   }
   return backend.get('stablehedge/fiat-tokens/latest_prices/', { params })
     .then(response => {
