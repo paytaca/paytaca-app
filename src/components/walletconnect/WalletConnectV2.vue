@@ -334,7 +334,6 @@ const loadSessionProposals = async ({showLoading} = {showLoading: true}) => {
       sessionProposals.value = proposals.filter((p) => {
         return p.requiredNamespaces?.bch?.chains?.includes(chainIdFilter)
       })
-      console.log('SESSION PROPOSALS', sessionProposals.value)
     }  
   } catch (error) {} finally { 
     if (showLoading) {
@@ -551,8 +550,6 @@ const disconnectSession = async (activeSession) => {
     
     activeSessions.value && delete activeSessions.value[activeSession.topic]
     sessionTopicWalletAddressMapping.value[activeSession.topic] && delete sessionTopicWalletAddressMapping.value[activeSession.topic]
-    
-    console.log('DISCONNECTING...', activeSession.topic)
     await web3Wallet.value.disconnectSession({
       topic: activeSession.topic,
       reason: getSdkError('USER_DISCONNECTED')
@@ -606,8 +603,6 @@ const rejectSessionProposal = async (sessionProposal) => {
 }
 
 const approveSessionProposal = async (sessionProposal) => {
-  console.log('SESSION PROPOSAL', sessionProposal)
-
   const proposalExpiry = sessionProposal.expiryTimestamp; // Assuming expiry is a timestamp in seconds
   const currentTime = Math.floor(Date.now() / 1000);
 
@@ -653,13 +648,11 @@ const approveSessionProposal = async (sessionProposal) => {
       proposal: sessionProposal,
       supportedNamespaces: namespaces,
     })
-    console.log('APPROVED NAMESPACES', approvedNamespaces)
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
       namespaces: approvedNamespaces,
     })
     await web3Wallet.value.getActiveSessions()
-    console.log('SESSION', session)
     activeSessions.value[session.topic] = session
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
@@ -764,7 +757,6 @@ const respondToGetAccountsRequest = async (sessionRequest) => {
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined };
   try {
     response.result = activeSessions.value[sessionRequest?.topic]?.namespaces?.bch?.accounts.map((addr) => addr.replace('bch:', ''))
-    console.log('RESPONSE', response)
   } catch(err) {
     console.error(err)
     response.error = {
@@ -818,7 +810,6 @@ const respondToSessionRequest = async (sessionRequest) => {
         await web3Wallet.value.respondSessionRequest({ topic, response })
     }
   } catch (error) {
-    console.log('🚀 ~ oldRespondToSessionRequest ~ error:', error)
   } finally {
     delete processingSession.value[sessionRequest.id]
   }
@@ -888,7 +879,6 @@ const onAuthRequest = async (...args) => {
 }
 
 const onSessionDelete = async ({ topic }) => {
-  console.log('SESSION DELETED', topic)
   delete activeSessions.value?.[topic]
   await loadActiveSessions()
 }
@@ -901,23 +891,19 @@ const onSessionProposal = async (sessionProposal) => {
 }
 
 const onSessionRequest = async (sessionRequest) => {
-  console.log('🚀 ~ onSessionRequest ~ sessionRequestData:', sessionRequest)
   await loadSessionRequests({showLoading: true}, sessionRequest)
   
 }
 
 const onSessionUpdate = async (data) => {
-  console.log('🚀 ~ onSessionUpdate ~ data:', data)
   await loadActiveSessions()
 }
 
 const onSessionEvent = async (data) => {
-  console.log('🚀 ~ onSessionEvent ~ data:', data)
   await loadActiveSessions()
 }
 
 const onSessionExpire = async (data) => {
-  console.log('🚀 ~ onSessionExpire ~ data:', data)
   await loadActiveSessions()
 }
 
@@ -962,11 +948,6 @@ const refreshComponent = async () => {
 watchEffect(() => {
   mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
 })
-
-watch(() => $store.getters['global/isChipnet'], (chipnet) => {
-  console.log('CHIPNET CHANGED', chipnet)
-})
-
 
 onBeforeMount(async () => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
