@@ -106,14 +106,12 @@ export function convertFiatToSelectedAsset (amount, selectedAssetMarketPrice) {
 
 export function adjustWalletBalance (asset, amountArray) {
   const isToken = asset.id.startsWith('ct/')
+  const decimals = asset.decimals ?? 8
   const tokenDenominator = 10 ** asset.decimals
-  let currentWalletBalance = 0
 
-  const totalAmount = amountArray.reduce((acc, curr) => acc + curr, 0).toFixed(8)
-  const walletBalance = asset.balance
-  currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(8))
-  // for tokens ('ct/'), convert back to original decimals
-  if (isToken) currentWalletBalance *= tokenDenominator
+  const totalAmount = amountArray.reduce((acc, curr) => acc + curr, 0).toFixed(decimals)
+  const walletBalance = isToken ? asset.balance / tokenDenominator : asset.balance
+  const currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(decimals))
 
   return currentWalletBalance
 }

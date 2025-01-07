@@ -152,7 +152,7 @@
         }) }}
       </span>
       <span v-else>
-        {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
+        {{ currentWalletBalance }} {{ asset.symbol }}
       </span>
       <template v-if="asset.id === 'bch'">
         {{ ` = ${parseFiatCurrency(
