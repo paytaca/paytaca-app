@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "Ang tatanggap ay nangangailangan ng isang token na naiiba sa kung ano ang sinusubukan mong ipadala.",
   TokenNotFound: "Hindi natagpuan ang token",
   TokenNotFoundMessage: "Ang tatanggap ay nangangailangan ng isang token na hindi natagpuan sa iyong pitaka.",
+  TokenReserves: "Mga reserbang token",
   Tokens: "Mga token",
   TokensInCirculation: "Mga token sa sirkulasyon",
   Topic: "Paksa",

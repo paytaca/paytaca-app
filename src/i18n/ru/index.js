@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "Получатель требует токена, который отличается от того, что вы пытаетесь отправить.",
   TokenNotFound: "Токен не найден",
   TokenNotFoundMessage: "Получатель требует токена, который не был найден в вашем кошельке.",
+  TokenReserves: "Токеновые резервы",
   Tokens: "Токены",
   TokensInCirculation: "Жетоны в циркуляции",
   Topic: "Тема",

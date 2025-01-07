@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "يتطلب المستلم رمزًا مختلفًا عما تحاول إرساله.",
   TokenNotFound: "رمز لم يتم العثور عليه",
   TokenNotFoundMessage: "يتطلب المستلم رمزًا لم يتم العثور عليه في محفظتك.",
+  TokenReserves: "محميات الرمز المميز",
   Tokens: "الرموز",
   TokensInCirculation: "الرموز في التداول",
   Topic: "عنوان",

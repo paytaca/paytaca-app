@@ -1143,6 +1143,7 @@ const phrases = {
       toRedeemAllTokensInCirculation: "to redeem all tokens in circulation",
       ContractAssets: "Contract assets",
       ReserveSupply: "Reserve supply",
+      TokenReserves: "Token reserves",
     },
     {
       PushNotifications: 'Push Notifications',

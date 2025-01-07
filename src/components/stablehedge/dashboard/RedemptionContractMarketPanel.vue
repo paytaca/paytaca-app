@@ -188,7 +188,7 @@
         <div class="text-weight-medium">{{ denominateSats(redemptionContract?.redeemable || 0) }}</div>
       </div>
       <div class="text-right">
-        <div>{{ $t('TokenReserve') }}</div>
+        <div>{{ $t('TokenReserves') }}</div>
         <div class="text-weight-medium">{{ formatTokenUnits(redemptionContract?.reserve_supply || 0) }}</div>
       </div>
     </div>

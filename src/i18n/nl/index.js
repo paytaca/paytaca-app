@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "De ontvanger vereist een token dat anders is dan wat u probeert te verzenden.",
   TokenNotFound: "Token niet gevonden",
   TokenNotFoundMessage: "De ontvanger vereist een token dat niet in uw portemonnee is gevonden.",
+  TokenReserves: "Token -reserves",
   Tokens: "Tokens",
   TokensInCirculation: "Tokens in omloop",
   Topic: "Onderwerp",

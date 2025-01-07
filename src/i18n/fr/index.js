@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "Le destinataire nécessite un jeton différent de ce que vous essayez d'envoyer.",
   TokenNotFound: "Jeton introuvable",
   TokenNotFoundMessage: "Le destinataire a besoin d'un jeton qui n'a pas été trouvé dans votre portefeuille.",
+  TokenReserves: "Réserves de jetons",
   Tokens: "Jetons",
   TokensInCirculation: "Jetons en circulation",
   Topic: "Sujet",

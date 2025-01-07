@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "接收者需要一个与您要发送的不同的令牌。",
   TokenNotFound: "找不到令牌",
   TokenNotFoundMessage: "收件人需要在您的钱包中找不到的令牌。",
+  TokenReserves: "令牌储备",
   Tokens: "令牌",
   TokensInCirculation: "循环中的令牌",
   Topic: "话题",

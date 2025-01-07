@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "Mai karɓa yana buƙatar alama wanda ya bambanta da abin da kuke ƙoƙarin aikawa.",
   TokenNotFound: "Ba a samo alama ba",
   TokenNotFoundMessage: "Mai karɓa yana buƙatar alama wanda ba a samo shi a cikin walat ɗinku ba.",
+  TokenReserves: "Token renerves",
   Tokens: "Alamomin",
   TokensInCirculation: "Alamar a cikin wurare dabam dabam",
   Topic: "Batu",

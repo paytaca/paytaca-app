@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "Penerima membutuhkan token yang berbeda dari apa yang Anda coba kirim.",
   TokenNotFound: "Token tidak ditemukan",
   TokenNotFoundMessage: "Penerima membutuhkan token yang tidak ditemukan di dompet Anda.",
+  TokenReserves: "Cadangan token",
   Tokens: "Token",
   TokensInCirculation: "Token yang beredar",
   Topic: "Topik",

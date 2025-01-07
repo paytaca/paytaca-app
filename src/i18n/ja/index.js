@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "受信者は、送信しようとしているものとは異なるトークンを必要とします。",
   TokenNotFound: "トークンが見つかりません",
   TokenNotFoundMessage: "受信者は、財布には見つからなかったトークンを必要とします。",
+  TokenReserves: "トークンリザーブ",
   Tokens: "トークン",
   TokensInCirculation: "循環中のトークン",
   Topic: "トピック",

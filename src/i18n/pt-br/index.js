@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "O destinatário requer um token diferente do que você está tentando enviar.",
   TokenNotFound: "Token não encontrado",
   TokenNotFoundMessage: "O destinatário requer um token que não foi encontrado em sua carteira.",
+  TokenReserves: "Reservas de token",
   Tokens: "Tokens",
   TokensInCirculation: "Tokens em circulação",
   Topic: "Tópico",

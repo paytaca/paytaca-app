@@ -1329,6 +1329,7 @@ export default {
   TokenMismatchMessage: "El destinatario requiere un token que sea diferente de lo que está tratando de enviar.",
   TokenNotFound: "Token no encontrado",
   TokenNotFoundMessage: "El destinatario requiere una ficha que no se encontró en su billetera.",
+  TokenReserves: "Reservas de tokens",
   Tokens: "Tokens",
   TokensInCirculation: "Tokens en circulación",
   Topic: "Tema",
