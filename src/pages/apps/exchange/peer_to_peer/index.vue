@@ -42,8 +42,7 @@ export default {
       previousRoute: null,
       reconnectWebsocket: true,
       showNoticeBoard: false,
-      noticeBoardMessage: null,
-      noticeBoardType: null
+      noticeBoardMessage: null
     }
   },
   components: {

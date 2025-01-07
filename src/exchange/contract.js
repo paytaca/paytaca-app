@@ -82,17 +82,23 @@ export class RampContract {
    * Retrieves the balance of the contract.
    * @returns {Promise<number>} A promise that resolves with the balance of the contract in Bitcoin Cash (BCH).
    */
-  async getBalance (address = '') {
+  async getBalance (address = '', retry = false) {
     if (!address) address = this.contract.address
+    let balance = 0
     try {
       const watchtower = new Watchtower(Store.getters['global/isChipnet'])
       const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
-      return response.data.balance
+      balance = response?.data?.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)
-      const rawBal = await this.contract.getBalance()
-      return bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))
+      retry = true
     }
+    if (retry && balance === 0) {
+      console.warn('Refetched contract balance from cashscript built-in method getBalance()')
+      const rawBal = await this.contract.getBalance()
+      balance = bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))
+    }
+    return balance
   }
 
   /**

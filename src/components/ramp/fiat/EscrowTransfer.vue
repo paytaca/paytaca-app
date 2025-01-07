@@ -238,7 +238,7 @@ export default {
       // generates the contract object
       await vm.generateContract()
       // mark contract as pending for verification, if the contract is already funded
-      vm.escrowBalance = await vm.escrowContract.getBalance()
+      vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
       if (vm.escrowBalance > 0) {
         if (vm.order?.status?.value === 'CNF') {
           await vm.escrowPendingOrder()
@@ -287,7 +287,7 @@ export default {
               }
             }
             vm.$store.commit('ramp/saveTxid', txidData)
-            vm.escrowBalance = await vm.escrowContract.getBalance()
+            vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
             vm.$emit('success', vm.txid)
             if (vm.order?.status?.value === 'CNF') {
               await vm.escrowPendingOrder()

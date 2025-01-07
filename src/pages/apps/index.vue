@@ -200,6 +200,9 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    fetchAppControl () {
+      this.$store.dispatch('global/fetchAppControl')
+    },
     buttonClassByState (active) {
       return active ? '' : 'disabled'
     },
@@ -316,6 +319,7 @@ export default {
         htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
       }
     })
+    this.fetchAppControl()
   }
 }
 </script>

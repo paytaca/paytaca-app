@@ -192,7 +192,8 @@ export default {
       receiveOrderError: null,
       orderWebSocketManager: null,
       noticeType: 'info',
-      showNoticeDialog: false
+      showNoticeDialog: false,
+      errorDialogActive: false
     }
   },
   components: {
@@ -392,21 +393,22 @@ export default {
         return
       }
       await this.loadData()
-      // this.reloadChildComponents()
       if (done) done()
     },
     async loadData () {
-      const vm = this
-      await vm.fetchOrder()
-      await vm.fetchFees()
-      if (vm.order.contract) {
-        await vm.generateContract()
-      }
-      await vm.fetchAd()
-      vm.fetchFeedback().then(() => {
+      try {
+        const vm = this
+        await vm.fetchOrder()
+        if (vm.order.contract) {
+          await vm.generateContract()
+        }
+        await vm.fetchAd()
+        await vm.fetchFeedback()
         if (this.notifType === 'new_message') { this.openChat = true }
-      })
-      vm.isloaded = true
+        vm.isloaded = true
+      } catch (error) {
+        console.error(error)
+      }
     },
     onVerifyingTx (verifying) {
       this.verifyingTx = verifying
@@ -555,23 +557,15 @@ export default {
                 vm.hasUnread = res.data.unread_count > 0
               })
               .catch(error => {
-                console.log(error)
                 if (error.response?.status === 404) {
                   vm.createGroupChat(vm.order?.id, chatRef)
                 }
+                this.handleRequestError(error)
               })
           }
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async createGroupChat (orderId, chatRef) {
@@ -583,28 +577,11 @@ export default {
         .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
         .catch(console.error)
     },
-    updateOrderReadAt () {
+    async updateOrderReadAt () {
       const vm = this
       if (vm.order?.read_at) return
-      return new Promise((resolve, reject) => {
-        const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
-        backend.patch(url, null, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
+      const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
+      backend.patch(url, null, { authorize: true }).catch(error => { this.handleRequestError(error) })
     },
     async fetchAd () {
       const vm = this
@@ -614,15 +591,7 @@ export default {
           vm.ad = response.data
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     confirmOrder () {
@@ -633,18 +602,10 @@ export default {
           vm.updateStatus(response.data.status)
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 400) {
-              this.receiveOrderError = error.response.data.error
-            }
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
+          if (error?.response?.status === 400) {
+            this.receiveOrderError = error?.response?.data?.error
           }
+          this.handleRequestError(error)
         })
     },
     cancelOrder () {
@@ -657,15 +618,7 @@ export default {
           }
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async fetchFees () {
@@ -676,56 +629,34 @@ export default {
           vm.fees = response.data
         })
         .catch(error => {
-          console.error(error.response || error)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
-    fetchContract () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = `/ramp-p2p/order/${vm.order?.id}/contract/`
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.contract = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
+    async fetchContract () {
+      try {
+        const url = `/ramp-p2p/order/${this.order?.id}/contract/`
+        const response = await backend.get(url, { authorize: true })
+        this.contract = response.data
+      } catch (error) {
+        this.handleRequestError(error)
+      }
+      return this.contract
     },
     async generateContract () {
       const vm = this
       await vm.fetchFees()
-      await vm.fetchContract().then(async contract => {
-        if (vm.escrowContract || !contract) return
-        const publicKeys = contract.pubkeys
-        const addresses = contract.addresses
-        const fees_ = {
-          arbitrationFee: vm.fees?.breakdown?.arbitration_fee,
-          serviceFee: vm.fees?.breakdown?.service_fee,
-          contractFee: vm.fees?.breakdown?.contract_fee
-        }
-        const timestamp = contract.timestamp
-        vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
-        vm.reloadChildComponents()
-      })
+      await vm.fetchContract()
+      if (vm.escrowContract || !vm.contract) return
+      const publicKeys = vm.contract.pubkeys
+      const addresses = vm.contract.addresses
+      const fees_ = {
+        arbitrationFee: vm.fees?.breakdown?.arbitration_fee,
+        serviceFee: vm.fees?.breakdown?.service_fee,
+        contractFee: vm.fees?.breakdown?.contract_fee
+      }
+      const timestamp = vm.contract.timestamp
+      vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
+      vm.reloadChildComponents()
     },
     submitAppeal (data) {
       const vm = this
@@ -737,15 +668,7 @@ export default {
         })
         .then(vm.addArbiterToChat())
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     sendFeedback (feedback) {
@@ -768,77 +691,45 @@ export default {
           vm.standByDisplayKey++
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
       vm.isloaded = true
     },
-    fetchFeedback () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = '/ramp-p2p/order/feedback/peer/'
-        backend.get(url, {
-          params: {
-            limit: 7,
-            page: 1,
-            from_peer: vm.$store.getters['ramp/getUser'].id,
-            order_id: vm.order.id
-          },
-          authorize: true
+    async fetchFeedback () {
+      const vm = this
+      const url = '/ramp-p2p/order/feedback/peer/'
+      backend.get(url, {
+        params: {
+          limit: 7,
+          page: 1,
+          from_peer: vm.$store.getters['ramp/getUser'].id,
+          order_id: vm.order.id
+        },
+        authorize: true
+      })
+        .then(response => {
+          if (response.data) {
+            const data = response.data.feedbacks[0]
+            if (data) {
+              vm.feedback = {
+                rating: data.rating,
+                comment: data.comment,
+                is_posted: true
+              }
+            }
+          }
         })
-          .then(response => {
-            if (response.data) {
-              const data = response.data.feedbacks[0]
-              if (data) {
-                vm.feedback = {
-                  rating: data.rating,
-                  comment: data.comment,
-                  is_posted: true
-                }
-              }
-              resolve(response.data)
-            }
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
     },
-    fetchOrderMembers (orderId) {
-      return new Promise((resolve, reject) => {
-        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
-          .then(response => {
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
+    async fetchOrderMembers (orderId) {
+      try {
+        const response = await backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
+        return response.data
+      } catch (error) {
+        this.handleRequestError(error)
+      }
     },
     addArbiterToChat () {
       const vm = this
@@ -892,38 +783,12 @@ export default {
     },
 
     // Others
-    formattedCurrency (value, currency = null) {
-      if (currency) {
-        return formatCurrency(value, currency)
-      } else {
-        return formatCurrency(value)
-      }
-    },
-    isValidInputAmount (value) {
-      if (value === undefined) return false
-      const parsedValue = parseFloat(value)
-      const tradeFloor = parseFloat(this.ad.trade_floor)
-      const tradeCeiling = parseFloat(this.ad.trade_ceiling)
-      if (isNaN(parsedValue) || parsedValue < tradeFloor || parsedValue > tradeCeiling) {
-        return false
-      }
-      return true
-    },
     onVerifyTxSuccess (status) {
       this.updateStatus(status)
     },
     onEscrowSuccess (txid) {
       this.txid = txid
       this.fetchOrder()
-    },
-    copyToClipboard (value) {
-      this.$copyText(value)
-      this.$q.notify({
-        message: this.$t('CopiedToClipboard'),
-        timeout: 800,
-        color: 'blue-9',
-        icon: 'mdi-clipboard-check'
-      })
     },
     setupChatWebsocket (retries, delayDuration) {
       const wsChatUrl = `${getChatBackendWsUrl()}${this.chatRef}/`
@@ -958,29 +823,26 @@ export default {
       const url = `${getBackendWsUrl()}order/${this.order.id}/`
       this.orderWebSocketManager = new WebSocketManager()
       this.orderWebSocketManager.setWebSocketUrl(url)
-      this.orderWebSocketManager.subscribeToMessages((message) => {
+      this.orderWebSocketManager.subscribeToMessages(async (message) => {
         if (message?.success) {
           if (message?.txdata) {
             this.verifyingTx = false
             this.sendingBch = false
           }
-          this.fetchOrder()
-            .then(() => {
-              if (message?.contract_address) {
-                this.fetchContract().then(() => { this.escrowTransferKey++ })
-              }
-            })
+          await this.fetchOrder()
+          if (message?.contract_address) {
+            await this.fetchContract()
+            this.escrowTransferKey++
+          }
         } else {
-          this.handleError(message)
+          if ((message?.action === 'ESCROW' || message?.action === 'RELEASE') &&
+            this.userTraderType === 'SELLER') {
+            this.noticeType = 'error'
+            this.errorMessage = message?.error
+            this.showNoticeDialog = true
+          }
         }
       })
-    },
-    handleError (data) {
-      if ((data?.action === 'ESCROW' || data?.action === 'RELEASE') && this.userTraderType === 'SELLER') {
-        this.noticeType = 'error'
-        this.errorMessage = data?.error
-        this.showNoticeDialog = true
-      }
     },
     closeChatWSConnection () {
       if (this.websocket.chat) this.websocket.chat.close()
@@ -995,6 +857,44 @@ export default {
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
+    },
+    handleRequestError (error) {
+      console.error(error?.response || error)
+      if (error.code === 'ECONNABORTED') {
+        // Request timeout
+        this.showErrorDialog('Request timed out. Please try again later.')
+      } else if (!error.response) {
+        // Network error
+        bus.emit('network-error')
+      } else {
+        // HTTP status code error
+        switch (error.response.status) {
+          case 403:
+            bus.emit('session-expired')
+            break
+          case 400:
+            this.showErrorDialog('Bad Request. Please check the request parameters.')
+            break
+          case 500:
+            this.showErrorDialog('Internal Server Error. Please try again later.')
+            break
+          default:
+            this.showErrorDialog(`Error: ${error.response.status}. ${error.response.statusText}`)
+        }
+      }
+    },
+    showErrorDialog (message) {
+      if (!this.errorDialogActive) {
+        this.$q.notify({
+          type: 'warning',
+          message: message,
+          position: 'bottom',
+          timeout: 5000,
+          onDismiss: () => {
+            this.errorDialogActive = false
+          }
+        })
+      }
     }
   }
 }

@@ -85,6 +85,7 @@ export default {
       verifyingTx: false,
       txidLoaded: false,
       balanceLoaded: false,
+      errorDialogActive: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -158,15 +159,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             reject(error)
           })
       })
@@ -180,15 +173,8 @@ export default {
           console.log(response.data)
         })
         .catch(error => {
-          console.error(error?.response || error)
           vm.errorMessage = error.response?.data?.error
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -204,17 +190,10 @@ export default {
           console.log(response.data)
         })
         .catch(error => {
-          console.error(error?.response || error)
           if (error.response?.data?.error === 'txid is required') {
             vm.errorMessage = 'Transaction ID is required for verification'
           }
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -302,6 +281,44 @@ export default {
           }
         })
         .catch(error => console.error(error))
+    },
+    handleRequestError (error) {
+      console.error(error?.response || error)
+      if (error.code === 'ECONNABORTED') {
+        // Request timeout
+        this.showErrorDialog('Request timed out. Please try again later.')
+      } else if (!error.response) {
+        // Network error
+        bus.emit('network-error')
+      } else {
+        // HTTP status code error
+        switch (error.response.status) {
+          case 403:
+            bus.emit('session-expired')
+            break
+          case 400:
+            this.showErrorDialog('Bad Request. Please check the request parameters.')
+            break
+          case 500:
+            this.showErrorDialog('Internal Server Error. Please try again later.')
+            break
+          default:
+            this.showErrorDialog(`Error: ${error.response.status}. ${error.response.statusText}`)
+        }
+      }
+    },
+    showErrorDialog (message) {
+      if (!this.errorDialogActive) {
+        this.$q.notify({
+          type: 'warning',
+          message: message,
+          position: 'bottom',
+          timeout: 5000,
+          onDismiss: () => {
+            this.errorDialogActive = false
+          }
+        })
+      }
     }
   }
 }

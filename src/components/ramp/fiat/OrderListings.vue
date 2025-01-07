@@ -263,7 +263,8 @@ export default {
       notifType: null,
       loadingMoreData: false,
       displayEmptyList: false,
-      ongoingSearch: false
+      ongoingSearch: false,
+      errorDialogActive: false
     }
   },
   watch: {
@@ -464,15 +465,7 @@ export default {
           vm.fiatCurrencies.unshift(vm.$t('All'))
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async fetchCashinOrders (overwrite = false) {
@@ -487,15 +480,7 @@ export default {
           return Promise.resolve(response)
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           return Promise.reject(error)
         })
     },
@@ -515,15 +500,7 @@ export default {
           return Promise.resolve(response)
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           return Promise.reject(error)
         })
       bus.emit('update-unread-count', response.unread_count)
@@ -658,6 +635,44 @@ export default {
       bus.emit('show-menu', 'orders')
       vm.state = 'order-list'
       await vm.resetAndRefetchListings()
+    },
+    handleRequestError (error) {
+      console.error(error?.response || error)
+      if (error.code === 'ECONNABORTED') {
+        // Request timeout
+        this.showErrorDialog('Request timed out. Please try again later.')
+      } else if (!error.response) {
+        // Network error
+        bus.emit('network-error')
+      } else {
+        // HTTP status code error
+        switch (error.response.status) {
+          case 403:
+            bus.emit('session-expired')
+            break
+          case 400:
+            this.showErrorDialog('Bad Request. Please check the request parameters.')
+            break
+          case 500:
+            this.showErrorDialog('Internal Server Error. Please try again later.')
+            break
+          default:
+            this.showErrorDialog(`Error: ${error.response.status}. ${error.response.statusText}`)
+        }
+      }
+    },
+    showErrorDialog (message) {
+      if (!this.errorDialogActive) {
+        this.$q.notify({
+          type: 'warning',
+          message: message,
+          position: 'bottom',
+          timeout: 5000,
+          onDismiss: () => {
+            this.errorDialogActive = false
+          }
+        })
+      }
     }
   }
 }
