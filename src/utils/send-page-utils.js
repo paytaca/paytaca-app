@@ -85,7 +85,7 @@ export function getChangeAddress (walletType) {
 export function getExplorerLink (txid, isCashToken) {
   let url = 'https://blockchair.com/bitcoin-cash/transaction/'
   if (isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
-  if (isChipnet) url = 'https://chipnet.imaginary.cash/tx/'
+  if (isChipnet()) url = 'https://chipnet.imaginary.cash/tx/'
   return `${url}${txid}`
 }
 

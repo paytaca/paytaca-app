@@ -197,7 +197,7 @@ import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { convertToFiatAmount } from 'src/utils/send-page-utils'
 
-import SelectChangeAddress from './SelectChangeAddress.vue'
+import SelectChangeAddress from 'src/components/SelectChangeAddress.vue'
 
 export default {
   components: {
