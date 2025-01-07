@@ -10,6 +10,10 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const { t: $t } = i18n.global
 
+function isChipnet () {
+  return Store.getters['global/isChipnet']
+}
+
 export async function handleJpp (paymentUri, darkMode) {
   const dialog = Dialog.create({
     title: 'Invoice',
@@ -78,7 +82,7 @@ export function getChangeAddress (walletType) {
   return Store.getters['global/getChangeAddress'](walletType)
 }
 
-export function getExplorerLink (txid, isCashToken, isChipnet) {
+export function getExplorerLink (txid, isCashToken) {
   let url = 'https://blockchair.com/bitcoin-cash/transaction/'
   if (isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
   if (isChipnet) url = 'https://chipnet.imaginary.cash/tx/'
@@ -116,7 +120,7 @@ export function adjustWalletBalance (asset, amountArray) {
   return currentWalletBalance
 }
 
-export function validateAddress (address, walletType, isCashToken, isChipnet) {
+export function validateAddress (address, walletType, isCashToken) {
   const addressObj = new Address(address)
   let addressIsValid = false
   let formattedAddress

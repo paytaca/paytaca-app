@@ -11,7 +11,7 @@
         :backnavpath="!backPath ? '/' : backPath"
       />
       <q-banner
-        v-if="assetId.startsWith('slp/')"
+        v-if="isSLP"
         inline-actions
         class="bg-red text-center q-mt-lg text-bow slp-disabled-banner"
         :class="getDarkModeClass(darkMode)"
@@ -71,7 +71,7 @@
               <div
                 v-if="isLegacyAddress"
                 style="border: 2px solid orange;"
-                class="q-mx-md q-mb-md q-pa-sm text-center text-subtitle1 text-bow"
+                class="q-mx-md q-mb-md q-pa-sm text-center text-subtitle2 text-bow"
                 :class="getDarkModeClass(darkMode)"
                 v-html="$t('LegacyAddressWarning')"
               />
@@ -469,7 +469,6 @@ export default {
         cashbackData: null
       }],
       expandedItems: {},
-      actualWalletBalance: { balance: 0, spendable: 0 },
 
       /** @type {Wallet} */
       wallet: null,
@@ -528,9 +527,6 @@ export default {
         timeStyle: 'full'
       }).format(dateObj)
     },
-    currentCountry () {
-      return this.$store.getters['global/country'].code
-    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -543,11 +539,8 @@ export default {
 
       return true
     },
-    isERC721 () {
-      return erc721IdRegexp.test(this.assetId)
-    },
     isNFT () {
-      if (this.isERC721) return true
+      if (erc721IdRegexp.test(this.assetId)) return true
       if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
@@ -659,11 +652,7 @@ export default {
       )
 
       if (isDuplicate) sendPageUtils.raiseNotifyError('You already added this address.')
-
-      this.isLegacyAddress = isLegacy
-      this.isWalletAddress = isWalletAddress
-      this.inputExtras[this.currentRecipientIndex].isLegacyAddress = isLegacy
-      this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
+      this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     }
   },
 
@@ -1291,10 +1280,7 @@ export default {
 
       this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
-      this.isLegacyAddress = isLegacy
-      this.isWalletAddress = isWalletAddress
-      this.inputExtras[this.currentRecipientIndex].isLegacyAddress = isLegacy
-      this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
+      this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
@@ -1313,10 +1299,7 @@ export default {
     // ========== util methods ==========
     // getters
     getExplorerLink (txid) {
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-      if (this.isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
-      if (this.isChipnet) url = 'https://chipnet.imaginary.cash/tx/'
-      return `${url}${txid}`
+      return sendPageUtils.getExplorerLink(txid, this.isCashToken)
     },
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
@@ -1344,10 +1327,8 @@ export default {
       } else this.adjustWalletBalance()
     },
     setDefaultFtChangeAddress () {
-      if (this.connectedApps?.[0]) {
-        if (!this.userSelectedChangeAddress) {
-          this.userSelectedChangeAddress = this.connectedApps[0].wallet_address
-        }
+      if (this.connectedApps?.[0] && !this.userSelectedChangeAddress) {
+        this.userSelectedChangeAddress = this.connectedApps[0].wallet_address
       }
     },
 
@@ -1391,9 +1372,7 @@ export default {
       }
     },
     validateAddress (address) {
-      return sendPageUtils.validateAddress(
-        address, this.walletType, this.isCashToken, this.isChipnet
-      )
+      return sendPageUtils.validateAddress(address, this.walletType, this.isCashToken)
     },
 
     // error handling
@@ -1430,6 +1409,12 @@ export default {
     },
 
     // uncategorized
+    updateAddressPrecheckValues (isLegacy, isWalletAddress) {
+      this.isLegacyAddress = isLegacy
+      this.isWalletAddress = isWalletAddress
+      this.inputExtras[this.currentRecipientIndex].isLegacyAddress = isLegacy
+      this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
+    },
     playSound (success) {
       if (success) NativeAudio.play({ assetId: 'send-success' })
     },
@@ -1481,7 +1466,6 @@ export default {
     vm.initWallet().then(() => vm.adjustWalletBalance())
 
     if (navigator.onLine) vm.onConnectivityChange(true)
-
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
     // check query if address is not empty (from qr reader redirection)
