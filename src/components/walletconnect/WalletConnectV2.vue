@@ -497,7 +497,7 @@ const pairURI = async(uri) => {
   if (!uri) return
   try {
     if (!web3Wallet.value) {
-      await loadWeb3Wallet($store.getters['global/isChipnet'])
+      await loadWeb3Wallet()
     }
     loading.value = $t('HandshakingWithPeer')
     const prevSessionProposalsLength = sessionProposals.value?.length
@@ -872,14 +872,14 @@ const resetWallectConnect = async () => {
   alert('Reset done!')
 }
 
-const loadWeb3Wallet = async (chipnet) => {
-  console.log('🚀 ~ loadWeb3Wal ~ chipnet:', chipnet)
+const loadWeb3Wallet = async () => {
+  // console.log('🚀 ~ loadWeb3Wal ~ chipnet:', chipnet)
   // web3WalletPromise.value = initWeb3Wallet(chipnet)
   // const _web3Wallet = await web3WalletPromise.value
   // web3Wallet.value = _web3Wallet
   // window.w3w = _web3Wallet
   
-  web3Wallet.value = await initWeb3Wallet(chipnet)
+  web3Wallet.value = await initWeb3Wallet()
   window.w3w = web3Wallet.value
 }
 
@@ -983,7 +983,7 @@ onBeforeMount(async () => {
 onMounted(async () => {
   try {
     loading.value = 'Loading...'
-    await loadWeb3Wallet($store.getters['global/isChipnet'])
+    await loadWeb3Wallet()
     loadActiveSessions()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {

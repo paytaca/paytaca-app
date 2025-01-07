@@ -13,11 +13,11 @@ const bchjs = new BCHJS()
 /**
  * @returns {Promise<import('@walletconnect/web3wallet').IWeb3Wallet>}
  */
-export async function initWeb3Wallet(chipnet = false /*opts={forceCreate: true}*/) {
+export async function initWeb3Wallet(/*opts={forceCreate: true}*/) {
+  
   const core = new Core({
-    projectId: chipnet? process.env.WALLETCONNECT_CHIPNET_PROJECT_ID:  process.env.WALLETCONNECT_MAINNET_PROJECT_ID,
+    projectId: process.env.WALLETCONNECT_PROJECT_ID
   })
-
   // if (!_web3wallet || opts?.forceCreate) {
   //   _web3wallet = await Web3Wallet.init({
   //     core: core,
@@ -31,7 +31,7 @@ export async function initWeb3Wallet(chipnet = false /*opts={forceCreate: true}*
   // }
   // return _web3wallet
 
-  return Web3Wallet.init({
+  return await Web3Wallet.init({
     core: core,
     metadata: {
       name: 'Paytaca',
