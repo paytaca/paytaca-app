@@ -1,5 +1,6 @@
 import { computed, ref, toValue } from "vue";
 import { Store } from "src/store";
+import { parseHedgePositionData } from "src/wallet/anyhedge/formatters";
 import { getStablehedgeBackend } from "src/wallet/stablehedge/api";
 import { tokenToSatoshis } from "src/wallet/stablehedge/token-utils";
 import { getAssetDenomination } from "src/utils/denomination-utils";
@@ -151,6 +152,41 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
     }
   })
 
+  /**
+   * @typedef {import("@generalprotocols/anyhedge").ContractDataV2} ContractDataV2
+   * 
+   * @type {import("vue").Ref<ContractDataV2[]>}
+   */
+  const shortPositions = ref([])
+  const fetchingShortPositions = ref(false)
+  function fetchShortPositions() {
+    const redemptionContract = toValue(redemptionContractDataOrRef)
+    const addressParam = redemptionContract?.treasury_contract_address
+
+    if (!addressParam) {
+      shortPositions.value = []
+      return Promise.resolve()
+    }
+
+    const params = {
+      limit: 20,
+      short_address: addressParam || '',
+      funding: 'complete',
+      settled: false,
+    }
+    const backend = getStablehedgeBackend(isChipnet.value)
+    fetchingShortPositions.value = true
+    return backend.get(`anyhedge/hedge-positions/`, { params })
+      .then(response => {
+        Promise.all(response.data.results.map(parseHedgePositionData))
+          .then(parsedContracts => shortPositions.value = parsedContracts)
+        return response
+      })
+      .finally(() => {
+        fetchingShortPositions.value = false
+      })
+  }
+
   return {
     isChipnet,
     denomination,
@@ -172,5 +208,9 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
 
     parsedTreasuryContractBalance,
     summaryData,
+
+    shortPositions,
+    fetchingShortPositions,
+    fetchShortPositions,
   }
 }

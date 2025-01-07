@@ -210,7 +210,37 @@
         <div class="text-weight-medium">{{ formatTokenUnits(parsedTreasuryContractBalance?.shortUnitValue) }}</div>
       </div>
     </div>
+
+    <q-separator spaced />
+    <div>
+      <div class="row items-center">
+        <div class="q-space text-body2 text-grey">{{ $t('ShortPositions') }}</div>
+        <q-btn flat padding="xs" icon="refresh" @click.stop="() => fetchShortPositions()"/>
+      </div>
+      <div v-if="fetchingShortPositions" class="text-center">
+        <q-spinner color="brandblue" size="2rem"/>
+      </div>
+      <div v-if="!shortPositions?.length" class="text-grey text-center">
+        {{ $t('NoShortPositions') }}
+      </div>
+      <div
+        v-for="shortPosition in shortPositions" :key="shortPosition?.address"
+        class="row items-center no-wrap"
+      >
+        <div class="col-8 ellipsis">
+          {{ shortPosition?.address }}
+        </div>
+        <div class="q-pl-sm q-space text-right">
+          <q-btn flat padding="sm" icon="content_copy" @click.stop="() => copyToClipboard(shortPosition?.address)"/>
+          <q-btn flat padding="sm" icon="open_in_new" @click.stop="() => openHedgePositionDialog(shortPosition)"/>
+        </div>
+      </div>
+    </div>
   </q-card>
+  <HedgeContractDetailDialog
+    v-model="hedgePositionDetailDialog.show"
+    :contract="hedgePositionDetailDialog.hedgePosition"
+  />
 </div>
 </template>
 <script>
@@ -226,9 +256,14 @@ import { useStore } from 'vuex';
 import { defineComponent, getCurrentInstance, inject, toRef } from 'vue';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
+import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue';
+
 
 export default defineComponent({
   name: 'RedemptionContractMarketPanel',
+  components: {
+    HedgeContractDetailDialog,
+  },
   props: {
     redemptionContract: {
       /** @returns {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} */
@@ -268,6 +303,10 @@ export default defineComponent({
       createBchValueComparisonChart,
       createBchValueChart,
       createTokenChart,
+
+      shortPositions,
+      fetchingShortPositions,
+      fetchShortPositions,
     } = useStablehedgeDashboardWithCharts(toRef(props, 'redemptionContract'))
 
     const priceTrackerKeyId = `redemption-contract-market-panel-${instance.uid}`
@@ -352,6 +391,18 @@ export default defineComponent({
       }
     }, 500)
 
+    onMounted(() => fetchShortPositions())
+    watch(
+      () => props.redemptionContract?.treasury_contract_address,
+      () => fetchShortPositions(),
+    )
+    const hedgePositionDetailDialog = ref({ show: false, hedgePosition: {} })
+    function openHedgePositionDialog(hedgePosition) {
+      hedgePositionDetailDialog.value = {
+        show: true, hedgePosition: hedgePosition,
+      }
+    }
+
     /** ------- <Formatters -------  */
     const {
       denominateSats,
@@ -391,6 +442,12 @@ export default defineComponent({
       moveSummaryPanel,
       chartRef,
       parsed24HrVolumeChartData,
+
+      shortPositions,
+      fetchingShortPositions,
+      fetchShortPositions,
+      hedgePositionDetailDialog,
+      openHedgePositionDialog,
 
       denominateSats,
       denominateBch,
