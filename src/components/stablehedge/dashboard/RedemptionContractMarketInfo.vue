@@ -86,6 +86,9 @@ import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { computed, defineComponent, watch, onMounted, onUnmounted, ref, getCurrentInstance } from 'vue';
+import { useStablehedgeDashboard } from 'src/composables/stablehedge/dashboard';
+import { useValueFormatters } from 'src/composables/stablehedge/formatters';
+import { toRef } from 'vue';
 
 export default defineComponent({
   name: 'RedemptionContractMarketInfo',
@@ -102,22 +105,27 @@ export default defineComponent({
     const $store = useStore()
     const isNotDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-    const isChipnet = computed(() => $store.getters['global/isChipnet'])
-    const denomination = computed(() => $store.getters['global/denomination'])
 
-    const tokenCategory = computed(() => props.redemptionContract?.fiat_token?.category)
-    const token = computed(() => $store.getters['stablehedge/token'](tokenCategory.value))
-    const priceMessage = computed(() => token.value?.priceMessage)
-    const currency = computed(() => token.value?.currency)
-    const decimals = computed(() => token.value?.decimals)
+    const {
+      isChipnet,
+      denomination,
+      tokenCategory,
+      token,
+      priceMessage,
+      currency,
+      decimals,
 
-    const priceUnitPerBch = computed(() => parseFloat(priceMessage.value?.priceValue))
-    const pricePerBch = computed(() =>  priceUnitPerBch.value / 10 ** decimals.value)
-    const pricePerDenomination = computed(() => {
-      const currentDenomination = denomination.value || 'BCH'
-      const conversionRate = parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
-      return pricePerBch.value / conversionRate
-    })
+      pricePerBch,
+      priceUnitPerBch,
+      pricePerDenomination,
+
+      fetchingTreasuryContractBalance,
+      treasuryContractBalance,
+      fetchTreasuryContractBalance,
+      parsedTreasuryContractBalance,
+
+      summaryData,
+    } = useStablehedgeDashboard(toRef(props, 'redemptionContract'))
 
     const priceTrackerKeyId = `redemption-contract-card-${instance.uid}`
     onMounted(() => updatePriceTrackerSub())
@@ -147,122 +155,14 @@ export default defineComponent({
         fetchTreasuryContractBalance()
       },
     )
-
     const treasuryContractBalanceLoaded = ref(false)
-    const fetchingTreasuryContractBalance = ref(false)
-    const treasuryContractBalance = ref()
-    function fetchTreasuryContractBalance() {
-      const address = props.redemptionContract?.treasury_contract_address
-      if (!address) return
-
-      const backend = getStablehedgeBackend(isChipnet.value)
-      fetchingTreasuryContractBalance.value = true
-      return backend.get(`stablehedge/treasury-contracts/${address}/balance/`)
-        .then(response => {
-          treasuryContractBalance.value = { address, ...response.data}
-          return response
-        })
-        .finally(() => {
-          fetchingTreasuryContractBalance.value = false
-          treasuryContractBalanceLoaded.value = true
-        })
-    }
-
-    const parsedTreasuryContractBalance = computed(() => {
-      if (props.redemptionContract?.treasury_contract_address != treasuryContractBalance.value?.address) return
-      const balanceData = treasuryContractBalance.value
-      if (!balanceData) return
-
-      const spendableBch = balanceData?.spendable / 10 ** 8
-      const shortUnitValue = balanceData?.in_short?.unit_value
-      let shortSatoshisValue
-      if (priceUnitPerBch.value) {
-        shortSatoshisValue = Number(tokenToSatoshis(shortUnitValue, priceUnitPerBch.value))
-      }
-
-      const totalShortedBchValue = shortSatoshisValue / 10 ** 8
-      const totalBchValue = spendableBch + totalShortedBchValue
-      return {
-        spendableBch,
-        totalShortedBchValue,
-        shortUnitValue,
-        totalBchValue,
-      }
-    })
-
-    const summaryData = computed(() => {
-      const redeemableBch = (parseInt(props.redemptionContract?.redeemable) || 0) / 10 ** 8
-
-      const treasuryContractBchValue = parsedTreasuryContractBalance.value
-        ? parsedTreasuryContractBalance.value?.totalBchValue : 0
-      const totalBchValue = redeemableBch + treasuryContractBchValue
-
-      const genesisSupply = parseInt(props.redemptionContract?.fiat_token?.genesis_supply)
-      const tokensInCirculation = genesisSupply - props.redemptionContract?.reserve_supply
-
-      let redeemableTokens, redeemableTokensPctg
-      if (Number.isSafeInteger(priceUnitPerBch.value)) {
-        redeemableTokens = Math.floor(redeemableBch * priceUnitPerBch.value)
-        redeemableTokensPctg = tokensInCirculation
-          ? Math.round(redeemableTokens * 100 / tokensInCirculation) : 0
-      }
-
-      let expectedBchValue, expectedDiffPctg
-      if (Number.isSafeInteger(tokensInCirculation) && Number.isSafeInteger(priceUnitPerBch.value)) {
-        expectedBchValue = Number(
-          tokenToSatoshis(tokensInCirculation, priceUnitPerBch.value)
-        ) / 10 ** 8
-        expectedDiffPctg = Math.round((totalBchValue / expectedBchValue) * 100) || 0
-      }
-
-      const expectedDiffPctgIcon = {
-        name: expectedDiffPctg < 0 ? 'trending_down' : 'trending_up',
-        color: expectedDiffPctg < 0 ? 'red' : 'green',
-      }
-
-      const totalVolumeSats = (props.redemptionContract?.volume_24_hr?.inject || 0) +
-                              (props.redemptionContract?.volume_24_hr?.deposit || 0) +
-                              (props.redemptionContract?.volume_24_hr?.redeem || 0)
-
-      return {
-        volume24hrBch: totalVolumeSats / 10 ** 8,
-        totalBchValue,
-        tokensInCirculation,
-        redeemableTokens,
-        redeemableTokensPctg,
-        expectedBchValue,
-        expectedDiffPctg,
-        expectedDiffPctgIcon,
-      }
-    })
 
     /** <Formatters */
-    function denominateSats(amount) {
-      return denominateBch(amount / 10 ** 8)
-    }
-
-    function denominateBch(amount) {
-      const currentDenomination = denomination.value || 'BCH'
-      const parsedBCHBalance = getAssetDenomination(currentDenomination, amount)
-
-      if (currentDenomination === $t('DEEM')) {
-        const commaBalance = parseFloat(parsedBCHBalance).toLocaleString('en-us', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0
-        })
-        return `${commaBalance} ${currentDenomination}`
-      }
-
-      return parsedBCHBalance
-    }
-
-    function formatTokenUnits(amount) {
-      const decimals = parseInt(token.value?.decimals) || 0
-      const currency = token.value?.currency || 'UNIT'
-
-      const tokens = amount / 10 ** decimals
-      return `${tokens} ${currency}`
-    }
+    const { 
+      denominateSats,
+      denominateBch,
+      formatTokenUnits,
+    } = useValueFormatters(tokenCategory)
     /** Formatters> */
 
     return {

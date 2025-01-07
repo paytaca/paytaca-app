@@ -54,6 +54,7 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
       })
   }
 
+  const fetchingTreasuryContractBalance = ref(false)
   const treasuryContractBalance = ref({
     address: '',
     total: 0, spendable: 0, utxo_count: 0,
@@ -67,10 +68,14 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
 
     const backend = getStablehedgeBackend(chipnet)
     const addressParam = encodeURIComponent(address)
+    fetchingTreasuryContractBalance.value = true
     return backend.get(`stablehedge/treasury-contracts/${addressParam}/balance/`) 
       .then(response => {
         treasuryContractBalance.value = { address, ...response.data}
         return response
+      })
+      .finally(() => {
+        fetchingTreasuryContractBalance.value = false
       })
   }
 
@@ -203,6 +208,7 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
     treasuryContract,
     fetchTreasuryContract,
 
+    fetchingTreasuryContractBalance,
     treasuryContractBalance,
     fetchTreasuryContractBalance,
 
