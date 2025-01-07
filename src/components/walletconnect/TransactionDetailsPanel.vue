@@ -171,7 +171,7 @@ function parseUtxo(output) {
     txid: binToHexSafe(output?.outpointTransactionHash),
     index: output?.outpointIndex,
     value: toBigIntSafe(output?.valueSatoshis),
-    address: props.addressDisplayFormatter(output?.address),
+    address: props.addressDisplayFormatter(output?.address, output?.lockingBytecode),
     lockingBytecode: binToHexSafe(output?.lockingBytecode),
     opData: isArbitraryDataOutput(output?.lockingBytecode) ? binToHexSafe(output?.lockingBytecode) : undefined,
     token: !output?.token ? undefined : {
