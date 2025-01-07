@@ -15,6 +15,8 @@
             <template v-if="sessionRequest?.params?.request?.method === 'bch_signTransaction'">
               <TransactionDetailsPanel
                 :transaction="sessionRequest?.params?.request?.params?.transaction"
+                :address-display-format="addressDisplayFormat"
+                :address-display-formatter="addressDisplayFormatter"
                 class="q-ma-sm"
               />
             </template>
