@@ -104,7 +104,7 @@
           :key="inputExtras.amountFormatted"
         >
           <template v-slot:append>
-            {{ asset.symbol }}
+            {{ asset.id === 'bch' ? selectedDenomination : asset.symbol }}
             <DenominatorTextDropdown
               v-if="!recipient.fixedAmount"
               @on-selected-denomination="onSelectedDenomination"
