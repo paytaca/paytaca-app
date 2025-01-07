@@ -144,8 +144,26 @@
     class="br-15 pt-card text-bow q-mb-md q-pa-md"
     :class="getDarkModeClass(darkMode)"
     style="position:relative;"
-    v-ripple
+    v-ripple="Boolean(redemptionContractAuth?.hasAuthToken)"
   >
+    <q-menu
+      v-if="redemptionContractAuth?.hasAuthToken"
+      touch-position
+      class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)"
+    >
+      <q-list separator>
+        <q-item clickable v-close-popup @click="() => consolidateReserveUtxo()">
+          <q-item-section>
+            <q-item-label>{{ $t('ConsolidateReserveUtxo') }}</q-item-label>
+          </q-item-section>
+        </q-item>  
+        <q-item clickable v-close-popup @click="() => sweepRedemptionContract()">
+          <q-item-section>
+            <q-item-label>{{ $t('Sweep') }}</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-menu>
     <div class="text-body1 text-grey q-mb-xs">{{ $t('RedemptionContract') }}</div>
     <div class="row items-center no-wrap" style="position: relative;" v-ripple @click.stop="copyToClipboard(redemptionContract?.address)">
       <div class="ellipsis text-weight-light q-space">
@@ -181,8 +199,26 @@
     class="br-15 pt-card text-bow q-mb-md q-pa-md"
     :class="getDarkModeClass(darkMode)"
     style="position:relative;"
-    v-ripple
+    v-ripple="Boolean(treasuryContractAuth?.hasAuthToken)"
   >
+    <q-menu
+      v-if="treasuryContractAuth?.hasAuthToken"
+      touch-position
+      class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)"
+    >
+      <q-list separator>
+        <q-item clickable v-close-popup @click="() => showTreasuryContractSendForm = true">
+          <q-item-section>
+            <q-item-label>{{ $t('TransferBCH') }}</q-item-label>
+          </q-item-section>
+        </q-item>  
+        <q-item clickable v-close-popup @click="() => sweepTreasuryContract()">
+          <q-item-section>
+            <q-item-label>{{ $t('Sweep') }}</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-menu>
     <div class="text-body1 text-grey q-mb-xs">{{ $t('TreasuryContract') }}</div>
     <div class="row items-center no-wrap" style="position: relative;" v-ripple @click.stop="copyToClipboard(redemptionContract?.address)">
       <div class="ellipsis text-weight-light q-space">
@@ -241,14 +277,22 @@
     v-model="hedgePositionDetailDialog.show"
     :contract="hedgePositionDetailDialog.hedgePosition"
   />
+  <SendBCHFormDialog
+    v-model="showTreasuryContractSendForm"
+    :title="$t('EnterAmount')"
+    :maxSatoshis="parseInt(maxTreasuryContractSpendable)"
+    @ok="sendTreasuryContractBCH"
+  />
 </div>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { toTokenAddress } from 'src/utils/crypto';
+import { consolidateToReserveUtxo, createTreasuryContractTransaction, sweepContractWithAuthToken } from 'src/wallet/stablehedge/transaction';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useStablehedgeDashboardWithCharts } from 'src/composables/stablehedge/chart';
+import { useAuthguardTokenFetcher } from 'src/composables/stablehedge/manage';
 import { Chart } from 'chart.js';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
@@ -257,20 +301,26 @@ import { defineComponent, getCurrentInstance, inject, toRef } from 'vue';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue';
+import SendBCHFormDialog from './SendBCHFormDialog.vue';
+import TransactionConfirmDialog from './TransactionConfirmDialog.vue';
 
 
 export default defineComponent({
   name: 'RedemptionContractMarketPanel',
   components: {
+    SendBCHFormDialog,
     HedgeContractDetailDialog,
   },
+  emits: [
+    'refetch',
+  ],
   props: {
     redemptionContract: {
       /** @returns {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} */
       default: () => {}
     },
   },
-  setup(props) {
+  setup(props, { emit: $emit }) {
     const instance = getCurrentInstance()
 
     const { t: $t } = useI18n()
@@ -403,6 +453,323 @@ export default defineComponent({
       }
     }
 
+    const redemptionContractAuthTokenId = computed(() => props.redemptionContract?.auth_token_id)
+    const redemptionContractAuth = useAuthguardTokenFetcher(redemptionContractAuthTokenId)
+    onMounted(() => redemptionContractAuth.getAuthTokenUtxo())
+    watch(
+      redemptionContractAuthTokenId,
+      () => redemptionContractAuth.getAuthTokenUtxo(),
+    )
+
+    const treasuryContractAuthTokenId = computed(() => treasuryContract.value?.auth_token_id)
+    const treasuryContractAuth = useAuthguardTokenFetcher(treasuryContractAuthTokenId)
+    watch(
+      treasuryContractAuthTokenId,
+      () => treasuryContractAuth.getAuthTokenUtxo(),
+    )
+
+    async function consolidateReserveUtxo() {
+      const loadingKey = 'consolidate-redemption-contract-reserve-utxo'
+      try {
+        const wallet = await redemptionContractAuth.getStablehedgeWallet()
+        const redemptionContractData = props.redemptionContract
+
+        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const transaction = await consolidateToReserveUtxo({
+          locktime: 0,
+          wallet: wallet,
+          redemptionContract: redemptionContractData,
+          updateLoading: updateLoading,
+        })
+
+        const txHex = await transaction.build()
+        $q.loading.hide(loadingKey)
+        const proceed = await new Promise(resolve => {
+          $q.dialog({
+            component: TransactionConfirmDialog,
+            componentProps: {
+              transaction: { inputs: transaction.inputs, outputs: transaction.outputs },
+            },
+          }).onOk(() => resolve(true))
+            .onCancel(() => resolve(false))
+            .onDismiss(() => resolve(false))
+        })
+        if (!proceed) return
+
+        updateLoading = $q.loading.show({ group: loadingKey })
+        updateLoading({ message: $t('BroadcastingTransaction') })
+        const broadcastResult = await wallet.broadcast(txHex)
+        if (broadcastResult.data?.error) {
+          throw broadcastResult?.data?.error
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: $t('Success'),
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+        $emit('refetch')
+      } catch(error) {
+        console.error(error)
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
+
+    async function getSweepRecipient() {
+      return new Promise(resolve => {
+        $q.dialog({
+          class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+          color: 'brandblue',
+          title: $t('Sweep'),
+          position: 'bottom',
+          prompt: {
+            label: $t('Recipient') + ' ' + $t('Address'),
+            autogrow: true,
+            model: '',
+          },
+        }).onOk(resolve).onDismiss(() => resolve())
+      })
+    }
+
+    async function sweepRedemptionContract() {
+      const loadingKey = 'sweep-redemption-contract'
+      try {
+        const recipientAddress = await getSweepRecipient()
+        if (!recipientAddress) return
+
+        const wallet = await redemptionContractAuth.getStablehedgeWallet()
+        const redemptionContractData = props.redemptionContract
+
+        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const transaction = await sweepContractWithAuthToken({
+          locktime: 0,
+          wallet: wallet,
+          redemptionContract: redemptionContractData,
+          recipientAddress: recipientAddress,
+          updateLoading: updateLoading,
+        })
+
+        const txHex = await transaction.build()
+        console.log(txHex)
+
+        $q.loading.hide(loadingKey)
+        const proceed = await new Promise(resolve => {
+          $q.dialog({
+            component: TransactionConfirmDialog,
+            componentProps: {
+              transaction: { inputs: transaction.inputs, outputs: transaction.outputs },
+            },
+          }).onOk(() => resolve(true))
+            .onCancel(() => resolve(false))
+            .onDismiss(() => resolve(false))
+        })
+        if (!proceed) return
+
+        updateLoading = $q.loading.show({ group: loadingKey })
+        updateLoading({ message: $t('BroadcastingTransaction') })
+        const broadcastResult = await wallet.broadcast(txHex)
+        if (broadcastResult.data?.error) {
+          throw broadcastResult?.data?.error
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: $t('Success'),
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+        $emit('refetch')
+      } catch(error) {
+        console.error(error)
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
+    const showTreasuryContractSendForm = ref(false)
+    const maxTreasuryContractSpendable = computed(() => {
+      const P2PKH_INPUT_SIZE = 32 + 4 + 1 + 1 + 65 + 1 + 33 + 4;
+      const P2PKH_OUTPUT_SIZE = 109;
+      return treasuryContractBalance.value?.spendable - P2PKH_INPUT_SIZE - P2PKH_OUTPUT_SIZE
+    })
+
+        /**
+     * @param {{ recipient:String, satoshis:Number }} opts 
+     */
+     async function sendTreasuryContractBCH(opts) {
+      const loadingKey = 'send-treasury-contract-bch'
+      try {
+        const wallet = await treasuryContractAuth.getStablehedgeWallet()
+        const treasuryContractData = treasuryContract.value
+
+        const amountSats = opts?.satoshis
+        const recipient = opts?.recipient
+
+        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const transaction = await createTreasuryContractTransaction({
+          locktime: 0,
+          wallet: wallet,
+          treasuryContract: treasuryContractData,
+          recipients: [{ to: recipient, amount: BigInt(amountSats) }],
+          updateLoading: updateLoading,
+        })
+
+        const txHex = await transaction.build()
+        console.log(txHex)
+
+        $q.loading.hide(loadingKey)
+        const proceed = await new Promise(resolve => {
+          $q.dialog({
+            component: TransactionConfirmDialog,
+            componentProps: {
+              transaction: { inputs: transaction.inputs, outputs: transaction.outputs },
+            },
+          }).onOk(() => resolve(true))
+            .onCancel(() => resolve(false))
+            .onDismiss(() => resolve(false))
+        })
+        if (!proceed) return
+
+        updateLoading = $q.loading.show({ group: loadingKey })
+        updateLoading({ message: $t('BroadcastingTransaction') })
+        const broadcastResult = await wallet.broadcast(txHex)
+        if (broadcastResult.data?.error) {
+          throw broadcastResult?.data?.error
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: $t('Success'),
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+
+        fetchTreasuryContractBalance()
+      } catch(error) {
+        console.error(error)
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
+    async function sweepTreasuryContract() {
+      const loadingKey = 'sweep-treasury-contract'
+      try {
+        const recipientAddress = await getSweepRecipient()
+        if (!recipientAddress) return
+
+        const wallet = await treasuryContractAuth.getStablehedgeWallet()
+        const treasuryContractData = treasuryContract.value
+
+        let updateLoading = $q.loading.show({ group: loadingKey, delay: 500 })
+        const transaction = await sweepContractWithAuthToken({
+          locktime: 0,
+          wallet: wallet,
+          treasuryContract: treasuryContractData,
+          recipientAddress: recipientAddress,
+          updateLoading: updateLoading,
+        })
+
+        const txHex = await transaction.build()
+        console.log(txHex)
+
+        $q.loading.hide(loadingKey)
+        const proceed = await new Promise(resolve => {
+          $q.dialog({
+            component: TransactionConfirmDialog,
+            componentProps: {
+              transaction: { inputs: transaction.inputs, outputs: transaction.outputs },
+            },
+          }).onOk(() => resolve(true))
+            .onCancel(() => resolve(false))
+            .onDismiss(() => resolve(false))
+        })
+        if (!proceed) return
+
+        updateLoading = $q.loading.show({ group: loadingKey })
+        updateLoading({ message: $t('BroadcastingTransaction') })
+        const broadcastResult = await wallet.broadcast(txHex)
+        if (broadcastResult.data?.error) {
+          throw broadcastResult?.data?.error
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: $t('Success'),
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+        fetchTreasuryContractBalance()
+      } catch(error) {
+        console.error(error)
+        let errorMessage = $t('UnknownError')
+        if (typeof error === 'string') errorMessage = error
+        if (typeof error?.message === 'string') errorMessage = error?.message
+
+        $q.notify({
+          type: 'negative',
+          message: $t('Error'),
+          caption: errorMessage,
+          timeout: 5 * 1000,
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ]
+        })
+      } finally {
+        $q.loading.hide(loadingKey)
+      }
+    }
+
     /** ------- <Formatters -------  */
     const {
       denominateSats,
@@ -448,6 +815,17 @@ export default defineComponent({
       fetchShortPositions,
       hedgePositionDetailDialog,
       openHedgePositionDialog,
+
+      redemptionContractAuth,
+      treasuryContractAuth,
+
+      consolidateReserveUtxo,
+      sweepRedemptionContract,
+
+      showTreasuryContractSendForm,
+      maxTreasuryContractSpendable,
+      sendTreasuryContractBCH,
+      sweepTreasuryContract,
 
       denominateSats,
       denominateBch,
