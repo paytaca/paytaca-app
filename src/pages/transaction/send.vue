@@ -896,12 +896,6 @@ export default {
 
         this.disableSending = false
         return true
-      } else if (!this.isNFT) {
-        const vm = this
-        const recipientAddress = value.split('?')[0]
-        if (recipientAddress.startsWith('bitcoincash:p') || recipientAddress.startsWith('bitcoincash:q')) {
-          setTimeout(function () { vm.customKeyboardState = 'show' })
-        } else vm.customKeyboardState = 'show'
       }
 
       if (value && this.isNFT) this.sliderStatus = true
