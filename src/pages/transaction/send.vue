@@ -1521,7 +1521,7 @@ export default {
     }
   }
   .send-form-container {
-    max-height: 100vh;
+    max-height: 70vh;
     overflow-y: scroll;
     &.sent {
       max-height: 80vh;
