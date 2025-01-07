@@ -350,7 +350,7 @@ import ProgressLoader from 'src/components/ProgressLoader'
 import HeaderNav from 'src/components/header-nav'
 import customKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
-import SendPageForm from 'src/components/SendPageForm.vue'
+import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
