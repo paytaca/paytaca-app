@@ -8,12 +8,11 @@
  * @returns the adjusted text with the inserted key
  */
 export function parseKey (key, inputText, caret, asset) {
-  let amount = ''
+  let amount = inputText.toString()
 
   if (key === '.' && (inputText === '' || Number(amount) === 0)) {
     amount = '0.'
   } else {
-    amount = inputText.toString()
     const hasPeriod = amount.indexOf('.')
     if (hasPeriod < 1) {
       if (Number(amount) === 0 && Number(amount) === Number(key)) {
