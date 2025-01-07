@@ -27,6 +27,7 @@
           {{ ellipsisText(input?.address) }}
           <q-icon name="content_copy" size="1em" class="q-ml-xs"/>
         </q-btn>
+        <q-badge>{{ addressDisplayFormat }}</q-badge>
       </div>
       <div v-else-if="input?.lockingBytecode" class="row items-start">
         <div>{{ $t('Bytecode') }}:</div>
@@ -95,6 +96,7 @@
           {{ ellipsisText(output?.address) }}
           <q-icon name="content_copy" size="1em" class="q-ml-xs"/>
         </q-btn>
+        <q-badge>{{ addressDisplayFormat }}</q-badge>
       </div>
       <div v-else-if="output?.lockingBytecode" class="row items-start">
         <div>{{ $t('Bytecode') }}:</div>
@@ -142,6 +144,8 @@ import { useI18n } from "vue-i18n"
 
 const props = defineProps({
   transaction: Object,
+  addressDisplayFormatter: { type: Function },
+  addressDisplayFormat: { type: String /*cashaddr | tokenaddr */}
 })
 
 
@@ -162,13 +166,14 @@ const parsedTx = computed(() => {
   }
 })
 
+
 function parseUtxo(output) {
   
   return {
     txid: binToHexSafe(output?.outpointTransactionHash),
     index: output?.outpointIndex,
     value: toBigIntSafe(output?.valueSatoshis),
-    address: output?.address,
+    address: props.addressDisplayFormatter(output?.address),
     lockingBytecode: binToHexSafe(output?.lockingBytecode),
     opData: isArbitraryDataOutput(output?.lockingBytecode) ? binToHexSafe(output?.lockingBytecode) : undefined,
     token: !output?.token ? undefined : {
