@@ -24,10 +24,9 @@
         <div>{{ $t('Address') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(input?.address)">
-          {{ ellipsisText(input?.address) }}
+          ({{ addressDisplayFormat }}) {{ ellipsisText(input?.address) }}
           <q-icon name="content_copy" size="1em" class="q-ml-xs"/>
         </q-btn>
-        <q-badge>{{ addressDisplayFormat }}</q-badge>
       </div>
       <div v-else-if="input?.lockingBytecode" class="row items-start">
         <div>{{ $t('Bytecode') }}:</div>
@@ -93,10 +92,9 @@
         <div>{{ $t('Address') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(output?.address)">
-          {{ ellipsisText(output?.address) }}
+          ({{ addressDisplayFormat }}) {{ ellipsisText(output?.address) }}
           <q-icon name="content_copy" size="1em" class="q-ml-xs"/>
         </q-btn>
-        <q-badge>{{ addressDisplayFormat }}</q-badge>
       </div>
       <div v-else-if="output?.lockingBytecode" class="row items-start">
         <div>{{ $t('Bytecode') }}:</div>
