@@ -127,9 +127,15 @@
                   <div v-if="ad.trade_type === 'BUY'">
                     <q-separator :dark="darkMode" class="q-mt-sm"/>
                     <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
-                      <span>{{ $t('Fee') }}<br>{{ $t('Balance') }}</span>
+                      <span>{{ $t('Fee') }}</span>
                       <span class="text-nowrap q-ml-xs">
-                        {{ satoshiToBch(fees) }} BCH<br>{{ balance }} BCH
+                        {{ satoshiToBch(fees) }} BCH
+                      </span>
+                    </div>
+                    <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size">
+                      <span>{{ $t('Balance') }}</span>
+                      <span class="text-nowrap q-ml-xs">
+                        {{ balance }} BCH
                       </span>
                     </div>
                   </div>
