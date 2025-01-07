@@ -19,18 +19,18 @@
               <template v-if="enableStablehedge">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
-                  v-model="stablehedgeView"
+                  v-model="stablehedgeTab"
                   style="margin-top: -25px;"
                   :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
                 >
                   <q-tab
-                    :name="false"
+                    name="bch"
                     class="network-selection-tab"
                     :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
                     label="BCH"
                   />
                   <q-tab
-                    :name="true"
+                    name="stablehedge"
                     class="network-selection-tab"
                     :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
                     :label="$t('Stablehedge')"
@@ -555,6 +555,18 @@ export default {
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    stablehedgeTab: {
+      get() {
+        return this.stablehedgeView ? 'stablehedge' : 'bch'
+      },
+      set(value) {
+        this.stablehedgeView = value === 'stablehedge'
+        this.$nextTick(() => {
+          this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
+          this.$refs['transaction-list-component'].getTransactions()
+        })
+      }
     },
     enableStablehedge () {
       return this.$store.getters['global/enableStablehedge']
