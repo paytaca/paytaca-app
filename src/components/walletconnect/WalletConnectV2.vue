@@ -97,7 +97,6 @@
               :address-display-formatter="formatAddressForDisplay"
               :address-display-format="settings.addressDisplayFormat"
               session-type="request">
-              
               <template v-slot:top-right>
                 <q-btn class="action-button" icon="open_in_full" dense @click.stop="() => openSessionRequestDialog(sessionRequest)"></q-btn>
               </template>
@@ -224,7 +223,7 @@ import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import Watchtower from 'src/lib/watchtower'
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
-import { decodePrivateKeyWif} from '@bitauth/libauth'
+import { decodePrivateKeyWif } from '@bitauth/libauth'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
@@ -278,7 +277,7 @@ const formatAddressForDisplay = (address) => {
   if (settings.value?.addressDisplayFormat === 'tokenaddr') {
     return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
   }
-  return shortenAddressForDisplay(convertCashAddress(address), $store.getters['global/isChipnet'], false)
+  return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], false))
 }
 
 const onScannerDecode = async (content) => {
