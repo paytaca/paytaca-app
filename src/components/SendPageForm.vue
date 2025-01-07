@@ -91,6 +91,7 @@
           filled
           v-model="amountFormatted"
           ref="amountInput"
+          class="bch-input-field"
           @focus="readonlyState(true), onInputFocus(index, 'bch')"
           @blur="readonlyState(false)"
           :label="$t('Amount')"
@@ -123,12 +124,13 @@
           type="text"
           inputmode="none"
           filled
-          ref="fiatInput"
           v-model="sendAmountInFiat"
+          ref="fiatInput"
+          class="fiat-input-field"
           @focus="readonlyState(true), onInputFocus(index, 'fiat')"
           @blur="readonlyState(false)"
-          :disabled="inputExtras.isBip21"
-          :readonly="inputExtras.isBip21"
+          :disabled="recipient.fixedAmount || inputExtras.isBip21"
+          :readonly="recipient.fixedAmount || inputExtras.isBip21"
           :error="balanceExceeded"
           :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
           :label="$t('Amount')"
@@ -421,10 +423,10 @@ export default {
     amount: function (value) {
       if (this.asset.id.startsWith('ct/')) {
         this.balanceExceeded = value > (this.asset.balance / (10 ** this.asset.decimals))
-      }
-      if (this.asset.id === 'bch') {
+      } else if (this.asset.id === 'bch') {
         this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
       }
+
       this.$emit('on-balance-exceeded', this.balanceExceeded)
     }
   }
@@ -472,22 +474,22 @@ export default {
     }
   }
 
-.change-address-banner {
-  background: inherit;
-  position:relative;
-  border-radius: 15px;
-  font-family: monospace
-}
+  .change-address-banner {
+    background: inherit;
+    position:relative;
+    border-radius: 15px;
+    font-family: monospace
+  }
 
-.change-address-banner:after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: rgb(253,253,253, .023);
-  border: 1px solid #80808038;
-  border-radius: 15px;
-}
+  .change-address-banner:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgb(253,253,253, .023);
+    border: 1px solid #80808038;
+    border-radius: 15px;
+  }
 </style>

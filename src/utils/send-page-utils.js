@@ -217,3 +217,39 @@ function checkIfWalletAddress (address, walletAddress, isLegacy) {
   }
   return address === walletAddress
 }
+
+export function addRemoveInputFocus (index, isFocus, inputFocus) {
+  let element = null
+
+  if (isFocus) {
+    if (inputFocus === 'bch') {
+      const bchInput = document.getElementsByClassName('bch-input-field')
+      element = bchInput[index]
+    } else if (inputFocus === 'fiat') {
+      const fiatInput = document.getElementsByClassName('fiat-input-field')
+      element = fiatInput[index]
+    }
+
+    addRemoveClass(element, isFocus)
+  } else {
+    const bchInput = document.getElementsByClassName('bch-input-field')
+    element = bchInput[index]
+    addRemoveClass(element, isFocus)
+
+    const fiatInput = document.getElementsByClassName('fiat-input-field')
+    element = fiatInput[index]
+    addRemoveClass(element, isFocus)
+  }
+}
+
+function addRemoveClass (element, isFocus) {
+  if (isFocus) {
+    element?.classList.add('q-field--focused')
+    element?.classList.add('q-field--highlighted')
+    element?.classList.add('q-field--float')
+  } else {
+    element?.classList.remove('q-field--focused')
+    element?.classList.remove('q-field--highlighted')
+    element?.classList.remove('q-field--float')
+  }
+}

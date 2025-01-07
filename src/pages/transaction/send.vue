@@ -1004,6 +1004,8 @@ export default {
         // Enabled submit slider
         this.sliderStatus = !currentInputExtras.balanceExceeded
         this.customKeyboardState = 'dismiss'
+        this.focusedInputField = ''
+        sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, false, '')
       }
 
       this.adjustWalletBalance()
@@ -1242,6 +1244,9 @@ export default {
     onInputFocus (value) {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
+
+      sendPageUtils.addRemoveInputFocus(value.index, false, value.field)
+      sendPageUtils.addRemoveInputFocus(value.index, true, value.field)
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
@@ -1249,7 +1254,9 @@ export default {
     onBalanceExceeded (value) {
       try {
         this.inputExtras[this.currentRecipientIndex].balanceExceeded = value
-      } catch {}
+      } catch { }
+
+      sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, true, this.focusedInputField)
     },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
