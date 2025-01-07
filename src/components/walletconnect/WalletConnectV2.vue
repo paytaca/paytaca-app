@@ -223,7 +223,14 @@ import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils';
 import Watchtower from 'src/lib/watchtower'
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
-import { decodePrivateKeyWif } from '@bitauth/libauth'
+import { 
+  decodePrivateKeyWif, 
+  isPayToScriptHash20, 
+  isPayToScriptHash32, 
+  decodeCashAddress, 
+  CashAddressNetworkPrefix,
+  CashAddressType,
+  encodeCashAddress } from '@bitauth/libauth'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
@@ -273,11 +280,29 @@ const delay = async (seconds) => {
   })
 }
 
-const formatAddressForDisplay = (address) => {
-  if (settings.value?.addressDisplayFormat === 'tokenaddr') {
-    return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
+const formatAddressForDisplay = (address, lockingBytecode = null) => {
+  if (!address) return ''
+  try {
+
+    if (lockingBytecode) {
+      const decodedAddress = decodeCashAddress(address)
+      if (isPayToScriptHash20(lockingBytecode) || isPayToScriptHash32(lockingBytecode)) {
+        const prefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
+        const addressType = settings.value?.addressDisplayFormat === 'tokenaddr' ? CashAddressType.p2shWithTokens : CashAddressType.p2sh
+        return shortenAddressForDisplay(encodeCashAddress(prefix, addressType, decodedAddress.payload))
+      }
+    }
+
+    if (settings.value?.addressDisplayFormat === 'tokenaddr') {
+      return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
+    }
+    return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], false))
+    
+  } catch (error) {
+    // default
+    return shortenAddressForDisplay(address)
   }
-  return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], false))
+  
 }
 
 const onScannerDecode = async (content) => {
