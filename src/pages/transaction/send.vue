@@ -33,7 +33,6 @@
           :class="sent ? 'q-mt-md sent' : 'q-mt-xs'"
         >
           <div class="q-pa-md enter-address-container">
-            <v-offline @detected-condition="onConnectivityChange" style="margin-bottom: 15px;" />
             <div v-if="isNFT && !sent" class="nft-container">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
@@ -342,7 +341,6 @@ import {
 import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
 
-import { VOffline } from 'v-offline'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import JppPaymentPanel from 'src/components/JppPaymentPanel.vue'
@@ -365,7 +363,6 @@ export default {
     HeaderNav,
     customKeyboard,
     QrScanner,
-    VOffline,
     SendPageForm,
     QRUploader
   },
@@ -1453,7 +1450,6 @@ export default {
     // Load wallets
     vm.initWallet().then(() => vm.adjustWalletBalance())
 
-    if (navigator.onLine) vm.onConnectivityChange(true)
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
     // check query if address is not empty (from qr reader redirection)
