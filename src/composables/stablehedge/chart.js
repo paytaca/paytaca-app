@@ -24,6 +24,8 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
   const {
     denomination,
     decimals,
+    redemptionContractMarketInfo,
+
     parsedTreasuryContractBalance,
     summaryData,
   } = dashboardComposables
@@ -60,7 +62,6 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
   }
 
   function create24hrVolumeChart(ref) {
-    
     return new Chart(ref, {
       type: 'bar',
       data: {
@@ -81,16 +82,32 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
     })
   }
   const parsed24HrVolumeChartData = computed(() => {
-    const data = toValue(redemptionContractDataOrRef)?.volume_24_hr
-    return Object.getOwnPropertyNames(data)
-      .map(txType => {
-        const label = capitalize(txType).replaceAll('_', ' ')
-        const satoshis = parseInt(data[txType])
-        if (!Number.isSafeInteger(satoshis)) return
-        const value = satoshis / 10 ** 8
-        return { label, value }
-      })
-      .filter(Boolean)
+    const marketInfo = redemptionContractMarketInfo.value
+
+    const txTypeToLabel = txType => capitalize(txType).replaceAll('_', ' ')
+
+    const results = [
+      { value: 0, txType: 'deposit' },
+      { value: 0, txType: 'inject' },
+      { value: 0, txType: 'redeem' },
+    ].map(result => ({ ...result, label: txTypeToLabel(result.txType)}))
+
+    if (marketInfo?.address != toValue(redemptionContractDataOrRef)?.address) return results
+
+    marketInfo.volume_24_hr?.forEach(volumeData => {
+      const txType = volumeData.transaction_type
+      const label = txTypeToLabel(txType)
+      const satoshis = parseInt(volumeData.satoshis)
+      if (!Number.isSafeInteger(satoshis)) return
+      const value = satoshis / 10 ** 8
+      const parsedData = { label, value, txType }
+
+      const index = results.findIndex(result => result?.txType === parsedData?.txType)
+      if (index >= 0) results[index] = parsedData
+      else results.push(parsedData)
+    })
+
+    return results
   })
 
   function createBchValueComparisonChart(ref) {

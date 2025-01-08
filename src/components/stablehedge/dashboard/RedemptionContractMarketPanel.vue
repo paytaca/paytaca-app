@@ -340,6 +340,8 @@ export default defineComponent({
       // pricePerBch,
       pricePerDenomination,
       
+      fetchRedemptionContractMarketInfo,
+      
       treasuryContract,
       fetchTreasuryContract,
       treasuryContractBalance,
@@ -376,6 +378,12 @@ export default defineComponent({
         stablehedgePriceTracker.unsubscribe(priceTrackerKeyId)
       }
     }
+
+    onMounted(() => fetchRedemptionContractMarketInfo())
+    watch(
+      () => props.redemptionContract?.address,
+      () => fetchRedemptionContractMarketInfo(),
+    )
 
     onMounted(() => fetchTreasuryContract())
     watch(

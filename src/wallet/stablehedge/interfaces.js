@@ -18,6 +18,18 @@
  * @property {{ inject: Number, deposit: Number, redeem: Number }} volume_24_hr
  * 
  * 
+ * @typedef {Object} VolumeApiData
+ * @property {String} transaction_type
+ * @property {Number} satoshis
+ * @property {Number} count
+ * 
+ * @typedef {Object} RedemptionContractMarketInfoApiData
+ * @property {String} address
+ * @property {Number | null} redeemable
+ * @property {Number | null} reserve_supply
+ * @property {VolumeApiData[]} volume_24_hr
+ * @property {VolumeApiData[]} volume_lifetime
+ * 
  * @typedef {Object} TreasuryContractApiData
  * @property {String} address
  * @property {String} auth_token_id

@@ -9,6 +9,8 @@ import { getAssetDenomination } from "src/utils/denomination-utils";
  * @typedef {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} RedemptionContractApiData
  * @typedef {import("vue").Ref<RedemptionContractApiData>} RedemptionContractApiRef
  * 
+ * @typedef {import("src/wallet/stablehedge/interfaces").RedemptionContractMarketInfoApiData} RedemptionContractMarketInfoApiData
+ * 
  * @typedef {import("src/wallet/stablehedge/interfaces").TreasuryContractApiData} TreasuryContractApiData
  * @typedef {import("vue").Ref<TreasuryContractApiData>} TreasuryContractApiRef
  */
@@ -37,6 +39,26 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
     const conversionRate = parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
     return pricePerBch.value / conversionRate
   })
+
+  const fetchingRedemptionContractMarketInfo = ref(false)
+  /** @type {import("vue").Ref<RedemptionContractMarketInfoApiData>} */
+  const redemptionContractMarketInfo = ref()
+  function fetchRedemptionContractMarketInfo() {
+    const address = toValue(redemptionContractDataOrRef)?.address
+    const chipnet = address?.startsWith?.('bchtest:')
+    // const addressParam = encodeURIComponent(address)
+
+    const backend = getStablehedgeBackend(chipnet) 
+    fetchingRedemptionContractMarketInfo.value = true
+    return backend.get(`stablehedge/redemption-contracts/${address}/market_info/`) 
+      .then(response => {
+        redemptionContractMarketInfo.value = response?.data
+        return response
+      })
+      .finally(() => {
+        fetchingRedemptionContractMarketInfo.value = false
+      })
+  }
 
   /** @type {TreasuryContractApiRef} */
   const treasuryContract = ref()
@@ -137,9 +159,9 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
       color: expectedDiffPctg < 0 ? 'red' : 'green',
     }
 
-    const totalVolumeSats = (redemptionContract.value?.volume_24_hr?.inject || 0) +
-                            (redemptionContract.value?.volume_24_hr?.deposit || 0) +
-                            (redemptionContract.value?.volume_24_hr?.redeem || 0)
+    const totalVolumeSats = redemptionContractMarketInfo.value?.volume_24_hr?.reduce(
+      (subtotal, volumeData) => subtotal + (parseInt(volumeData.satoshis) || 0), 0
+    ) || 0
 
     return {
       volume24hrBch: totalVolumeSats / 10 ** 8,
@@ -204,6 +226,10 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
     priceUnitPerBch,
     pricePerBch,
     pricePerDenomination,
+
+    fetchingRedemptionContractMarketInfo,
+    redemptionContractMarketInfo,
+    fetchRedemptionContractMarketInfo,
 
     treasuryContract,
     fetchTreasuryContract,

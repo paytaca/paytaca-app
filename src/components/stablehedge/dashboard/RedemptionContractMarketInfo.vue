@@ -10,7 +10,13 @@
       </div>
       <div class="row items-center">
         <div class="text-grey q-space">{{ $t('Volume24hr')}}</div>
-        <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
+        <q-skeleton
+          v-if="fetchingRedemptionContractMarketInfo && !redemptionContractMarketInfoLoaded" type="text"
+          style="min-width:4rem"
+        />
+        <div v-else>
+          <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
+        </div>
       </div>
       <div class="row items-center" style="position:relative;" v-ripple @click.stop="() => expandBchValue = !expandBchValue">
         <div class="text-grey q-space">
@@ -119,6 +125,9 @@ export default defineComponent({
       priceUnitPerBch,
       pricePerDenomination,
 
+      fetchingRedemptionContractMarketInfo,
+      fetchRedemptionContractMarketInfo,
+
       fetchingTreasuryContractBalance,
       treasuryContractBalance,
       fetchTreasuryContractBalance,
@@ -147,12 +156,24 @@ export default defineComponent({
 
     const expandBchValue = ref(false)
 
+    onMounted(() => fetchRedemptionContractMarketInfo())
+    watch(
+      () => props.redemptionContract?.address,
+      () => {
+        redemptionContractMarketInfoLoaded.value = false
+        fetchRedemptionContractMarketInfo()
+          ?.finally(() => redemptionContractMarketInfoLoaded.value = true)
+      },
+    )
+    const redemptionContractMarketInfoLoaded = ref(false)
+      
     onMounted(() => fetchTreasuryContractBalance())
     watch(
       () => props.redemptionContract?.treasury_contract_address,
       () => {
         treasuryContractBalanceLoaded.value = false
         fetchTreasuryContractBalance()
+          ?.finally(() => treasuryContractBalanceLoaded.value = true)
       },
     )
     const treasuryContractBalanceLoaded = ref(false)
@@ -173,6 +194,9 @@ export default defineComponent({
       pricePerDenomination,
 
       expandBchValue,
+      
+      redemptionContractMarketInfoLoaded,
+      fetchingRedemptionContractMarketInfo,
 
       treasuryContractBalanceLoaded,
       fetchingTreasuryContractBalance,
