@@ -166,15 +166,7 @@ export default {
           vm.contract = response.data
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async verify () {
@@ -187,15 +179,9 @@ export default {
         .then(response => { console.log(response.data) })
         .catch(error => {
           if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
             vm.errorMessage = error.response?.data?.error
-          } else {
-            console.error(error)
-            bus.emit('network-error')
           }
+          this.handleRequestError(error)
           vm.hideBtn = false
         })
         .finally(() => { vm.verifyingTx = false })
@@ -243,6 +229,14 @@ export default {
           }
         })
         .catch(error => console.error(error))
+    },
+    handleRequestError (error) {
+      console.log('error__:', error)
+      if (error?.response?.error === 'duplicate status') {
+        console.error('Transaction already verified')
+        return
+      }
+      bus.emit('handle-request-error', error)
     }
   }
 }

@@ -298,7 +298,7 @@ export default {
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
         if (!this.escrowContract) return 0
-        this.escrowContract?.getBalance()
+        this.escrowContract?.getBalance(null, true)
           .then(balance => {
             this.contractBalance = balance
             resolve(balance)
@@ -333,14 +333,7 @@ export default {
           console.log(response.data)
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async releaseBch () {
@@ -471,6 +464,9 @@ export default {
         }
       }
     },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
+    }
   }
 }
 </script>

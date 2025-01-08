@@ -269,14 +269,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error?.response)
-            if (error.response) {
-              if (error?.response?.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             reject(error)
           })
       })
@@ -294,14 +287,7 @@ export default {
           vm.loading = false
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           this.loading = false
         })
     },
@@ -366,15 +352,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             reject(error)
           })
       })
@@ -389,15 +367,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             reject(error)
           })
       })
@@ -409,7 +379,9 @@ export default {
           return user.chat_identity_id === member.chat_identity.id
         })[0]
         this.unread = userMember?.unread_count
-      }).catch(console.error)
+      }).catch(error => {
+        this.handleRequestError(error)
+      })
     },
     onVerifyAction (data) {
       this.setOrderPending(data.txid, data)
@@ -450,6 +422,9 @@ export default {
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

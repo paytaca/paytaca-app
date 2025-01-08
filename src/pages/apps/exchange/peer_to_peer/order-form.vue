@@ -866,6 +866,7 @@ export default {
     },
     showErrorDialog (message) {
       if (!this.errorDialogActive) {
+        this.errorDialogActive = true
         this.$q.notify({
           type: 'warning',
           message: message,

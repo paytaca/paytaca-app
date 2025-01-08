@@ -114,15 +114,7 @@ export default {
           vm.reviews = response.data.feedbacks
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          bus.emit('handle-request-error', error)
         })
         .finally(() => { vm.loading = false })
     },

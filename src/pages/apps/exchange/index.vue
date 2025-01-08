@@ -101,21 +101,6 @@ export default {
     },
     handleNetworkError () {
       this.showLogin = false
-      this.networkErrorActive = true
-      this.showNetworkErrorDialog()
-    },
-    showNetworkErrorDialog () {
-      if (!this.networkErrorActive) {
-        this.$q.notify({
-          type: 'warning',
-          message: 'Network error. Please check your internet connection.',
-          position: 'bottom',
-          timeout: 5000,
-          onDismiss: () => {
-            this.networkErrorActive = false
-          }
-        })
-      }
     },
     handleDisconnectedWS (url) {
       console.log('handleDisconnectedWS:', url)

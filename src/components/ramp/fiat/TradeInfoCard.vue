@@ -48,7 +48,7 @@
             <div class="sm-font-size">{{ ad?.trade_type === 'SELL'? $t('BUYER') : $t('SELLER') }}</div>
             <div class="row justify-end">
                 <div class="col q-py-none">
-                    <div style="max-width: 125px; overflow-x: auto;">
+                    <div style="max-width: 200px; overflow-x: auto;">
                       <q-btn flat no-caps dense
                           padding="none"
                           color="primary"
