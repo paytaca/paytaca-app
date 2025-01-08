@@ -876,7 +876,10 @@ export default defineComponent({
       priceMessage,
       pricePerDenomination,
 
+      fetchRedemptionContractMarketInfo,
+
       treasuryContract,
+      fetchTreasuryContract,
       fetchTreasuryContractBalance,
       parsedTreasuryContractBalance,
       treasuryContractBalance,

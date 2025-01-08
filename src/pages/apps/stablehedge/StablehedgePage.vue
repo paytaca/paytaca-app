@@ -168,7 +168,11 @@ export default defineComponent({
     async function refreshPage(done=() => {}) {
       try {
         await fetchRedemptionContracts()
-        await redemptionContractMarketPanelRef.value?.fetchTreasuryContractBalance?.()
+        await Promise.all([
+          redemptionContractMarketPanelRef.value?.fetchRedemptionContractMarketInfo?.(),
+          redemptionContractMarketPanelRef.value?.fetchTreasuryContract?.(),
+          redemptionContractMarketPanelRef.value?.fetchTreasuryContractBalance?.(),
+        ])
       } finally {
         done?.()
       }
