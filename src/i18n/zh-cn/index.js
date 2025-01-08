@@ -396,6 +396,7 @@ export default {
   EnableLocation: "在应用程序设置中启用访问位置",
   EnablePushNotifications: "启用推送通知",
   EnableSmartBCH: "启用S​​martBch",
+  EnableStablehdge: "启用stablehedge",
   EncounteredError: "遇到错误",
   EncryptedChatMsg: "消息是端到端加密的。在此聊天之外，没有人能阅读它们。",
   English: "英语",

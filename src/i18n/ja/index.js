@@ -396,6 +396,7 @@ export default {
   EnableLocation: "アプリ設定でアクセス場所を有効にします",
   EnablePushNotifications: "プッシュ通知を有効にします",
   EnableSmartBCH: "SmartBchを有効にします",
+  EnableStablehdge: "stablehedgeを有効にします",
   EncounteredError: "遭遇したエラー",
   EncryptedChatMsg: "メッセージはエンドツーエンドの暗号化されています。このチャットの外の誰も、Paytacaでさえ読むことができません。",
   English: "英語",

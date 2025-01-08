@@ -396,6 +396,7 @@ export default {
   EnableLocation: "Abilita la posizione di accesso nelle impostazioni dell'app",
   EnablePushNotifications: "Abilita le notifiche push",
   EnableSmartBCH: "Abilita SmartBch",
+  EnableStablehdge: "Abilita StableHedge",
   EncounteredError: "Errore riscontrato",
   EncryptedChatMsg: "I messaggi sono crittografati end-to-end.Nessuno al di fuori di questa chat, nemmeno Paytaca, può leggerli.",
   English: "Inglese",

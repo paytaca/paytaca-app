@@ -396,6 +396,7 @@ export default {
   EnableLocation: "Включить местоположение доступа в настройках приложения",
   EnablePushNotifications: "Включить уведомления Push",
   EnableSmartBCH: "Включить SmartBCH",
+  EnableStablehdge: "Включить stableHedge",
   EncounteredError: "Встречается ошибка",
   EncryptedChatMsg: "Сообщения зашифрованы.Никто вне этого чата, даже Paytaca, не может их прочитать.",
   English: "Английский",
