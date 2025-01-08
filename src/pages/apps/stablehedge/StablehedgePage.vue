@@ -20,6 +20,7 @@
             v-model="selectedRedemptionContract"
             :options="redemptionContracts"
             :option-label="contract => contract?.address"
+            :popup-content-class="darkMode ? '': 'text-black'"
             style="min-width:50px;"
           >
             <template v-slot:selected-item="ctx">

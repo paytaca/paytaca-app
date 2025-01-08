@@ -398,8 +398,11 @@ export default defineComponent({
       createLifetimeVolumeChart,
       parsedLifetimeVolumeChartData,
       createBchValueComparisonChart,
+      bchValueComparisonChartData,
       createBchValueChart,
+      bchValuePieChartData,
       createTokenChart,
+      tokenChartData,
 
       shortPositions,
       fetchingShortPositions,
@@ -471,10 +474,26 @@ export default defineComponent({
       }
     })
 
+    const chartData = computed(() => {
+      switch(summaryPanel.value) {
+        case 'volume24hr':
+          return parsed24HrVolumeChartData
+        case 'volumeLifetime':
+          return parsedLifetimeVolumeChartData
+        case 'bchValueComparison':
+          return bchValueComparisonChartData
+        case 'bchValueBreakdown':
+          return bchValuePieChartData
+        case 'token':
+          return tokenChartData
+      }
+    })
+
     /** @type {import("chart.js").Chart} */
     let chartObj
     onMounted(() => loadBchValueChart())
     watch(summaryPanel, () => loadBchValueChart())
+    watch(chartData, () => loadBchValueChart(), { deep: true })
     onUnmounted(() => chartObj?.destroy?.())
 
     const chartRef = ref()
