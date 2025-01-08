@@ -6,6 +6,35 @@ import { tokenToSatoshis } from "src/wallet/stablehedge/token-utils";
 import { getAssetDenomination } from "src/utils/denomination-utils";
 
 /**
+ * @param {import("src/wallet/stablehedge/interfaces").VolumeApiData[]} data
+ */
+function parseVolumeData(data) {
+  const requiredTxTypes = ['inject', 'deposit', 'redeem']
+  const toAdd = new Map()
+  requiredTxTypes.map(txType => toAdd.set(txType, true))
+
+  if (!Array.isArray(data)) data = []
+  for (const volumeData of data) {
+    toAdd.delete(volumeData?.transaction_type)
+    if (!toAdd.size) break
+  }
+
+  toAdd.keys().forEach(txType => {
+    data.push({ transaction_type: txType, satoshis: 0, count: 0 })
+  })
+
+  const totalSats = data
+    .map(volume => parseInt(volume?.satoshis) || 0)
+    .reduce((subtotal, val) => subtotal + val, 0)
+  const totalCount = data
+    .map(volume => parseInt(volume?.count) || 0)
+    .reduce((subtotal, val) => subtotal + val, 0)
+
+  return { data, totalSats, totalCount }
+}
+
+
+/**
  * @typedef {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} RedemptionContractApiData
  * @typedef {import("vue").Ref<RedemptionContractApiData>} RedemptionContractApiRef
  * 
@@ -123,6 +152,20 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
     }
   })
 
+  const volumeSummaryData = computed(() => {
+    const parsed24HrVol = parseVolumeData(redemptionContractMarketInfo.value?.volume_24_hr)
+    const parsedLifetimeVol = parseVolumeData(redemptionContractMarketInfo.value?.volume_lifetime)
+
+    return {
+      volume24hrBch: parsed24HrVol.totalSats / 10 ** 8,
+      volume24hrCount: parsed24HrVol.totalCount,
+      volume24hrData: parsed24HrVol.data,
+
+      volumeLifetimeBch: parsedLifetimeVol.totalSats / 10 ** 8,
+      volumeLifetimeCount: parsedLifetimeVol.totalCount,
+      volumeLifetimeData: parsedLifetimeVol.data,
+    }
+  })
   
   const summaryData = computed(() => {
     const redeemableBch = (parseInt(redemptionContract.value?.redeemable) || 0) / 10 ** 8
@@ -134,8 +177,10 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
     const genesisSupply = parseInt(redemptionContract.value?.fiat_token?.genesis_supply)
     const tokensInCirculation = genesisSupply - redemptionContract.value?.reserve_supply
 
+    let totalValueInTokens
     let redeemableTokens, redeemableTokensPctg, tokensInCirculationBchValue, redeemableDiffBchValue
     if (Number.isSafeInteger(priceUnitPerBch.value)) {
+      totalValueInTokens = Math.floor(totalBchValue * priceUnitPerBch.value)
       redeemableTokens = Math.floor(redeemableBch * priceUnitPerBch.value)
       redeemableTokensPctg = tokensInCirculation
         ? Math.round(redeemableTokens * 100 / tokensInCirculation) : 0
@@ -159,13 +204,9 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
       color: expectedDiffPctg < 0 ? 'red' : 'green',
     }
 
-    const totalVolumeSats = redemptionContractMarketInfo.value?.volume_24_hr?.reduce(
-      (subtotal, volumeData) => subtotal + (parseInt(volumeData.satoshis) || 0), 0
-    ) || 0
-
     return {
-      volume24hrBch: totalVolumeSats / 10 ** 8,
       totalBchValue,
+      totalValueInTokens,
       tokensInCirculation,
       redeemableTokens,
       redeemableTokensPctg,
@@ -239,6 +280,7 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
     fetchTreasuryContractBalance,
 
     parsedTreasuryContractBalance,
+    volumeSummaryData,
     summaryData,
 
     shortPositions,

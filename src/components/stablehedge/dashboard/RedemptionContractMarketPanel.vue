@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="text-bow" :class="getDarkModeClass(darkMode)">
   <div class="row items-center q-px-xs q-mb-sm">
     <div class="text-h5">{{ redemptionContract?.fiat_token?.currency || 'UNIT' }}</div>
     <q-space/>
@@ -11,56 +11,99 @@
     class="br-15 pt-card text-bow q-mb-md q-pa-md"
     :class="getDarkModeClass(darkMode)"
   >
-    <div class="chart-container row items-center justify-center q-mb-sm" style="height:200px;">
-      <canvas ref="chartRef"></canvas>
-    </div>
     <div class="row items-center justify-around no-wrap q-mb-sm">
       <q-btn flat padding="sm lg" icon="keyboard_arrow_left" @click="() => moveSummaryPanel(-1)"/>
       <div class="text-h6 text-center">{{ summaryPanelLabel }}</div>
       <q-btn flat padding="sm lg" icon="keyboard_arrow_right" @click="() => moveSummaryPanel(1)"/>
     </div>
+    <q-slide-transition :duration="750">
+      <div v-if="summaryPanel != 'summary'">
+        <div class="chart-container row items-center justify-center q-mb-sm" style="height:200px;">
+          <canvas ref="chartRef"></canvas>
+        </div>
+      </div>
+    </q-slide-transition>
 
-    <q-tab-panels v-model="summaryPanel" animated style="background:unset;">
-      <q-tab-panel name="summary" class="q-pa-none">
-        <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('Volume24hr') }}: </div>
-          <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
-        </div>
-        <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('TotalValue') }}:</div>
-          <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
-        </div>
-        <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('TokensInCirculation') }}:</div>
-          <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
-        </div>
-        <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('IdealValue') }}:</div>
-          <div>
-            <q-icon v-bind="summaryData?.expectedDiffPctgIcon" class="q-mr-xs"/>
-            {{ denominateBch(summaryData?.expectedBchValue) }}
+    <q-tab-panels v-model="summaryPanel" animated :transition-duration="750" style="background:unset;" class="q-r-mx-sm">
+      <q-tab-panel name="summary" class="q-pa-xs">
+        <div class="row items-start no-wrap">
+          <div class="q-space q-pa-xs">
+            <div class="text-subtitle1 text-grey">{{ $t('Volume24hr') }}</div>
+            <div class="text-body1">{{ denominateBch(volumeSummaryData?.volume24hrBch) }}</div>
+            <div class="text-body">{{ formatTransactionsCount(volumeSummaryData?.volume24hrCount) }}</div>
+          </div>
+          <q-separator vertical spaced/>
+          <div class="q-space q-pa-xs">
+            <div class="text-subtitle1 text-grey">{{ $t('VolumeAllTime') }}</div>
+            <div class="text-body1">{{ denominateBch(volumeSummaryData?.volumeLifetimeBch) }}</div>
+            <div class="text-body">{{ formatTransactionsCount(volumeSummaryData?.volumeLifetimeCount) }}</div>
           </div>
         </div>
+
+        <q-separator spaced />
+
+        <div class="text-subtitle1 text-grey">
+          {{ $t('TotalValueLocked') }}
+          <q-icon v-bind="summaryData?.expectedDiffPctgIcon" class="q-lr-xs"/>
+        </div>
+        <div class="row items-center text-body1">
+          <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
+          <template v-if="summaryData?.totalValueInTokens">
+            <q-space/>
+            <div>{{ formatTokenUnits(summaryData?.totalValueInTokens) }}</div>
+          </template>
+        </div>
+
+        <q-separator spaced/>
+
+        <div class="text-subtitle1 text-grey">{{ $t('TokensInCirculation') }}</div>
+        <div class="row items-center text-body1">
+          <template v-if="summaryData?.expectedBchValue">
+            <div>{{ denominateBch(summaryData?.expectedBchValue) }}</div>
+            <q-space/>
+          </template>
+          <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
+        </div>
       </q-tab-panel>
-      <q-tab-panel name="volume24hr" class="q-pa-none">
+      <q-tab-panel name="volume24hr" class="q-pa-xs">
         <div
           v-for="(data, index) in parsed24HrVolumeChartData" :key="index"
           class="row items-center"
         >
-          <div class="text-grey q-space">{{ data?.label }}</div>
+          <div class="text-grey">{{ data?.label }}</div>
+          <span v-if="data?.count" class="text-grey q-mx-xs">({{ data?.count }})</span>
+          <q-space/>
           <div>{{ denominateBch(data?.value) }}</div>
         </div>
         <template v-if="parsed24HrVolumeChartData?.length > 1">
           <q-separator spaced/>
           <div class="text-subtitle1 row items-center">
             <div class="text-grey q-space">{{ $t('Total') }}:</div>
-            <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
+            <div>{{ denominateBch(volumeSummaryData?.volume24hrBch) }}</div>
           </div>
         </template>
       </q-tab-panel>
-      <q-tab-panel name="bchValueComparison" class="q-pa-none">
+      <q-tab-panel name="volumeLifetime" class="q-pa-xs">
+        <div
+          v-for="(data, index) in parsedLifetimeVolumeChartData" :key="index"
+          class="row items-center"
+        >
+          <div class="text-grey">{{ data?.label }}</div>
+          <span v-if="data?.count" class="text-grey q-mx-xs">({{ data?.count }})</span>
+          <q-space/>
+          <div>{{ denominateBch(data?.value) }}</div>
+        </div>
+        <template v-if="parsed24HrVolumeChartData?.length > 1">
+          <q-separator spaced/>
+          <div class="text-subtitle1 row items-center">
+            <div class="text-grey q-space">{{ $t('Total') }}:</div>
+            <div>{{ denominateBch(volumeSummaryData?.volumeLifetimeBch) }}</div>
+          </div>
+        </template>
+      </q-tab-panel>
+      <q-tab-panel name="bchValueComparison" class="q-pa-xs">
         <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('CurrentTotalValue') }}:</div>
+          <div class="text-grey q-space">{{ $t('TotalValueLocked') }}:</div>
           <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
         </div>
         <div class="row items-center">
@@ -70,7 +113,7 @@
             {{ denominateBch(summaryData?.expectedBchValue) }}
           </div>
         </div>
-        <q-banner class="q-my-sm rounded-borders pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+        <q-banner class="q-my-sm rounded-borders pt-card-2 text-bow" :class="getDarkModeClass(darkMode, '', 'shadow-3')">
           <div class="row items-start no-wrap q-space">
             <div class="text-subtitle1 q-pr-sm">
               {{ $t('TotalValueInContractIs') }}
@@ -90,7 +133,7 @@
           </div>
         </q-banner>
       </q-tab-panel>
-      <q-tab-panel name="bchValueBreakdown" class="q-pa-none">
+      <q-tab-panel name="bchValueBreakdown" class="q-pa-xs">
         <div class="row items-center">
           <div class="text-grey q-space">{{ $t('Redeemable') }}:</div>
           <div>{{ denominateSats(redemptionContract?.redeemable || 0) }}</div>
@@ -111,7 +154,7 @@
           <div>{{ denominateBch(summaryData?.totalBchValue) }}</div>
         </div>
       </q-tab-panel>
-      <q-tab-panel name="token" class="q-pa-none">    
+      <q-tab-panel name="token" class="q-pa-xs">    
         <div class="row items-center">
           <div class="text-grey q-space">{{ $t('TokensInCirculation' )}}:</div>
           <div>{{ formatTokenUnits(summaryData?.tokensInCirculation) }}</div>
@@ -127,7 +170,7 @@
         </div>
         <q-banner
           v-if="summaryData?.redeemableDiffBchValue < 0"
-          class="q-my-sm rounded-borders pt-card-2 text-bow" :class="getDarkModeClass(darkMode)"
+          class="q-my-sm rounded-borders pt-card-2 text-bow" :class="getDarkModeClass(darkMode, '', 'shadow-3')"
         >
           <div class="text-subtitlw`">
             {{ $t('RedemptionContractNeeds') }}
@@ -293,7 +336,6 @@ import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useStablehedgeDashboardWithCharts } from 'src/composables/stablehedge/chart';
 import { useAuthguardTokenFetcher } from 'src/composables/stablehedge/manage';
-import { Chart } from 'chart.js';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
@@ -339,7 +381,7 @@ export default defineComponent({
       priceUnitPerBch,
       // pricePerBch,
       pricePerDenomination,
-      
+
       fetchRedemptionContractMarketInfo,
       
       treasuryContract,
@@ -348,10 +390,13 @@ export default defineComponent({
       fetchTreasuryContractBalance,
       parsedTreasuryContractBalance,
 
+      volumeSummaryData,
       summaryData,
 
       create24hrVolumeChart,
       parsed24HrVolumeChartData,
+      createLifetimeVolumeChart,
+      parsedLifetimeVolumeChartData,
       createBchValueComparisonChart,
       createBchValueChart,
       createTokenChart,
@@ -396,8 +441,8 @@ export default defineComponent({
       () => fetchTreasuryContractBalance(),
     )
 
-    const summaryPanels = ['summary', 'volume24hr', 'bchValueComparison', 'bchValueBreakdown', 'token']
-    /** @type {import("vue").Ref<'summary' | 'volume24hr' | 'bchValueComparison' | 'bchValueBreakdown' | 'token'>} */
+    const summaryPanels = ['summary', 'volume24hr', 'volumeLifetime', 'bchValueComparison', 'bchValueBreakdown', 'token']
+    /** @type {import("vue").Ref<'summary' | 'volume24hr' | 'volumeLifetime' | 'bchValueComparison' | 'bchValueBreakdown' | 'token'>} */
     const summaryPanel = ref(summaryPanels[0])
 
     function moveSummaryPanel(delta=1) {
@@ -415,6 +460,8 @@ export default defineComponent({
           return $t('Summary')
         case 'volume24hr':
           return $t('Volume24hr')
+        case 'volumeLifetime':
+          return $t('VolumeAllTime')
         case 'bchValueComparison':
           return $t('ContractValue')
         case 'bchValueBreakdown':
@@ -424,7 +471,7 @@ export default defineComponent({
       }
     })
 
-    /** @type {Chart} */
+    /** @type {import("chart.js").Chart} */
     let chartObj
     onMounted(() => loadBchValueChart())
     watch(summaryPanel, () => loadBchValueChart())
@@ -436,6 +483,9 @@ export default defineComponent({
       switch(summaryPanel.value) {
         case 'volume24hr':
           chartObj = create24hrVolumeChart(chartRef.value)
+          break;
+        case 'volumeLifetime':
+          chartObj = createLifetimeVolumeChart(chartRef.value)
           break;
         case 'bchValueComparison':
           chartObj = createBchValueComparisonChart(chartRef.value)
@@ -783,6 +833,7 @@ export default defineComponent({
       denominateSats,
       denominateBch,
       formatTokenUnits,
+      formatTransactionsCount,
     } = useValueFormatters(tokenCategory)
     /** ------- Formatters> -------  */
 
@@ -810,6 +861,7 @@ export default defineComponent({
       fetchTreasuryContractBalance,
       parsedTreasuryContractBalance,
       treasuryContractBalance,
+      volumeSummaryData,
       summaryData,
 
       summaryPanel,
@@ -817,6 +869,7 @@ export default defineComponent({
       moveSummaryPanel,
       chartRef,
       parsed24HrVolumeChartData,
+      parsedLifetimeVolumeChartData,
 
       shortPositions,
       fetchingShortPositions,
@@ -838,6 +891,7 @@ export default defineComponent({
       denominateSats,
       denominateBch,
       formatTokenUnits,
+      formatTransactionsCount,
       copyToClipboard,
       toTokenAddress,
     }

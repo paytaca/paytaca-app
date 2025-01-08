@@ -15,7 +15,7 @@
           style="min-width:4rem"
         />
         <div v-else>
-          <div>{{ denominateBch(summaryData?.volume24hrBch) }}</div>
+          <div>{{ denominateBch(volumeSummaryData?.volume24hrBch) }}</div>
         </div>
       </div>
       <div class="row items-center" style="position:relative;" v-ripple @click.stop="() => expandBchValue = !expandBchValue">
@@ -133,6 +133,7 @@ export default defineComponent({
       fetchTreasuryContractBalance,
       parsedTreasuryContractBalance,
 
+      volumeSummaryData,
       summaryData,
     } = useStablehedgeDashboard(toRef(props, 'redemptionContract'))
 
@@ -201,6 +202,8 @@ export default defineComponent({
       treasuryContractBalanceLoaded,
       fetchingTreasuryContractBalance,
       parsedTreasuryContractBalance,
+
+      volumeSummaryData,
       summaryData,
 
       denominateSats,

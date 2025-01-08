@@ -1,4 +1,4 @@
-import { Chart } from 'chart.js';
+import { Chart } from 'chart.js/auto';
 
 import { useI18n } from 'vue-i18n';
 import { capitalize, computed, toValue } from "vue";
@@ -24,9 +24,11 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
   const {
     denomination,
     decimals,
-    redemptionContractMarketInfo,
 
+    redemptionContractMarketInfo,
     parsedTreasuryContractBalance,
+
+    volumeSummaryData,
     summaryData,
   } = dashboardComposables
 
@@ -82,32 +84,43 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
     })
   }
   const parsed24HrVolumeChartData = computed(() => {
-    const marketInfo = redemptionContractMarketInfo.value
-
-    const txTypeToLabel = txType => capitalize(txType).replaceAll('_', ' ')
-
-    const results = [
-      { value: 0, txType: 'deposit' },
-      { value: 0, txType: 'inject' },
-      { value: 0, txType: 'redeem' },
-    ].map(result => ({ ...result, label: txTypeToLabel(result.txType)}))
-
-    if (marketInfo?.address != toValue(redemptionContractDataOrRef)?.address) return results
-
-    marketInfo.volume_24_hr?.forEach(volumeData => {
+    return volumeSummaryData.value.volume24hrData.map(volumeData => {
       const txType = volumeData.transaction_type
-      const label = txTypeToLabel(txType)
-      const satoshis = parseInt(volumeData.satoshis)
-      if (!Number.isSafeInteger(satoshis)) return
+      const label = capitalize(txType).replaceAll('_', ' ')
+      const satoshis = parseInt(volumeData.satoshis) || 0
       const value = satoshis / 10 ** 8
-      const parsedData = { label, value, txType }
-
-      const index = results.findIndex(result => result?.txType === parsedData?.txType)
-      if (index >= 0) results[index] = parsedData
-      else results.push(parsedData)
+      return { label, value, count: volumeData.count }
     })
+  })
 
-    return results
+  function createLifetimeVolumeChart(ref) {
+    return new Chart(ref, {
+      type: 'bar',
+      data: {
+        labels: parsedLifetimeVolumeChartData.value.map(data => data.label),
+        datasets: [{
+          data: parsedLifetimeVolumeChartData.value.map(data => data.value),
+          backgroundColor: getChartColors(parsedLifetimeVolumeChartData.value.length),
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        devicePixelRatio: 4,
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+        }
+      }
+    })
+  }
+  const parsedLifetimeVolumeChartData = computed(() => {
+    return volumeSummaryData.value.volumeLifetimeData.map(volumeData => {
+      const txType = volumeData.transaction_type
+      const label = capitalize(txType).replaceAll('_', ' ')
+      const satoshis = parseInt(volumeData.satoshis) || 0
+      const value = satoshis / 10 ** 8
+      return { label, value, count: volumeData.count }
+    })
   })
 
   function createBchValueComparisonChart(ref) {
@@ -116,7 +129,7 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
       data: {
         labels: [`${denomination.value} ${$t('Value')}`, $t('IdealValue')],
         datasets: [{
-          data: [summaryData.value.totalBchValue, summaryData.value.expectedBchValue],
+          data: bchValueComparisonChartData.value,
           backgroundColor: getChartColors(2),
         }]
       },
@@ -130,6 +143,9 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
       }
     })
   }
+  const bchValueComparisonChartData = computed(() => {
+    return [summaryData.value.totalBchValue, summaryData.value.expectedBchValue]
+  })
 
   function createBchValueChart(ref) {
     return new Chart(ref, {
@@ -168,18 +184,12 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
   })
 
   function createTokenChart(ref) {
-    const redemptionContract = toValue(redemptionContractDataOrRef)
-    const tokenDecimals = parseInt(decimals.value) || 0
     return new Chart(ref, {
       type: 'bar',
       data: {
-        labels: [$t('TokensInCirculation'), $t('RedeemableTokens'), $t('ReserveSupply')],
+        labels: tokenChartData.value.map(data => data?.label),
         datasets: [{
-          data: [
-            summaryData.value.tokensInCirculation / 10 ** tokenDecimals,
-            summaryData.value.redeemableTokens / 10 ** tokenDecimals,
-            redemptionContract?.reserve_supply / 10 ** tokenDecimals,
-          ],
+          data: tokenChartData.value.map(data => data?.value),
           backgroundColor: getChartColors(2),
         }]
       },
@@ -194,6 +204,26 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
     })
   }
 
+  const tokenChartData = computed(() => {
+    const redemptionContract = toValue(redemptionContractDataOrRef)
+    const tokenDecimals = parseInt(decimals.value) || 0
+
+    return [
+      {
+        label: $t('TokensInCirculation'),
+        value: summaryData.value.tokensInCirculation / 10 ** tokenDecimals,
+      },
+      {
+        label: $t('RedeemableTokens'),
+        value: summaryData.value.redeemableTokens / 10 ** tokenDecimals,
+      },
+      {
+        label: $t('ReserveSupply'),
+        value: redemptionContract?.reserve_supply / 10 ** tokenDecimals,
+      }
+    ]
+  })
+
   return {
     ...dashboardComposables,
     chartColors,
@@ -201,9 +231,17 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
 
     create24hrVolumeChart,
     parsed24HrVolumeChartData,
+
+    createLifetimeVolumeChart,
+    parsedLifetimeVolumeChartData,
+
     createBchValueComparisonChart,
+    bchValueComparisonChartData,
+
     createBchValueChart,
     bchValuePieChartData,
+
     createTokenChart,
+    tokenChartData,
   }
 }

@@ -1116,6 +1116,7 @@ const phrases = {
     }, 
     {
       Volume24hr: 'Volume (24 hr)',
+      VolumeAllTime: 'Volume (all time)',
       IdealValue: 'Ideal Value',
       ShortValue: 'Short value',
       TokensInCirculation: 'Tokens in circulation',
@@ -1135,6 +1136,7 @@ const phrases = {
       NoUtxoFound: "No UTXOs found",
       ConsolidateReserveUtxo: "Consolidate reserve UTXO",
       TotalValue: "Total Value",
+      TotalValueLocked: "Total Value Locked",
       CurrentTotalValue: "Current Total Value",
       TotalValueInContractIs: "Total value in contract is",
       idealValue: "ideal value",

@@ -1,5 +1,6 @@
 import { getAssetDenomination } from "src/utils/denomination-utils";
 import { Store } from "src/store";
+import { useI18n } from "vue-i18n";
 import { computed, toValue } from "vue";
 
 
@@ -9,6 +10,7 @@ import { computed, toValue } from "vue";
  */
 export function useValueFormatters(tokenCategory) {
   const $store = Store;
+  const { t: $t } = useI18n()
   const denomination = computed(() => $store.getters['global/denomination'])
 
   function denominateSats(satoshis) {
@@ -39,11 +41,29 @@ export function useValueFormatters(tokenCategory) {
     return `${tokens} ${currency}`
   }
 
+  function formatTransactionsCount(count) {
+    if (!Number.isInteger(count)) return ''
+    const transactionText = $t('Transaction')?.toLowerCase?.()
+    const transactionsText = $t('Transactions')?.toLowerCase?.()
+    if (count < 1_000) {
+      return count === 1 
+          ? `${count} ${transactionText}` 
+          : `${count} ${transactionsText}`;
+    } else if (count < 100_000) {
+      return `${Math.floor(count / 1_000)}${count % 1_000 !== 0 ? '+ K' : 'K'} ${transactionsText}`;
+    } else if (count < 1_000_000) {
+      return `${(count / 1_000_000).toFixed(2).replace(/\.0+$/, '')}M ${transactionsText}`;
+    } else {
+      return `${(count / 1_000_000_000).toFixed(2).replace(/\.0+$/, '')}B ${transactionsText}`;
+    }
+  }
+
   return {
     denomination,
 
     denominateSats,
     denominateBch,
     formatTokenUnits,
+    formatTransactionsCount,
   }
 }
