@@ -5,30 +5,44 @@ import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, unpackSourc
 import BCHJS from '@psf/bch-js';
 
 const bchjs = new BCHJS()
-export const walletConnect2Core = new Core({
-  projectId: process.env.WALLETCONNECT_PROJECT_ID,
-})
+// export const walletConnect2Core = new Core({
+//   projectId: process.env.WALLETCONNECT_PROJECT_ID,
+// })
 
-let _web3wallet
+// let _web3wallet
 /**
  * @returns {Promise<import('@walletconnect/web3wallet').IWeb3Wallet>}
  */
-export async function initWeb3Wallet(opts={forceCreate: true}) {
-  if (!_web3wallet || opts?.forceCreate) {
-    _web3wallet = await Web3Wallet.init({
-      core: walletConnect2Core,
-      metadata: {
-        name: 'Paytaca',
-        description: 'Paytaca - BCH Wallet App',
-        url: 'https://www.paytaca.com',
-        icons: ['https://walletconnect.org/walletconnect-logo.png'],
-      }
-    })
-  }
-  return _web3wallet
+export async function initWeb3Wallet(/*opts={forceCreate: true}*/) {
+  
+  const core = new Core({
+    projectId: process.env.WALLETCONNECT_PROJECT_ID
+  })
+  // if (!_web3wallet || opts?.forceCreate) {
+  //   _web3wallet = await Web3Wallet.init({
+  //     core: core,
+  //     metadata: {
+  //       name: 'Paytaca',
+  //       description: 'Paytaca - BCH Wallet App',
+  //       url: 'https://www.paytaca.com',
+  //       icons: ['https://walletconnect.org/walletconnect-logo.png'],
+  //     }
+  //   })
+  // }
+  // return _web3wallet
+
+  return await Web3Wallet.init({
+    core: core,
+    metadata: {
+      name: 'Paytaca',
+      description: 'Paytaca - BCH Wallet App',
+      url: 'https://www.paytaca.com',
+      icons: ['https://walletconnect.org/walletconnect-logo.png'],
+    }
+  })
 }
 
-export const web3wallet = ''
+// export const web3wallet = ''
 // export const web3wallet = await Web3Wallet.init({
 //   walletConnect2Core,
 //   metadata: {
