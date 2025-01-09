@@ -146,7 +146,7 @@
   </template>
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
-    <div class="col q-mt-md balance-max-container">
+    <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
       <span v-if="asset.id === 'bch'">
         {{ parseAssetDenomination(selectedDenomination, {
           ...asset,
@@ -447,6 +447,10 @@ export default {
   .balance-max-container {
     font-size: 18px;
     color: gray;
+
+    &.light {
+      color: #111c2c;
+    }
 
     .max-button {
       float: right;

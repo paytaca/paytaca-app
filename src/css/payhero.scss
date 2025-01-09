@@ -135,6 +135,12 @@ body.theme-payhero {
     box-decoration-break: clone;
   }
 
+  .text-grad.max-button.light {
+    background: unset;
+    -webkit-text-fill-color: unset;
+    color: $wallet_card !important;
+  }
+
   .asset-card-border {
     background-color: transparent !important;
     position: relative;
