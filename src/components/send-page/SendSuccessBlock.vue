@@ -11,49 +11,29 @@
         <p class="amount-label">{{ name }}</p>
       </template>
       <template v-else>
-        <p class="amount-label">
-          {{
-            isCashToken
-              ? totalAmountSent.toLocaleString('en-us', {maximumFractionDigits: asset.decimals})
-              : customNumberFormatting(getAssetDenomination(denomination, totalAmountSent))
-          }} {{ isCashToken ? asset.symbol : denomination }}
-        </p>
+        <p class="amount-label">{{ amountSent }}</p>
         <template v-if="!isCashToken">
-          <p v-if="totalFiatAmountSent > 0 && asset.id === 'bch'" class="amount-fiat-label">
-            ({{ parseFiatCurrency(totalFiatAmountSent, currentSendPageCurrency()) }})
-          </p>
-          <p v-else class="amount-fiat-label">
-            ({{ parseFiatCurrency(convertToFiatAmount(totalAmountSent), currentSendPageCurrency()) }})
-          </p>
+          <p class="amount-fiat-label">({{ fiatAmountSent }})</p>
         </template>
       </template>
 
-      <p class="to-label">{{ $t('To') }}</p>
-      <template v-for="(recipient, index) in recipientAddresses.slice(0, 10)" v-bind:key="index">
-        <div class="q-px-xs recipient-address">
-          {{ recipient }}
-        </div>
-      </template>
-      <strong v-if="recipientAddresses.length > 10">
-        {{
-          $t(
-            "AndMoreAddresses",
-            { addressCount: recipientAddresses.length - 10 },
-            `and ${recipientAddresses.length - 10} more addresses`
-          )
-        }}
-      </strong>
       <div class="text-center q-mt-lg">
         <div class="text-grey">{{ $t('ReferenceId')}}</div>
         <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
         <q-separator color="grey"/>
       </div>
-      <div class="q-px-xs tx-id">
-        txid: {{ txid.slice(0, 8) }}<span style="font-size: 18px;">***</span>{{ txid.substr(txid.length - 8) }}<br>
+      <div class="q-px-xs q-mt-sm text-subtitle1">
+        <q-btn
+          label="View details"
+          class="q-my-sm button"
+          @click="openSendSuccessDetailsDialog"
+        /><br />
         <a
           class="button button-text-primary view-explorer-button"
+          style="text-decoration: none;"
           :class="getDarkModeClass(darkMode)"
-          :href="getExplorerLink(txid)" target="_blank"
+          :href="getExplorerLink(txid)"
+          target="_blank"
         >
           {{ $t('ViewInExplorer') }}
         </a>
@@ -95,6 +75,8 @@ import {
   getAssetDenomination
 } from 'src/utils/denomination-utils'
 
+import SendSuccessDetailsDialog from 'src/components/send-page/SendSuccessDetailsDialog.vue'
+
 export default {
   name: 'SendSuccessBlock',
 
@@ -118,15 +100,38 @@ export default {
     convertToFiatAmount: { type: Function }
   },
 
+  data () {
+    return {
+      amountSent: '',
+      fiatAmountSent: ''
+    }
+  },
+
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    recipientAddresses () {
+    transactionBreakdownData () {
       if (this.jpp?.parsed?.outputs !== undefined) {
-        return this.jpp.parsed.outputs.map(value => value.address)
+        return this.jpp.parsed.outputs.map(value => {
+          const amount = this.parseAmount(value.amount)
+          const fiatAmount = this.parseFiatAmount(0, value.amount)
+
+          return {
+            address: value.address,
+            amount: `${amount} (${fiatAmount})`
+          }
+        })
       } else {
-        return this.sendDataMultiple.map(value => value.recipientAddress)
+        return this.sendDataMultiple.map(value => {
+          const amount = this.parseAmount(value.amount)
+          const fiatAmount = this.parseFiatAmount(0, value.amount)
+
+          return {
+            address: value.recipientAddress,
+            amount: `${amount} (${fiatAmount})`
+          }
+        })
       }
     },
     formattedTxTimestamp () {
@@ -141,6 +146,11 @@ export default {
     }
   },
 
+  mounted () {
+    this.amountSent = this.parseAmount(this.totalAmountSent)
+    this.fiatAmountSent = this.parseFiatAmount(this.totalFiatAmountSent, this.totalAmountSent)
+  },
+
   methods: {
     getDarkModeClass,
     customNumberFormatting,
@@ -149,7 +159,67 @@ export default {
 
     getExplorerLink (txid) {
       return getExplorerLink(txid, this.isCashToken)
+    },
+    openSendSuccessDetailsDialog () {
+      this.$q.dialog({
+        component: SendSuccessDetailsDialog,
+        componentProps: {
+          totalSent: this.amountSent,
+          totalFiatSent: this.fiatAmountSent,
+          txid: this.txid,
+          timestamp: this.formattedTxTimestamp,
+          breakdownList: this.transactionBreakdownData
+        }
+      })
+    },
+    parseAmount (origAmount) {
+      let amount, symbol
+      if (this.isCashToken) {
+        amount = origAmount.toLocaleString(
+          'en-us', { maximumFractionDigits: this.asset.decimals }
+        )
+        symbol = this.asset.symbol
+      } else {
+        amount = customNumberFormatting(
+          getAssetDenomination(this.denomination, origAmount)
+        )
+        symbol = this.denomination
+      }
+      return `${amount} ${symbol}`
+    },
+    parseFiatAmount (origFiatAmount, origAmount) {
+      let fiatAmount
+      if (origFiatAmount > 0 && this.asset.id === 'bch') {
+        fiatAmount = parseFiatCurrency(
+          origFiatAmount, this.currentSendPageCurrency()
+        )
+      } else {
+        fiatAmount = parseFiatCurrency(
+          this.convertToFiatAmount(origAmount), this.currentSendPageCurrency()
+        )
+      }
+      return fiatAmount
     }
   }
 }
 </script>
+
+<style lang="scss">
+  .sent-success-container {
+    margin-top: -70px;
+
+    .amount-label {
+      font-size: 25px;
+      margin-top: -10px;
+    }
+    .amount-fiat-label {
+      font-size: 25px;
+      margin-top: -15px;
+    }
+    .memo-container {
+      min-width: 50vw;
+      border: 1px solid grey;
+      background-color: inherit;
+    }
+  }
+</style>
