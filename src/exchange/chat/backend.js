@@ -87,6 +87,17 @@ export async function updateSignerData () {
   // fetches the verifying keypair at adress path 0/0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
   const privkey = await wallet.privkey(`0/${verifyingPubkeyIndex}`)
+  const walletHash = wallet?.walletHash
+
+  // return if no need to update signer data
+  const signerData = await getSignerData()
+  const storedWalletHash = signerData?.value?.split(':')[0]
+  const storedPrivKey = signerData?.value?.split(':')[1]
+  if (storedWalletHash === walletHash && storedPrivKey === privkey) {
+    console.log('Chat signer data is still updated.')
+    return
+  }
+
   const verifyingPubkey = await wallet.pubkey(`0/${verifyingPubkeyIndex}`)
 
   // generate message and signature to verify
@@ -103,8 +114,8 @@ export async function updateSignerData () {
   if (!valid) return Promise.reject('Invalid signature on updateSignerData')
 
   // store this walletHash:privkey pair as current chat signer
-  const walletHash = wallet?.walletHash
   await setSignerData(`${walletHash}:${privkey}`)
+  console.log('Chat signer data updated')
 }
 
 export function getChatBackendWsUrl () {

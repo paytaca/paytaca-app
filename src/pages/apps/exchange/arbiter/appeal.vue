@@ -393,9 +393,15 @@ export default {
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
       this.websocketManager.watchtower = new WebSocketManager()
       this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
-      this.websocketManager.watchtower.subscribeToMessages((message) => {
+      this.websocketManager.watchtower.subscribeToMessages(async (message) => {
         if (message?.success) {
-          this.fetchAppeal().then(this.reloadChildComponents())
+          console.log('message:', message)
+          await this.fetchAppeal()
+          if (message?.txdata) {
+            this.verifyingTx = false
+            this.sendingBch = false
+          }
+          this.reloadChildComponents()
         } else if (message?.error || message?.errors) {
           this.errorMessages.push(message.error || [...message.errors])
           this.appealTransferKey++

@@ -127,6 +127,7 @@ export default {
     }
   },
   async mounted () {
+    console.log('mounted')
     const vm = this
     vm.$emit('updatePageName', 'appeal-transfer')
     vm.loadTransactionId()
@@ -231,8 +232,7 @@ export default {
         .catch(error => console.error(error))
     },
     handleRequestError (error) {
-      console.log('error__:', error)
-      if (error?.response?.error === 'duplicate status') {
+      if (error?.response?.data?.error === 'duplicate status') {
         console.error('Transaction already verified')
         return
       }

@@ -128,7 +128,6 @@ export default {
   mounted () {
     this.dialog = true
     if (this.error) this.errorMessage = this.error
-    this.checkBiometric()
     this.loadAuthAbortController()
     this.loadUser()
   },
@@ -138,9 +137,6 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
-    checkBiometric () {
-      NativeBiometric.isAvailable().then(() => { this.hasBiometric = true })
-    },
     loadAuthAbortController () {
       this.authController = createAuthAbortController()
     },
@@ -157,12 +153,10 @@ export default {
         vm.usernickname = user?.name
         vm.isLoading = true
 
-        // login user if not authenticated
-        vm.hintMessage = vm.$t('LoggingYouIn')
         const token = await getAuthToken()
-
-        console.log('Logging in')
         if (!token) forceLogin = true
+
+        // login user if not authenticated
         if (!user.is_authenticated || forceLogin) {
           await vm.login()
         }
@@ -171,7 +165,10 @@ export default {
         vm.hintMessage = this.$t('LoadingChatIdentity')
         const usertype = user.is_arbiter ? 'arbiter' : 'peer'
         const params = { name: user.name, chat_identity_id: user.chat_identity_id }
+
+        // stop process if aborted by user
         if (this.authController?.signal?.aborted) return
+
         await loadChatIdentity(usertype, params)
         await vm.savePubkeyAndAddress()
 
@@ -196,7 +193,8 @@ export default {
     },
     async login () {
       const vm = this
-      vm.hintMessage = null
+      console.log('Logging in')
+      vm.hintMessage = vm.$t('LoggingYouIn')
       vm.errorMessage = null
       deleteAuthToken()
       try {
