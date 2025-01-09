@@ -145,7 +145,7 @@ export default {
             this.showErrorDialog('Internal Server Error. Please try again later.')
             break
           default:
-            this.showErrorDialog(`Error: ${error.response.status}. ${error.response.statusText}`)
+            console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
         }
       }
     },

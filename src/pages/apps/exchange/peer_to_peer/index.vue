@@ -1,12 +1,7 @@
 <template>
-  <div v-if="isLoading" class="row justify-center q-py-lg" style="margin-top: 50%">
-    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-  </div>
-  <div v-else>
-    <router-view :key="$route.path"></router-view>
-    <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
-    <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
-  </div>
+  <router-view :key="$route.path"></router-view>
+  <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
+  <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
   <RampLogin v-if="showLogin" @logged-in="showLogin = false"/>
 </template>
 <script>
@@ -103,10 +98,6 @@ export default {
   },
   async mounted () {
     this.isLoading = false
-    // if (Object.keys(this.notif).length > 0) {
-    //   this.menu = 'orders'
-    //   this.currentPage = 'FiatOrders'
-    // }
     this.fetchUser()
     this.setupWebsocket()
   },

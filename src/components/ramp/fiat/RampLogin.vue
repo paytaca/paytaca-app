@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="show" persistent maximized no-shake transition-show="slide-up">
+  <q-dialog v-model="register" persistent maximized no-shake transition-show="slide-up">
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
         <div class="col-1">
@@ -59,16 +59,6 @@
               </template>
             </q-input>
           </div>
-          <!-- <div v-if="!isLoading && !register" class="row justify-center q-mt-lg">
-            <q-btn dense stack class="q-px-xs" :disable="loggingIn || !usernickname" @click="onLoginClick('biometric')" v-if="hasBiometric">
-              <q-icon class="q-mt-sm" size="50px" name="fingerprint" />
-              <span class="text-center q-my-sm q-mx-md">Biometrics</span>
-            </q-btn>
-            <q-btn dense stack class="q-px-lg" :class="hasBiometric ? 'q-mx-sm' : 'q-mx-lg'" :disable="loggingIn  || !usernickname" @click="onLoginClick('pin')">
-              <q-icon class="q-mt-sm" size="50px" name="apps" />
-              <span class="text-center q-my-sm q-mx-md">MPIN</span>
-            </q-btn>
-          </div> -->
         </div>
       </div>
     </q-card>
@@ -122,6 +112,16 @@ export default {
     },
     inputLoading () {
       return this.loggingIn || (!this.usernickname && !this.register) || this.isLoading
+    }
+  },
+  watch: {
+    loggingIn (value) {
+      if (value) {
+        this.$q.loading.show()
+        setTimeout(() => {
+          this.$q.loading.hide()
+        }, 1500)
+      }
     }
   },
   async mounted () {
