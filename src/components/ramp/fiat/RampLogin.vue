@@ -77,13 +77,11 @@
 <script>
 import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
-import { NativeBiometric } from 'capacitor-native-biometric'
-import { Dialog } from 'quasar'
 import { getAuthToken, saveAuthToken, deleteAuthToken, createAuthAbortController, abortAuthController } from 'src/exchange/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { loadChatIdentity } from 'src/exchange/chat'
-import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
+import { loadLibauthHdWallet } from 'src/wallet'
 import axios from 'axios'
 
 export default {
@@ -110,7 +108,8 @@ export default {
         loadChatIdentity: false,
         updateChatIdentityId: false
       },
-      authController: null
+      authController: null,
+      libauthWallet: null
     }
   },
   emits: ['loggedIn', 'cancel'],
@@ -125,9 +124,10 @@ export default {
       return this.loggingIn || (!this.usernickname && !this.register) || this.isLoading
     }
   },
-  mounted () {
+  async mounted () {
     this.dialog = true
     if (this.error) this.errorMessage = this.error
+    this.libauthWallet = await loadLibauthHdWallet(wallet.walletIndex, wallet.isChipnet)
     this.loadAuthAbortController()
     this.loadUser()
   },
@@ -169,8 +169,7 @@ export default {
         // stop process if aborted by user
         if (this.authController?.signal?.aborted) return
 
-        await loadChatIdentity(usertype, params)
-        await vm.savePubkeyAndAddress()
+        await Promise.all([loadChatIdentity(usertype, params), vm.savePubkeyAndAddress()])
 
         vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
         vm.$store.commit('ramp/updateUser', user)
@@ -200,12 +199,14 @@ export default {
       try {
         vm.loggingIn = true
         const { data: { otp } } = await backend.get(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, { signal: this.authController?.signal })
-        const keypair = await wallet.keypair()
-        const signature = await wallet.signMessage(keypair.privateKey, otp)
+        const addressPath = wallet.addressPath()
+        const privkey = this.libauthWallet.getPrivateKeyWifAt(addressPath)
+        const pubkey = this.libauthWallet.getPubkeyAt(addressPath)
+        const signature = await wallet.signMessage(privkey, otp)
         const body = {
           wallet_hash: wallet.walletHash,
           signature: signature,
-          public_key: keypair.publicKey
+          public_key: pubkey
         }
         const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body, { signal: this.authController?.signal })
         if (vm.user && !this.authController?.signal?.aborted) {
@@ -226,48 +227,44 @@ export default {
       vm.loggingIn = false
       return await getAuthToken()
     },
-    savePubkeyAndAddress () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        if (vm.authController?.signal?.aborted) {
-          console.log('savePubkeyAndAddress aborted')
-          return
-        }
+    async savePubkeyAndAddress () {
+      const vm = this
+      if (vm.authController?.signal?.aborted) {
+        console.log('savePubkeyAndAddress aborted')
+        return
+      }
 
-        vm.hintMessage = this.$t('UpdatingPubkeyAndAddress')
-        const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
-        wallet.pubkey().then(async pubkey => {
-          const payload = {
-            public_key: pubkey,
-            address: await wallet.address(),
-            address_path: wallet.addressPath()
-          }
-          if (payload.public_key === vm.user.public_key &&
-              payload.address === vm.user.address &&
-              payload.address_path === vm.user.address_path) {
-            console.log('Local wallet keys match server keys')
-            resolve(vm.user)
-          } else {
-            backend.patch(`/ramp-p2p/${usertype}/`, payload, { authorize: true, signal: this.authController.signal })
-              .then(response => {
-                console.log('Updated pubkey and address:', response.data)
-                resolve(response)
-              })
-              .catch(error => {
-                if (error.response) {
-                  console.error('Failed to update pubkey and address:', error.response)
-                  if (error.response.status === 403) {
-                    this.login()
-                  }
-                } else {
-                  console.error('Failed to update pubkey and address:', error)
-                  bus.emit('network-error')
-                }
-                reject(error)
-              })
-          }
-        })
-      })
+      vm.hintMessage = this.$t('UpdatingPubkeyAndAddress')
+      const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
+      const addressPath = wallet.addressPath()
+      const pubkey = this.libauthWallet.getPubkeyAt(addressPath)
+      const address = this.libauthWallet.getAddressAt({ path: addressPath })
+      const payload = {
+        public_key: pubkey,
+        address: address,
+        address_path: addressPath
+      }
+      if (payload.public_key === vm.user.public_key &&
+            payload.address === vm.user.address &&
+            payload.address_path === vm.user.address_path) {
+        console.log('Local wallet keys match server keys')
+      } else {
+        backend.patch(`/ramp-p2p/${usertype}/`, payload, { authorize: true, signal: this.authController.signal })
+          .then(response => {
+            console.log('Updated pubkey and address:', response.data)
+          })
+          .catch(error => {
+            if (error.response) {
+              console.error('Failed to update pubkey and address:', error.response)
+              if (error.response.status === 403) {
+                this.login()
+              }
+            } else {
+              console.error('Failed to update pubkey and address:', error)
+              bus.emit('network-error')
+            }
+          })
+      }
     },
     async onRegisterUser () {
       this.loggingIn = true
@@ -278,17 +275,20 @@ export default {
       const vm = this
       vm.errorMessage = null
       const timestamp = Date.now()
-      const keypair = await wallet.keypair()
-      const signature = await wallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
+      const addressPath = wallet.addressPath()
+      const privkey = this.libauthWallet.getPrivateKeyWifAt(addressPath)
+      const pubkey = this.libauthWallet.getPubkeyAt(addressPath)
+      const address = this.libauthWallet.getAddressAt({ path: addressPath })
+      const signature = await wallet.signMessage(privkey, 'PEER_CREATE', timestamp)
       const headers = {
         timestamp: timestamp,
         signature: signature,
-        'public-key': keypair.publicKey
+        'public-key': pubkey
       }
       const body = {
         name: vm.usernickname,
-        address: await wallet.address(),
-        address_path: wallet.addressPath()
+        address: address,
+        address_path: addressPath
       }
       await backend.post('/ramp-p2p/peer/', body, { headers: headers })
         .then((response) => {
@@ -319,74 +319,6 @@ export default {
       }
       vm.isLoading = false
       vm.loggingIn = false
-    },
-    async revokeAuth () {
-      const url = `${this.apiURL}/auth/revoke`
-      try {
-        await backend.post(url, null, { authorize: true })
-      } catch (error) {
-        if (error.response) {
-          console.error(error.response)
-        } else {
-          console.error(error)
-          bus.emit('network-error')
-        }
-      }
-    },
-    async checkSecurity (securityType) {
-      if (this.register) return true
-      let success = false
-      if (!securityType || securityType === 'pin') {
-        success = await this.showSecurityDialog()
-      } else if (this.hasBiometric && securityType === 'biometric') {
-        success = await this.verifyBiometric()
-      }
-      return success
-    },
-    onLoginClick (type) {
-      if (this.securityDialogUp) return
-      if (!this.register) {
-        this.securityDialogUp = true
-      }
-      this.login(type)
-    },
-    showSecurityDialog () {
-      return new Promise((resolve) => {
-        Dialog.create({
-          component: SecurityCheckDialog
-        })
-          .onOk(() => {
-            resolve(true)
-          })
-          .onCancel(() => {
-            resolve(false)
-          })
-          .onDismiss(() => {
-            this.securityDialogUp = false
-            resolve(false)
-          })
-      })
-    },
-    verifyBiometric () {
-      return new Promise((resolve) => {
-        NativeBiometric.verifyIdentity({
-          reason: this.$t('NativeBiometricReason2'),
-          title: this.$t('SecurityAuthentication'),
-          subtitle: this.$t('NativeBiometricSubtitle'),
-          description: ''
-        })
-          .then(() => {
-            resolve(true)
-          })
-          .catch((error) => {
-            console.error(error)
-            if (!String(error).toLocaleLowerCase().includes('cancel')) {
-              this.errorMessage = this.$t('FailedToAuthenticate')
-            }
-            resolve(false)
-          })
-          .finally(() => { this.securityDialogUp = false })
-      })
     }
   }
 }
