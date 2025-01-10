@@ -41,6 +41,17 @@
  * @property {String} redemption_contract_address
  * @property {String} funding_wif_pubkey
  *
+ * @typedef {Object} TreasuryContractBalanceApiData
+ * @property {String} address
+ * @property {Number} total
+ * @property {Number} spendable
+ * @property {Number} utxo_count
+ * @property {Object} short_payout_data
+ * @property {Number} short_payout_data.count
+ * @property {Number} short_payout_data.total_nominal_units_x_sats_per_bch
+ * @property {Number} short_payout_data.total_sats_for_nominal_units_at_high_liquidation
+ * @property {{count:Number, satoshis:Number, unit_value:Number}} [in_short] Deprecated: use short_payout_data
+ *
  * @typedef {import("@generalprotocols/anyhedge").ContractDataV2} ContractData
  * 
  * @typedef {Object} SettlementServiceSignature

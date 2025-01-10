@@ -2,7 +2,7 @@ import { computed, ref, toValue } from "vue";
 import { Store } from "src/store";
 import { parseHedgePositionData } from "src/wallet/anyhedge/formatters";
 import { getStablehedgeBackend } from "src/wallet/stablehedge/api";
-import { tokenToSatoshis } from "src/wallet/stablehedge/token-utils";
+import { satoshisToToken, tokenToSatoshis } from "src/wallet/stablehedge/token-utils";
 import { getAssetDenomination } from "src/utils/denomination-utils";
 
 /**
@@ -106,11 +106,12 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
   }
 
   const fetchingTreasuryContractBalance = ref(false)
-  const treasuryContractBalance = ref({
-    address: '',
-    total: 0, spendable: 0, utxo_count: 0,
-    in_short: { count: 0, satoshis: 0, unit_value: 0 },
-  })
+
+  /**
+   * @typedef {import("src/wallet/stablehedge/interfaces").TreasuryContractBalanceApiData} TreasuryContractBalanceApiData
+   * @type {import("vue").Ref<TreasuryContractBalanceApiData>}
+   *  */
+  const treasuryContractBalance = ref()
 
   function fetchTreasuryContractBalance() {
     const address = redemptionContract.value?.treasury_contract_address
@@ -130,20 +131,61 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
       })
   }
 
+  const treasuryContractShortPosData = computed(() => {
+    let totalShortedBchValue
+    let shortUnitValue
+
+    const balanceData = treasuryContractBalance.value
+    const shortPayoutData = balanceData?.short_payout_data
+    const inShortData = balanceData?.in_short
+
+    if (shortPayoutData && priceUnitPerBch.value) {
+      /**
+       * Formula is based on anyhedge's formula for getting short payout sats
+       * https://gitlab.com/GeneralProtocols/anyhedge/library/-/blob/v2.0.1/lib/anyhedge.ts?ref_type=tags#L1557
+       * 
+       * Base formula:
+       * shortPayoutSats = (nominalUnitsXSatsPerBch / currentPrice) - satsForNominalUnitsAtHighLiquidation
+       * 
+       * Formula:
+       * => total_short_payout_sats = Sum(shortPayoutSats)
+       * => Sum(shortPayoutSats)
+       * => Sum((nominalUnitsXSatsPerBch / currentPrice) - satsForNominalUnitsAtHighLiquidation)
+       * => Sum(nominalUnitsXSatsPerBch / currentPrice) - Sum(satsForNominalUnitsAtHighLiquidation)
+       * => (1/currentPrice) * Sum(nominalUnitsXSatsPerBch) - Sum(satsForNominalUnitsAtHighLiquidation)
+       */
+
+      const nomSats = BigInt(shortPayoutData?.total_nominal_units_x_sats_per_bch)
+      const nomHlp = BigInt(shortPayoutData?.total_sats_for_nominal_units_at_high_liquidation)
+
+      const _shortPayoutSats = (nomSats / BigInt(priceUnitPerBch.value)) - nomHlp
+      totalShortedBchValue = Number(_shortPayoutSats) / 10 ** 8
+      shortUnitValue = Number(satoshisToToken(_shortPayoutSats, priceUnitPerBch.value))
+    } else if (inShortData) {
+      shortUnitValue = inShortData?.unit_value
+      if (priceUnitPerBch.value) {
+        const shortSatoshisValue = Number(tokenToSatoshis(shortUnitValue, priceUnitPerBch.value))
+        totalShortedBchValue = shortSatoshisValue / 10 ** 8
+      }
+    }
+
+    return {
+      totalShortedBchValue,
+      shortUnitValue,
+    }
+  })
+
   const parsedTreasuryContractBalance = computed(() => {
     if (redemptionContract.value?.treasury_contract_address != treasuryContractBalance.value?.address) return
     const balanceData = treasuryContractBalance.value
     if (!balanceData) return
 
     const spendableBch = balanceData?.spendable / 10 ** 8
-    const shortUnitValue = balanceData?.in_short?.unit_value
-    let shortSatoshisValue
-    if (priceUnitPerBch.value) {
-      shortSatoshisValue = Number(tokenToSatoshis(shortUnitValue, priceUnitPerBch.value))
-    }
 
-    const totalShortedBchValue = shortSatoshisValue / 10 ** 8
+    const totalShortedBchValue = treasuryContractShortPosData.value?.totalShortedBchValue
+    const shortUnitValue = treasuryContractShortPosData.value?.shortUnitValue
     const totalBchValue = spendableBch + totalShortedBchValue
+
     return {
       spendableBch,
       totalShortedBchValue,
@@ -240,7 +282,7 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
       limit: 20,
       short_address: addressParam || '',
       funding: 'complete',
-      settled: false,
+      // settled: false,
     }
     const backend = getStablehedgeBackend(isChipnet.value)
     fetchingShortPositions.value = true
