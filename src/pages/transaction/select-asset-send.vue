@@ -53,7 +53,7 @@
       v-else
       class="q-pa-sm text-grey text-center text-h6"
     >
-      No assets available
+      {{ $t('NoAssetsAvailable') }}
     </div>
     <footer-menu />
   </div>

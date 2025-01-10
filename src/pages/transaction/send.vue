@@ -16,7 +16,7 @@
         class="bg-red text-center q-mt-lg text-bow slp-disabled-banner"
         :class="getDarkModeClass(darkMode)"
       >
-        Sending of SLP tokens is temporarily disabled until further notice.
+        {{ $t('SLPSendWarning') }}
       </q-banner>
       <template v-else>
         <div v-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
@@ -41,8 +41,8 @@
                 :class="getDarkModeClass(darkMode)"
                 v-if="tokenType === 'CT-NFT'"
               >
-                <span>Name: {{ name }}</span>
-                <p style="word-break: break-all;">Commitment: {{ commitment }}</p>
+                <span>{{ $t('name') }}: {{ name }}</span>
+                <p style="word-break: break-all;">{{ $t('Commitment') }}: {{ commitment }}</p>
               </div>
             </div>
             <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
@@ -80,7 +80,7 @@
                 class="q-mx-md q-mb-md q-pa-sm text-center text-subtitle2 text-bow"
                 :class="getDarkModeClass(darkMode)"
               >
-                You are about to send funds to your own address. This will combine unspent transaction outputs into a single transaction. If this is not your intended action, please enter another address.
+                {{ $t('SameWalletAddressWarning') }}
               </div>
               <q-slide-transition :duration="750">
                 <div v-if="manualAddress && validateAddress(manualAddress)?.valid" class="text-center">

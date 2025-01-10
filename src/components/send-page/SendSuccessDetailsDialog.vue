@@ -7,7 +7,8 @@
           style="font-size: 18px;"
           :class="getDarkModeClass(darkMode)"
         >
-          Transaction Details</span>
+          {{ $t('TransactionDetails') }}
+        </span>
         <q-btn
           flat
           round
@@ -19,27 +20,27 @@
       </div>
 
       <div class="row col-12 items-center q-gutter-y-sm">
-        <span class="col-4 text-bold">Total amount sent:</span>
+        <span class="col-4 text-bold">{{ $t('TotalAmountSent') }}:</span>
         <span class="col-8">
           {{ totalSent }}
           <span v-if="!isCashToken">({{ totalFiatSent }})</span>
         </span>
 
-        <span class="col-4 text-bold">Reference ID:</span>
+        <span class="col-4 text-bold">{{ $t('ReferenceId') }}:</span>
         <span class="col-8">{{ txid.substring(0, 6).toUpperCase() }}</span>
 
-        <span class="col-4 text-bold">Transaction ID:</span>
+        <span class="col-4 text-bold">{{ $t('TransactionId') }}:</span>
         <span class="col-8">
           {{ txid.slice(0, 8) }}<span>***</span>{{ txid.substr(txid.length - 8) }}<br>
         </span>
 
-        <span class="col-4 text-bold">Time sent:</span>
+        <span class="col-4 text-bold">{{ $t('TimeSent') }}:</span>
         <span class="col-8">{{ timestamp }}</span>
       </div>
 
       <div class="row q-mt-md">
         <span class="col-12 q-mb-sm text-center text-bold text-subtitle1">
-          Transaction Breakdown
+          {{ $t('TransactionBreakdown') }}
         </span>
       </div>
 

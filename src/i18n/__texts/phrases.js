@@ -1109,7 +1109,14 @@ const phrases = {
       UpdateCity: 'Update city'
     },
     {
-      NoNotifications: 'No notifications'
+      NoNotifications: 'No notifications',
+      NoAssetsAvailable: 'No assets available',
+      SameWalletAddressWarning: 'You are about to send funds to your own address. This will combine unspent transaction outputs into a single transaction. If this is not your intended action, please enter another address.',
+      SLPSendWarning: 'Sending of SLP tokens is temporarily disabled until further notice.',
+      TransactionDetails: 'Transaction Details',
+      TotalAmountSent: 'Total amount sent',
+      TimeSent: 'Time sent',
+      TransactionBreakdown: 'Transaction Breakdown'
     }
   ],
   dynamic: [

@@ -57,7 +57,7 @@
     class="q-mx-md q-mb-md q-pa-sm text-center text-body2 text-bow"
     :class="getDarkModeClass(darkMode)"
   >
-    You are about to send funds to your own address. This will combine unspent transaction outputs into a single transaction. If this is not your intended action, please enter another address.
+    {{ $t('SameWalletAddressWarning') }}
   </div>
   <div class="col-12">
     <q-input

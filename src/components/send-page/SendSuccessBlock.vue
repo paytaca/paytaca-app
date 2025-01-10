@@ -47,7 +47,7 @@
           class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
           :class="getDarkModeClass(darkMode, 'text-white', '')"
         >
-          <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">Memo:</span>
+          <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">{{ $t('Memo') }}:</span>
           {{ sendDataMultiple[0].paymentAckMemo }}
         </div>
       </div>
