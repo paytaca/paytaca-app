@@ -116,7 +116,7 @@ export default {
   },
   watch: {
     loggingIn (value) {
-      if (value) {
+      if (value && !this.register) {
         this.$q.loading.show()
         setTimeout(() => {
           this.$q.loading.hide()

@@ -28,7 +28,6 @@ export default {
     }
   },
   async created () {
-    bus.on('network-error', this.handleNetworkError)
     bus.on('websocket-disconnected', this.handleDisconnectedWS)
   },
   beforeUnmount () {
@@ -42,12 +41,22 @@ export default {
     } else {
       await this.checkVersionUpdate()
       loadRampWallet()
+      await this.getUser()
       this.goToMainPage()
     }
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    async getUser () {
+      await backend.get('auth')
+        .then(async (response) => {
+          this.user = response.data
+        })
+        .catch(error => {
+          console.log(error.response || error)
+        })
+    },
     goToMainPage () {
       if (this.user?.is_arbiter) {
         this.$router?.push({ name: 'arbiter-appeals' })
@@ -58,9 +67,6 @@ export default {
           this.$router?.push({ name: 'p2p-store' })
         }
       }
-    },
-    handleNetworkError () {
-      this.showLogin = false
     },
     handleDisconnectedWS (url) {
       console.log('handleDisconnectedWS:', url)
