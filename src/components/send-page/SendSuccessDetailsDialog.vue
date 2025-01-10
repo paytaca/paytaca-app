@@ -20,7 +20,10 @@
 
       <div class="row col-12 items-center q-gutter-y-sm">
         <span class="col-4 text-bold">Total amount sent:</span>
-        <span class="col-8">{{ totalSent }} ({{ totalFiatSent }})</span>
+        <span class="col-8">
+          {{ totalSent }}
+          <span v-if="!isCashToken">({{ totalFiatSent }})</span>
+        </span>
 
         <span class="col-4 text-bold">Reference ID:</span>
         <span class="col-8">{{ txid.substring(0, 6).toUpperCase() }}</span>
@@ -78,6 +81,8 @@ export default {
   name: 'SendSuccessDetailsDialog',
 
   props: {
+    isCashToken: { type: Boolean, default: false },
+
     totalSent: { type: String, default: '' },
     totalFiatSent: { type: String, default: '' },
     txid: { type: String, default: '' },

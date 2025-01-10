@@ -126,10 +126,11 @@ export default {
         return this.sendDataMultiple.map(value => {
           const amount = this.parseAmount(value.amount)
           const fiatAmount = this.parseFiatAmount(0, value.amount)
+          const tokenAmount = this.isCashToken ? '' : ` (${fiatAmount})`
 
           return {
             address: value.recipientAddress,
-            amount: `${amount} (${fiatAmount})`
+            amount: `${amount}${tokenAmount}`
           }
         })
       }
@@ -164,6 +165,7 @@ export default {
       this.$q.dialog({
         component: SendSuccessDetailsDialog,
         componentProps: {
+          isCashToken: this.isCashToken,
           totalSent: this.amountSent,
           totalFiatSent: this.fiatAmountSent,
           txid: this.txid,
