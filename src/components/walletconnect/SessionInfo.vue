@@ -9,7 +9,7 @@
           <slot name="account">
             <div @click="copyToClipboard" style="z-index: 1000;">
               <span v-if="account" class="text-caption">
-                {{ addressDisplayFormatter ? addressDisplayFormatter(account.replace('bch:', '')) : shortenAddressForDisplay(account.replace('bch:', '')) }}
+                  {{ formattedAccount }}
                 <q-icon name="fas fa-copy" style="font-size: 14px;" />
               </span>
             </div>
@@ -112,6 +112,16 @@ const account = computed(() => {
   if (props.session?.session?.namespaces?.bch?.accounts[0]) 
     return props.session?.session?.namespaces?.bch?.accounts[0]
   
+  return ''
+})
+
+const formattedAccount = computed(() => {
+  if (account.value && props.addressDisplayFormatter) {
+    return props.addressDisplayFormatter(account.value.replace('bch:', ''))
+  }
+  if (account.value) {
+    return shortenAddressForDisplay(account.value.replace('bch:', ''))
+  }
   return ''
 })
 

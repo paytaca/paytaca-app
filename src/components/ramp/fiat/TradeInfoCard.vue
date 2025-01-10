@@ -34,6 +34,9 @@
                 <div v-if="counterparty && counterparty?.last_online_at && counterparty?.is_online === false" class="row xs-font-size text-grey">
                   Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}
                 </div>
+                <div v-if="!counterparty?.last_online_at" class="row xs-font-size text-grey">
+                  Offline for a long time
+                </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
                 <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
@@ -73,7 +76,12 @@
                         @click="onViewReviews"/>
                         <span class="q-mx-xs sm-font-size">({{ orderOwner.rating?.toFixed(1) || 0 }})</span>
                     </div>
-                    <div v-if="!orderOwner?.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(orderOwner?.last_online_at, true).toLowerCase() }}</div>
+                    <div v-if="orderOwner?.last_online_at && orderOwner?.is_online === false" class="row xs-font-size text-grey">
+                      Online {{ this.formatDate(orderOwner?.last_online_at, true).toLowerCase() }}
+                    </div>
+                    <div v-if="!orderOwner?.last_online_at" class="row xs-font-size text-grey">
+                      Offline for a long time
+                    </div>
                 </div>
             </div>
           </div>
@@ -109,7 +117,12 @@
                 @click="onViewReviews"/>
                 <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
             </div>
-            <div v-if="!adOwner?.is_online" class="row justify-end xs-font-size text-grey">Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}</div>
+            <div v-if="adOwner?.last_online_at && adOwner?.is_online === false" class="row xs-font-size text-grey">
+              Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}
+            </div>
+            <div v-if="!adOwner?.last_online_at" class="row xs-font-size text-grey">
+              Offline for a long time
+            </div>
           </div>
         </div>
       </div>
