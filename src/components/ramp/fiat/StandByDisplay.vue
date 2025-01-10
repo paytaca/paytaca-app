@@ -120,6 +120,9 @@
                             style="font-size: small;"
                             @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
                         </div>
+                        <div v-else>
+                          <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
+                        </div>
                       </div>
                     </q-card>
                   </q-expansion-item>

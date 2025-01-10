@@ -68,6 +68,7 @@
               :data="standByDisplayData"
               @send-feedback="sendFeedback"
               @submit-appeal="submitAppeal"
+              @refresh="refreshPage"
               @back="onBack"
               @cancel-order="cancellingOrder"
             />
