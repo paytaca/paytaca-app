@@ -180,7 +180,7 @@
     :text="$t('SwipeToConfirmLower')"
   />
   <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
-  <TransactionHistoryDialog v-if="showTransactionHistory" :transaction-history="transactionHistory" @back="showTransactionHistory = false" />
+  <TransactionHistoryDialog v-if="showTransactionHistory" :transactions="data?.transactions" @back="showTransactionHistory = false" />
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
