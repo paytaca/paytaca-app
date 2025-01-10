@@ -299,9 +299,9 @@ export default {
       this.$store.commit('global/enableStablhedge', newVal)
 
       // uncomment when stablehedge's info dialog is completed
-      // if (newVal) {
-      //   this.showStablehedgeInfoDialog = true
-      // }
+      if (newVal) {
+        this.showStablehedgeInfoDialog = true
+      }
     },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')
