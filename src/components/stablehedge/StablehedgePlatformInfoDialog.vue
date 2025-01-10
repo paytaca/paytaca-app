@@ -23,6 +23,7 @@
         />
       </div>
       <q-carousel
+        ref="carousel"
         v-model="slide"
         transition-prev="slide-right"
         transition-next="slide-left"
@@ -60,8 +61,7 @@
             <q-icon name="ac_unit" size="75px"/>
           </div>
           <div class="text-center text-body2" style="line-height:1.2;">
-            Exchange BCH and receive a stablehedge tokens of equal value based on the
-            market price at the time of transaction
+            Exchange BCH and receive stablehedge tokens of equal value
           </div>
         </q-carousel-slide>
         <q-carousel-slide name="redeem">
@@ -73,8 +73,7 @@
             <q-icon name="wb_sunny" size="75px"/>
           </div>
           <div class="text-center text-body2" style="line-height:1.2;">
-            Exchange stablehedge tokens and receive BCH of equal value based on the
-            market price at the time of transaction
+            Exchange stablehedge tokens and receive BCH of equal value
           </div>
         </q-carousel-slide>
         <q-carousel-slide name="how-it-works--contract">
@@ -100,7 +99,7 @@
           <div class="q-space q-gutter-sm q-pb-xl" style="overflow-y:auto;">
             <div class="text-h6">Freeze</div>
             <div>
-              Exchange BCH and receive a stablehedge tokens of equal value based on the
+              Exchange BCH and receive stablehedge tokens of equal value based on the
               market price at the time of transaction
             </div>
 
@@ -145,7 +144,7 @@
           </div>
         </q-carousel-slide>
 
-        <q-carousel-slide name="how-it-works">
+        <q-carousel-slide name="how-it-works--liquidity">
           <div class="column no-wrap" style="height:100%;">
             <div class="text-h4 q-mb-sm">How it works</div>
             <div class="q-space q-gutter-sm q-pb-xl" style="overflow-y:auto;">
@@ -164,6 +163,14 @@
           </div>
         </q-carousel-slide>
       </q-carousel>
+      <div class="q-pa-md">
+        <q-btn
+          color="brandblue"
+          no-caps :label="isLastSlide ? $t('Close') : $t('Next')"
+          class="full-width"
+          @click="() => isLastSlide ? innerVal = false : carousel?.next?.()"
+        />
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -189,7 +196,12 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
+    const carousel = ref()
     const slide = ref('intro')
+    const isLastSlide = computed(() => slide.value === 'how-it-works--liquidity')
+    watch(innerVal, () => {
+      if (innerVal.value) slide.value = 'intro'
+    })
 
     const cashtokensUrl = 'https://cashtokens.org/'
     const cashscriptUrl = 'https://cashscript.org/'
@@ -201,7 +213,9 @@ export default defineComponent({
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
       innerVal,
 
+      carousel,
       slide,
+      isLastSlide,
 
       cashtokensUrl,
       cashscriptUrl,
