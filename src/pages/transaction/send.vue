@@ -500,7 +500,6 @@ export default {
       )
     },
     showAddRecipientButton () {
-      if (this.assetId?.startsWith('ct')) return false
       return (
         this.showSlider &&
         !this.isNFT &&
@@ -694,7 +693,7 @@ export default {
     },
 
     // payment uri
-    async handlePaymentUri (content, currentRecipient) {
+    async handlePaymentUri (content) {
       const vm = this
 
       let address = content
