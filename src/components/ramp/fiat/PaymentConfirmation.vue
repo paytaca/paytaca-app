@@ -23,8 +23,9 @@
         :dark="darkMode"
         :label="data?.contract.address">
         <template v-slot:append>
-          <div v-if="data?.contract.address" @click="copyToClipboard(data?.contract.address)">
-            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+          <div v-if="data?.contract.address">
+            <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+            <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(data?.contract.address)"/>
           </div>
         </template>
       </q-input>
@@ -220,6 +221,7 @@
 <script>
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { openURL } from 'quasar'
 import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
@@ -308,6 +310,19 @@ export default {
     fiatAmount () {
       const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
       return this.formatCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '')
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    explorerLink () {
+      let url = ''
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/address/'
+      } else {
+        url = 'https://blockchair.com/bitcoin-cash/address/'
+      }
+      return `${url}${this.data?.contract.address}`
     }
   },
   async mounted () {
@@ -321,6 +336,7 @@ export default {
     formatCurrency,
     isNotDefaultTheme,
     getDarkModeClass,
+    openURL,
     async loadData () {
       const vm = this
       await vm.fetchOrderDetail()

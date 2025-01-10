@@ -39,8 +39,9 @@
             :dark="darkMode"
             :label="data.contractAddress">
             <template v-slot:append>
-              <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              <div v-if="data?.contractAddress">
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink('address'))"/>
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(data?.contractAddress)"/>
               </div>
             </template>
           </q-input>
@@ -54,7 +55,7 @@
               :dark="darkMode"
               :label="txid">
               <template v-slot:append>
-                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink())"/>
                 <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(txid)"/>
               </template>
             </q-input>
@@ -355,18 +356,6 @@ export default {
 
       return this.data.order?.is_ad_owner ? adOwner : orderOwner
     },
-    explorerLink () {
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-
-      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
-      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
-      // }
-
-      if (this.isChipnet) {
-        url = 'https://chipnet.imaginary.cash/tx/'
-      }
-      return `${url}${this.txid}`
-    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -392,6 +381,27 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     openURL,
+    explorerLink (linkType = 'txid') {
+      let url = ''
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash'
+      } else {
+        url = 'https://blockchair.com/bitcoin-cash'
+      }
+
+      if (linkType === 'txid') {
+        url = this.isChipnet ? `${url}/tx/` : `${url}/transaction/`
+        return `${url}${this.txid}`
+      } else {
+        url = `${url}/address/`
+        return `${url}${this.data?.contractAddress}`
+      }
+
+      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
+      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      // }
+    },
     async loadData () {
       if (this.isAppealed) {
         await this.fetchAppeal()
