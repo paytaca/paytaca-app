@@ -82,7 +82,7 @@ export default {
           iconName: 'mdi-connection',
           path: '/apps/wallet-connect',
           iconStyle: 'font-size: 4.2em',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true,
           smartBCHOnly: false
         },
         {
