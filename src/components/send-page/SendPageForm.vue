@@ -21,8 +21,6 @@
           inputExtras.scannedRecipientAddress
         ]"
       >
-      <!-- :disabled="disableRecipientInput"
-      :readonly="disableRecipientInput" -->
         <template v-slot:label>
           {{ $t('Recipient') }}
         </template>
@@ -291,9 +289,6 @@ export default {
     denomination () {
       return this.$store.getters['global/denomination']
     },
-    // disableRecipientInput () {
-    //   return this.recipient.fixedRecipientAddress || this.inputExtras.scannedRecipientAddress
-    // },
     sendAmountMarketValue () {
       const parsedAmount = Number(this.amount)
       if (!parsedAmount) return ''
