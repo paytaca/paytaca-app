@@ -26,6 +26,14 @@
           <div v-if="pricePerDenomination" class="row items-center text-grey q-mb-lg">
             <div class="q-space">{{ $t('CurrentPrice') }}:</div>
             <div>{{ pricePerDenomination }} {{ tokenCurrency}} / {{ denomination }}</div>
+            <q-menu
+              v-if="priceTimestamp"
+              anchor="bottom right" self="top end"
+              class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)"
+            >
+              <div>{{ formatTimestampToText(priceTimestamp) }}</div>
+              <div class="text-caption text-grey">{{ formatDateRelative(priceTimestamp) }}</div>
+            </q-menu>
           </div>
           <div class="text-body1 q-my-sm">{{ $t('InputAmountToFreeze') }}</div>
           <q-input
@@ -84,6 +92,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { customNumberFormatting, getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
+import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -136,6 +145,7 @@ export default defineComponent({
       const token = $store.getters['stablehedge/token']?.(category.value)
       return token?.priceMessage
     })
+    const priceTimestamp = computed(() => priceMessage.value?.messageTimestamp * 1000)
     const priceUnitPerBch = computed(() => parseFloat(priceMessage.value?.priceValue))
     // const priceUnitPerBch = computed(() => parseFloat(41740))
     const pricePerBch = computed(() =>  priceUnitPerBch.value / 10 ** decimals.value)
@@ -177,9 +187,7 @@ export default defineComponent({
       return sats / 10 ** 8
     })
     const denominatedBchAmountText = computed(() => {
-      if (!bchAmount.value) return ''
-      const currentDenomination = denomination.value || 'BCH'
-      return getAssetDenomination(currentDenomination, bchAmount.value)
+      return bchAmount.value ? denominateBch(bchAmount.value) : ''
     })
 
     function onSubmit() {
@@ -190,6 +198,12 @@ export default defineComponent({
       })
     }
 
+    const {
+      denominateBch,
+      formatDateRelative,
+      formatTimestampToText,
+    } = useValueFormatters(category)
+
     return {
       darkMode, getDarkModeClass,
 
@@ -198,6 +212,7 @@ export default defineComponent({
 
       denomination,
       tokenCurrency,
+      priceTimestamp,
       pricePerDenomination,
       maxAmount,
       minAmount,
@@ -207,6 +222,8 @@ export default defineComponent({
 
       onSubmit,
 
+      formatDateRelative,
+      formatTimestampToText,
       parseFiatCurrency,
     }
   }

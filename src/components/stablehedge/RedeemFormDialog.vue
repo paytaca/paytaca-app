@@ -38,9 +38,17 @@
               v-for="(pair, index) in tokenBalanceContractPairs" :key="index"
               class="q-my-md token-pair-form"
             >
-              <div v-if="pricePerPairText[index]" class="row items-center text-grey q-mb-xs">
+              <div v-if="pricePerPairText[index]" class="row items-center text-grey q-mb-md">
                 <div class="q-space">{{ $t('CurrentPrice') }}:</div>
                 <div>{{ pricePerPairText[index] }} {{ tokenDataPerPair[index]?.currency }} / {{ denomination }}</div>
+                <q-menu
+                  v-if="priceTimestampPerPair[index]"
+                  anchor="bottom right" self="top end"
+                  class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)"
+                >
+                  <div>{{ formatTimestampToText(priceTimestampPerPair[index]) }}</div>
+                  <div class="text-caption text-grey">{{ formatDateRelative(priceTimestampPerPair[index]) }}</div>
+                </q-menu>
               </div>
               <q-input
                 outlined
@@ -126,6 +134,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { getAssetDenomination } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
+import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -195,6 +204,9 @@ export default defineComponent({
       return tokenBalanceContractPairs.value.map(pair => {
         return $store.getters['stablehedge/token'](pair?.tokenBalance?.category)
       })
+    })
+    const priceTimestampPerPair = computed(() => {
+      return tokenDataPerPair.value.map(token => token?.priceMessage?.messageTimestamp * 1000)
     })
     const pricePerPairText = computed(() => {
       return tokenDataPerPair.value.map(token => {
@@ -321,6 +333,11 @@ export default defineComponent({
       onDialogOK(data)
     }
 
+    const {
+      formatDateRelative,
+      formatTimestampToText,
+    } = useValueFormatters()
+
     return {
       darkMode, getDarkModeClass,
 
@@ -330,6 +347,7 @@ export default defineComponent({
       denomination,
       tokenBalanceContractPairs,
       tokenDataPerPair,
+      priceTimestampPerPair,
       pricePerPairText,
       maxDenominatedRedeemableBchPerPair,
 
@@ -341,6 +359,9 @@ export default defineComponent({
       denominatedAmount,
 
       onSubmit,
+
+      formatDateRelative,
+      formatTimestampToText,
     }
   }
 })

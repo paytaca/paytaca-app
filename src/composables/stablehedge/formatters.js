@@ -1,3 +1,4 @@
+import ago from 's-ago';
 import { getAssetDenomination } from "src/utils/denomination-utils";
 import { Store } from "src/store";
 import { useI18n } from "vue-i18n";
@@ -31,8 +32,8 @@ export function useValueFormatters(tokenCategory) {
     return parsedBCHBalance
   }
 
-  function formatTokenUnits(amount) {
-    const _tokenCategory = toValue(tokenCategory)
+  function formatTokenUnits(amount, category=undefined) {
+    const _tokenCategory = category ?? toValue(tokenCategory)
     const token = $store.getters['stablehedge/token']?.(_tokenCategory)
     const decimals = parseInt(token?.decimals) || 0
     const currency = token?.currency || 'UNIT'
@@ -58,6 +59,23 @@ export function useValueFormatters(tokenCategory) {
     }
   }
 
+
+  /**
+   * @param {Date} value 
+   */
+  function formatDateRelative(value) {
+    if (!value?.getDate?.()) value = new Date(value)
+    return ago(value)
+  }
+
+  /**
+   * @param {Date | String | Number} timestamp 
+   */
+  function formatTimestampToText(timestamp) {
+    const dateObj = new Date(timestamp)
+    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
+  }
+
   return {
     denomination,
 
@@ -65,5 +83,8 @@ export function useValueFormatters(tokenCategory) {
     denominateBch,
     formatTokenUnits,
     formatTransactionsCount,
+
+    formatDateRelative,
+    formatTimestampToText,
   }
 }
