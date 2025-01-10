@@ -396,7 +396,7 @@ export default {
   EnableLocation: "Sanya damar shiga cikin saitunan app",
   EnablePushNotifications: "Sanya sanarwar Taggawa",
   EnableSmartBCH: "Sanya wayo",
-  EnableStablehdge: "Sanya StableDe",
+  EnableStablhedge: "Sanya StableDe",
   EncounteredError: "An ci karo da kuskure",
   EncryptedChatMsg: "Saƙonni suna ƙarewa-zuwa ƙarshen rufaffen.Babu wanda ke waje da wannan hira, ba ko da Paytaca ba, na iya karanta su.",
   English: "Na turanci",

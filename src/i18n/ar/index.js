@@ -396,7 +396,7 @@ export default {
   EnableLocation: "تمكين موقع الوصول في إعدادات التطبيق",
   EnablePushNotifications: "تمكين الإخطارات دفع",
   EnableSmartBCH: "تمكين SmartBch",
-  EnableStablehdge: "تمكين مستقر",
+  EnableStablhedge: "تمكين مستقر",
   EncounteredError: "واجه خطأ",
   EncryptedChatMsg: "الرسائل مشفرة شاملة.لا يمكن لأحد خارج هذه الدردشة ، ولا حتى Paytaca ، قراءتها.",
   English: "إنجليزي",

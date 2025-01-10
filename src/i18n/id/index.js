@@ -396,7 +396,7 @@ export default {
   EnableLocation: "Aktifkan lokasi akses di pengaturan aplikasi",
   EnablePushNotifications: "Aktifkan pemberitahuan push",
   EnableSmartBCH: "Aktifkan SmartBch",
-  EnableStablehdge: "Aktifkan stableHedge",
+  EnableStablhedge: "Aktifkan stableHedge",
   EncounteredError: "Kesalahan yang ditemui",
   EncryptedChatMsg: "Pesan dienkripsi ujung ke ujung.Tidak ada orang di luar obrolan ini, bahkan Paytaca, yang bisa membacanya.",
   English: "Bahasa inggris",

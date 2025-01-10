@@ -1146,7 +1146,7 @@ const phrases = {
       ContractAssets: "Contract assets",
       ReserveSupply: "Reserve supply",
       TokenReserves: "Token reserves",
-      EnableStablehdge: "Enable Stablehedge",
+      EnableStablhedge: "Enable Stablehedge",
     },
     {
       PushNotifications: 'Push Notifications',

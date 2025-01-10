@@ -396,7 +396,7 @@ export default {
   EnableLocation: "Schakel de toegangslocatie in in app -instellingen",
   EnablePushNotifications: "Schakel pushmeldingen in",
   EnableSmartBCH: "Schakel smartBCH in",
-  EnableStablehdge: "Stablehedge inschakelen",
+  EnableStablhedge: "Stablehedge inschakelen",
   EncounteredError: "Tegenkomen fout",
   EncryptedChatMsg: "Berichten zijn end-to-end gecodeerd.Niemand buiten deze chat, zelfs Paytaca, kan ze niet lezen.",
   English: "Engels",

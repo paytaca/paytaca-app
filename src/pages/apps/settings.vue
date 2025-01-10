@@ -105,15 +105,15 @@
                     />
                   </q-item-section>
               </q-item>
-              <q-item clickable v-ripple @click="enableStablehedge = !enableStablehedge">
+              <q-item clickable v-ripple @click="enableStablhedge = !enableStablhedge">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableStablehedge') }}
+                        {{ $t('EnableStablhedge') }}
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                     <q-toggle
-                      v-model="enableStablehedge"
+                      v-model="enableStablhedge"
                       color="blue-9"
                       keep-color
                     />
@@ -260,7 +260,7 @@ export default {
       isChipnet: this.$store.getters['global/isChipnet'],
       autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
       showTokens: this.$store.getters['global/showTokens'],
-      enableStablehedge: this.$store.getters['global/enableStablehedge'],
+      enableStablhedge: this.$store.getters['global/enableStablhedge'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
@@ -295,8 +295,8 @@ export default {
     showTokens (n, o) {
       this.$store.commit('global/showTokens')
     },
-    enableStablehedge(newVal, oldVal) {
-      this.$store.commit('global/enableStablehedge', newVal)
+    enableStablhedge(newVal, oldVal) {
+      this.$store.commit('global/enableStablhedge', newVal)
 
       // uncomment when stablehedge's info dialog is completed
       // if (newVal) {

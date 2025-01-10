@@ -396,7 +396,7 @@ export default {
   EnableLocation: "Aktiveer toegangsligging in app -instellings",
   EnablePushNotifications: "Aktiveer stootkennisgewings",
   EnableSmartBCH: "Aktiveer smartBCH",
-  EnableStablehdge: "Aktiveer stablehedge",
+  EnableStablhedge: "Aktiveer stablehedge",
   EncounteredError: "Fout ondervind",
   EncryptedChatMsg: "Boodskappe is van einde tot einde geïnkripteer.Niemand buite hierdie klets nie, nie eens Paytaca nie, kan dit lees.",
   English: "Engels",

@@ -15,8 +15,8 @@
               <NotificationButton @hide-multi-wallet-dialog="hideMultiWalletDialog" />
             </div>
 
-            <div class="row" :class="enableSmartBCH || enableStablehedge ? 'q-pt-lg': 'q-pt-sm'">
-              <template v-if="enableStablehedge">
+            <div class="row" :class="enableSmartBCH || enableStablhedge ? 'q-pt-lg': 'q-pt-sm'">
+              <template v-if="enableStablhedge">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
                   v-model="stablehedgeTab"
@@ -568,8 +568,8 @@ export default {
         })
       }
     },
-    enableStablehedge () {
-      return this.$store.getters['global/enableStablehedge']
+    enableStablhedge () {
+      return this.$store.getters['global/enableStablhedge']
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']

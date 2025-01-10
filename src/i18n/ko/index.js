@@ -396,7 +396,7 @@ export default {
   EnableLocation: "앱 설정에서 액세스 위치를 활성화하십시오",
   EnablePushNotifications: "푸시 알림을 활성화합니다",
   EnableSmartBCH: "SmartBch를 활성화하십시오",
-  EnableStablehdge: "stablehedge를 활성화하십시오",
+  EnableStablhedge: "stablehedge를 활성화하십시오",
   EncounteredError: "오류가 발생했습니다",
   EncryptedChatMsg: "메시지는 엔드 투 엔드 암호화됩니다.이 채팅 외부의 아무도 Paytaca조차도 읽을 수 없습니다.",
   English: "영어",

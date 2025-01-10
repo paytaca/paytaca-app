@@ -396,7 +396,7 @@ export default {
   EnableLocation: "Ativar localização de acesso nas configurações de aplicativos",
   EnablePushNotifications: "Ativar notificações push",
   EnableSmartBCH: "Ativar SmartBCH",
-  EnableStablehdge: "Habilite StableHedge",
+  EnableStablhedge: "Habilite StableHedge",
   EncounteredError: "Erro encontrado",
   EncryptedChatMsg: "As mensagens são criptografadas de ponta a ponta.Ninguém fora deste bate -papo, nem mesmo Paytaca, pode lê -los.",
   English: "Inglês",
