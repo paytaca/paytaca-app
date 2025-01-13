@@ -1297,19 +1297,6 @@ export default {
     playSound (success) {
       if (success) NativeAudio.play({ assetId: 'send-success' })
     },
-    onConnectivityChange (online) {
-      this.$store.dispatch('global/updateConnectivityStatus', online)
-      const offlineNotif = this.$q.notify({
-        type: 'negative',
-        icon: 'signal_wifi_off',
-        iconColor: 'primary',
-        color: 'red-4',
-        timeout: 0,
-        message: this.$t('SendPageOffline')
-      })
-
-      if (online) offlineNotif()
-    }
   },
 
   async beforeMount () {
