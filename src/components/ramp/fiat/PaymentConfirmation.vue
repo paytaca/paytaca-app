@@ -107,6 +107,9 @@
                         style="font-size: small;"
                         @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
                     </div>
+                    <div v-else>
+                      <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
+                    </div>
                     <div v-if="data?.type !== 'seller'" class="row">
                       <q-btn
                         v-if="!!method.attachment"
@@ -271,7 +274,7 @@ export default {
     ProgressLoader,
     AttachmentDialog
   },
-  emits: ['back', 'verify-release', 'sending'],
+  emits: ['back', 'verify-release', 'sending', 'refresh'],
   props: {
     data: Object
   },
