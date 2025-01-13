@@ -134,7 +134,7 @@
   </div>
 </template>
 <script setup>
-import { binToHex, isArbitraryDataOutput } from "@bitauth/libauth"
+import { binToHex, isArbitraryDataOutput, isHex } from "@bitauth/libauth"
 import { ellipsisText, formatUnits } from "src/wallet/anyhedge/formatters"
 import { useQuasar } from "quasar"
 import { computed, inject } from "vue"
@@ -152,6 +152,7 @@ const $q = useQuasar()
 const { t } = useI18n()
 
 const parsedTx = computed(() => {
+  console.log({ transaction: props.transaction })
   return {
     ...props.transaction,
     inputs: props.transaction?.inputs?.map(input => {
@@ -192,6 +193,7 @@ function toBigIntSafe(value) {
 }
 
 function binToHexSafe(value) {
+  if (typeof value === 'string' && isHex(value)) return value
   try {
     return binToHex(value)
   } catch {

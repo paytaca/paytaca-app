@@ -30,6 +30,9 @@ class Translator {
       htmlClassRegex: /[“|"](\s|\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+[”|"]/gu,
     }
     this.hardcodedTranslations = {
+      'tl': {
+        Close: 'Isara',
+      },
       'zh-tw': {
         Pin: '密碼',
         ChangePin: '密碼',
