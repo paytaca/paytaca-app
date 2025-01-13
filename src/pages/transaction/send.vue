@@ -164,6 +164,12 @@
                       :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
+
+                    <div class="row" v-if="sendDataMultiple.length > 1">
+                      <p class="remove-recipient-button" @click="removeLastRecipient(index)">
+                        {{ $t('RemoveRecipient') }} #{{ index + 1 }}
+                      </p>
+                    </div>
                   </q-expansion-item>
                 </template>
 
@@ -193,12 +199,6 @@
                   />
                 </template>
               </q-list>
-
-              <div class="row" v-if="sendDataMultiple.length > 1">
-                <p class="remove-recipient-button" @click="removeLastRecipient">
-                  {{ $t('RemoveRecipient') }} #{{ sendDataMultiple.length }}
-                </p>
-              </div>
               <div class="add-recipient-button" v-if="!disableSending" @click.prevent="addAnotherRecipient">
                 <q-btn v-if="showAddRecipientButton" :label="$t('AddAnotherRecipient')" class="button" />
               </div>
@@ -935,11 +935,11 @@ export default {
         this.sliderStatus = false
       } else sendPageUtils.raiseNotifyError(this.$t('CannotAddRecipient'))
     },
-    removeLastRecipient () {
-      this.expandedItems[`R${this.sendDataMultiple.length - 1}`] = true
-      delete this.expandedItems[`R${this.sendDataMultiple.length}`]
-      this.sendDataMultiple.pop()
-      this.inputExtras.pop()
+    removeLastRecipient (index) {
+      delete this.expandedItems[`R${index}`]
+      this.expandedItems[`R${index + 1}`] = true
+      this.sendDataMultiple.splice(index, 1)
+      this.inputExtras.splice(index, 1)
       this.sliderStatus = true
     },
 
@@ -1296,7 +1296,7 @@ export default {
     },
     playSound (success) {
       if (success) NativeAudio.play({ assetId: 'send-success' })
-    },
+    }
   },
 
   async beforeMount () {
@@ -1420,6 +1420,7 @@ export default {
         font-size: 14px;
         color: red;
         margin-top: 10px;
+        cursor: pointer;
       }
       .set-amount-button {
         font-size: 16px;
