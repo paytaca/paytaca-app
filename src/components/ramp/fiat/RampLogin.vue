@@ -104,7 +104,11 @@ export default {
   },
   emits: ['loggedIn', 'cancel'],
   props: {
-    error: String
+    error: String,
+    forceLogin: {
+      type: Boolean,
+      default: false
+    }
   },
   computed: {
     isValidNickname () {
@@ -157,7 +161,7 @@ export default {
         if (!token) forceLogin = true
 
         // login user if not authenticated
-        if (!user.is_authenticated || forceLogin) {
+        if (!user.is_authenticated || forceLogin || this.forceLogin) {
           await vm.login()
         }
 

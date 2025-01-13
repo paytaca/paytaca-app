@@ -2,7 +2,7 @@
   <router-view :key="$route.path"></router-view>
   <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
   <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
-  <RampLogin v-if="showLogin" @logged-in="showLogin = false"/>
+  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
 </template>
 <script>
 import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
@@ -37,7 +37,8 @@ export default {
       previousRoute: null,
       reconnectWebsocket: true,
       showNoticeBoard: false,
-      noticeBoardMessage: null
+      noticeBoardMessage: null,
+      forceLogin: false
     }
   },
   components: {
@@ -115,6 +116,7 @@ export default {
       }
     },
     handleSessionEvent () {
+      this.forceLogin = true
       this.showLogin = true
     },
     fetchUser () {
