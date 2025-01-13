@@ -412,7 +412,6 @@ export default {
       sending: false,
       txid: '',
       txTimestamp: Date.now(),
-      amountInputState: false,
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       showQrScanner: false,
