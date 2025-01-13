@@ -12,7 +12,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
   const isBCH = asset.symbol === 'BCH' || asset.symbol === 'sBCH'
   const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
   let completeAsset = ''
-  let newBalance 
+  let newBalance
 
   if (isBCH) {
     // fallback condition for translated 'DEEM'
