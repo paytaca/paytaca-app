@@ -130,7 +130,7 @@ export default {
 
           return {
             address: value.recipientAddress,
-            amount: `${amount}${tokenAmount}`
+            amount: this.isNFT ? this.name : `${amount}${tokenAmount}`
           }
         })
       }
@@ -165,11 +165,13 @@ export default {
       this.$q.dialog({
         component: SendSuccessDetailsDialog,
         componentProps: {
+          isNFT: this.isNFT,
           isCashToken: this.isCashToken,
           totalSent: this.amountSent,
           totalFiatSent: this.fiatAmountSent,
           txid: this.txid,
           timestamp: this.formattedTxTimestamp,
+          name: this.name,
           breakdownList: this.transactionBreakdownData
         }
       })

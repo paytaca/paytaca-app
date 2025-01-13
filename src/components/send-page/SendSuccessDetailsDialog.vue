@@ -20,11 +20,17 @@
       </div>
 
       <div class="row col-12 items-center q-gutter-y-sm">
-        <span class="col-4 text-bold">{{ $t('TotalAmountSent') }}:</span>
-        <span class="col-8">
-          {{ totalSent }}
-          <span v-if="!isCashToken">({{ totalFiatSent }})</span>
-        </span>
+        <template v-if="!isNFT">
+          <span class="col-4 text-bold">{{ $t('TotalAmountSent') }}:</span>
+          <span class="col-8">
+            {{ totalSent }}
+            <span v-if="!isCashToken">({{ totalFiatSent }})</span>
+          </span>
+        </template>
+        <template v-else>
+          <span class="col-4 text-bold">{{ $t('Sent') }}:</span>
+          <span class="col-8">{{ name }}</span>
+        </template>
 
         <span class="col-4 text-bold">{{ $t('ReferenceId') }}:</span>
         <span class="col-8">{{ txid.substring(0, 6).toUpperCase() }}</span>
@@ -82,12 +88,14 @@ export default {
   name: 'SendSuccessDetailsDialog',
 
   props: {
+    isNFT: { type: Boolean, default: false },
     isCashToken: { type: Boolean, default: false },
 
     totalSent: { type: String, default: '' },
     totalFiatSent: { type: String, default: '' },
     txid: { type: String, default: '' },
     timestamp: { type: String, default: '' },
+    name: { type: String, default: '' },
 
     breakdownList: { type: Array, default: Array }
   },
