@@ -19,8 +19,9 @@
             :dark="darkMode"
             v-model="contractAddress">
             <template v-slot:append>
-              <div v-if="contractAddress" @click="copyToClipboard(contractAddress)">
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              <div v-if="contractAddress">
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(contractAddress)"/>
               </div>
             </template>
           </q-input>
@@ -192,6 +193,7 @@ import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'sr
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { wallet } from 'src/exchange/wallet'
+import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
@@ -253,6 +255,16 @@ export default {
     },
     contractAddress () {
       return this.contract.address
+    },
+    explorerLink () {
+      let url = ''
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/address/'
+      } else {
+        url = 'https://blockchair.com/bitcoin-cash/address/'
+      }
+      return `${url}${this.contractAddress}`
     }
   },
   async mounted () {
@@ -267,6 +279,7 @@ export default {
   methods: {
     formatDate,
     getDarkModeClass,
+    openURL,
     updateState (state) {
       this.$emit('update-state', state)
     },
