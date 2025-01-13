@@ -374,6 +374,7 @@ const words = [
     Spendable: "Spendable",
     below: "below",
     above: "above",
+    Example: "Example",
   }
 ]
 

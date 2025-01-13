@@ -1149,6 +1149,18 @@ const phrases = {
       EnableStablhedge: "Enable Stablehedge",
     },
     {
+      StablehedgeIntroText: "Safeguard your funds from market volatility and access them whenever you need.",
+      StablehedgeFreezeShortDesc1: "Freeze your BCH to maintain it's value against constant price changes",
+      StablehedgeFreezeShortDesc2: "Exchange BCH and receive stablehedge tokens of equal value",
+      StablehedgeUnfreezeShortDesc1: "Redeem back a part or all of your frozen BCH to use your funds again",
+      StablehedgeUnfreezeShortDesc2: "Exchange stablehedge tokens and receive BCH of equal value",
+      HowItWorks: "How it works",
+      StablehedgeFreezeDesc: "Exchange BCH and receive stablehedge tokens of equal value based on the market price at the time of transaction",
+      StablehedgeUnFreezeDesc: "Exchange stablehedge tokens and receive BCH of equal value based on the market price at the time of transaction",
+      MaintainingLiquidity: "Maintaining liquidity",
+      StablehedgeLiquidityDesc2: "the remaining funds are kept in the smart contract to be used as liquidty for unfreezing BCH",
+    },
+    {
       PushNotifications: 'Push Notifications',
       EnablePushNotifications: 'Enable Push Notifications',
       EventsAndPromotions: 'Events and Promotions',
@@ -1236,6 +1248,10 @@ const phrases = {
       StabilizeAmount: "Stabilize {amount}",
       RedeemAmount: "Redeem {amount}",
       InsufficientCurrencyBalance: "Insufficient {currency} balance",
+      StablehedgeIntroBottom: "Powered by {ctLink} and {BCHBullLink}",
+      StablehedgeContractDesc1: "Stablehedge uses {cashscriptLink} smart contracts to store your funds and ensure that exchanged assets within transactions are correct",
+      StablehedgeContractDesc2: "The exchanged amounts are calculated based on the price values taken from {priceOracleLink}",
+      StablehedgeLiquidityDesc1: "A part of your frozen funds are pooled with other users and locked in a leveraged short contract in {BCHBullLink} to protect against price drops",
     }
   ]
 }

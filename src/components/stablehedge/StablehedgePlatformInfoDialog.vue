@@ -42,68 +42,55 @@
               <img src="assets/img/stablehedge/stablehedge-bch-logo.png" height="100"/>
             </div>
             <div class="text-center text-body1">
-              Safeguard your funds from market volatility and access them whenever you need.
+              {{ $t('StablehedgeIntroText') }}
             </div>
             <q-space/>
-            <div class="text-center">
-              Powered by
-              <a target="_blank" :href="cashtokensUrl">CashTokens</a> and
-              <a target="_blank" :href="bchBullUrl">BCH Bull</a>
+            <div class="text-center" v-html="introBottomText">
             </div>
           </div>
         </q-carousel-slide>
         <q-carousel-slide name="deposit" style="min-height:100%;">
-          <div class="text-h5 q-mb-md">Freeze BCH</div>
+          <div class="text-h5 q-mb-md">{{ $t('Freeze') }} BCH</div>
           <div class="text-body1 text-center q-mb-md">
-            Freeze your BCH to maintain it's value against constant price changes
+            {{ $t('StablehedgeFreezeShortDesc1') }}
           </div>
           <div class="q-my-xl text-center">
             <q-icon name="ac_unit" size="75px"/>
           </div>
           <div class="text-center text-body2" style="line-height:1.2;">
-            Exchange BCH and receive stablehedge tokens of equal value
+            {{ $t('StablehedgeFreezeShortDesc2') }}
           </div>
         </q-carousel-slide>
         <q-carousel-slide name="redeem">
-          <div class="text-h5 q-mb-md">Unfreeze BCH</div>
+          <div class="text-h5 q-mb-md">{{ $t('Unfreeze') }} BCH</div>
           <div class="text-body1 text-center q-mb-md">
-            Redeem back a part or all of your frozen BCH to use your funds again
+            {{ $t('StablehedgeUnfreezeShortDesc1') }}
           </div>
           <div class="q-my-xl text-center">
             <q-icon name="wb_sunny" size="75px"/>
           </div>
           <div class="text-center text-body2" style="line-height:1.2;">
-            Exchange stablehedge tokens and receive BCH of equal value
+            {{ $t('StablehedgeUnfreezeShortDesc2') }}
           </div>
         </q-carousel-slide>
         <q-carousel-slide name="how-it-works--contract">
-          <div class="text-h4 q-mb-sm">How it works</div>
+          <div class="text-h4 q-mb-sm">{{ $t('HowItWorks') }}</div>
           <div class="q-space q-gutter-sm q-pb-xl" style="overflow-y:auto;">
-            <div class="text-h6">Contracts</div>
-            <div>
-              Stabledge uses
-              <a target="_blank" :href="cashscriptUrl">CashScript</a>
-              smart contracts to store your funds and ensure that exchanged assets
-              within transactions are correct
-            </div>
-  
-            <div>
-              The exchanged amounts are calculated based on the price values taken from
-              <a target="_blank" :href="priceOraclesUrl">price oracles</a>
-            </div>
+            <div class="text-h6">{{ $t('Contract') }}</div>
+            <div v-html="contractDesc1"></div>
+            <div v-html="contractDesc2"></div>
           </div>
         </q-carousel-slide>
 
         <q-carousel-slide name="how-it-works--freeze-unfreeze">
-          <div class="text-h4 q-mb-sm">How it works</div>
+          <div class="text-h4 q-mb-sm">{{ $t('HowItWorks') }}</div>
           <div class="q-space q-gutter-sm q-pb-xl" style="overflow-y:auto;">
-            <div class="text-h6">Freeze</div>
+            <div class="text-h6">{{ $t('Freeze') }}</div>
             <div>
-              Exchange BCH and receive stablehedge tokens of equal value based on the
-              market price at the time of transaction
+              {{ $t('StablehedgeFreezeDesc') }}
             </div>
 
-            <div class="text-subtitle1">Example:</div>
+            <div class="text-subtitle1">{{ $t('Example') }}:</div>
             <div class="q-my-md row items-center q-px-md">
               <div class="row items-center justify-center no-wrap">
                 <div class="text-center">
@@ -121,12 +108,11 @@
 
             <q-separator spaced/>
 
-            <div class="text-h6">Unfreeze</div>
+            <div class="text-h6">{{ $t('Unfreeze') }}</div>
             <div>
-              Exchange stablehedge tokens and receive BCH of equal value based on the
-              market price at the time of transaction
+              {{ $t('StablehedgeUnFreezeDesc') }}
             </div>
-            <div class="text-subtitle1">Example:</div>
+            <div class="text-subtitle1">{{ $t('Example') }}:</div>
             <div class="q-my-md row items-center q-px-md">
               <div class="row items-center justify-center no-wrap">
                 <div class="text-center">
@@ -146,18 +132,13 @@
 
         <q-carousel-slide name="how-it-works--liquidity">
           <div class="column no-wrap" style="height:100%;">
-            <div class="text-h4 q-mb-sm">How it works</div>
+            <div class="text-h4 q-mb-sm">{{ $t('HowItWorks') }}</div>
             <div class="q-space q-gutter-sm q-pb-xl" style="overflow-y:auto;">
-              <div class="text-h6">Maintaining liquidity</div>
-              <div>
-                A part of your frozen funds are pooled with other users and
-                locked in a leveraged short contract in
-                <a target="_blank" :href="bchBullUrl">BCH Bull</a>
-                to protect against price drops
+              <div class="text-h6">{{ $t('MaintainingLiquidity') }}</div>
+              <div v-html="liquidityDesc1">
               </div>
               <div>
-                the remaining funds are kept in the smart contract to be used as
-                liquidty for unfreezing BCH
+                {{ $t('StablehedgeLiquidityDesc2') }}
               </div>
             </div>
           </div>
@@ -179,6 +160,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n';
 export default defineComponent({
   name: 'StablehedgePlatformInfoDialog',
   emits: [
@@ -189,6 +171,7 @@ export default defineComponent({
     modelValue: Boolean,
   },
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const { dialogRef, onDialogCancel, onDialogHide, onDialogOK } = useDialogPluginComponent()
@@ -208,6 +191,29 @@ export default defineComponent({
     const bchBullUrl = 'https://bchbull.com/'
     const priceOraclesUrl = 'https://oracles.cash'
 
+    function linkTag(link, text) {
+      return `<a href="${link}" target="_blank">${text}</a>`
+    }
+    const introBottomText = computed(() => {
+      const ctLink = linkTag(cashtokensUrl, 'CashTokens');
+      const BCHBullLink = linkTag(bchBullUrl, 'BCH Bull');
+      return $t('StablehedgeIntroBottom', { ctLink, BCHBullLink })
+    })
+
+    const contractDesc1 = computed(() => {
+      const cashscriptLink = linkTag(cashscriptUrl, 'CashScript');
+      return $t('StablehedgeContractDesc1', { cashscriptLink })
+    }) 
+    const contractDesc2 = computed(() => {
+      const priceOracleLink = linkTag(priceOraclesUrl, 'PriceOracle');
+      return $t('StablehedgeContractDesc2', { priceOracleLink })
+    }) 
+
+    const liquidityDesc1 = computed(() => {
+      const BCHBullLink = linkTag(bchBullUrl, 'BCH Bull');
+      return $t('StablehedgeLiquidityDesc1', { BCHBullLink })
+    })
+
     return {
       darkMode, getDarkModeClass,
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
@@ -221,6 +227,12 @@ export default defineComponent({
       cashscriptUrl,
       bchBullUrl,
       priceOraclesUrl,
+
+      introBottomText,
+      contractDesc1,
+      contractDesc2,
+
+      liquidityDesc1,
     }
   }
 })
