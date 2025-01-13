@@ -154,7 +154,6 @@
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
                       @on-qr-scanner-click="onQRScannerClick"
-                      @read-only-state="readonlyState"
                       @on-input-focus="onInputFocus"
                       @on-balance-exceeded="onBalanceExceeded"
                       @on-recipient-input="onRecipientInput"
@@ -182,7 +181,6 @@
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     @on-qr-scanner-click="onQRScannerClick"
-                    @read-only-state="readonlyState"
                     @on-input-focus="onInputFocus"
                     @on-balance-exceeded="onBalanceExceeded"
                     @on-recipient-input="onRecipientInput"
@@ -1148,6 +1146,9 @@ export default {
 
       sendPageUtils.addRemoveInputFocus(value.index, false, value.field)
       sendPageUtils.addRemoveInputFocus(value.index, true, value.field)
+
+      if (value.field !== '') this.customKeyboardState = 'show'
+      else this.customKeyboardState = 'dismiss'
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
@@ -1208,14 +1209,6 @@ export default {
         if (!result?.timeDifference) return result
         this.networkTimeDiff = result.timeDifference
       })
-    },
-    readonlyState (state) {
-      this.amountInputState = state
-      if (this.amountInputState) {
-        if (this.$store.getters['global/getConnectivityStatus']) {
-          this.customKeyboardState = 'show'
-        }
-      } else this.adjustWalletBalance()
     },
     setDefaultFtChangeAddress () {
       if (this.connectedApps?.[0] && !this.userSelectedChangeAddress) {

@@ -90,8 +90,7 @@
           v-model="amountFormatted"
           ref="amountInput"
           class="bch-input-field"
-          @focus="readonlyState(true), onInputFocus(index, 'bch')"
-          @blur="readonlyState(false)"
+          @focus="onInputFocus(index, 'bch')"
           :label="$t('Amount')"
           :dark="darkMode"
           :loading="computingMax"
@@ -125,8 +124,7 @@
           v-model="sendAmountInFiat"
           ref="fiatInput"
           class="fiat-input-field"
-          @focus="readonlyState(true), onInputFocus(index, 'fiat')"
-          @blur="readonlyState(false)"
+          @focus="onInputFocus(index, 'fiat')"
           :disabled="recipient.fixedAmount || inputExtras.isBip21"
           :readonly="recipient.fixedAmount || inputExtras.isBip21"
           :error="balanceExceeded"
@@ -229,7 +227,6 @@ export default {
 
   emits: [
     'on-qr-scanner-click',
-    'read-only-state',
     'on-input-focus',
     'on-balance-exceeded',
     'on-recipient-input',
@@ -340,9 +337,6 @@ export default {
 
     onQRScannerClick (value) {
       this.$emit('on-qr-scanner-click', value)
-    },
-    readonlyState (value) {
-      this.$emit('read-only-state', value)
     },
     handleMaxClick () {
       this.$q.dialog({ component: ConfirmSetMax })
