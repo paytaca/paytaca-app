@@ -39,8 +39,9 @@
             :dark="darkMode"
             :label="data.contractAddress">
             <template v-slot:append>
-              <div v-if="data?.contractAddress" @click="copyToClipboard(data?.contractAddress)">
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+              <div v-if="data?.contractAddress">
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink('address'))"/>
+                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(data?.contractAddress)"/>
               </div>
             </template>
           </q-input>
@@ -54,7 +55,7 @@
               :dark="darkMode"
               :label="txid">
               <template v-slot:append>
-                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink())"/>
                 <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(txid)"/>
               </template>
             </q-input>
@@ -118,6 +119,9 @@
                             label="View Proof of Payment"
                             style="font-size: small;"
                             @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
+                        </div>
+                        <div v-else>
+                          <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
                         </div>
                       </div>
                     </q-card>
@@ -355,18 +359,6 @@ export default {
 
       return this.data.order?.is_ad_owner ? adOwner : orderOwner
     },
-    explorerLink () {
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-
-      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
-      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
-      // }
-
-      if (this.isChipnet) {
-        url = 'https://chipnet.imaginary.cash/tx/'
-      }
-      return `${url}${this.txid}`
-    },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
@@ -392,6 +384,27 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     openURL,
+    explorerLink (linkType = 'txid') {
+      let url = ''
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash'
+      } else {
+        url = 'https://blockchair.com/bitcoin-cash'
+      }
+
+      if (linkType === 'txid') {
+        url = this.isChipnet ? `${url}/tx/` : `${url}/transaction/`
+        return `${url}${this.txid}`
+      } else {
+        url = `${url}/address/`
+        return `${url}${this.data?.contractAddress}`
+      }
+
+      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
+      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      // }
+    },
     async loadData () {
       if (this.isAppealed) {
         await this.fetchAppeal()
