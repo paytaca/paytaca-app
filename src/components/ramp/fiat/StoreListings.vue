@@ -351,15 +351,7 @@ export default {
       const vm = this
       await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async fetchFiatCurrencies () {
@@ -373,19 +365,11 @@ export default {
           vm.fiatCurrencies.unshift('All')
         })
         .catch(error => {
-          console.error(error)
           vm.fiatCurrencies = vm.availableFiat
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async fetchStoreListings (overwrite = false) {
@@ -405,15 +389,7 @@ export default {
             vm.updatePaginationValues()
           })
           .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
           })
       }
     },
@@ -500,6 +476,9 @@ export default {
       if (parent !== void 0 && parent.scrollTop > 0) {
         e.stopPropagation()
       }
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

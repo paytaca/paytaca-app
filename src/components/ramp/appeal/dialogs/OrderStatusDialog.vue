@@ -68,7 +68,7 @@ export default {
         })
     },
     async readOrderStatus () {
-      if (!this.orderId) return
+      if (!this.orderId || !this.traderType) return
       await backend.patch(`/ramp-p2p/order/${this.orderId}/status/`, null, { authorize: true })
         .then(response => {
           console.log('readOrderStatus:', response.data)
@@ -81,14 +81,7 @@ export default {
         })
     },
     handleRequestError (error) {
-      console.error(error.response || error)
-      if (error.response) {
-        if (error.response.status === 403) {
-          bus.emit('session-expired')
-        }
-      } else {
-        bus.emit('network-error')
-      }
+      bus.emit('handle-request-error', error)
     }
   }
 }

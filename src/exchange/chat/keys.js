@@ -44,7 +44,7 @@ export async function getKeypair () {
 /**
  * @param {String} privkey
  */
-export async function savePrivkey (privkey) {
+export async function saveKeypair (privkey) {
   const privkeyBytes = Buffer.from(privkey, 'hex')
   if (privkeyBytes.length !== 32) throw new Error('Privkey is not a 32 byte hex')
 

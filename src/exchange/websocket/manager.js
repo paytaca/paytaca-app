@@ -1,3 +1,4 @@
+import { bus } from 'src/wallet/event-bus'
 import { WebSocketService } from './service'
 
 export class WebSocketManager {
@@ -63,6 +64,7 @@ export class WebSocketManager {
           this._connectToWebSocket()
         }, backoffTime)
       } else {
+        bus.emit('websocket-disconnected', this.url)
         console.error('WebSocket connection failed after max retries.')
       }
     }

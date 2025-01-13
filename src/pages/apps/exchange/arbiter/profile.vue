@@ -202,14 +202,7 @@ export default {
           vm.parseInactiveTime(vm.arbiter.inactive_until)
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     parseInactiveTime (inactiveUntil) {
@@ -249,15 +242,7 @@ export default {
           vm.reviewsTotalPages = response.data?.total_pages
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
         .finally(() => {
           vm.loadingReviews = false
@@ -275,14 +260,7 @@ export default {
             await vm.$store.dispatch('ramp/fetchUser')
           })
       } catch (error) {
-        console.error(error?.response || error)
-        if (error.response) {
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        } else {
-          bus.emit('network-error')
-        }
+        this.handleRequestError(error)
       }
       this.editNickname = false
     },
@@ -290,6 +268,9 @@ export default {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
 
       return limitedView
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

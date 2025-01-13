@@ -5,7 +5,7 @@
         <div class="xs-font-size">{{ tradeTypeLabel() }}</div>
         <div class="row justify-end">
             <div class="col q-py-none">
-                <div style="overflow-x: auto; max-width: 125px;">
+                <div style="overflow-x: auto; max-width: 200px;">
                   <q-btn flat no-caps dense
                       padding="none"
                       color="primary"
@@ -31,8 +31,11 @@
                   @click="onViewReviews"/>
                   <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
                 </div>
-                <div v-if="counterparty && counterparty?.is_online === false" class="row xs-font-size text-grey">
+                <div v-if="counterparty && counterparty?.last_online_at && counterparty?.is_online === false" class="row xs-font-size text-grey">
                   Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}
+                </div>
+                <div v-if="!counterparty?.last_online_at" class="row xs-font-size text-grey">
+                  Offline for a long time
                 </div>
             </div>
             <div v-if="type === 'order'" class="col-auto q-mx-sm">
@@ -48,7 +51,7 @@
             <div class="sm-font-size">{{ ad?.trade_type === 'SELL'? $t('BUYER') : $t('SELLER') }}</div>
             <div class="row justify-end">
                 <div class="col q-py-none">
-                    <div style="max-width: 125px; overflow-x: auto;">
+                    <div style="max-width: 200px; overflow-x: auto;">
                       <q-btn flat no-caps dense
                           padding="none"
                           color="primary"
@@ -73,7 +76,12 @@
                         @click="onViewReviews"/>
                         <span class="q-mx-xs sm-font-size">({{ orderOwner.rating?.toFixed(1) || 0 }})</span>
                     </div>
-                    <div v-if="!orderOwner?.is_online" class="row xs-font-size text-grey">Online {{ this.formatDate(orderOwner?.last_online_at, true).toLowerCase() }}</div>
+                    <div v-if="orderOwner?.last_online_at && orderOwner?.is_online === false" class="row xs-font-size text-grey">
+                      Online {{ this.formatDate(orderOwner?.last_online_at, true).toLowerCase() }}
+                    </div>
+                    <div v-if="!orderOwner?.last_online_at" class="row xs-font-size text-grey">
+                      Offline for a long time
+                    </div>
                 </div>
             </div>
           </div>
@@ -109,7 +117,12 @@
                 @click="onViewReviews"/>
                 <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
             </div>
-            <div v-if="!adOwner?.is_online" class="row justify-end xs-font-size text-grey">Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}</div>
+            <div v-if="adOwner?.last_online_at && adOwner?.is_online === false" class="row xs-font-size text-grey">
+              Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}
+            </div>
+            <div v-if="!adOwner?.last_online_at" class="row xs-font-size text-grey">
+              Offline for a long time
+            </div>
           </div>
         </div>
       </div>

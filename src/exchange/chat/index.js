@@ -1,4 +1,4 @@
-import { updatePubkey, savePrivkey, generateKeypair, sha256 } from './keys'
+import { updatePubkey, saveKeypair, generateKeypair, sha256, getKeypair } from './keys'
 import { loadWallet } from 'src/wallet'
 import { Store } from 'src/store'
 import { backend } from '../backend'
@@ -13,6 +13,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     console.log('loadChatIdentity aborted')
     return
   }
+
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) loadRampWallet()
@@ -23,10 +24,8 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     chat_identity_id: params.chat_identity_id
   }
 
-  const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
-
   // fetch chat identity if existing
-  let identity = await fetchChatIdentity(chatIdentityRef)
+  let identity = await fetchChatIdentityById(payload.chat_identity_id)
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
   }
@@ -37,17 +36,13 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   }
 
   // update verifying and encryption keypairs
-  await chatIdentityManager._updateSignerData()
-
-  if (getAuthAbortController()?.signal?.aborted) {
-    console.log('_updateEncryptionKeypair aborted')
-    return
-  }
-  await chatIdentityManager._updateEncryptionKeypair(!!identity)
+  await chatIdentityManager._updateSignerData() // (short-circuits when task is not necessary)
+  if (getAuthAbortController()?.signal?.aborted) { console.log('_updateEncryptionKeypair aborted'); return }
+  await chatIdentityManager._updateEncryptionKeypair(!!identity) // (short-circuits when task is not necessary)
 
   // create identity if not existing
   if (!identity) {
-    payload.ref = chatIdentityRef
+    payload.ref = generateChatIdentityRef(wallet.walletHash)
     identity = await chatIdentityManager.create(payload)
   }
 
@@ -56,7 +51,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     updateChatIdentityId(payload.user_type, identity.id)
   }
 
-  Store.commit('ramp/updateChatIdentity', { ref: chatIdentityRef, chatIdentity: identity })
+  Store.commit('ramp/updateChatIdentity', { ref: identity?.ref, chatIdentity: identity })
   return identity
 }
 
@@ -116,14 +111,13 @@ export async function createChatIdentity (payload) {
   })
 }
 
-export async function fetchChatIdentity (ref) {
+export async function fetchChatIdentityByRef (ref) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/identities/?ref=${ref}`, { signal: getAuthAbortController()?.signal })
       .then(response => {
         let identity = null
         if (response.data?.results?.length > 0) {
           identity = response.data?.results[0]
-          // console.log('Chat identity:', identity)
         }
         resolve(identity)
       })
@@ -134,6 +128,23 @@ export async function fetchChatIdentity (ref) {
           console.error('Failed to fetch chat identity:', error)
         }
         reject(error)
+      })
+  })
+}
+
+export async function fetchChatIdentityById (id) {
+  return new Promise((resolve, reject) => {
+    chatBackend.get(`chat/identities/${id}/`, { signal: getAuthAbortController()?.signal })
+      .then(response => {
+        resolve(response.data)
+      })
+      .catch(error => {
+        if (error.response) {
+          console.error('Failed to fetch chat identity:', error.response)
+        } else {
+          console.error('Failed to fetch chat identity:', error)
+        }
+        resolve()
       })
   })
 }
@@ -341,7 +352,14 @@ export async function updateOrCreateKeypair (update = true) {
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed: seed })
 
+  const storedKeypair = await getKeypair()
+  if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
+    console.log('Chat encryption keypair still updated')
+    return
+  }
+
   if (update) {
+    console.log('Updating chat pubkey to server')
     await updatePubkey(keypair.pubkey)
       .catch(error => {
         console.error(error.response || error)
@@ -349,7 +367,7 @@ export async function updateOrCreateKeypair (update = true) {
       })
   }
 
-  await savePrivkey(keypair.privkey)
+  await saveKeypair(keypair.privkey)
     .catch(error => {
       console.error(error)
       return Promise.reject('Failed to save chat privkey')

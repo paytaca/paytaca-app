@@ -287,15 +287,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             vm.isloaded = true
             reject(error)
           })
@@ -336,15 +328,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             vm.loadingReviews = false
             reject(error)
           })
@@ -373,15 +357,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error)
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             vm.loadingAds = false
             reject(error)
           })
@@ -397,6 +373,9 @@ export default {
     },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

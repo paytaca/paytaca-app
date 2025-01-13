@@ -464,15 +464,7 @@ export default {
           vm.fiatCurrencies.unshift(vm.$t('All'))
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async fetchCashinOrders (overwrite = false) {
@@ -487,15 +479,7 @@ export default {
           return Promise.resolve(response)
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           return Promise.reject(error)
         })
     },
@@ -515,15 +499,7 @@ export default {
           return Promise.resolve(response)
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           return Promise.reject(error)
         })
       bus.emit('update-unread-count', response.unread_count)
@@ -658,6 +634,9 @@ export default {
       bus.emit('show-menu', 'orders')
       vm.state = 'order-list'
       await vm.resetAndRefetchListings()
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

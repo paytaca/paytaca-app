@@ -392,7 +392,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 import { mapState } from 'vuex'
 import Watchtower from 'watchtower-cash-js'
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
@@ -733,9 +732,6 @@ export default {
         })
         .filter(Boolean)
         .map(assetId => updateAssetBalanceOnLoad(assetId, this.wallet, this.$store))
-    },
-    fetchFeatureToggles () {
-      this.$store.dispatch('ramp/fetchFeatureToggles')
     },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
@@ -1464,7 +1460,6 @@ export default {
     this.resetCashinOrderPagination()
     this.checkCashinAlert()
     stablehedgePriceTracker.subscribe('main-page')
-    this.fetchFeatureToggles()
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 

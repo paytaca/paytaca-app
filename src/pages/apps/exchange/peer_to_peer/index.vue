@@ -1,13 +1,8 @@
 <template>
-  <div v-if="isLoading" class="row justify-center q-py-lg" style="margin-top: 50%">
-    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-  </div>
-  <div v-else>
-    <router-view :key="$route.path"></router-view>
-    <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
-    <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
-  </div>
-  <RampLogin v-if="showLogin" @logged-in="showLogin = false"/>
+  <router-view :key="$route.path"></router-view>
+  <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
+  <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
+  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
 </template>
 <script>
 import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
@@ -43,7 +38,7 @@ export default {
       reconnectWebsocket: true,
       showNoticeBoard: false,
       noticeBoardMessage: null,
-      noticeBoardType: null
+      forceLogin: false
     }
   },
   components: {
@@ -100,13 +95,10 @@ export default {
     bus.on('update-unread-count', this.updateUnreadCount)
     bus.on('session-expired', this.handleSessionEvent)
     bus.on('post-notice', this.postNotice)
+    bus.on('handle-request-error', this.handleRequestError)
   },
   async mounted () {
     this.isLoading = false
-    // if (Object.keys(this.notif).length > 0) {
-    //   this.menu = 'orders'
-    //   this.currentPage = 'FiatOrders'
-    // }
     this.fetchUser()
     this.setupWebsocket()
   },
@@ -124,6 +116,7 @@ export default {
       }
     },
     handleSessionEvent () {
+      this.forceLogin = true
       this.showLogin = true
     },
     fetchUser () {
@@ -201,6 +194,45 @@ export default {
           this.handleNewOrder(message?.extra?.order)
         }
       })
+    },
+    handleRequestError (error) {
+      console.error('Handling error:', error?.response || error)
+      if (error?.code === 'ECONNABORTED') {
+        // Request timeout
+        this.showErrorDialog('Request timed out. Please try again later.')
+      } else if (!error?.response) {
+        // Network error
+        bus.emit('network-error')
+      } else {
+        // HTTP status code error
+        switch (error.response.status) {
+          case 403:
+            bus.emit('session-expired')
+            break
+          case 400:
+            this.showErrorDialog('Bad Request. Please check the request parameters.')
+            break
+          case 500:
+            this.showErrorDialog('Internal Server Error. Please try again later.')
+            break
+          default:
+            console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
+        }
+      }
+    },
+    showErrorDialog (message) {
+      if (!this.errorDialogActive) {
+        this.errorDialogActive = false
+        this.$q.notify({
+          type: 'warning',
+          message: message,
+          position: 'bottom',
+          timeout: 5000,
+          onDismiss: () => {
+            this.errorDialogActive = false
+          }
+        })
+      }
     }
   }
 }

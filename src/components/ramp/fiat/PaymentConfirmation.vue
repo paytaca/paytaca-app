@@ -23,8 +23,9 @@
         :dark="darkMode"
         :label="data?.contract.address">
         <template v-slot:append>
-          <div v-if="data?.contract.address" @click="copyToClipboard(data?.contract.address)">
-            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
+          <div v-if="data?.contract.address">
+            <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+            <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(data?.contract.address)"/>
           </div>
         </template>
       </q-input>
@@ -105,6 +106,9 @@
                         label="View Proof of Payment"
                         style="font-size: small;"
                         @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
+                    </div>
+                    <div v-else>
+                      <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
                     </div>
                     <div v-if="data?.type !== 'seller'" class="row">
                       <q-btn
@@ -220,6 +224,7 @@
 <script>
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
+import { openURL } from 'quasar'
 import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
@@ -269,7 +274,7 @@ export default {
     ProgressLoader,
     AttachmentDialog
   },
-  emits: ['back', 'verify-release', 'sending'],
+  emits: ['back', 'verify-release', 'sending', 'refresh'],
   props: {
     data: Object
   },
@@ -308,6 +313,19 @@ export default {
     fiatAmount () {
       const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
       return this.formatCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '')
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    explorerLink () {
+      let url = ''
+
+      if (this.isChipnet) {
+        url = 'https://chipnet.imaginary.cash/address/'
+      } else {
+        url = 'https://blockchair.com/bitcoin-cash/address/'
+      }
+      return `${url}${this.data?.contract.address}`
     }
   },
   async mounted () {
@@ -321,6 +339,7 @@ export default {
     formatCurrency,
     isNotDefaultTheme,
     getDarkModeClass,
+    openURL,
     async loadData () {
       const vm = this
       await vm.fetchOrderDetail()
@@ -390,8 +409,8 @@ export default {
     fetchContractBalance () {
       const vm = this
       if (vm.data?.escrow) {
-        vm.data?.escrow.getBalance(vm.data?.contract.address)
-          .then(async balance => {
+        vm.data?.escrow.getBalance(vm.data?.contract.address, true)
+          .then(balance => {
             vm.contractBalance = balance
           })
           .catch(error => {
@@ -434,15 +453,7 @@ export default {
       }
       const response = await backend.post(`/ramp-p2p/order/${vm.order.id}/confirm-payment/${type}/`, body, { authorize: true })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.showErrorDialog(error)
         })
       return response.data
     },
@@ -524,14 +535,7 @@ export default {
           }
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.showErrorDialog(error)
         })
     },
     selectPaymentMethod (method, methodIndex) {
@@ -588,6 +592,9 @@ export default {
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
       })
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

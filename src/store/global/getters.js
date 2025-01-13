@@ -268,3 +268,6 @@ export function lastAddressAndIndex (state) {
   return state.wallets.bch.lastAddressAndIndex
 }
 
+export function appControl (state) {
+  return state.appControl
+}

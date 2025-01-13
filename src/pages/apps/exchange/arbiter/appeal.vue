@@ -15,11 +15,11 @@
           }}</div>
       </div>
       <q-pull-to-refresh :scroll-target="scrollTarget" @refresh="refreshData">
-        <div ref="scrollTarget" :style="`height: ${scrollHeight}px`" style="overflow-y:auto;">
+        <div ref="scrollTarget" :style="`height: ${scrollHeight}px; overflow-y:auto;`">
           <div class="q-mx-sm q-mb-sm">
             <TradeInfoCard
-              :order="appealDetailData.order"
-              :ad="appealDetailData.ad_snapshot"
+              :order="order"
+              :ad="adSnapshot"
               type="appeal"
               @view-ad="showAdSnapshot=true"
               @view-peer="onViewPeer"
@@ -81,9 +81,9 @@
           </div>
         </div>
       </q-pull-to-refresh>
-    <AdSnapshotDialog v-if="showAdSnapshot" :order-id="appealDetailData?.order?.id" @back="showAdSnapshot=false"/>
+    <AdSnapshotDialog v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog v-if="showPeerProfile" :user-info="peerInfo" :clickable-ads="false" @back="showPeerProfile=false"/>
-    <ChatDialog v-if="openChat" :order="appealDetailData?.order" @close="openChat=false"/>
+    <ChatDialog v-if="openChat" :order="order" @close="openChat=false"/>
     <ContractProgressDialog v-if="showContractProgDialog" :message="contractProgMsg"/>
   </div>
 </template>
@@ -139,7 +139,7 @@ export default {
       appeal: null,
       contract: null,
       order: null,
-
+      adSnapshot: null,
       fees: null,
       status: null,
       isloaded: false,
@@ -147,7 +147,6 @@ export default {
       errorMessages: [],
       appealTransferKey: 0,
       appealDetailKey: 0,
-      appealDetailData: null,
       escrowContract: null,
       txid: null,
       amount: 0,
@@ -157,11 +156,22 @@ export default {
       peerInfo: {},
       previousRoute: null,
       sendingBch: false,
-      verifyingTx: false
+      verifyingTx: false,
+      transactions: []
     }
   },
   emits: ['back', 'updatePageName'],
   computed: {
+    appealDetailData () {
+      return {
+        appeal: this.appeal,
+        order: this.order,
+        ad_snapshot: this.adSnapshot,
+        contract: this.contract,
+        fees: this.fees,
+        transactions: this.transactions
+      }
+    },
     appealTransferData () {
       return {
         escrow: this.escrowContract,
@@ -192,7 +202,7 @@ export default {
       return height
     },
     completedOrder () {
-      return ['CNCL', 'RLS', 'RFN'].includes(this.appealDetailData?.order?.status?.value)
+      return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
     }
   },
   created () {
@@ -207,7 +217,6 @@ export default {
     await this.loadData()
     this.updateOrderReadAt()
     this.setupWebsocket()
-    this.isloaded = true
     if (this.notifType === 'new_message') { this.openChat = true }
   },
   beforeUnmount () {
@@ -239,7 +248,7 @@ export default {
       this.$q.dialog({
         component: AppealFeedbackDialog,
         componentProps: {
-          order: this.appealDetailData?.order
+          order: this.order
         }
       })
     },
@@ -251,9 +260,10 @@ export default {
     },
     async loadData () {
       await this.fetchAppeal()
+      this.isloaded = true
+      await Promise.all([this.fetchOrder(), this.fetchContract(), this.fetchFees(), this.fetchAdSnapshot(), this.fetchTransactions()])
       this.generateContract()
-      this.reloadChildComponents()
-      this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
+      this.fetchChatUnread(this.order?.chat_session_ref)
     },
     reloadChildComponents () {
       this.appealDetailKey++
@@ -269,14 +279,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error?.response)
-            if (error.response) {
-              if (error?.response?.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             reject(error)
           })
       })
@@ -285,24 +288,73 @@ export default {
       const vm = this
       await backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal/`, { authorize: true })
         .then(response => {
+          console.log(response.data)
           vm.appeal = response.data.appeal
-          vm.contract = response.data.contract
-          vm.fees = response.data.fees
-          vm.order = response.data.order
-          vm.appealDetailData = response.data
-          vm.updateStatus(response.data.order?.status)
+          // vm.contract = response.data.contract
+          // vm.fees = response.data.fees
+          // vm.order = response.data.order
+          // vm.appealDetailData = response.data
           vm.loading = false
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           this.loading = false
+        })
+    },
+    async fetchTransactions () {
+      const orderId = this.$route.params?.order || this.appeal?.order?.id
+      await backend.get(`/ramp-p2p/order/${orderId}/contract/transactions/`, { authorize: true })
+        .then(response => {
+          console.log('fetchTransactions:', response.data)
+          this.transactions = response.data
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+    },
+    async fetchFees () {
+      const orderId = this.$route.params?.order || this.appeal?.order?.id
+      await backend.get(`/ramp-p2p/order/${orderId}/contract/fees/`, { authorize: true })
+        .then(response => {
+          this.fees = response.data
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+    },
+    async fetchAdSnapshot () {
+      const orderId = this.$route.params?.order || this.appeal?.order?.id
+      await backend.get(`/ramp-p2p/order/${orderId}/ad/snapshot/`, { authorize: true })
+        .then(response => {
+          console.log('fetchAdSnapshot:', response)
+          this.adSnapshot = response.data
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+    },
+    async fetchOrder () {
+      this.loading = true
+      const orderId = this.$route.params?.order || this.appeal?.order?.id
+      await backend.get(`/ramp-p2p/order/${orderId}`, { authorize: true })
+        .then(response => {
+          this.amount = satoshiToBch(response.data?.order?.trade_amount)
+          this.order = response.data
+          this.updateStatus(this.order?.status)
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+    },
+    async fetchContract () {
+      const orderId = this.$route.params?.order || this.appeal?.order?.id
+      const url = `/ramp-p2p/order/${orderId}/contract/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          this.contract = response.data
+        })
+        .catch(error => {
+          this.handleRequestError(error)
         })
     },
     generateContract () {
@@ -310,9 +362,9 @@ export default {
       const publicKeys = this.contract.pubkeys
       const addresses = this.contract.addresses
       const fees = {
-        arbitrationFee: this.fees.fees.arbitration_fee,
-        serviceFee: this.fees.fees.service_fee,
-        contractFee: this.fees.fees.contract_fee
+        arbitrationFee: this.fees.breakdown?.arbitration_fee,
+        serviceFee: this.fees.breakdown?.service_fee,
+        contractFee: this.fees.breakdown?.contract_fee
       }
       const timestamp = this.contract.timestamp
       this.escrowContract = new RampContract(publicKeys, fees, addresses, timestamp, this.isChipnet)
@@ -356,75 +408,6 @@ export default {
           break
       }
     },
-    fetchOrder () {
-      const vm = this
-      return new Promise((resolve, reject) => {
-        vm.loading = true
-        backend.get(`/ramp-p2p/order/${vm.$route.params?.order}`, { authorize: true })
-          .then(response => {
-            vm.amount = satoshiToBch(response.data?.order?.trade_amount)
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
-    },
-    fetchContract () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = `/ramp-p2p/order/${vm.$route.params?.order}/contract/`
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.contract = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
-    },
-    fetchFees () {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        const url = '/ramp-p2p/order/contract/fees/'
-        backend.get(url, { authorize: true })
-          .then(response => {
-            vm.fees = response.data
-            resolve(response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
-            reject(error)
-          })
-      })
-    },
     async fetchChatUnread (chatRef) {
       const user = this.$store.getters['ramp/getUser']
       await fetchChatMembers(chatRef).then(response => {
@@ -432,28 +415,36 @@ export default {
           return user.chat_identity_id === member.chat_identity.id
         })[0]
         this.unread = userMember?.unread_count
-      }).catch(console.error)
+      }).catch(error => {
+        this.handleRequestError(error)
+      })
     },
     onVerifyAction (data) {
       this.setOrderPending(data.txid, data)
     },
     onLastReadUpdate () {
-      this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
+      this.fetchChatUnread(this.order?.chat_session_ref)
     },
     setupWebsocket () {
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
       this.websocketManager.watchtower = new WebSocketManager()
       this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
-      this.websocketManager.watchtower.subscribeToMessages((message) => {
+      this.websocketManager.watchtower.subscribeToMessages(async (message) => {
         if (message?.success) {
-          this.fetchAppeal().then(this.reloadChildComponents())
+          console.log('message:', message)
+          await this.fetchAppeal()
+          if (message?.txdata) {
+            this.verifyingTx = false
+            this.sendingBch = false
+          }
+          this.reloadChildComponents()
         } else if (message?.error || message?.errors) {
           this.errorMessages.push(message.error || [...message.errors])
           this.appealTransferKey++
         }
       })
 
-      const wsChatUrl = `${getChatBackendWsUrl()}${this.appealDetailData?.order?.chat_session_ref}/`
+      const wsChatUrl = `${getChatBackendWsUrl()}${this.order?.chat_session_ref}/`
       this.websocketManager.chat = new WebSocketManager()
       this.websocketManager.chat.setWebSocketUrl(wsChatUrl)
       this.websocketManager.chat.subscribeToMessages((message) => {
@@ -461,7 +452,7 @@ export default {
           const messageData = message.data
           // RECEIVE MESSAGE
           console.log('Received a new message:', messageData)
-          this.fetchChatUnread(this.appealDetailData?.order?.chat_session_ref)
+          this.fetchChatUnread(this.order?.chat_session_ref)
           if (this.openChat) bus.emit('new-message', messageData)
         }
       })
@@ -473,6 +464,9 @@ export default {
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

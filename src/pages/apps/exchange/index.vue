@@ -1,55 +1,49 @@
 <template>
-  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!networkError && !openVersionUpdate">
-    <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
-    <div v-else>
-      <router-view :key="$route.path"></router-view>
-    </div>
-    <RampLogin v-if="showLogin" @logged-in="onLoggedIn"/>
+  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
+    <router-view :key="$route.path"></router-view>
   </div>
-  <NetworkError v-if="networkError"/>
+  <OngoingMaintenanceDialog v-if="appDisabled"/>
 </template>
 <script>
-import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
-import NetworkError from 'src/components/ramp/fiat/NetworkError.vue'
+import OngoingMaintenanceDialog from 'src/components/ramp/fiat/dialogs/OngoingMaintenanceDialog.vue'
 import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
-import { getAuthToken } from 'src/exchange/auth'
 
 export default {
   components: {
-    RampLogin,
-    ProgressLoader,
-    NetworkError
+    OngoingMaintenanceDialog
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       user: null,
-      showLogin: false,
       isloaded: false,
-      networkError: false,
-      openVersionUpdate: false
+      openVersionUpdate: false,
+      appDisabled: false
     }
   },
   async created () {
-    bus.on('network-error', this.openNetworkError)
+    bus.on('websocket-disconnected', this.handleDisconnectedWS)
   },
   beforeUnmount () {
     this.$store.commit('ramp/resetListingTabs')
     this.$store.commit('ramp/resetAppealListingTab')
   },
   async mounted () {
-    await this.checkVersionUpdate()
-    loadRampWallet()
-    await this.getUser()
+    const appEnabled = this.$store.getters['global/appControl'].P2P_EXCHANGE
+    if (appEnabled === false) {
+      this.appDisabled = !appEnabled
+    } else {
+      await this.checkVersionUpdate()
+      loadRampWallet()
+      await this.getUser()
+      this.goToMainPage()
+    }
   },
   methods: {
     getDarkModeClass,
@@ -57,29 +51,11 @@ export default {
     async getUser () {
       await backend.get('auth')
         .then(async (response) => {
-          const token = await getAuthToken()
-          this.showLogin = !response?.data?.is_authenticated || !token
           this.user = response.data
-          if (!this.showLogin) {
-            this.isloaded = true
-            this.goToMainPage()
-          }
         })
         .catch(error => {
           console.log(error.response || error)
-          if (error.response) {
-            if (error.response?.status === 404) {
-              this.showLogin = true
-            }
-          } else {
-            this.networkError = true
-          }
         })
-    },
-    onLoggedIn () {
-      this.showLogin = false
-      this.isloaded = true
-      this.goToMainPage()
     },
     goToMainPage () {
       if (this.user?.is_arbiter) {
@@ -92,9 +68,8 @@ export default {
         }
       }
     },
-    openNetworkError () {
-      this.showLogin = false
-      this.networkError = true
+    handleDisconnectedWS (url) {
+      console.log('handleDisconnectedWS:', url)
     },
     async checkVersionUpdate () {
       const vm = this
@@ -157,7 +132,7 @@ export default {
           })
           .catch(error => {
             console.error(error)
-            this.networkError = true
+            this.appDisabled = true
           })
       }
     }

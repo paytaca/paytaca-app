@@ -262,7 +262,7 @@ export default {
         const { data: currencies } = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: this.transactionType }, authorize: true })
         this.disableCreateBtn = currencies.length === 0
       } catch (error) {
-        console.error(error.response || error)
+        this.handleRequestError(error)
       }
     },
     checkAdLimit () {
@@ -276,7 +276,7 @@ export default {
             }
           })
           .catch(error => {
-            console.error(error)
+            this.handleRequestError(error)
           })
       }
     },
@@ -326,15 +326,7 @@ export default {
           vm.resetListings(this.loadingMoreData, response)
         })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async toggleAdVisibility (ad, index) {
@@ -345,7 +337,7 @@ export default {
           this.listings[index] = response.data
         })
         .catch(error => {
-          console.error(error.response || error)
+          this.handleRequestError(error)
         })
       this.visibilityLoading[ad.id] = false
     },
@@ -371,14 +363,7 @@ export default {
           }, 50)
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     refreshData (done) {
@@ -475,6 +460,9 @@ export default {
       if (parent !== void 0 && parent.scrollTop > 0) {
         e.stopPropagation()
       }
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

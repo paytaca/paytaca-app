@@ -3,6 +3,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
+import { loadLibauthHdWallet } from 'src/wallet'
 
 const bchjs = new BCHJS()
 
@@ -83,11 +84,23 @@ export async function setSignerData (value = '') {
 export async function updateSignerData () {
   console.log('Updating chat signer data')
   if (!wallet) loadRampWallet()
+  const libauthWallet = await loadLibauthHdWallet(wallet.walletIndex, wallet.isChipnet)
 
   // fetches the verifying keypair at adress path 0/0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
-  const privkey = await wallet.privkey(`0/${verifyingPubkeyIndex}`)
-  const verifyingPubkey = await wallet.pubkey(`0/${verifyingPubkeyIndex}`)
+  const addressPath = wallet.addressPath(verifyingPubkeyIndex)
+  const privkey = libauthWallet.getPrivateKeyWifAt(addressPath)
+  const walletHash = wallet?.walletHash
+
+  // return if no need to update signer data
+  const signerData = await getSignerData()
+  const storedWalletHash = signerData?.value?.split(':')[0]
+  const storedPrivKey = signerData?.value?.split(':')[1]
+  if (storedWalletHash === walletHash && storedPrivKey === privkey) {
+    console.log('Chat signer data is still updated.')
+    return
+  }
+  const verifyingPubkey = libauthWallet.getPubkeyAt(addressPath)
 
   // generate message and signature to verify
   const message = `${Date.now()}`
@@ -103,8 +116,8 @@ export async function updateSignerData () {
   if (!valid) return Promise.reject('Invalid signature on updateSignerData')
 
   // store this walletHash:privkey pair as current chat signer
-  const walletHash = wallet?.walletHash
   await setSignerData(`${walletHash}:${privkey}`)
+  console.log('Chat signer data updated')
 }
 
 export function getChatBackendWsUrl () {

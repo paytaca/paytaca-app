@@ -85,6 +85,7 @@ export default {
       verifyingTx: false,
       txidLoaded: false,
       balanceLoaded: false,
+      errorDialogActive: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
@@ -158,15 +159,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             reject(error)
           })
       })
@@ -180,15 +173,8 @@ export default {
           console.log(response.data)
         })
         .catch(error => {
-          console.error(error?.response || error)
           vm.errorMessage = error.response?.data?.error
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -204,17 +190,10 @@ export default {
           console.log(response.data)
         })
         .catch(error => {
-          console.error(error?.response || error)
           if (error.response?.data?.error === 'txid is required') {
             vm.errorMessage = 'Transaction ID is required for verification'
           }
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -302,6 +281,9 @@ export default {
           }
         })
         .catch(error => console.error(error))
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

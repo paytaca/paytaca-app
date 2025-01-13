@@ -238,7 +238,7 @@ export default {
       // generates the contract object
       await vm.generateContract()
       // mark contract as pending for verification, if the contract is already funded
-      vm.escrowBalance = await vm.escrowContract.getBalance()
+      vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
       if (vm.escrowBalance > 0) {
         if (vm.order?.status?.value === 'CNF') {
           await vm.escrowPendingOrder()
@@ -248,7 +248,6 @@ export default {
     async loadData () {
       this.loading = true
       this.order = this.data.order
-      await this.fetchFees()
       await this.loadContract()
       const transferAmount = this.data.transferAmount
       this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
@@ -274,7 +273,8 @@ export default {
         if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
-          const result = await (await wallet.raw()).sendBch(vm.transferAmount, vm.contractAddress)
+          const rawWallet = await wallet.raw()
+          const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress)
           console.log('sendBch:', result)
           if (result?.success) {
             vm.txid = result.txid
@@ -286,7 +286,7 @@ export default {
               }
             }
             vm.$store.commit('ramp/saveTxid', txidData)
-            vm.escrowBalance = await vm.escrowContract.getBalance()
+            vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
             vm.$emit('success', vm.txid)
             if (vm.order?.status?.value === 'CNF') {
               await vm.escrowPendingOrder()
@@ -323,15 +323,7 @@ export default {
       vm.loading = true
       await backend.post(`/ramp-p2p/order/${vm.order?.id}/pending-escrow/`, null, { authorize: true })
         .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     async fetchArbiters () {
@@ -353,14 +345,7 @@ export default {
           }
         })
         .catch(error => {
-          console.error(error.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     getPlatform () {
@@ -395,14 +380,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            console.error(error.response)
-            if (error.response) {
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             vm.loading = false
             reject(error)
           })
@@ -466,15 +444,7 @@ export default {
             resolve(response.data)
           })
           .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              console.error(error)
-              bus.emit('network-error')
-            }
+            this.handleRequestError(error)
             reject(error)
           })
       })
@@ -486,16 +456,11 @@ export default {
           this.fees = response.data
         })
         .catch(error => {
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            console.error(error)
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }

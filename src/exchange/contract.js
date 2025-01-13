@@ -1,10 +1,10 @@
 import escrowSrcCode from 'src/cashscripts/escrow.cash'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
 import { compileString } from 'cashc'
-import { backend } from './backend'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
-
+import Watchtower from 'watchtower-cash-js'
+import { Store } from 'src/store'
 const bchjs = new BCHJS()
 
 /**
@@ -82,17 +82,23 @@ export class RampContract {
    * Retrieves the balance of the contract.
    * @returns {Promise<number>} A promise that resolves with the balance of the contract in Bitcoin Cash (BCH).
    */
-  async getBalance (address = '') {
+  async getBalance (address = '', retry = false) {
     if (!address) address = this.contract.address
+    let balance = 0
     try {
-      const response = await backend.get(`/balance/bch/${address}`)
-      // console.log(response)
-      return response.data.balance
+      const watchtower = new Watchtower(Store.getters['global/isChipnet'])
+      const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
+      balance = response?.data?.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)
-      const rawBal = await this.contract.getBalance()
-      return bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))
+      retry = true
     }
+    if (retry && balance === 0) {
+      console.warn('Refetched contract balance from cashscript built-in method getBalance()')
+      const rawBal = await this.contract.getBalance()
+      balance = bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))
+    }
+    return balance
   }
 
   /**

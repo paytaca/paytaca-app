@@ -132,15 +132,9 @@ export default {
             resolve(response.data)
           })
           .catch((error) => {
-            if (error.response) {
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
-             reject(error)
-            })
+            this.handleRequestError(error)
+            reject(error)
+          })
       })
     },
     onSetActive () {
@@ -179,14 +173,7 @@ export default {
           this.$emit('back')
         })
         .catch((error) => {
-          console.error(error?.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+          this.handleRequestError(error)
         })
     },
     editName () {
@@ -205,6 +192,9 @@ export default {
       } else {
         return mode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'
       }
+    },
+    handleRequestError (error) {
+      bus.emit('handle-request-error', error)
     }
   }
 }
