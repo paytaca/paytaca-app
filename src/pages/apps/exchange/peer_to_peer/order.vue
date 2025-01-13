@@ -82,6 +82,7 @@
               @sending="onSendingBCH"
               @verify-release="handleVerifyRelease"
               @back="onBack"
+              @refresh="refreshPage"
             />
           </div>
           <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
