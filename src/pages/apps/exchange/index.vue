@@ -35,8 +35,8 @@ export default {
     this.$store.commit('ramp/resetAppealListingTab')
   },
   async mounted () {
-    const appEnabled = this.$store.getters['global/appControl'].P2P_EXCHANGE
-    if (appEnabled === false) {
+    const appEnabled = this.$store.getters['global/appControl']
+    if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
     } else {
       await this.checkVersionUpdate()
