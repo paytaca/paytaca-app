@@ -24,7 +24,7 @@
         <div>{{ $t('Address') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(input?.address)">
-          {{ ellipsisText(input?.address) }}
+          ({{ addressDisplayFormat }}) {{ ellipsisText(input?.address) }}
           <q-icon name="content_copy" size="1em" class="q-ml-xs"/>
         </q-btn>
       </div>
@@ -92,7 +92,7 @@
         <div>{{ $t('Address') }}:</div>
         <q-space/>
         <q-btn no-caps flat padding="none" @click="copyToClipboard(output?.address)">
-          {{ ellipsisText(output?.address) }}
+          ({{ addressDisplayFormat }}) {{ ellipsisText(output?.address) }}
           <q-icon name="content_copy" size="1em" class="q-ml-xs"/>
         </q-btn>
       </div>
@@ -142,6 +142,8 @@ import { useI18n } from "vue-i18n"
 
 const props = defineProps({
   transaction: Object,
+  addressDisplayFormatter: { type: Function },
+  addressDisplayFormat: { type: String /*cashaddr | tokenaddr */}
 })
 
 
@@ -163,13 +165,14 @@ const parsedTx = computed(() => {
   }
 })
 
+
 function parseUtxo(output) {
   
   return {
     txid: binToHexSafe(output?.outpointTransactionHash),
     index: output?.outpointIndex,
     value: toBigIntSafe(output?.valueSatoshis),
-    address: output?.address,
+    address: props.addressDisplayFormatter(output?.address, output?.lockingBytecode),
     lockingBytecode: binToHexSafe(output?.lockingBytecode),
     opData: isArbitraryDataOutput(output?.lockingBytecode) ? binToHexSafe(output?.lockingBytecode) : undefined,
     token: !output?.token ? undefined : {
