@@ -122,6 +122,8 @@ export default {
     loggingIn (value) {
       if (value && !this.register) {
         this.$q.loading.show()
+      }
+      if (!value) {
         setTimeout(() => {
           this.$q.loading.hide()
         }, 1500)
