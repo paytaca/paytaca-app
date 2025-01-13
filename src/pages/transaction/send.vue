@@ -635,7 +635,6 @@ export default {
         vm.onBIP21Amount(content)
 
         currentRecipient.recipientAddress = address
-        // currentInputExtras.scannedRecipientAddress = true
         currentInputExtras.emptyRecipient = false
 
         if (typeof currency === 'string') {
@@ -652,7 +651,6 @@ export default {
               vm.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
             )
             currentRecipient.recipientAddress = ''
-
             return
           }
         }
@@ -664,8 +662,6 @@ export default {
             'en-us', { maximumFractionDigits: vm.asset.decimals }
           )
           currentRecipient.fixedAmount = true
-
-          vm.customKeyboardState = 'dismiss'
           vm.sliderStatus = true
         }
 
