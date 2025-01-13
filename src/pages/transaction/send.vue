@@ -705,7 +705,7 @@ export default {
         return
       }
 
-      if (paymentUriData?.outputs?.[0]) {
+      if (paymentUriData?.outputs?.[0] && !this.isNFT) {
         if (vm.asset.symbol === undefined) {
           vm.$router.push({
             name: 'transaction-send-select-asset',
