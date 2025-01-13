@@ -14,6 +14,7 @@ import walletconnect from './walletconnect'
 import gifts from './gifts'
 import notification from './notification'
 import ramp from './ramp'
+import stablehedge from './stablehedge'
 
 /*
  * If not building with SSR mode, you can
@@ -39,7 +40,8 @@ export const Store = createStore({
     walletconnect,
     gifts,
     notification,
-    ramp
+    ramp,
+    stablehedge,
   },
 
   // enable strict mode (adds overhead!)

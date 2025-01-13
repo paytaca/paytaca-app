@@ -12,7 +12,13 @@
           <q-btn icon="close" flat round dense v-close-popup class="close-button" />
         </div>
         <div class="text-h6 text-uppercase text-center">
-          {{ actionMap[transaction.record_type] }}
+          <template v-if="stablehedgeTxView">{{ stablehedgeTxData?.transactionTypeText }}</template>
+          <template v-else>{{ actionMap[transaction.record_type] }}</template>
+          <q-btn
+            v-if="stablehedgeTxData"
+            flat padding="xs" icon="loop" style="position: absolute;"
+            @click="() => stablehedgeTxView = !stablehedgeTxView"
+          />
         </div>
         <div class="text-h6 text-center" style="margin: 10px 0;">
           <q-icon v-if="transaction.record_type === 'incoming'" name="arrow_downward" class="button record-type-icon"></q-icon>
@@ -29,17 +35,19 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>
-                <template v-if="transaction.record_type === 'outgoing'">
-                  <template v-if="transaction.asset.id.startsWith('ct/')">
-                    {{ formatTokenAmount(transaction) }}
-                  </template>
-                  <template v-else>
-                    {{ `${parseAssetDenomination(
-                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                      ...transaction.asset,
-                      balance: transaction.amount
-                    })}` }}
-                  </template>
+                <template v-if="stablehedgeTxView">
+                  {{ `${parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...transaction.asset,
+                    balance: stablehedgeTxData?.bch
+                  })}` }}
+                </template>
+                <template v-else-if="transaction.record_type === 'outgoing'">
+                  {{ `${parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...transaction.asset,
+                    balance: transaction.amount
+                  })}` }}
                 </template>
                 <template v-else>
                   <template v-if="transaction.asset.id.startsWith('ct/')">
@@ -55,21 +63,26 @@
                 </template>
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
-                <template v-if="transaction.record_type === 'outgoing'">
-                  {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                <template v-if="stablehedgeTxView">
+                  {{ `${parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency)}` }}
                 </template>
                 <template v-else>
-                  {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                  <template v-if="transaction.record_type === 'outgoing'">
+                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                  </template>
+                  <template v-else>
+                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                  </template>
+                  <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
+                    <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
+                      <div class="q-px-md q-py-sm pt-label text-caption" :class="getDarkModeClass(darkMode)">
+                        {{ $t('AssetValueNote') }}
+                      </div>
+                    </q-popup-proxy>
+                  </q-icon>
                 </template>
-                <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
-                  <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
-                    <div class="q-px-md q-py-sm pt-label text-caption" :class="getDarkModeClass(darkMode)">
-                      {{ $t('AssetValueNote') }}
-                    </div>
-                  </q-popup-proxy>
-                </q-icon>
               </q-item-label>
-              <q-item-label class="row items-center text-caption" style="margin-top: 0;">
+              <q-item-label v-if="!stablehedgeTxView" class="row items-center text-caption" style="margin-top: 0;">
                 <template
                   v-if="['bch', 'sbch'].includes(transaction.asset?.symbol.toLowerCase())"
                 >
@@ -150,36 +163,50 @@
                 <q-item-label v-else>{{ transaction.txid }}</q-item-label>
               </q-item-section>
             </q-item>
-            <q-item clickable v-ripple v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
-              <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.from)">
-                <q-item-label class="text-gray" caption>
-                  <span>{{ $t('Sender') }}</span>
-                </q-item-label>
-                <q-item-label>{{ transaction.from }}</q-item-label>
-              </q-item-section>
-              <q-item-section v-else @click="copyToClipboard(concatenate(transaction.senders))">
-                <q-item-label class="text-gray" caption>
-                  <span v-if="transaction.senders.length === 1">{{ $t('Sender') }}</span>
-                  <span v-if="transaction.senders.length > 1">{{ $t('Senders') }}</span>
-                </q-item-label>
-                <q-item-label>{{ concatenate(transaction.senders) }}</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item clickable v-ripple v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
-              <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.to)">
-                <q-item-label class="text-gray" caption>
-                  <span>{{ $t('Recipient') }}</span>
-                </q-item-label>
-                <q-item-label>{{ transaction.to }}</q-item-label>
-              </q-item-section>
-              <q-item-section v-else @click="copyToClipboard(concatenate(transaction.recipients))">
-                <q-item-label class="text-gray" caption>
-                  <span v-if="transaction.recipients.length === 1">{{ $t('Recipient') }}</span>
-                  <span v-if="transaction.recipients.length > 1">{{ $t('Recipients') }}</span>
-                </q-item-label>
-                <q-item-label>{{ concatenate(transaction.recipients) }}</q-item-label>
-              </q-item-section>
-            </q-item>
+            <template v-if="stablehedgeTxView">
+              <q-item
+                style="overflow-wrap: anywhere;"
+                clickable v-ripple
+                @click="copyToClipboard(stablehedgeTxData?.redemptionContract)"
+              >
+                <q-item-section>
+                  <q-item-label class="text-gray" caption>{{ $t('ContractAddress') }}</q-item-label>
+                  <q-item-label>{{ stablehedgeTxData?.redemptionContract }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+            <template v-else>
+              <q-item clickable v-ripple v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
+                <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.from)">
+                  <q-item-label class="text-gray" caption>
+                    <span>{{ $t('Sender') }}</span>
+                  </q-item-label>
+                  <q-item-label>{{ transaction.from }}</q-item-label>
+                </q-item-section>
+                <q-item-section v-else @click="copyToClipboard(concatenate(transaction.senders))">
+                  <q-item-label class="text-gray" caption>
+                    <span v-if="transaction.senders.length === 1">{{ $t('Sender') }}</span>
+                    <span v-if="transaction.senders.length > 1">{{ $t('Senders') }}</span>
+                  </q-item-label>
+                  <q-item-label>{{ concatenate(transaction.senders) }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-ripple v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
+                <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.to)">
+                  <q-item-label class="text-gray" caption>
+                    <span>{{ $t('Recipient') }}</span>
+                  </q-item-label>
+                  <q-item-label>{{ transaction.to }}</q-item-label>
+                </q-item-section>
+                <q-item-section v-else @click="copyToClipboard(concatenate(transaction.recipients))">
+                  <q-item-label class="text-gray" caption>
+                    <span v-if="transaction.recipients.length === 1">{{ $t('Recipient') }}</span>
+                    <span v-if="transaction.recipients.length > 1">{{ $t('Recipients') }}</span>
+                  </q-item-label>
+                  <q-item-label>{{ concatenate(transaction.recipients) }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
             <q-item>
               <q-item-section v-if="isSep20Tx">
                 <q-item-label class="text-gray" caption>{{ $t('GasFee') }}</q-item-label>
@@ -382,6 +409,7 @@ import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
+import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 
 export default {
   name: 'transaction',
@@ -402,6 +430,7 @@ export default {
         outgoing: this.$t('Sent')
       },
       transaction: {},
+      stablehedgeTxView: false,
       displayRawAttributes: false,
       denomination: this.$store.getters['global/denomination']
     }
@@ -490,7 +519,16 @@ export default {
     },
     attributeDetails() {
       if (!Array.isArray(this.transaction?.attributes)) return []
-      return parseAttributesToGroups({attributes: this.transaction?.attributes})
+      let groups = parseAttributesToGroups({attributes: this.transaction?.attributes})
+      if (this.stablehedgeTxView) {
+        groups = groups.filter(group => {
+          return !group.items.some(item => item.key === 'stablehedge_transaction')
+        })
+      }
+      return groups
+    },
+    stablehedgeTxData() {
+      return extractStablehedgeTxData(this.transaction)
     }
   },
   methods: {
@@ -635,6 +673,12 @@ export default {
         return this.displayJppInvoice(...args)
       }
     }
+  },
+  watch: {
+    stablehedgeTxData() {
+      if (this.stablehedgeTxData) return
+      this.stablehedgeTxView = false
+    },
   },
   mounted () {
     document.addEventListener('backbutton', () => {

@@ -186,7 +186,6 @@ const words = [
       Branches: "branches",
       Merchants: "Merchants",
       BranchesCapped: "Branches",
-      Stabilize: "Stabilize",
       Leverage: "Leverage",
       Funding: "Funding",
       Contract: "Contract",
@@ -361,6 +360,21 @@ const words = [
     SelectChangeAddressHint: 'Paytaca detected that one ore more of your accounts were used on (D)apps. You may choose to send the change to one of this address.',
     SendTokenChangeTo: 'Send token change to',
     Disconnecting: 'Disconnecting'
+  }, 
+  {
+    Stablehedge: "Stablehedge",
+    Stabilize: "Stabilize",
+    Redeem: "Redeem",
+    Inject: "Inject",
+    Freeze: "Freeze",
+    Unfreeze: "Unfreeze",
+    Failed: "Failed",
+    Value: "Value",
+    Redeemable: "Redeemable",
+    Spendable: "Spendable",
+    below: "below",
+    above: "above",
+    Example: "Example",
   }
 ]
 
