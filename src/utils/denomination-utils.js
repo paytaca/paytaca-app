@@ -34,7 +34,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     let newBalance = String(
-      parseFloat(convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP))
+      parseFloat(convertTokenAmount(asset.balance, asset.decimals, asset.decimals, isBCH, isSLP))
     ).substring(0, setSubStringMaxLength)
     if (asset.thousandSeparator) {
       newBalance = parseFloat(newBalance).toLocaleString('en-US', {
