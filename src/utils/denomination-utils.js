@@ -1,4 +1,4 @@
-import { convertTokenAmount } from 'src/wallet/chipnet'
+import { convertTokenAmount, convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 
 const denomDecimalPlaces = {
   BCH: { convert: 1, decimal: 8 },
@@ -34,11 +34,11 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     let newBalance = String(
-      parseFloat(convertTokenAmount(asset.balance, asset.decimals, isBCH, isSLP))
-    ).substring(0, setSubStringMaxLength)
+      parseFloat(convertToTokenAmountWithDecimals(asset.balance, asset.decimals, isBCH, isSLP))
+    )
     if (asset.thousandSeparator) {
       newBalance = parseFloat(newBalance).toLocaleString('en-US', {
-        maximumFractionDigits: asset.decimal
+        maximumFractionDigits: asset.decimals,
       })
     }
     completeAsset = `${newBalance} ${asset.symbol}`

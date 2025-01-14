@@ -598,7 +598,7 @@ export default {
       return asset
     },
     bchBalanceText() {
-      if (!this.balanceLoaded) return '0'
+      if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
       const currentDenomination = this.selectedDenomination
       const balance = this.stablehedgeView
         ? this.stablehedgeWalletData.balance
