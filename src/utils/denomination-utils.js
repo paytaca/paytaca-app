@@ -38,7 +38,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     )
     if (asset.thousandSeparator) {
       newBalance = parseFloat(newBalance).toLocaleString('en-US', {
-        maximumFractionDigits: asset.decimal
+        maximumFractionDigits: asset.decimals,
       })
     }
     completeAsset = `${newBalance} ${asset.symbol}`
