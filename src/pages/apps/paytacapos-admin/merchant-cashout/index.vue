@@ -2,14 +2,14 @@
   <q-pull-to-refresh
     id="app-container"
     :class="getDarkModeClass(darkMode)"
-    @refresh="refreshPage"
+    @refresh="refreshData"
   >
     <HeaderNav
-      :title="$t('Merchant Cash Out')"
+      :title="'Merchant Cash Out'"
       class="apps-header"
     />
 
-    <div>
+    <div v-if="state === 'list'">
       <!-- order type tabs -->
       <div
           class="row br-15 text-center pt-card btn-transaction"
@@ -38,27 +38,73 @@
           </button>
         </div>
 
-        <!-- Transactions -->
+        <!-- List -->
         <div>
           <q-pull-to-refresh @refresh="refreshData">
             <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-              <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
+            <!-- Cashout Order -->
+              <q-card flat class="q-mx-lg q-mt-sm">
+                <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable @click="''">
+                  <q-item-section>
+                    <div class="q-pl-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                      <div class="sm-font-size text-grey-6">Cash out</div>
+                      <div class="row">
+                        <div class="col ib-text">
+                          <div class="md-font-size text-bold">
+                            {{ formatCurrency(cashout.fiatAmount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                          </div>
+                          <div class="sm-font-size">
+                            {{ cashout.amount }} BCH
+                          </div>
+                        </div>
+                        <div class="col ib-text text-right q-pr-sm">
+                          <div class="text-grey-8 text-bold">{{ cashout.txid }}</div>
+                          <div class="text-grey-6 sm-font-size">{{ cashout.status }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </q-card>
+              <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="selectTransaction(index)">
                 <q-item-section>
-                  <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    Hello World {{ index }}
-                  </div>
+                    <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                      <div class="sm-font-size text-grey-6 text-strike">{{ transaction.initAmount }}</div>
+                      <div class="row">
+                        <div class="col ib-text">
+                          <div class="md-font-size text-bold">
+                            {{ formatCurrency(transaction.fiatAmount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                          </div>
+                          <div class="sm-font-size">
+                            {{ transaction.amount }} BCH
+                          </div>
+                        </div>
+                        <div class="col ib-text text-right q-pr-sm">
+                          <div class="text-grey-8 text-bold">
+                            <span>{{ transaction.txid }}</span> <q-icon color="primary" size="sm" name="o_check_box" v-if="transaction.selected"/>
+                          </div>
+                          <div class="text-grey-6 sm-font-size">{{ transaction.lossProtection }}</div>
+                        </div>
+                      </div>
+                    </div>
                 </q-item-section>
               </q-item>
             </q-list>
           </q-pull-to-refresh>
         </div>
-    </div>
+        <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
+          <q-btn @click="state = 'cashout-form'" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
+        </div>
+      </div>
+    <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions"/>
   </q-pull-to-refresh>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import HeaderNav from 'src/components/header-nav.vue';
+import { formatCurrency } from 'src/exchange'
 import { ref } from 'vue'
+import HeaderNav from 'src/components/header-nav.vue';
+import CashoutOrderForm from 'src/components/paytacapos/CashoutOrderForm.vue';
 
 export default {
   setup () {
@@ -72,29 +118,67 @@ export default {
       orderType: 'ALL',
       currency: { name: 'PHP', symbol: 'PHP'},
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
-      cashout: [
+      state: 'list',
+      openCashoutForm: false,
+      cashoutOrders: [
         {
           fiatAmount: 1521.63,
           amount: 0.060,
-          txid: '757y8yu',
+          txid: '54d4ee39',
           status: 'Completed'
         },
         {
-          fiatAmount: 1521.63,
+          fiatAmount: 302.2,
           amount: 0.060,
-          txid: '757y8yu',
+          txid: '029034dh',
           status: 'Completed'
         },
         {
-          fiatAmount: 1521.63,
+          fiatAmount: 468.5,
           amount: 0.060,
-          txid: '757y8yu',
+          txid: '374dfhjh',
           status: 'Completed'
         }
       ],
       transactions: [
-        {}
-      ]
+        {
+          id: 1,
+          initAmount: 345.75,
+          fiatAmount: 342.3,
+          amount: 0.013,
+          txid: '46xv5d9k',
+          lossProtection: 'expired',
+          selected: false // add this after fetching data
+        },
+        {
+          id: 2,
+          initAmount: 340.01,
+          fiatAmount: 342.3,
+          amount: 0.013,
+          txid: '46xv5d9k',
+          lossProtection: '30 days remaining',
+          selected: false
+        },
+        {
+          id: 3,
+          initAmount: 345.75,
+          fiatAmount: 450.3,
+          amount: 0.013,
+          txid: '46xv5d9k',
+          lossProtection: '30 days remaining',
+          selected: false
+        },
+        {
+          id: 4,
+          initAmount: 380.39,
+          fiatAmount: 201.2,
+          amount: 0.013,
+          txid: '46xv5d9k',
+          lossProtection: '30 days remaining',
+          selected: false
+        }
+      ],
+      selectedTransactions: []
     }
   },
   computed: {
@@ -103,17 +187,48 @@ export default {
     }
   },
   components: {
-    HeaderNav
+    HeaderNav,
+    CashoutOrderForm
   },
   methods: {
     getDarkModeClass,
-    async refreshPage (done) {
+    formatCurrency,
+    async refreshData (done) {
       done()
     },
+    selectTransaction (index) {
+      if (!this.transactions[index].selected) {
+        this.transactions[index].selected = true
+        this.selectedTransactions.push(this.transactions[index])
+      } else {
+        this.transactions[index].selected = false
+        this.selectedTransactions = this.selectedTransactions.filter(item => item.id !== this.transactions[index].id)
+      }
+    },
+    preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    }
   }
 }
 </script>
 <style lang="scss" scoped>
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
   .btn-transaction {
     font-size: 16px;
     background-color: rgb(242, 243, 252);
