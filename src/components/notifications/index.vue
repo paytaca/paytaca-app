@@ -353,7 +353,6 @@ export default {
           console.log('cashback notif yey')
           break
         } case 'NF': {
-          console.log('collectibles notif yey')
           vm.$router.push({ name: 'app-collectibles' })
           break
         } default:

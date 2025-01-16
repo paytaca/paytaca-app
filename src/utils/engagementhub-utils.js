@@ -82,7 +82,8 @@ const NOTIF_TYPES = {
   CB: $t('Cashback'),
   AH: 'AnyHedge',
   RP: 'P2P Exchange',
-  TR: $t('Transactions')
+  TR: $t('Transactions'),
+  NF: $t('Collectibles')
 }
 
 export async function getWalletNotifications (walletHash, notifType, page = 1) {
