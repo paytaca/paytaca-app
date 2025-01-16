@@ -51,6 +51,7 @@
             @back="onBack"
             @refresh="generateContract"
             @updateArbiterStatus="onUpdateArbiterStatus"
+            @cancel="cancellingOrder"
           />
           <VerifyTransaction
             v-if="state === 'tx-confirmation'"
