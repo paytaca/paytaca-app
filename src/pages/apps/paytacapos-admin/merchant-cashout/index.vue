@@ -96,6 +96,7 @@
           <q-btn @click="state = 'cashout-form'" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
         </div>
       </div>
+
     <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions"/>
   </q-pull-to-refresh>
 </template>
