@@ -1,37 +1,85 @@
 <template>
-  <div class="text-center md-font-size text-grey-9 text-bold">Cash Out Transactions</div>
   <!-- Transaction List -->
   <div>
-    <q-pull-to-refresh @refresh="refreshData">
-      <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-        <!-- Cashout Order -->
-        <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
-          <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
-            <q-item-section>
-              <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <div class="sm-font-size text-grey-6 text-strike">{{ transaction.initAmount }}</div>
-                <div class="row">
-                  <div class="col ib-text">
-                    <div class="md-font-size text-bold">
-                      {{ formatCurrency(transaction.fiatAmount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+    <div v-if="status === 'confirm-transaction'">
+      <div class="text-center md-font-size text-grey-9 text-bold">Cash Out Transactions</div>
+
+      <q-pull-to-refresh @refresh="refreshData">
+        <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+          <!-- Cashout Order -->
+          <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
+            <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
+              <q-item-section>
+                <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="sm-font-size text-grey-6 text-strike">{{ transaction.initAmount }}</div>
+                  <div class="row">
+                    <div class="col ib-text">
+                      <div class="md-font-size text-bold">
+                        {{ formatCurrency(transaction.fiatAmount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                      </div>
+                      <div class="sm-font-size">
+                        {{ transaction.amount }} BCH
+                      </div>
                     </div>
-                    <div class="sm-font-size">
-                      {{ transaction.amount }} BCH
+                    <div class="col ib-text text-right q-pr-sm">
+                      <div class="text-grey-8 text-bold">
+                        <span>{{ transaction.txid }}</span> <q-icon color="primary" size="sm" name="o_check_box" v-if="transaction.selected"/>
+                      </div>
+                      <div class="text-grey-6 sm-font-size">{{ transaction.lossProtection }}</div>
                     </div>
-                  </div>
-                  <div class="col ib-text text-right q-pr-sm">
-                    <div class="text-grey-8 text-bold">
-                      <span>{{ transaction.txid }}</span> <q-icon color="primary" size="sm" name="o_check_box" v-if="transaction.selected"/>
-                    </div>
-                    <div class="text-grey-6 sm-font-size">{{ transaction.lossProtection }}</div>
                   </div>
                 </div>
-              </div>
-            </q-item-section>
-          </q-item>
-        <!-- </q-card> -->
-      </q-list>
-    </q-pull-to-refresh>
+              </q-item-section>
+            </q-item>
+          <!-- </q-card> -->
+        </q-list>
+      </q-pull-to-refresh>
+    </div>
+
+    <div v-if="status === 'confirm-payment-method'">
+      <div class="text-center md-font-size text-grey-9 text-bold">Setup Payment Method</div>
+
+      <q-card class="q-my-md q-mx-lg br-15">
+        <div class="q-py-md q-px-lg">
+          <div class="">
+            <div class="q-pb-xs">Payment Type</div>
+            <q-select
+              dense
+              outlined
+              flat
+              v-model="paymentMethod.payment_type"
+              option-label="value"
+              :options="paymentTypesOpt"
+              :dark="darkMode"
+            />
+          </div>
+          <div class="q-pt-xs">
+            <div class="q-pb-xs">Account Name</div>
+            <q-input
+              dense
+              outlined
+              flat
+              v-model="paymentMethod.account_name"
+              placeholder="...."
+              :dark="darkMode"
+            />
+          </div>
+          <div class="q-pt-xs">
+            <div class="q-pb-xs">Account Number</div>
+            <q-input
+              dense
+              outlined
+              flat
+              v-model="paymentMethod.account_name"
+              placeholder="...."
+              :dark="darkMode"
+            />
+          </div>
+        </div>
+      </q-card>
+
+    </div>
+
     <div class="footer-card-btn">
       <div class="q-mx-lg q-pt-md">
         <q-card class="full-width q-px-lg br-15 q-py-md">
@@ -69,7 +117,8 @@
         </q-card>
       </div>
       <div class="full-width text-center q-px-lg q-py-sm">
-        <q-btn label="Proceed" class="full-width q-mx-lg" rounded color="primary"/>
+        <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="status = 'confirm-payment-method'"/>
+        <q-btn v-if="status === 'confirm-payment-method'" label="Cash Out" class="full-width q-mx-lg" rounded color="primary" @click="''"/>
       </div>
     </div>
   </div>
@@ -82,7 +131,30 @@ export default {
     return {
       transactions: [],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 320 : this.$q.screen.height - 290,
-      currency: { name: 'PHP', symbol: 'PHP'},
+      currency: { name: 'PHP', symbol: 'PHP' },
+      status: 'confirm-transaction',
+      paymentMethod: {
+        id: null,
+        payment_type: null,
+        account_name: null,
+        account_identifier: null,
+        identifier_format: null,
+        fields: {}
+      },
+      paymentTypesOpt: [
+        {
+          name: 'apple',
+          value: 'APPLE'
+        },
+        {
+          name: 'grapes',
+          value: 'GRAPES'
+        },
+        {
+          name: 'banana',
+          value: 'BANANA'
+        }
+      ]
     }
   },
   computed: {
@@ -90,11 +162,13 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  emits: ['select-payment-method'],
   props: {
     data: Array
   },
   mounted () {
     this.transactions = this.data
+    this.paymentMethod.payment_type = this.paymentTypesOpt[0]
     console.log('transactions: ', this.data)
   },
   methods: {

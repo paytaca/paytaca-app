@@ -93,11 +93,12 @@
           </q-pull-to-refresh>
         </div>
         <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
-          <q-btn @click="state = 'cashout-form'" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
+          <q-btn class="q-px-lg" @click="state = 'cashout-form'" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
         </div>
       </div>
 
-    <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions"/>
+    <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions" @select-payment-method="state = 'select-payment-method'"/>
+    <CashoutSelectPaymentMethod v-if="state === 'select-payment-method'"/>
   </q-pull-to-refresh>
 </template>
 <script>
@@ -189,7 +190,7 @@ export default {
   },
   components: {
     HeaderNav,
-    CashoutOrderForm
+    CashoutOrderForm,
   },
   methods: {
     getDarkModeClass,
