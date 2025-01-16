@@ -329,7 +329,7 @@ export default {
             let tokenId = ''
             if (transactionDetails[1] !== '1') { // token, not bch
               const symbol = notif.message.split(' ').pop()
-              tokenId = this.mainchainAssets.find(a => a.symbol === symbol).id
+              tokenId = this.mainchainAssets.find(a => a.symbol === symbol)?.id || ''
             }
 
             this.onOpenTransaction({
@@ -354,6 +354,7 @@ export default {
           break
         } case 'NF': {
           console.log('collectibles notif yey')
+          vm.$router.push({ name: 'app-collectibles' })
           break
         } default:
           break
