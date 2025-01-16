@@ -188,7 +188,8 @@ import {
   parseNotifType,
   hideItemUpdate,
   massHideNotifs,
-  markWalletNotifsAsRead
+  markWalletNotifsAsRead,
+  markItemAsRead
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -276,7 +277,7 @@ export default {
       setTimeout(async () => {
         const deletedItem = vm.notifsList.splice(index, 1)
         // call to engagement-hub to hide idth notif
-        await hideItemUpdate(deletedItem[0]).then(async () => {
+        await hideItemUpdate(deletedItem[0].id).then(async () => {
           if (vm.notifsList.length === 0) {
             vm.notifsPage -= 1
             await this.refreshNotifsList(null)
@@ -298,6 +299,9 @@ export default {
       const vm = this
 
       vm.$refs['notifs-dialog'].hide()
+      if (!notif.is_read) {
+        await markItemAsRead(notif.id)
+      }
 
       switch (notif.notif_type) {
         case 'TR': {
@@ -311,7 +315,7 @@ export default {
           if (url) { // jpp notif
             // automatically hide JPP payment request notifications after clicking
             if (url.includes('bitcoincash:?')) {
-              await hideItemUpdate(notif)
+              await hideItemUpdate(notif.id)
             }
 
             const query = {
