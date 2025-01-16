@@ -24,10 +24,7 @@
       </div>
 
       <div>
-        <div
-          class="row justify-end items-center q-mb-sm q-gutter-x-md"
-          v-if="notifsList.length > 0"
-        >
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
           <q-btn
             v-if="isCheckboxClicked"
             flat
@@ -39,7 +36,7 @@
           <q-btn
             flat
             round
-            :disable="isLoading"
+            :disable="isLoading || notifsList.length === 0"
             :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
             :color="isCheckboxClicked ? 'red' : 'white'"
             @click="massDeleteNotifs"
@@ -55,7 +52,7 @@
             flat
             round
             icon="mark_chat_read"
-            :disable="isLoading"
+            :disable="isLoading || notifsList.length === 0"
             @click="markAllAsRead()"
           />
           <q-btn
@@ -191,7 +188,8 @@ import {
   parseNotifType,
   hideItemUpdate,
   massHideNotifs,
-  markWalletNotifsAsRead
+  markWalletNotifsAsRead,
+  markItemAsRead
 } from 'src/utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -206,11 +204,15 @@ export default {
     NotificationBody
   },
 
+  props: {
+    onOpenTransaction: { type: Function }
+  },
+
   data () {
     return {
       notifsList: [],
       checkboxList: null,
-      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR'],
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF'],
 
       isLoading: false,
       isCheckboxClicked: false,
@@ -229,6 +231,11 @@ export default {
     },
     currentWalletHash () {
       return this.$store.getters['global/getWallet']('bch')?.walletHash
+    },
+    mainchainAssets () {
+      return this.$store.getters['assets/getAssets'].filter(
+        item => item && item.id !== 'bch'
+      )
     }
   },
 
@@ -270,7 +277,7 @@ export default {
       setTimeout(async () => {
         const deletedItem = vm.notifsList.splice(index, 1)
         // call to engagement-hub to hide idth notif
-        await hideItemUpdate(deletedItem[0]).then(async () => {
+        await hideItemUpdate(deletedItem[0].id).then(async () => {
           if (vm.notifsList.length === 0) {
             vm.notifsPage -= 1
             await this.refreshNotifsList(null)
@@ -290,21 +297,25 @@ export default {
     },
     async clickRedirect (notif) {
       const vm = this
-      console.log('NOTIF', notif)
 
       vm.$refs['notifs-dialog'].hide()
+      if (!notif.is_read) {
+        await markItemAsRead(notif.id)
+      }
 
       switch (notif.notif_type) {
         case 'TR': {
           const data = notif.extra_data
+
           let url = null
           if (data.startsWith('bitcoincash:') || data.startsWith('bchtest:')) {
             url = data
           }
-          if (url !== '') {
+
+          if (url) { // jpp notif
             // automatically hide JPP payment request notifications after clicking
             if (url.includes('bitcoincash:?')) {
-              await hideItemUpdate(notif)
+              await hideItemUpdate(notif.id)
             }
 
             const query = {
@@ -313,8 +324,19 @@ export default {
               paymentUrl: url
             }
             vm.$router.push({ name: 'transaction-send', query })
-          } else {
-            console.log('transaction dialog yey')
+          } else { // payment received notif
+            const transactionDetails = notif.extra_data.split(';')
+            let tokenId = ''
+            if (transactionDetails[1] !== '1') { // token, not bch
+              const symbol = notif.message.split(' ').pop()
+              tokenId = this.mainchainAssets.find(a => a.symbol === symbol)?.id || ''
+            }
+
+            this.onOpenTransaction({
+              txid: transactionDetails[0],
+              tokenId,
+              chain: 'BCH'
+            })
           }
           break
         } case 'MP': {
@@ -329,6 +351,9 @@ export default {
           break
         } case 'CB': {
           console.log('cashback notif yey')
+          break
+        } case 'NF': {
+          vm.$router.push({ name: 'app-collectibles' })
           break
         } default:
           break
