@@ -10,7 +10,7 @@ import packageInfo from '../../package.json'
 
 export const backend = axios.create({
   baseURL: process.env.MAINNET_WATCHTOWER_BASE_URL,
-  // baseURL: 'http://localhost:8000/api',
+  baseURL: 'http://localhost:8000/api',
 })
 
 backend.interceptors.request.use(async (config) => {
