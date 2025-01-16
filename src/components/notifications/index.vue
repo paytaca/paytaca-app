@@ -24,10 +24,7 @@
       </div>
 
       <div>
-        <div
-          class="row justify-end items-center q-mb-sm q-gutter-x-md"
-          v-if="notifsList.length > 0"
-        >
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
           <q-btn
             v-if="isCheckboxClicked"
             flat
@@ -39,7 +36,7 @@
           <q-btn
             flat
             round
-            :disable="isLoading"
+            :disable="isLoading || notifsList.length === 0"
             :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
             :color="isCheckboxClicked ? 'red' : 'white'"
             @click="massDeleteNotifs"
@@ -55,7 +52,7 @@
             flat
             round
             icon="mark_chat_read"
-            :disable="isLoading"
+            :disable="isLoading || notifsList.length === 0"
             @click="markAllAsRead()"
           />
           <q-btn
