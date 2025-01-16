@@ -63,7 +63,14 @@
           </q-field>
         </div>
         <div class="row items-center justify-center q-gutter-xs">
-          <span v-if="linkExpiresIn > 0" class="text-grey">
+          <span v-if="linkExpiresIn > 1000" class="text-grey">
+            {{ $t('LinkExpiresIn') }}
+            {{ formatTimestampToText(linkCode?.expiresAt * 1000) }}
+          </span>
+          <span v-else-if="linkExpiresIn < -1000" class="text-grey">
+            {{ $t('LinkExpired') }} {{ formatTimestampToText(linkCode?.expiresAt * 1000) }}
+          </span>
+          <span v-else-if="linkExpiresIn > 0" class="text-grey">
             {{ $t('LinkExpiresIn') }}
             <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn }}</span>
             {{ linkExpiresIn > 1 ? $t('Seconds'): $t('Second') }}
@@ -95,6 +102,7 @@
 import BCHJS from '@psf/bch-js';
 import { Wallet } from 'src/wallet'
 import { padPosId, aes } from 'src/wallet/pos'
+import { formatTimestampToText } from 'src/wallet/anyhedge/formatters';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
 import { useStore } from 'vuex';
