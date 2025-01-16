@@ -203,6 +203,10 @@ export default {
     NotificationBody
   },
 
+  props: {
+    onOpenTransaction: { type: Function }
+  },
+
   data () {
     return {
       notifsList: [],
@@ -226,6 +230,11 @@ export default {
     },
     currentWalletHash () {
       return this.$store.getters['global/getWallet']('bch')?.walletHash
+    },
+    mainchainAssets () {
+      return this.$store.getters['assets/getAssets'].filter(
+        item => item && item.id !== 'bch'
+      )
     }
   },
 
@@ -287,18 +296,19 @@ export default {
     },
     async clickRedirect (notif) {
       const vm = this
-      console.log('NOTIF', notif)
 
       vm.$refs['notifs-dialog'].hide()
 
       switch (notif.notif_type) {
         case 'TR': {
           const data = notif.extra_data
+
           let url = null
           if (data.startsWith('bitcoincash:') || data.startsWith('bchtest:')) {
             url = data
           }
-          if (url !== '') {
+
+          if (url) { // jpp notif
             // automatically hide JPP payment request notifications after clicking
             if (url.includes('bitcoincash:?')) {
               await hideItemUpdate(notif)
@@ -310,8 +320,19 @@ export default {
               paymentUrl: url
             }
             vm.$router.push({ name: 'transaction-send', query })
-          } else {
-            console.log('transaction dialog yey')
+          } else { // payment received notif
+            const transactionDetails = notif.extra_data.split(';')
+            let tokenId = ''
+            if (transactionDetails[1] !== '1') { // token, not bch
+              const symbol = notif.message.split(' ').pop()
+              tokenId = this.mainchainAssets.find(a => a.symbol === symbol).id
+            }
+
+            this.onOpenTransaction({
+              txid: transactionDetails[0],
+              tokenId,
+              chain: 'BCH'
+            })
           }
           break
         } case 'MP': {

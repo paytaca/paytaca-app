@@ -12,7 +12,10 @@
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown ref="multi-wallet-component" />
-              <NotificationButton @hide-multi-wallet-dialog="hideMultiWalletDialog" />
+              <NotificationButton
+                @hide-multi-wallet-dialog="hideMultiWalletDialog"
+                @find-and-open-transaction="findAndOpenTransaction"
+              />
             </div>
 
             <div class="row" :class="enableSmartBCH || enableStablhedge ? 'q-pt-lg': 'q-pt-sm'">
@@ -424,7 +427,6 @@ import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
-import Notifications from 'src/components/notifications/index.vue'
 import StablehedgeButtons from 'src/components/stablehedge/StablehedgeButtons.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
@@ -1292,6 +1294,9 @@ export default {
         const isToken = assetId != 'bch'
         const tokenId = isToken ? assetId.split('/')[1] : assetId
         const walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
+        console.log(isToken)
+        console.log(tokenId)
+        console.log(walletHash)
         const apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
         return watchtower.BCH._api(apiPath, { params: { txids: txid } })
           .then(response => {
