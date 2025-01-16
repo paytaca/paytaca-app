@@ -210,7 +210,7 @@ export default {
     return {
       notifsList: [],
       checkboxList: null,
-      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR'],
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF'],
 
       isLoading: false,
       isCheckboxClicked: false,
@@ -329,6 +329,9 @@ export default {
           break
         } case 'CB': {
           console.log('cashback notif yey')
+          break
+        } case 'NF': {
+          console.log('collectibles notif yey')
           break
         } default:
           break
