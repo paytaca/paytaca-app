@@ -98,7 +98,6 @@
       </div>
 
     <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions" @select-payment-method="state = 'select-payment-method'"/>
-    <CashoutSelectPaymentMethod v-if="state === 'select-payment-method'"/>
   </q-pull-to-refresh>
 </template>
 <script>
