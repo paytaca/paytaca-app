@@ -130,6 +130,7 @@
         <q-separator class="q-my-sm"/>
         <div v-if="type !== 'appeal'" class="row justify-end">
             <div class="col-auto">
+              <!-- Ad price display -->
               <div v-if="type === 'ad'">
                 <div class="xs-font-size">{{ $t('Price') }}</div>
                 <span
@@ -140,7 +141,6 @@
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
               <div v-if="type === 'order'">
-                <!-- <div class="xs-font-size">{{ $t('TradeAmount') }}</div> -->
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}{{ tradeAmount }}
                 </span>
@@ -218,7 +218,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: process.env.MARKETPLACE_WS_URL,
       websocket: null,
       byFiat: false,
       chatRef: '',
@@ -341,30 +340,26 @@ export default {
     onViewReviews () {
       this.$emit('view-reviews')
     },
-    async onViewChat () {
+    onViewChat () {
       this.$emit('view-chat')
     }
   }
 }
 </script>
 <style scoped>
-.xs-font-size {
-  font-size: smaller
-}
-
-.sm-font-size {
-  font-size: small;
-}
-.md-font-size {
-  font-size: medium;
-}
-
-.lg-font-size {
-  font-size: large;
-}
-
-.subtext {
-  opacity: .5;
-}
-
+  .xs-font-size {
+    font-size: smaller
+  }
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
+  .subtext {
+    opacity: .5;
+  }
 </style>

@@ -38,7 +38,6 @@ export class WebSocketManager {
       }
       )
       this.websocketService.subscribeToMessages((message) => {
-        console.log('Received message:', JSON.parse(message))
         // Emit the message to subscribers (components)
         this._emitMessage(JSON.parse(message))
       })
