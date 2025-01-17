@@ -667,18 +667,20 @@ export default {
 
         // call cashback API to check if merchant is part of campaign
         // and check and compute if customer is eligible for cashback
-        const payloadAmount = parseFloat(parseFloat(`${currentRecipient.amount}`) * (10 ** 8)).toFixed(2)
-        const payload = {
-          token: 'bch',
-          txid: '-',
-          recipient: currentRecipient.recipientAddress,
-          sender_0: sendPageUtils.getWallet('bch')?.lastAddress,
-          decimals: 8,
-          value: payloadAmount,
-          device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
+        if (!this.isNFT) {
+          const payloadAmount = parseFloat(parseFloat(`${currentRecipient.amount}`) * (10 ** 8)).toFixed(2)
+          const payload = {
+            token: 'bch',
+            txid: '-',
+            recipient: currentRecipient.recipientAddress,
+            sender_0: sendPageUtils.getWallet('bch')?.lastAddress,
+            decimals: 8,
+            value: payloadAmount,
+            device_id: pushNotificationsManager.deviceId ? [pushNotificationsManager.deviceId] : []
+          }
+          const response = await getCashbackAmount(payload)
+          currentInputExtras.cashbackData = response
         }
-        const response = await getCashbackAmount(payload)
-        currentInputExtras.cashbackData = response
       }
     },
 

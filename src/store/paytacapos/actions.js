@@ -32,6 +32,29 @@ export function fetchMerchants(context, data) {
 
 /**
  * @param {Object} context 
+ * @param {Object} data 
+ * @param {Number} data.id
+ * @param {Boolean} data.forceSave
+ */
+export async function refetchMerchantInfo(context, data) {
+  const exists = context.state?.merchants?.find(merchant => merchant?.id === data?.id)
+  if (data?.forceSave && !exists) Promise.resolve()
+
+  return posBackend.get(`paytacapos/merchants/${data?.id}/`, { authorize: true })
+    .catch(error => {
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
+    .then(response => {
+      if (exists) {
+        context.commit('storeMerchantsListInfo', [response.data])
+      }
+      return Promise.reject({ response })
+    })
+}
+
+/**
+ * @param {Object} context 
  * @param {Object} data
  * @param {String} data.data
  * @param {String} data.name
@@ -85,6 +108,12 @@ export async function updateMerchantInfo(context, data) {
         return Promise.resolve(response)
       }
       return Promise.reject({ response })
+    })
+    .then(response => {
+      if (payload?.location && data?.id) {
+        context.dispatch('refetchBranches', { walletHash: payload?.walletHash, merchantId: data?.id })
+      }
+      return response
     })
 }
 
@@ -187,6 +216,12 @@ export function updateBranchInfo(context, data) {
       if (!response?.data?.id) return Promise.reject(response)
       context.commit('updateBranchInfo', response.data)
       return Promise.resolve({ response })
+    })
+    .then(response => {
+      if (payload?.is_main && payload?.location && payload?.merchant_id) {
+        context.dispatch('refetchMerchantInfo', { id: payload?.merchant_id })
+      }
+      return response
     })
     .catch(error => {
       if (error?.response?.status === 404) {

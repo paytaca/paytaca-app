@@ -363,6 +363,7 @@ function openStorefrontListOptsForm() {
       model: storefrontListOpts.value?.radius / 1000,
       type: 'number',
       suffix: 'km',
+      isValid: val => val > 0,
     },
     color: 'brandblue',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`

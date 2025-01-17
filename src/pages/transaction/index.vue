@@ -12,7 +12,10 @@
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <MultiWalletDropdown ref="multi-wallet-component" />
-              <NotificationButton @hide-multi-wallet-dialog="hideMultiWalletDialog" />
+              <NotificationButton
+                @hide-multi-wallet-dialog="hideMultiWalletDialog"
+                @find-and-open-transaction="findAndOpenTransaction"
+              />
             </div>
 
             <div class="row" :class="enableSmartBCH || enableStablhedge ? 'q-pt-lg': 'q-pt-sm'">
@@ -424,7 +427,6 @@ import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
-import Notifications from 'src/components/notifications/index.vue'
 import StablehedgeButtons from 'src/components/stablehedge/StablehedgeButtons.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
@@ -1231,15 +1233,23 @@ export default {
     },
     async findAndOpenTransaction(data={txid: '', tokenId: '', logIndex: null, chain: 'BCH' }) {
       if (!data) return
-      const {txid, tokenId, logIndex, chain } = data
-      const isToken = tokenId && String(tokenId) != 'bch'
-      const tokenPrefix = chain === 'sBCH' ? 'sep20' : 'slp'
-      const assetId = isToken ? `${tokenPrefix}/${tokenId}` : 'bch'
+      const { txid, tokenId, logIndex, chain } = data
 
-      const assets = chain === 'sBCH' ? this.smartchainAssets : this.mainchainAssets
-      const asset = isToken ? assets.find(asset => asset?.id == assetId) : this.bchAsset
+      let transaction = null
+      let assetId = ''
+      let asset = null
+      if (tokenId.split('/')[0] === 'ct') {
+        assetId = tokenId
+        asset = this.mainchainAssets.find(asset => asset?.id === assetId)
+      } else {
+        const isToken = tokenId && String(tokenId) !== 'bch'
+        const tokenPrefix = chain === 'sBCH' ? 'sep20' : 'slp'
+        assetId = isToken ? `${tokenPrefix}/${tokenId}` : 'bch'
+        const assets = chain === 'sBCH' ? this.smartchainAssets : this.mainchainAssets
+        asset = isToken ? assets.find(asset => asset?.id === assetId) : this.bchAsset
+      }
 
-      const transaction = await this.findTransaction({ txid, assetId, logIndex, chain })
+      transaction = await this.findTransaction({ txid, assetId, logIndex, chain })
 
       if (!transaction) {
         this.$q.dialog({
@@ -1289,10 +1299,20 @@ export default {
             return null
           })
       } else {
-        const isToken = assetId != 'bch'
-        const tokenId = isToken ? assetId.split('/')[1] : assetId
-        const walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
-        const apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
+        let tokenId = ''
+        let walletHash = ''
+        let apiPath = ''
+        if (assetId.split('/')[0] === 'ct') {
+          tokenId = assetId.split('/')[1]
+          walletHash = this.getWallet('bch')?.walletHash
+          apiPath = `history/wallet/${walletHash}/${tokenId}/`
+        } else {
+          const isToken = assetId !== 'bch'
+          tokenId = isToken ? assetId.split('/')[1] : assetId
+          walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
+          apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
+        }
+
         return watchtower.BCH._api(apiPath, { params: { txids: txid } })
           .then(response => {
             return response?.data?.history?.find?.(tx => tx?.txid === txid)
