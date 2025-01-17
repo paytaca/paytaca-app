@@ -193,7 +193,7 @@ export default {
     await this.loadData()
   },
   beforeUnmount () {
-    this.websocketManager.closeConnection()
+    this.websocketManager?.closeConnection()
   },
   methods: {
     getDarkModeClass,
@@ -247,6 +247,7 @@ export default {
       this.setupWebSocket()
     },
     setupWebSocket () {
+      this.websocketManager?.closeConnection()
       const url = `${getBackendWsUrl()}order/${this.orderId}/`
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)

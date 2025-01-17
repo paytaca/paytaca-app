@@ -426,6 +426,7 @@ export default {
       this.fetchChatUnread(this.order?.chat_session_ref)
     },
     setupWebsocket () {
+      this.closeWSConnection()
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
       this.websocketManager.watchtower = new WebSocketManager()
       this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
@@ -458,8 +459,8 @@ export default {
       })
     },
     closeWSConnection () {
-      if (this.websocketManager.watchtower) this.websocketManager.watchtower.closeConnection()
-      if (this.websocketManager.chat) this.websocketManager.chat.closeConnection()
+      this.websocketManager?.watchtower?.closeConnection()
+      this.websocketManager?.chat?.closeConnection()
     },
     onViewPeer (data) {
       this.peerInfo = data
