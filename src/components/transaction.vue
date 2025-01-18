@@ -653,8 +653,8 @@ export default {
       return `${amountString} ${transaction.asset.symbol}`
     },
     computeYield () {
-      const fiatAmount = this.transactionAmountMarketValue
-      const currentFiatPrice = this.transaction.amount * this.marketAssetPrice
+      const fiatAmount = Math.abs(this.transactionAmountMarketValue)
+      const currentFiatPrice = Math.abs(this.transaction.amount) * this.marketAssetPrice
       const currentYield = currentFiatPrice - fiatAmount
       return Number(currentYield.toFixed(2)) === 0.00 || Number(currentYield.toFixed(2)) === 0
         ? Math.abs(currentYield)
