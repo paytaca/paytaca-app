@@ -203,7 +203,38 @@
                     <span v-if="transaction.recipients.length === 1">{{ $t('Recipient') }}</span>
                     <span v-if="transaction.recipients.length > 1">{{ $t('Recipients') }}</span>
                   </q-item-label>
-                  <q-item-label>{{ concatenate(transaction.recipients) }}</q-item-label>
+                  <q-item-label v-if="transaction.asset.symbol === 'BCH'">
+                    <div
+                      v-for="(data, index) in transaction.recipients"
+                      class="row col-12 q-gutter-x-sm q-mb-xs"
+                      :key="index"
+                    >
+                      <span class="col-1">#{{ index + 1 }}</span>
+                      <span class="col-5" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                      <span class="col-4">
+                        {{
+                          `${parseAssetDenomination(
+                              denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination,
+                              {
+                                ...transaction.asset,
+                                balance: data[1] / (10 ** 8),
+                                thousandSeparator: true
+                              }
+                            )}`
+                        }}
+                      </span>
+                    </div>
+                  </q-item-label>
+                  <q-item-label v-else>
+                    <div
+                      v-for="(data, index) in transaction.recipients"
+                      class="row col-12 q-gutter-x-sm q-mb-xs"
+                      :key="index"
+                    >
+                      <span class="col-1">#{{ index + 1 }}</span>
+                      <span class="col-10" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                    </div>
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </template>
