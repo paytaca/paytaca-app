@@ -278,10 +278,6 @@ export default {
     getDarkModeClass,
     onlineStatusColor (peer) {
       if (peer?.is_online) return 'green'
-      const diffInHours = this.getElapsedTimeInHours(peer?.last_online_at)
-      if (diffInHours < 24) {
-        return 'orange'
-      }
       return 'grey-5'
     },
     getElapsedTimeInHours (date) {
