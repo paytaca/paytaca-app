@@ -471,7 +471,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
-      const keypair = await wallet.keypair(sellerMember.address_path)
+      const keypair = wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {
           console.log(result)

@@ -71,8 +71,8 @@ export default {
     bus.on('show-footer-menu', this.onShowFooterMenu)
     bus.on('handle-request-error', this.handleRequestError)
   },
-  mounted () {
-    loadRampWallet()
+  async mounted () {
+    await loadRampWallet()
     this.isLoading = false
     this.setupWebSocket()
   },

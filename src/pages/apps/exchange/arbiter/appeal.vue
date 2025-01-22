@@ -43,7 +43,14 @@
                       <span>Submitted by {{ appeal?.owner?.name }}</span>
                     </div>
                     <div class="md-font-size">Reasons</div>
-                    <q-badge v-for="(reason, index) in appeal.reasons" class="row q-px-sm" :key="index" size="sm" outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'" :label="reason" />
+                    <q-badge
+                      class="row q-px-sm"
+                      size="sm"
+                      outline
+                      :label="reason"
+                      :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                      v-for="(reason, index) in appeal.reasons"
+                      :key="index"/>
                   </div>
                   <q-space/>
                   <div class="col q-mt-sm">
@@ -288,12 +295,7 @@ export default {
       const vm = this
       await backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal/`, { authorize: true })
         .then(response => {
-          console.log(response.data)
           vm.appeal = response.data.appeal
-          // vm.contract = response.data.contract
-          // vm.fees = response.data.fees
-          // vm.order = response.data.order
-          // vm.appealDetailData = response.data
           vm.loading = false
         })
         .catch(error => {
@@ -305,7 +307,6 @@ export default {
       const orderId = this.$route.params?.order || this.appeal?.order?.id
       await backend.get(`/ramp-p2p/order/${orderId}/contract/transactions/`, { authorize: true })
         .then(response => {
-          console.log('fetchTransactions:', response.data)
           this.transactions = response.data
         })
         .catch(error => {
@@ -326,7 +327,6 @@ export default {
       const orderId = this.$route.params?.order || this.appeal?.order?.id
       await backend.get(`/ramp-p2p/order/${orderId}/ad/snapshot/`, { authorize: true })
         .then(response => {
-          console.log('fetchAdSnapshot:', response)
           this.adSnapshot = response.data
         })
         .catch(error => {
@@ -432,7 +432,6 @@ export default {
       this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
       this.websocketManager.watchtower.subscribeToMessages(async (message) => {
         if (message?.success) {
-          console.log('message:', message)
           await this.fetchAppeal()
           if (message?.txdata) {
             this.verifyingTx = false
@@ -452,7 +451,6 @@ export default {
         if (message?.type === 'new_message') {
           const messageData = message.data
           // RECEIVE MESSAGE
-          console.log('Received a new message:', messageData)
           this.fetchChatUnread(this.order?.chat_session_ref)
           if (this.openChat) bus.emit('new-message', messageData)
         }

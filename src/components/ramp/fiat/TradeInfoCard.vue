@@ -118,10 +118,10 @@
                 <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
             </div>
             <div v-if="adOwner?.last_online_at && adOwner?.is_online === false" class="row xs-font-size text-grey">
-              Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}
+              <span class="col" style="text-align: right;">Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}</span>
             </div>
-            <div v-if="!adOwner?.last_online_at" class="row xs-font-size text-grey">
-              Offline for a long time
+            <div v-if="!adOwner?.last_online_at" class="row xs-font-size text-grey text-right">
+              <span class="col" style="text-align: right;">Offline for a long time</span>
             </div>
           </div>
         </div>
