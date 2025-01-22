@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "IDs de fúria",
   AuthSignError: "Desafio de autenticação Erro de assinatura",
   AuthenticationCancelled: "Autenticação cancelada",
+  AuthenticationFailed: "Autenticação falhou",
   AutoFillFieldFromPinLocation: "Campo de preenchimento automático da localização do pino?",
   AutoGenerateAddress: "Endereço gerado automático",
   AutoGenerateAddressToolTip: "Um novo endereço será gerado após receber ativos",

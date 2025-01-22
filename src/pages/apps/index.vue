@@ -255,7 +255,7 @@ export default {
           this.warningAttemptsStatus = 'dismiss'
           if (error.message.includes(this.$t('MaxAttempts'))) {
             this.warningAttemptsStatus = 'show'
-          } else if (error.message.includes('Authentication failed')) {
+          } else if (error.message.includes(this.$t('AuthenticationFailed'))) {
             this.verifyBiometric()
           } else this.proceedToBackup = false
         })

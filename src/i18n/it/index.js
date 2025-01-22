@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "ID audiotrack",
   AuthSignError: "Errore di firma della sfida di autenticazione",
   AuthenticationCancelled: "Autenticazione annullata",
+  AuthenticationFailed: "Autenticazione non riuscita",
   AutoFillFieldFromPinLocation: "Campo di riempimento automatico dalla posizione del pin?",
   AutoGenerateAddress: "Auto Genera Indirizzo",
   AutoGenerateAddressToolTip: "Verrà generato un nuovo indirizzo dopo aver ricevuto attività",

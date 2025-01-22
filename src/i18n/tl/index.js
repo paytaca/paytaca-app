@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "Audiotrack IDS",
   AuthSignError: "Authentication Hamon sa Pag -sign Error",
   AuthenticationCancelled: "Kinansela ang pagpapatunay",
+  AuthenticationFailed: "Nabigo ang pagpapatunay",
   AutoFillFieldFromPinLocation: "Auto Punan ang patlang mula sa lokasyon ng PIN?",
   AutoGenerateAddress: "Auto bumuo ng address",
   AutoGenerateAddressToolTip: "Ang isang bagong address ay bubuo pagkatapos matanggap ang mga ari -arian",

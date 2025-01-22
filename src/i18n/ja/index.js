@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "audiotrack ID",
   AuthSignError: "認証チャレンジ署名エラー",
   AuthenticationCancelled: "認証がキャンセルされました",
+  AuthenticationFailed: "認証に失敗しました",
   AutoFillFieldFromPinLocation: "ピンの場所からの自動充填フィールド？",
   AutoGenerateAddress: "自動生成アドレス",
   AutoGenerateAddressToolTip: "資産を受け取った後、新しいアドレスが生成されます",

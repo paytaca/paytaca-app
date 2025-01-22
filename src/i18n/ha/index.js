@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "ID na Audiotrack",
   AuthSignError: "Kuskuren Ingantaccen Alamar Alkalami",
   AuthenticationCancelled: "Ingantaccen magani",
+  AuthenticationFailed: "Tabbatarwa ta kasa",
   AutoFillFieldFromPinLocation: "Mika ta atomatik daga PIN wuri?",
   AutoGenerateAddress: "Adireshin Auto",
   AutoGenerateAddressToolTip: "Ana samun sabon adireshin bayan karbar kadarori",
