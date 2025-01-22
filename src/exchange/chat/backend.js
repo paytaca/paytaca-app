@@ -3,7 +3,6 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
-import { loadLibauthHdWallet } from 'src/wallet'
 
 const bchjs = new BCHJS()
 
