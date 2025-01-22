@@ -31,7 +31,7 @@
     </div>
 
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
-    <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
+    <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
     <footer-menu />
   </div>
 </template>
@@ -259,9 +259,6 @@ export default {
             this.verifyBiometric()
           } else this.proceedToBackup = false
         })
-    },
-    setwarningAttemptsStatus () {
-      this.verifyBiometric()
     },
     toggleMnemonicDisplay (action) {
       const vm = this
