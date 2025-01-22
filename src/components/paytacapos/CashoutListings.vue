@@ -1,6 +1,6 @@
 <template>
   <div class="text-right q-mx-lg">
-    <q-toggle v-model="hideCashout"/><span class="sm-font-size text-bold text-grey-8">Hide Cashout Order</span>
+    <q-toggle padding="0" v-model="hideCashout"/><span class="sm-font-size text-bold text-grey-8">Hide Cashout Order</span>
   </div>
   <!-- order type tabs -->
   <div
@@ -97,7 +97,7 @@ import { backend } from 'src/exchange/backend'
 export default {
   data () {
     return {
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
       currency: { name: 'PHP', symbol: 'PHP' },
       orderType: 'ALL',
       hideCashout: false,

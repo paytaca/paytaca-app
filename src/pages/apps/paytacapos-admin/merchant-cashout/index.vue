@@ -6,9 +6,8 @@
   >
     <HeaderNav
       :title="'Merchant Cash Out'"
-      class="apps-header"
+      class="header"
     />
-
     <CashoutListings v-if="state === 'list'" @cashout-form="openCashoutForm"/>
     <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions" @select-payment-method="state = 'select-payment-method'"/>
   </q-pull-to-refresh>
@@ -31,8 +30,7 @@ export default {
   },
   data () {
     return {
-      currency: { name: 'PHP', symbol: 'PHP'},
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      currency: { name: 'PHP', symbol: 'PHP' },
       state: 'list',
       selectedTransactions: []
     }
@@ -86,5 +84,7 @@ export default {
   .lg-font-size {
     font-size: large;
   }
-
+  .header {
+    margin-bottom: 0 !important;
+  }
 </style>
