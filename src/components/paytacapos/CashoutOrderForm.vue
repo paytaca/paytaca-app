@@ -91,21 +91,22 @@
               <span>Loss Protection Coverage</span>
             </div>
             <div class="col text-right">
-              <span>14,587.50 PHP</span><br>
-              <span class="text-red">-4,319.7 PHP</span><br>
-              <span>3,979.7 PHP</span>
+              <span>{{ formatCurrency(orderInfo.market_price, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
+              <span class="text-red">{{ formatCurrency(orderInfo.market_loss_gain, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
+              <span>{{ formatCurrency(orderInfo.loss_protection_coverage, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
             </div>
           </div>
 
           <div class="text-strike text-grey-6 text-right sm-font-size">
-            14,587.50
+            <!--  -->
+            14,547.50 {{ currency.symbol }}
           </div>
           <div class="row q-pb-sm">
             <div class="col-8 md-font-size">
               <span class="text-grey-8">TOTAL</span>
             </div>
             <div>
-              <span>14,247.50 PHP</span>
+              <span>{{ formatCurrency(totalCashout, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
             </div>
           </div>
           <q-separator class="q-mb-sm"/>
@@ -135,6 +136,7 @@
 <script>
 import { formatCurrency } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { backend } from 'src/exchange/backend'
 
 export default {
   data () {
@@ -205,12 +207,27 @@ export default {
           ]
 
         }
-      ]
+      ],
+      orderInfo: {
+        market_price: 14587.50,
+        market_loss_gain: -4319.7,
+        loss_protection_coverage: 3979.7
+      },
+      // paymentTypesOpt: null
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    totalCashout () {
+      let sum = 0
+
+      for (const key in this.orderInfo) {
+        sum += this.orderInfo[key]
+      }
+
+      return sum
     }
   },
   emits: ['select-payment-method'],
@@ -276,6 +293,31 @@ export default {
       })
       this.paymentMethod.fields = paymentFields
     },
+    equivalentAmount () {
+      let amount = this.totalCashout
+      if (amount === '' || isNaN(amount)) return 0
+
+      // if (!this.byFiat) {
+      //   amount = Number((amount) * parseFloat(this.ad.price)).toFixed(2)
+      // } else {
+      //   amount = Number(parseFloat(amount) / parseFloat(this.ad.price)).toFixed(8)
+      // }
+      return Number(amount)
+    },
+    async fetchPaymentMethod () {
+      const vm = this
+      const url = '/paytacapos/payment-methods/'
+
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          console.log(response)
+          vm.paymentMethod = response.data
+          // vm.merchantTransactions = response.data
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    }
   }
 }
 </script>

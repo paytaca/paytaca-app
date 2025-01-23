@@ -1,6 +1,6 @@
 <template>
-  <div class="text-right q-mx-lg">
-    <q-toggle padding="0" v-model="hideCashout"/><span class="sm-font-size text-bold text-grey-8">Hide Cashout Order</span>
+  <div class="text-right q-pa-none q-mx-lg">
+    <q-toggle size="sm" v-model="hideCashout"/><span class="sm-font-size text-bold text-grey-8">Hide Cashout Order</span>
   </div>
   <!-- order type tabs -->
   <div
