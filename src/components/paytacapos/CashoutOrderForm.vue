@@ -106,12 +106,12 @@
               <span class="text-grey-8">TOTAL</span>
             </div>
             <div>
-              <span>{{ formatCurrency(totalCashout, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
+              <span>{{ formatCurrency(totalCashout(), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
             </div>
           </div>
           <q-separator class="q-mb-sm"/>
           <div class="text-right text-grey-8 sm-font-size">
-            0.57 BCH
+            {{ totalCashout(false) }} BCH
           </div>
         </q-card>
       </div>
@@ -128,8 +128,18 @@
       </q-card-section>
 
       <q-card-section class="text-center q-pt-none">
-        This amount of BCH has been sent, please wait for your cash out order to be processed. You will receive payment shortly.
+        {{ dialogText }}
       </q-card-section>
+
+      <q-card-actions class="text-center" align="center">
+        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
+        <q-btn
+          flat
+          :label="$t('OK')"
+          :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
+          v-close-popup
+        />
+      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
@@ -220,14 +230,8 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    totalCashout () {
-      let sum = 0
-
-      for (const key in this.orderInfo) {
-        sum += this.orderInfo[key]
-      }
-
-      return sum
+    dialogText () {
+      return 'This amount of BCH has been sent, please wait for your cash out order to be processed. You will receive payment shortly.'
     }
   },
   emits: ['select-payment-method'],
@@ -238,7 +242,7 @@ export default {
     this.transactions = this.data
     this.paymentMethod.payment_type = this.paymentTypesOpt[0]
     this.onUpdatePaymentType(this.paymentMethod.payment_type)
-    console.log('transactions: ', this.data)
+    // console.log('transactions: ', this.data)
   },
   methods: {
     formatCurrency,
@@ -256,6 +260,17 @@ export default {
       if (parent !== void 0 && parent.scrollTop > 0) {
         e.stopPropagation()
       }
+    },
+    totalCashout (isFiat = true) {
+      if (!isFiat) return 0.57
+
+      let sum = 0
+
+      for (const key in this.orderInfo) {
+        sum += this.orderInfo[key]
+      }
+
+      return sum
     },
     isValidIdentifier (val, format, required = false) {
       if (required && !val) return this.$t('FieldRequired')
@@ -294,7 +309,7 @@ export default {
       this.paymentMethod.fields = paymentFields
     },
     equivalentAmount () {
-      let amount = this.totalCashout
+      let amount = this.totalCashout()
       if (amount === '' || isNaN(amount)) return 0
 
       // if (!this.byFiat) {

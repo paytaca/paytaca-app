@@ -169,12 +169,24 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  watch: {
+    orderType (val) {
+      // this.refetchListings()
+    }
+  },
   emits: ['cashout-form'],
+  mounted () {
+    this.fetchCashoutOrders()
+  },
   methods: {
     getDarkModeClass,
     formatCurrency,
     async refreshData (done) {
       done()
+    },
+    async refetchListings () {
+      await this.fetchCashoutOrders()
+      await this.fetchMerchantTransactions()
     },
     selectTransaction (index) {
       if (!this.transactions[index].selected) {
