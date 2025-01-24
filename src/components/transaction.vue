@@ -203,7 +203,66 @@
                     <span v-if="transaction.recipients.length === 1">{{ $t('Recipient') }}</span>
                     <span v-if="transaction.recipients.length > 1">{{ $t('Recipients') }}</span>
                   </q-item-label>
-                  <q-item-label>{{ concatenate(transaction.recipients) }}</q-item-label>
+                  <template v-if="transaction.asset.symbol === 'BCH'">
+                    <q-item-label>
+                      <div
+                        v-for="(data, index) in transaction.recipients.slice(0, 10)"
+                        class="row col-12 q-gutter-x-sm q-mb-xs"
+                        :key="index"
+                      >
+                        <span class="col-1">#{{ index + 1 }}</span>
+                        <span class="col-5" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                        <span class="col-4">
+                          {{
+                            `${parseAssetDenomination(
+                                denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination,
+                                {
+                                  ...transaction.asset,
+                                  balance: data[1] / (10 ** 8),
+                                  thousandSeparator: true
+                                }
+                              )}`
+                          }}
+                        </span>
+                      </div>
+                      <span
+                        v-if="transaction.recipients.length > 10"
+                        class="row col-12 justify-center q-mt-sm"
+                      >
+                        {{
+                          $t(
+                            "AndMoreAddresses",
+                            { addressCount: transaction.recipients.length - 10 },
+                            `and ${transaction.recipients.length - 10} more addresses`
+                          )
+                        }}
+                      </span>
+                    </q-item-label>
+                  </template>
+                  <template v-else>
+                    <q-item-label>
+                      <div
+                        v-for="(data, index) in transaction.recipients.slice(0, 10)"
+                        class="row col-12 q-gutter-x-sm q-mb-xs"
+                        :key="index"
+                      >
+                        <span class="col-1">#{{ index + 1 }}</span>
+                        <span class="col-10" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                      </div>
+                      <span
+                        v-if="transaction.recipients.length > 10"
+                        class="row col-12 justify-center q-mt-sm"
+                      >
+                        {{
+                          $t(
+                            "AndMoreAddresses",
+                            { addressCount: transaction.recipients.length - 10 },
+                            `and ${transaction.recipients.length - 10} more addresses`
+                          )
+                        }}
+                      </span>
+                    </q-item-label>
+                  </template>
                 </q-item-section>
               </q-item>
             </template>

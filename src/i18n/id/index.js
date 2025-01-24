@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "ID AUDIOTRACK",
   AuthSignError: "Kesalahan Penandatanganan Tantangan Otentikasi",
   AuthenticationCancelled: "Otentikasi dibatalkan",
+  AuthenticationFailed: "Otentikasi gagal",
   AutoFillFieldFromPinLocation: "Lapangan Isi Otomatis dari Lokasi Pin?",
   AutoGenerateAddress: "Alamat menghasilkan otomatis",
   AutoGenerateAddressToolTip: "Alamat baru akan dihasilkan setelah menerima aset",

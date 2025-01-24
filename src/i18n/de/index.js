@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "Audiotrack -IDs",
   AuthSignError: "Authentifizierungs -Herausforderung Signierfehler",
   AuthenticationCancelled: "Authentifizierung abgesagt",
+  AuthenticationFailed: "Authentifizierung fehlgeschlagen",
   AutoFillFieldFromPinLocation: "Automatische Füllung Feld vom PIN -Standort?",
   AutoGenerateAddress: "Automatische Adresse generieren",
   AutoGenerateAddressToolTip: "Eine neue Adresse wird nach Erhalt von Vermögenswerten generiert",

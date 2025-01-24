@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "IDS Audiotrack",
   AuthSignError: "خطأ في توقيع تحدي المصادقة",
   AuthenticationCancelled: "تم إلغاء المصادقة",
+  AuthenticationFailed: "فشلت المصادقة",
   AutoFillFieldFromPinLocation: "حقل تعبئة السيارات من موقع الدبوس؟",
   AutoGenerateAddress: "تلقائي إنشاء العنوان",
   AutoGenerateAddressToolTip: "سيتم إنشاء عنوان جديد بعد تلقي الأصول",

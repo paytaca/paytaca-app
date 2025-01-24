@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "Audiotrack IDS",
   AuthSignError: "Verifikasie -uitdagingsfout",
   AuthenticationCancelled: "Verifikasie gekanselleer",
+  AuthenticationFailed: "Verifikasie het misluk",
   AutoFillFieldFromPinLocation: "Auto Fill Field vanaf die Pin -ligging?",
   AutoGenerateAddress: "Auto genereer adres",
   AutoGenerateAddressToolTip: "'N Nuwe adres sal gegenereer word na ontvangs van bates",

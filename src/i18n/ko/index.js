@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "Audiotrack ID",
   AuthSignError: "인증 도전 서명 오류",
   AuthenticationCancelled: "인증이 취소되었습니다",
+  AuthenticationFailed: "인증이 실패했습니다",
   AutoFillFieldFromPinLocation: "핀 위치에서 자동 채우기 필드?",
   AutoGenerateAddress: "자동 생성 주소",
   AutoGenerateAddressToolTip: "자산을받은 후에 새로운 주소가 생성됩니다",

@@ -1181,7 +1181,8 @@ const phrases = {
       TransactionDetails: 'Transaction Details',
       TotalAmountSent: 'Total amount sent',
       TimeSent: 'Time sent',
-      TransactionBreakdown: 'Transaction Breakdown'
+      TransactionBreakdown: 'Transaction Breakdown',
+      AuthenticationFailed: 'Authentication failed'
     }
   ],
   dynamic: [

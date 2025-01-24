@@ -112,6 +112,7 @@ export default {
   AudioTrackIDs: "Idiotrack ID",
   AuthSignError: "身份验证挑战签名错误",
   AuthenticationCancelled: "认证取消",
+  AuthenticationFailed: "身份验证失败",
   AutoFillFieldFromPinLocation: "PIN位置自动填充字段？",
   AutoGenerateAddress: "自动生成地址",
   AutoGenerateAddressToolTip: "收到资产后将生成一个新的地址",
