@@ -43,11 +43,16 @@
                   })}` }}
                 </template>
                 <template v-else-if="transaction.record_type === 'outgoing'">
-                  {{ `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...transaction.asset,
-                    balance: transaction.amount
-                  })}` }}
+                  <template v-if="transaction.asset.id.startsWith('ct/')">
+                    {{ formatTokenAmount(transaction) }}
+                  </template>
+                  <template v-else>
+                    {{ `${parseAssetDenomination(
+                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                      ...transaction.asset,
+                      balance: transaction.amount
+                    })}` }}
+                  </template>
                 </template>
                 <template v-else>
                   <template v-if="transaction.asset.id.startsWith('ct/')">
@@ -247,7 +252,10 @@
                         :key="index"
                       >
                         <span class="col-1">#{{ index + 1 }}</span>
-                        <span class="col-10" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                        <span class="col-5" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                        <span class="col-4">
+                          {{ formatTokenAmount(transaction, absolute=true) }}
+                        </span>
                       </div>
                       <span
                         v-if="transaction.recipients.length > 10"
@@ -706,8 +714,9 @@ export default {
           dialog.update({ message: 'Unable to fetch data' })
         })
     },
-    formatTokenAmount (transaction) {
-      const amount = transaction.amount / (10 ** transaction.asset.decimals)
+    formatTokenAmount (transaction, absolute=false) {
+      const _amount = absolute ? Math.abs(transaction.amount) : transaction.amount
+      const amount = _amount / (10 ** transaction.asset.decimals)
       const amountString = amount.toLocaleString('en-us', {maximumFractionDigits: transaction.asset.decimals})
       return `${amountString} ${transaction.asset.symbol}`
     },
