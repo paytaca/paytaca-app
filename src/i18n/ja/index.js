@@ -1373,7 +1373,6 @@ export default {
   TradeType: "貿易タイプ",
   TradingWith: "取引",
   Transaction: "取引",
-  TransactionBreakdown: "トランザクションの内訳",
   TransactionDeadline: "トランザクションの締め切り",
   TransactionDetails: "トランザクションの詳細",
   TransactionHistory: "取引履歴",

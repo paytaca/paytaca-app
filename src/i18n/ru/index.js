@@ -1373,7 +1373,6 @@ export default {
   TradeType: "Тип торговли",
   TradingWith: "Торговля с",
   Transaction: "Сделка",
-  TransactionBreakdown: "Распад транзакции",
   TransactionDeadline: "Крайний срок транзакции",
   TransactionDetails: "Детали транзакции",
   TransactionHistory: "История транзакций",

@@ -1373,7 +1373,6 @@ export default {
   TradeType: "Uri ng kalakalan",
   TradingWith: "Pakikipagkalakalan sa",
   Transaction: "Transaksyon",
-  TransactionBreakdown: "Breakdown ng transaksyon",
   TransactionDeadline: "Deadline ng transaksyon",
   TransactionDetails: "Mga detalye ng transaksyon",
   TransactionHistory: "Kasaysayan ng Transaksyon",

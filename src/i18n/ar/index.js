@@ -1373,7 +1373,6 @@ export default {
   TradeType: "نوع التجارة",
   TradingWith: "التداول مع",
   Transaction: "عملية",
-  TransactionBreakdown: "انهيار المعاملة",
   TransactionDeadline: "الموعد النهائي للمعاملة",
   TransactionDetails: "تفاصيل المعاملة",
   TransactionHistory: "تاريخ المعاملة",

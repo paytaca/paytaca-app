@@ -1373,7 +1373,6 @@ export default {
   TradeType: "거래 유형",
   TradingWith: "거래",
   Transaction: "거래",
-  TransactionBreakdown: "거래 분류",
   TransactionDeadline: "거래 마감일",
   TransactionDetails: "거래 세부 사항",
   TransactionHistory: "거래 기록",

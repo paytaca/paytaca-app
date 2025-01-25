@@ -1373,7 +1373,6 @@ export default {
   TradeType: "Type de commerce",
   TradingWith: "Trading avec",
   Transaction: "Transaction",
-  TransactionBreakdown: "Ventilation des transactions",
   TransactionDeadline: "Date limite de transaction",
   TransactionDetails: "Détails de la transaction",
   TransactionHistory: "Historique des transactions",

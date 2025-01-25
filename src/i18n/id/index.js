@@ -1373,7 +1373,6 @@ export default {
   TradeType: "Jenis perdagangan",
   TradingWith: "Perdagangan dengan",
   Transaction: "Transaksi",
-  TransactionBreakdown: "Kerusakan transaksi",
   TransactionDeadline: "Batas waktu transaksi",
   TransactionDetails: "Detail Transaksi",
   TransactionHistory: "Riwayat transaksi",

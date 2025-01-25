@@ -1371,7 +1371,6 @@ export default {
   TradeType: "Tipo de comercio",
   TradingWith: "Comercio con",
   Transaction: "Transacción",
-  TransactionBreakdown: "Desglose de transacciones",
   TransactionDeadline: "Fecha límite de transacción",
   TransactionDetails: "Detalles de la transacción",
   TransactionHistory: "Historial de transacciones",

@@ -1373,7 +1373,6 @@ export default {
   TradeType: "Trade Type",
   TradingWith: "Trading with",
   Transaction: "Transaction",
-  TransactionBreakdown: "Transaction Breakdown",
   TransactionDeadline: "Transaction Deadline",
   TransactionDetails: "Transaction Details",
   TransactionHistory: "Transaction History",

@@ -1373,7 +1373,6 @@ export default {
   TradeType: "Nau'in kasuwanci",
   TradingWith: "Ciniki tare da",
   Transaction: "Ma'amala",
-  TransactionBreakdown: "Rashin ma'amala",
   TransactionDeadline: "Ranar Kasuwanci",
   TransactionDetails: "Bayanin ma'amala",
   TransactionHistory: "Tarihin ma'amala",

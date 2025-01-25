@@ -1373,7 +1373,6 @@ export default {
   TradeType: "贸易类型",
   TradingWith: "交易",
   Transaction: "交易",
-  TransactionBreakdown: "交易分解",
   TransactionDeadline: "交易截止日期",
   TransactionDetails: "交易细节",
   TransactionHistory: "交易历史记录",
