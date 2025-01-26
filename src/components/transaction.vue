@@ -254,7 +254,12 @@
                         <span class="col-1">#{{ index + 1 }}</span>
                         <span class="col-5" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
                         <span class="col-4">
-                          {{ formatTokenAmount(transaction, absolute=true) }}
+                          <template v-if="data[3]">
+                            {{ formatTokenAmount({amount: data[3], asset: transaction.asset}, absolute=true) }}
+                          </template>
+                          <template v-else>
+                            {{ formatTokenAmount(transaction, absolute=true) }}X
+                          </template>
                         </span>
                       </div>
                       <span
