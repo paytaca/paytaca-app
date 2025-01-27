@@ -181,7 +181,7 @@
               </q-item>
             </template>
             <template v-else>
-              <q-item clickable v-ripple v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
+              <!-- <q-item clickable v-ripple v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
                 <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.from)">
                   <q-item-label class="text-gray" caption>
                     <span>{{ $t('Sender') }}</span>
@@ -195,7 +195,7 @@
                   </q-item-label>
                   <q-item-label>{{ concatenate(transaction.senders) }}</q-item-label>
                 </q-item-section>
-              </q-item>
+              </q-item> -->
               <q-item clickable v-ripple v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
                 <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.to)">
                   <q-item-label class="text-gray" caption>
@@ -252,7 +252,7 @@
                         :key="index"
                       >
                         <span class="col-1">#{{ index + 1 }}</span>
-                        <span class="col-5" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                        <span class="col-5" style="overflow-wrap: anywhere;">{{ convertCashAddress(data[0], $store.getters['global/isChipnet'], true) }}</span>
                         <span class="col-4">
                           <template v-if="data[3]">
                             {{ formatTokenAmount({amount: data[3], asset: transaction.asset}, absolute=true) }}
@@ -476,7 +476,7 @@ import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/format
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import JppDetailDialog from 'src/components/JppDetailDialog.vue'
-import { convertTokenAmount } from 'src/wallet/chipnet'
+import { convertTokenAmount, convertCashAddress } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
@@ -610,6 +610,7 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
+    convertCashAddress,
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]
