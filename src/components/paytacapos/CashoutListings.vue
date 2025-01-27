@@ -161,6 +161,19 @@ export default {
       ],
       selectedTransactions: [],
       merchantTransactions: null,
+      unspentTxns: { // temp
+        record_type: 'Incoming',
+        txid: '46xv5d9k',
+        amount: 201.2,
+        token: '',
+        tx_fee: 0.00003,
+        senders: 'bitcoincash:qzxxvyezu9u2zrcxc4hc7tyu3n6uklvhps6kklcesf',
+        recipients: 'bitcoincash:qqqmhmcce3l5panx499ymsr52cvzk24jhyjqaru04e',
+        date_created: 'date.now',
+        tx_timestamp: Date.now(),
+        usd_price: 0,
+        attributes: 0
+      }
       // cashoutOrders: null
     }
   },
@@ -171,12 +184,13 @@ export default {
   },
   watch: {
     orderType (val) {
-      // this.refetchListings()
+      this.refetchListings()
     }
   },
   emits: ['cashout-form'],
   mounted () {
-    this.fetchCashoutOrders()
+    this.refetchListings()
+    // this.fetchCashoutOrders()
   },
   methods: {
     getDarkModeClass,
@@ -185,8 +199,9 @@ export default {
       done()
     },
     async refetchListings () {
-      await this.fetchCashoutOrders()
-      await this.fetchMerchantTransactions()
+      console.log('fetching data')
+      // await this.fetchCashoutOrders()
+      await this.fetchUnspentTxns()
     },
     selectTransaction (index) {
       if (!this.transactions[index].selected) {
@@ -197,11 +212,12 @@ export default {
         this.selectedTransactions = this.selectedTransactions.filter(item => item.id !== this.transactions[index].id)
       }
     },
-    async fetchMerchantTransactions () {
+    async fetchUnspentTxns () {
+      console.log('fetching unspent txns')
       const vm = this
-      const url = '/paytacapos/cash-out/list_unspent_txns'
+      const url = '/paytacapos/cash-out/list_unspent_txns/'
 
-      await backend.get(url, { authorize: true })
+      await backend.get(url)
         .then(response => {
           console.log(response)
           vm.merchantTransactions = response.data
