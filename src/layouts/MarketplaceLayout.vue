@@ -6,7 +6,6 @@
         <q-spinner size="1.5em" class="q-ml-sm"/>
       </div>
     </q-dialog>
-    <div v-if="$q.platform.is.ios" style="padding-top:25px;"></div>
     <router-view v-slot="{ Component }">
       <keep-alive>
         <component :is="Component" v-bind="{ cartDialog: { value: showCartsDialog, toggle: toggleShowCartsDialog, cart: activeStorefrontCart } }"/>
