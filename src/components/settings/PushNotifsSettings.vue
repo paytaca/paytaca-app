@@ -223,7 +223,7 @@ export default {
 
     if (currentCity) {
       const choices = this.parseCities()
-      const city = choices.filter(a => a.id === currentCity)
+      const city = choices.filter(a => a.value === currentCity)
       vm.eventsAndPromosSubList[1].value = city[0]
     }
 
@@ -289,7 +289,6 @@ export default {
     },
     openEnterCountryCityDialog (enterType) {
       const vm = this
-
       const enterTypeText = enterType === 0 ? 'Country' : 'City'
 
       let choices = []
