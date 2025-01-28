@@ -82,7 +82,8 @@ const NOTIF_TYPES = {
   CB: $t('Cashback'),
   AH: 'AnyHedge',
   RP: 'P2P Exchange',
-  TR: $t('Transactions')
+  TR: $t('Transactions'),
+  NF: $t('Collectibles')
 }
 
 export async function getWalletNotifications (walletHash, notifType, page = 1) {
@@ -111,11 +112,18 @@ export function parseNotifType (type) {
   return NOTIF_TYPES[type]
 }
 
-export async function hideItemUpdate (item) {
+export async function hideItemUpdate (id) {
   await NOTIFS_URL
-    .patch(`notification/${item.id}/`, { is_hidden: true })
+    .patch(`notification/${id}/`, { is_hidden: true })
     .then(response => { /* notif hidden successfully */ })
-    .catch(error => { console.log(error) })
+    .catch(error => { console.error(error) })
+}
+
+export async function markItemAsRead (id) {
+  await NOTIFS_URL
+    .patch(`notification/${id}/`, { is_read: true })
+    .then(response => { /* notif hidden successfully */ })
+    .catch(error => { console.error(error) })
 }
 
 export async function massHideNotifs (notifsIds) {
@@ -181,8 +189,10 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
         data.is_by_country_enabled = type.value
       } else if (type.db_col === 'is_by_city_enabled') {
         data.is_by_city_enabled = type.value
-      } else if (type.db_col === 'country') data.country = type.value
-      else if (type.db_col === 'city') data.city = type.value
+      } else if (type.db_col === 'country') {
+        data.country = type.value
+        data.city = null
+      } else if (type.db_col === 'city') data.city = type.value
 
       await NOTIFS_URL.patch(
         `devicenotiftype/${respId}/`,

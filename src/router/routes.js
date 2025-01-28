@@ -115,15 +115,15 @@ const routes = [
         path: 'marketplace',
         component: () => import('src/layouts/MarketplaceLayout.vue'),
         children: [
-          { path: '', component: () => import('src/pages/apps/marketplace/index.vue'), name: 'app-marketplace' },
+          { path: '', component: () => import('src/pages/apps/marketplace/index.vue'), name: 'app-marketplace', meta: { hideCartBtn: true } },
           { path: 'storefront/:storefrontId', component: () => import('src/pages/apps/marketplace/storefront.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-storefront' },
           { path: 'colleciton/:collectionId', component: () => import('src/pages/apps/marketplace/collection.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-collection' },
           { path: 'product/:productId', component: () => import('src/pages/apps/marketplace/product.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-product' },
           { path: 'colleciton/:collectionId/product/:productId', component: () => import('src/pages/apps/marketplace/product.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-collection-product' },
           { path: 'checkout', component: () => import('src/pages/apps/marketplace/checkout.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-checkout' },
-          { path: 'orders/:orderId', component: () => import('src/pages/apps/marketplace/order.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-order' },
-          { path: 'orders/', component: () => import('src/pages/apps/marketplace/orders.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-orders' },
-          { path: 'customer', component: () => import('src/pages/apps/marketplace/customer.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-customer' },
+          { path: 'orders/:orderId', component: () => import('src/pages/apps/marketplace/order.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-order', meta: { hideCartBtn: true } },
+          { path: 'orders/', component: () => import('src/pages/apps/marketplace/orders.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-orders', meta: { hideCartBtn: true } },
+          { path: 'customer', component: () => import('src/pages/apps/marketplace/customer.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-customer', meta: { hideCartBtn: true } },
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
         ]
       },

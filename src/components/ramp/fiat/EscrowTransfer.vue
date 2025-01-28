@@ -111,6 +111,16 @@
     <div v-if="!loading && !hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
       There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
     </div>
+    <div class="row q-mt-sm q-pt-xs q-mx-lg">
+      <q-btn
+        flat
+        :disable="!showDragSlide"
+        label="Cancel order"
+        class="q-space text-white br-15"
+        color="blue-6"
+        @click="$emit('cancel')"
+      />
+    </div>
     <RampDragSlide
       :key="dragSlideKey"
       :locked="!contractAddressMatch"
@@ -160,7 +170,7 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
     }
   },
-  emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending'],
+  emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending', 'cancel'],
   components: {
     RampDragSlide
   },
