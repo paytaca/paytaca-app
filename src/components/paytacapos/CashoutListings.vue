@@ -173,6 +173,15 @@ export default {
         tx_timestamp: Date.now(),
         usd_price: 0,
         attributes: 0
+      },
+      cashoutOrders1: {
+        id: 1,
+        transactions: [],
+        wallet: 'hash',
+        currency: 'currency',
+        market_price: 0,
+        status: 'PENDING',
+        created_at: Date.now()
       }
       // cashoutOrders: null
     }
@@ -180,6 +189,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    marketPrice () {
+      return 0
     }
   },
   watch: {
@@ -217,7 +229,7 @@ export default {
       const vm = this
       const url = '/paytacapos/cash-out/list_unspent_txns/'
 
-      await backend.get(url)
+      await backend.get(url) // { authorize: true}
         .then(response => {
           console.log(response)
           vm.merchantTransactions = response.data
