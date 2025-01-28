@@ -61,6 +61,10 @@ export default {
         if (vm.offlineNotif) vm.offlineNotif()
       } else {
         vm.offlineNotif = vm.$q.notify({
+          group: 'connectivity-offline-notif',
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ],
           type: 'negative',
           icon: 'signal_wifi_off',
           iconColor: 'primary',
