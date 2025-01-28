@@ -188,8 +188,8 @@ export default {
     bus.on('session-expired', this.handleSessionEvent)
     bus.on('cashin-alert', this.onCashinAlert)
   },
-  mounted () {
-    loadRampWallet()
+  async mounted () {
+    await loadRampWallet()
     this.loaddata()
   },
   methods: {
@@ -324,8 +324,8 @@ export default {
         console.log('Logging in to P2P Exchange')
         vm.loggingIn = true
         const { data: { otp } } = await backend(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`)
-        const keypair = await wallet.keypair()
-        const signature = await wallet.signMessage(keypair.privateKey, otp)
+        const keypair = wallet.keypair()
+        const signature = wallet.signMessage(keypair.privateKey, otp)
         const body = {
           wallet_hash: wallet.walletHash,
           signature: signature,

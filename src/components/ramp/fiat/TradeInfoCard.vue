@@ -118,10 +118,10 @@
                 <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
             </div>
             <div v-if="adOwner?.last_online_at && adOwner?.is_online === false" class="row xs-font-size text-grey">
-              Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}
+              <span class="col" style="text-align: right;">Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}</span>
             </div>
-            <div v-if="!adOwner?.last_online_at" class="row xs-font-size text-grey">
-              Offline for a long time
+            <div v-if="!adOwner?.last_online_at" class="row xs-font-size text-grey text-right">
+              <span class="col" style="text-align: right;">Offline for a long time</span>
             </div>
           </div>
         </div>
@@ -130,6 +130,7 @@
         <q-separator class="q-my-sm"/>
         <div v-if="type !== 'appeal'" class="row justify-end">
             <div class="col-auto">
+              <!-- Ad price display -->
               <div v-if="type === 'ad'">
                 <div class="xs-font-size">{{ $t('Price') }}</div>
                 <span
@@ -140,7 +141,6 @@
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
               <div v-if="type === 'order'">
-                <!-- <div class="xs-font-size">{{ $t('TradeAmount') }}</div> -->
                 <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
                   {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}{{ tradeAmount }}
                 </span>
@@ -218,7 +218,6 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wsURL: process.env.MARKETPLACE_WS_URL,
       websocket: null,
       byFiat: false,
       chatRef: '',
@@ -279,10 +278,6 @@ export default {
     getDarkModeClass,
     onlineStatusColor (peer) {
       if (peer?.is_online) return 'green'
-      const diffInHours = this.getElapsedTimeInHours(peer?.last_online_at)
-      if (diffInHours < 24) {
-        return 'orange'
-      }
       return 'grey-5'
     },
     getElapsedTimeInHours (date) {
@@ -341,30 +336,26 @@ export default {
     onViewReviews () {
       this.$emit('view-reviews')
     },
-    async onViewChat () {
+    onViewChat () {
       this.$emit('view-chat')
     }
   }
 }
 </script>
 <style scoped>
-.xs-font-size {
-  font-size: smaller
-}
-
-.sm-font-size {
-  font-size: small;
-}
-.md-font-size {
-  font-size: medium;
-}
-
-.lg-font-size {
-  font-size: large;
-}
-
-.subtext {
-  opacity: .5;
-}
-
+  .xs-font-size {
+    font-size: smaller
+  }
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
+  .subtext {
+    opacity: .5;
+  }
 </style>

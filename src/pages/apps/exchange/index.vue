@@ -40,7 +40,7 @@ export default {
       this.appDisabled = !appEnabled
     } else {
       await this.checkVersionUpdate()
-      loadRampWallet()
+      await loadRampWallet()
       await this.getUser()
       this.goToMainPage()
     }
@@ -54,7 +54,7 @@ export default {
           this.user = response.data
         })
         .catch(error => {
-          console.log(error.response || error)
+          console.error(error.response || error)
         })
     },
     goToMainPage () {

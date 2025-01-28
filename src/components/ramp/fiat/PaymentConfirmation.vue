@@ -108,7 +108,7 @@
                         @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
                     </div>
                     <div v-else>
-                      <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
+                      <span v-if="hasUploadingMsg" class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
                     </div>
                     <div v-if="data?.type !== 'seller'" class="row">
                       <q-btn
@@ -265,7 +265,8 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
       attachmentUrl: null,
-      loadAppealButton: false
+      loadAppealButton: false,
+      errorDialogActive: false
     }
   },
   components: {
@@ -286,6 +287,10 @@ export default {
   computed: {
     maxFileSize () {
       return 5 * 1024 * 1024
+    },
+    hasUploadingMsg () {
+      const status = this.order.status.value
+      return status !== 'ESCRW' && status !== 'PD_PN'
     },
     appealBtnLabel () {
       if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countDown }, `Appealable in ${this.countDown}`)
@@ -467,7 +472,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
-      const keypair = await wallet.keypair(sellerMember.address_path)
+      const keypair = wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {
           console.log(result)
@@ -595,6 +600,22 @@ export default {
     },
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
+    },
+    showErrorDialog (error) {
+      console.error(error)
+      const message = 'An unexpected error has occured'
+      if (!this.errorDialogActive) {
+        this.errorDialogActive = false
+        this.$q.notify({
+          type: 'warning',
+          message: message,
+          position: 'bottom',
+          timeout: 5000,
+          onDismiss: () => {
+            this.errorDialogActive = false
+          }
+        })
+      }
     }
   }
 }

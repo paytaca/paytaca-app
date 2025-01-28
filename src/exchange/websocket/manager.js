@@ -9,6 +9,7 @@ export class WebSocketManager {
     this.baseBackoff = 1000
     this.backoffMultiplier = 2
     this.websocketService = null
+    this.pingInterval = null
     this._setupEventListeners()
   }
 
@@ -28,6 +29,14 @@ export class WebSocketManager {
     this.messageCallback = callback
   }
 
+  sendMessage (message) {
+    if (this.websocketService) {
+      this.websocketService.sendMessage(message)
+    } else {
+      console.error('WebSocketService is not initialized. Unable to send message.');
+    }
+  }
+
   _setupEventListeners () {
     if (this.websocketService) {
       // Handle WebSocket events globally
@@ -38,10 +47,10 @@ export class WebSocketManager {
       }
       )
       this.websocketService.subscribeToMessages((message) => {
-        console.log('Received message:', JSON.parse(message))
         // Emit the message to subscribers (components)
         this._emitMessage(JSON.parse(message))
       })
+      this._startKeepAlive()
     }
   }
 
@@ -67,6 +76,23 @@ export class WebSocketManager {
         bus.emit('websocket-disconnected', this.url)
         console.error('WebSocket connection failed after max retries.')
       }
+    }
+    this._stopKeepAlive()
+  }
+
+  _startKeepAlive () {
+    this._stopKeepAlive() // Ensure no duplicate intervals
+    this.pingInterval = setInterval(() => {
+      if (this.websocketService && this.websocketService.isOpen()) {
+        this.sendMessage(JSON.stringify({ type: 'ping' }))
+      }
+    }, 30000)
+  }
+
+  _stopKeepAlive () {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval)
+      this.pingInterval = null
     }
   }
 
