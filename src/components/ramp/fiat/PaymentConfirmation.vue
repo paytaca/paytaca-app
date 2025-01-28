@@ -265,7 +265,8 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
       attachmentUrl: null,
-      loadAppealButton: false
+      loadAppealButton: false,
+      errorDialogActive: false
     }
   },
   components: {
@@ -599,6 +600,22 @@ export default {
     },
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
+    },
+    showErrorDialog (error) {
+      console.error(error)
+      const message = 'An unexpected error has occured'
+      if (!this.errorDialogActive) {
+        this.errorDialogActive = false
+        this.$q.notify({
+          type: 'warning',
+          message: message,
+          position: 'bottom',
+          timeout: 5000,
+          onDismiss: () => {
+            this.errorDialogActive = false
+          }
+        })
+      }
     }
   }
 }
