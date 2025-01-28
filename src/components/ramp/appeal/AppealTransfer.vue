@@ -180,7 +180,6 @@ export default {
           if (error.response) {
             vm.errorMessage = error.response?.data?.error
           }
-          this.handleRequestError(error)
           vm.hideBtn = false
         })
         .finally(() => { vm.verifyingTx = false })
