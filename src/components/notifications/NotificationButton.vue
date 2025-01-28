@@ -23,7 +23,8 @@ export default {
   name: 'NotificationButton',
 
   emits: [
-    'hide-multi-wallet-dialog'
+    'hide-multi-wallet-dialog',
+    'find-and-open-transaction'
   ],
 
   data () {
@@ -64,7 +65,8 @@ export default {
 
       vm.$emit('hide-multi-wallet-dialog')
       vm.$q.dialog({
-        component: Notifications
+        component: Notifications,
+        componentProps: { onOpenTransaction: this.findAndOpenTransaction }
       }).onDismiss(async () => {
         if (this.isMobile) {
           vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
@@ -94,6 +96,9 @@ export default {
       vm.notifSocket.addEventListener('error', (event) => {
         console.log('Notification websocket encountered an error. ', event)
       })
+    },
+    findAndOpenTransaction (data) {
+      this.$emit('find-and-open-transaction', data)
     }
   }
 }
