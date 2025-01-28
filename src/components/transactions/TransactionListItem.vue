@@ -36,24 +36,34 @@
             </template>
             <template v-else>
               <div v-if="transaction.record_type === 'outgoing'">
-                {{
-                  `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...asset,
-                    balance: transaction?.amount,
-                    thousandSeparator: true
-                  })}`
-                }}
+                <template v-if="transaction.asset.id.startsWith('ct/')">
+                  {{ formatTokenAmount(transaction) }}
+                </template>
+                <template v-else>
+                  {{
+                    `${parseAssetDenomination(
+                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                      ...asset,
+                      balance: transaction?.amount,
+                      thousandSeparator: true
+                    })}`
+                  }}
+                </template>
               </div>
               <div v-else>
-                {{
-                  `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...asset,
-                    balance: transaction?.amount,
-                    thousandSeparator: true
-                  })}`
-                }}
+                <template v-if="transaction.asset.id.startsWith('ct/')">
+                  {{ formatTokenAmount(transaction) }}
+                </template>
+                <template v-else>
+                  {{
+                    `${parseAssetDenomination(
+                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                      ...asset,
+                      balance: transaction?.amount,
+                      thousandSeparator: true
+                    })}`
+                  }}
+                </template>
               </div>
               <div
                 v-if="marketValueData?.marketValue"
@@ -177,7 +187,7 @@ const badges = computed(() => {
   if (!Array.isArray(props.transaction?.attributes)) return []
   return props.transaction?.attributes.map(parseAttributeToBadge)
     .filter(badge => badge?.custom)
-    .filter(badge => isStablehedgeTx.value && badge.key !== 'stablehedge_transaction')
+    .filter(badge => isStablehedgeTx.value || badge.key !== 'stablehedge_transaction')
 })
 
 const stablehedgeTxData = computed(() => extractStablehedgeTxData(props.transaction))

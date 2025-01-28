@@ -13,7 +13,7 @@
       <q-card-section style="max-height:calc(90vh - 3.5rem);overflow-y:auto" class="q-pt-sm">
         <div class="text-center text-h5 q-mb-md">{{ $t('Amount') }}: {{ amount }} BCH</div>
         <div class="row justify-center q-mb-md">
-          <qr-code :text="qrCodeContents" :size="300"/>
+          <qr-code :text="qrCodeContents" :size="200"/>
         </div>
         <div
           class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders q-mb-sm"

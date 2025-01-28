@@ -15,7 +15,10 @@
       <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 
-    <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
+    <div
+      class="q-px-md q-pt-xs q-pb-md sticky-below-header"
+      :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
+    >
       <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
     </div>
 
@@ -466,5 +469,8 @@ table.orders-table td {
   position: sticky;
   top: 70px;
   z-index: 10 !important;
+}
+.sticky-below-header.sticky-below-header--ios {
+  top: 110px;
 }
 </style>
