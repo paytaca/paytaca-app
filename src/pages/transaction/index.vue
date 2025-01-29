@@ -286,6 +286,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
           </template>
@@ -304,6 +305,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
           </template>
@@ -319,25 +321,48 @@
         <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
           <div class="row no-wrap justify-between">
             <p class="q-ma-lg section-title transaction-wallet" :class="getDarkModeClass(darkMode)">
-              {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+              <template v-if="!txSearchActive">
+                {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+                <span>
+                  &nbsp;<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
+                </span>
+              </template>
             </p>
-            <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
-              <q-btn
-                v-if="isNotDefaultTheme(theme) && darkMode"
-                unelevated
-                @click="openPriceChart"
-                icon="img:assets/img/theme/payhero/price-chart.png"
-              />
-              <q-btn
-                v-else
-                round
-                color="blue-9"
-                padding="xs"
-                icon="mdi-chart-line-variant"
-                class="q-ml-md"
-                :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
-                @click="openPriceChart"
-              />
+            <div class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
+              <div v-if="txSearchActive" class="full-width">
+                <q-input
+                  style="padding-bottom: 22px;"
+                  label="Search by Reference ID"
+                  v-model="txSearchReference"
+                  debounce="500"
+                  @update:model-value="executeTxSearch"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="search" />
+                  </template>
+                  <template v-slot:append>
+                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
+                  </template>
+                </q-input>
+              </div>
+              <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
+                <q-btn
+                  v-if="isNotDefaultTheme(theme) && darkMode"
+                  unelevated
+                  @click="openPriceChart"
+                  icon="img:assets/img/theme/payhero/price-chart.png"
+                />
+                <q-btn
+                  v-else
+                  round
+                  color="blue-9"
+                  padding="xs"
+                  icon="mdi-chart-line-variant"
+                  class="q-ml-md"
+                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
+                  @click="openPriceChart"
+                />
+              </template>
             </div>
           </div>
           <div
@@ -475,6 +500,8 @@ export default {
         balance: 0
       },
       stablehedgeView: false,
+      txSearchActive: false,
+      txSearchReference: '',
       openStablehedgeMarketsDialog: false,
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
@@ -701,6 +728,12 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    executeTxSearch (value) {
+      if (String(value).length == 0 || String(value).length >= 6) {
+        const opts = {txSearchReference: value}
+        this.$refs['transaction-list-component'].getTransactions(1, opts)
+      }
+    },
     onFixedSectionResize: debounce(function (size) {
       this.adjustTransactionsDivHeight({ timeout: 50 })
       this.$refs['transaction-list-component']?.computeTransactionsListHeight?.()
@@ -868,6 +901,9 @@ export default {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
+      vm.txSearchActive = false
+      vm.txSearchReference = ''
+      
       vm.$nextTick(() => {
         vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
         vm.$refs['transaction-list-component'].getTransactions()
