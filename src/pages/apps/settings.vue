@@ -225,7 +225,7 @@
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" :disableClose="disablePinDialogClose"/>
 
       <StablehedgePlatformInfoDialog v-model="showStablehedgeInfoDialog"/>
   </div>
@@ -251,6 +251,7 @@ export default {
   data () {
     return {
       pinDialogAction: '',
+      disablePinDialogClose: false,
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
       securityChange: null,
@@ -347,6 +348,7 @@ export default {
             vm.$q.localStorage.set('preferredSecurity', 'pin')
             vm.pinStatus = true
             vm.pinDialogAction = 'SET NEW'
+            vm.disablePinDialogClose = true
           }, 1000)
         },
         (error) => {
@@ -368,13 +370,6 @@ export default {
       if (currentPref === auth) {
         vm.securityOptionDialogStatus = 'dismiss'
       }
-      // if (auth === 'pin') {
-      //   vm.pinStatus = true
-      //   vm.pinDialogAction = 'SET NEW'
-      // } else {
-      //   vm.pinStatus = false
-      //   vm.securityOptionDialogStatus = 'dismiss'
-      // }
     }
   },
   created () {
