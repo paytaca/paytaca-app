@@ -93,8 +93,8 @@
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
                       </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:0;" >
-                        {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets') }}
+                      <q-item-label caption style="line-height:1;margin-top:3px;" >
+                        {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
@@ -110,8 +110,8 @@
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('EnableStablhedge') }} <q-badge color="red" align="top">ALPHA</q-badge>
                       </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:0;" >
-                        {{ $t('EnableStablhedgeTooltip', {}, 'Freeze or unfreeze the fiat value of your BCH') }}
+                      <q-item-label caption style="line-height:1;margin-top:3px;" >
+                        {{ $t('StablehedgeIntroText', {}, 'Safeguard your funds from market volatlity and access them whenever you need.') }}
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
