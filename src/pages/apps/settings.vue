@@ -108,7 +108,7 @@
               <q-item clickable v-ripple @click="enableStablhedge = !enableStablhedge">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableStablhedge') }}
+                        {{ $t('EnableStablhedge') }} <q-badge color="red" align="top">ALPHA</q-badge>
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
@@ -119,7 +119,7 @@
                     />
                   </q-item-section>
               </q-item>
-              <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
+              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('EnableSmartBCH') }}
@@ -132,7 +132,7 @@
                       keep-color
                     />
                   </q-item-section>
-              </q-item>
+              </q-item> -->
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">

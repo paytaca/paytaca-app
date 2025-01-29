@@ -227,11 +227,8 @@ export default {
   async mounted () {
     const vm = this
 
-    // if (navigator.onLine) {
-    //   vm.onConnectivityChange(true)
-    // } else {
-    //   vm.onConnectivityChange(false)
-    // }
+    // Forcibly disable SmartBCH, in preparation for future deprecation
+    this.$store.commit('global/disableSmartBCH')
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
