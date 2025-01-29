@@ -1,11 +1,11 @@
 <template>
   <q-dialog ref="dialog" full-width position="bottom" transition-show="slide-up">
-    <q-card class="cashin-card br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
+    <q-card class="bottom-card br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
       <div v-if="loading || loggingIn">
         <div class="q-mt-lg q-pt-md row text-center justify-center q-mx-md text-blue" style="font-size: 21px;">
           Cash In
         </div>
-        <StandBy style="margin-top: 20%" :title="title" :subtitle="subtitle" spinner/>
+        <StandBy style="margin-top: 20px;" :title="title" :subtitle="subtitle" spinner/>
       </div>
       <div v-else>
         <div v-if="cashinEnabled === false || isOutdated">
@@ -556,9 +556,6 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-.cashin-card {
-  height: 450px;
-}
 #exchange-logo {
   height: 30px;
   width: 30px;

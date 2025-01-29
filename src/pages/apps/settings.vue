@@ -110,6 +110,9 @@
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('EnableStablhedge') }} <q-badge color="red" align="top">ALPHA</q-badge>
                       </q-item-label>
+                      <q-item-label caption style="line-height:1;margin-top:0;" >
+                        {{ $t('EnableStablhedgeTooltip', {}, 'Freeze or unfreeze the fiat value of your BCH') }}
+                      </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
                     <q-toggle
