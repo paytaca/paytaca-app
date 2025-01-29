@@ -331,11 +331,13 @@
             <div class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
               <div v-if="txSearchActive" class="full-width">
                 <q-input
+                  ref="tx-search"
                   style="padding-bottom: 22px;"
+                  maxlength="6"
                   label="Search by Reference ID"
                   v-model="txSearchReference"
-                  debounce="500"
-                  @update:model-value="executeTxSearch"
+                  debounce="200"
+                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
                 >
                   <template v-slot:prepend>
                     <q-icon name="search" />
@@ -731,6 +733,7 @@ export default {
     executeTxSearch (value) {
       if (String(value).length == 0 || String(value).length >= 6) {
         const opts = {txSearchReference: value}
+        this.$refs['tx-search'].blur()
         this.$refs['transaction-list-component'].getTransactions(1, opts)
       }
     },
