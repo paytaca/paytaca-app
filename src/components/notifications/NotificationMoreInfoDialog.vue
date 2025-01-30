@@ -25,8 +25,6 @@
         {{ message }}
       </div>
 
-      <q-separator />
-
       <div class="q-pt-sm">
         External Links:
         <div v-for="(link, index) in url" :key="index" class="q-ml-sm q-pb-xs">
