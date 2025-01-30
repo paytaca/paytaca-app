@@ -59,14 +59,17 @@
             </q-item-section>
           </q-item>
         </q-card>
-        <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="selectTransaction(index)">
+        <q-item v-for="(transaction, index) in unspentTxns" :key="index" clickable @click="selectTransaction(transaction)">
           <q-item-section>
             <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              <div class="sm-font-size text-grey-6 text-strike">{{ transaction.initAmount }}</div>
+              <div class="sm-font-size text-grey-6 text-strike">
+                {{ formatCurrency(getInitialFiatAmount(transaction), currency.symbol) }} {{ currency.symbol }}
+              </div>
               <div class="row">
                 <div class="col ib-text">
-                  <div class="md-font-size text-bold">
-                    {{ formatCurrency(transaction.fiatAmount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                  <div class="md-font-size text-bold" :class="getFiatAmountColor(transaction)">
+                    {{ formatCurrency(getCurrentFiatAmount(transaction), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                    <q-icon :name="getTrendingIcon(transaction)"/>
                   </div>
                   <div class="sm-font-size">
                     {{ transaction.amount }} BCH
@@ -74,9 +77,13 @@
                 </div>
                 <div class="col ib-text text-right q-pr-sm">
                   <div class="text-grey-8 text-bold">
-                    <span>{{ transaction.txid }}</span> <q-icon color="primary" size="sm" name="o_check_box" v-if="transaction.selected"/>
+                    <span>{{ transaction.txid.substring(0,8) }}</span>
+                    <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(transaction)"/>
                   </div>
-                  <div class="text-grey-6 sm-font-size">{{ transaction.lossProtection }}</div>
+                  <div class="text-grey-6 sm-font-size">
+                    <q-icon name="local_police" class="q-pa-xs"/>
+                    <span>{{ lossProtection(transaction) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -102,78 +109,40 @@ export default {
       orderType: 'ALL',
       hideCashout: false,
       cashoutOrders: [
-        {
-          fiatAmount: 1521.63,
-          amount: 0.060,
-          txid: '54d4ee39',
-          status: 'Completed'
-        },
-        {
-          fiatAmount: 302.2,
-          amount: 0.060,
-          txid: '029034dh',
-          status: 'Completed'
-        },
-        {
-          fiatAmount: 468.5,
-          amount: 0.060,
-          txid: '374dfhjh',
-          status: 'Completed'
-        }
-      ],
-      transactions: [
-        {
-          id: 1,
-          initAmount: 345.75,
-          fiatAmount: 342.3,
-          amount: 0.013,
-          txid: '46xv5d9k',
-          lossProtection: 'expired',
-          selected: false // add this after fetching data
-        },
-        {
-          id: 2,
-          initAmount: 340.01,
-          fiatAmount: 342.3,
-          amount: 0.013,
-          txid: '46xv5d9k',
-          lossProtection: '30 days remaining',
-          selected: false
-        },
-        {
-          id: 3,
-          initAmount: 345.75,
-          fiatAmount: 450.3,
-          amount: 0.013,
-          txid: '46xv5d9k',
-          lossProtection: '30 days remaining',
-          selected: false
-        },
-        {
-          id: 4,
-          initAmount: 380.39,
-          fiatAmount: 201.2,
-          amount: 0.013,
-          txid: '46xv5d9k',
-          lossProtection: '30 days remaining',
-          selected: false
-        }
+        // {
+        //   fiatAmount: 1521.63,
+        //   amount: 0.060,
+        //   txid: '54d4ee39',
+        //   status: 'Completed'
+        // },
+        // {
+        //   fiatAmount: 302.2,
+        //   amount: 0.060,
+        //   txid: '029034dh',
+        //   status: 'Completed'
+        // },
+        // {
+        //   fiatAmount: 468.5,
+        //   amount: 0.060,
+        //   txid: '374dfhjh',
+        //   status: 'Completed'
+        // }
       ],
       selectedTransactions: [],
-      merchantTransactions: null,
-      unspentTxns: { // temp
-        record_type: 'Incoming',
-        txid: '46xv5d9k',
-        amount: 201.2,
-        token: '',
-        tx_fee: 0.00003,
-        senders: 'bitcoincash:qzxxvyezu9u2zrcxc4hc7tyu3n6uklvhps6kklcesf',
-        recipients: 'bitcoincash:qqqmhmcce3l5panx499ymsr52cvzk24jhyjqaru04e',
-        date_created: 'date.now',
-        tx_timestamp: Date.now(),
-        usd_price: 0,
-        attributes: 0
-      }
+      unspentTxns: []
+      // unspentTxns: { // temp
+      //   record_type: 'Incoming',
+      //   txid: '46xv5d9k',
+      //   amount: 201.2,
+      //   token: '',
+      //   tx_fee: 0.00003,
+      //   senders: 'bitcoincash:qzxxvyezu9u2zrcxc4hc7tyu3n6uklvhps6kklcesf',
+      //   recipients: 'bitcoincash:qqqmhmcce3l5panx499ymsr52cvzk24jhyjqaru04e',
+      //   date_created: 'date.now',
+      //   tx_timestamp: Date.now(),
+      //   usd_price: 0,
+      //   attributes: 0
+      // }
       // cashoutOrders: null
     }
   },
@@ -199,28 +168,24 @@ export default {
       done()
     },
     async refetchListings () {
-      console.log('fetching data')
       // await this.fetchCashoutOrders()
       await this.fetchUnspentTxns()
     },
-    selectTransaction (index) {
-      if (!this.transactions[index].selected) {
-        this.transactions[index].selected = true
-        this.selectedTransactions.push(this.transactions[index])
+    selectTransaction (transaction) {
+      const isTxnSelected = this.isTxnSelected(transaction)
+      if (!isTxnSelected) {
+        this.selectedTransactions.push(transaction)
       } else {
-        this.transactions[index].selected = false
-        this.selectedTransactions = this.selectedTransactions.filter(item => item.id !== this.transactions[index].id)
+        this.selectedTransactions = this.selectedTransactions.filter(tx => tx.txid !== transaction.txid)
       }
     },
     async fetchUnspentTxns () {
-      console.log('fetching unspent txns')
       const vm = this
       const url = '/paytacapos/cash-out/list_unspent_txns/'
 
-      await backend.get(url)
+      await backend.get(url, { params: { currency: this.currency?.symbol } })
         .then(response => {
-          console.log(response)
-          vm.merchantTransactions = response.data
+          vm.unspentTxns = response.data
         })
         .catch(error => {
           console.log(error)
@@ -250,6 +215,62 @@ export default {
         e.stopPropagation()
       }
     },
+    lossProtection (transaction) {
+      const txTime = new Date(transaction.tx_timestamp)
+      const expirationDate = new Date(txTime)
+      expirationDate.setDate(txTime.getDate() + 30)
+
+      const now = new Date()
+      const timeLeft = expirationDate - now
+
+      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
+      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
+      const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000)
+
+      if (daysLeft > 0) {
+        return `${daysLeft} days left`
+      }
+
+      if (hoursLeft > 0) {
+        return `${hoursLeft} hours left`
+      }
+
+      if (minutesLeft > 0) {
+        return `${minutesLeft} minutes left`
+      }
+
+      if (secondsLeft > 0) {
+        return `${secondsLeft} seconds left`
+      }
+
+      return 'Expired'
+    },
+    getInitialFiatAmount (transaction) {
+      const marketPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      return transaction.amount * marketPrice
+    },
+    getCurrentFiatAmount (transaction) {
+      const marketPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
+      return transaction.amount * marketPrice
+    },
+    getFiatAmountColor (transaction) {
+      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
+      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      if (currentFiatPrice < initialFiatPrice) return 'text-red'
+      if (currentFiatPrice > initialFiatPrice) return 'text-green'
+      return 'text-blue'
+    },
+    getTrendingIcon (transaction) {
+      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
+      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      if (currentFiatPrice > initialFiatPrice) return 'trending_up'
+      if (currentFiatPrice < initialFiatPrice) return 'trending_down'
+      return ''
+    },
+    isTxnSelected (transaction) {
+      return this.selectedTransactions.some(txn => txn.txid === transaction.txid)
+    }
   }
 }
 </script>
