@@ -2,7 +2,7 @@
   <!-- Transaction List -->
   <div>
     <div v-if="status === 'confirm-transaction'">
-      <div class="text-center md-font-size text-grey-9 text-bold">Cash Out Transactions</div>
+      <div class="text-center md-font-size text-bold">Cash Out Transactions</div>
 
       <q-pull-to-refresh @refresh="refreshData">
         <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
@@ -11,11 +11,14 @@
             <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
               <q-item-section>
                 <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                  <div class="sm-font-size text-grey-6 text-strike">{{ transaction.initAmount }}</div>
+                  <div class="sm-font-size text-grey-6 text-strike">
+                    {{ formatCurrency(getInitialFiatAmount(transaction), currency.symbol) }} {{ currency.symbol }}
+                  </div>
                   <div class="row">
                     <div class="col ib-text">
-                      <div class="md-font-size text-bold">
-                        {{ formatCurrency(transaction.fiatAmount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                      <div class="md-font-size text-bold" :class="getFiatAmountColor(transaction)">
+                        {{ formatCurrency(getCurrentFiatAmount(transaction), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                        <q-icon :name="getTrendingIcon(transaction)"/>
                       </div>
                       <div class="sm-font-size">
                         {{ transaction.amount }} BCH
@@ -23,9 +26,13 @@
                     </div>
                     <div class="col ib-text text-right q-pr-sm">
                       <div class="text-grey-8 text-bold">
-                        <span>{{ transaction.txid }}</span> <q-icon color="primary" size="sm" name="o_check_box" v-if="transaction.selected"/>
+                        <span>{{ transaction.txid.substring(0,8) }}</span>
+                        <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(transaction)"/>
                       </div>
-                      <div class="text-grey-6 sm-font-size">{{ transaction.lossProtection }}</div>
+                      <div class="text-grey-6 sm-font-size">
+                        <q-icon name="local_police" class="q-pa-xs"/>
+                        <span>{{ lossProtection(transaction) }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -86,32 +93,31 @@
           </div>
           <div class="row q-pt-sm sm-font-size q-pb-md">
             <div class="col-8 text-bold">
-              <span>Total on Market Price</span><br>
+              <span>Initial Total</span><br>
               <span>Market Volatility Loss/Gain</span><br>
-              <span>Loss Protection Coverage</span>
+              <span>Loss Covered</span>
             </div>
             <div class="col text-right">
-              <span>{{ formatCurrency(orderInfo.market_price, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
-              <span class="text-red">{{ formatCurrency(orderInfo.market_loss_gain, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
-              <span>{{ formatCurrency(orderInfo.loss_protection_coverage, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
+              <span>{{ formatCurrency(cashOutTotal.initialTotal, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
+              <span :class="cashOutTotal.lossGain < 0 ? 'text-red' : 'text-green'">{{ formatCurrency(cashOutTotal.lossGain, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
+              <span>{{ formatCurrency(cashOutTotal.lossCovered, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
             </div>
           </div>
 
           <div class="text-strike text-grey-6 text-right sm-font-size">
-            <!--  -->
-            14,547.50 {{ currency.symbol }}
+            {{ formatCurrency(cashOutTotal.initialTotal, currency.symbol) }} {{ currency.symbol }}
           </div>
           <div class="row q-pb-sm">
-            <div class="col-8 md-font-size">
-              <span class="text-grey-8">TOTAL</span>
+            <div class="col md-font-size text-bold">
+              <span>TOTAL</span>
             </div>
-            <div>
-              <span>{{ formatCurrency(totalCashout(), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
+            <div class="text-right">
+              <span>{{ formatCurrency(cashOutTotal.currentTotal, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
             </div>
           </div>
           <q-separator class="q-mb-sm"/>
           <div class="text-right text-grey-8 sm-font-size">
-            {{ totalCashout(false) }} BCH
+            {{ cashOutTotal.totalBchAmount?.toFixed(8) }} BCH
           </div>
         </q-card>
       </div>
@@ -223,7 +229,8 @@ export default {
         market_loss_gain: -4319.7,
         loss_protection_coverage: 3979.7
       },
-      // paymentTypesOpt: null
+      cashOutTotal: {}
+      // paymentTypesOpt: null,
     }
   },
   computed: {
@@ -240,9 +247,9 @@ export default {
   },
   mounted () {
     this.transactions = this.data
+    this.calculateCashOutTotal(this.transactions)
     this.paymentMethod.payment_type = this.paymentTypesOpt[0]
     this.onUpdatePaymentType(this.paymentMethod.payment_type)
-    // console.log('transactions: ', this.data)
   },
   methods: {
     formatCurrency,
@@ -332,6 +339,93 @@ export default {
         .catch(error => {
           console.log(error)
         })
+    },
+    calculateCashOutTotal (transactions) {
+      let initialTotal = 0
+      let currentTotal = 0
+      let lossGain = 0
+      let lossCovered = 0
+      let totalBchAmount = 0
+      transactions.forEach(tx => {
+        const initMarketPrice = tx.fiat_price?.init[this.currency.symbol]
+        initialTotal += tx.amount * initMarketPrice
+
+        const currMarketPrice = tx.fiat_price?.curr[this.currency.symbol]
+        currentTotal += tx.amount * currMarketPrice
+
+        const isLossProtected = this.lossProtection(tx) !== 'Expired'
+        if (currentTotal < initialTotal && isLossProtected) {
+          const gap = initialTotal - currentTotal
+          lossCovered += gap
+        }
+
+        totalBchAmount += tx.amount
+      })
+      lossGain = currentTotal - initialTotal
+      this.cashOutTotal = {
+        initialTotal: initialTotal,
+        currentTotal: currentTotal,
+        lossGain: lossGain,
+        lossCovered: lossCovered,
+        totalBchAmount: totalBchAmount
+      }
+    },
+    lossProtection (transaction) {
+      const txTime = new Date(transaction.tx_timestamp)
+      const expirationDate = new Date(txTime)
+      expirationDate.setDate(txTime.getDate() + 30)
+
+      const now = new Date()
+      const timeLeft = expirationDate - now
+
+      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
+      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
+      const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000)
+
+      if (daysLeft > 0) {
+        return `${daysLeft} days left`
+      }
+
+      if (hoursLeft > 0) {
+        return `${hoursLeft} hours left`
+      }
+
+      if (minutesLeft > 0) {
+        return `${minutesLeft} minutes left`
+      }
+
+      if (secondsLeft > 0) {
+        return `${secondsLeft} seconds left`
+      }
+
+      return 'Expired'
+    },
+    getInitialFiatAmount (transaction) {
+      console.log('transaction:', transaction)
+      const marketPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      return transaction.amount * marketPrice
+    },
+    getCurrentFiatAmount (transaction) {
+      const marketPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
+      return transaction.amount * marketPrice
+    },
+    getFiatAmountColor (transaction) {
+      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
+      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      if (currentFiatPrice < initialFiatPrice) return 'text-red'
+      if (currentFiatPrice > initialFiatPrice) return 'text-green'
+      return 'text-blue'
+    },
+    getTrendingIcon (transaction) {
+      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
+      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      if (currentFiatPrice > initialFiatPrice) return 'trending_up'
+      if (currentFiatPrice < initialFiatPrice) return 'trending_down'
+      return ''
+    },
+    isTxnSelected (transaction) {
+      return this.transactions.some(txn => txn.txid === transaction.txid)
     }
   }
 }

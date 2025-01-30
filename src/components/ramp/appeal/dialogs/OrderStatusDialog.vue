@@ -1,6 +1,6 @@
 <template>
     <q-dialog v-model="showDialog" full-width position="bottom" @before-hide="$emit('back')">
-        <q-card class="br-15 q-pa-md q-ma-sm text-bow" bordered flat :class="[darkMode ? 'pt-card-2 dark' : 'light']">
+        <q-card class="br-15 text-bow bottom-card" flat :class="[darkMode ? 'pt-card-2 dark' : 'light']">
             <div class="q-mt-md q-mx-md" style="overflow: auto">
                 <div class="row justify-center q-mb-md lg-font-size">Status Updates</div>
                 <div v-if="loading" class="row justify-center">

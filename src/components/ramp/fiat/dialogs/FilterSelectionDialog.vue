@@ -64,7 +64,13 @@
           </div>
         </div>
         <div class="text-center q-pt-md q-gutter-sm">
-          <q-btn :disable="loadFilterButton || (type ==='type' && !amount) || (type === 'paymentTypes' && filter.payment_types.length === 0)" rounded class="text-center q-mt-sm" outline :label="type === 'amount' ? 'clear' : 'unselect all'" @click="onClearClick"/>
+          <q-btn
+            outline rounded
+            class="text-center q-mt-sm"
+            color="blue"
+            :disable="disableUnselectBtn"
+            :label="type === 'amount' ? 'clear' : 'unselect all'"
+            @click="onClearClick"/>
           <q-btn :loading="loadFilterButton" :disable="loadFilterButton" rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
         </div>
       </div>
@@ -97,6 +103,9 @@ export default {
     customKeyboard
   },
   computed: {
+    disableUnselectBtn () {
+      return this.loadFilterButton || (this.type === 'type' && !this.amount) || (this.type === 'paymentTypes' && this.filter.payment_types.length === 0)
+    },
     filterTypeText () {
       return this.type === 'amount' ? 'Filter Ad by Order Amount' : 'Select Payment Type'
     },

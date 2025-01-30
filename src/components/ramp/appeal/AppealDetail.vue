@@ -331,7 +331,6 @@ export default {
       if (vm.selectedAction === 'refund') {
         txid = await vm.refundBch()
       }
-      console.log('txid:', txid)
       if (txid) {
         await vm.setOrderPending(vm.selectedAction)
       }
@@ -342,9 +341,6 @@ export default {
       const vm = this
       const url = `/ramp-p2p/appeal/${vm.appeal.id}/pending-${action}/`
       await backend.post(url, {}, { authorize: true })
-        .then(response => {
-          console.log(response.data)
-        })
         .catch(error => {
           this.handleRequestError(error)
         })
@@ -354,7 +350,7 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const keypair = await wallet.keypair(arbiterMember.address_path)
+      const keypair = wallet.keypair(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.trade_amount)
         .then(result => {
@@ -386,7 +382,7 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const privateKey = await wallet.privkey(arbiterMember.address_path)
+      const privateKey = wallet.privkey(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.refund(privateKey, this.order.trade_amount)
         .then(result => {
@@ -404,7 +400,6 @@ export default {
           } else {
             vm.sendError = result.reason
             vm.showDragSlide = true
-            console.log('state:', vm.state)
           }
         })
         .catch(error => {
@@ -444,9 +439,6 @@ export default {
     },
     formattedOrderStatus (value) {
       return formatOrderStatus(value)
-    },
-    viewTxid (txid) {
-      console.log('txid:', txid)
     },
     formattedTxid (txid) {
       if (txid && txid.length > 6) {

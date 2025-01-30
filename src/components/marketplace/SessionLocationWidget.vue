@@ -18,7 +18,7 @@
       </q-item-section>
     </q-item>
     <q-dialog v-model="openLocationSelector" position="bottom">
-      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">
             {{ $t('SelectLocation') }}

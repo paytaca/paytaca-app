@@ -49,4 +49,16 @@ export class WebSocketService {
     this.messageEmitter.on('open', callback)
     this.messageEmitter.on('close', callback)
   }
+
+  isOpen () {
+    return this.websocket.readyState === WebSocket.OPEN
+  }
+
+  sendMessage (message) {
+    if (this.isOpen()) {
+      this.websocket.send(message);
+    } else {
+      console.error('WebSocket is not open. Unable to send message.');
+    }
+  }
 }

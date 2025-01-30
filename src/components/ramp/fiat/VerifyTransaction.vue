@@ -174,7 +174,6 @@ export default {
         })
         .catch(error => {
           vm.errorMessage = error.response?.data?.error
-          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -193,7 +192,6 @@ export default {
           if (error.response?.data?.error === 'txid is required') {
             vm.errorMessage = 'Transaction ID is required for verification'
           }
-          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false

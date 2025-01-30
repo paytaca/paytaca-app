@@ -147,7 +147,7 @@
               clickable
               v-ripple
               style="overflow-wrap: anywhere;"
-              v-if="!isSep20Tx && transaction.asset.id.startsWith('bch')"
+              v-if="!isSep20Tx && (transaction.asset.id.startsWith('bch') || transaction.asset.id.startsWith('ct/'))"
               @click="copyToClipboard(isSep20Tx ? transaction.hash.substring(0, 6).toUpperCase() : transaction.txid.substring(0, 6).toUpperCase())"
             >
               <q-item-section>

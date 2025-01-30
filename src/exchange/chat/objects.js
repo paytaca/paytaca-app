@@ -189,20 +189,18 @@ export class ChatIdentityManager {
   }
 
   async create (params) {
-    console.log('create:', params)
     if (!params || !params.name || !params.ref) return
     const data = {
       ref: params.ref,
       name: params.name
     }
     const payload = await this._buildPayload(data)
-    console.log('payload:', payload)
     this.chatIdentity = await chatUtils.createChatIdentity(payload)
     return this.chatIdentity
   }
 
   async _buildPayload (data) {
-    if (!wallet) loadRampWallet()
+    if (!wallet) await loadRampWallet()
     let encryptingPubkey = (await getKeypair()).pubkey
     // Handle null encrypting pubkey
     if (!encryptingPubkey) {
@@ -210,7 +208,7 @@ export class ChatIdentityManager {
       encryptingPubkey = (await chatUtils.updateOrCreateKeypair(false)).pubkey
     }
     const deviceId = await getDeviceId()
-    const verifyingPubkey = await wallet.pubkey('0/0')
+    const verifyingPubkey = wallet.pubkey('0/0')
     const hexRef = Buffer.from(String(data.ref)).toString('hex')
     const signatureData = await signRequestData(hexRef)
 
