@@ -13,7 +13,10 @@
         />
       </div>
     </div>
-    <span class="col-12">{{ message }}</span>
+    <span class="col-12">
+      {{ message.substring(0, 150) }}
+      <template v-if="message.length >= 150">...</template>
+    </span>
     <span
       class="col-12 q-mt-xs text-caption"
       align="right"
