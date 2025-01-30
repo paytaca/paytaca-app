@@ -212,7 +212,7 @@ export default {
     return {
       notifsList: [],
       checkboxList: null,
-      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF'],
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF', 'EP'],
 
       isLoading: false,
       isCheckboxClicked: false,
