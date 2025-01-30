@@ -434,6 +434,7 @@ export default {
   ExpiresAt: "Scade a",
   ExplorerLink: "Link Explorer",
   Extensions: "Estensioni",
+  ExternalLinks: "Collegamenti esterni",
   ExtraQRDescription1: "Questo codice QR è in più.Puoi archiviarlo nel tuo dispositivo o condividerlo con un amico.In ogni caso non sei stato in grado di individuare uno dei frammenti, puoi usarlo come sostituzione.",
   ExtraQRDescription2: "Opprezzare o condividere questo codice QR",
   ExtraShard: "Frammento extra",

@@ -26,7 +26,7 @@
       </div>
 
       <div class="q-pt-sm">
-        External Links:
+        {{ $t('ExternalLinks') }}
         <div v-for="(link, index) in url" :key="index" class="q-ml-sm q-pb-xs">
           <a target="_blank" :href="link">{{ link }}</a>
         </div>
