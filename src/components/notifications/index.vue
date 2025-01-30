@@ -298,10 +298,8 @@ export default {
     async clickRedirect (notif) {
       const vm = this
 
-      vm.$refs['notifs-dialog'].hide()
-      if (!notif.is_read) {
-        await markItemAsRead(notif.id)
-      }
+      if (!['CB', 'EP'].includes(notif.notif_type)) vm.$refs['notifs-dialog'].hide()
+      if (!notif.is_read) await markItemAsRead(notif.id)
 
       switch (notif.notif_type) {
         case 'TR': {
@@ -354,6 +352,9 @@ export default {
           break
         } case 'NF': {
           vm.$router.push({ name: 'app-collectibles' })
+          break
+        } case 'EP': {
+          console.log('events promotions notif yey')
           break
         } default:
           break
