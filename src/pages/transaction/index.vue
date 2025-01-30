@@ -986,7 +986,7 @@ export default {
       if (!assetExists) return
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
-      this.getBalance()
+      this.getBalance(asset.id)
       this.$nextTick(() => {
         this.$refs['transaction-list-component'].resetValues(null, null, asset)
         this.$refs['transaction-list-component'].getTransactions()
@@ -1560,8 +1560,9 @@ export default {
       }
     }
     if (forceRecreate) {
-      await vm.$store.dispatch('global/updateOnboardingStep', 0)
-      vm.$router.push('/accounts?recreate=true')
+      this.securityOptionDialogStatus = 'show'
+      // await vm.$store.dispatch('global/updateOnboardingStep', 0)
+      // vm.$router.push('/accounts?recreate=true')
     }
 
     window.vm = this
