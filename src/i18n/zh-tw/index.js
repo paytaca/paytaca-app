@@ -434,6 +434,7 @@ export default {
   ExpiresAt: "到期",
   ExplorerLink: "Explorer鏈接",
   Extensions: "擴展",
+  ExternalLinks: "外部鏈接",
   ExtraQRDescription1: "此QR碼是額外的。您可以將其存儲在設備中，也可以與朋友共享。無論如何，您無法找到其中一個碎片，您可以將此用作替代品。",
   ExtraQRDescription2: "存儲或共享此QR代碼",
   ExtraShard: "額外的碎片",

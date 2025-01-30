@@ -433,6 +433,7 @@ export default {
   ExpiresAt: "Expirarse a",
   ExplorerLink: "EXPLORER LINK",
   Extensions: "Extensiones",
+  ExternalLinks: "Enlaces externos",
   ExtraQRDescription1: "Este código QR es adicional.Puede almacenarlo en su dispositivo o compartirlo a un amigo.En cualquier caso, no pudo localizar uno de los fragmentos, puede usar este como reemplazo.",
   ExtraQRDescription2: "Ya sea almacenar o compartir este código QR",
   ExtraShard: "Fragmento extra",
