@@ -161,28 +161,28 @@ export default {
       ],
       selectedTransactions: [],
       merchantTransactions: null,
-      unspentTxns: { // temp
-        record_type: 'Incoming',
-        txid: '46xv5d9k',
-        amount: 201.2,
-        token: '',
-        tx_fee: 0.00003,
-        senders: 'bitcoincash:qzxxvyezu9u2zrcxc4hc7tyu3n6uklvhps6kklcesf',
-        recipients: 'bitcoincash:qqqmhmcce3l5panx499ymsr52cvzk24jhyjqaru04e',
-        date_created: 'date.now',
-        tx_timestamp: Date.now(),
-        usd_price: 0,
-        attributes: 0
-      },
-      cashoutOrders1: {
-        id: 1,
-        transactions: [],
-        wallet: 'hash',
-        currency: 'currency',
-        market_price: 0,
-        status: 'PENDING',
-        created_at: Date.now()
-      }
+      // unspentTxns: { // temp
+      //   record_type: 'Incoming',
+      //   txid: '46xv5d9k',
+      //   amount: 201.2,
+      //   token: '',
+      //   tx_fee: 0.00003,
+      //   senders: 'bitcoincash:qzxxvyezu9u2zrcxc4hc7tyu3n6uklvhps6kklcesf',
+      //   recipients: 'bitcoincash:qqqmhmcce3l5panx499ymsr52cvzk24jhyjqaru04e',
+      //   date_created: 'date.now',
+      //   tx_timestamp: Date.now(),
+      //   usd_price: 0,
+      //   attributes: 0
+      // },
+      // cashoutOrders: {
+      //   id: 1,
+      //   transactions: [],
+      //   wallet: 'hash',
+      //   currency: { name: 'PHP', symbol: 'PHP' },
+      //   market_price: 0,
+      //   status: 'PENDING',
+      //   created_at: Date.now()
+      // }
       // cashoutOrders: null
     }
   },
@@ -191,6 +191,7 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     marketPrice () {
+      // get Market w/
       return 0
     }
   },
@@ -202,12 +203,12 @@ export default {
   emits: ['cashout-form'],
   mounted () {
     this.refetchListings()
-    // this.fetchCashoutOrders()
   },
   methods: {
     getDarkModeClass,
     formatCurrency,
     async refreshData (done) {
+      this.refetchListings()
       done()
     },
     async refetchListings () {
@@ -233,6 +234,7 @@ export default {
         .then(response => {
           console.log(response)
           vm.merchantTransactions = response.data
+          // vm.unspentTxns = response.data
         })
         .catch(error => {
           console.log(error)
