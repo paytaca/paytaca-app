@@ -194,7 +194,8 @@ import {
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
-import NotificationBody from './NotificationBody.vue'
+import NotificationBody from 'src/components/notifications/NotificationBody.vue'
+import NotificationMoreInfoDialog from 'src/components/notifications/NotificationMoreInfoDialog.vue'
 
 export default {
   name: 'Notifications',
@@ -354,7 +355,15 @@ export default {
           vm.$router.push({ name: 'app-collectibles' })
           break
         } case 'EP': {
-          console.log('events promotions notif yey')
+          const urlArray = notif.extra_data.split(' ')
+          vm.$q.dialog({
+            component: NotificationMoreInfoDialog,
+            componentProps: {
+              title: notif.title,
+              message: notif.message,
+              url: urlArray
+            }
+          })
           break
         } default:
           break
