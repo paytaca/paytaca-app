@@ -55,6 +55,17 @@
           v-if="record?.txid"
           clickable
           v-ripple
+          @click="copyToClipboard(record.txid.substring(0, 6).toUpperCase())" style="overflow-wrap: anywhere;"
+        >
+          <q-item-section>
+            <q-item-label class="text-gray" caption>{{ $t('ReferenceId') }}</q-item-label>
+            <q-item-label>{{ record.txid.substring(0, 6).toUpperCase() }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item
+          v-if="record?.txid"
+          clickable
+          v-ripple
           @click="copyToClipboard(record.txid)" style="overflow-wrap: anywhere;"
         >
           <q-item-section>

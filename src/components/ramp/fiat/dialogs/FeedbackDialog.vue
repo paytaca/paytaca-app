@@ -7,7 +7,7 @@
     class="text-bow"
     :class="getDarkModeClass(darkMode)"
   >
-    <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" :style="`max-height: ${maxHeight}px;`">
+    <q-card class="br-15 pt-card-2 bottom-card" :class="getDarkModeClass(darkMode)" :style="`max-height: ${maxHeight}px;`">
       <q-btn
         flat
         padding="md"

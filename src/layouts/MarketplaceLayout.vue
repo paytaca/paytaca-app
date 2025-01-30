@@ -25,7 +25,7 @@
       />
     </div>
     <q-dialog v-model="showCartsDialog" position="bottom">
-      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center no-wrap">
             <div class="text-h5">Cart</div>

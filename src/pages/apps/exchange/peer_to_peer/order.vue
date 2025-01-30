@@ -140,8 +140,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      websocket: {
-        watchtower: null,
+      websockets: {
+        order: null,
         chat: null
       },
       state: '',
@@ -193,7 +193,6 @@ export default {
       verifyingTx: false,
       showStatusHistory: false,
       receiveOrderError: null,
-      orderWebSocketManager: null,
       noticeType: 'info',
       showNoticeDialog: false,
       errorDialogActive: false
@@ -379,12 +378,10 @@ export default {
   async mounted () {
     await this.loadData()
     this.setupWebSocket()
-    this.setupChatWebsocket(20, 1000)
   },
   beforeUnmount () {
     this.autoReconWebSocket = false
-    this.orderWebSocketManager?.closeConnection()
-    this.closeChatWSConnection()
+    this.closeWSConnection()
   },
   methods: {
     formatDate,
@@ -793,40 +790,12 @@ export default {
       this.txid = txid
       this.fetchOrder()
     },
-    setupChatWebsocket (retries, delayDuration) {
-      const wsChatUrl = `${getChatBackendWsUrl()}${this.chatRef}/`
-      this.websocket.chat = new WebSocket(wsChatUrl)
-      this.websocket.chat.onopen = () => {
-        console.log('Chat WebSocket connection established to ' + wsChatUrl)
-      }
-      this.websocket.chat.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data)
-        console.log('Chat WebSocket data:', parsedData)
-        if (parsedData?.type === 'new_message') {
-          const messageData = parsedData.data
-          // RECEIVE MESSAGE
-          console.log('Received a new message:', messageData)
-          bus.emit('last-read-update')
-          if (this.openChat) {
-            bus.emit('new-message', messageData)
-          }
-        }
-      }
-      this.websocket.chat.onclose = () => {
-        console.log('Chat WebSocket connection closed.')
-        if (this.autoReconWebSocket && retries > 0) {
-          // this.reconnectingWebSocket = true
-          console.log(`Chat WS reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupChatWebsocket(retries - 1, delayDuration * 2))
-        }
-      }
-    },
     setupWebSocket () {
-      const url = `${getBackendWsUrl()}order/${this.order.id}/`
-      this.orderWebSocketManager = new WebSocketManager()
-      this.orderWebSocketManager.setWebSocketUrl(url)
-      this.orderWebSocketManager.subscribeToMessages(async (message) => {
+      this.closeWSConnection()
+      // Subscribe to order updates
+      this.websockets.order = new WebSocketManager()
+      this.websockets.order.setWebSocketUrl(`${getBackendWsUrl()}order/${this.order.id}/`)
+      this.websockets.order.subscribeToMessages(async (message) => {
         if (message?.success) {
           if (message?.txdata) {
             this.verifyingTx = false
@@ -846,9 +815,25 @@ export default {
           }
         }
       })
+
+      // Subscribe to chat
+      this.websockets.chat = new WebSocketManager()
+      this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+      this.websockets.chat.subscribeToMessages(message => {
+        if (message?.type === 'new_message') {
+          const messageData = message.data
+          // RECEIVE MESSAGE
+          console.log('Received a new message:', messageData)
+          bus.emit('last-read-update')
+          if (this.openChat) {
+            bus.emit('new-message', messageData)
+          }
+        }
+      })
     },
-    closeChatWSConnection () {
-      if (this.websocket.chat) this.websocket.chat.close()
+    closeWSConnection () {
+      this.websockets?.order?.closeConnection()
+      this.websockets?.chat?.closeConnection()
     },
     delay (duration) {
       return new Promise(resolve => setTimeout(resolve, duration))

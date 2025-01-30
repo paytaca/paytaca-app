@@ -48,6 +48,8 @@
                   <qr-code
                     class="q-mb-sm"
                     :text="address"
+                    border-width="3px"
+                    border-color="#ed5f59"
                     :size="220"
                     icon="ct-logo.png"
                   />

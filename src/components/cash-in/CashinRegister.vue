@@ -54,8 +54,8 @@ export default {
       vm.loggingIn = true
       deleteAuthToken()
       try {
-        const keypair = await wallet.keypair()
-        const signature = await wallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
+        const keypair = wallet.keypair()
+        const signature = wallet.signMessage(keypair.privateKey, 'PEER_CREATE', timestamp)
         const headers = {
           timestamp: timestamp,
           signature: signature,
@@ -63,7 +63,7 @@ export default {
         }
         const body = {
           name: vm.username,
-          address: await wallet.address(),
+          address: wallet.address(),
           address_path: wallet.addressPath()
         }
         await backend.post('/ramp-p2p/peer/', body, { headers: headers })

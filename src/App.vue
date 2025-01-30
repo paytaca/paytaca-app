@@ -61,6 +61,10 @@ export default {
         if (vm.offlineNotif) vm.offlineNotif()
       } else {
         vm.offlineNotif = vm.$q.notify({
+          group: 'connectivity-offline-notif',
+          actions: [
+            { icon: 'close', color: 'white', round: true, handler: () => { /* ... */ } }
+          ],
           type: 'negative',
           icon: 'signal_wifi_off',
           iconColor: 'primary',
@@ -223,11 +227,8 @@ export default {
   async mounted () {
     const vm = this
 
-    // if (navigator.onLine) {
-    //   vm.onConnectivityChange(true)
-    // } else {
-    //   vm.onConnectivityChange(false)
-    // }
+    // Forcibly disable SmartBCH, in preparation for future deprecation
+    this.$store.commit('global/disableSmartBCH')
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)

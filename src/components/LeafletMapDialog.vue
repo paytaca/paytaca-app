@@ -8,7 +8,7 @@
     @show="autoCenter ? centerMap() : null"
   >
     <q-card
-      class="br-15 pt-card-2 text-bow"
+      class="br-15 pt-card-2 text-bow bottom-card"
       :class="getDarkModeClass(darkMode)"
       style="height:100%;width:100%;"
     >
