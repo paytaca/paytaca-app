@@ -127,7 +127,6 @@ export default {
     }
   },
   async mounted () {
-    console.log('mounted')
     const vm = this
     vm.$emit('updatePageName', 'appeal-transfer')
     vm.loadTransactionId()
@@ -177,12 +176,10 @@ export default {
       vm.verifyingTx = true
       const body = { txid: this.transactionId }
       await backend.post(url, body, { authorize: true })
-        .then(response => { console.log(response.data) })
         .catch(error => {
           if (error.response) {
             vm.errorMessage = error.response?.data?.error
           }
-          this.handleRequestError(error)
           vm.hideBtn = false
         })
         .finally(() => { vm.verifyingTx = false })

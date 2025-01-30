@@ -7,7 +7,7 @@ const phrases = {
     {
       AdvanceBackupMethods: 'Advanced Backup Methods',
       AutoGenerateAddress: 'Auto generate address',
-      AutoGenerateAddressToolTip: 'A new address will be generated after receiving assets',
+      AutoGenerateAddressToolTip: 'A new address will be generated after receiving assets.',
       AnyHedge: "AnyHedge",
       AppealRamp: "Appeal Ramp",
       ApproveToken: "Approve token",

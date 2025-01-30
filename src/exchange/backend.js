@@ -22,14 +22,14 @@ export function getBackendWsUrl () {
 
 export async function updatePubkeyAndAddress (user) {
   const userType = user.is_arbiter ? 'arbiter' : 'peer'
-  const pubkey = await wallet.pubkey()
+  const pubkey = wallet.pubkey()
 
   // Default address path is 0/0
   const addressPath = wallet.addressPath()
 
   const payload = {
     public_key: pubkey,
-    address: await wallet.address(),
+    address: wallet.address(),
     address_path: addressPath
   }
 

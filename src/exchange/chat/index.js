@@ -16,7 +16,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
-  if (!wallet) loadRampWallet()
+  if (!wallet) await loadRampWallet()
 
   const payload = {
     user_type: usertype,

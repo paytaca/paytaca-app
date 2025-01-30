@@ -512,7 +512,7 @@
             position="bottom"
             @hide="() => bchPaymentState.tab = 'select'"
           >
-            <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
               <q-card-section>
                 <div class="row items-center no-wrap">
                   <div class="text-h6">Pay with wallet</div>
@@ -545,7 +545,7 @@
             persistent
             @hide="() => bchPaymentState.tab = 'select'"
           >
-            <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
               <q-card-section>
                 <div class="row items-center no-wrap">
                   <div class="text-h6">{{ $t('ScanToPay') }}</div>

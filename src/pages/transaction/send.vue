@@ -784,7 +784,7 @@ export default {
         if (addressParse.has('expires')) {
           const expires = parseInt(addressParse.get('expires'))
           this.bip21Expires = expires
-          const now = Math.floor(Date.now() / 1000)
+          const now = Math.floor(Date.now() / 1000) + (this.networkTimeDiff / 1000)
           if (now >= expires) {
             this.disableSending = true
             sendPageUtils.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
@@ -951,7 +951,7 @@ export default {
 
       if (vm.bip21Expires) {
         const expires = parseInt(vm.bip21Expires)
-        const now = Math.floor(Date.now() / 1000)
+        const now = Math.floor(Date.now() / 1000) + (vm.networkTimeDiff / 1000)
         if (now >= expires) {
           vm.disableSending = true
           sendPageUtils.raiseNotifyError(vm.$t('PaymentRequestIsExpired'))

@@ -153,25 +153,23 @@
         </div>
       </div>
 
-      <div class="col-12 row items-center q-px-sm q-pt-md">
-        <div class="text-h5 q-px-xs">Orders</div>
-        <q-space/>
-        <LimitOffsetPagination
-          :pagination-props="{
-            maxPages: 5,
-            rounded: true,
-            padding: 'sm md',
-            boundaryNumbers: true,
-            disable: fetchingOrders,
-          }"
-          class="q-my-sm"
-          :hide-below-pages="2"
-          :modelValue="ordersPagination"
-          @update:modelValue="fetchOrders"
-        />
-      </div>
-
-      <div class="q-mb-md">
+      <div
+        v-intersection="ordersPanelIntersectionOptions"
+        class="q-mb-md q-pt-md"
+        :class="[orders.length ? 'orders--sticky-bottom' : '']"
+      >
+        <div class="col-12 row items-center q-px-sm">
+          <div class="text-h5 q-px-xs">Orders</div>
+          <q-space/>
+          <q-btn
+            v-if="orders.length < ordersPagination.count"
+            flat
+            no-caps
+            label="View all"
+            :to="{ name: 'app-marketplace-orders'}"
+          />
+          
+        </div>
         <div v-if="fetchingOrders" class="text-center q-px-md">
           <q-spinner v-if="!orders?.length" size="1.5rem" color="brandblue" class="q-mb-sm"/>
           <q-linear-progress v-else query reverse color="brandblue"/>
@@ -179,7 +177,7 @@
         <div v-else class="q-mb-xs"></div>
 
         <div v-if="!orders?.length && initialized" class="text-grey text-center q-mb-md">No active orders</div>
-        <div v-else class="q-py-sm">
+        <div v-else class="q-py-sm orders-list">
           <q-list separator>
             <q-item
               v-for="order in orders" :key="order?.id"
@@ -210,14 +208,11 @@
             </q-item>
           </q-list>
         </div>
-        <div
-          v-if="initialized"
-          class="row items-center justify-center"
-        >
+        <div v-if="!orders.length" class="row items-center justify-center">
           <q-btn
             flat
             no-caps
-            :label="orders?.length ? 'View all' : 'Go to orders'"
+            label="Go to orders"
             align="left"
             padding="none xs"
             class="text-underline text-weight-bold button button-text-primary"
@@ -416,7 +411,7 @@ const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
 async function fetchOrders(opts = { limit: 0, offset: 0 }) {
   const params = {
     ref: await $store.dispatch('marketplace/getCartRef'),
-    limit: opts?.limit || 10,
+    limit: opts?.limit || 2,
     offset: opts?.offset || undefined,
     exclude_statuses: ['completed', 'cancelled'].join(','),
   }
@@ -442,6 +437,32 @@ async function fetchOrders(opts = { limit: 0, offset: 0 }) {
     })
 }
 
+const ordersPanelIntersectionOptions = {
+  /**
+   * @param {IntersectionObserverEntry} observerEntry 
+   */
+  handler(observerEntry) {
+    const stuckStateClasses = [
+      'orders--sticky-bottom--stuck',
+      'q-r-mx-md',
+      'q-px-sm',
+      'br-15',
+      'shadow-2',
+    ]
+    const target = observerEntry.target
+    const hasStickyBottom = target.classList.contains('orders--sticky-bottom')
+    
+    if (observerEntry.intersectionRatio < 0.95 && hasStickyBottom) {
+      observerEntry.target.classList.add(...stuckStateClasses)
+    } else {
+      observerEntry.target.classList.remove(...stuckStateClasses)
+    }
+  },
+  cfg: {
+    threshold: new Array(100).fill(0).map((e, index) => index / 100)
+  }
+}
+
 async function refreshPage(done=() => {}) {
   try {
     await loadAppPromise.value
@@ -458,6 +479,7 @@ async function refreshPage(done=() => {}) {
 }
 </script>
 <style scoped lang="scss">
+@import '/src/css/shared.scss'; // Using this should get you the variables
 table.orders-table {
   border-spacing: map-get($space-xs, "x") map-get($space-sm, "y");
 }
@@ -473,4 +495,36 @@ table.orders-table td {
 .sticky-below-header.sticky-below-header--ios {
   top: 110px;
 }
+
+.orders--sticky-bottom {
+  position: sticky;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  padding-bottom: 30px;
+  transition: all 0.15s ease-out;
+}
+
+.orders--sticky-bottom.orders--sticky-bottom--stuck {
+  .orders-list {
+    max-height: 20vh;
+    overflow-y: auto;
+  }
+}
+
+.orders--sticky-bottom.orders--sticky-bottom--stuck {
+  @extend .shadow-2 !optional;
+}
+
+#app-container.dark {
+  .orders--sticky-bottom.orders--sticky-bottom--stuck {
+    background-color: $brand_dark;
+  }
+}
+#app-container.light {
+  .orders--sticky-bottom.orders--sticky-bottom--stuck {
+    background-color: $brand_light;
+  }
+}
+
 </style>

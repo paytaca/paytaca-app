@@ -7,7 +7,7 @@
     position="bottom"
   >
     <q-card
-      class="br-15 pt-card-2 text-bow"
+      class="br-15 pt-card-2 text-bow bottom-card"
       :class="getDarkModeClass(darkMode)"
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">

@@ -108,6 +108,10 @@ export function enableSmartBCH (state) {
   state.enableSmartBCH = !state.enableSmartBCH
 }
 
+export function disableSmartBCH (state) {
+  state.enableSmartBCH = false
+}
+
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
 

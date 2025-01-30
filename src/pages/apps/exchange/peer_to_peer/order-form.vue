@@ -228,7 +228,6 @@ import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import { bchToSatoshi, satoshiToBch, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
-import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
@@ -292,7 +291,10 @@ export default {
       previousRoute: null,
       networkError: false,
       loadSubmitButton: false,
-      webSocketManager: null,
+      websockets: {
+        ad: null,
+        marketPrice: null
+      },
       errorDialogActive: false
     }
   },
@@ -361,7 +363,7 @@ export default {
     },
     marketPrice (val) {
       // polling ad info whenever market price update
-      this.fetchAd()
+      
     },
     amount (val) {
       if (this.ad.trade_type === 'BUY') {
@@ -377,13 +379,17 @@ export default {
     await this.loadData()
   },
   beforeUnmount () {
-    this.closeWSConnection()
+    this.closeWebSocketConnection()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
     satoshiToBch,
+    closeWebSocketConnection () {
+      this.websockets?.ad?.closeConnection()
+      this.websockets?.marketPrice?.closeConnection()
+    },
     openShareDialog () {
       const baseURL = this.$store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
       this.$q.dialog({
@@ -402,7 +408,7 @@ export default {
       vm.isloaded = false
       await vm.fetchAd()
       await vm.fetchArbiters()
-      vm.setupWebsocket()
+      vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
       if (done) done()
@@ -794,50 +800,26 @@ export default {
       this.showPeerProfile = true
     },
     setupWebSocket () {
-      const url = `${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`
-      this.webSocketManager = new WebSocketManager()
-      this.webSocketManager.setWebSocketUrl(url)
-      this.webSocketManager.subscribeToMessages((message) => {
-        console.log('message:', message)
-        // if (message?.success) {
-        //   if (message?.txdata) {
-        //     this.verifyingTx = false
-        //     this.sendingBch = false
-        //   }
-        //   this.fetchOrder()
-        //     .then(() => {
-        //       if (message?.contract_address) {
-        //         this.fetchContract().then(() => { this.escrowTransferKey++ })
-        //       }
-        //     })
-        // } else {
-        //   this.handleError(message)
-        // }
-      })
-    },
-    setupWebsocket () {
-      this.closeWSConnection()
-      const wsUrl = `${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        const price = parseFloat(data.price)
+      // Subscribe to market price updates
+      this.closeWebSocketConnection()
+      this.websockets.marketPrice = new WebSocketManager()
+      this.websockets.marketPrice.setWebSocketUrl(`${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`)
+      this.websockets.marketPrice.subscribeToMessages((message) => {
+        const price = parseFloat(message.price)
         if (price) {
           this.marketPrice = price.toFixed(2)
-          console.log('Updated market price to :', this.marketPrice)
+          this.fetchAd()
         }
-      }
-      this.websocket.onclose = () => {
-        console.log('WebSocket connection closed.')
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
+      })
+      // Subscribe to ad updates
+      this.websockets.ad = new WebSocketManager()
+      this.websockets.ad.setWebSocketUrl(
+        `${getBackendWsUrl()}ad/${this.ad.id}/`
+      )
+      this.websockets.ad.subscribeToMessages((message) => {
+        // Refresh the ad data
+        if (message === 'AD_UPDATED') this.fetchAd()
+      })
     },
     handleRequestError (error) {
       console.error(error?.response || error)
@@ -888,7 +870,6 @@ export default {
   .md-font-size {
     font-size: medium;
   }
-
   .lg-font-size {
     font-size: large;
   }
@@ -923,4 +904,4 @@ export default {
     color: #fff; /* Text color for dark mode */
     border: 1px solid #2dd5fb; /* Border color */
   }
-  </style>
+</style>

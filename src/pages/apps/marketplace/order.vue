@@ -1739,4 +1739,8 @@ async function refreshPage(done=() => {}) {
     transform: rotate(90deg);
   }
 }
+
+:deep(.q-pull-to-refresh__puller-container) {
+  min-width: 100vw !important;
+}
 </style>
