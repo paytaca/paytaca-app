@@ -332,7 +332,7 @@
               <div v-if="txSearchActive" class="full-width">
                 <q-input
                   ref="tx-search"
-                  style="padding-bottom: 22px;"
+                  style="margin-left: -20px; padding-bottom: 22px;"
                   maxlength="6"
                   label="Search by Reference ID"
                   v-model="txSearchReference"
