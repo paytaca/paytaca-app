@@ -285,5 +285,6 @@ onMounted(() => {
     z-index: 1;
     max-width: 100%;
     background: inherit;
+    overflow-wrap: anywhere;
   }
 </style>

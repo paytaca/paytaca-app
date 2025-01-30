@@ -103,6 +103,11 @@ export default {
           value: 'RP',
           label: 'P2P Exchange',
           selected: false
+        },
+        {
+          value: 'NF',
+          label: this.$t('Collectibles'),
+          selected: false
         }
       ],
 
