@@ -59,36 +59,7 @@
             </q-item-section>
           </q-item>
         </q-card>
-        <q-item v-for="(transaction, index) in unspentTxns" :key="index" clickable @click="selectTransaction(transaction)">
-          <q-item-section>
-            <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              <div class="sm-font-size text-grey-6 text-strike">
-                {{ formatCurrency(getInitialFiatAmount(transaction), currency.symbol) }} {{ currency.symbol }}
-              </div>
-              <div class="row">
-                <div class="col ib-text">
-                  <div class="md-font-size text-bold" :class="getFiatAmountColor(transaction)">
-                    {{ formatCurrency(getCurrentFiatAmount(transaction), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
-                    <q-icon :name="getTrendingIcon(transaction)"/>
-                  </div>
-                  <div class="sm-font-size">
-                    {{ transaction.amount }} BCH
-                  </div>
-                </div>
-                <div class="col ib-text text-right q-pr-sm">
-                  <div class="text-grey-8 text-bold">
-                    <span>{{ transaction.txid.substring(0,8) }}</span>
-                    <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(transaction)"/>
-                  </div>
-                  <div class="text-grey-6 sm-font-size">
-                    <q-icon name="local_police" class="q-pa-xs"/>
-                    <span>{{ lossProtection(transaction) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </q-item-section>
-        </q-item>
+        <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
       </q-list>
     </q-pull-to-refresh>
   </div>
@@ -101,8 +72,12 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
 import { backend } from 'src/exchange/backend'
+import UnspentTransactionList from './UnspentTransactionList.vue'
 
 export default {
+  components: {
+    UnspentTransactionList
+  },
   data () {
     return {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
@@ -111,52 +86,7 @@ export default {
       hideCashout: false,
       cashoutOrders: [],
       selectedTransactions: [],
-      merchantTransactions: null,
-      unspentTxns: [],
-      merchant_transactions: [
-        {
-          txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c0',
-          amount: 1e-05,
-          tx_timestamp: '2025-01-27T07:41:34Z',
-          fiat_price: {
-            init: {
-              PHP: 403.26
-            },
-            curr: {
-              PHP: 434.18
-            }
-          },
-          status: 'Status'
-        },
-        {
-          txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c1',
-          amount: 1e-05,
-          tx_timestamp: '2025-01-27T07:41:34Z',
-          fiat_price: {
-            init: {
-              PHP: 403.26
-            },
-            curr: {
-              PHP: 434.18
-            }
-          },
-          status: 'Status'
-        },
-        {
-          txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c2',
-          amount: 1e-05,
-          tx_timestamp: '2025-01-27T07:41:34Z',
-          fiat_price: {
-            init: {
-              PHP: 403.26
-            },
-            curr: {
-              PHP: 434.18
-            }
-          },
-          status: 'Status'
-        }
-      ]
+      unspentTxns: []
     }
   },
   computed: {
@@ -164,7 +94,6 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     marketPrice () {
-      // get Market w/
       return 0
     }
   },
@@ -191,12 +120,14 @@ export default {
     openOrderForm () {
       this.$router.push({ name: 'app-pos-cashout-form', query: { selectedTransactions: JSON.stringify(this.selectedTransactions) } })
     },
-    selectTransaction (transaction) {
+    selectTransaction (transaction, index) {
       const isTxnSelected = this.isTxnSelected(transaction)
       if (!isTxnSelected) {
         this.selectedTransactions.push(transaction)
+        this.unspentTxns[index].selected = true
       } else {
         this.selectedTransactions = this.selectedTransactions.filter(tx => tx.txid !== transaction.txid)
+        this.unspentTxns[index].selected = false
       }
     },
     async fetchUnspentTxns () {
@@ -206,11 +137,6 @@ export default {
       await backend.get(url, { params: { currency: this.currency?.symbol } })
         .then(response => {
           vm.unspentTxns = response.data
-
-          // remove later
-          vm.unspentTxns = this.merchant_transactions
-
-          console.log('UNSPENT: ', vm.unspentTxns)
         })
         .catch(error => {
           console.log(error)
@@ -239,60 +165,6 @@ export default {
       if (parent !== void 0 && parent.scrollTop > 0) {
         e.stopPropagation()
       }
-    },
-    lossProtection (transaction) {
-      const txTime = new Date(transaction.tx_timestamp)
-      const expirationDate = new Date(txTime)
-      expirationDate.setDate(txTime.getDate() + 30)
-
-      const now = new Date()
-      const timeLeft = expirationDate - now
-
-      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
-      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
-      const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000)
-
-      if (daysLeft > 0) {
-        return `${daysLeft} days left`
-      }
-
-      if (hoursLeft > 0) {
-        return `${hoursLeft} hours left`
-      }
-
-      if (minutesLeft > 0) {
-        return `${minutesLeft} minutes left`
-      }
-
-      if (secondsLeft > 0) {
-        return `${secondsLeft} seconds left`
-      }
-
-      return 'Expired'
-    },
-    getInitialFiatAmount (transaction) {
-      // console.log('here: ', transaction)
-      const marketPrice = transaction?.fiat_price?.init[this.currency?.symbol]
-      return transaction.amount * marketPrice
-    },
-    getCurrentFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      return transaction.amount * marketPrice
-    },
-    getFiatAmountColor (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
-      if (currentFiatPrice < initialFiatPrice) return 'text-red'
-      if (currentFiatPrice > initialFiatPrice) return 'text-green'
-      return 'text-blue'
-    },
-    getTrendingIcon (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
-      if (currentFiatPrice > initialFiatPrice) return 'trending_up'
-      if (currentFiatPrice < initialFiatPrice) return 'trending_down'
-      return ''
     },
     isTxnSelected (transaction) {
       return this.selectedTransactions.some(txn => txn.txid === transaction.txid)

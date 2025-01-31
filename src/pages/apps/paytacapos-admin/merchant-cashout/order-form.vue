@@ -362,10 +362,10 @@ export default {
       let lossCovered = 0
       let totalBchAmount = 0
       transactions.forEach(tx => {
-        const initMarketPrice = tx.fiat_price?.init[this.currency.symbol]
+        const initMarketPrice = tx.fiat_price?.initial[this.currency.symbol]
         initialTotal += tx.amount * initMarketPrice
 
-        const currMarketPrice = tx.fiat_price?.curr[this.currency.symbol]
+        const currMarketPrice = tx.fiat_price?.current[this.currency.symbol]
         currentTotal += tx.amount * currMarketPrice
 
         const isLossProtected = this.lossProtection(tx) !== 'Expired'
@@ -417,24 +417,24 @@ export default {
       return 'Expired'
     },
     getInitialFiatAmount (transaction) {
-      console.log('transaction:', transaction)
-      const marketPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      // console.log('transaction:', transaction)
+      const marketPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
       return transaction.amount * marketPrice
     },
     getCurrentFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
+      const marketPrice = transaction?.fiat_price?.current[this.currency?.symbol]
       return transaction.amount * marketPrice
     },
     getFiatAmountColor (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      const currentFiatPrice = transaction?.fiat_price?.current[this.currency?.symbol]
+      const initialFiatPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
       if (currentFiatPrice < initialFiatPrice) return 'text-red'
       if (currentFiatPrice > initialFiatPrice) return 'text-green'
       return 'text-blue'
     },
     getTrendingIcon (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
+      const currentFiatPrice = transaction?.fiat_price?.current[this.currency?.symbol]
+      const initialFiatPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
       if (currentFiatPrice > initialFiatPrice) return 'trending_up'
       if (currentFiatPrice < initialFiatPrice) return 'trending_down'
       return ''
