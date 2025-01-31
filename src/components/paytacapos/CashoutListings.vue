@@ -93,7 +93,8 @@
     </q-pull-to-refresh>
   </div>
   <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
-    <q-btn class="q-px-lg" @click="$emit('cashout-form', selectedTransactions)" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
+    <q-btn class="q-px-lg" @click="openOrderForm()" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
+    <!-- <q-btn class="q-px-lg" @click="$emit('cashout-form', selectedTransactions)" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/> -->
   </div>
 </template>
 <script>
@@ -105,13 +106,57 @@ export default {
   data () {
     return {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
-      currency: { name: 'PHP', symbol: 'PHP' },
+      currency: this.$store.getters['market/selectedCurrency'],
       orderType: 'ALL',
       hideCashout: false,
       cashoutOrders: [],
       selectedTransactions: [],
       merchantTransactions: null,
-      unspentTxns: []
+      unspentTxns: [],
+      merchant_transactions: [
+        {
+          txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c0',
+          amount: 1e-05,
+          tx_timestamp: '2025-01-27T07:41:34Z',
+          fiat_price: {
+            init: {
+              PHP: 403.26
+            },
+            curr: {
+              PHP: 434.18
+            }
+          },
+          status: 'Status'
+        },
+        {
+          txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c1',
+          amount: 1e-05,
+          tx_timestamp: '2025-01-27T07:41:34Z',
+          fiat_price: {
+            init: {
+              PHP: 403.26
+            },
+            curr: {
+              PHP: 434.18
+            }
+          },
+          status: 'Status'
+        },
+        {
+          txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c2',
+          amount: 1e-05,
+          tx_timestamp: '2025-01-27T07:41:34Z',
+          fiat_price: {
+            init: {
+              PHP: 403.26
+            },
+            curr: {
+              PHP: 434.18
+            }
+          },
+          status: 'Status'
+        }
+      ]
     }
   },
   computed: {
@@ -143,6 +188,9 @@ export default {
       // await this.fetchCashoutOrders()
       await this.fetchUnspentTxns()
     },
+    openOrderForm () {
+      this.$router.push({ name: 'app-pos-cashout-form', query: { selectedTransactions: JSON.stringify(this.selectedTransactions) } })
+    },
     selectTransaction (transaction) {
       const isTxnSelected = this.isTxnSelected(transaction)
       if (!isTxnSelected) {
@@ -158,6 +206,11 @@ export default {
       await backend.get(url, { params: { currency: this.currency?.symbol } })
         .then(response => {
           vm.unspentTxns = response.data
+
+          // remove later
+          vm.unspentTxns = this.merchant_transactions
+
+          console.log('UNSPENT: ', vm.unspentTxns)
         })
         .catch(error => {
           console.log(error)
@@ -219,6 +272,7 @@ export default {
       return 'Expired'
     },
     getInitialFiatAmount (transaction) {
+      // console.log('here: ', transaction)
       const marketPrice = transaction?.fiat_price?.init[this.currency?.symbol]
       return transaction.amount * marketPrice
     },

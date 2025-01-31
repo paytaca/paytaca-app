@@ -11,7 +11,7 @@
     />
     <div class="q-px-md q-pb-md">
       <div class="text-right q-pb-sm">
-        <q-btn padding="xs" color="primary" label="Cash Out" @click="openCashoutPage"></q-btn>
+        <q-btn class="q-px-sm" outline rounded icon="payments" color="primary" label="Cash Out" @click="openCashoutPage"></q-btn>
       </div>
       <div class="row items-center justify-end">
         <div class="text-h5">{{ $t('Merchants')}}</div>
