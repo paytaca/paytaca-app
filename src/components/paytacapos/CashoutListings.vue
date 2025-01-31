@@ -59,17 +59,17 @@
             </q-item-section>
           </q-item>
         </q-card>
-        <q-item v-for="(transaction, index) in unspentTxns" :key="index" clickable @click="selectTransaction(transaction)">
+        <!-- <q-item v-for="(transaction, index) in unspentTxns" :key="index" clickable @click="selectTransaction(transaction)">
           <q-item-section>
             <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               <div class="sm-font-size text-grey-6 text-strike">
-                {{ formatCurrency(getInitialFiatAmount(transaction), currency.symbol) }} {{ currency.symbol }}
+                {{ formatCurrency(getFiatValue('initial', transaction), currency.symbol) }} {{ currency.symbol }}
               </div>
               <div class="row">
                 <div class="col ib-text">
-                  <div class="md-font-size text-bold" :class="getFiatAmountColor(transaction)">
-                    {{ formatCurrency(getCurrentFiatAmount(transaction), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
-                    <q-icon :name="getTrendingIcon(transaction)"/>
+                  <div class="md-font-size text-bold" :class="getFiatValueColor(transaction)">
+                    {{ formatCurrency(getFiatValue('current', transaction), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                    <q-icon :name="getFiatValueIcon(transaction)"/>
                   </div>
                   <div class="sm-font-size">
                     {{ transaction.amount }} BCH
@@ -82,13 +82,14 @@
                   </div>
                   <div class="text-grey-6 sm-font-size">
                     <q-icon name="local_police" class="q-pa-xs"/>
-                    <span>{{ lossProtection(transaction) }}</span>
+                    <span>{{ calcLossProtectionTimeLeft(transaction) }}</span>
                   </div>
                 </div>
               </div>
             </div>
           </q-item-section>
-        </q-item>
+        </q-item> -->
+        <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
       </q-list>
     </q-pull-to-refresh>
   </div>
@@ -100,8 +101,12 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
 import { backend } from 'src/exchange/backend'
+import UnspentTransactionList from './UnspentTransactionList.vue'
 
 export default {
+  components: {
+    UnspentTransactionList
+  },
   data () {
     return {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
@@ -110,7 +115,6 @@ export default {
       hideCashout: false,
       cashoutOrders: [],
       selectedTransactions: [],
-      merchantTransactions: null,
       unspentTxns: []
     }
   },
@@ -143,12 +147,14 @@ export default {
       // await this.fetchCashoutOrders()
       await this.fetchUnspentTxns()
     },
-    selectTransaction (transaction) {
+    selectTransaction (transaction, index) {
       const isTxnSelected = this.isTxnSelected(transaction)
       if (!isTxnSelected) {
         this.selectedTransactions.push(transaction)
+        this.unspentTxns[index].selected = true
       } else {
         this.selectedTransactions = this.selectedTransactions.filter(tx => tx.txid !== transaction.txid)
+        this.unspentTxns[index].selected = false
       }
     },
     async fetchUnspentTxns () {
@@ -186,59 +192,6 @@ export default {
       if (parent !== void 0 && parent.scrollTop > 0) {
         e.stopPropagation()
       }
-    },
-    lossProtection (transaction) {
-      const txTime = new Date(transaction.tx_timestamp)
-      const expirationDate = new Date(txTime)
-      expirationDate.setDate(txTime.getDate() + 30)
-
-      const now = new Date()
-      const timeLeft = expirationDate - now
-
-      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
-      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
-      const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000)
-
-      if (daysLeft > 0) {
-        return `${daysLeft} days left`
-      }
-
-      if (hoursLeft > 0) {
-        return `${hoursLeft} hours left`
-      }
-
-      if (minutesLeft > 0) {
-        return `${minutesLeft} minutes left`
-      }
-
-      if (secondsLeft > 0) {
-        return `${secondsLeft} seconds left`
-      }
-
-      return 'Expired'
-    },
-    getInitialFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.init[this.currency?.symbol]
-      return transaction.amount * marketPrice
-    },
-    getCurrentFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      return transaction.amount * marketPrice
-    },
-    getFiatAmountColor (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
-      if (currentFiatPrice < initialFiatPrice) return 'text-red'
-      if (currentFiatPrice > initialFiatPrice) return 'text-green'
-      return 'text-blue'
-    },
-    getTrendingIcon (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.curr[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.init[this.currency?.symbol]
-      if (currentFiatPrice > initialFiatPrice) return 'trending_up'
-      if (currentFiatPrice < initialFiatPrice) return 'trending_down'
-      return ''
     },
     isTxnSelected (transaction) {
       return this.selectedTransactions.some(txn => txn.txid === transaction.txid)
