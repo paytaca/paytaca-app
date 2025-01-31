@@ -114,7 +114,7 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/>
+                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
                           <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{ bchBalanceText }}
                           </span>
@@ -171,7 +171,7 @@
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
-                            : stablehedgeView ? 'assets/img/stablehedge/sh-logo-bch.svg' : 'bch-logo.png'
+                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch.svg' : 'bch-logo.png'
                           "
                           alt=""
                           style="height: 75px;"

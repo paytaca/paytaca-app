@@ -154,6 +154,10 @@ div#q-app:has(.marketplace-container) {
   @include bottom-card(60vh);
 }
 
+.bottom-card-medium {
+  @include bottom-card(70vh);
+}
+
 .bottom-card-tall {
   @include bottom-card(90vh);
 }

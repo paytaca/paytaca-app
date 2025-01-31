@@ -7,28 +7,16 @@
     position="bottom"
   >
     <q-card
-      class="br-15 pt-card-2 text-bow bottom-card"
+      class="br-15 pt-card-2 text-bow bottom-card-medium q-px-md q-pt-lg"
       :class="getDarkModeClass(darkMode)"
     >
-      <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
-        <div class="text-h6 q-space q-mt-sm">
-          <!-- {{ $t('Stablehedge') }} -->
-        </div>
-        <q-btn
-          flat
-          padding="sm"
-          icon="close"
-          class="close-button"
-          v-close-popup
-        />
-      </div>
       <q-carousel
         ref="carousel"
         v-model="slide"
         transition-prev="slide-right"
         transition-next="slide-left"
         swipeable
-        navigation
+        arrows
         animated
         padding
         control-color="brandblue"
@@ -37,9 +25,9 @@
       >
         <q-carousel-slide name="intro">
           <div class="column" style="min-height:100%;">
-            <div class="text-center text-h4 q-mb-lg">Stablehedge</div>
+            <div class="text-center text-h4 q-mb-lg">StableHedge</div>
             <div class="row items-center justify-center q-mb-md">
-              <img src="assets/img/stablehedge/stablehedge-bch-logo.png" height="100"/>
+              <img src="assets/img/stablehedge/stablehedge-bch.svg" height="150"/>
             </div>
             <div class="text-center text-body1">
               {{ $t('StablehedgeIntroText') }}
