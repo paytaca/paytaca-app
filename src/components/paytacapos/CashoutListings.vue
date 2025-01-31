@@ -44,15 +44,15 @@
                 <div class="row">
                   <div class="col ib-text">
                     <div class="md-font-size text-bold">
-                      {{ formatCurrency(cashout.fiatAmount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                      {{ formatCurrency(cashout.transactions[0].wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
                     </div>
                     <div class="sm-font-size">
-                      {{ cashout.amount }} BCH
+                      {{ cashout.transactions[0].wallet_history.amount }} BCH
                     </div>
                   </div>
                   <div class="col ib-text text-right q-pr-sm">
-                    <div class="text-grey-8 text-bold">{{ cashout.txid }}</div>
-                    <div class="text-grey-6 sm-font-size">{{ cashout.status }}</div>
+                    <div class="text-grey-8 text-bold">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
+                    <div class="text-grey-6 sm-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
                   </div>
                 </div>
               </div>
@@ -65,7 +65,6 @@
   </div>
   <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
     <q-btn class="q-px-lg" @click="openOrderForm()" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
-    <!-- <q-btn class="q-px-lg" @click="$emit('cashout-form', selectedTransactions)" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/> -->
   </div>
 </template>
 <script>
@@ -114,7 +113,7 @@ export default {
       done()
     },
     async refetchListings () {
-      // await this.fetchCashoutOrders()
+      await this.fetchCashoutOrders()
       await this.fetchUnspentTxns()
     },
     openOrderForm () {
@@ -146,7 +145,7 @@ export default {
       const vm = this
       const url = '/paytacapos/cashout/'
 
-      await backend.get(url, { authorize: true })
+      await backend.get(url)
         .then(response => {
           console.log(response)
           vm.cashoutOrders = response.data
