@@ -36,6 +36,7 @@ export function tokenBalancesAsAssets(state, getters, rootState, rootGetters) {
     return {
       ...asset,
       id: assetId,
+      logo: asset?.logo || 'assets/img/stablehedge/sh-logo-bch.svg',
       symbol: symbol,
       decimals: decimals,
       balance: tokenBalance?.amount,

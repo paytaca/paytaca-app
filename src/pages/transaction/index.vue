@@ -171,7 +171,7 @@
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
-                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch-logo.png' : 'bch-logo.png'
+                            : stablehedgeView ? 'assets/img/stablehedge/sh-logo-bch.svg' : 'bch-logo.png'
                           "
                           alt=""
                           style="height: 75px;"
