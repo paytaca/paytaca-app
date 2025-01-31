@@ -59,36 +59,6 @@
             </q-item-section>
           </q-item>
         </q-card>
-        <!-- <q-item v-for="(transaction, index) in unspentTxns" :key="index" clickable @click="selectTransaction(transaction)">
-          <q-item-section>
-            <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              <div class="sm-font-size text-grey-6 text-strike">
-                {{ formatCurrency(getFiatValue('initial', transaction), currency.symbol) }} {{ currency.symbol }}
-              </div>
-              <div class="row">
-                <div class="col ib-text">
-                  <div class="md-font-size text-bold" :class="getFiatValueColor(transaction)">
-                    {{ formatCurrency(getFiatValue('current', transaction), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
-                    <q-icon :name="getFiatValueIcon(transaction)"/>
-                  </div>
-                  <div class="sm-font-size">
-                    {{ transaction.amount }} BCH
-                  </div>
-                </div>
-                <div class="col ib-text text-right q-pr-sm">
-                  <div class="text-grey-8 text-bold">
-                    <span>{{ transaction.txid.substring(0,8) }}</span>
-                    <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(transaction)"/>
-                  </div>
-                  <div class="text-grey-6 sm-font-size">
-                    <q-icon name="local_police" class="q-pa-xs"/>
-                    <span>{{ calcLossProtectionTimeLeft(transaction) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </q-item-section>
-        </q-item> -->
         <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
       </q-list>
     </q-pull-to-refresh>
