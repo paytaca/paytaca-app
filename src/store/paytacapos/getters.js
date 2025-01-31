@@ -1,3 +1,7 @@
+export function paymentMethod (state) {
+  return state.paymentMethod
+}
+
 function getFormattedLocation(location) {
   return [
     location?.location || location?.landmark,

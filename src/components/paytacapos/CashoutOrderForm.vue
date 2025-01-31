@@ -48,10 +48,8 @@
     <div v-if="status === 'confirm-payment-method'">
       <div class="text-center md-font-size text-grey-9 text-bold">Setup Payment Method</div>
 
-      <q-card class="q-my-md q-mx-lg br-15">
-        <q-scroll-area
-        :style="`height: ${minHeight-110}px; max-width: 100%;`"
-        >
+      <q-card v-if="!paymentLoading" class="q-my-md q-mx-lg br-15">
+        <q-scroll-area :style="`height: ${minHeight-110}px; max-width: 100%;`">
           <div class="q-py-md q-px-lg">
             <div class="q-pb-sm">
               <div class="q-pb-xs">Payment Type</div>
@@ -59,14 +57,14 @@
                 dense
                 outlined
                 flat
-                v-model="paymentMethod.payment_type"
+                v-model="selectedPaymentType"
                 option-label="full_name"
-                :options="paymentTypesOpt"
+                :options="paymentTypeOpts"
                 :dark="darkMode"
               />
             </div>
-            <div v-for="(field, index) in paymentMethod.payment_type.fields" :key="index">
-              <div class="q-pb-xs">{{ field.fieldname }}</div>
+            <div v-for="(fieldVal, index) in selectedPaymentMethod.values" :key="index">
+              <div class="q-pb-xs">{{ fieldVal.field_reference?.fieldname }}</div>
               <q-input
                 dense
                 outlined
@@ -74,12 +72,15 @@
                 hide-bottom-space
                 class="q-py-xs"
                 :dark="darkMode"
-                v-model="paymentMethod.fields[field.id].value"
+                v-model="fieldVal.value"
                 :rules="[
-                    val => isValidIdentifier(val, field.fieldname, field.required)
+                    val => isValidIdentifier(val, fieldVal.field_reference?.fieldname, fieldVal.payment_type?.required)
                   ]"
               />
             </div>
+          </div>
+          <div class="row">
+            <q-btn :loading="savingPaymentMethod" class="col" label="save" @click="onSavePaymentMethod"/>
           </div>
         </q-scroll-area>
       </q-card>
@@ -127,7 +128,7 @@
         </q-card>
       </div>
       <div class="full-width text-center q-px-lg q-py-sm">
-        <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="status = 'confirm-payment-method'"/>
+        <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="onSetupPayment"/>
         <q-btn v-if="status === 'confirm-payment-method'" label="Cash Out" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true"/>
       </div>
     </div>
@@ -157,7 +158,7 @@
 <script>
 import { formatCurrency } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { backend } from 'src/exchange/backend'
+import { backend as posBackend } from 'src/wallet/pos'
 import UnspentTransactionList from './UnspentTransactionList.vue'
 
 export default {
@@ -172,68 +173,13 @@ export default {
       status: 'confirm-transaction',
       openDialog: false,
       text: '',
-      paymentMethod: {
-        id: null,
-        payment_type: null,
-        account_name: null,
-        account_identifier: null,
-        identifier_format: null,
-        fields: {}
-      },
-      paymentTypesOpt: [
-        {
-          id: 1,
-          full_name: 'Maya',
-          short_name: 'Maya',
-          notes: null,
-          is_disabled: false,
-          fields: [
-            {
-              id: 1,
-              fieldname: 'Mobile Number',
-              format: null,
-              description: null,
-              payment_type: 1,
-              required: true
-            },
-            {
-              id: 2,
-              fieldname: 'Account Name',
-              format: null,
-              description: null,
-              payment_type: 1,
-              required: false
-            }
-          ]
-        },
-        {
-          id: 2,
-          full_name: 'Gcash',
-          short_name: 'Gcash',
-          notes: null,
-          is_disabled: false,
-          fields: [
-            {
-              id: 1,
-              fieldname: 'Mobile Number',
-              format: null,
-              description: null,
-              payment_type: 2,
-              required: true
-            },
-            {
-              id: 2,
-              fieldname: 'Account Name',
-              format: null,
-              description: null,
-              payment_type: 2,
-              required: false
-            }
-          ]
-
-        }
-      ],
-      cashOutTotal: {}
+      paymentTypeOpts: [],
+      paymentMethodOpts: [],
+      selectedPaymentType: {},
+      selectedPaymentMethod: {},
+      cashOutTotal: {},
+      paymentLoading: false,
+      savingPaymentMethod: false
     }
   },
   computed: {
@@ -244,6 +190,11 @@ export default {
       return 'This amount of BCH has been sent, please wait for your cash out order to be processed. You will receive payment shortly.'
     }
   },
+  watch: {
+    selectedPaymentType (val) {
+      this.updatePaymentType(val)
+    }
+  },
   emits: ['select-payment-method'],
   props: {
     data: Array
@@ -251,8 +202,7 @@ export default {
   mounted () {
     this.transactions = this.data
     this.calculateCashOutTotal(this.transactions)
-    this.paymentMethod.payment_type = this.paymentTypesOpt[0]
-    this.onUpdatePaymentType(this.paymentMethod.payment_type)
+    this.updatePaymentMethod()
   },
   methods: {
     formatCurrency,
@@ -307,17 +257,6 @@ export default {
           return true
       }
     },
-    onUpdatePaymentType (data) {
-      const paymentFields = {}
-      data.fields.forEach(field => {
-        paymentFields[field.id] = {
-          fieldname: field.fieldname,
-          required: field.required,
-          value: null
-        }
-      })
-      this.paymentMethod.fields = paymentFields
-    },
     equivalentAmount () {
       let amount = this.totalCashout()
       if (amount === '' || isNaN(amount)) return 0
@@ -329,19 +268,109 @@ export default {
       // }
       return Number(amount)
     },
-    async fetchPaymentMethod () {
+    async fetchPaymentMethods () {
       const vm = this
-      const url = '/paytacapos/payment-methods/'
-
-      await backend.get(url, { authorize: true })
+      const url = '/paytacapos/payment-method/'
+      await posBackend.get(url, {
+        params: { currency: this.currency?.symbol }
+      })
         .then(response => {
           console.log(response)
-          vm.paymentMethod = response.data
-          // vm.merchantTransactions = response.data
+          vm.paymentMethodOpts = response.data
         })
         .catch(error => {
           console.log(error)
         })
+    },
+    async fetchPaymentTypes () {
+      await posBackend.get('/ramp-p2p/payment-type/', {
+        params: { currency: this.currency?.symbol },
+        authorize: true
+      })
+        .then(response => {
+          this.paymentTypeOpts = response.data
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
+    },
+    async onSavePaymentMethod () {
+      this.savingPaymentMethod = true
+      await this.savePaymentMethod()
+      await this.fetchPaymentMethods()
+      this.savingPaymentMethod = false
+    },
+    async savePaymentMethod () {
+      const fieldValues = []
+      this.selectedPaymentMethod.values.forEach(field => {
+        fieldValues.push({
+          field_reference: field.field_reference.id,
+          value: field.value
+        })
+      })
+      const payload = {
+        payment_type_id: this.selectedPaymentMethod.payment_type.id,
+        values: fieldValues
+      }
+      await posBackend.post('/paytacapos/payment-method/', payload, { authorize: true })
+        .then(response => {
+          console.log(response.data)
+          this.selectedPaymentMethod = response.data
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
+    },
+    async onSetupPayment () {
+      this.paymentLoading = true
+      this.status = 'confirm-payment-method'
+      await this.fetchPaymentMethods()
+      await this.fetchPaymentTypes()
+      let paymentMethod = this.$store.getters['paytacapos/paymentMethod']
+      console.log('paymentMethod:', !paymentMethod)
+      if (!paymentMethod) {
+        if (this.paymentMethodOpts.length > 0) {
+          paymentMethod = this.paymentMethodOpts[0]
+          this.selectedPaymentType = paymentMethod.payment_type
+          this.updatePaymentMethod(paymentMethod)
+        } else {
+          this.updatePaymentType()
+        }
+      }
+      this.paymentLoading = false
+    },
+    updatePaymentType (paymentType = null) {
+      if (!paymentType) {
+        this.selectedPaymentType = this.paymentTypeOpts[0]
+      }
+
+      let selectedPaymentMethod = null
+      if (this.paymentMethodOpts.length > 0) {
+        // find the payment method matching selected payment type
+        selectedPaymentMethod = this.paymentMethodOpts.find(el => el.payment_type?.id === paymentType.id)
+      }
+      if (!selectedPaymentMethod) {
+        const paymentMethod = {
+          payment_type: paymentType,
+          values: []
+        }
+        paymentType.fields.forEach(field => {
+          paymentMethod.values.push({
+            field_reference: field,
+            value: null
+          })
+        })
+        selectedPaymentMethod = paymentMethod
+      }
+      this.updatePaymentMethod(selectedPaymentMethod)
+    },
+    updatePaymentMethod (paymentMethod = null) {
+      this.selectedPaymentMethod = paymentMethod
+      if (!this.selectedPaymentMethod) {
+        this.selectedPaymentMethod = this.$store.getters['paytacapos/paymentMethod']
+      }
+      this.$store.commit('paytacapos/updatePaymentMethod', this.selectedPaymentMethod)
+      console.log('selected__:', this.selectedPaymentMethod)
     },
     calculateCashOutTotal (transactions) {
       let initialTotal = 0

@@ -1,3 +1,7 @@
+export function updatePaymentMethod (state, data) {
+  state.paymentMethod = data
+}
+
 /**
  * @param {Object} state 
  * @param {Object} data

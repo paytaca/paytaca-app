@@ -54,7 +54,8 @@ export default function () {
           rawPaymentUri: 'bitcoincash:ead42...?amount=0.01',
         },
        */
-    }
+    },
+    paymentMethod: {}
   }
 }
 
