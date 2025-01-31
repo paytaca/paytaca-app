@@ -9,7 +9,7 @@
       class="header"
     />
     <CashoutListings v-if="state === 'list'" @cashout-form="openCashoutForm"/>
-    <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions" @select-payment-method="state = 'select-payment-method'"/>
+    <!-- <CashoutOrderForm v-if="state === 'cashout-form'" :data="selectedTransactions" @select-payment-method="state = 'select-payment-method'"/> -->
   </q-pull-to-refresh>
 </template>
 <script>
@@ -18,7 +18,7 @@ import { formatCurrency } from 'src/exchange'
 import { backend } from 'src/exchange/backend'
 import { ref } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue';
-import CashoutOrderForm from 'src/components/paytacapos/CashoutOrderForm.vue';
+// import CashoutOrderForm from 'src/components/paytacapos/CashoutOrderForm.vue';
 import CashoutListings from 'src/components/paytacapos/CashoutListings.vue';
 
 export default {
@@ -42,7 +42,7 @@ export default {
   },
   components: {
     HeaderNav,
-    CashoutOrderForm,
+    // CashoutOrderForm,
     CashoutListings
   },
   methods: {
