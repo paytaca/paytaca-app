@@ -46,6 +46,9 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  mounted () {
+    console.log('TRANSACTIONS: ', this.transaction)
+  },
   methods: {
     formatCurrency,
     calcLossProtectionTimeLeft (transaction) {

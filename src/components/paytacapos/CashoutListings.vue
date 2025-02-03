@@ -91,9 +91,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    marketPrice () {
-      return 0
     }
   },
   watch: {
@@ -147,7 +144,7 @@ export default {
 
       await backend.get(url)
         .then(response => {
-          console.log(response)
+          // console.log(response)
           vm.cashoutOrders = response.data
         })
         .catch(error => {

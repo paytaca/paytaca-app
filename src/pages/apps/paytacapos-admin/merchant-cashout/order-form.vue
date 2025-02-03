@@ -54,7 +54,7 @@
       </div>
 
       <!-- Payment Method -->
-      <div v-if="status === 'confirm-payment-method'">
+      <!-- <div v-if="status === 'confirm-payment-method'">
         <div class="text-center md-font-size text-grey-9 text-bold">Setup Payment Method</div>
 
         <q-card class="q-my-md q-mx-lg br-15">
@@ -93,7 +93,7 @@
           </q-scroll-area>
         </q-card>
 
-      </div>
+      </div> -->
 
       <div class="footer-card-btn">
         <div class="q-mx-lg q-pt-md">
@@ -132,8 +132,8 @@
           </q-card>
         </div>
         <div class="full-width text-center q-px-lg q-py-sm">
-          <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="status = 'confirm-payment-method'"/>
-          <q-btn v-if="status === 'confirm-payment-method'" label="Cash Out" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true"/>
+          <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="openPaymentMethodDialog()"/>
+          <!-- <q-btn v-if="status === 'confirm-payment-method'" label="Cash Out" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true"/> -->
         </div>
       </div>
     </div>
@@ -165,6 +165,7 @@ import { formatCurrency } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { backend } from 'src/exchange/backend'
 import HeaderNav from 'src/components/header-nav.vue';
+import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
 
 export default {
   data () {
@@ -242,7 +243,6 @@ export default {
         loss_protection_coverage: 3979.7
       },
       cashOutTotal: {}
-      // paymentTypesOpt: null,
     }
   },
   computed: {
@@ -271,6 +271,14 @@ export default {
     getDarkModeClass,
     async refreshData (done) {
       done()
+    },
+    openPaymentMethodDialog () {
+      this.$q.dialog({
+        component: CashoutPaymentMethodDialog,
+        componentProps: {
+          currency: this.currency.symbol
+        }
+      })
     },
     preventPull (e) {
       let parent = e.target
