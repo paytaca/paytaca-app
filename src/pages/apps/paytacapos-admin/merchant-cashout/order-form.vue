@@ -15,7 +15,7 @@
         <div class="text-center md-font-size text-bold">Cash Out Transactions</div>
 
         <q-pull-to-refresh @refresh="refreshData">
-          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
             <!-- Cashout Order -->
             <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
               <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
@@ -53,55 +53,46 @@
         </q-pull-to-refresh>
       </div>
 
-      <!-- Payment Method -->
-      <!-- <div v-if="status === 'confirm-payment-method'">
-        <div class="text-center md-font-size text-grey-9 text-bold">Setup Payment Method</div>
-
-        <q-card class="q-my-md q-mx-lg br-15">
-          <q-scroll-area
-          :style="`height: ${minHeight-110}px; max-width: 100%;`"
-          >
-            <div class="q-py-md q-px-lg">
-              <div class="q-pb-sm">
-                <div class="q-pb-xs">Payment Type</div>
-                <q-select
-                  dense
-                  outlined
-                  flat
-                  v-model="paymentMethod.payment_type"
-                  option-label="full_name"
-                  :options="paymentTypesOpt"
-                  :dark="darkMode"
-                />
-              </div>
-              <div v-for="(field, index) in paymentMethod.payment_type.fields" :key="index">
-                <div class="q-pb-xs">{{ field.fieldname }}</div>
-                <q-input
-                  dense
-                  outlined
-                  flat
-                  hide-bottom-space
-                  class="q-py-xs"
-                  :dark="darkMode"
-                  v-model="paymentMethod.fields[field.id].value"
-                  :rules="[
-                      val => isValidIdentifier(val, field.fieldname, field.required)
-                    ]"
-                />
+      <!-- Footer order summary card -->
+      <div class="footer-card-btn">
+        <!-- Selected Payment Method -->
+        <div class="q-px-lg">
+          <q-card class="full-width br-15">
+            <div class="md-font-size text-blue q-px-md q-py-xs text-bold text-center">
+              Payment Method
+            </div>
+            <q-separator class="q-mx-md"/>
+            <div v-if="paymentMethod">
+              <div class="row">
+                <div class=" col-8 q-px-lg q-py-sm">
+                  <span class="text-bold q-pl-sm">{{ paymentMethod.payment_type.full_name }}</span><br>
+                  <span class="text-grey-8 q-px-md" v-for="(item, index) in paymentMethod.values" :key="index">
+                    {{ item.value }}<br>
+                  </span>
+                </div>
+                <div class="col-4 q-py-sm">
+                  <span><q-btn round size="sm" color="primary" icon="edit" @click="openPaymentMethodDialog()"/></span>&nbsp;
+                  <span><q-btn round size="sm" outline color="primary" icon="close" @click="paymentMethod = null"/></span>
+                </div>
               </div>
             </div>
-          </q-scroll-area>
-        </q-card>
+            <div v-else>
+              <div class="text-center text-grey-6 q-py-xs">
+                No Payment Method Selected...
+              </div>
+              <div class="q-mx-lg q-pb-sm">
+                <q-btn rounded outline color="primary" class="full-width" label="Add Payment Method" @click="openPaymentMethodDialog()"/>
+              </div>
+            </div>
+          </q-card>
+        </div>
 
-      </div> -->
-
-      <div class="footer-card-btn">
-        <div class="q-mx-lg q-pt-md">
-          <q-card class="full-width q-px-lg br-15 q-py-md">
-            <div class="md-font-size text-grey-8">
+        <div class="q-mx-lg q-pt-xs">
+          <q-card class="full-width q-px-lg br-15 q-py-sm">
+            <div class="text-grey-8 text-bold">
               {{ transactions.length }} Transactions
             </div>
-            <div class="row q-pt-sm sm-font-size q-pb-md">
+            <div class="row q-pt-sm sm-font-size q-pb-sm">
               <div class="col-8 text-bold">
                 <span>Initial Total</span><br>
                 <span>Market Volatility Loss/Gain</span><br>
@@ -132,7 +123,7 @@
           </q-card>
         </div>
         <div class="full-width text-center q-px-lg q-py-sm">
-          <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="openPaymentMethodDialog()"/>
+          <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="openPaymentMethodDialog()" :disable="!paymentMethod"/>
           <!-- <q-btn v-if="status === 'confirm-payment-method'" label="Cash Out" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true"/> -->
         </div>
       </div>
@@ -176,73 +167,14 @@ export default {
       status: 'confirm-transaction',
       openDialog: false,
       text: '',
-      paymentMethod: {
-        id: null,
-        payment_type: null,
-        account_name: null,
-        account_identifier: null,
-        identifier_format: null,
-        fields: {}
-      },
-      paymentTypesOpt: [
-        {
-          id: 1,
-          full_name: 'Maya',
-          short_name: 'Maya',
-          notes: null,
-          is_disabled: false,
-          fields: [
-            {
-              id: 1,
-              fieldname: 'Mobile Number',
-              format: null,
-              description: null,
-              payment_type: 1,
-              required: true
-            },
-            {
-              id: 2,
-              fieldname: 'Account Name',
-              format: null,
-              description: null,
-              payment_type: 1,
-              required: false
-            }
-          ]
-        },
-        {
-          id: 2,
-          full_name: 'Gcash',
-          short_name: 'Gcash',
-          notes: null,
-          is_disabled: false,
-          fields: [
-            {
-              id: 1,
-              fieldname: 'Mobile Number',
-              format: null,
-              description: null,
-              payment_type: 2,
-              required: true
-            },
-            {
-              id: 2,
-              fieldname: 'Account Name',
-              format: null,
-              description: null,
-              payment_type: 2,
-              required: false
-            }
-          ]
-
-        }
-      ],
+      paymentMethod: null,
       orderInfo: {
         market_price: 14587.50,
         market_loss_gain: -4319.7,
         loss_protection_coverage: 3979.7
       },
-      cashOutTotal: {}
+      cashOutTotal: {},
+      openPaymentMethod: false
     }
   },
   computed: {
@@ -255,7 +187,8 @@ export default {
   },
   emits: ['select-payment-method'],
   components: {
-    HeaderNav
+    HeaderNav,
+    // CashoutPaymentMethodDialog
   },
   props: {
     data: Array
@@ -263,8 +196,6 @@ export default {
   mounted () {
     this.transactions = JSON.parse(this.$route.query.selectedTransactions)
     this.calculateCashOutTotal(this.transactions)
-    this.paymentMethod.payment_type = this.paymentTypesOpt[0]
-    this.onUpdatePaymentType(this.paymentMethod.payment_type)
   },
   methods: {
     formatCurrency,
@@ -273,12 +204,20 @@ export default {
       done()
     },
     openPaymentMethodDialog () {
+      // this.openPaymentMethod = true
       this.$q.dialog({
         component: CashoutPaymentMethodDialog,
         componentProps: {
           currency: this.currency.symbol
         }
       })
+        .onOk(method => {
+          console.log('selected: ', method)
+          this.paymentMethod = method
+        })
+    },
+    receivePaymentMethod (data) {
+      console.log('payment method: ', data)
     },
     preventPull (e) {
       let parent = e.target
@@ -301,53 +240,6 @@ export default {
       }
 
       return sum
-    },
-    isValidIdentifier (val, format, required = false) {
-      if (required && !val) return this.$t('FieldRequired')
-      switch (format) {
-        case 'Email Address':
-          if (/^[\w\\.~!$%^&*=+}{'?-]+@([\w-]+\.)+[\w-]{2,4}$/.test(val)) {
-            return true
-          } else {
-            return this.$t('InvalidEmailAddress')
-          }
-        case 'Mobile Number':
-          if (/^(\d{9,15})$/.test(val)) {
-            return true
-          } else {
-            return this.$t('InvalidPhoneNumber')
-          }
-        case 'Bank Account Number':
-          if (/^(\d{9,35})$/.test(val)) {
-            return true
-          } else {
-            return this.$t('InvalidAccountNumber')
-          }
-        default:
-          return true
-      }
-    },
-    onUpdatePaymentType (data) {
-      const paymentFields = {}
-      data.fields.forEach(field => {
-        paymentFields[field.id] = {
-          fieldname: field.fieldname,
-          required: field.required,
-          value: null
-        }
-      })
-      this.paymentMethod.fields = paymentFields
-    },
-    equivalentAmount () {
-      let amount = this.totalCashout()
-      if (amount === '' || isNaN(amount)) return 0
-
-      // if (!this.byFiat) {
-      //   amount = Number((amount) * parseFloat(this.ad.price)).toFixed(2)
-      // } else {
-      //   amount = Number(parseFloat(amount) / parseFloat(this.ad.price)).toFixed(8)
-      // }
-      return Number(amount)
     },
     async fetchPaymentMethod () {
       const vm = this

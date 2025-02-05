@@ -1,5 +1,5 @@
 <template>
-  <q-dialog persistent>
+  <q-dialog persistent ref="dialog">
     <q-card class="full-width q-py-md br-15">
       <div class="text-right">
         <q-btn flat icon="close" color="red" v-close-popup/>
@@ -44,7 +44,7 @@
                           </div>
                         </div>
                         <div>
-                        <q-checkbox v-model="method.selected" @click="SelectPaymentMethod(index)" :dark="darkMode"/>
+                        <q-checkbox v-model="method.selected" @click="selectPaymentMethod(index)" :dark="darkMode"/>
                       </div>
                       </div>
                     </div>
@@ -59,7 +59,7 @@
       <!-- Buttons -->
       <div class="text-center q-pt-xs q-px-lg">
         <q-btn outline dense class="full-width q-my-xs" rounded unelevated label="Add Payment Method" color="primary"/>
-        <q-btn dense class="full-width" rounded unelevated label="Proceed" color="primary"/>
+        <q-btn dense class="full-width" rounded unelevated :disable="!selectedPaymentMethod" label="Select Payment Method" color="primary" @click="onOKClick()"/>
       </div>
 
       <!-- Selecting Payment Type: Move to separate component -->
@@ -140,6 +140,7 @@ export default {
     return {
       theme: this.$store.getters['global/theme'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
+      state: 'payment-method-select', // add-payment-method, delete-payment-method
       paymentTypeOpts: null,
       paymentMethodList: [],
       paymentMethod: {
@@ -163,13 +164,18 @@ export default {
   },
   props: {
     currency: String,
-    action: String
+    // action: String,
+    selectedPM: {
+      type: Object,
+      default: null
+    }
   },
   components: {
     ProgressLoader
   },
   async mounted () {
     this.isloading = true
+    this.selectedPaymentMethod = this.selectedPM
     await this.fetchPaymentTypes()
     await this.fetchPaymentMethods()
 
@@ -178,6 +184,10 @@ export default {
   methods: {
     isNotDefaultTheme,
     getDarkModeClass,
+    onOKClick () {
+      this.$emit('ok', this.selectedPaymentMethod)
+      this.$refs.dialog.hide()
+    },
     async fetchPaymentTypes () {
       const vm = this
       await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency }, authorize: true })
@@ -244,7 +254,7 @@ export default {
           return true
       }
     },
-    SelectPaymentMethod (index) {
+    selectPaymentMethod (index) {
       const vm = this
       vm.paymentMethodList.map((method, i) => {
         if (index !== i) {
@@ -256,23 +266,6 @@ export default {
     },
     async onSubmit () {
       this.createPaymentMethod()
-    //   this.errorMessage = null
-    //   this.isloading = true
-    //   switch (this.action) {
-    //     case 'deletePaymentMethod':
-    //       await this.deletePaymentMethod()
-    //       break
-    //     case 'addMethodFromAd':
-    //     case 'editPaymentMethod':
-    //     case 'createPaymentMethod':
-    //       await this.savePaymentMethod()
-    //       break
-    //   }
-    //   this.loading = false
-    //   if (!this.errorMessage) {
-    //     this.$emit('success')
-    //     this.$emit('back')
-    //   }
     },
     async createPaymentMethod () {
       const vm = this

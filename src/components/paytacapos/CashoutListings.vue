@@ -132,7 +132,8 @@ export default {
 
       await backend.get(url, { params: { currency: this.currency?.symbol } })
         .then(response => {
-          vm.unspentTxns = response.data // uncommment later
+          console.log(response)
+          // vm.unspentTxns = response.data // uncommment later
         })
         .catch(error => {
           console.log(error)
