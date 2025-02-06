@@ -132,8 +132,7 @@ export default {
 
       await backend.get(url, { params: { currency: this.currency?.symbol } })
         .then(response => {
-          console.log(response)
-          // vm.unspentTxns = response.data // uncommment later
+          vm.unspentTxns = response.data
         })
         .catch(error => {
           console.log(error)
@@ -141,11 +140,10 @@ export default {
     },
     async fetchCashoutOrders () {
       const vm = this
-      const url = '/paytacapos/cashout/'
+      const url = '/paytacapos/cash-out/'
 
       await backend.get(url)
         .then(response => {
-          // console.log(response)
           vm.cashoutOrders = response.data
         })
         .catch(error => {

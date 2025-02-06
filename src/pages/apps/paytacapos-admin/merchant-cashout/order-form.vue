@@ -66,8 +66,8 @@
               <div class="row">
                 <div class=" col-8 q-px-lg q-py-sm">
                   <span class="text-bold q-pl-sm">{{ paymentMethod.payment_type.full_name }}</span><br>
-                  <span class="text-grey-8 q-px-md" v-for="(item, index) in paymentMethod.values" :key="index">
-                    {{ item.value }}<br>
+                  <span class="text-grey-8 q-px-md" v-for="(item, index) in paymentMethod.values" :key="index" @click="copyToClipboard(item.value)">
+                    {{ item.value }} <q-icon size="xs" name="content_copy"/> <br>
                   </span>
                 </div>
                 <div class="col-4 q-py-sm">
@@ -208,16 +208,22 @@ export default {
       this.$q.dialog({
         component: CashoutPaymentMethodDialog,
         componentProps: {
-          currency: this.currency.symbol
+          currency: this.currency.symbol,
+          selectedPM: this.paymentMethod
         }
       })
         .onOk(method => {
-          console.log('selected: ', method)
           this.paymentMethod = method
         })
     },
-    receivePaymentMethod (data) {
-      console.log('payment method: ', data)
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
     },
     preventPull (e) {
       let parent = e.target
@@ -247,7 +253,7 @@ export default {
 
       await backend.get(url, { authorize: true })
         .then(response => {
-          console.log(response)
+          // console.log(response)
           vm.paymentMethod = response.data
           // vm.merchantTransactions = response.data
         })
