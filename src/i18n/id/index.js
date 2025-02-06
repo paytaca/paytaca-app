@@ -434,6 +434,7 @@ export default {
   ExpiresAt: "Kedaluwarsa di",
   ExplorerLink: "Tautan Explorer",
   Extensions: "Ekstensi",
+  ExternalLinks: "Tautan eksternal",
   ExtraQRDescription1: "Kode QR ini adalah yang tambahan.Anda dapat menyimpannya di perangkat Anda atau membagikannya kepada teman.Bagaimanapun Anda tidak dapat menemukan salah satu pecahan, Anda dapat menggunakan yang ini sebagai pengganti.",
   ExtraQRDescription2: "Baik menyimpan atau berbagi kode QR ini",
   ExtraShard: "Shard ekstra",

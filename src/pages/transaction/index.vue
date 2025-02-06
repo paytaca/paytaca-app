@@ -114,7 +114,7 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/>
+                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
                           <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{ bchBalanceText }}
                           </span>
@@ -171,7 +171,7 @@
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
-                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch-logo.png' : 'bch-logo.png'
+                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch.svg' : 'bch-logo.png'
                           "
                           alt=""
                           style="height: 75px;"
@@ -332,7 +332,7 @@
               <div v-if="txSearchActive" class="full-width">
                 <q-input
                   ref="tx-search"
-                  style="padding-bottom: 22px;"
+                  style="margin-left: -20px; padding-bottom: 22px;"
                   maxlength="6"
                   label="Search by Reference ID"
                   v-model="txSearchReference"
@@ -986,7 +986,7 @@ export default {
       if (!assetExists) return
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
-      this.getBalance()
+      this.getBalance(asset.id)
       this.$nextTick(() => {
         this.$refs['transaction-list-component'].resetValues(null, null, asset)
         this.$refs['transaction-list-component'].getTransactions()
@@ -1560,8 +1560,9 @@ export default {
       }
     }
     if (forceRecreate) {
-      await vm.$store.dispatch('global/updateOnboardingStep', 0)
-      vm.$router.push('/accounts?recreate=true')
+      this.securityOptionDialogStatus = 'show'
+      // await vm.$store.dispatch('global/updateOnboardingStep', 0)
+      // vm.$router.push('/accounts?recreate=true')
     }
 
     window.vm = this

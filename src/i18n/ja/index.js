@@ -434,6 +434,7 @@ export default {
   ExpiresAt: "で期限切れになります",
   ExplorerLink: "エクスプローラーリンク",
   Extensions: "拡張機能",
+  ExternalLinks: "外部リンク",
   ExtraQRDescription1: "このQRコードは追加のコードです。デバイスに保存するか、友達と共有できます。いずれにせよ、1つのシャードを見つけることができなかった場合、これを代替品として使用できます。",
   ExtraQRDescription2: "このQRコードを保存または共有します",
   ExtraShard: "余分なシャード",

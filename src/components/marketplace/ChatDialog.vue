@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" full-height>
-    <q-card class="pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card-2 text-bow bottom-card-tall" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pb-none">
         <slot name="header" v-bind="{ chatRef, chatSession }">
 

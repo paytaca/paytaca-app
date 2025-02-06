@@ -12,7 +12,7 @@
         @click.stop="() => $emit('openNft', nft)"
       >
         <q-img
-          :src="getImageUrl(nft)"
+          :src="imageUrl(nft)"
           fit="fill"
           @error="() => onNftImageError(nft)"
         >
@@ -93,6 +93,22 @@ const props = defineProps({
   category: String,
   darkMode: Boolean,
 })
+
+const imageUrl = computed(() => {
+  return (nft) => {
+    const imgUrl = nft?.parsedMetadata?.imageUrl
+    if (imgUrl) {
+      if (imgUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+        return imgUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+      } else {
+        return imgUrl
+      }
+    } else {
+      return generateFallbackImage(nft)
+    }
+  }
+})
+
 watch(() => [props.category, props.ungrouped, props.wallet], () => fetchNfts())
 onMounted(() => fetchNfts())
 onUpdated(() => {
@@ -162,18 +178,18 @@ function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
   return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
 }
 
-function getImageUrl (nft) {
-  const imgUrl = nft?.parsedMetadata?.imageUrl 
-  if (imgUrl) {
-    if (imgUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-      return imgUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-    } else {
-      return imgUrl
-    }
-  } else {
-    return generateFallbackImage(nft)
-  }
-}
+// function getImageUrl (nft) {
+//   const imgUrl = nft?.parsedMetadata?.imageUrl 
+//   if (imgUrl) {
+//     if (imgUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+//       return imgUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+//     } else {
+//       return imgUrl
+//     }
+//   } else {
+//     return generateFallbackImage(nft)
+//   }
+// }
 </script>
 
 <style lang="scss" scoped>

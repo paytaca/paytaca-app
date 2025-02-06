@@ -434,6 +434,7 @@ export default {
   ExpiresAt: "Verloopt op",
   ExplorerLink: "Explorer Link",
   Extensions: "Extensies",
+  ExternalLinks: "Externe links",
   ExtraQRDescription1: "Deze QR -code is extra.U kunt het opslaan in uw apparaat of delen met een vriend.In elk geval kon u geen van de scherven vinden, u kunt deze als vervanging gebruiken.",
   ExtraQRDescription2: "Opslaan of deze QR -code delen",
   ExtraShard: "Extra scherf",

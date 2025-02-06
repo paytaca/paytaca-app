@@ -1,18 +1,22 @@
 <template>
   <div>
     <q-btn
-      unelevated rounded
+      rounded
       padding="none sm"
       no-caps :label="$t('Freeze')"
-      class="q-mr-sm button"
+      class="q-mr-sm"
+      :color="$q.dark.isActive ? 'grey' : 'grey-4'"
+      :text-color="$q.dark.isActive ? '' : 'grey-8'"
       @click.stop="() => openFreezeDialog()"
     />
 
     <q-btn
-      unelevated rounded
+      rounded
       padding="none sm"
       no-caps :label="$t('Unfreeze')"
-      class="q-mr-sm button"
+      class="q-mr-sm"
+      :color="$q.dark.isActive ? 'teal' : 'teal-2'"
+      :text-color="$q.dark.isActive ? '' : 'teal-9'"
       @click.stop="() => openUnfreezeDialog()"
     />
 

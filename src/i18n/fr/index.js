@@ -434,6 +434,7 @@ export default {
   ExpiresAt: "Expire",
   ExplorerLink: "Lien d'explorateur",
   Extensions: "Extensions",
+  ExternalLinks: "Liens externes",
   ExtraQRDescription1: "Ce code QR est un supplément.Vous pouvez soit le stocker dans votre appareil, soit le partager avec un ami.Dans tous les cas, vous n'avez pas pu localiser l'un des éclats, vous pouvez utiliser celui-ci comme remplacement.",
   ExtraQRDescription2: "Stocker ou partager ce code QR",
   ExtraShard: "Fragment supplémentaire",
