@@ -1147,6 +1147,8 @@ const phrases = {
       ReserveSupply: "Reserve supply",
       TokenReserves: "Token reserves",
       EnableStablhedge: "Enable Stablehedge",
+      DepositWarningMessage: "Due to low liquidity, they may not be fully convertible back to BCH immediately.",
+      AvailableBchMessage: "Available BCH after deposit",
     },
     {
       StablehedgeIntroText: "Safeguard your funds from market volatility and access them whenever you need.",
