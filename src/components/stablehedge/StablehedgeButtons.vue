@@ -2,7 +2,7 @@
   <div>
     <q-btn
       rounded
-      padding="none sm"
+      padding="2px 10px"
       no-caps :label="$t('Freeze')"
       class="q-mr-sm"
       :color="$q.dark.isActive ? 'grey' : 'grey-4'"
@@ -12,7 +12,7 @@
 
     <q-btn
       rounded
-      padding="none sm"
+      padding="2px 10px"
       no-caps :label="$t('Unfreeze')"
       class="q-mr-sm"
       :color="$q.dark.isActive ? 'teal' : 'teal-2'"
