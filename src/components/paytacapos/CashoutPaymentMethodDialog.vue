@@ -2,7 +2,7 @@
   <q-dialog persistent ref="dialog">
     <q-card class="full-width q-py-md br-15">
       <div class="text-right">
-        <q-btn flat icon="close" color="red" v-close-popup/>
+        <q-btn flat icon="close" color="red" @click="backBtn()"/>
       </div>
 
       <!-- Selelct Payment Method -->
@@ -19,20 +19,30 @@
             <div v-for="(method, index) in paymentMethodList" :key="index">
               <div class="q-py-xs">
                 <q-card flat bordered :dark="darkMode">
-                  <q-expansion-item
-                    class="pt-card text-bow"
-                    :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
-                    :default-opened=true
-                    :label="method.payment_type.full_name"
-                    expand-separator
-                  >
-                    <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                  <div class="pt-card text-bow q-py-sm q-pl-md" :class="getDarkModeClass(darkMode, '', 'bg-grey-2')">
+                    <div class="row">
+                      <div class="col-8 text-bold q-pt-xs md-font-size">
+                        {{ method.payment_type.full_name }}
+                      </div>
+                      <div class="col">
+                        <div class="row">
+                          <q-btn round outline icon="edit" color="primary" size="sm" class="q-mr-sm" @click="btnHandler('edit-payment-method', index)"/>
+                          <q-btn round outline icon="delete" color="primary" size="sm" @click="btnHandler('delete-payment-method', index)"/>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <q-separator class="full-width"/>
+
+                  <!-- <div> -->
+                    <div class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
                       <div class="col">
                         <div class="row">
                           <div class="col q-pr-sm q-py-xs">
                             <div v-for="(field, index) in method.values" :key="index">
                               <!-- <div v-if="field.value">{{ field.field_reference.fieldname }}:</div> -->
-                              <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                              <div v-if="field.value" class="q-ml-sm text-weight-bold text-grey-7">
                                 {{ field.value }}
                                 <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                               </div>
@@ -50,8 +60,7 @@
                         </div>
                         </div>
                       </div>
-                    </q-card>
-                  </q-expansion-item>
+                    </div>
                 </q-card>
               </div>
             </div>
@@ -60,12 +69,12 @@
 
         <!-- Buttons -->
         <div class="text-center q-pt-xs q-px-lg">
-          <q-btn v-if="paymentTypeOpts?.length !== 0" outline dense class="full-width q-my-xs" rounded unelevated label="Add Payment Method" color="primary" @click="status = 'add-payment-method'"/>
+          <q-btn v-if="paymentTypeOpts?.length !== 0" outline dense class="full-width q-my-xs" rounded unelevated label="Add Payment Method" color="primary" @click="status = 'payment-method-form'"/>
           <q-btn dense class="full-width" rounded unelevated :disable="!selectedPaymentMethod" label="Select Payment Method" color="primary" @click="onOKClick()"/>
         </div>
       </div>
 
-      <div v-if="status === 'add-payment-method'">
+      <div v-if="status === 'payment-method-form'">
         <div class="text-center text-primary q-pb-sm text-bold md-font-size">
           Manage Payment Methods
         </div>
@@ -142,6 +151,7 @@ import ProgressLoader from '../ProgressLoader.vue';
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
+import { connectWebsocket } from 'src/wallet/transaction-listener';
 
 export default {
   data () {
@@ -163,7 +173,9 @@ export default {
       errorMessage: null,
       isloading: false,
       selectedPaymentMethod: null,
-      status: 'payment-method-select'
+      status: 'payment-method-select',
+      paymentMethodURL: '/paytacapos/payment-method/',
+      editPaymentMethodIndex: null
     }
   },
   computed: {
@@ -209,27 +221,29 @@ export default {
 
       this.isloading = false
     },
+    btnHandler (type, index = null) {
+      switch (type) {
+        case 'edit-payment-method':
+          console.log('editing PM')
+          this.editPaymentMethod(index)
+          break
+        case 'delete-payment-method':
+          console.log('deleting PM: ', this.paymentMethodList[index].id)
+          this.deletePaymentMethod(index)
+          // this.deletePaymentMethod(this.paymentMethodList[index].id)
+          break
+      }
+    },
+    backBtn () {
+      if (this.status === 'payment-method-form') {
+        this.status = 'payment-method-select'
+      } else {
+        this.$refs.dialog.hide()
+      }
+    },
     onOKClick () {
       this.$emit('ok', this.selectedPaymentMethod)
       this.$refs.dialog.hide()
-    },
-    async fetchPaymentTypes () {
-      const vm = this
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency }, authorize: true })
-        .then(response => {
-          vm.paymentTypeOpts = response.data
-        })
-        .catch(error => {
-          console.error(error)
-          if (error.response) {
-            console.error(error.response)
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
-        })
     },
     onUpdatePaymentType (data) {
       const paymentFields = {}
@@ -296,13 +310,53 @@ export default {
     async onSubmit () {
       this.createPaymentMethod()
     },
+    openPaymentMethodForm (type, index = null) {
+      if (type === 'edit') {
+        this.status = 'payment-method-form'
+        this.editPaymentMethodIndex = this.paymentMethodList[index].id
+
+        // set data
+        // this.paymentMethod.id =
+        // {
+        //   id: null,
+        //   payment_type: null,
+        //   account_name: null,
+        //   account_identifier: null,
+        //   identifier_format: null,
+        //   fields: {}
+        // },
+
+        console.log('index: ', this.editPaymentMethodIndex)
+        console.log('pm: ', this.paymentMethod)
+      }
+      // if (type === 'add') {
+
+      // }
+    },
+    async fetchPaymentTypes () {
+      const vm = this
+      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency }, authorize: true })
+        .then(response => {
+          vm.paymentTypeOpts = response.data
+        })
+        .catch(error => {
+          console.error(error)
+          if (error.response) {
+            console.error(error.response)
+            if (error.response.status === 403) {
+              bus.emit('session-expired')
+            }
+          } else {
+            bus.emit('network-error')
+          }
+        })
+    },
     async createPaymentMethod () {
       const vm = this
-      const url = '/paytacapos/payment-method/'
+      // const url = '/paytacapos/payment-method/'
 
       let body = {
         payment_type_id: vm.paymentMethod?.payment_type.id,
-        // payment_fields: [...Object.values(this.paymentMethod?.fields)]
       }
 
       let value = []
@@ -315,9 +369,7 @@ export default {
 
       body.values = value
 
-      // console.log('BODY: ', body)
-
-      await backend.post(url, body, { authorize: true })
+      await backend.post(this.paymentMethodURL, body, { authorize: true })
         .then(response => {
           this.refetchData()
         })
@@ -325,11 +377,48 @@ export default {
           console.error(error.response)
         })
     },
+    async deletePaymentMethod (index) {
+      console.log(this.paymentMethodList[index])
+      const info = this.paymentMethodList[index]
+      const body = {
+        payment_type_id: info.payment_type.id,
+        payment_fields: info.values
+      }
+
+      await backend.delete(this.paymentMethodURL + `${info.id}/`, body, { authorize: true })
+        .then(response => {
+          console.log('success')
+          this.refetchData()
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
+    },
+    async editPaymentMethod (index) {
+      // set value
+      const PM = this.paymentMethodList[index]
+
+      this.paymentMethod.id = PM.id
+      this.paymentMethod.payment_type = PM.payment_type
+      this.paymentMethod.fields = PM.values
+
+      console.log('PM: ', this.paymentMethod)
+
+      this.status = 'payment-method-form'
+      // {
+        //   id: null,
+        //   payment_type: null,
+        //   account_name: null,
+        //   account_identifier: null,
+        //   identifier_format: null,
+        //   fields: {}
+        // },
+    },
     async fetchPaymentMethods () {
       const vm = this
-      const url = 'paytacapos/payment-method/'
+      // const url = 'paytacapos/payment-method/'
 
-      await backend.get(url)
+      await backend.get(this.paymentMethodURL)
         .then(response => {
           const data = response.data
 

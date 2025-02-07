@@ -33,31 +33,39 @@
 
   <!-- List -->
   <div>
-    <q-pull-to-refresh @refresh="refreshData">
+    <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
+      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+    </div>
+    <q-pull-to-refresh @refresh="refreshData" v-else>
       <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
       <!-- Cashout Order -->
         <q-card flat class="q-mx-lg q-mt-sm" v-if="!hideCashout">
-          <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable @click="''">
-            <q-item-section>
-              <div class="q-pl-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <div class="sm-font-size text-grey-6">Cash out</div>
-                <div class="row">
-                  <div class="col ib-text">
-                    <div class="md-font-size text-bold">
-                      {{ formatCurrency(cashout.transactions[0].wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+          <div v-if="cashoutOrders.length > 0">
+            <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable @click="''">
+              <q-item-section>
+                <div class="q-pl-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="sm-font-size text-grey-6">Cash out</div>
+                  <div class="row" v-if="cashout?.transactions.length > 0">
+                    <div class="col ib-text">
+                      <div class="md-font-size text-bold">
+                        {{ formatCurrency(cashout?.transactions[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                      </div>
+                      <div class="sm-font-size">
+                        {{ cashout?.transactions[0]?.wallet_history.amount }} BCH
+                      </div>
                     </div>
-                    <div class="sm-font-size">
-                      {{ cashout.transactions[0].wallet_history.amount }} BCH
+                    <div class="col ib-text text-right q-pr-sm">
+                      <div class="text-grey-8 text-bold">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
+                      <div class="text-grey-6 sm-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
                     </div>
-                  </div>
-                  <div class="col ib-text text-right q-pr-sm">
-                    <div class="text-grey-8 text-bold">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
-                    <div class="text-grey-6 sm-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
                   </div>
                 </div>
-              </div>
-            </q-item-section>
-          </q-item>
+              </q-item-section>
+            </q-item>
+          </div>
+          <div v-else>
+            Empty...
+          </div>
         </q-card>
         <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
       </q-list>
@@ -68,24 +76,28 @@
   </div>
 </template>
 <script>
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
 import { backend } from 'src/exchange/backend'
 import UnspentTransactionList from './UnspentTransactionList.vue'
+import ProgressLoader from '../ProgressLoader.vue';
 
 export default {
   components: {
-    UnspentTransactionList
+    UnspentTransactionList,
+    ProgressLoader
   },
   data () {
     return {
+      theme: this.$store.getters['global/theme'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
       currency: this.$store.getters['market/selectedCurrency'],
       orderType: 'ALL',
       hideCashout: false,
       cashoutOrders: [],
       selectedTransactions: [],
-      unspentTxns: []
+      unspentTxns: [],
+      isloading: true
     }
   },
   computed: {
@@ -99,11 +111,15 @@ export default {
     }
   },
   emits: ['cashout-form'],
-  mounted () {
-    this.refetchListings()
+  async mounted () {
+    this.isloading = true
+    await this.refetchListings()
+
+    this.isloading = false
   },
   methods: {
     getDarkModeClass,
+    isNotDefaultTheme,
     formatCurrency,
     async refreshData (done) {
       this.refetchListings()
