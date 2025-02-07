@@ -79,7 +79,7 @@
             </div>
 
             <div class="text-subtitle1">{{ $t('Example') }}:</div>
-            <div class="q-my-md row items-center q-px-md">
+            <div class="q-my-md row items-center justify-around q-px-md">
               <div class="row items-center justify-center no-wrap">
                 <div class="text-center">
                   <img src="bch-logo.png" height="25"/>
@@ -91,7 +91,7 @@
                   <div style="line-height:1;">50 TOKEN</div>
                 </div>
               </div>
-              <div class="text-right text-body2 q-space q-py-sm">at 5 TOKEN/BCH</div>
+              <div class="text-right text-body2 q-space q-my-sm">at 5 TOKEN/BCH</div>
             </div>
 
             <q-separator spaced/>
@@ -101,19 +101,19 @@
               {{ $t('StablehedgeUnFreezeDesc') }}
             </div>
             <div class="text-subtitle1">{{ $t('Example') }}:</div>
-            <div class="q-my-md row items-center q-px-md">
+            <div class="q-my-md row items-center justify-between q-px-md">
               <div class="row items-center justify-center no-wrap">
+                <div class="text-center">
+                  <img src="ct-logo.png" height="25"/>
+                  <div style="line-height:1;">10 TOKEN</div>
+                </div>
+                <q-icon name="east" class="text-h6 text-weight-medium q-mx-md"/>
                 <div class="text-center">
                   <img src="bch-logo.png" height="25"/>
                   <div style="line-height:1;">50 BCH</div>
                 </div>
-                <q-icon name="east" class="text-h6 text-weight-medium q-mx-md"/>
-                <div class="text-center">
-                  <img src="ct-logo.png" height="25"/>
-                  <div style="line-height:1;">10 BCH</div>
-                </div>
               </div>
-              <div class="text-right text-body2 q-space">at 10 TOKEN/BCH</div>
+              <div class="text-right text-body2 q-space q-my-sm">at 10 TOKEN/BCH</div>
             </div>
           </div>
         </q-carousel-slide>
