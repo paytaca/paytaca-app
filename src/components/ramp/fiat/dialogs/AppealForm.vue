@@ -133,10 +133,10 @@ export default {
         reasons: vm.selectedReasons
       }
       await backend.post('/ramp-p2p/appeal/', data, { authorize: true })
-        .then(vm.addArbiterToChat())
         .then(response => {
-          vm.$emit('update-status', response.data.status?.status)
+          bus.emit('update-status', response.data.status?.status)
         })
+        .then(vm.addArbiterToChat())
         .catch(error => {
           if (error.response) {
             console.error(error.response)

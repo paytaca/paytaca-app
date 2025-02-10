@@ -68,7 +68,6 @@
               :key="standByDisplayKey"
               :data="standByDisplayData"
               @send-feedback="sendFeedback"
-              @submit-appeal="submitAppeal"
               @refresh="refreshPage"
               @back="onBack"
               @cancel-order="cancellingOrder"
@@ -374,6 +373,7 @@ export default {
   created () {
     bus.emit('hide-menu')
     bus.on('relogged', this.refreshPage)
+    bus.on('update-status', this.updateStatus)
   },
   async mounted () {
     await this.loadData()
@@ -657,19 +657,6 @@ export default {
       const timestamp = vm.contract.timestamp
       vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
       vm.reloadChildComponents()
-    },
-    submitAppeal (data) {
-      const vm = this
-      data.order_id = vm.order.id
-      backend.post('/ramp-p2p/appeal/', data, { authorize: true })
-        .then(response => {
-          vm.updateStatus(response.data.status.status)
-          vm.standByDisplayKey++
-        })
-        .then(vm.addArbiterToChat())
-        .catch(error => {
-          this.handleRequestError(error)
-        })
     },
     sendFeedback (feedback) {
       const vm = this

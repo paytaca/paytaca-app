@@ -253,7 +253,7 @@ export default {
   props: {
     data: Object
   },
-  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh', 'cancelOrder'],
+  emits: ['back', 'sendFeedback', 'refresh', 'cancelOrder'],
   components: {
     FeedbackDialog,
     AppealForm,
@@ -478,10 +478,6 @@ export default {
         .catch(error => {
           this.handleRequestError(error)
         })
-    },
-    onSubmitAppeal (data) {
-      this.openDialog = false
-      this.$emit('submitAppeal', data)
     },
     onSubmitFeedback (feedback) {
       this.feedback = feedback
