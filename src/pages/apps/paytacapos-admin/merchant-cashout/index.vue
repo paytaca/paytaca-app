@@ -14,7 +14,8 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
-import { backend } from 'src/exchange/backend'
+// import { backend } from 'src/exchange/backend'
+import { backend } from 'src/wallet/pos'
 import { ref } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue';
 import CashoutListings from 'src/components/paytacapos/CashoutListings.vue';

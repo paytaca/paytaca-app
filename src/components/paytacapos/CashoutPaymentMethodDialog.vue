@@ -147,10 +147,11 @@
   </q-dialog>
 </template>
 <script>
-import ProgressLoader from '../ProgressLoader.vue'
+import ProgressLoader from '../ProgressLoader.vue';
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/wallet/pos'
+import { bus } from 'src/wallet/event-bus'
+import { connectWebsocket } from 'src/wallet/transaction-listener';
 
 export default {
   data () {
@@ -174,7 +175,7 @@ export default {
       selectedPaymentMethod: null,
       status: 'payment-method-select',
       paymentMethodURL: '/paytacapos/payment-method/',
-      editPaymentMethodIndex: null
+      editPaymentMethodIndex: null,
     }
   },
   computed: {
@@ -223,15 +224,43 @@ export default {
     btnHandler (type, index = null) {
       switch (type) {
         case 'edit-payment-method':
-          console.log('editing PM')
-          this.editPaymentMethod(index)
+          this.openEditForm(index)
+          // this.editPaymentMethod(index)
           break
         case 'delete-payment-method':
-          console.log('deleting PM: ', this.paymentMethodList[index].id)
           this.deletePaymentMethod(index)
           // this.deletePaymentMethod(this.paymentMethodList[index].id)
           break
       }
+    },
+    openEditForm (index) {
+      this.editPaymentMethodIndex = index
+      const PM = this.paymentMethodList[index]
+
+      this.paymentMethod.id = PM.id
+      this.paymentMethod.payment_type = PM.payment_type
+
+      let temp = {}
+      this.paymentMethod.payment_type.fields.map(field => {
+        PM.values.map(info => {
+          if (info.field_reference === field.id) {
+            temp[field.id] = {
+              value: info.value,
+              fieldname: field.fieldname
+            }
+          }
+        })
+        if (!(field.id in temp)) {
+          temp[field.id] = {
+            value: null,
+            fieldname: field.fieldname
+          }
+        }
+      })
+
+      this.paymentMethod.fields = temp
+
+      setTimeout(() => { this.status = 'payment-method-form' }, 50)
     },
     backBtn () {
       if (this.status === 'payment-method-form') {
@@ -307,7 +336,11 @@ export default {
       })
     },
     async onSubmit () {
-      this.createPaymentMethod()
+      if (this.editPaymentMethodIndex) {
+        this.editPaymentMethod()
+      } else {
+        this.createPaymentMethod()
+      }
     },
     openPaymentMethodForm (type, index = null) {
       if (type === 'edit') {
@@ -380,26 +413,24 @@ export default {
         })
     },
     async editPaymentMethod (index) {
-      // set value
-      const PM = this.paymentMethodList[index]
+      const body = {
+        payment_fields: []
+      }
 
-      this.paymentMethod.id = PM.id
-      this.paymentMethod.payment_type = PM.payment_type
-      this.paymentMethod.fields = PM.values.map(item => {
-        return {} 
+      body.payment_fields = this.paymentMethod.fields.map(field => {
+        return {
+          id: field.key,
+          value: field.value
+        }
       })
 
-      console.log('PM: ', this.paymentMethod)
-
-      this.status = 'payment-method-form'
-      // {
-        //   id: null,
-        //   payment_type: null,
-        //   account_name: null,
-        //   account_identifier: null,
-        //   identifier_format: null,
-        //   fields: {}
-        // },
+      await backend.patch(this.paymentMethodURL + `${this.editPaymentMethodIndex}/`, body, { authorize: true })
+        .then(response => {
+          console.log(response)
+        })
+        .catch(error => {
+          console.error(error)
+        })
     },
     async fetchPaymentMethods () {
       const vm = this

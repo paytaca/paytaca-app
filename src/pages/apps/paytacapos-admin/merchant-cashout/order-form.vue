@@ -123,7 +123,7 @@
           </q-card>
         </div>
         <div class="full-width text-center q-px-lg q-py-sm">
-          <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="openPaymentMethodDialog()" :disable="!paymentMethod"/>
+          <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true" :disable="!paymentMethod"/>
           <!-- <q-btn v-if="status === 'confirm-payment-method'" label="Cash Out" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true"/> -->
         </div>
       </div>
@@ -145,6 +145,7 @@
             :label="$t('OK')"
             :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
             v-close-popup
+            @click="createCashoutOrder()"
           />
         </q-card-actions>
       </q-card>
@@ -154,9 +155,10 @@
 <script>
 import { formatCurrency } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { backend } from 'src/exchange/backend'
+import { backend } from 'src/wallet/pos'
 import HeaderNav from 'src/components/header-nav.vue';
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
+import { isThisWeek } from 'date-fns';
 
 export default {
   data () {
@@ -247,20 +249,6 @@ export default {
 
       return sum
     },
-    async fetchPaymentMethod () {
-      const vm = this
-      const url = '/paytacapos/payment-methods/'
-
-      await backend.get(url, { authorize: true })
-        .then(response => {
-          // console.log(response)
-          vm.paymentMethod = response.data
-          // vm.merchantTransactions = response.data
-        })
-        .catch(error => {
-          console.log(error)
-        })
-    },
     calculateCashOutTotal (transactions) {
       let initialTotal = 0
       let currentTotal = 0
@@ -348,6 +336,32 @@ export default {
     },
     isTxnSelected (transaction) {
       return this.transactions.some(txn => txn.txid === transaction.txid)
+    },
+    createCashoutOrder () {
+      console.log('creating cashout order')
+      const url = '/paytacapos/cash-out/'
+
+      const body = {
+        payment_method_id: this.paymentMethod.id,
+        currency: this.currency.symbol,
+        txids: []
+      }
+
+      // arrange txid
+      body.txids = this.transactions.map(txn => {
+        return txn.txid
+      })
+
+      console.log('HERE: ', body)
+
+      backend.post(url, body, { authorize: true })
+        .then(response => {
+          console.log(response)
+          this.$router.push({ name: 'app-pos-cashout' })
+        })
+        .catch(error => {
+          console.error(error)
+        })
     }
   }
 }
