@@ -315,23 +315,9 @@ export default {
         this.status = 'payment-method-form'
         this.editPaymentMethodIndex = this.paymentMethodList[index].id
 
-        // set data
-        // this.paymentMethod.id =
-        // {
-        //   id: null,
-        //   payment_type: null,
-        //   account_name: null,
-        //   account_identifier: null,
-        //   identifier_format: null,
-        //   fields: {}
-        // },
-
         console.log('index: ', this.editPaymentMethodIndex)
         console.log('pm: ', this.paymentMethod)
       }
-      // if (type === 'add') {
-
-      // }
     },
     async fetchPaymentTypes () {
       const vm = this
@@ -400,7 +386,9 @@ export default {
 
       this.paymentMethod.id = PM.id
       this.paymentMethod.payment_type = PM.payment_type
-      this.paymentMethod.fields = PM.values
+      this.paymentMethod.fields = PM.values.map(item => {
+        return {} 
+      })
 
       console.log('PM: ', this.paymentMethod)
 

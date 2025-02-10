@@ -115,6 +115,216 @@ export default {
     this.isloading = true
     await this.refetchListings()
 
+    // remove data later
+
+    this.cashoutOrders = [
+      {
+        id: 31,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'fae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      },
+      {
+        id: 32,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'gae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      },
+      {
+        id: 33,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'hae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      },
+      {
+        id: 34,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'iae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      }
+    ]
+
+    this.unspentTxns = [
+      {
+        txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'd632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'e632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'f632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'g632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      }
+    ]
+
     this.isloading = false
   },
   methods: {
