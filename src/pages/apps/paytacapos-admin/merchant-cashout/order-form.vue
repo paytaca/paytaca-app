@@ -100,7 +100,7 @@
               </div>
               <div class="col text-right">
                 <span>{{ formatCurrency(cashOutTotal.initialTotal, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
-                <span :class="cashOutTotal.lossGain < 0 ? 'text-red' : 'text-green'">{{ formatCurrency(cashOutTotal.lossGain, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
+                <span :class="cashOutTotal.lossGain < 0 ? 'text-red' : 'text-green'">{{ formatCurrency(cashOutTotal.lossGain?.toFixed(2), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
                 <span>{{ formatCurrency(cashOutTotal.lossCovered, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
               </div>
             </div>
@@ -269,17 +269,18 @@ export default {
       let totalBchAmount = 0
       transactions.forEach(tx => {
         const initMarketPrice = tx.fiat_price?.initial[this.currency.symbol]
-        initialTotal += tx.amount * initMarketPrice
+        const initFiatAmount = tx.amount * initMarketPrice
+        initialTotal += initFiatAmount
 
         const currMarketPrice = tx.fiat_price?.current[this.currency.symbol]
-        currentTotal += tx.amount * currMarketPrice
+        const currFiatAmount = tx.amount * currMarketPrice
+        currentTotal += currFiatAmount
 
         const isLossProtected = this.lossProtection(tx) !== 'Expired'
         if (currentTotal < initialTotal && isLossProtected) {
-          const gap = initialTotal - currentTotal
+          const gap = initFiatAmount - currFiatAmount
           lossCovered += gap
         }
-
         totalBchAmount += tx.amount
       })
       lossGain = currentTotal - initialTotal
