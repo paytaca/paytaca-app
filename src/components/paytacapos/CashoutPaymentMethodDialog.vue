@@ -147,11 +147,10 @@
   </q-dialog>
 </template>
 <script>
-import ProgressLoader from '../ProgressLoader.vue';
+import ProgressLoader from '../ProgressLoader.vue'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
-import { connectWebsocket } from 'src/wallet/transaction-listener';
+import { backend } from 'src/wallet/pos'
 
 export default {
   data () {
