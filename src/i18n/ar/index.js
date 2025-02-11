@@ -66,6 +66,8 @@ export default {
   AppealForm: "نموذج الاستئناف",
   AppealFormAgreement1: "يتم الاحتفاظ بأموال BCH بموجب عقد ذكي من الضمان حتى يتم التأكيد على أن جميع شروط الاتفاق بين المشتري والبائع قد تم استيفاءها.",
   AppealFormAgreement2: "سيؤدي تقديم استئناف إلى رفع نزاع على الأموال التي تتطلب تدخل الحكم المخصص للعقد الذكي.",
+  AppealFormReasonOpt1Seller: "البائع لا يستجيب",
+  AppealFormReasonOpt1Buyer: "المشتري لا يستجيب",
   AppealFormReasonOpt1: "بائع/مشتر غير مستجيب",
   AppealFormReasonOpt2: "فشل الدفع",
   AppealFormReasonOpt3: "لقد غيرت رأيي",

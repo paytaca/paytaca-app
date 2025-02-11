@@ -871,6 +871,8 @@ const phrases = {
       IUnderstandProceed: 'I understand, proceed',
       AppealType: 'Appeal Type',
       AppealForm: 'Appeal Form',
+      AppealFormReasonOpt1Seller: 'Unresponsive seller',
+      AppealFormReasonOpt1Buyer: 'Unresponsive buyer',
       AppealFormReasonOpt1: 'Unresponsive seller/buyer',
       AppealFormReasonOpt2: 'Payment failed',
       AppealFormReasonOpt3: 'I changed my mind',

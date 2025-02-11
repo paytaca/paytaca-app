@@ -66,6 +66,8 @@ export default {
   AppealForm: "이의 제기 양식",
   AppealFormAgreement1: "BCH 펀드는 구매자와 판매자 간의 모든 계약 조건이 충족되었음을 확인할 때까지 에스크로 스마트 계약에 의해 보유됩니다.",
   AppealFormAgreement2: "항소를 제출하면 스마트 계약의 지정된 중재인의 개입이 필요한 자금에 대한 분쟁이 제기됩니다.",
+  AppealFormReasonOpt1Seller: "응답하지 않는 판매자",
+  AppealFormReasonOpt1Buyer: "응답하지 않는 구매자",
   AppealFormReasonOpt1: "반응이없는 판매자/구매자",
   AppealFormReasonOpt2: "결제가 실패했습니다",
   AppealFormReasonOpt3: "나는 내 마음을 바꿨다",

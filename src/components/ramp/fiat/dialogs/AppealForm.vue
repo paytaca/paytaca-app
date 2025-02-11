@@ -91,11 +91,6 @@ export default {
       showAppealForm: false,
       selectedReasons: [],
       selectedAppealType: null,
-      reasonOpts: [
-        this.$t('AppealFormReasonOpt1'),
-        this.$t('AppealFormReasonOpt2'),
-        this.$t('AppealFormReasonOpt3')
-      ],
       appealTypeOpts: [
         {
           label: this.$t('Release'),
@@ -109,15 +104,26 @@ export default {
     }
   },
   props: {
-    type: String,
+    userType: String,
     order: Object
   },
+  computed: {
+    reasonOpts () {
+      const counterparty = this.userType === 'seller' ? 'buyer' : 'seller'
+      const reasonKey = counterparty === 'seller' ? 'AppealFormReasonOpt1Buyer' : 'AppealFormReasonOpt1Seller'
+      return [
+        this.$t(reasonKey, `Unresponsive ${counterparty}`),
+        this.$t('AppealFormReasonOpt2'),
+        this.$t('AppealFormReasonOpt3')
+      ]
+    }
+  },
   mounted () {
-    if (this.type === 'seller') {
+    if (this.userType === 'seller') {
       this.appealTypeOpts = [{ label: this.$t('Refund'), value: 'RFN' }]
       this.selectedAppealType = { label: this.$t('Refund'), value: 'RFN' }
     }
-    if (this.type === 'buyer') {
+    if (this.userType === 'buyer') {
       this.appealTypeOpts = [{ label: this.$t('Release'), value: 'RLS' }]
       this.selectedAppealType = { label: this.$t('Release'), value: 'RLS' }
     }
