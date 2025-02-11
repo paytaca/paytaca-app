@@ -96,7 +96,7 @@ export default {
         {
           name: 'Rewards',
           iconName: 'workspace_premium',
-          path: '/apps/rewards/',
+          path: '/apps/rewards',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false

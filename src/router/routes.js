@@ -110,7 +110,6 @@ const routes = [
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
       { path: 'wallet-backup', component: () => import('src/pages/apps/wallet-backup.vue'), name: 'app-wallet-backup' },
-      { path: 'rewards', component: () => import('src/pages/apps/rewards/index.vue'), name: 'app-rewards' },
       {
         path: 'marketplace',
         component: () => import('src/layouts/MarketplaceLayout.vue'),
@@ -215,6 +214,26 @@ const routes = [
           }
         ]
       },
+      {
+        path: 'rewards',
+        children: [
+          {
+            path: '',
+            name: 'app-rewards',
+            component: () => import('src/pages/apps/rewards/index.vue'),
+          },
+          {
+            path: 'user-rewards',
+            name: 'user-rewards',
+            component: () => import('src/pages/apps/rewards/promos/user-rewards.vue')
+          },
+          {
+            path: 'rfp',
+            name: 'rfp',
+            component: () => import('src/pages/apps/rewards/promos/rfp.vue')
+          }
+        ]
+      }
     ]
   },
   // Always leave this as last one,

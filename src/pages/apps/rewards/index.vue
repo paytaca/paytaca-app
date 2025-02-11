@@ -33,6 +33,7 @@
             rounded
             class="btn-scan button text-white bg-grad"
             icon="chevron_right"
+            @click="$router.push({ name: promo.path })"
           />
         </div>
       </div>
@@ -56,11 +57,11 @@ export default {
     return {
       pointsType: ['UP', 'RFP'/*, 'LP', 'CP', 'MP' */],
       promos: [
-        { name: 'User Rewards', points: 0 },
-        { name: 'Refer-a-Friend Promo', points: 0 } //,
+        { name: 'User Rewards', points: 0, path: 'user-rewards' },
+        { name: 'Refer-a-Friend (RF) Promo', points: 0, path: 'rfp' } //,
         // { name: 'Loyalty Promo', points: 0 },
         // { name: 'Champion Promo', points: 0 },
-        // { name: 'Paytaca Partner Rewards Promo', points: 0 }
+        // { name: 'Paytaca Partner Rewards (PPR) Promo', points: 0 }
       ]
     }
   },
