@@ -286,6 +286,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
@@ -305,6 +306,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
