@@ -234,13 +234,13 @@ export default {
       }
     },
     openEditForm (index) {
-      this.editPaymentMethodIndex = index
       const PM = this.paymentMethodList[index]
+      this.editPaymentMethodIndex = PM.id
 
       this.paymentMethod.id = PM.id
       this.paymentMethod.payment_type = PM.payment_type
 
-      let temp = {}
+      const temp = {}
       this.paymentMethod.payment_type.fields.map(field => {
         PM.values.map(info => {
           if (info.field_reference === field.id) {
@@ -336,7 +336,8 @@ export default {
       })
     },
     async onSubmit () {
-      if (this.editPaymentMethodIndex) {
+      console.log('index: ', this.editPaymentMethodIndex)
+      if (this.editPaymentMethodIndex != null) {
         this.editPaymentMethod()
       } else {
         this.createPaymentMethod()
@@ -417,12 +418,23 @@ export default {
         payment_fields: []
       }
 
-      body.payment_fields = this.paymentMethod.fields.map(field => {
-        return {
-          id: field.key,
-          value: field.value
-        }
-      })
+      const temp = []
+      for (const field in this.paymentMethod.fields) {
+        temp.push({
+          id: field,
+          value: this.paymentMethod.fields[field].value
+        })
+      }
+
+      body.payment_fields = temp
+
+      // body.payment_fields = this.paymentMethod.fields.map(field => {
+      //   return {
+      //     id: field.key,
+      //     value: field.value
+      //   }
+      // })
+      console.log('body: ', body)
 
       await backend.patch(this.paymentMethodURL + `${this.editPaymentMethodIndex}/`, body, { authorize: true })
         .then(response => {
@@ -431,6 +443,8 @@ export default {
         .catch(error => {
           console.error(error)
         })
+
+      this.editPaymentMethodIndex = null
     },
     async fetchPaymentMethods () {
       const vm = this
