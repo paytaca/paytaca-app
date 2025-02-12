@@ -180,6 +180,7 @@
       </div>
     </div>
   </div>
+  <q-btn label="Start NFC Scan" @click="startNfcScan" />
 
   <customKeyboard
     :custom-keyboard-state="customKeyboardState"
@@ -189,6 +190,9 @@
 </template>
 
 <script>
+import { Nfc, NfcUtils, NfcTagTechType } from '@capawesome-team/capacitor-nfc'
+import { Capacitor } from '@capacitor/core'
+
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
@@ -301,6 +305,66 @@ export default {
     }
   },
   methods: {
+    async startNfcScan () {
+      const isSupported = async () => {
+        const { isSupported } = await Nfc.isSupported();
+        console.log('NFC Supported:', isSupported);
+        return isSupported;
+      };
+
+      const isEnabled = async () => {
+        const { isEnabled } = await Nfc.isEnabled();
+        console.log('NFC Enabled:', isEnabled);
+        return isEnabled;
+      };
+
+      const read = async () => {
+        console.log('Reading NFC tag...');
+        return new Promise((resolve, reject) => {
+          try {
+            // Start NFC listener
+            Nfc.addListener('nfcTagScanned', async (event) => {
+              console.log('NFC Tag Scanned:', event);
+
+              // Stop the session after scanning the tag
+              await Nfc.stopScanSession();
+
+              // Resolve with the scanned tag data
+              resolve(event.nfcTag);
+            });
+
+            // Start scanning for NFC tags
+            Nfc.startScanSession();
+          } catch (error) {
+            console.error('Error during NFC scan session:', error);
+            reject(error);
+          }
+        });
+      };
+
+      const main = async () => {
+        try {
+          // Check if NFC is supported and enabled
+          const supported = true // await isSupported();
+          const enabled = vm.$q.platform.is.ios ? true : await isEnabled();
+
+          if (supported && enabled) {
+            console.log('NFC is supported and enabled');
+
+            // Start reading the NFC tag
+            const result = await read();
+            console.log('NFC Tag Result:', result);
+          } else {
+            console.log('NFC is not supported or not enabled on this device.');
+          }
+        } catch (error) {
+          console.error('Error in main NFC function:', error);
+        }
+      };
+
+      // Call the main function
+      main();
+    },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
@@ -711,6 +775,8 @@ export default {
     if (this.generateAddressOnLeave) {
       this.generateNewAddress()
     }
+
+    await Nfc.removeAllListeners()
   },
 
   async unmounted () {

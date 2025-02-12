@@ -208,6 +208,7 @@ export default {
     },
     openApp (app) {
       if (app.active) {
+        this.$router.push(app.path)
         if (app.name === this.$t('WalletBackup')) {
           this.executeSecurityChecking()
         } else {

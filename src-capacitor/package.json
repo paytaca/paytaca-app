@@ -7,6 +7,7 @@
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^4.0.1",
     "@capacitor-community/native-audio": "^5.0.1",
+    "@capawesome-team/capacitor-nfc": "^5.1.0",
     "@capacitor/android": "^5.0.0",
     "@capacitor/app": "^5.0.0",
     "@capacitor/browser": "^5.0.0",

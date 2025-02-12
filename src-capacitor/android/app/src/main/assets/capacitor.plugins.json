@@ -8,6 +8,10 @@
 		"classpath": "com.getcapacitor.community.audio.NativeAudio"
 	},
 	{
+		"pkg": "@capawesome-team/capacitor-nfc",
+		"classpath": "io.capawesome.capacitorjs.plugins.nfc.NfcPlugin"
+	},
+	{
 		"pkg": "@capacitor/app",
 		"classpath": "com.capacitorjs.plugins.app.AppPlugin"
 	},

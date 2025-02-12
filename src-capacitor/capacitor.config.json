@@ -5,6 +5,9 @@
   "npmClient": "npm",
   "webDir": "www",
   "plugins": {
+    "Nfc": {
+      "enabled": true
+    },
     "SplashScreen": {
       "launchShowDuration": 0
     },
@@ -25,6 +28,7 @@
     "scheme": "Paytaca"
   },
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "url": "http://192.168.1.240:9000"
   }
 }

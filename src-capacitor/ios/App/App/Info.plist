@@ -53,6 +53,8 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NFCReaderUsageDescription</key>
+	<string>The app enables the reading and writing of various NFC tags.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>To be able to scan QR codes</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
