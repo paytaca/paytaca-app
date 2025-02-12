@@ -75,11 +75,11 @@
           </q-input>
         </div>
         <!-- Payment methods -->
-        <div v-if="data?.order?.status?.value === 'PD_PN'" class="q-px-xs q-pt-sm">
+        <div v-if="showSelectedPaymentMethod" class="q-px-xs q-pt-sm">
           <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
             <div class="text-center sm-font-size q-mx-md q-mb-sm">
-            <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
-            You selected the following payment methods.
+            <span v-if="userType === 'buyer'">You selected the following payment methods</span>
+            <span v-if="userType === 'seller'">The buyer selected the following payment methods</span>
           </div>
           <div class="full-width">
             <div v-for="(method, index) in data?.order?.payment_methods_selected" :key="index">
@@ -183,7 +183,7 @@
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
-    <AppealForm :type="orderUserType" :order="data?.order" @back="openDialog = false" @loadAppeal="loadAppealButton = true"/>
+    <AppealForm :userType="orderUserType" :order="data?.order" @back="openDialog = false" @loadAppeal="loadAppealButton = true"/>
       <div class="row q-pt-xs q-mb-lg q-pb-lg q-mx-md" v-if="forRelease">
         <q-btn
           rounded
@@ -253,7 +253,7 @@ export default {
   props: {
     data: Object
   },
-  emits: ['back', 'sendFeedback', 'submitAppeal', 'refresh', 'cancelOrder'],
+  emits: ['back', 'sendFeedback', 'refresh', 'cancelOrder'],
   components: {
     FeedbackDialog,
     AppealForm,
@@ -262,6 +262,12 @@ export default {
     AttachmentDialog
   },
   computed: {
+    showSelectedPaymentMethod () {
+      if (this.data?.order?.payment_methods_selected?.length === 0) return false
+
+      const status = this.data?.order?.status?.value
+      return status === 'PD_PN' || status === 'PD' || status === 'RFN' || status === 'RLS'
+    },
     arbiterName () {
       return this.data?.arbiter?.name
     },
@@ -370,6 +376,14 @@ export default {
         }
       })
       return txId
+    },
+    userType () {
+      const orderTradeType = this.data?.order?.trade_type
+      const userIsAdOwner = this.data?.order?.is_ad_owner
+
+      if (orderTradeType === 'BUY') return userIsAdOwner ? 'seller' : 'buyer'
+      if (orderTradeType === 'SELLER') return userIsAdOwner ? 'buyer' : 'seller'
+      return null
     }
   },
   async mounted () {
@@ -478,10 +492,6 @@ export default {
         .catch(error => {
           this.handleRequestError(error)
         })
-    },
-    onSubmitAppeal (data) {
-      this.openDialog = false
-      this.$emit('submitAppeal', data)
     },
     onSubmitFeedback (feedback) {
       this.feedback = feedback

@@ -66,6 +66,8 @@ export default {
   AppealForm: "Appeal Form",
   AppealFormAgreement1: "The BCH funds are held by an escrow smart contract until it is confirmed that all of the terms of agreement between the buyer and seller have been met.",
   AppealFormAgreement2: "Submitting an appeal will raise dispute on the funds which requires the intervention of the smart contract's assigned Arbiter.",
+  AppealFormReasonOpt1Seller: "Unresponsive seller",
+  AppealFormReasonOpt1Buyer: "Unresponsive buyer",
   AppealFormReasonOpt1: "Unresponsive seller/buyer",
   AppealFormReasonOpt2: "Payment failed",
   AppealFormReasonOpt3: "I changed my mind",

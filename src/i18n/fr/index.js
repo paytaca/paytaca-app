@@ -66,6 +66,8 @@ export default {
   AppealForm: "Formulaire d'appel",
   AppealFormAgreement1: "Les fonds BCH sont détenus par un contrat intelligent sans séquestre jusqu'à ce qu'il soit confirmé que toutes les termes de l'accord entre l'acheteur et le vendeur ont été respectés.",
   AppealFormAgreement2: "La soumission d'un appel augmentera le différend sur les fonds qui nécessitent l'intervention de l'arbitre assigné du contrat intelligent.",
+  AppealFormReasonOpt1Seller: "Vendeur qui ne répond pas",
+  AppealFormReasonOpt1Buyer: "Acheteur qui ne répond pas",
   AppealFormReasonOpt1: "Vendeur / acheteur insensible",
   AppealFormReasonOpt2: "Échec du paiement",
   AppealFormReasonOpt3: "J'ai changé d'avis",

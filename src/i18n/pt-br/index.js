@@ -66,6 +66,8 @@ export default {
   AppealForm: "Formulário de apelação",
   AppealFormAgreement1: "Os fundos da BCH são mantidos por um contrato inteligente de custódia até que se confirme que todos os termos de contrato entre o comprador e o vendedor foram cumpridos.",
   AppealFormAgreement2: "O envio de um recurso levantará disputas sobre os fundos que exigem a intervenção do árbitro atribuído do contrato inteligente.",
+  AppealFormReasonOpt1Seller: "Vendedor que não responde",
+  AppealFormReasonOpt1Buyer: "Comprador que não responde",
   AppealFormReasonOpt1: "Vendedor/comprador sem resposta",
   AppealFormReasonOpt2: "Pagamento falhou",
   AppealFormReasonOpt3: "Eu mudei de idéia",

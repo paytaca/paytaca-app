@@ -65,13 +65,13 @@
           :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"
+            :class="[{'dark': darkMode}, {'active-buy-btn': transactionType === 'SELL'}]"
             @click="transactionType='SELL'">
             {{ $t('BuyBCH') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-sell-btn': transactionType == 'BUY'}]"
+            :class="[{'dark': darkMode}, {'active-sell-btn': transactionType === 'BUY'}]"
             @click="transactionType='BUY'">
             {{ $t('SellBCH') }}
           </button>
@@ -235,18 +235,18 @@ export default {
       vm.scrollToTop()
       vm.updatePaginationValues()
       vm.updateFilters()
-      vm.resetAndRefetchListings()
+      vm.resetAndRefetchListings(true)
       vm.$store.commit('ramp/updateStoreListingTab', value)
     },
     async selectedCurrency () {
       this.updateFilters()
-      this.resetAndRefetchListings()
       this.filterComponentKey++
+      this.resetAndRefetchListings(true)
     },
     async isAllCurrencies (val) {
       if (val) {
         this.updateFilters()
-        this.resetAndRefetchListings()
+        this.resetAndRefetchListings(true)
       }
     }
   },

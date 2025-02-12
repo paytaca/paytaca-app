@@ -66,6 +66,8 @@ export default {
   AppealForm: "Berufungsform",
   AppealFormAgreement1: "Die BCH -Fonds werden von einem Treuhandvertrag aufbewahrt, bis bestätigt wird, dass alle Bestimmungen der Vereinbarung zwischen Käufer und Verkäufer getroffen wurden.",
   AppealFormAgreement2: "Die Einreichung einer Berufung erhöht Streitigkeiten über die Mittel, die die Intervention des zugewiesenen Schiedsrichters des Smart Contracts erfordern.",
+  AppealFormReasonOpt1Seller: "Der Verkäufer reagiert nicht",
+  AppealFormReasonOpt1Buyer: "Der Käufer reagiert nicht",
   AppealFormReasonOpt1: "Nicht reagierender Verkäufer/Käufer",
   AppealFormReasonOpt2: "Zahlung fehlgeschlagen",
   AppealFormReasonOpt3: "Ich habe meine Meinung geändert",

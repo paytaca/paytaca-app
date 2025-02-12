@@ -66,6 +66,8 @@ export default {
   AppealForm: "Formulir Banding",
   AppealFormAgreement1: "Dana BCH dipegang oleh kontrak pintar escrow sampai dikonfirmasi bahwa semua ketentuan perjanjian antara pembeli dan penjual telah dipenuhi.",
   AppealFormAgreement2: "Mengajukan banding akan menimbulkan perselisihan tentang dana yang mensyaratkan intervensi wasit yang ditugaskan kontrak pintar.",
+  AppealFormReasonOpt1Seller: "Penjual tidak responsif",
+  AppealFormReasonOpt1Buyer: "Pembeli tidak responsif",
   AppealFormReasonOpt1: "Penjual/pembeli yang tidak responsif",
   AppealFormReasonOpt2: "Pembayaran gagal",
   AppealFormReasonOpt3: "Saya berubah pikiran",
