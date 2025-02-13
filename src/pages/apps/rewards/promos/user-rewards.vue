@@ -13,6 +13,7 @@
         <span class="q-mb-sm col-12 text-center">{{ pointsConvertion }}</span>
 
         <q-btn
+          rounded
           class="button"
           label="Redeem Points"
           :disable="points === 0"
@@ -124,7 +125,7 @@
                   </div>
                 </div>
 
-                <span v-else class="q-mt-md row text-center text-subtitle1">
+                <span v-else class="q-mt-md row justify-center text-center text-subtitle1">
                   You do not have any Marketplace transactions yet.<br/><br/>
                   Order from the Marketplace to start earning points!
                 </span>
@@ -218,13 +219,9 @@ export default {
       }
 
       if (this.currentTab === 'onetime') {
-        setTimeout(() => {
-          this.$refs.onetime.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
-        }, 50)
+        this.$refs.onetime.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
       } else if (this.currentTab === 'recurring') {
-        setTimeout(() => {
-          this.$refs.recurring.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
-        }, 50)
+        this.$refs.recurring.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
       }
     }
   }
