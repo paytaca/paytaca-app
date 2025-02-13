@@ -151,7 +151,7 @@ import ProgressLoader from '../ProgressLoader.vue';
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
 import { bus } from 'src/wallet/event-bus'
-import { connectWebsocket } from 'src/wallet/transaction-listener';
+import { paymentMethod } from 'src/store/paytacapos/getters';
 
 export default {
   data () {
@@ -161,14 +161,7 @@ export default {
       state: 'payment-method-select', // add-payment-method, delete-payment-method
       paymentTypeOpts: null,
       paymentMethodList: [],
-      paymentMethod: {
-        id: null,
-        payment_type: null,
-        account_name: null,
-        account_identifier: null,
-        identifier_format: null,
-        fields: {}
-      },
+      paymentMethod: {},
       disableSubmitBtn: true,
       errorMessage: null,
       isloading: false,
@@ -194,7 +187,14 @@ export default {
   components: {
     ProgressLoader
   },
+  watch: {
+    status (val) {
+      console.log('val')
+      this.resetPaymentMethodData()
+    }
+  },
   async mounted () {
+    this.resetPaymentMethodData()
     this.refetchData()
   },
   methods: {
@@ -272,6 +272,16 @@ export default {
     onOKClick () {
       this.$emit('ok', this.selectedPaymentMethod)
       this.$refs.dialog.hide()
+    },
+    resetPaymentMethodData () {
+      this.paymentMethod = {
+        id: null,
+        payment_type: null,
+        account_name: null,
+        account_identifier: null,
+        identifier_format: null,
+        fields: {}
+      }
     },
     onUpdatePaymentType (data) {
       const paymentFields = {}
@@ -371,10 +381,10 @@ export default {
         })
     },
     async createPaymentMethod () {
+      console.log('creating PM')
       const vm = this
-      // const url = '/paytacapos/payment-method/'
 
-      let body = {
+      const body = {
         payment_type_id: vm.paymentMethod?.payment_type.id,
       }
 
@@ -388,13 +398,15 @@ export default {
 
       body.values = value
 
-      await backend.post(this.paymentMethodURL, body, { authorize: true })
-        .then(response => {
-          this.refetchData()
-        })
-        .catch(error => {
-          console.error(error.response)
-        })
+      console.log('body: ', body)
+
+      // await backend.post(this.paymentMethodURL, body, { authorize: true })
+      //   .then(response => {
+      //     this.refetchData()
+      //   })
+      //   .catch(error => {
+      //     console.error(error.response)
+      //   })
     },
     async deletePaymentMethod (index) {
       console.log(this.paymentMethodList[index])
