@@ -5,15 +5,10 @@ import { backend } from '../backend'
 import { chatBackend } from './backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
-import { getAuthAbortController } from '../auth'
+// import { getAuthAbortController } from '../auth'
 
 export const chatIdentityManager = new ChatIdentityManager()
 export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
-  if (getAuthAbortController()?.signal?.aborted) {
-    console.log('loadChatIdentity aborted')
-    return
-  }
-
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) await loadRampWallet()
@@ -25,19 +20,15 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   }
 
   // fetch chat identity if existing
+  console.log('payload:', payload)
   let identity = await fetchChatIdentityById(payload.chat_identity_id)
+  console.log('chatIdentity:', identity)
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
   }
 
-  if (getAuthAbortController()?.signal?.aborted) {
-    console.log('_updateSignerData aborted')
-    return
-  }
-
   // update verifying and encryption keypairs
   await chatIdentityManager._updateSignerData() // (short-circuits when task is not necessary)
-  if (getAuthAbortController()?.signal?.aborted) { console.log('_updateEncryptionKeypair aborted'); return }
   await chatIdentityManager._updateEncryptionKeypair(!!identity) // (short-circuits when task is not necessary)
 
   // create identity if not existing
@@ -375,7 +366,6 @@ export async function updateOrCreateKeypair (update = true) {
 
   return keypair
 }
-
 export function generateChatRef (id, createdAt, members) {
   if (!members) throw Error('Missing required value: members')
   const hashVal = id + createdAt + members
@@ -383,7 +373,8 @@ export function generateChatRef (id, createdAt, members) {
 }
 
 export function generateChatIdentityRef (walletHash) {
-  return sha256(walletHash)
+  const timestamp = Date.now()
+  return sha256(walletHash + timestamp)
 }
 
 export {
