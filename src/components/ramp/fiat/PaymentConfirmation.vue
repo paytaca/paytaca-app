@@ -205,6 +205,7 @@
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <RampDragSlide
+  v-touch-swipe.mouse="detectDrag"
   v-if="showDragSlide"
   :key="dragSlideKey"
   :text="dragSlideTitle"
@@ -216,10 +217,12 @@
     right: 0,
     zIndex: 1500,
   }"
+  @click="checkDragslideStatus()"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
   <AppealForm v-if="showAppealForm" :userType="this.data?.type" :order="order" @back="showAppealForm = false" @loadAppeal="loadAppealButton = true; showDragSlide = false"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
 <script>
 import { ref } from 'vue'
@@ -233,6 +236,7 @@ import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
+import NoticeBoardDialog from './dialogs/NoticeBoardDialog.vue'
 
 export default {
   setup () {
@@ -266,14 +270,16 @@ export default {
       showAttachmentDialog: false,
       attachmentUrl: null,
       loadAppealButton: false,
-      errorDialogActive: false
+      errorDialogActive: false,
+      showNoticeDialog: false
     }
   },
   components: {
     RampDragSlide,
     AppealForm,
     ProgressLoader,
-    AttachmentDialog
+    AttachmentDialog,
+    NoticeBoardDialog
   },
   emits: ['back', 'verify-release', 'sending', 'refresh'],
   props: {
@@ -331,6 +337,9 @@ export default {
         url = 'https://blockchair.com/bitcoin-cash/address/'
       }
       return `${url}${this.data?.contract.address}`
+    },
+    noticeMessage () {
+      return 'Please upload ypur Proof of Payment first to proceed with the transaction'
     }
   },
   async mounted () {
@@ -351,6 +360,16 @@ export default {
       vm.appealCountdown()
       vm.isloaded = true
       vm.fetchContractBalance()
+    },
+    checkDragslideStatus () {
+      if (this.lockDragSlide) {
+        this.showNoticeDialog = true
+      }
+    },
+    detectDrag ({ evt, ...newInfo}) {
+      if (this.lockDragSlide) {
+        this.showNoticeDialog = true
+      }
     },
     cancelAttachment (method) {
       method.attachment = null
@@ -636,5 +655,9 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.tooltipcard {
+  background: grey;
+  opacity: 10%;
 }
 </style>
