@@ -37,7 +37,7 @@
         </div>
       </div>
 
-      <div class="row col-12 justify-center">
+      <div class="row col-12 justify-center points-earned-div">
         <span class="row col-12 justify-center text-center text-h6 q-mb-sm">
           Referral Status
         </span>
@@ -99,6 +99,98 @@ export default {
       redeemablePoints: 10000,
       // [{ wallet_hash: '', date: '', has_transacted: false }]
       referralsList: []
+      // referralsList: [
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: false
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: false
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: false
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: false
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: false
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: false
+      //   },
+      //   {
+      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
+      //     date: 'date',
+      //     has_transacted: true
+      //   }
+      // ]
     }
   },
 

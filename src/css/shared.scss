@@ -166,8 +166,12 @@ div#q-app:has(.marketplace-container) {
   &.dark {
     color: rgb(200, 200, 200);
   }
-
+  
   &.light {
     color: rgb(100, 100, 100)
   }
+}
+
+.points-earned-div {
+  @include bottom-card(100vh)
 }

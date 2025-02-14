@@ -25,7 +25,7 @@
         />
       </div>
 
-      <div class="row col-12 justify-center">
+      <div class="row col-12 justify-center points-earned-div">
         <span class="text-h6">Points Earned</span>
 
         <q-tabs
@@ -48,8 +48,6 @@
             :class="getDarkModeClass(darkMode)"
           />
         </q-tabs>
-
-        <q-separator />
 
         <q-tab-panels
           animated
