@@ -7,7 +7,7 @@
       :class="getDarkModeClass(darkMode)"
       :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
     >
-      <div class="row justify-center q-gutter-y-xs">
+      <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
         <span class="col-12 text-center text-h5 text-bold">{{ points }} UP</span>
         <span class="q-mb-sm col-12 text-center">{{ pointsConvertion }}</span>
@@ -213,15 +213,18 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     adjustScrollAreaHeight () {
-      let scrollAreaHeight = (document.body.clientHeight / 2) - 50
-      if (this.$q.platform.is.ios) {
+      const vm = this
+
+      const pointsDivHeight = vm.$refs.points_div.clientHeight
+      let scrollAreaHeight = document.body.clientHeight - pointsDivHeight - 300
+      if (vm.$q.platform.is.ios) {
         scrollAreaHeight -= 30
       }
 
-      if (this.currentTab === 'onetime') {
-        this.$refs.onetime.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
-      } else if (this.currentTab === 'recurring') {
-        this.$refs.recurring.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
+      if (vm.currentTab === 'onetime') {
+        vm.$refs.onetime.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
+      } else if (vm.currentTab === 'recurring') {
+        vm.$refs.recurring.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
       }
     }
   }

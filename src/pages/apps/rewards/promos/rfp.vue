@@ -7,7 +7,7 @@
       :class="getDarkModeClass(darkMode)"
       :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
     >
-      <div class="row justify-center q-gutter-y-xs">
+      <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
         <span class="col-12 text-center text-h5 text-bold">{{ points }} RFP</span>
         <span class="q-mb-md col-12 text-center">{{ pointsConvertion }}</span>
@@ -37,7 +37,7 @@
           Referral Status
         </span>
 
-        <q-scroll-area ref="referralsList" class="q-mx-lg">
+        <q-scroll-area ref="referrals_list" class="q-mx-lg">
           <div v-if="referralsList.length > 0" class="row q-gutter-y-sm">
             <div
               v-for="(item, index) in referralsList"
@@ -121,11 +121,15 @@ export default {
   },
 
   mounted () {
-    let scrollAreaHeight = (document.body.clientHeight / 2) - 50
+    const pointsDivHeight = this.$refs.points_div.clientHeight
+    let scrollAreaHeight = document.body.clientHeight - pointsDivHeight - 200
     if (this.$q.platform.is.ios) {
-      scrollAreaHeight -= 30
+      scrollAreaHeight -= 50
     }
-    this.$refs.referralsList.$el.setAttribute('style', `height: ${scrollAreaHeight}px; width: 100vw;`)
+    this.$refs.referrals_list.$el.setAttribute(
+      'style',
+      `height: ${scrollAreaHeight}px; width: 100vw;`
+    )
   },
 
   methods: {
