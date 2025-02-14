@@ -161,3 +161,13 @@ div#q-app:has(.marketplace-container) {
 .bottom-card-tall {
   @include bottom-card(90vh);
 }
+
+.subtext-gray {
+  &.dark {
+    color: rgb(200, 200, 200);
+  }
+
+  &.light {
+    color: rgb(100, 100, 100)
+  }
+}

@@ -10,7 +10,12 @@
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
         <span class="col-12 text-center text-h5 text-bold">{{ points }} RFP</span>
-        <span class="q-mb-md col-12 text-center">{{ pointsConvertion }}</span>
+        <span
+          class="q-mb-md col-12 text-center subtext-gray"
+          :class="getDarkModeClass(darkMode)"
+        >
+          {{ pointsConvertion }}
+        </span>
 
         <span class="q-mb-xs col-12 text-center">
           You can redeem {{ redeemablePoints }} RFP this month
@@ -54,7 +59,13 @@
                 <span v-if="item.has_transacted">
                   You earned <span class="text-bold">5 RFP</span>
                 </span>
-                <span v-else>User has not yet transacted</span>
+                <span
+                  v-else
+                  class="subtext-gray"
+                  :class="getDarkModeClass(darkMode)"
+                >
+                  User has not yet transacted
+                </span>
               </div>
             </div>
           </div>

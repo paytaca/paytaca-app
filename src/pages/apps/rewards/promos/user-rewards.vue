@@ -10,7 +10,12 @@
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
         <span class="col-12 text-center text-h5 text-bold">{{ points }} UP</span>
-        <span class="q-mb-sm col-12 text-center">{{ pointsConvertion }}</span>
+        <span
+          class="q-mb-sm col-12 text-center subtext-gray"
+          :class="getDarkModeClass(darkMode)"
+        >
+          {{ pointsConvertion }}
+        </span>
 
         <q-btn
           rounded
@@ -63,7 +68,7 @@
                   <span v-if="isReferralComplete" class="q-ml-sm">
                     earned on {{ referralCompleteDate }}
                   </span>
-                  <span v-else class="q-ml-sm">
+                  <span v-else class="q-ml-sm subtext-gray" :class="getDarkModeClass(darkMode)">
                     not yet earned
                   </span>
                 </span>
@@ -87,9 +92,13 @@
                           Earned {{ item.points }} UP from {{ item.ref_id }}
                           last {{ item.date }}
                         </template>
-                        <template v-else>
+                        <span
+                          v-else
+                          class="subtext-gray"
+                          :class="getDarkModeClass(darkMode)"
+                        >
                           Not yet earned
-                        </template>
+                        </span>
                       </div>
                     </div>
                   </div>
