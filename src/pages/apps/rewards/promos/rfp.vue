@@ -38,7 +38,7 @@
       </div>
 
       <div
-        class="row col-12 justify-center points-earned-div"
+        class="row col-12 justify-center q-pa-md shadow-up-1 points-earned-div"
         :class="getDarkModeClass(darkMode)"
       >
         <span class="row col-12 justify-center text-center text-h6 q-mb-sm">
