@@ -1,6 +1,10 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="`User Rewards`" class="apps-header" />
+    <header-nav
+      class="apps-header"
+      :title="`User Rewards`"
+      :isRewardsPage="true"
+    />
 
     <div
       class="row q-mx-lg q-gutter-y-md q-pt-lg justify-center text-bow"
