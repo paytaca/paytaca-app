@@ -707,6 +707,24 @@ export default {
     },
     amountDialog () {
       this.tempAmount = this.amount
+    },
+    setAmountInFiat(newVal, oldVal) {
+      const amount = parseFloat(this.amountDialog ? this.tempAmount : this.amount)
+      if (!amount) return
+
+      let newAmount
+      if (newVal && !oldVal) {
+        newAmount = amount * this.selectedAssetMarketPrice
+      } else if (!newVal && oldVal) {
+        newAmount = amount / this.selectedAssetMarketPrice
+      } else {
+        newAmount = amount
+      }
+
+      const decimals = newVal ? 3 : parseInt(this.asset?.decimals) || 8
+      const newParsedAmount = String(parseFloat(newAmount.toFixed(decimals)))
+      this.amount = newParsedAmount
+      this.tempAmount = newParsedAmount
     }
   },
 
