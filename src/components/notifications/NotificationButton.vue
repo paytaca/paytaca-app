@@ -15,7 +15,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getWalletUnreadNotifs } from 'src/utils/engagementhub-utils'
+import { getWalletUnreadNotifs } from 'src/utils/engagementhub-utils/engagementhub-utils'
 
 import Notifications from 'src/components/notifications/index.vue'
 
