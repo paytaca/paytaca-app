@@ -158,7 +158,7 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { convertToBCH } from 'src/utils/denomination-utils'
+import { convertPoints } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
@@ -201,25 +201,8 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    denomination () {
-      return this.$store.getters['global/denomination']
-    },
-    fiatCurrency () {
-      const currency = this.$store.getters['market/selectedCurrency']
-      return currency && currency.symbol
-    },
-    bchMarketPrice () {
-      if (!this.fiatCurrency) return 0
-      return this.$store.getters['market/getAssetPrice']('bch', this.fiatCurrency)
-    },
     pointsConvertion () {
-      const fiat = this.points / 4
-      const bch = convertToBCH(this.denomination, (fiat / this.bchMarketPrice))
-
-      const finalFiat = `${fiat} ${this.fiatCurrency}`
-      const finalBch = `${Number(bch) === 0 ? '0' : bch.toFixed(8)} ${this.denomination}`
-
-      return `(${finalFiat} or ${finalBch})`
+      return convertPoints(this.points, 4)
     }
   },
 
