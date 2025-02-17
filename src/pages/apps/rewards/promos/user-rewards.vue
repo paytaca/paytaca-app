@@ -25,26 +25,29 @@
         />
       </div>
 
-      <div class="row col-12 justify-center points-earned-div">
+      <div
+        class="row col-12 justify-center points-earned-div"
+        :class="getDarkModeClass(darkMode)"
+      >
         <span class="text-h6">Points Earned</span>
 
         <q-tabs
           no-caps
           v-model="currentTab"
           class="col-12"
-          :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
+          :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
           @click="adjustScrollAreaHeight"
         >
           <q-tab
             name="onetime"
             label="One-time Points"
-            class="network-selection-tab"
+            class="network-selection-tab rewards"
             :class="getDarkModeClass(darkMode)"
           />
           <q-tab
             name="recurring"
             label="Recurring Points"
-            class="network-selection-tab"
+            class="network-selection-tab rewards"
             :class="getDarkModeClass(darkMode)"
           />
         </q-tabs>
@@ -66,7 +69,11 @@
                   <span v-if="isReferralComplete" class="q-ml-sm">
                     earned on {{ referralCompleteDate }}
                   </span>
-                  <span v-else class="q-ml-sm subtext-gray" :class="getDarkModeClass(darkMode)">
+                  <span
+                    v-else
+                    class="q-ml-sm subtext-gray not-earned-label"
+                    :class="getDarkModeClass(darkMode)"
+                  >
                     not yet earned
                   </span>
                 </span>
@@ -92,7 +99,7 @@
                         </template>
                         <span
                           v-else
-                          class="subtext-gray"
+                          class="subtext-gray not-earned-label"
                           :class="getDarkModeClass(darkMode)"
                         >
                           Not yet earned

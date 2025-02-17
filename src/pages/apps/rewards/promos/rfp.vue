@@ -37,7 +37,10 @@
         </div>
       </div>
 
-      <div class="row col-12 justify-center points-earned-div">
+      <div
+        class="row col-12 justify-center points-earned-div"
+        :class="getDarkModeClass(darkMode)"
+      >
         <span class="row col-12 justify-center text-center text-h6 q-mb-sm">
           Referral Status
         </span>
@@ -61,7 +64,7 @@
                 </span>
                 <span
                   v-else
-                  class="subtext-gray"
+                  class="subtext-gray not-earned-label"
                   :class="getDarkModeClass(darkMode)"
                 >
                   User has not yet transacted
