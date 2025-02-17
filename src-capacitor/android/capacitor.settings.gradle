@@ -24,7 +24,7 @@ include ':capacitor-geolocation'
 project(':capacitor-geolocation').projectDir = new File('../node_modules/@capacitor/geolocation/android')
 
 include ':capacitor-keyboard'
-project(':capacitor-keyboard').projectDir = new File('../../node_modules/@capacitor/keyboard/android')
+project(':capacitor-keyboard').projectDir = new File('../node_modules/@capacitor/keyboard/android')
 
 include ':capacitor-push-notifications'
 project(':capacitor-push-notifications').projectDir = new File('../node_modules/@capacitor/push-notifications/android')

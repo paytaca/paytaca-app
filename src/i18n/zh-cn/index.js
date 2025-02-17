@@ -66,6 +66,8 @@ export default {
   AppealForm: "上诉表",
   AppealFormAgreement1: "BCH资金由托管智能合同持有，直到确认买卖双方之间的所有协议条款已得到满足为止。",
   AppealFormAgreement2: "提交上诉将引发有关资金的争议，该资金需要智能合同指定的仲裁者的干预。",
+  AppealFormReasonOpt1Seller: "卖家没有回复",
+  AppealFormReasonOpt1Buyer: "买家未回应",
   AppealFormReasonOpt1: "无反应的卖家/买家",
   AppealFormReasonOpt2: "付款失败",
   AppealFormReasonOpt3: "我改变了主意",

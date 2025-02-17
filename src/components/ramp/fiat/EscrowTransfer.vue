@@ -245,6 +245,8 @@ export default {
           await vm.generateContractAddress()
         }
       }
+      // fetches the contract fees
+      await vm.fetchFees()
       // generates the contract object
       await vm.generateContract()
       // mark contract as pending for verification, if the contract is already funded
@@ -431,15 +433,14 @@ export default {
     },
     async generateContract () {
       const vm = this
-      await vm.fetchFees()
       await vm.fetchContract(vm.order.id).then(contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
         const fees_ = {
-          arbitrationFee: vm.fees.breakdown?.arbitration_fee,
-          serviceFee: vm.fees.breakdown?.service_fee,
-          contractFee: vm.fees.breakdown?.contract_fee
+          arbitrationFee: vm.fees?.breakdown?.arbitration_fee,
+          serviceFee: vm.fees?.breakdown?.service_fee,
+          contractFee: vm.fees?.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         const isChipnet = vm.$store.getters['global/isChipnet']

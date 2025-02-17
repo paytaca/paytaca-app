@@ -66,6 +66,8 @@ export default {
   AppealForm: "Appèlvorm",
   AppealFormAgreement1: "Die BCH -fondse word deur 'n Escrow Smart Contract gehou totdat daar bevestig word dat al die ooreenkoms tussen die koper en die verkoper nagekom is.",
   AppealFormAgreement2: "Die indiening van 'n appèl sal 'n geskil oor die fondse wek, wat die ingryping van die toegewese arbiter van die Smart Contract vereis.",
+  AppealFormReasonOpt1Seller: "Nie responsiewe verkoper nie",
+  AppealFormReasonOpt1Buyer: "Nie responsiewe koper nie",
   AppealFormReasonOpt1: "Reageer die verkoper/koper",
   AppealFormReasonOpt2: "Betaling het misluk",
   AppealFormReasonOpt3: "Ek het van plan verander",

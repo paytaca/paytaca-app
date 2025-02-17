@@ -61,14 +61,17 @@
         </div>
         <div class="col-2 q-pa-xs text-center">
           <div v-if="useQuantityInput" class="row items-center no-wrap">
-            x
-            <input
-              :disabled="disable"
-              :value="cartItem.quantity"
-              class="quantity-input"
-              @input="evt => updateQuantity(evt.target.value, cart, cartItem)"
-              @click.stop
-            />
+            <div @click.stop>
+              <q-input
+                prefix="x"
+                dense
+                outlined
+                :disabled="disable"
+                :model-value="cartItem.quantity"
+                class="quantity-input"
+                @update:model-value="value => updateQuantity(value, cart, cartItem)"
+              />
+            </div>
           </div>
           <div v-else style="white-space: nowrap;"> x {{ cartItem?.quantity }}</div>
         </div>
@@ -190,12 +193,10 @@ export default defineComponent({
   margin-bottom: map-get($space-md, 'y');
 }
 .quantity-input {
-  outline: none;
-  background: inherit;
-  width: 100%;
-  border: 1px solid currentColor;
-  border-radius: 4px;
-  padding: map-get($space-xs, 'y') map-get($space-xs, 'x');
+  min-width:3.5em;
+}
+:deep(.quantity-input .q-field__control) {
+  padding: 0 8px;
 }
 
 body.body--light .quantity-input {

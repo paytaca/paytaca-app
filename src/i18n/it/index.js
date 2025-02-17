@@ -66,6 +66,8 @@ export default {
   AppealForm: "Modulo di ricorso",
   AppealFormAgreement1: "I fondi BCH sono detenuti da un contratto intelligente di deposito a garanzia fino a quando non viene confermato che sono stati soddisfatti tutti i termini di accordo tra l'acquirente e il venditore.",
   AppealFormAgreement2: "L'invio di un ricorso solleverà controversie sui fondi che richiede l'intervento dell'arbitro assegnato dal contratto intelligente.",
+  AppealFormReasonOpt1Seller: "Venditore non rispondente",
+  AppealFormReasonOpt1Buyer: "Acquirente che non risponde",
   AppealFormReasonOpt1: "Venditore/acquirente non rispondente",
   AppealFormReasonOpt2: "Pagamento non riuscito",
   AppealFormReasonOpt3: "Ho cambiato idea",

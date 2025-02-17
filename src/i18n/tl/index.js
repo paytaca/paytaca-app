@@ -66,6 +66,8 @@ export default {
   AppealForm: "Form ng apela",
   AppealFormAgreement1: "Ang mga pondo ng BCH ay hawak ng isang kontrata ng escrow matalinong hanggang sa makumpirma na ang lahat ng mga termino ng kasunduan sa pagitan ng mamimili at nagbebenta ay nakamit.",
   AppealFormAgreement2: "Ang pagsusumite ng apela ay magtataas ng pagtatalo sa mga pondo na nangangailangan ng interbensyon ng itinalagang arbiter ng Smart Contract.",
+  AppealFormReasonOpt1Seller: "Hindi sumasagot ang nagbebenta",
+  AppealFormReasonOpt1Buyer: "Hindi sumasagot ang mamimili",
   AppealFormReasonOpt1: "Hindi sumasang -ayon na nagbebenta/bumibili",
   AppealFormReasonOpt2: "Nabigo ang pagbabayad",
   AppealFormReasonOpt3: "Binago ko ang isip ko",
