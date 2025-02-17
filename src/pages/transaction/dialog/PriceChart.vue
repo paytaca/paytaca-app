@@ -85,7 +85,7 @@ export default {
       if (vm.selectedCurrency === 'ars') {
         vm.source = 'Watchtower.cash'
         apiPromise = vm.$axios.get(
-          'http://localhost:8000/api/price-chart/BCH/',
+          'https://watchtower.cash/api/price-chart/BCH/',
           { params: { days: 1, vs_currency: vm.selectedCurrency.toUpperCase() } },
         ).then(response => {
           if (!Array.isArray(response.data)) return Promise.reject({ response })
