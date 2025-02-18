@@ -703,7 +703,10 @@ export default {
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        sendPageUtils.paymentUriPromiseResponseHandler(error)
+        sendPageUtils.paymentUriPromiseResponseHandler(
+          error,
+          { defaultError: this.$t('UnidentifiedQRCode') },
+        )
         return
       }
 

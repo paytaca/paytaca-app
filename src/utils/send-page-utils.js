@@ -166,13 +166,15 @@ export function raiseNotifyError (message) {
   })
 }
 
-export function paymentUriPromiseResponseHandler (error) {
+export function paymentUriPromiseResponseHandler (error, opts = { defaultError: '' }) {
   if (error?.message === 'PaymentRequestIsExpired') {
     raiseNotifyError($t(error.message))
   } else if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
     raiseNotifyError($t('InvalidAddressFormat'))
   } else if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
     raiseNotifyError($t('MultipleRecipientsUnsupported'))
+  } else if (opts?.defaultError) {
+    raiseNotifyError(opts?.defaultError)
   }
 }
 
