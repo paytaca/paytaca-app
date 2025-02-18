@@ -19,9 +19,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   }
 
   // fetch chat identity if existing
-  console.log('payload:', payload)
   let identity = await fetchChatIdentityById(payload.chat_identity_id)
-  console.log('chatIdentity:', identity)
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
   }
@@ -143,7 +141,7 @@ export async function updateChatIdentity (payload) {
   return new Promise((resolve, reject) => {
     chatBackend.post('chat/identities/', payload, { forceSign: true })
       .then(response => {
-        console.log('Updated chat identity:', response.data)
+        // console.log('Updated chat identity:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -166,7 +164,7 @@ export async function createChatSession (orderId, chatRef) {
     }
     chatBackend.post('chat/sessions/', payload, { forceSign: true })
       .then(response => {
-        console.log('Created chat session:', response.data)
+        // console.log('Created chat session:', response.data)
         resolve(response.data.ref)
       })
       .catch(error => {
@@ -184,7 +182,7 @@ export async function checkChatSessionAdmin (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/chat_member`, { forceSign: true })
       .then(response => {
-        console.log('Check chat admin:', response.data)
+        // console.log('Check chat admin:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -202,7 +200,7 @@ export async function fetchChatSession (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
       .then(response => {
-        console.log('Chat session:', response.data)
+        // console.log('Chat session:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -221,7 +219,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
     }
     chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
       .then(response => {
-        console.log('Added chat members:', response)
+        // console.log('Added chat members:', response)
         resolve(response)
       })
       .catch(error => {
