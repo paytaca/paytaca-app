@@ -151,6 +151,9 @@
                   </div>
                 </q-card>
               </q-expansion-item>
+              <q-banner class="bg-primary text-white text-center" v-if="method.selected && !method.attachment">
+                <span class="sm-font-size">Please upload Proof of Payment first before you proceed</span>
+              </q-banner>
             </q-card>
           </div>
         </div>
@@ -205,7 +208,7 @@
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <RampDragSlide
-  v-touch-swipe.mouse="detectDrag"
+  v-touch-swipe.mouse="checkDragslideStatus"
   v-if="showDragSlide"
   :key="dragSlideKey"
   :text="dragSlideTitle"
@@ -339,7 +342,7 @@ export default {
       return `${url}${this.data?.contract.address}`
     },
     noticeMessage () {
-      return 'Please upload ypur Proof of Payment first to proceed with the transaction'
+      return 'Please select Payment Method and upload your Proof of Payment first to proceed with the transaction'
     }
   },
   async mounted () {
@@ -362,11 +365,6 @@ export default {
       vm.fetchContractBalance()
     },
     checkDragslideStatus () {
-      if (this.lockDragSlide) {
-        this.showNoticeDialog = true
-      }
-    },
-    detectDrag ({ evt, ...newInfo}) {
       if (this.lockDragSlide) {
         this.showNoticeDialog = true
       }
