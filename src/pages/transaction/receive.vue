@@ -4,7 +4,7 @@
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
     ></header-nav>
-    <div v-if="!amountDialog">
+    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
         v-if="!isSep20"
         id="context-menu"
@@ -161,6 +161,9 @@
             :label="$t('Amount')"
             :readonly="readonlyState"
             :dark="darkMode"
+            :rules="[
+              val => Boolean(val) || $t('InvalidAmount'),
+            ]"
           >
             <template v-slot:append>
               <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
@@ -704,6 +707,24 @@ export default {
     },
     amountDialog () {
       this.tempAmount = this.amount
+    },
+    setAmountInFiat(newVal, oldVal) {
+      const amount = parseFloat(this.amountDialog ? this.tempAmount : this.amount)
+      if (!amount) return
+
+      let newAmount
+      if (newVal && !oldVal) {
+        newAmount = amount * this.selectedAssetMarketPrice
+      } else if (!newVal && oldVal) {
+        newAmount = amount / this.selectedAssetMarketPrice
+      } else {
+        newAmount = amount
+      }
+
+      const decimals = newVal ? 3 : parseInt(this.asset?.decimals) || 8
+      const newParsedAmount = String(parseFloat(newAmount.toFixed(decimals)))
+      this.amount = newParsedAmount
+      this.tempAmount = newParsedAmount
     }
   },
 
