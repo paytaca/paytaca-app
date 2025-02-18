@@ -35,23 +35,18 @@ export class ExchangeUser {
     return otp
   }
 
-  isLoggedIn (args) {
-    return args.token && !args.forceLogin && !this.user.is_authenticated
+  isLoggedIn () {
+    return this.user.is_authenticated
   }
 
   async login (forceLogin) {
     const token = await getAuthToken()
-    const params = { token: token, forceLogin: forceLogin }
-    console.log('this.isLoggedIn(params):', this.isLoggedIn(params))
-    if (this.isLoggedIn(params)) {
-      return token
-    }
+    if (token && !forceLogin && this.isLoggedIn()) return token
 
-    const libauthWallet = rampWallet.wallet
+    this.emitSignal('login')
     deleteAuthToken()
 
-    bus.emit('next-login-step', 'LoggingYouIn')
-
+    const libauthWallet = rampWallet.wallet
     const otp = await this.getOTP()
     const addressPath = rampWallet.addressPath()
     const privkey = libauthWallet.getPrivateKeyWifAt(addressPath)
@@ -68,18 +63,19 @@ export class ExchangeUser {
   }
 
   async fetchChatIdentity () {
-    bus.emit('next-login-step', 'LoadingChatIdentity')
+    this.emitSignal('chat-identity')
+
     const params = {
       name: this.name,
       chat_identity_id: this.chat_identity_id
     }
     const chatIdentity = await loadChatIdentity(this.user_type, params)
     this.chat_identity = chatIdentity
-    return Promise.resolve()
   }
 
   async savePubkeyAndAddress () {
-    bus.emit('next-login-step', 'UpdatingPubkeyAndAddress')
+    this.emitSignal('pubkey')
+
     const libauthWallet = rampWallet.wallet
     const addressPath = rampWallet.addressPath()
     const pubkey = libauthWallet.getPubkeyAt(addressPath)
@@ -104,6 +100,25 @@ export class ExchangeUser {
 
     return Promise.resolve()
   }
+
+  emitSignal (step, params = { signal: 'next-login-step', data: '' }) {
+    let data = params.data
+    if (step) {
+      switch (step) {
+        case 'login':
+          data = 'LoggingYouIn'
+          break
+        case 'pubkey':
+          data = 'UpdatingPubkeyAndAddress'
+          break
+        case 'chat-identity':
+          data = 'LoadingChatIdentity'
+          break
+      }
+    }
+
+    bus.emit(params.signal, data)
+  }
 }
 
 async function fetchUser () {
@@ -112,20 +127,16 @@ async function fetchUser () {
 }
 
 export async function loadAuthenticatedUser (forceLogin = false) {
-  const user = await fetchUser()
-  console.log('user:', user)
-
-  bus.emit('logging-in', true)
-  forceLogin = !user.is_authenticated || forceLogin
-  console.log('forceLogin:', forceLogin)
-  await user.login(forceLogin)
-  console.log('fetchChatIdentity')
-  await user.fetchChatIdentity()
-  console.log('savePubkeyAndAddress')
-  await user.savePubkeyAndAddress()
-  bus.emit('logging-in', false)
-
-  return user
+  try {
+    const user = await fetchUser()
+    user.emitSignal(null, { signal: 'logging-in', data: true })
+    await user.login(!user.is_authenticated || forceLogin)
+    await Promise.all([user.fetchChatIdentity(), user.savePubkeyAndAddress()])
+    user.emitSignal(null, { signal: 'logging-in', data: false })
+    return Promise.resolve(user)
+  } catch (error) {
+    return Promise.reject(error)
+  }
 }
 
 export function saveAuthToken (value) {

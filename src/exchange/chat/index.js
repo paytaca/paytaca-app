@@ -5,7 +5,6 @@ import { backend } from '../backend'
 import { chatBackend } from './backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
-// import { getAuthAbortController } from '../auth'
 
 export const chatIdentityManager = new ChatIdentityManager()
 export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
@@ -104,7 +103,7 @@ export async function createChatIdentity (payload) {
 
 export async function fetchChatIdentityByRef (ref) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/?ref=${ref}`, { signal: getAuthAbortController()?.signal })
+    chatBackend.get(`chat/identities/?ref=${ref}`)
       .then(response => {
         let identity = null
         if (response.data?.results?.length > 0) {
@@ -125,7 +124,7 @@ export async function fetchChatIdentityByRef (ref) {
 
 export async function fetchChatIdentityById (id) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/${id}/`, { signal: getAuthAbortController()?.signal })
+    chatBackend.get(`chat/identities/${id}/`)
       .then(response => {
         resolve(response.data)
       })
@@ -350,7 +349,6 @@ export async function updateOrCreateKeypair (update = true) {
   }
 
   if (update) {
-    console.log('Updating chat pubkey to server')
     await updatePubkey(keypair.pubkey)
       .catch(error => {
         console.error(error.response || error)
@@ -373,8 +371,7 @@ export function generateChatRef (id, createdAt, members) {
 }
 
 export function generateChatIdentityRef (walletHash) {
-  const timestamp = Date.now()
-  return sha256(walletHash + timestamp)
+  return sha256(walletHash)
 }
 
 export {
