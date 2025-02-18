@@ -80,66 +80,64 @@
       </template>
     </q-input>
   </div>
-  <template v-if="$store.state.global.online !== false">
-    <div class="row" v-if="!isNFT">
-      <div class="col q-mt-xs">
-        <q-input
-          type="text"
-          inputmode="none"
-          filled
-          v-model="amountFormatted"
-          ref="amountInput"
-          class="bch-input-field"
-          @focus="onInputFocus(index, 'bch')"
-          :label="$t('Amount')"
-          :dark="darkMode"
-          :loading="computingMax"
-          :disabled="recipient.fixedAmount || inputExtras.isBip21"
-          :readonly="recipient.fixedAmount || inputExtras.isBip21"
-          :error="balanceExceeded"
-          :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
-          :key="inputExtras.amountFormatted"
-        >
-          <template v-slot:append>
-            {{ asset.id === 'bch' ? selectedDenomination : asset.symbol }}
-            <DenominatorTextDropdown
-              v-if="!recipient.fixedAmount"
-              @on-selected-denomination="onSelectedDenomination"
-              :selectedNetwork="asset.symbol"
-              :darkMode="darkMode"
-              :theme="theme"
-              :currentCountry="currentCountry"
-            />
-          </template>
-        </q-input>
-      </div>
+  <div class="row" v-if="!isNFT">
+    <div class="col q-mt-xs">
+      <q-input
+        type="text"
+        inputmode="none"
+        filled
+        v-model="amountFormatted"
+        ref="amountInput"
+        class="bch-input-field"
+        @focus="onInputFocus(index, 'bch')"
+        :label="$t('Amount')"
+        :dark="darkMode"
+        :loading="computingMax"
+        :disabled="recipient.fixedAmount || inputExtras.isBip21"
+        :readonly="recipient.fixedAmount || inputExtras.isBip21"
+        :error="balanceExceeded"
+        :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
+        :key="inputExtras.amountFormatted"
+      >
+        <template v-slot:append>
+          {{ asset.id === 'bch' ? selectedDenomination : asset.symbol }}
+          <DenominatorTextDropdown
+            v-if="!recipient.fixedAmount"
+            @on-selected-denomination="onSelectedDenomination"
+            :selectedNetwork="asset.symbol"
+            :darkMode="darkMode"
+            :theme="theme"
+            :currentCountry="currentCountry"
+          />
+        </template>
+      </q-input>
     </div>
+  </div>
 
-    <div class="row" v-if="!isNFT && asset.id === 'bch'">
-      <div class="col q-mt-xs">
-        <q-input
-          type="text"
-          inputmode="none"
-          filled
-          v-model="sendAmountInFiat"
-          ref="fiatInput"
-          class="fiat-input-field"
-          @focus="onInputFocus(index, 'fiat')"
-          :disabled="recipient.fixedAmount || inputExtras.isBip21"
-          :readonly="recipient.fixedAmount || inputExtras.isBip21"
-          :error="balanceExceeded"
-          :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
-          :label="$t('Amount')"
-          :dark="darkMode"
-          :key="inputExtras.sendAmountInFiat"
-        >
-          <template v-slot:append>
-            {{ String(currentSendPageCurrency()).toUpperCase() }}
-          </template>
-        </q-input>
-      </div>
+  <div class="row" v-if="!isNFT && asset.id === 'bch'">
+    <div class="col q-mt-xs">
+      <q-input
+        type="text"
+        inputmode="none"
+        filled
+        v-model="sendAmountInFiat"
+        ref="fiatInput"
+        class="fiat-input-field"
+        @focus="onInputFocus(index, 'fiat')"
+        :disabled="recipient.fixedAmount || inputExtras.isBip21"
+        :readonly="recipient.fixedAmount || inputExtras.isBip21"
+        :error="balanceExceeded"
+        :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
+        :label="$t('Amount')"
+        :dark="darkMode"
+        :key="inputExtras.sendAmountInFiat"
+      >
+        <template v-slot:append>
+          {{ String(currentSendPageCurrency()).toUpperCase() }}
+        </template>
+      </q-input>
     </div>
-  </template>
+  </div>
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
