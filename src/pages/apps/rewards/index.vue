@@ -25,11 +25,15 @@
           >
             {{ promo.name }}
           </span><br/>
+          <template v-if="isLoading">
+            <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          </template>
           <span
+            v-else
             class="amount-text"
             :class="getDarkModeClass(darkMode, '', 'text-grad')"
           >
-            {{ promo.points }} {{ pointsType[index] }}
+            {{ promo.points }} {{ pointsType[index].toUpperCase() }}
           </span>
         </div>
 
@@ -48,25 +52,39 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getUserPromo } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   name: 'RewardsPage',
 
   components: {
-    HeaderNav
+    HeaderNav,
+    ProgressLoader
   },
 
   data () {
     return {
-      pointsType: ['UP', 'RFP'/*, 'LP', 'CP', 'MP' */],
+      isLoading: false,
+      pointsType: ['up', 'rfp'/*, 'lp', 'cp', 'mp' */],
       promos: [
-        { name: 'User Rewards', points: 0, path: 'user-rewards' },
-        { name: 'Refer-a-Friend (RF) Promo', points: 0, path: 'rfp' } //,
-        // { name: 'Loyalty Promo', points: 0 },
-        // { name: 'Champion Promo', points: 0 },
-        // { name: 'Paytaca Partner Rewards (PPR) Promo', points: 0 }
+        {
+          name: 'User Rewards',
+          id: null,
+          points: 0,
+          path: 'user-rewards'
+        },
+        {
+          name: 'Refer-a-Friend (RF) Promo',
+          id: null,
+          points: 0,
+          path: 'rfp'
+        } //,
+        // { name: 'Loyalty Promo', id: null, points: 0, path: '' },
+        // { name: 'Champion Promo', id: null, points: 0, path: '' },
+        // { name: 'Paytaca Partner Rewards (PPR) Promo', id: null, points: 0, path: '' }
       ]
     }
   },
@@ -80,9 +98,36 @@ export default {
     }
   },
 
+  async mounted () {
+    const vm = this
+
+    // retrieve points from engagement-hub
+    vm.isLoading = true
+    await getUserPromo()
+      .then(data => {
+        if (data) {
+          for (let i = 0; i < vm.promos.length; i++) {
+            vm.promos[i].id = data[vm.pointsType[i]].id
+            vm.promos[i].points = data[vm.pointsType[i]].points
+          }
+        }
+      })
+    vm.isLoading = false
+  },
+
   methods: {
     getDarkModeClass,
     isNotDefaultTheme
   }
 }
 </script>
+
+<style lang="scss">
+.lds-ellipsis {
+  height: 15px !important;
+
+  & div {
+    top: 10px !important;
+  }
+}
+</style>

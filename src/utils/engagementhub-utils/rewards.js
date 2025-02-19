@@ -1,5 +1,14 @@
+import axios from 'axios'
 import { Store } from 'src/store'
 import { convertToBCH } from 'src/utils/denomination-utils'
+
+const ENGAGEMENT_HUB_URL =
+  process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
+const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
+
+// ================================
+// local functions
+// ================================
 
 function denomination () {
   return Store.getters['global/denomination']
@@ -15,6 +24,14 @@ function bchMarketPrice () {
   return Store.getters['market/getAssetPrice']('bch', fiatCurrency())
 }
 
+function getWalletHash () {
+  return Store.getters['global/getWallet']('bch')?.walletHash
+}
+
+// ================================
+// util functions
+// ================================
+
 export function convertPoints (points, pointsDivisor) {
   const fiat = points / pointsDivisor
   const bch = convertToBCH(denomination(), (fiat / bchMarketPrice()))
@@ -23,4 +40,19 @@ export function convertPoints (points, pointsDivisor) {
   const finalBch = `${Number(bch) === 0 ? '0' : bch.toFixed(8)} ${denomination()}`
 
   return `(${finalFiat} or ${finalBch})`
+}
+
+// ================================
+// functions with calls to engagement hub
+// ================================
+
+export async function getUserPromo () {
+  return await REWARDS_URL
+    .get(`userpromo/${getWalletHash()}/`)
+    .then(response => {
+      return response.data
+    })
+    .catch(_error => {
+      return null
+    })
 }
