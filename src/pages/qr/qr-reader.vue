@@ -79,6 +79,7 @@ import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog
 import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
+import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 
 export default {
   name: 'QRReader',
@@ -249,7 +250,9 @@ export default {
       const vm = this
 
       if (content) {
-        const value = content[0].rawValue
+        const _value = content[0].rawValue
+        const addressValidation = parseAddressWithoutPrefix(_value)
+        const value = addressValidation?.valid ? addressValidation.address : _value
 
         vm.paused = true
         // quick timeout to allow qrcode stream cache to reset after pausing

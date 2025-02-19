@@ -694,6 +694,16 @@ export default {
       let fungibleTokenAmount = null
       let paymentUriData = null
 
+      const prefixlessAddressValidation = sendPageUtils.parseAddressWithoutPrefix(content)
+      if (prefixlessAddressValidation.valid) {
+        return [
+          prefixlessAddressValidation.address,
+          null,
+          null,
+          null,
+        ]
+      }
+
       try {
         paymentUriData = parsePaymentUri(
           content,
@@ -703,7 +713,10 @@ export default {
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        sendPageUtils.paymentUriPromiseResponseHandler(error)
+        sendPageUtils.paymentUriPromiseResponseHandler(
+          error,
+          { defaultError: this.$t('UnidentifiedQRCode') },
+        )
         return
       }
 
