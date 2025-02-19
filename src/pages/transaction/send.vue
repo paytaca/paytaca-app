@@ -694,6 +694,16 @@ export default {
       let fungibleTokenAmount = null
       let paymentUriData = null
 
+      const prefixlessAddressValidation = sendPageUtils.parseAddressWithoutPrefix(content)
+      if (prefixlessAddressValidation.valid) {
+        return [
+          prefixlessAddressValidation.address,
+          null,
+          null,
+          null,
+        ]
+      }
+
       try {
         paymentUriData = parsePaymentUri(
           content,
