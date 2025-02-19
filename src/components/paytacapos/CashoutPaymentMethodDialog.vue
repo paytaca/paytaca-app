@@ -42,7 +42,7 @@
                           <div class="col q-pr-sm q-py-xs">
                             <div v-for="(field, index) in method.values" :key="index">
                               <!-- <div v-if="field.value">{{ field.field_reference.fieldname }}:</div> -->
-                              <div v-if="field.value" class="q-ml-sm text-weight-bold text-grey-7">
+                              <div v-if="field.value" class="q-ml-sm text-weight-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
                                 {{ field.value }}
                                 <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                               </div>
@@ -83,11 +83,13 @@
           <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
         </div>
         <div v-else class="q-px-md">
+
           <q-select
             dense
             borderless
             filled
             v-model="paymentMethod.payment_type"
+            :disable="editPaymentMethodIndex !== null"
             :label="$t('PaymentType')"
             option-label="full_name"
             class="q-py-xs"
@@ -107,6 +109,7 @@
 
           <div v-if="paymentMethod.payment_type">
             <div v-for="(field, index) in paymentMethod?.payment_type?.fields" :key="index">
+              <span class="text-red" v-if="field.required">*</span>
               <q-input
                 dense
                 filled
@@ -143,6 +146,21 @@
 
         </div>
       </div>
+
+      <div v-if="status === 'delete-confirmation'" class="text-center">
+        <div class="text-bold md-font-size q-pb-sm">Delete this Payment Method?</div>
+        <div class="text-bold md-font-size">
+          {{ editingPaymentMethod.payment_type.full_name }}
+        </div>
+        <div v-for="(field, index) in editingPaymentMethod.values" :key="index">
+          {{ field.value }}
+        </div>
+
+        <div class="row text-center q-px-lg q-pt-sm">
+          <q-btn class="col q-mx-xs" rounded outline label="Cancel" color="primary" @click="() => { status = 'payment-method-select'; editingPaymentMethod = null;}"/>
+          <q-btn class="col q-mx-xs" rounded label="Confirm" color="primary" @click="deletePaymentMethod()"/>
+        </div>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -151,7 +169,6 @@ import ProgressLoader from '../ProgressLoader.vue';
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
 import { bus } from 'src/wallet/event-bus'
-import { paymentMethod } from 'src/store/paytacapos/getters';
 
 export default {
   data () {
@@ -169,6 +186,7 @@ export default {
       status: 'payment-method-select',
       paymentMethodURL: '/paytacapos/payment-method/',
       editPaymentMethodIndex: null,
+      editingPaymentMethod: null
     }
   },
   computed: {
@@ -189,8 +207,9 @@ export default {
   },
   watch: {
     status (val) {
-      console.log('val')
-      this.resetPaymentMethodData()
+      if (this.editPaymentMethodIndex === null) {
+        this.resetPaymentMethodData()
+      }
     }
   },
   async mounted () {
@@ -225,17 +244,17 @@ export default {
       switch (type) {
         case 'edit-payment-method':
           this.openEditForm(index)
-          // this.editPaymentMethod(index)
           break
         case 'delete-payment-method':
-          this.deletePaymentMethod(index)
-          // this.deletePaymentMethod(this.paymentMethodList[index].id)
+          this.editingPaymentMethod = this.paymentMethodList[index]
+          this.status = 'delete-confirmation'
           break
       }
     },
     openEditForm (index) {
       const PM = this.paymentMethodList[index]
       this.editPaymentMethodIndex = PM.id
+      this.editingPaymentMethod = PM
 
       this.paymentMethod.id = PM.id
       this.paymentMethod.payment_type = PM.payment_type
@@ -346,8 +365,7 @@ export default {
       })
     },
     async onSubmit () {
-      console.log('index: ', this.editPaymentMethodIndex)
-      if (this.editPaymentMethodIndex != null) {
+      if (this.editPaymentMethodIndex !== null) {
         this.editPaymentMethod()
       } else {
         this.createPaymentMethod()
@@ -357,9 +375,6 @@ export default {
       if (type === 'edit') {
         this.status = 'payment-method-form'
         this.editPaymentMethodIndex = this.paymentMethodList[index].id
-
-        console.log('index: ', this.editPaymentMethodIndex)
-        console.log('pm: ', this.paymentMethod)
       }
     },
     async fetchPaymentTypes () {
@@ -381,7 +396,6 @@ export default {
         })
     },
     async createPaymentMethod () {
-      console.log('creating PM')
       const vm = this
 
       const body = {
@@ -390,27 +404,28 @@ export default {
 
       let value = []
       for (const field in this.paymentMethod?.fields) {
-        value.push({
-          field_reference: field,
-          value: this.paymentMethod?.fields[field].value
-        })
+        if (this.paymentMethod?.fields[field].value) {
+          value.push({
+            field_reference: field,
+            value: this.paymentMethod?.fields[field].value
+          })
+        }
       }
 
       body.values = value
 
-      console.log('body: ', body)
+      await backend.post(this.paymentMethodURL, body, { authorize: true })
+        .then(response => {
+          this.refetchData()
 
-      // await backend.post(this.paymentMethodURL, body, { authorize: true })
-      //   .then(response => {
-      //     this.refetchData()
-      //   })
-      //   .catch(error => {
-      //     console.error(error.response)
-      //   })
+          this.status = 'payment-method-select'
+        })
+        .catch(error => {
+          console.error(error.response)
+        })
     },
-    async deletePaymentMethod (index) {
-      console.log(this.paymentMethodList[index])
-      const info = this.paymentMethodList[index]
+    async deletePaymentMethod () {
+      const info = this.editingPaymentMethod
       const body = {
         payment_type_id: info.payment_type.id,
         payment_fields: info.values
@@ -418,7 +433,6 @@ export default {
 
       await backend.delete(this.paymentMethodURL + `${info.id}/`, body, { authorize: true })
         .then(response => {
-          console.log('success')
           this.refetchData()
         })
         .catch(error => {
@@ -431,32 +445,39 @@ export default {
       }
 
       const temp = []
-      for (const field in this.paymentMethod.fields) {
-        temp.push({
-          id: field,
-          value: this.paymentMethod.fields[field].value
-        })
+      for (const field in this.paymentMethod.payment_type.fields) {
+        const PMFields = this.paymentMethod.payment_type.fields[field]
+        const emptyField = this.editingPaymentMethod.values.filter((f) => PMFields.id === f.field_reference) // field that hasn't been added to
+
+        if (emptyField.length > 0) {
+          temp.push({
+            id: emptyField[0].id,
+            value: this.paymentMethod?.fields[PMFields.id].value
+          })
+        } else {
+          if (this.paymentMethod.fields[PMFields.id].value) {
+            temp.push({
+              field_reference: PMFields.id,
+              value: this.paymentMethod.fields[PMFields.id].value
+            })
+          }
+        }
       }
 
       body.payment_fields = temp
 
-      // body.payment_fields = this.paymentMethod.fields.map(field => {
-      //   return {
-      //     id: field.key,
-      //     value: field.value
-      //   }
-      // })
-      console.log('body: ', body)
-
       await backend.patch(this.paymentMethodURL + `${this.editPaymentMethodIndex}/`, body, { authorize: true })
         .then(response => {
-          console.log(response)
+          this.refetchData()
+
+          this.status = 'payment-method-select'
         })
         .catch(error => {
           console.error(error)
         })
 
       this.editPaymentMethodIndex = null
+      this.editingPaymentMethod = null
     },
     async fetchPaymentMethods () {
       const vm = this
