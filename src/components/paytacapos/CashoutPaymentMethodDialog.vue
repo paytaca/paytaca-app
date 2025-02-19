@@ -428,12 +428,21 @@ export default {
       const info = this.editingPaymentMethod
       const body = {
         payment_type_id: info.payment_type.id,
-        payment_fields: info.values
+        payment_fields: []
+      }
+
+      for (const item in info.values) {
+        body.payment_fields.push({
+          id: info.values[item].id,
+          value: info.values[item].value
+        })
       }
 
       await backend.delete(this.paymentMethodURL + `${info.id}/`, body, { authorize: true })
         .then(response => {
           this.refetchData()
+
+          this.status = 'payment-method-select'
         })
         .catch(error => {
           console.error(error.response)
