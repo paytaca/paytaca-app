@@ -42,7 +42,7 @@
             rounded
             class="btn-scan button text-white bg-grad"
             icon="chevron_right"
-            @click="$router.push({ name: promo.path })"
+            @click="$router.push({ name: promo.path, query: { id: promo.id ?? -1 } })"
           />
         </div>
       </div>
@@ -52,7 +52,7 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { getUserPromo } from 'src/utils/engagementhub-utils/rewards'
+import { createUserPromoData, getUserPromoData } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -103,14 +103,14 @@ export default {
 
     // retrieve points from engagement-hub
     vm.isLoading = true
-    await getUserPromo()
-      .then(data => {
+    await getUserPromoData()
+      .then(async data => {
         if (data) {
           for (let i = 0; i < vm.promos.length; i++) {
             vm.promos[i].id = data[vm.pointsType[i]].id
             vm.promos[i].points = data[vm.pointsType[i]].points
           }
-        }
+        } else await createUserPromoData()
       })
     vm.isLoading = false
   },
