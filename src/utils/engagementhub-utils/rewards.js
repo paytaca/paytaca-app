@@ -49,12 +49,8 @@ export function convertPoints (points, pointsDivisor) {
 export async function getUserPromoData () {
   return await REWARDS_URL
     .get(`userpromo/${getWalletHash()}/`)
-    .then(response => {
-      return response.data
-    })
-    .catch(_error => {
-      return null
-    })
+    .then(response => { return response.data })
+    .catch(_error => { return null })
 }
 
 export async function createUserPromoData () {
@@ -64,23 +60,24 @@ export async function createUserPromoData () {
     .catch(error => { console.error(error) })
 }
 
+export async function updateUserPromoData (data) {
+  await REWARDS_URL
+    .patch(`userpromo/${getWalletHash()}/`, data)
+    .then(_response => { })
+    .catch(error => { console.error(error) })
+}
+
 export async function getUserRewardsData (id) {
   return await REWARDS_URL
     .get(`userreward/${id}/`)
-    .then(response => {
-      return response.data
-    })
-    .catch(_error => {
-      return null
-    })
+    .then(response => { return response.data })
+    .catch(_error => { return null })
 }
 
 export async function createUserRewardsData () {
   return await REWARDS_URL
     .post('userreward/')
-    .then(response => {
-      return response.data
-    })
+    .then(response => { return response.data })
     .catch(error => {
       console.error(error)
       return null

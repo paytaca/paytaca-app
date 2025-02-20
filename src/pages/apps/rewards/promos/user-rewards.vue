@@ -13,13 +13,18 @@
     >
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
-        <span class="col-12 text-center text-h5 text-bold">{{ points }} UP</span>
-        <span
-          class="q-mb-sm col-12 text-center subtext-gray"
-          :class="getDarkModeClass(darkMode)"
-        >
-          {{ pointsConvertion }}
-        </span>
+        <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </div>
+        <template v-else>
+          <span class="col-12 text-center text-h5 text-bold">{{ points }} UP</span>
+          <span
+            class="q-mb-sm col-12 text-center subtext-gray"
+            :class="getDarkModeClass(darkMode)"
+          >
+            {{ pointsConvertion }}
+          </span>
+        </template>
 
         <q-btn
           rounded
@@ -35,26 +40,32 @@
       >
         <span class="text-h6">Points Earned</span>
 
-        <q-tabs
-          no-caps
-          v-model="currentTab"
-          class="col-12"
-          :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
-          @click="adjustScrollAreaHeight"
-        >
-          <q-tab
-            name="onetime"
-            label="One-time Points"
-            class="network-selection-tab rewards"
-            :class="getDarkModeClass(darkMode)"
-          />
-          <q-tab
-            name="recurring"
-            label="Continuous Points"
-            class="network-selection-tab rewards"
-            :class="getDarkModeClass(darkMode)"
-          />
-        </q-tabs>
+        <div v-if="isLoading" class="row col-12 justify-center">
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </div>
+
+        <template v-else>
+          <q-tabs
+            no-caps
+            v-model="currentTab"
+            class="col-12"
+            :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+            @click="adjustScrollAreaHeight"
+          >
+            <q-tab
+              name="onetime"
+              label="One-time Points"
+              class="network-selection-tab rewards"
+              :class="getDarkModeClass(darkMode)"
+            />
+            <q-tab
+              name="recurring"
+              label="Continuous Points"
+              class="network-selection-tab rewards"
+              :class="getDarkModeClass(darkMode)"
+            />
+          </q-tabs>
+        </template>
 
         <q-tab-panels
           animated
@@ -63,8 +74,8 @@
         >
           <q-tab-panel name="onetime">
             <q-scroll-area ref="onetime">
-              <div class="row q-gutter-x-sm q-gutter-y-md">
-                <StatusChip :isCompleted="isReferralComplete" />
+              <div v-if="!isLoading" class="row q-gutter-x-sm q-gutter-y-md">
+                <status-chip :isCompleted="isReferralComplete" />
                 <span class="col-10">
                   <span class="text-subtitle1">
                     20 UP from referral and after completing 1st transaction
@@ -82,7 +93,7 @@
                   </span>
                 </span>
 
-                <StatusChip :isCompleted="isFirstSevenComplete" />
+                <status-chip :isCompleted="isFirstSevenComplete" />
                 <div class="col-10">
                   <span class="text-subtitle1">Points from first 7 transactions</span>
 
@@ -92,7 +103,7 @@
                       class="row col-12 q-gutter-x-sm"
                       :key="index"
                     >
-                      <StatusChip
+                      <status-chip
                         :isCompleted="item.ref_id !== '' && item.date != ''"
                         :index="index + 1"
                       />
@@ -158,17 +169,24 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { convertPoints, createUserRewardsData, getUserRewardsData } from 'src/utils/engagementhub-utils/rewards'
+import {
+  convertPoints,
+  createUserRewardsData,
+  getUserRewardsData,
+  updateUserPromoData
+} from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   name: 'UserRewards',
 
   components: {
     HeaderNav,
-    StatusChip
+    StatusChip,
+    ProgressLoader
   },
 
   props: {
@@ -177,6 +195,7 @@ export default {
 
   data () {
     return {
+      isLoading: false,
       urId: -1,
       points: 0,
       currentTab: 'onetime',
@@ -184,6 +203,7 @@ export default {
       isReferralComplete: false,
       referralCompleteDate: null,
       isFirstSevenComplete: false,
+      isFirstTimeUser: true,
       firstSevenTransactions: [
         { ref_id: '', date: '', points: 4 },
         { ref_id: '', date: '', points: 4 },
@@ -214,21 +234,42 @@ export default {
   async mounted () {
     const vm = this
 
+    vm.isLoading = true
     vm.adjustScrollAreaHeight()
 
     let urData = null
     vm.urId = Number(vm.id)
     if (vm.urId > -1) {
-      await getUserRewardsData(vm.urId)
-        .then(data => {
-          console.log(data)
-        })
+      urData = await getUserRewardsData(vm.urId)
     } else {
       // create UserReward entry in engagement-hub
-      console.log('yey')
       urData = await createUserRewardsData()
-      console.log(urData)
+      await updateUserPromoData({ ur_id: urData.id })
     }
+
+    vm.points = urData.points
+    vm.isReferralComplete = urData.is_referral_complete
+    vm.isFirstSevenComplete = urData.is_first_seven_complete
+    vm.referralCompleteDate = urData.referral_complete_date
+    vm.isFirstTimeUser = urData.isFirstTimeUser
+
+    if (urData.ur_months.length > 0) {
+      for (const transaction of urData.ur_months) {
+        vm.marketplaceTransactions.push({
+          month: transaction.timeframe,
+          orders: transaction.ur_mp_transactions
+        })
+      }
+    }
+
+    if (urData.ur_seven_transactions.length > 0) {
+      for (let i = 0; i < urData.ur_seven_transactions.length; i++) {
+        vm.firstSevenTransactions[i].ref_id = urData.ur_seven_transactions[i].ref_id
+        vm.firstSevenTransactions[i].date = urData.ur_seven_transactions[i].date
+      }
+    }
+
+    vm.isLoading = false
   },
 
   methods: {
@@ -256,5 +297,12 @@ export default {
 <style lang="scss">
 .q-tab-panels {
   background: transparent;
+}
+.lds-ellipsis {
+  height: 20px !important;
+
+  & div {
+    top: 10px !important;
+  }
 }
 </style>
