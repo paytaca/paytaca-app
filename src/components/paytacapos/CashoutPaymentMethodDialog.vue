@@ -426,12 +426,7 @@ export default {
     },
     async deletePaymentMethod () {
       const info = this.editingPaymentMethod
-      const body = {
-        payment_type_id: info.payment_type.id,
-        payment_fields: info.values
-      }
-
-      await backend.delete(this.paymentMethodURL + `${info.id}/`, body, { authorize: true })
+      await backend.delete(this.paymentMethodURL + `${info.id}/`, { authorize: true })
         .then(response => {
           this.refetchData()
         })
