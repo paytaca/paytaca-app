@@ -46,13 +46,43 @@ export function convertPoints (points, pointsDivisor) {
 // functions with calls to engagement hub
 // ================================
 
-export async function getUserPromo () {
+export async function getUserPromoData () {
   return await REWARDS_URL
     .get(`userpromo/${getWalletHash()}/`)
     .then(response => {
       return response.data
     })
     .catch(_error => {
+      return null
+    })
+}
+
+export async function createUserPromoData () {
+  await REWARDS_URL
+    .post('userpromo/', { wallet_hash: getWalletHash() })
+    .then(_response => { })
+    .catch(error => { console.error(error) })
+}
+
+export async function getUserRewardsData (id) {
+  return await REWARDS_URL
+    .get(`userreward/${id}/`)
+    .then(response => {
+      return response.data
+    })
+    .catch(_error => {
+      return null
+    })
+}
+
+export async function createUserRewardsData () {
+  return await REWARDS_URL
+    .post('userreward/')
+    .then(response => {
+      return response.data
+    })
+    .catch(error => {
+      console.error(error)
       return null
     })
 }

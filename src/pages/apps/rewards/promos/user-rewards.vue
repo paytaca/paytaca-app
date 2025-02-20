@@ -50,7 +50,7 @@
           />
           <q-tab
             name="recurring"
-            label="Recurring Points"
+            label="Continuous Points"
             class="network-selection-tab rewards"
             :class="getDarkModeClass(darkMode)"
           />
@@ -158,7 +158,7 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { convertPoints } from 'src/utils/engagementhub-utils/rewards'
+import { convertPoints, createUserRewardsData, getUserRewardsData } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
@@ -171,8 +171,13 @@ export default {
     StatusChip
   },
 
+  props: {
+    id: { type: String, default: '-1' }
+  },
+
   data () {
     return {
+      urId: -1,
       points: 0,
       currentTab: 'onetime',
 
@@ -206,8 +211,24 @@ export default {
     }
   },
 
-  mounted () {
-    this.adjustScrollAreaHeight()
+  async mounted () {
+    const vm = this
+
+    vm.adjustScrollAreaHeight()
+
+    let urData = null
+    vm.urId = Number(vm.id)
+    if (vm.urId > -1) {
+      await getUserRewardsData(vm.urId)
+        .then(data => {
+          console.log(data)
+        })
+    } else {
+      // create UserReward entry in engagement-hub
+      console.log('yey')
+      urData = await createUserRewardsData()
+      console.log(urData)
+    }
   },
 
   methods: {

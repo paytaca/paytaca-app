@@ -225,11 +225,13 @@ const routes = [
           {
             path: 'user-rewards',
             name: 'user-rewards',
+            props: route => route.query,
             component: () => import('src/pages/apps/rewards/promos/user-rewards.vue')
           },
           {
             path: 'rfp',
             name: 'rfp',
+            props: route => route.query,
             component: () => import('src/pages/apps/rewards/promos/rfp.vue')
           }
         ]

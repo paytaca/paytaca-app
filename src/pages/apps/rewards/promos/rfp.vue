@@ -100,6 +100,10 @@ export default {
     HeaderNav
   },
 
+  props: {
+    id: { type: String, default: '-1' }
+  },
+
   data () {
     return {
       points: 0,
