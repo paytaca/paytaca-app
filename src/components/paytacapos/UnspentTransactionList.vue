@@ -17,7 +17,7 @@
                   </div>
                 </div>
                 <div class="col ib-text text-right q-pr-sm">
-                  <div class="text-grey-8 text-bold">
+                  <div class="text-bold" :class="darkMode ? 'text-grey-' : 'text-grey-8'">
                     <span>{{ transaction.txid.substring(0,8) }}</span>
                     <q-icon color="primary" size="sm" name="o_check_box" v-if="transaction.selected"/>
                   </div>
@@ -34,6 +34,7 @@
 </template>
 <script>
 import { formatCurrency } from 'src/exchange'
+import darkmode from 'src/store/darkmode';
 
 export default {
   props: {

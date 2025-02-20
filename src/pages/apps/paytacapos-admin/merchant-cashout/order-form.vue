@@ -14,8 +14,8 @@
       <div v-if="status === 'confirm-transaction'">
         <div class="text-center md-font-size text-bold">Cash Out Transactions</div>
 
-        <q-pull-to-refresh @refresh="refreshData">
-          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 180}px`" style="overflow:auto;">
+        <div>
+          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 170}px`" style="overflow:auto;">
             <!-- Cashout Order -->
             <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
               <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
@@ -35,7 +35,7 @@
                         </div>
                       </div>
                       <div class="col ib-text text-right q-pr-sm">
-                        <div class="text-grey-8 text-bold">
+                        <div class="text-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
                           <span>{{ transaction.txid.substring(0,8) }}</span>
                           <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(transaction)"/>
                         </div>
@@ -50,7 +50,7 @@
               </q-item>
             <!-- </q-card> -->
           </q-list>
-        </q-pull-to-refresh>
+        </div>
       </div>
 
       <!-- Footer order summary card -->
@@ -66,7 +66,7 @@
               <div class="row">
                 <div class=" col-8 q-px-lg q-py-sm">
                   <span class="text-bold q-pl-sm">{{ paymentMethod.payment_type.full_name }}</span><br>
-                  <span class="text-grey-8 q-px-md" v-for="(item, index) in paymentMethod.values" :key="index" @click="copyToClipboard(item.value)">
+                  <span class="q-px-md" :class="darkMode ? 'text-grey-5' : 'text-grey-8'" v-for="(item, index) in paymentMethod.values" :key="index" @click="copyToClipboard(item.value)">
                     {{ item.value }} <q-icon size="xs" name="content_copy"/> <br>
                   </span>
                 </div>
@@ -89,7 +89,7 @@
 
         <div class="q-mx-lg q-pt-xs">
           <q-card class="full-width q-px-lg br-15 q-py-sm">
-            <div class="text-grey-8 text-bold">
+            <div class="text-bold sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
               {{ transactions.length }} Transactions
             </div>
             <div class="row q-pt-sm sm-font-size q-pb-sm">
@@ -105,19 +105,19 @@
               </div>
             </div>
 
-            <div class="text-strike text-grey-6 text-right sm-font-size">
+            <div class="text-strike text-right sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-6'">
               {{ formatCurrency(cashOutTotal.initialTotal, currency.symbol) }} {{ currency.symbol }}
             </div>
             <div class="row q-pb-sm">
-              <div class="col md-font-size text-bold">
+              <div class="col sm-font-size text-bold">
                 <span>TOTAL</span>
               </div>
-              <div class="text-right">
+              <div class="text-right" >
                 <span>{{ formatCurrency(cashOutTotal.currentTotal, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
               </div>
             </div>
             <q-separator class="q-mb-sm"/>
-            <div class="text-right text-grey-8 sm-font-size">
+            <div class="text-right sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
               {{ cashOutTotal.totalBchAmount?.toFixed(8) }} BCH
             </div>
           </q-card>
@@ -196,7 +196,7 @@ export default {
     data: Array
   },
   mounted () {
-    this.transactions = JSON.parse(this.$route.query.selectedTransactions)
+    this.transactions = JSON.parse(history.state.selectedTransactions)
     this.calculateCashOutTotal(this.transactions)
   },
   methods: {

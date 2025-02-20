@@ -1,15 +1,14 @@
 <template>
-  <q-pull-to-refresh
+  <div
     id="app-container"
     :class="getDarkModeClass(darkMode)"
-    @refresh="refreshData"
   >
     <HeaderNav
       :title="'Merchant Cash Out'"
       class="header"
     />
     <CashoutListings v-if="state === 'list'" @cashout-form="openCashoutForm"/>
-  </q-pull-to-refresh>
+</div>
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'

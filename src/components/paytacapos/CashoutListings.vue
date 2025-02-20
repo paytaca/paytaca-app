@@ -1,6 +1,6 @@
 <template>
   <div class="text-right q-pa-none q-mx-lg">
-    <q-toggle size="sm" v-model="hideCashout"/><span class="sm-font-size text-bold text-grey-8">Hide Cashout Order</span>
+    <q-toggle size="sm" v-model="hideCashout"/><span class="sm-font-size text-bold" :class="darkMode ? 'text-white' : 'text-grey-8'">Hide Cashout Order</span>
   </div>
   <!-- order type tabs -->
   <div
@@ -78,7 +78,7 @@
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
-import { backend } from 'src/exchange/backend'
+import { backend } from 'src/wallet/pos'
 import UnspentTransactionList from './UnspentTransactionList.vue'
 import ProgressLoader from '../ProgressLoader.vue';
 
@@ -130,7 +130,7 @@ export default {
       await this.fetchUnspentTxns()
     },
     openOrderForm () {
-      this.$router.push({ name: 'app-pos-cashout-form', query: { selectedTransactions: JSON.stringify(this.selectedTransactions) } })
+      this.$router.push({ name: 'app-pos-cashout-form', state: { selectedTransactions: JSON.stringify(this.selectedTransactions) } })
     },
     selectTransaction (transaction, index) {
       const isTxnSelected = this.isTxnSelected(transaction)
