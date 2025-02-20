@@ -429,6 +429,8 @@ export default {
       await backend.delete(this.paymentMethodURL + `${info.id}/`, { authorize: true })
         .then(response => {
           this.refetchData()
+
+          this.status = 'payment-method-select'
         })
         .catch(error => {
           console.error(error.response)
