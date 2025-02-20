@@ -82,7 +82,7 @@
                   </span>
                   <br/>
                   <span v-if="isReferralComplete" class="q-ml-sm">
-                    earned on {{ referralCompleteDate }}
+                    earned on {{ parseLocaleDate(referralCompleteDate) }}
                   </span>
                   <span
                     v-else
@@ -109,8 +109,9 @@
                       />
                       <div class="col-10">
                         <template v-if="item.ref_id !== '' && item.date != ''">
-                          Earned {{ item.points }} UP from {{ item.ref_id }}
-                          last {{ item.date }}
+                          Earned&nbsp;<strong>{{ item.points }} UP</strong>
+                          from {{ item.ref_id }}
+                          last {{ parseLocaleDate(item.date) }}
                         </template>
                         <span
                           v-else
@@ -130,7 +131,9 @@
           <q-tab-panel name="recurring">
             <q-scroll-area ref="recurring">
               <div>
-                <span class="text-subtitle1">Points from Marketplace transactions</span>
+                <span class="text-subtitle1">
+                  Points from Marketplace transactions
+                </span>
 
                 <div
                   v-if="marketplaceTransactions.length > 0"
@@ -141,14 +144,24 @@
                     class="row q-gutter-y-sm"
                     :key="index"
                   >
-                    <span class="q-pl-sm">{{ item.month }}</span>
+                    <span class="col-12 q-pl-sm text-subtitle1 text-bold">
+                      {{ parseLocaleDate(item.month, false) }}
+                    </span>
 
                     <div
                       v-for="(order, i) in item.orders"
                       :key="i"
                     >
                       <span class="row q-pl-lg">
-                        Earned 8 UP from Order #{{ order.order_id }} last {{ order.date }}
+                        Earned&nbsp;<strong>8 UP</strong>
+                        &nbsp;from Order&nbsp;
+                        <span
+                          class="text-underline cursor-pointer"
+                          @click="redirectToMarketplaceOrder(order.order_id)"
+                        >
+                          #{{ order.order_id }}
+                        </span>
+                        &nbsp;last {{ parseLocaleDate(order.date) }}
                       </span>
                     </div>
                   </div>
@@ -171,6 +184,7 @@
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import {
   convertPoints,
+  parseLocaleDate,
   createUserRewardsData,
   getUserRewardsData,
   updateUserPromoData
@@ -275,6 +289,7 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    parseLocaleDate,
     adjustScrollAreaHeight () {
       const vm = this
 
@@ -289,6 +304,9 @@ export default {
       } else if (vm.currentTab === 'recurring') {
         vm.$refs.recurring.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
       }
+    },
+    redirectToMarketplaceOrder (orderId) {
+      this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     }
   }
 }
