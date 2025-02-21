@@ -86,13 +86,13 @@
             />
           </div>
           <div
-            class="row items-center no-wrap"
+            class="row items-center no-wrap q-px-sm"
             style="position:relative;" v-ripple
             @click="() => updatingCutlery ? null : toggleCartCutlery()"
           >
             <q-checkbox
               dense
-              class="q-mx-xs"
+              class="q-mr-xs"
               :model-value="Boolean(activeStorefrontCart?.requireCutlery)"
               @click="() => updatingCutlery ? null : toggleCartCutlery()"
             />
