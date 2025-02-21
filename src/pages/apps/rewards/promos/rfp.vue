@@ -171,10 +171,12 @@ export default {
       await updateUserPromoData({ rfp_id: rfpData.id })
     }
 
-    vm.points = rfpData.points
-    vm.redeemablePoints = rfpData.redeemable_points
-    vm.referralCode = rfpData.referral_code
-    vm.referralsList = rfpData.rfp_referrals
+    if (rfpData) {
+      vm.points = rfpData.points
+      vm.redeemablePoints = rfpData.redeemable_points
+      vm.referralCode = rfpData.referral_code
+      vm.referralsList = rfpData.rfp_referrals
+    }
 
     vm.isLoading = false
   },

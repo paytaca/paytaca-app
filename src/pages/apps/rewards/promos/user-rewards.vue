@@ -261,25 +261,27 @@ export default {
       await updateUserPromoData({ ur_id: urData.id })
     }
 
-    vm.points = urData.points
-    vm.isReferralComplete = urData.is_referral_complete
-    vm.isFirstSevenComplete = urData.is_first_seven_complete
-    vm.referralCompleteDate = urData.referral_complete_date
-    vm.isFirstTimeUser = urData.isFirstTimeUser
+    if (urData) {
+      vm.points = urData.points
+      vm.isReferralComplete = urData.is_referral_complete
+      vm.isFirstSevenComplete = urData.is_first_seven_complete
+      vm.referralCompleteDate = urData.referral_complete_date
+      vm.isFirstTimeUser = urData.isFirstTimeUser
 
-    if (urData.ur_months.length > 0) {
-      for (const transaction of urData.ur_months) {
-        vm.marketplaceTransactions.push({
-          month: transaction.timeframe,
-          orders: transaction.ur_mp_transactions
-        })
+      if (urData.ur_months.length > 0) {
+        for (const transaction of urData.ur_months) {
+          vm.marketplaceTransactions.push({
+            month: transaction.timeframe,
+            orders: transaction.ur_mp_transactions
+          })
+        }
       }
-    }
 
-    if (urData.ur_seven_transactions.length > 0) {
-      for (let i = 0; i < urData.ur_seven_transactions.length; i++) {
-        vm.firstSevenTransactions[i].ref_id = urData.ur_seven_transactions[i].ref_id
-        vm.firstSevenTransactions[i].date = urData.ur_seven_transactions[i].date
+      if (urData.ur_seven_transactions.length > 0) {
+        for (let i = 0; i < urData.ur_seven_transactions.length; i++) {
+          vm.firstSevenTransactions[i].ref_id = urData.ur_seven_transactions[i].ref_id
+          vm.firstSevenTransactions[i].date = urData.ur_seven_transactions[i].date
+        }
       }
     }
 
