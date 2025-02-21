@@ -37,7 +37,8 @@ export function convertPoints (points, pointsDivisor) {
   const bch = convertToBCH(denomination(), (fiat / bchMarketPrice()))
 
   const finalFiat = `${fiat} ${fiatCurrency()}`
-  const finalBch = `${Number(bch) === 0 ? '0' : bch.toFixed(8)} ${denomination()}`
+  const bchNum = Number(bch) === 0 || Number.isNaN(Number(bch)) ? '0' : bch.toFixed(8)
+  const finalBch = `${bchNum} ${denomination()}`
 
   return `(${finalFiat} or ${finalBch})`
 }
