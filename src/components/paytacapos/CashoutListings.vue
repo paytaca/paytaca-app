@@ -63,12 +63,13 @@
               </q-item-section>
             </q-item>
           </div>
-          <div v-else>
-            Empty...
-          </div>
         </q-card>
         <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
       </q-list>
+      <div v-if="cashoutOrders.length === 0 && unspentTxns.length === 0" class="text-center q-mt-lg">
+        <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+        <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
+      </div>
     </q-pull-to-refresh>
   </div>
   <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
@@ -114,7 +115,6 @@ export default {
   async mounted () {
     this.isloading = true
     await this.refetchListings()
-
     this.isloading = false
   },
   methods: {

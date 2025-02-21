@@ -34,7 +34,6 @@
 </template>
 <script>
 import { formatCurrency } from 'src/exchange'
-import darkmode from 'src/store/darkmode';
 
 export default {
   props: {
@@ -46,9 +45,6 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     }
-  },
-  mounted () {
-    console.log('TRANSACTIONS: ', this.transaction)
   },
   methods: {
     formatCurrency,

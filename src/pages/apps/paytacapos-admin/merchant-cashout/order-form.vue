@@ -131,14 +131,14 @@
     <q-dialog v-model="openDialog">
       <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
         <q-card-section>
-          <div class="text-h6 text-center">Sucess!</div>
+          <div class="text-h6 text-center">{{ dialogTitle }}</div>
         </q-card-section>
 
         <q-card-section class="text-center q-pt-none">
           {{ dialogText }}
         </q-card-section>
 
-        <q-card-actions class="text-center" align="center">
+        <q-card-actions class="text-center" align="center" v-if="orderStatus === 'pending'">
           <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
           <q-btn
             flat
@@ -147,6 +147,10 @@
             v-close-popup
             @click="createCashoutOrder()"
           />
+        </q-card-actions>
+
+        <q-card-actions class="text-center" align="center" v-if="orderStatus === 'success'">
+          <q-btn flat :label="$t('OK')" color="red-6" @click="$router.push({ name: 'app-pos-cashout' })" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -170,13 +174,9 @@ export default {
       openDialog: false,
       text: '',
       paymentMethod: null,
-      orderInfo: {
-        market_price: 14587.50,
-        market_loss_gain: -4319.7,
-        loss_protection_coverage: 3979.7
-      },
       cashOutTotal: {},
-      openPaymentMethod: false
+      openPaymentMethod: false,
+      orderStatus: 'pending'
     }
   },
   computed: {
@@ -184,7 +184,18 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     dialogText () {
-      return 'This amount of BCH has been sent, please wait for your cash out order to be processed. You will receive payment shortly.'
+      if (this.orderStatus === 'success') {
+        return 'This amount of BCH has been sent, please wait for your cash out order to be processed. You will receive payment shortly.'
+      } else {
+        return ''
+      }
+    },
+    dialogTitle () {
+      if (this.orderStatus === 'success') {
+        return 'Success!'
+      } else {
+        return 'Confirm Order'
+      }
     }
   },
   emits: ['select-payment-method'],
@@ -237,17 +248,6 @@ export default {
       if (parent !== void 0 && parent.scrollTop > 0) {
         e.stopPropagation()
       }
-    },
-    totalCashout (isFiat = true) {
-      if (!isFiat) return 0.57
-
-      let sum = 0
-
-      for (const key in this.orderInfo) {
-        sum += this.orderInfo[key]
-      }
-
-      return sum
     },
     calculateCashOutTotal (transactions) {
       let initialTotal = 0
@@ -338,7 +338,6 @@ export default {
       return this.transactions.some(txn => txn.txid === transaction.txid)
     },
     createCashoutOrder () {
-      console.log('creating cashout order')
       const url = '/paytacapos/cash-out/'
 
       const body = {
@@ -352,12 +351,12 @@ export default {
         return txn.txid
       })
 
-      console.log('HERE: ', body)
-
       backend.post(url, body, { authorize: true })
         .then(response => {
           console.log(response)
-          this.$router.push({ name: 'app-pos-cashout' })
+          this.orderStatus = 'success'
+          this.openDialog = true
+          // this.$router.push({ name: 'app-pos-cashout' })
         })
         .catch(error => {
           console.error(error)
