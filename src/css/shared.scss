@@ -151,6 +151,10 @@ div#q-app:has(.marketplace-container) {
 }
 
 .bottom-card {
+  @include bottom-card(unset);
+}
+
+.bottom-card-small {
   @include bottom-card(60vh);
 }
 

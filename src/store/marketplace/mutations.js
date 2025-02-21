@@ -152,7 +152,9 @@ export function cacheStorefront(state, data) {
  * @param {Object} data 
  * @param {Number} data.id
  * @param {Number} data.storefront_id
+ * @param {Boolean} data.require_cutlery
  * @param {String} data.ref
+ * @param {Number} data.cutlery_subtotal
  * @param {Number} data.subtotal
  * @param {Number} data.markup_subtotal
  * @param {{ variant:VariantAPI, quantity:Number }[]} items
