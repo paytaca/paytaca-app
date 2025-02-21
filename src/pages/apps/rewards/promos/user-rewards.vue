@@ -295,9 +295,7 @@ export default {
 
       const pointsDivHeight = vm.$refs.points_div.clientHeight
       let scrollAreaHeight = document.body.clientHeight - pointsDivHeight - 300
-      if (vm.$q.platform.is.ios) {
-        scrollAreaHeight -= 30
-      }
+      if (vm.$q.platform.is.ios) scrollAreaHeight -= 30
 
       if (vm.currentTab === 'onetime') {
         vm.$refs.onetime.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)

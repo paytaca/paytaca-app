@@ -95,3 +95,20 @@ export async function createUserRewardsData () {
       return null
     })
 }
+
+export async function getRfPromoData (id) {
+  return await REWARDS_URL
+    .get(`rfpromo/${id}/`)
+    .then(response => { return response.data })
+    .catch(_error => { return null })
+}
+
+export async function createRfPromoData () {
+  return await REWARDS_URL
+    .post('rfpromo/')
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      return null
+    })
+}

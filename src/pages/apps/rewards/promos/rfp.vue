@@ -13,17 +13,22 @@
     >
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
-        <span class="col-12 text-center text-h5 text-bold">{{ points }} RFP</span>
-        <span
-          class="q-mb-md col-12 text-center subtext-gray"
-          :class="getDarkModeClass(darkMode)"
-        >
-          {{ pointsConvertion }}
-        </span>
+        <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </div>
+        <template v-else>
+          <span class="col-12 text-center text-h5 text-bold">{{ points }} RFP</span>
+          <span
+            class="q-mb-md col-12 text-center subtext-gray"
+            :class="getDarkModeClass(darkMode)"
+          >
+            {{ pointsConvertion }}
+          </span>
 
-        <span class="q-mb-xs col-12 text-center">
-          You can redeem {{ redeemablePoints }} RFP this month
-        </span>
+          <span class="q-mb-xs col-12 text-center">
+            You can redeem {{ redeemablePoints }} RFP this month
+          </span>
+        </template>
         <div class="row col-12 justify-center">
           <q-btn
             rounded
@@ -37,6 +42,7 @@
             rounded
             class="q-mt-md button"
             label="Show Referral QR Code"
+            :disable="isLoading"
           />
         </div>
       </div>
@@ -49,38 +55,45 @@
           Referral Status
         </span>
 
-        <q-scroll-area ref="referrals_list" class="q-mx-sm">
-          <div v-if="referralsList.length > 0" class="row q-gutter-y-sm">
-            <div
-              v-for="(item, index) in referralsList"
-              class="row col-12"
-              :key="index"
-            >
-              <span class="col-12 text-subtitle1">
-                {{ item.wallet_hash.substring(0, 6) }} ...
-                {{ item.wallet_hash.substring(item.wallet_hash.length - 6 , item.wallet_hash.length) }}
-              </span>
+        <div v-if="isLoading" class="row col-12 justify-center">
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </div>
 
-              <div class="q-ml-md">
-                <span>Wallet created on {{ item.date }}</span><br/>
-                <span v-if="item.has_transacted">
-                  You earned <span class="text-bold">5 RFP</span>
+        <q-scroll-area ref="referrals_list" class="q-mx-sm">
+          <template v-if="!isLoading">
+            <div v-if="referralsList.length > 0" class="row q-gutter-y-sm">
+              <div
+                v-for="(item, index) in referralsList"
+                class="row col-12"
+                :key="index"
+              >
+                <span class="col-12 text-subtitle1">
+                  {{ formatWalletHashDisplay(item.wallet_hash) }}
                 </span>
-                <span
-                  v-else
-                  class="subtext-gray not-earned-label"
-                  :class="getDarkModeClass(darkMode)"
-                >
-                  User has not yet transacted
-                </span>
+
+                <div class="q-ml-md">
+                  <span>
+                    Wallet created on {{ parseLocaleDate(item.date_created) }}
+                  </span><br/>
+                  <span v-if="item.has_transacted">
+                    You earned <span class="text-bold">5 RFP</span>
+                  </span>
+                  <span
+                    v-else
+                    class="subtext-gray not-earned-label"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    User has not yet transacted
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div v-else class="row justify-center text-center text-subtitle1">
-            You do not have any referrals yet.<br/><br/>
-            Refer other users to use Paytaca to start earning points!
-          </div>
+            <div v-else class="row justify-center text-center text-subtitle1">
+              You do not have any referrals yet.<br/><br/>
+              Refer other users to use Paytaca to start earning points!
+            </div>
+          </template>
         </q-scroll-area>
       </div>
     </div>
@@ -88,16 +101,24 @@
 </template>
 
 <script>
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { convertPoints } from 'src/utils/engagementhub-utils/rewards'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import {
+  convertPoints,
+  getRfPromoData,
+  createRfPromoData,
+  updateUserPromoData,
+  parseLocaleDate
+} from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   name: 'RFPromo',
 
   components: {
-    HeaderNav
+    HeaderNav,
+    ProgressLoader
   },
 
   props: {
@@ -106,102 +127,13 @@ export default {
 
   data () {
     return {
+      isLoading: false,
+      rfpId: -1,
       points: 0,
       redeemablePoints: 10000,
+      referralCode: '',
       // [{ wallet_hash: '', date: '', has_transacted: false }]
       referralsList: []
-      // referralsList: [
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: false
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: false
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: false
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: false
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: false
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: false
-      //   },
-      //   {
-      //     wallet_hash: 'af1ffd1dfc671e05247b7604d823953967a4a570841fc76129918ae5210805b7',
-      //     date: 'date',
-      //     has_transacted: true
-      //   }
-      // ]
     }
   },
 
@@ -217,20 +149,56 @@ export default {
     }
   },
 
-  mounted () {
-    const pointsDivHeight = this.$refs.points_div.clientHeight
+  async mounted () {
+    const vm = this
+
+    vm.isLoading = true
+
+    const pointsDivHeight = vm.$refs.points_div.clientHeight
     let scrollAreaHeight = document.body.clientHeight - pointsDivHeight - 200
-    if (this.$q.platform.is.ios) {
-      scrollAreaHeight -= 50
-    }
-    this.$refs.referrals_list.$el.setAttribute(
+    if (vm.$q.platform.is.ios) scrollAreaHeight -= 50
+    vm.$refs.referrals_list.$el.setAttribute(
       'style',
       `height: ${scrollAreaHeight}px; width: 100vw;`
     )
+
+    let rfpData = null
+    vm.rfpId = Number(vm.id)
+    if (vm.rfpId > -1) {
+      rfpData = await getRfPromoData(vm.rfpId)
+    } else {
+      rfpData = await createRfPromoData()
+      await updateUserPromoData({ rfp_id: rfpData.id })
+    }
+
+    vm.points = rfpData.points
+    vm.redeemablePoints = rfpData.redeemable_points
+    vm.referralCode = rfpData.referral_code
+    vm.referralsList = rfpData.rfp_referrals
+
+    vm.isLoading = false
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    isNotDefaultTheme,
+    parseLocaleDate,
+    formatWalletHashDisplay (walletHash) {
+      const length = walletHash.length
+      const prefix = walletHash.substring(0, 10)
+      const suffix = walletHash.substring(length - 10, length)
+      return `${prefix}...${suffix}`
+    }
   }
 }
 </script>
+
+<style lang="scss">
+.lds-ellipsis {
+  height: 20px !important;
+
+  & div {
+    top: 10px !important;
+  }
+}
+</style>
