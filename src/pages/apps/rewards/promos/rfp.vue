@@ -42,6 +42,7 @@
             rounded
             class="q-mt-md button"
             label="Show Referral QR Code"
+            @click="openReferralQrDialog"
             :disable="isLoading"
           />
         </div>
@@ -112,6 +113,7 @@ import {
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import ReferralQrDialog from 'src/components/rewards/ReferralQrDialog.vue'
 
 export default {
   name: 'RFPromo',
@@ -190,6 +192,15 @@ export default {
       const prefix = walletHash.substring(0, 10)
       const suffix = walletHash.substring(length - 10, length)
       return `${prefix}...${suffix}`
+    },
+    openReferralQrDialog () {
+      this.$q.dialog({
+        component: ReferralQrDialog,
+        componentProps: {
+          code: this.referralCode,
+          rfpId: this.rfpId
+        }
+      })
     }
   }
 }
