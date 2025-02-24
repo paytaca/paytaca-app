@@ -260,6 +260,7 @@ export default {
     async getFiatCurrencies () {
       try {
         const { data: currencies } = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: this.transactionType }, authorize: true })
+        console.log('currencies: ', currencies)
         this.disableCreateBtn = currencies.length === 0
       } catch (error) {
         this.handleRequestError(error)

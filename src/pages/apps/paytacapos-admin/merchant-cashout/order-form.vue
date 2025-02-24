@@ -145,7 +145,7 @@
             :label="$t('OK')"
             :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
             v-close-popup
-            @click="createCashoutOrder()"
+            @click="cashOutUtxos()"
           />
         </q-card-actions>
       </q-card>
@@ -154,11 +154,14 @@
 </template>
 <script>
 import { formatCurrency } from 'src/exchange'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
-import HeaderNav from 'src/components/header-nav.vue';
+import { getUtxos, sendUtxos } from 'src/merchant-cashout/cashout'
+import HeaderNav from 'src/components/header-nav.vue'
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
-import { isThisWeek } from 'date-fns';
+import DragSlide from 'src/components/drag-slide.vue'
+import { Network, ElectrumNetworkProvider, Utxo } from 'cashscript0.10.0'
+import { loadLibauthHdWallet } from 'src/wallet'
 
 export default {
   data () {
@@ -190,6 +193,7 @@ export default {
   emits: ['select-payment-method'],
   components: {
     HeaderNav,
+    DragSlide
     // CashoutPaymentMethodDialog
   },
   props: {
@@ -352,7 +356,7 @@ export default {
         return txn.txid
       })
 
-      console.log('HERE: ', body)
+      console.log('body:', body)
 
       backend.post(url, body, { authorize: true })
         .then(response => {
@@ -360,8 +364,56 @@ export default {
           this.$router.push({ name: 'app-pos-cashout' })
         })
         .catch(error => {
-          console.error(error)
+          console.error(error.response || error)
         })
+    },
+    async fetchPayoutAddress () {
+      let payoutAddress = null
+      await backend.get('/paytacapos/cash-out/payout_address/')
+        .then(response => {
+          console.log(response)
+          payoutAddress = response.data?.payout_address
+        })
+        .catch(error => {
+          console.log(error.response || error)
+        })
+      return payoutAddress
+    },
+    async cashOutUtxos () {
+      const selectedUtxos = this.transactions
+      const utxosByAddressPath = {}
+      for (const utxo of selectedUtxos) {
+        const addressUtxos = await getUtxos(utxo.address.address)
+        console.log('addressUtxos:', addressUtxos)
+        const matchingUtxo = addressUtxos.find(element => { return element.txid === utxo.txid })
+
+        if (!utxosByAddressPath[utxo.address.address_path]) {
+          utxosByAddressPath[utxo.address.address_path] = []
+        }
+        utxosByAddressPath[utxo.address.address_path].push(matchingUtxo)
+      }
+      console.log('utxosByAddressPath:', utxosByAddressPath)
+      const payoutAddress = await this.fetchPayoutAddress()
+      sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress})
+      // this.createCashoutOrder()
+    },
+    async getRawUtxos (txids) {
+      const utxos = []
+      const isChipnet = this.$store.getters['global/isChipnet']
+      let network = Network.MAINNET
+      if (isChipnet) {
+        network = Network.CHIPNET
+      }
+      const provider = new ElectrumNetworkProvider(network)
+      await txids.forEach(async txid => {
+        const utxo = await provider.getRawTransaction(txid)
+        console.log('__utxo:', utxo.vout)
+        utxos.push(utxo)
+      })
+      return utxos
+    },
+    async transformUtxos (utxos) {
+
     }
   }
 }
@@ -378,7 +430,7 @@ export default {
   }
   .footer-card-btn {
     position: fixed;
-    bottom: 0;
+    bottom: 10px;
     width: 100%;
   }
 </style>
