@@ -2,7 +2,7 @@
     <q-list :dark="darkMode">
         <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="selectTransaction(transaction, index)">
           <q-item-section>
-            <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            <div class="q-mx-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               <div class="sm-font-size text-grey-6 text-strike">
                 {{ formatCurrency(getFiatValue('initial', transaction), currency) }} {{ currency }}
               </div>
@@ -117,5 +117,8 @@ font-size: small;
 }
 .md-font-size {
 font-size: medium;
+}
+.ib-text {
+  display: inline-block;
 }
 </style>
