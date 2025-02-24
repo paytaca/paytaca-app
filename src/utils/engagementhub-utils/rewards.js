@@ -59,6 +59,33 @@ export function parseLocaleDate (date, isDayIncluded = true) {
 // functions with calls to engagement hub
 // ================================
 
+export async function getUserRewardsData (id) {
+  return await REWARDS_URL
+    .get(`userreward/${id}/`)
+    .then(response => { return response.data })
+    .catch(_error => { return null })
+}
+
+export async function createUserRewardsData () {
+  return await REWARDS_URL
+    .post('userreward/')
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      return null
+    })
+}
+
+export async function processReferralCode (data) {
+  await REWARDS_URL
+    .post('userreward/process_referral_code/', data)
+    .then(_response => { return false })
+    .catch(error => {
+      console.error(error)
+      return true
+    })
+}
+
 export async function getUserPromoData () {
   return await REWARDS_URL
     .get(`userpromo/${getWalletHash()}/`)
@@ -78,23 +105,6 @@ export async function updateUserPromoData (data) {
     .patch(`userpromo/${getWalletHash()}/`, data)
     .then(_response => { })
     .catch(error => { console.error(error) })
-}
-
-export async function getUserRewardsData (id) {
-  return await REWARDS_URL
-    .get(`userreward/${id}/`)
-    .then(response => { return response.data })
-    .catch(_error => { return null })
-}
-
-export async function createUserRewardsData () {
-  return await REWARDS_URL
-    .post('userreward/')
-    .then(response => { return response.data })
-    .catch(error => {
-      console.error(error)
-      return null
-    })
 }
 
 export async function getRfPromoData (id) {
