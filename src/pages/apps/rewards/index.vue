@@ -42,6 +42,7 @@
             rounded
             class="btn-scan button text-white bg-grad"
             icon="chevron_right"
+            :disable="isLoading"
             @click="$router.push({ name: promo.path, query: { id: promo.id ?? -1 } })"
           />
         </div>
