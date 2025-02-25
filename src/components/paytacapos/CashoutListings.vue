@@ -1,6 +1,19 @@
 <template>
-  <div class="text-right q-pa-none q-mx-lg q-pb-sm">
-    <q-btn icon="sym_o_receipt_long" label="order" dense rounded color="primary" size="md" class="q-px-sm" @click="openCashoutOrderList()"/>
+  <div class="row justify-between q-mx-lg">
+    <div>
+      <q-btn icon="filter_list" flat outline color="primary" size="md">
+        <q-menu>
+          <q-list style="min-width: 100px">
+            <q-item v-for="(item, index) in filterOpts" :key="index" clickable @click="updateFilter()" v-close-popup>
+              <q-item-section>{{ item.fullText }}</q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-btn>
+    </div>
+    <div>
+      <q-btn icon="sym_o_receipt_long" flat outline color="primary" size="md" label="orders" class="q-px-sm q-mr-xs" @click="openCashoutOrderList(item)"/>
+    </div>
   </div>
   <!-- List -->
   <div>
@@ -11,9 +24,9 @@
       <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;">
         <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
       </q-list>
-      <div v-if="cashoutOrders.length === 0 && unspentTxns.length === 0" class="text-center q-mt-lg">
+      <div v-if="unspentTxns.length === 0" class="text-center q-mt-lg">
         <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-        <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
+        <p :class="{ 'text-black': !darkMode }">{{ $t('No Transactions To Display') }}</p>
       </div>
     </q-pull-to-refresh>
   </div>
@@ -39,12 +52,20 @@ export default {
       theme: this.$store.getters['global/theme'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
       currency: this.$store.getters['market/selectedCurrency'],
-      orderType: 'ALL',
-      hideCashout: false,
-      cashoutOrders: [],
+      // orderType: 'ALL',
+      // cashoutOrders: [],
       selectedTransactions: [],
       unspentTxns: [],
-      isloading: true
+      isloading: true,
+      filter: {},
+      filterOpts: [
+        {
+          hasLossProtection: true, fullText: 'Within 30 Days'
+        },
+        {
+          hasLossProtection: false, fullText: 'After 30 Days'
+        }
+      ]
     }
   },
   computed: {
@@ -52,15 +73,78 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
-  watch: {
-    orderType (val) {
-      this.refetchListings()
-    }
-  },
+  // watch: {
+  //   orderType (val) {
+  //     this.refetchListings()
+  //   }
+  // },
   emits: ['cashout-form'],
   async mounted () {
     this.isloading = true
     await this.refetchListings()
+
+    // remove later
+
+    this.unspentTxns = [
+      {
+        txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'd632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'e632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'g632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      }
+    ]
+
+    // remove later
 
     this.isloading = false
   },
@@ -72,8 +156,11 @@ export default {
       this.refetchListings()
       done()
     },
+    updateFilter (info) { // update later
+      // console.log('updating filter: ', info)
+      this.refetchListings()
+    },
     async refetchListings () {
-      await this.fetchCashoutOrders()
       await this.fetchUnspentTxns()
     },
     openOrderForm () {
@@ -82,10 +169,7 @@ export default {
     openCashoutOrderList () {
       this.$q.dialog({
         component: CashoutOrderDialog,
-        // componentProps: {
-        //   currency: this.currency.symbol,
-        //   selectedPM: this.paymentMethod
-        // }
+        // componentProps: {}
       })
     },
     selectTransaction (transaction, index) {
@@ -105,18 +189,6 @@ export default {
       await backend.get(url, { params: { currency: this.currency?.symbol } })
         .then(response => {
           vm.unspentTxns = response.data
-        })
-        .catch(error => {
-          console.log(error)
-        })
-    },
-    async fetchCashoutOrders () {
-      const vm = this
-      const url = '/paytacapos/cash-out/'
-
-      await backend.get(url)
-        .then(response => {
-          vm.cashoutOrders = response.data
         })
         .catch(error => {
           console.log(error)

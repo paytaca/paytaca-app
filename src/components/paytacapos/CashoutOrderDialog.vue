@@ -1,5 +1,5 @@
 <template>
-  <q-dialog full-height full-width class="br-15 lg-font-size">
+  <q-dialog full-height full-width class="br-15 lg-font-size" persistent>
     <q-card>
       <div class="row q-px-sm">
         <div class="col text-bold q-mt-lg q-pt-xs q-px-md">Cashout Orders</div>
@@ -38,8 +38,8 @@
       </div>
 
       <!-- Cashout Order List -->
-      <q-pull-to-refresh @refresh="refreshData"  v-if="cashoutOrders.length > 0" class="q-mx-lg q-pt-sm">
-        <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;">
+      <q-pull-to-refresh @refresh="refreshData" class="q-mx-lg q-pt-sm">
+        <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;" v-if="cashoutOrders.length > 0">
           <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable class="">
             <div class="full-width">
               <div class="q-pl-sm q-pb-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -62,6 +62,10 @@
             </div>
           </q-item>
         </q-list>
+        <div v-if="cashoutOrders.length === 0" class="text-center q-mt-lg">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">{{ $t('No Orders To Display') }}</p>
+      </div>
       </q-pull-to-refresh>
     </q-card>
   </q-dialog>
@@ -87,6 +91,112 @@ export default {
   },
   async mounted () {
     await this.fetchCashoutOrders()
+
+    // remove later
+
+    this.cashoutOrders = [
+      {
+        id: 31,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'fae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      },
+      {
+        id: 32,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'gae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      },
+      {
+        id: 33,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'hae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      }
+    ]
+
+    // remove later
   },
   methods: {
     getDarkModeClass,
