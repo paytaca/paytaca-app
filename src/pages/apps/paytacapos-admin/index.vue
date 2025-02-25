@@ -10,9 +10,9 @@
       class="apps-header"
     />
     <div class="q-px-md q-pb-md">
-      <div class="text-right q-pb-sm">
+      <!-- <div class="text-right q-pb-sm">
         <q-btn class="q-px-sm" outline rounded icon="payments" color="primary" label="Cash Out" @click="openCashoutPage"></q-btn>
-      </div>
+      </div> -->
       <div class="row items-center justify-end">
         <div class="text-h5">{{ $t('Merchants')}}</div>
         <q-space/>
@@ -206,7 +206,8 @@ function fetchMerchants() {
 }
 
 function openMerchantPage(merchantData) {
-  $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
+  // $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
+  $router.push({ name: 'app-pos-merchant', state: { merchantId: JSON.stringify(merchantData?.id) } })
 }
 
 function openCashoutPage() {
