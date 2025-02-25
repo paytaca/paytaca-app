@@ -22,7 +22,7 @@
             class="q-mb-md col-12 text-center subtext-gray"
             :class="getDarkModeClass(darkMode)"
           >
-            {{ pointsConvertion }}
+            ({{ pointsConvertion }})
           </span>
 
           <span class="q-mb-xs col-12 text-center">
@@ -35,6 +35,7 @@
             class="button"
             label="Redeem Points"
             :disable="points === 0"
+            @click="openRedeemPointsDialog"
           />
         </div>
         <div class="row col-12 justify-center">
@@ -114,6 +115,7 @@ import {
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReferralQrDialog from 'src/components/rewards/ReferralQrDialog.vue'
+import RedeemPointsDialog from 'src/components/rewards/RedeemPointsDialog.vue'
 
 export default {
   name: 'RFPromo',
@@ -132,9 +134,10 @@ export default {
       isLoading: false,
       rfpId: -1,
       points: 0,
+      pointsDivisor: 0,
       redeemablePoints: 10000,
       referralCode: '',
-      // [{ wallet_hash: '', date: '', has_transacted: false }]
+
       referralsList: []
     }
   },
@@ -147,7 +150,7 @@ export default {
       return this.$store.getters['global/theme']
     },
     pointsConvertion () {
-      return convertPoints(this.points, 4)
+      return convertPoints(this.points, this.pointsDivisor)
     }
   },
 
@@ -178,6 +181,7 @@ export default {
       vm.redeemablePoints = rfpData.redeemable_points
       vm.referralCode = rfpData.referral_code
       vm.referralsList = rfpData.rfp_referrals
+      vm.pointsDivisor = 4
     }
 
     vm.isLoading = false
@@ -200,6 +204,16 @@ export default {
           code: this.referralCode,
           rfpId: this.rfpId,
           referralType: 'Friend'
+        }
+      })
+    },
+    openRedeemPointsDialog () {
+      this.$q.dialog({
+        component: RedeemPointsDialog,
+        componentProps: {
+          points: this.points,
+          pointsType: 'RFP',
+          pointsDivisor: this.pointsDivisor
         }
       })
     }

@@ -37,10 +37,10 @@ export function parseKey (key, inputText, caret, asset) {
  * Parses the `amount` string to adhere to selected `asset` decimal rules.
  * @param {String} amount the given string
  * @param {Object} asset the selected asset
- * @returns the adjusted string if asset is a cashtoken; the same string otherwise
+ * @returns the adjusted string if asset is a cashtoken; the unchanged string otherwise
  */
 function parseCtKey (amount, asset) {
-  if (asset.id.startsWith('ct/')) {
+  if (asset?.id?.startsWith('ct/')) {
     if (asset.decimals === 0) {
       amount = amount.toString().replace('.', '')
     } else {

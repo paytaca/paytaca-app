@@ -22,7 +22,7 @@
             class="q-mb-sm col-12 text-center subtext-gray"
             :class="getDarkModeClass(darkMode)"
           >
-            {{ pointsConvertion }}
+            ({{ pointsConvertion }})
           </span>
         </template>
 
@@ -31,6 +31,7 @@
           class="button"
           label="Redeem Points"
           :disable="points === 0"
+          @click="openRedeemPointsDialog"
         />
       </div>
 
@@ -193,6 +194,7 @@ import {
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import RedeemPointsDialog from 'src/components/rewards/RedeemPointsDialog.vue'
 
 export default {
   name: 'UserRewards',
@@ -210,9 +212,10 @@ export default {
   data () {
     return {
       isLoading: false,
+      currentTab: 'onetime',
       urId: -1,
       points: 0,
-      currentTab: 'onetime',
+      pointsDivisor: 0,
 
       isReferralComplete: false,
       referralCompleteDate: null,
@@ -228,7 +231,6 @@ export default {
         { ref_id: '', date: '', points: 10 }
       ],
 
-      // [{ month: '', orders: [{ order_id: '', date: '' }] }]
       marketplaceTransactions: []
     }
   },
@@ -241,7 +243,7 @@ export default {
       return this.$store.getters['global/theme']
     },
     pointsConvertion () {
-      return convertPoints(this.points, 4)
+      return convertPoints(this.points, this.pointsDivisor)
     }
   },
 
@@ -267,6 +269,7 @@ export default {
       vm.isFirstSevenComplete = urData.is_first_seven_complete
       vm.referralCompleteDate = urData.referral_complete_date
       vm.isFirstTimeUser = urData.isFirstTimeUser
+      vm.pointsDivisor = 4
 
       if (urData.ur_months.length > 0) {
         for (const transaction of urData.ur_months) {
@@ -307,6 +310,16 @@ export default {
     },
     redirectToMarketplaceOrder (orderId) {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
+    },
+    openRedeemPointsDialog () {
+      this.$q.dialog({
+        component: RedeemPointsDialog,
+        componentProps: {
+          points: this.points,
+          pointsType: 'UR',
+          pointsDivisor: this.pointsDivisor
+        }
+      })
     }
   }
 }

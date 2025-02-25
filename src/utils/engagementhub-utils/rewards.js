@@ -40,7 +40,7 @@ export function convertPoints (points, pointsDivisor) {
   const bchNum = Number(bch) === 0 || Number.isNaN(Number(bch)) ? '0' : bch.toFixed(8)
   const finalBch = `${bchNum} ${denomination()}`
 
-  return `(${finalFiat} or ${finalBch})`
+  return `${finalFiat} or ${finalBch}`
 }
 
 export function parseLocaleDate (date, isDayIncluded = true) {
