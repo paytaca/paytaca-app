@@ -76,55 +76,63 @@
           <q-tab-panel name="onetime">
             <q-scroll-area ref="onetime">
               <div v-if="!isLoading" class="row q-gutter-x-sm q-gutter-y-md">
-                <status-chip :isCompleted="isReferralComplete" />
-                <span class="col-10">
-                  <span class="text-subtitle1">
-                    20 UP from referral and after completing 1st transaction
-                  </span>
-                  <br/>
-                  <span v-if="isReferralComplete" class="q-ml-sm">
-                    earned on {{ parseLocaleDate(referralCompleteDate) }}
-                  </span>
-                  <span
-                    v-else
-                    class="q-ml-sm subtext-gray not-earned-label"
-                    :class="getDarkModeClass(darkMode)"
-                  >
-                    not yet earned
-                  </span>
-                </span>
-
-                <status-chip :isCompleted="isFirstSevenComplete" />
-                <div class="col-10">
-                  <span class="text-subtitle1">Points from first 7 transactions</span>
-
-                  <div class="row q-gutter-y-sm q-mt-xs">
-                    <div
-                      v-for="(item, index) in firstSevenTransactions"
-                      class="row col-12 q-gutter-x-sm"
-                      :key="index"
+                <template v-if="isFirstTimeUser">
+                  <status-chip :isCompleted="isReferralComplete" />
+                  <span class="col-10">
+                    <span class="text-subtitle1">
+                      20 UP from referral and after completing 1st transaction
+                    </span>
+                    <br/>
+                    <span v-if="isReferralComplete" class="q-ml-sm">
+                      earned on {{ parseLocaleDate(referralCompleteDate) }}
+                    </span>
+                    <span
+                      v-else
+                      class="q-ml-sm subtext-gray not-earned-label"
+                      :class="getDarkModeClass(darkMode)"
                     >
-                      <status-chip
-                        :isCompleted="item.ref_id !== '' && item.date != ''"
-                        :index="index + 1"
-                      />
-                      <div class="col-10">
-                        <template v-if="item.ref_id !== '' && item.date != ''">
-                          Earned&nbsp;<strong>{{ item.points }} UP</strong>
-                          from {{ item.ref_id }}
-                          last {{ parseLocaleDate(item.date) }}
-                        </template>
-                        <span
-                          v-else
-                          class="subtext-gray not-earned-label"
-                          :class="getDarkModeClass(darkMode)"
-                        >
-                          Not yet earned
-                        </span>
+                      not yet earned
+                    </span>
+                  </span>
+
+                  <status-chip :isCompleted="isFirstSevenComplete" />
+                  <div class="col-10">
+                    <span class="text-subtitle1">Points from first 7 transactions</span>
+
+                    <div class="row q-gutter-y-sm q-mt-xs">
+                      <div
+                        v-for="(item, index) in firstSevenTransactions"
+                        class="row col-12 q-gutter-x-sm"
+                        :key="index"
+                      >
+                        <status-chip
+                          :isCompleted="item.ref_id !== '' && item.date != ''"
+                          :index="index + 1"
+                        />
+                        <div class="col-10">
+                          <template v-if="item.ref_id !== '' && item.date != ''">
+                            Earned&nbsp;<strong>{{ item.points }} UP</strong>
+                            from {{ item.ref_id }}
+                            last {{ parseLocaleDate(item.date) }}
+                          </template>
+                          <span
+                            v-else
+                            class="subtext-gray not-earned-label"
+                            :class="getDarkModeClass(darkMode)"
+                          >
+                            Not yet earned
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </template>
+
+                <template v-else>
+                  <span class="full-width text-center text-h6">
+                    Sorry, only new users can avail the one-time points.
+                  </span>
+                </template>
               </div>
             </q-scroll-area>
           </q-tab-panel>
@@ -268,7 +276,7 @@ export default {
       vm.isReferralComplete = urData.is_referral_complete
       vm.isFirstSevenComplete = urData.is_first_seven_complete
       vm.referralCompleteDate = urData.referral_complete_date
-      vm.isFirstTimeUser = urData.isFirstTimeUser
+      vm.isFirstTimeUser = urData.is_first_time_user
       vm.pointsDivisor = 4
 
       if (urData.ur_months.length > 0) {
