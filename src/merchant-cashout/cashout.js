@@ -1,7 +1,7 @@
 import { ElectrumNetworkProvider, TransactionBuilder, Network, SignatureTemplate } from 'cashscript0.10.0'
 import { Store } from 'src/store'
 import { loadLibauthHdWallet } from 'src/wallet'
-import { bchToSatoshi } from 'src/exchange'
+import { TransactionBalancer } from 'src/wallet/stablehedge/transaction-utils'
 
 export async function getUtxos (address, isChipnet = false) {
   let network = Network.MAINNET
@@ -13,7 +13,7 @@ export async function getUtxos (address, isChipnet = false) {
   return utxos
 }
 
-const MAX_FEE = 3000n
+const MAX_FEE = 1000n
 function buildTransaction (params) {
   const utxos = params?.utxos
   const destinationAddress = params?.destinationAddress
@@ -24,15 +24,21 @@ function buildTransaction (params) {
   for (const utxo of utxos) {
     inputs.push({ ...utxo, unlocker: signatureTemplate.unlockP2PKH() })
   }
-  console.log('inputs:', inputs)
+  const output = { to: destinationAddress, amount: amount }
+  const txBalancer = new TransactionBalancer()
+
+  txBalancer.inputs.push(...inputs)
+  txBalancer.outputs.push(output)
+
+  const txFee = txBalancer.txFee
+  output.amount = amount - txFee
 
   const provider = new ElectrumNetworkProvider(params?.network)
   const txBuilder = new TransactionBuilder({ provider })
     .addInputs(inputs)
-    .addOutput({ to: destinationAddress, amount: amount })
-    // .setMaxFee(MAX_FEE)
+    .addOutput(output)
+    .setMaxFee(MAX_FEE)
 
-  console.log('txBuilder:', txBuilder)
   return txBuilder
 }
 

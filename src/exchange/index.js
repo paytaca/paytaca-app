@@ -1,4 +1,4 @@
-import { i18n } from "src/boot/i18n"
+import { i18n } from 'src/boot/i18n'
 const { t } = i18n.global
 
 export const SATOSHI_PER_BCH = 10 ** 8
@@ -31,6 +31,31 @@ export function formatOrderStatus (value) {
       return t('RefundPending')
     default:
       return ''
+  }
+}
+
+export function formatNumber (num) {
+  if (!num) return
+
+  let numStr = num.toString()
+  if (numStr.includes('e')) {
+    numStr = num.toFixed(20)
+  }
+
+  numStr = numStr.replace(/(\.\d*?)0+$/, '$1')
+
+  if (numStr.includes('.')) {
+    const [integerPart, decimalPart] = numStr.split('.')
+    const firstNonZeroIndex = decimalPart.search(/[1-9]/)
+
+    if (firstNonZeroIndex === -1 || firstNonZeroIndex < 2) {
+      return parseFloat(num).toFixed(2)
+    } else {
+      const digitsUntilFirstNonZero = decimalPart.slice(0, firstNonZeroIndex + 1)
+      return `${integerPart}.${digitsUntilFirstNonZero}`
+    }
+  } else {
+    return numStr
   }
 }
 

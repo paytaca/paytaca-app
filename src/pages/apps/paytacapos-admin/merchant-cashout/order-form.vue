@@ -99,26 +99,30 @@
                 <span>Loss Covered</span>
               </div>
               <div class="col text-right">
-                <span>{{ formatCurrency(cashOutTotal.initialTotal, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
-                <span :class="cashOutTotal.lossGain < 0 ? 'text-red' : 'text-green'">{{ formatCurrency(cashOutTotal.lossGain?.toFixed(2), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span><br>
-                <span>{{ formatCurrency(cashOutTotal.lossCovered, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
+                <span>{{ cashOutTotal.initialTotal }} {{ currency.symbol }}</span><br>
+                <span :class="cashOutTotal.lossGain < 0 ? 'text-red' : 'text-green'">
+                  {{ cashOutTotal.lossGain }} {{ currency.symbol }}
+                </span><br>
+                <span>{{ cashOutTotal.lossCovered }} {{ currency.symbol }}</span>
               </div>
             </div>
 
-            <div class="text-strike text-right sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-6'">
-              {{ formatCurrency(cashOutTotal.initialTotal, currency.symbol) }} {{ currency.symbol }}
+            <div v-if="cashOutTotal.initialTotal !== cashOutTotal.currentTotal" 
+              class="text-strike text-right sm-font-size"
+              :class="darkMode ? 'text-white' : 'text-grey-6'">
+              {{ cashOutTotal.initialTotal }} {{ currency.symbol }}
             </div>
-            <div class="row q-pb-sm">
-              <div class="col sm-font-size text-bold">
+            <div class="row q-pb-sm md-font-size text-bold">
+              <div class="col">
                 <span>TOTAL</span>
               </div>
               <div class="text-right" >
-                <span>{{ formatCurrency(cashOutTotal.currentTotal, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}</span>
+                <span>{{ cashOutTotal.currentTotal }} {{ currency.symbol }}</span>
               </div>
             </div>
             <q-separator class="q-mb-sm"/>
             <div class="text-right sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-              {{ cashOutTotal.totalBchAmount?.toFixed(8) }} BCH
+              {{ cashOutTotal.totalBchAmount }} BCH
             </div>
           </q-card>
         </div>
@@ -157,15 +161,14 @@
   </q-pull-to-refresh>
 </template>
 <script>
-import { formatCurrency } from 'src/exchange'
+import { formatCurrency, formatNumber } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
 import { getUtxos, sendUtxos } from 'src/merchant-cashout/cashout'
 import HeaderNav from 'src/components/header-nav.vue'
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
-import { Network, ElectrumNetworkProvider, Utxo } from 'cashscript0.10.0'
-import { loadLibauthHdWallet } from 'src/wallet'
+import { Network, ElectrumNetworkProvider } from 'cashscript0.10.0'
 
 export default {
   data () {
@@ -216,6 +219,7 @@ export default {
   },
   methods: {
     formatCurrency,
+    formatNumber,
     getDarkModeClass,
     async refreshData (done) {
       done()
@@ -276,13 +280,15 @@ export default {
         totalBchAmount += tx.amount
       })
       lossGain = currentTotal - initialTotal
+      currentTotal += lossCovered
       this.cashOutTotal = {
-        initialTotal: initialTotal,
-        currentTotal: currentTotal,
-        lossGain: lossGain,
-        lossCovered: lossCovered,
-        totalBchAmount: totalBchAmount
+        initialTotal: formatNumber(initialTotal),
+        currentTotal: formatNumber(currentTotal),
+        lossGain: formatNumber(lossGain),
+        lossCovered: formatNumber(lossCovered),
+        totalBchAmount: formatNumber(totalBchAmount)
       }
+      console.log('cashoutTotal:', this.cashOutTotal)
     },
     lossProtection (transaction) {
       const txTime = new Date(transaction.tx_timestamp)
@@ -349,6 +355,7 @@ export default {
         currency: this.currency.symbol,
         txids: []
       }
+      console.log('body:', body)
 
       // arrange txid
       body.txids = this.transactions.map(txn => {
@@ -403,9 +410,9 @@ export default {
         utxosByAddressPath[utxo.address.address_path].push(matchingUtxo)
       }
       console.log('utxosByAddressPath:', utxosByAddressPath)
-      const payoutAddress = await this.fetchPayoutAddress()
-      sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress})
-      // this.createCashoutOrder()
+      // const payoutAddress = await this.fetchPayoutAddress()
+      // sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress})
+      this.createCashoutOrder()
     },
     async getRawUtxos (txids) {
       const utxos = []
