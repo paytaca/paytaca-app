@@ -198,7 +198,8 @@ export default {
         component: ReferralQrDialog,
         componentProps: {
           code: this.referralCode,
-          rfpId: this.rfpId
+          rfpId: this.rfpId,
+          referralType: 'Friend'
         }
       })
     }

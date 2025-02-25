@@ -2,7 +2,7 @@
   <q-dialog persistent ref="dialogRef" seamless class="no-click-outside">
     <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center q-mb-sm">
-        <span class="text-h6">Referral QR</span>
+        <span class="text-h6">{{ referralType }} Referral QR</span>
         <q-btn
           flat
           round
@@ -39,7 +39,8 @@ export default {
 
   props: {
     code: { type: String, default: '' },
-    rfpId: { type: Number, default: -1 }
+    rfpId: { type: Number, default: -1 },
+    referralType: { type: String, default: '' }
   },
 
   computed: {
