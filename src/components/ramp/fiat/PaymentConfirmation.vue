@@ -151,9 +151,11 @@
                   </div>
                 </q-card>
               </q-expansion-item>
-              <q-banner class="bg-primary text-white text-center" v-if="method.selected && !method.attachment">
-                <span class="sm-font-size">Please upload Proof of Payment first before you proceed</span>
-              </q-banner>
+              <div v-if="data?.type === 'buyer'">
+                <q-banner class="bg-primary text-white text-center" v-if="method.selected && !method.attachment">
+                  <span class="sm-font-size">Please upload Proof of Payment first before you proceed</span>
+                </q-banner>
+              </div>
             </q-card>
           </div>
         </div>
