@@ -109,7 +109,8 @@ import {
   getRfPromoData,
   createRfPromoData,
   updateUserPromoData,
-  parseLocaleDate
+  parseLocaleDate,
+  getPromoPointsDivisorData
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -177,6 +178,11 @@ export default {
     }
 
     if (rfpData) {
+      await getPromoPointsDivisorData()
+        .then(data => {
+          vm.pointsDivisor = data.rfp_divisor
+        })
+
       vm.points = rfpData.points
       vm.redeemablePoints = rfpData.redeemable_points
       vm.referralCode = rfpData.referral_code

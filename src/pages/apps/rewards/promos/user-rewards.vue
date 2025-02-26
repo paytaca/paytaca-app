@@ -196,7 +196,8 @@ import {
   parseLocaleDate,
   createUserRewardsData,
   getUserRewardsData,
-  updateUserPromoData
+  updateUserPromoData,
+  getPromoPointsDivisorData
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -272,12 +273,16 @@ export default {
     }
 
     if (urData) {
+      await getPromoPointsDivisorData()
+        .then(data => {
+          vm.pointsDivisor = data.ur_divisor
+        })
+
       vm.points = urData.points
       vm.isReferralComplete = urData.is_referral_complete
       vm.isFirstSevenComplete = urData.is_first_seven_complete
       vm.referralCompleteDate = urData.referral_complete_date
       vm.isFirstTimeUser = urData.is_first_time_user
-      vm.pointsDivisor = 4
 
       if (urData.ur_months.length > 0) {
         for (const transaction of urData.ur_months) {

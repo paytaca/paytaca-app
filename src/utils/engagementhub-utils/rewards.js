@@ -123,3 +123,17 @@ export async function createRfPromoData () {
       return null
     })
 }
+
+export async function getPromoPointsDivisorData () {
+  return await REWARDS_URL
+    .get('promopointsdivisor/')
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      // return initial values set during marketing planning
+      return {
+        ur_divisor: 4,
+        rfp_divisor: 4
+      }
+    })
+}
