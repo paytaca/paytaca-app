@@ -18,7 +18,7 @@
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 170}px`" style="overflow:auto;">
             <!-- Cashout Order -->
             <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
-              <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
+              <q-item v-for="(transaction, index) in transactionList" :key="index" clickable @click="selectTransaction(index)">
                 <q-item-section>
                   <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <div class="sm-font-size text-grey-6 text-strike">
@@ -174,6 +174,7 @@ export default {
   data () {
     return {
       transactions: [],
+      transactionList: [],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 320 : this.$q.screen.height - 290,
       currency: { name: 'PHP', symbol: 'PHP' },
       status: 'confirm-transaction',
@@ -182,7 +183,7 @@ export default {
       paymentMethod: null,
       cashOutTotal: {},
       openPaymentMethod: false,
-      orderStatus: 'pending'
+      orderStatus: 'pending',
     }
   },
   computed: {
@@ -219,6 +220,7 @@ export default {
   mounted () {
     this.paymentMethod = this.lastPaymentMethod
     this.transactions = JSON.parse(history.state.selectedTransactions)
+    this.transactionList = this.transactions
     this.calculateCashOutTotal(this.transactions)
   },
   methods: {
@@ -227,6 +229,17 @@ export default {
     getDarkModeClass,
     async refreshData (done) {
       done()
+    },
+    selectTransaction (index) {
+      this.transactionList[index].selected = !this.transactionList[index].selected
+
+      if (this.transactionList[index].selected) {
+        this.transactions.push(this.transactionList[index])
+      } else {
+        this.transactions = this.transactions.filter(tx => tx.txid !== this.transactionList[index].txid)
+      }
+
+      this.calculateCashOutTotal(this.transactions)
     },
     openPaymentMethodDialog () {
       // this.openPaymentMethod = true
@@ -285,14 +298,14 @@ export default {
       })
       lossGain = currentTotal - initialTotal
       currentTotal += lossCovered
+
       this.cashOutTotal = {
-        initialTotal: formatNumber(initialTotal),
-        currentTotal: formatNumber(currentTotal),
-        lossGain: formatNumber(lossGain),
-        lossCovered: formatNumber(lossCovered),
-        totalBchAmount: formatNumber(totalBchAmount)
+        initialTotal: formatNumber(initialTotal) || initialTotal,
+        currentTotal: formatNumber(currentTotal) || currentTotal,
+        lossGain: formatNumber(lossGain) || lossGain,
+        lossCovered: formatNumber(lossCovered) || lossCovered,
+        totalBchAmount: formatNumber(totalBchAmount) || totalBchAmount
       }
-      console.log('cashoutTotal:', this.cashOutTotal)
     },
     lossProtection (transaction) {
       const txTime = new Date(transaction.tx_timestamp)
@@ -326,7 +339,6 @@ export default {
       return 'Expired'
     },
     getInitialFiatAmount (transaction) {
-      // console.log('transaction:', transaction)
       const marketPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
       return transaction.amount * marketPrice
     },
@@ -349,7 +361,7 @@ export default {
       return ''
     },
     isTxnSelected (transaction) {
-      return this.transactions.some(txn => txn.txid === transaction.txid)
+      return transaction.selected
     },
     createCashoutOrder () {
       const url = '/paytacapos/cash-out/'
@@ -359,7 +371,6 @@ export default {
         currency: this.currency.symbol,
         txids: []
       }
-      console.log('body:', body)
 
       // arrange txid
       body.txids = this.transactions.map(txn => {

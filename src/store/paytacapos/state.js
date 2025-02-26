@@ -56,7 +56,7 @@ export default function () {
        */
     },
     paymentMethod: {},
-    lastPaymentMethod: {}
+    lastPaymentMethod: null
   }
 }
 
