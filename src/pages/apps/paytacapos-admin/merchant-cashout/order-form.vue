@@ -107,7 +107,7 @@
               </div>
             </div>
 
-            <div v-if="cashOutTotal.initialTotal !== cashOutTotal.currentTotal" 
+            <div v-if="cashOutTotal.initialTotal !== cashOutTotal.currentTotal"
               class="text-strike text-right sm-font-size"
               :class="darkMode ? 'text-white' : 'text-grey-6'">
               {{ cashOutTotal.initialTotal }} {{ currency.symbol }}
@@ -189,6 +189,9 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    lastPaymentMethod () {
+      return this.$store.getters['paytacapos/lastPaymentMethod']
+    },
     dialogText () {
       if (this.orderStatus === 'success') {
         return 'This amount of BCH has been sent, please wait for your cash out order to be processed. You will receive payment shortly.'
@@ -214,6 +217,7 @@ export default {
     data: Array
   },
   mounted () {
+    this.paymentMethod = this.lastPaymentMethod
     this.transactions = JSON.parse(history.state.selectedTransactions)
     this.calculateCashOutTotal(this.transactions)
   },
@@ -365,20 +369,12 @@ export default {
       backend.post(url, body, { authorize: true })
         .then(response => {
           console.log(response)
+
+          this.$store.commit('paytacapos/updateLastPaymentMethod', this.paymentMethod)
+
           this.orderStatus = 'success'
           this.openDialog = true
           // this.$router.push({ name: 'app-pos-cashout' })
-        })
-        .catch(error => {
-          console.error(error.response || error)
-        })
-    },
-    async fetchPayoutAddress () {
-      let payoutAddress = null
-      await backend.get('/paytacapos/cash-out/payout_address/')
-        .then(response => {
-          console.log(response)
-          payoutAddress = response.data?.payout_address
         })
         .catch(error => {
           console.error(error.response || error)
@@ -397,6 +393,7 @@ export default {
       return payoutAddress
     },
     async cashOutUtxos () {
+      this.temp()
       const selectedUtxos = this.transactions
       const utxosByAddressPath = {}
       for (const utxo of selectedUtxos) {

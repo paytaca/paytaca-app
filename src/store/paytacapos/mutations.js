@@ -2,8 +2,12 @@ export function updatePaymentMethod (state, data) {
   state.paymentMethod = data
 }
 
+export function updateLastPaymentMethod (state, data) {
+  state.lastPaymentMethod = data
+}
+
 /**
- * @param {Object} state 
+ * @param {Object} state
  * @param {Object} data
  * @param {Number} data.id
  * @param {Number} data.index
@@ -20,7 +24,7 @@ export function updatePaymentMethod (state, data) {
  * @param {String} data.location.country
  * @param {String} data.location.longitude
  * @param {String} data.location.latitude
- * 
+ *
  */
 function parseMerchantData(data) {
   return {
@@ -45,7 +49,7 @@ function parseMerchantData(data) {
 }
 
 /**
- * @param {Object} state 
+ * @param {Object} state
  * @param {Object[]} data
  */
 export function storeMerchantsListInfo(state, data) {
@@ -60,8 +64,8 @@ export function storeMerchantsListInfo(state, data) {
 }
 
 /**
- * @param {Object} state 
- * @param {Number} merchantId 
+ * @param {Object} state
+ * @param {Number} merchantId
  */
 export function removeMerchantInfo(state, merchantId) {
   if (!Array.isArray(state.merchants)) return
@@ -73,8 +77,8 @@ export function clearMerchantsInfo(state) {
 }
 
 /**
- * @param {Object} state 
- * @param {Object} data 
+ * @param {Object} state
+ * @param {Object} data
  * @param {Number} data.id
  * @param {String} data.name
  * @param {Boolean} data.is_main
@@ -123,8 +127,8 @@ export function clearMerchantsInfo(state) {
 }
 
 /**
- * @param {Object} state 
- * @param {Number} branchId 
+ * @param {Object} state
+ * @param {Number} branchId
  */
 export function removeBranchInfo(state, branchId) {
   if (!Array.isArray(state.branches)) return
@@ -136,8 +140,8 @@ export function clearBranchInfo(state) {
 }
 
 /**
- * @param {Object} state 
- * @param {Object} data 
+ * @param {Object} state
+ * @param {Object} data
  * @param {String} data.walletHash
  * @param {Number} data.posid
  * @param {String} data.code
@@ -167,8 +171,8 @@ export function saveLinkCode(state, data) {
 }
 
 /**
- * @param {Object} state 
- * @param {Object} data 
+ * @param {Object} state
+ * @param {Object} data
  * @param {String} [data.code]
  * @param {String} [data.walletHash]
  * @param {Number} [data.posid]
@@ -187,8 +191,8 @@ export function removeLinkCode(state, data) {
 }
 
 /**
- * @param {Object} state 
- * @param {Object} data 
+ * @param {Object} state
+ * @param {Object} data
  * @param {String} data.walletHash
  * @param {Number} data.posid
  * @param {Number} [data.lastActive]
@@ -205,9 +209,9 @@ export function setDeviceLastActive(state, data) {
 }
 
 /**
- * 
- * @param {Object} state 
- * @param {Object} data 
+ *
+ * @param {Object} state
+ * @param {Object} data
  * @param {String} data.txid
  * @param {String} data.otp
  * @param {Number} data.otpTimestamp
@@ -226,9 +230,9 @@ export function saveOTPCache(state, data) {
 }
 
 /**
- * 
- * @param {Object} state 
- * @param {String} txid 
+ *
+ * @param {Object} state
+ * @param {String} txid
  */
 export function removeTxOTPCache(state, txid) {
   if (!state.paymentOTPCache) return
