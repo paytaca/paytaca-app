@@ -79,7 +79,7 @@
           rounded
           class="button"
           :label="$t('Redeem')"
-          :disable="pointsBalance < 0"
+          :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
         />
       </div>
     </q-card>
