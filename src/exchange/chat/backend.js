@@ -88,6 +88,7 @@ export async function updateSignerData () {
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index at 0
   const addressPath = wallet.addressPath(verifyingPubkeyIndex)
   const privkey = wallet.privkey(addressPath)
+  const verifyingPubkey = wallet.pubkey(addressPath)
   const walletHash = wallet?.walletHash
 
   // return if no need to update signer data
@@ -98,9 +99,6 @@ export async function updateSignerData () {
     console.log('Chat signer data is still updated.')
     return
   }
-
-  // get verifying public key
-  const verifyingPubkey = wallet.pubkey(addressPath)
 
   // generate message and signature to verify
   const message = `${Date.now()}`

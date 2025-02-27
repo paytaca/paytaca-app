@@ -1,37 +1,35 @@
-import { SigningSerializationFlag, authenticationTemplateP2pkhNonHd, authenticationTemplateToCompilerBCH, binToHex, decodePrivateKeyWif, encodeTransaction, generateSigningSerializationBCH, generateTransaction, hash256, hexToBin, importAuthenticationTemplate, lockingBytecodeToCashAddress, secp256k1, sha256 } from '@bitauth/libauth';
+import {
+  SigningSerializationFlag,
+  authenticationTemplateP2pkhNonHd,
+  authenticationTemplateToCompilerBCH,
+  binToHex,
+  decodePrivateKeyWif,
+  encodeTransaction,
+  generateSigningSerializationBCH,
+  generateTransaction,
+  hash256,
+  hexToBin,
+  importAuthenticationTemplate,
+  lockingBytecodeToCashAddress,
+  secp256k1,
+  sha256
+} from '@bitauth/libauth'
 import { Core } from '@walletconnect/core'
-import { Web3Wallet } from '@walletconnect/web3wallet'
-import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, unpackSourceOutput } from './tx-sign-utils';
-import BCHJS from '@psf/bch-js';
+import { WalletKit /*, type IWalletKit */ } from '@reown/walletkit'
+import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, unpackSourceOutput } from './tx-sign-utils'
+import BCHJS from '@psf/bch-js'
 
 const bchjs = new BCHJS()
-// export const walletConnect2Core = new Core({
-//   projectId: process.env.WALLETCONNECT_PROJECT_ID,
-// })
 
-// let _web3wallet
 /**
- * @returns {Promise<import('@walletconnect/web3wallet').IWeb3Wallet>}
+ * @returns IWalletKit
  */
-export async function initWeb3Wallet(/*opts={forceCreate: true}*/) {
-  
+export async function initWeb3Wallet () {
   const core = new Core({
     projectId: process.env.WALLETCONNECT_PROJECT_ID
   })
-  // if (!_web3wallet || opts?.forceCreate) {
-  //   _web3wallet = await Web3Wallet.init({
-  //     core: core,
-  //     metadata: {
-  //       name: 'Paytaca',
-  //       description: 'Paytaca - BCH Wallet App',
-  //       url: 'https://www.paytaca.com',
-  //       icons: ['https://walletconnect.org/walletconnect-logo.png'],
-  //     }
-  //   })
-  // }
-  // return _web3wallet
 
-  return await Web3Wallet.init({
+  return await WalletKit.init({
     core: core,
     metadata: {
       name: 'Paytaca',
@@ -42,16 +40,6 @@ export async function initWeb3Wallet(/*opts={forceCreate: true}*/) {
   })
 }
 
-// export const web3wallet = ''
-// export const web3wallet = await Web3Wallet.init({
-//   walletConnect2Core,
-//   metadata: {
-//     name: 'Paytaca',
-//     description: 'Paytaca - BCH Wallet App',
-//     url: 'www.paytaca.com',
-//     icons: ['https://walletconnect.org/walletconnect-logo.png'],
-//   }
-// })
 
 export async function resetWallectConnectDatabase() {
   const request = indexedDB.open('WALLET_CONNECT_V2_INDEXED_DB');
