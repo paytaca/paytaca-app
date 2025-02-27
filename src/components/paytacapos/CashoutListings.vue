@@ -123,7 +123,12 @@ export default {
       const vm = this
       const url = '/paytacapos/cash-out/list_unspent_txns/'
 
-      await backend.get(url, { params: { currency: this.currency?.symbol } })
+      await backend.get(url, {
+        params: {
+          currency: this.currency?.symbol,
+          merchant_ids: history.state.merchantId
+        }
+      })
         .then(response => {
           vm.unspentTxns = response.data
         })
