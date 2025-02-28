@@ -164,11 +164,12 @@
 import { formatCurrency, formatNumber } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
-import { getUtxos, sendUtxos } from 'src/merchant-cashout/cashout'
+import { getUtxos, sendUtxos, generateAddressFromXPubKey } from 'src/merchant-cashout/cashout'
 import HeaderNav from 'src/components/header-nav.vue'
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import { Network, ElectrumNetworkProvider } from 'cashscript0.10.0'
+import { getMnemonic, Wallet } from 'src/wallet'
 
 export default {
   data () {
@@ -213,50 +214,15 @@ export default {
   props: {
     data: Array
   },
-  mounted () {
+  async mounted () {
     this.transactions = JSON.parse(history.state.selectedTransactions)
     this.calculateCashOutTotal(this.transactions)
+    generateAddressFromXPubKey()
   },
   methods: {
     formatCurrency,
     formatNumber,
     getDarkModeClass,
-    async refreshData (done) {
-      done()
-    },
-    openPaymentMethodDialog () {
-      // this.openPaymentMethod = true
-      this.$q.dialog({
-        component: CashoutPaymentMethodDialog,
-        componentProps: {
-          currency: this.currency.symbol,
-          selectedPM: this.paymentMethod
-        }
-      })
-        .onOk(method => {
-          this.paymentMethod = method
-        })
-    },
-    copyToClipboard (value) {
-      this.$copyText(value)
-      this.$q.notify({
-        message: this.$t('CopiedToClipboard'),
-        timeout: 800,
-        color: 'blue-9',
-        icon: 'mdi-clipboard-check'
-      })
-    },
-    preventPull (e) {
-      let parent = e.target
-      // eslint-disable-next-line no-void
-      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
-        parent = parent.parentNode
-      }
-      // eslint-disable-next-line no-void
-      if (parent !== void 0 && parent.scrollTop > 0) {
-        e.stopPropagation()
-      }
-    },
     calculateCashOutTotal (transactions) {
       let initialTotal = 0
       let currentTotal = 0
@@ -321,8 +287,59 @@ export default {
 
       return 'Expired'
     },
+    async cashOutUtxos () {
+      const selectedUtxos = this.transactions
+      const utxosByAddressPath = {}
+      for (const utxo of selectedUtxos) {
+        const addressUtxos = await getUtxos(utxo.address.address)
+        const matchingUtxo = addressUtxos.find(element => { return element.txid === utxo.txid })
+
+        if (!utxosByAddressPath[utxo.address.address_path]) {
+          utxosByAddressPath[utxo.address.address_path] = []
+        }
+        utxosByAddressPath[utxo.address.address_path].push(matchingUtxo)
+      }
+
+      const payoutAddress = await this.fetchPayoutAddress()
+      await sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress })
+      this.createCashoutOrder(payoutAddress)
+    },
+    async fetchPayoutAddress () {
+      let payoutAddress = null
+      await backend.get('/paytacapos/cash-out/payout_address/')
+        .then(response => {
+          console.log(response)
+          payoutAddress = response.data?.payout_address
+        })
+        .catch(error => {
+          console.log(error.response || error)
+        })
+      return payoutAddress
+    },
+    async createCashoutOrder (payoutAddress) {
+      const url = '/paytacapos/cash-out/'
+      const body = {
+        payment_method_id: this.paymentMethod.id,
+        currency: this.currency.symbol,
+        payout_address: payoutAddress
+      }
+
+      // arrange txid
+      body.txids = this.transactions.map(txn => {
+        return txn.txid
+      })
+
+      await backend.post(url, body, { authorize: true })
+        .then(response => {
+          this.orderStatus = 'success'
+          this.openDialog = true
+          // this.$router.push({ name: 'app-pos-cashout' })
+        })
+        .catch(error => {
+          console.error(error.response || error)
+        })
+    },
     getInitialFiatAmount (transaction) {
-      // console.log('transaction:', transaction)
       const marketPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
       return transaction.amount * marketPrice
     },
@@ -347,90 +364,41 @@ export default {
     isTxnSelected (transaction) {
       return this.transactions.some(txn => txn.txid === transaction.txid)
     },
-    createCashoutOrder () {
-      const url = '/paytacapos/cash-out/'
-
-      const body = {
-        payment_method_id: this.paymentMethod.id,
-        currency: this.currency.symbol,
-        txids: []
-      }
-      console.log('body:', body)
-
-      // arrange txid
-      body.txids = this.transactions.map(txn => {
-        return txn.txid
-      })
-
-      backend.post(url, body, { authorize: true })
-        .then(response => {
-          console.log(response)
-          this.orderStatus = 'success'
-          this.openDialog = true
-          // this.$router.push({ name: 'app-pos-cashout' })
-        })
-        .catch(error => {
-          console.error(error.response || error)
-        })
+    async refreshData (done) {
+      done()
     },
-    async fetchPayoutAddress () {
-      let payoutAddress = null
-      await backend.get('/paytacapos/cash-out/payout_address/')
-        .then(response => {
-          console.log(response)
-          payoutAddress = response.data?.payout_address
-        })
-        .catch(error => {
-          console.error(error.response || error)
-        })
-    },
-    async fetchPayoutAddress () {
-      let payoutAddress = null
-      await backend.get('/paytacapos/cash-out/payout_address/')
-        .then(response => {
-          console.log(response)
-          payoutAddress = response.data?.payout_address
-        })
-        .catch(error => {
-          console.log(error.response || error)
-        })
-      return payoutAddress
-    },
-    async cashOutUtxos () {
-      const selectedUtxos = this.transactions
-      const utxosByAddressPath = {}
-      for (const utxo of selectedUtxos) {
-        const addressUtxos = await getUtxos(utxo.address.address)
-        console.log('addressUtxos:', addressUtxos)
-        const matchingUtxo = addressUtxos.find(element => { return element.txid === utxo.txid })
-
-        if (!utxosByAddressPath[utxo.address.address_path]) {
-          utxosByAddressPath[utxo.address.address_path] = []
+    openPaymentMethodDialog () {
+    // this.openPaymentMethod = true
+      this.$q.dialog({
+        component: CashoutPaymentMethodDialog,
+        componentProps: {
+          currency: this.currency.symbol,
+          selectedPM: this.paymentMethod
         }
-        utxosByAddressPath[utxo.address.address_path].push(matchingUtxo)
-      }
-      console.log('utxosByAddressPath:', utxosByAddressPath)
-      // const payoutAddress = await this.fetchPayoutAddress()
-      // sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress})
-      this.createCashoutOrder()
-    },
-    async getRawUtxos (txids) {
-      const utxos = []
-      const isChipnet = this.$store.getters['global/isChipnet']
-      let network = Network.MAINNET
-      if (isChipnet) {
-        network = Network.CHIPNET
-      }
-      const provider = new ElectrumNetworkProvider(network)
-      await txids.forEach(async txid => {
-        const utxo = await provider.getRawTransaction(txid)
-        console.log('__utxo:', utxo.vout)
-        utxos.push(utxo)
       })
-      return utxos
+        .onOk(method => {
+          this.paymentMethod = method
+        })
     },
-    async transformUtxos (utxos) {
-
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
+    preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
     }
   }
 }

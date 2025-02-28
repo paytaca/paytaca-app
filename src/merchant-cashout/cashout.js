@@ -1,4 +1,9 @@
-import { ElectrumNetworkProvider, TransactionBuilder, Network, SignatureTemplate } from 'cashscript0.10.0'
+import { 
+  ElectrumNetworkProvider,
+  TransactionBuilder,
+  Network,
+  SignatureTemplate,
+  NetworkProvider } from 'cashscript0.10.0'
 import { Store } from 'src/store'
 import { loadLibauthHdWallet } from 'src/wallet'
 import { TransactionBalancer } from 'src/wallet/stablehedge/transaction-utils'
@@ -68,7 +73,6 @@ export async function sendUtxos (params) {
 
   for (const addressPath in utxosByAddressPath) {
     const amount = sumUTXOs(utxosByAddressPath[addressPath])
-    console.log('amount:', amount)
     const wif = await getPrivateKeyWif(isChipnet, addressPath)
     const signatureTemplate = new SignatureTemplate(wif)
 
@@ -80,7 +84,6 @@ export async function sendUtxos (params) {
       amount: amount,
       network: network
     }
-    console.log('args:', args)
     const tx = buildTransaction(args)
     const txDetails = await tx.send()
     console.log(txDetails)

@@ -83,68 +83,68 @@ export default {
     this.isloading = true
     await this.refetchListings()
 
-    // remove later
+    // // remove later
 
-    this.unspentTxns = [
-      {
-        txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-        amount: 1e-05,
-        tx_timestamp: '2025-01-27T07:41:34Z',
-        fiat_price: {
-          initial: {
-            PHP: 2403.26
-          },
-          current: {
-            PHP: 2434.18
-          }
-        },
-        status: 'Status'
-      },
-      {
-        txid: 'd632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-        amount: 1e-05,
-        tx_timestamp: '2025-01-27T07:41:34Z',
-        fiat_price: {
-          initial: {
-            PHP: 2403.26
-          },
-          current: {
-            PHP: 2434.18
-          }
-        },
-        status: 'Status'
-      },
-      {
-        txid: 'e632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-        amount: 1e-05,
-        tx_timestamp: '2025-01-27T07:41:34Z',
-        fiat_price: {
-          initial: {
-            PHP: 2403.26
-          },
-          current: {
-            PHP: 2434.18
-          }
-        },
-        status: 'Status'
-      },
-      {
-        txid: 'g632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-        amount: 1e-05,
-        tx_timestamp: '2025-01-27T07:41:34Z',
-        fiat_price: {
-          initial: {
-            PHP: 2403.26
-          },
-          current: {
-            PHP: 2434.18
-          }
-        },
-        status: 'Status'
-      }
-    ]
+    // this.unspentTxns = [
+    //   {
+    //     txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+    //     amount: 1e-05,
+    //     tx_timestamp: '2025-01-27T07:41:34Z',
+    //     fiat_price: {
+    //       initial: {
+    //         PHP: 2403.26
+    //       },
+    //       current: {
+    //         PHP: 2434.18
+    //       }
+    //     },
+    //     status: 'Status'
+    //   },
+    //   {
+    //     txid: 'd632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+    //     amount: 1e-05,
+    //     tx_timestamp: '2025-01-27T07:41:34Z',
+    //     fiat_price: {
+    //       initial: {
+    //         PHP: 2403.26
+    //       },
+    //       current: {
+    //         PHP: 2434.18
+    //       }
+    //     },
+    //     status: 'Status'
+    //   },
+    //   {
+    //     txid: 'e632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+    //     amount: 1e-05,
+    //     tx_timestamp: '2025-01-27T07:41:34Z',
+    //     fiat_price: {
+    //       initial: {
+    //         PHP: 2403.26
+    //       },
+    //       current: {
+    //         PHP: 2434.18
+    //       }
+    //     },
+    //     status: 'Status'
+    //   },
+    //   {
+    //     txid: 'g632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+    //     amount: 1e-05,
+    //     tx_timestamp: '2025-01-27T07:41:34Z',
+    //     fiat_price: {
+    //       initial: {
+    //         PHP: 2403.26
+    //       },
+    //       current: {
+    //         PHP: 2434.18
+    //       }
+    //     },
+    //     status: 'Status'
+    //   }
+    // ]
 
-    // remove later
+    // // remove later
 
     this.isloading = false
   },
@@ -188,6 +188,7 @@ export default {
 
       await backend.get(url, { params: { currency: this.currency?.symbol } })
         .then(response => {
+          console.log('fetchUnspentTxns:', response.data)
           vm.unspentTxns = response.data
         })
         .catch(error => {
