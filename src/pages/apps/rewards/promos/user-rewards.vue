@@ -280,7 +280,9 @@ export default {
         for (const transaction of urData.ur_months) {
           vm.marketplaceTransactions.push({
             month: transaction.timeframe,
-            orders: transaction.ur_mp_transactions
+            orders: transaction.ur_mp_transactions.sort((a, b) => {
+              return new Date(b.date) - new Date(a.date)
+            })
           })
         }
       }
