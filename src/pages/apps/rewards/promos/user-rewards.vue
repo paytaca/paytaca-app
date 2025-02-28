@@ -28,7 +28,7 @@
 
         <q-btn
           rounded
-          class="button"
+          class="q-mt-md button"
           label="Redeem Points"
           :disable="points === 0"
           @click="openRedeemPointsDialog"
