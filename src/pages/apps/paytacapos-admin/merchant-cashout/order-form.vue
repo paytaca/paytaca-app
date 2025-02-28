@@ -18,7 +18,7 @@
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 170}px`" style="overflow:auto;">
             <!-- Cashout Order -->
             <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
-              <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="''">
+              <q-item v-for="(transaction, index) in transactionList" :key="index" clickable @click="selectTransaction(index)">
                 <q-item-section>
                   <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <div class="sm-font-size text-grey-6 text-strike">
@@ -107,7 +107,7 @@
               </div>
             </div>
 
-            <div v-if="cashOutTotal.initialTotal !== cashOutTotal.currentTotal" 
+            <div v-if="cashOutTotal.initialTotal !== cashOutTotal.currentTotal"
               class="text-strike text-right sm-font-size"
               :class="darkMode ? 'text-white' : 'text-grey-6'">
               {{ cashOutTotal.initialTotal }} {{ currency.symbol }}
@@ -175,6 +175,7 @@ export default {
   data () {
     return {
       transactions: [],
+      transactionList: [],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 320 : this.$q.screen.height - 290,
       currency: { name: 'PHP', symbol: 'PHP' },
       status: 'confirm-transaction',
@@ -183,12 +184,15 @@ export default {
       paymentMethod: null,
       cashOutTotal: {},
       openPaymentMethod: false,
-      orderStatus: 'pending'
+      orderStatus: 'pending',
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    lastPaymentMethod () {
+      return this.$store.getters['paytacapos/lastPaymentMethod']
     },
     dialogText () {
       if (this.orderStatus === 'success') {
@@ -214,8 +218,10 @@ export default {
   props: {
     data: Array
   },
-  async mounted () {
+  mounted () {
+    this.paymentMethod = this.lastPaymentMethod
     this.transactions = JSON.parse(history.state.selectedTransactions)
+    this.transactionList = this.transactions
     this.calculateCashOutTotal(this.transactions)
     generateAddressFromXPubKey()
   },
@@ -223,6 +229,53 @@ export default {
     formatCurrency,
     formatNumber,
     getDarkModeClass,
+    async refreshData (done) {
+      done()
+    },
+    selectTransaction (index) {
+      this.transactionList[index].selected = !this.transactionList[index].selected
+
+      if (this.transactionList[index].selected) {
+        this.transactions.push(this.transactionList[index])
+      } else {
+        this.transactions = this.transactions.filter(tx => tx.txid !== this.transactionList[index].txid)
+      }
+
+      this.calculateCashOutTotal(this.transactions)
+    },
+    openPaymentMethodDialog () {
+      // this.openPaymentMethod = true
+      this.$q.dialog({
+        component: CashoutPaymentMethodDialog,
+        componentProps: {
+          currency: this.currency.symbol,
+          selectedPM: this.paymentMethod
+        }
+      })
+        .onOk(method => {
+          this.paymentMethod = method
+        })
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
+    preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     calculateCashOutTotal (transactions) {
       let initialTotal = 0
       let currentTotal = 0
@@ -247,14 +300,14 @@ export default {
       })
       lossGain = currentTotal - initialTotal
       currentTotal += lossCovered
+
       this.cashOutTotal = {
-        initialTotal: formatNumber(initialTotal),
-        currentTotal: formatNumber(currentTotal),
-        lossGain: formatNumber(lossGain),
-        lossCovered: formatNumber(lossCovered),
-        totalBchAmount: formatNumber(totalBchAmount)
+        initialTotal: formatNumber(initialTotal) || initialTotal,
+        currentTotal: formatNumber(currentTotal) || currentTotal,
+        lossGain: formatNumber(lossGain) || lossGain,
+        lossCovered: formatNumber(lossCovered) || lossCovered,
+        totalBchAmount: formatNumber(totalBchAmount) || totalBchAmount
       }
-      console.log('cashoutTotal:', this.cashOutTotal)
     },
     lossProtection (transaction) {
       const txTime = new Date(transaction.tx_timestamp)
@@ -362,43 +415,84 @@ export default {
       return ''
     },
     isTxnSelected (transaction) {
-      return this.transactions.some(txn => txn.txid === transaction.txid)
+      return transaction.selected
     },
-    async refreshData (done) {
-      done()
-    },
-    openPaymentMethodDialog () {
-    // this.openPaymentMethod = true
-      this.$q.dialog({
-        component: CashoutPaymentMethodDialog,
-        componentProps: {
-          currency: this.currency.symbol,
-          selectedPM: this.paymentMethod
-        }
+    createCashoutOrder () {
+      const url = '/paytacapos/cash-out/'
+
+      const body = {
+        payment_method_id: this.paymentMethod.id,
+        currency: this.currency.symbol,
+        txids: []
+      }
+
+      // arrange txid
+      body.txids = this.transactions.map(txn => {
+        return txn.txid
       })
-        .onOk(method => {
-          this.paymentMethod = method
+
+      backend.post(url, body, { authorize: true })
+        .then(response => {
+          console.log(response)
+
+          this.$store.commit('paytacapos/updateLastPaymentMethod', this.paymentMethod)
+
+          this.orderStatus = 'success'
+          this.openDialog = true
+          // this.$router.push({ name: 'app-pos-cashout' })
+        })
+        .catch(error => {
+          console.error(error.response || error)
         })
     },
-    copyToClipboard (value) {
-      this.$copyText(value)
-      this.$q.notify({
-        message: this.$t('CopiedToClipboard'),
-        timeout: 800,
-        color: 'blue-9',
-        icon: 'mdi-clipboard-check'
-      })
+    async fetchPayoutAddress () {
+      let payoutAddress = null
+      await backend.get('/paytacapos/cash-out/payout_address/')
+        .then(response => {
+          console.log(response)
+          payoutAddress = response.data?.payout_address
+        })
+        .catch(error => {
+          console.log(error.response || error)
+        })
+      return payoutAddress
     },
-    preventPull (e) {
-      let parent = e.target
-      // eslint-disable-next-line no-void
-      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
-        parent = parent.parentNode
+    async cashOutUtxos () {
+      this.temp()
+      const selectedUtxos = this.transactions
+      const utxosByAddressPath = {}
+      for (const utxo of selectedUtxos) {
+        const addressUtxos = await getUtxos(utxo.address.address)
+        console.log('addressUtxos:', addressUtxos)
+        const matchingUtxo = addressUtxos.find(element => { return element.txid === utxo.txid })
+
+        if (!utxosByAddressPath[utxo.address.address_path]) {
+          utxosByAddressPath[utxo.address.address_path] = []
+        }
+        utxosByAddressPath[utxo.address.address_path].push(matchingUtxo)
       }
-      // eslint-disable-next-line no-void
-      if (parent !== void 0 && parent.scrollTop > 0) {
-        e.stopPropagation()
+      console.log('utxosByAddressPath:', utxosByAddressPath)
+      // const payoutAddress = await this.fetchPayoutAddress()
+      // sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress})
+      this.createCashoutOrder()
+    },
+    async getRawUtxos (txids) {
+      const utxos = []
+      const isChipnet = this.$store.getters['global/isChipnet']
+      let network = Network.MAINNET
+      if (isChipnet) {
+        network = Network.CHIPNET
       }
+      const provider = new ElectrumNetworkProvider(network)
+      await txids.forEach(async txid => {
+        const utxo = await provider.getRawTransaction(txid)
+        console.log('__utxo:', utxo.vout)
+        utxos.push(utxo)
+      })
+      return utxos
+    },
+    async transformUtxos (utxos) {
+
     }
   }
 }

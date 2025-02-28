@@ -410,8 +410,8 @@ async function fetchAuthWallet() {
     })
 }
 
-function openCashoutPage() {
-  $router.push({ name: 'app-pos-cashout' })
+function openCashoutPage () {
+  $router.push({ name: 'app-pos-cashout', state: { merchantId: this.merchantInfo?.id } })
 }
 
 const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])

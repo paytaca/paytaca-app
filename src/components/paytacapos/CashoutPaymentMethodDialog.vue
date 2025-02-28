@@ -478,7 +478,6 @@ export default {
     },
     async fetchPaymentMethods () {
       const vm = this
-      // const url = 'paytacapos/payment-method/'
 
       await backend.get(this.paymentMethodURL)
         .then(response => {
