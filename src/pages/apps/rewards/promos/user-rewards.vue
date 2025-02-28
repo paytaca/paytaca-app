@@ -80,7 +80,7 @@
                   <status-chip :isCompleted="isReferralComplete" />
                   <span class="col-10">
                     <span class="text-subtitle1">
-                      20 UP from referral and after completing 1st transaction
+                      5 PHP with of BCH from referral and after completing 1st transaction
                     </span>
                     <br/>
                     <span v-if="isReferralComplete" class="q-ml-sm">
@@ -111,7 +111,7 @@
                         />
                         <div class="col-10">
                           <template v-if="item.ref_id !== '' && item.date != ''">
-                            Earned&nbsp;<strong>{{ item.points }} UP</strong>
+                            Earned&nbsp;<strong>{{ item.points_earned }} UP</strong>
                             from {{ item.ref_id }}
                             last {{ parseLocaleDate(item.date) }}
                           </template>
@@ -230,16 +230,8 @@ export default {
       referralCompleteDate: null,
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
-      firstSevenTransactions: [
-        { ref_id: '', date: '', points: 4 },
-        { ref_id: '', date: '', points: 4 },
-        { ref_id: '', date: '', points: 6 },
-        { ref_id: '', date: '', points: 6 },
-        { ref_id: '', date: '', points: 8 },
-        { ref_id: '', date: '', points: 8 },
-        { ref_id: '', date: '', points: 10 }
-      ],
 
+      firstSevenTransactions: [],
       marketplaceTransactions: []
     }
   },
@@ -294,10 +286,7 @@ export default {
       }
 
       if (urData.ur_seven_transactions.length > 0) {
-        for (let i = 0; i < urData.ur_seven_transactions.length; i++) {
-          vm.firstSevenTransactions[i].ref_id = urData.ur_seven_transactions[i].ref_id
-          vm.firstSevenTransactions[i].date = urData.ur_seven_transactions[i].date
-        }
+        vm.firstSevenTransactions = urData.ur_seven_transactions
       }
     }
 
