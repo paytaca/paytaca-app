@@ -39,7 +39,7 @@
         class="row col-12 justify-center q-pa-md shadow-up-1 points-earned-div"
         :class="getDarkModeClass(darkMode)"
       >
-        <span class="text-h6">Points Earned</span>
+        <span class="text-h6 q-mb-sm">Points Earned</span>
 
         <div v-if="isLoading" class="row col-12 justify-center">
           <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
@@ -289,6 +289,10 @@ export default {
 
       if (urData.ur_seven_transactions.length > 0) {
         vm.firstSevenTransactions = urData.ur_seven_transactions
+
+        for (let i = vm.firstSevenTransactions.length; i < 7; i++) {
+          vm.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
+        }
       }
     }
 
