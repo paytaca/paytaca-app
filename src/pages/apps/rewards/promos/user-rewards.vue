@@ -289,10 +289,9 @@ export default {
 
       if (urData.ur_seven_transactions.length > 0) {
         vm.firstSevenTransactions = urData.ur_seven_transactions
-
-        for (let i = vm.firstSevenTransactions.length; i < 7; i++) {
-          vm.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
-        }
+      }
+      for (let i = vm.firstSevenTransactions.length; i < 7; i++) {
+        vm.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
       }
     }
 
