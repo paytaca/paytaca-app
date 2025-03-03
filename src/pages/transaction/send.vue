@@ -270,6 +270,7 @@ import {
 } from 'src/utils/denomination-utils'
 import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
+import { processCashinPoints, processOnetimePoints } from 'src/utils/engagementhub-utils/rewards'
 
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
@@ -1285,7 +1286,7 @@ export default {
       }
       throw new Error('Error in sending to recipient(s)')
     },
-    submitPromiseResponseHandler (result, walletType) {
+    async submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
       if (result.success) {
@@ -1294,6 +1295,18 @@ export default {
         vm.playSound(true)
         vm.sending = false
         vm.sent = true
+
+        // api call for processing first transaction 5 PHP worth of BCH
+        const cashinResp = await processCashinPoints({
+          bch_address: sendPageUtils.getWallet('bch')?.lastAddress
+        })
+        console.log(cashinResp)
+        // api call for processing one-time user points
+        const onetimePointsResp = await processOnetimePoints({
+          bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+          ref_id: result.txid.substring(0, 6)
+        })
+        console.log(onetimePointsResp)
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
 

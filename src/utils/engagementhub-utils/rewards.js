@@ -139,15 +139,31 @@ export async function getPromoPointsDivisorData () {
 }
 
 export async function processCashinPoints (data) {
-  await REWARDS_URL
+  return await REWARDS_URL
     .post('userreward/process_cashin_points/', data)
-    .then(response => console.log(response.data))
-    .catch(error => console.error(error))
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      return null
+    })
 }
 
 export async function processOnetimePoints (data) {
-  await REWARDS_URL
+  return await REWARDS_URL
     .post('userreward/process_onetime_points/', data)
-    .then(response => console.log(response.data))
-    .catch(error => console.error(error))
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      return null
+    })
+}
+
+export async function processContinuousPoints (data) {
+  return await REWARDS_URL
+    .post('userreward/process_continuous_points/', data)
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      return null
+    })
 }
