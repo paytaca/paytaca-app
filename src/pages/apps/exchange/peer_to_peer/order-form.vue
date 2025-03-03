@@ -363,7 +363,7 @@ export default {
     },
     marketPrice (val) {
       // polling ad info whenever market price update
-      
+
     },
     amount (val) {
       if (this.ad.trade_type === 'BUY') {
@@ -532,18 +532,44 @@ export default {
         body.payment_methods = temp
       }
       try {
-        const response = await backend.post('/ramp-p2p/order/', body, { authorize: true })
-        vm.order = response.data.order
-        vm.state = 'order-process'
-        vm.$emit('updatePageName', 'order-process')
-        vm.fetchOrderMembers(vm.order.id)
-          .then(members => {
-            vm.createGroupChat(vm.order.id, members, vm.order.created_at)
+        await backend.post('/ramp-p2p/order/', body, { authorize: true })
+          .then((response) => {
+            vm.order = response.data.order
+            this.confirmOrder()
+              .then(() => {
+                vm.state = 'order-process'
+                vm.$emit('updatePageName', 'order-process')
+                vm.fetchOrderMembers(vm.order.id)
+                  .then(members => {
+                    vm.createGroupChat(vm.order.id, members, vm.order.created_at)
+                  })
+                vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
+              })
           })
-        vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
+
+        // vm.order = response.data.order
       } catch (error) {
         this.handleRequestError(error)
       }
+    },
+    async confirmOrder () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const url = `/ramp-p2p/order/${vm.order.id}/confirm/`
+        backend.post(url, {}, { authorize: true })
+          .then(response => {
+            console.log(response)
+            resolve(response)
+            // vm.handleNewStatus(response.data.status)
+          })
+          .catch(error => {
+            // if (error?.response?.status === 400) {
+            //   this.receiveOrderError = error?.response?.data?.error
+            // }
+            this.handleRequestError(error)
+            reject(error)
+          })
+      })
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {

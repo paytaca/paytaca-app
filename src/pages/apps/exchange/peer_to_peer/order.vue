@@ -43,6 +43,7 @@
             @back="onBack"
           />
           <EscrowTransfer
+            ref="escrowTransferRef"
             v-if="state === 'escrow-bch'"
             :key="escrowTransferKey"
             :data="escrowTransferData"
@@ -251,7 +252,9 @@ export default {
       switch (this.state) {
         case 'order-confirm-decline':
         case 'standby-view':
-          return this.order?.status?.label
+          if (this.order?.status?.value === 'CNF') {
+            return 'Escrow Pending'
+          } else { return this.order?.status?.label }
         case 'escrow-bch':
           return 'Escrow bch'
         case 'tx-confirmation':
@@ -539,6 +542,7 @@ export default {
           break
         case 'CNF': { // Confirmed
           state = this.getConfirmedState(kwargs)
+          this.reloadChildComponents()
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
@@ -548,10 +552,12 @@ export default {
           kwargs.orderId = order?.id
           kwargs.contractBalance = balance
           state = this.getEscrowPendingState(kwargs)
+          // this.reloadChildComponents()
           break
         }
         case 'ESCRW': // Escrowed
           state = this.getEscrowedState(kwargs)
+          this.reloadChildComponents()
           break
         case 'PD_PN': // Paid Pending
           this.txid = null
@@ -815,6 +821,7 @@ export default {
       switch (vm.dialogType) {
         case 'confirmCancelOrder':
           if (this.$refs.standbyRef) { this.$refs.standbyRef.loadCancelButton = true }
+          if (this.$refs.escrowTransferRef) { this.$refs.escrowTransferRef.loadCancelButton = true}
           if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadDeclineButton = true }
           vm.cancelOrder()
           vm.onBack()

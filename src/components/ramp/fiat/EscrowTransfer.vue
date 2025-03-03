@@ -113,6 +113,7 @@
     </div>
     <div class="row q-mt-sm q-pt-xs q-mx-lg">
       <q-btn
+        :loading="loadCancelButton"
         flat
         :disable="!showDragSlide"
         label="Cancel order"
@@ -167,7 +168,8 @@ export default {
       dragSlideKey: 0,
       escrowContract: null,
       escrowBalance: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      loadCancelButton: false
     }
   },
   emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending', 'cancel'],
@@ -263,6 +265,11 @@ export default {
       await this.loadContract()
       const transferAmount = this.data.transferAmount
       this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
+
+      // if (this.order?.status?.value === 'CNF') {
+      //   this.$emit('refresh')
+      // }
+
       this.loading = false
     },
     async completePayment () {

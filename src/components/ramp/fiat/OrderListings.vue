@@ -204,8 +204,9 @@
                         <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
                           {{ listing.status?.label }}
                         </div>
+
                         <div class="text-weight-bold subtext sm-font-size" v-else>
-                          {{ listing.status?.label }}
+                          {{ listing.status?.value === 'CNF' ? 'Escrow Pending' : listing.status?.label }}
                         </div>
                         <!-- <q-icon color="blue-5" class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="notifications_active"/> -->
                       </div>
