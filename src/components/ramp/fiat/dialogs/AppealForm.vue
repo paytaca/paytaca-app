@@ -110,7 +110,7 @@ export default {
   computed: {
     reasonOpts () {
       const counterparty = this.userType === 'seller' ? 'buyer' : 'seller'
-      const reasonKey = counterparty === 'seller' ? 'AppealFormReasonOpt1Buyer' : 'AppealFormReasonOpt1Seller'
+      const reasonKey = counterparty === 'seller' ? 'AppealFormReasonOpt1Seller' : 'AppealFormReasonOpt1Buyer'
       return [
         this.$t(reasonKey, `Unresponsive ${counterparty}`),
         this.$t('AppealFormReasonOpt2'),
