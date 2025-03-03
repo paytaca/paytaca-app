@@ -39,9 +39,6 @@
             <canvas ref="chart"></canvas>
           </div>
         </q-card>
-        <div v-if="source" class="q-px-md text-right text-caption">
-          Source: {{ source }}
-        </div>
       </div>
     </q-card>
   </q-dialog>
@@ -60,7 +57,6 @@ export default {
       isloaded: false,
       date: [],
       bchPrice: [],
-      source: '', // 'coingecko' | 'watchtower'
       networkError: false,
       timer: '',
       priceChart: null,
@@ -83,7 +79,6 @@ export default {
 
       let apiPromise
       if (vm.selectedCurrency === 'ars') {
-        vm.source = 'Watchtower.cash'
         apiPromise = vm.$axios.get(
           'https://watchtower.cash/api/price-chart/BCH/',
           { params: { days: 1, vs_currency: vm.selectedCurrency.toUpperCase() } },
@@ -98,7 +93,6 @@ export default {
           return response
         })
       } else {
-        vm.source = 'Coingecko'
         const url = 'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=' + vm.selectedCurrency + '&days=1'
         // request Data
         apiPromise = vm.$axios.get(url)
