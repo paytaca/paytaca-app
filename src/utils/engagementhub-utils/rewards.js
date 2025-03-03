@@ -139,8 +139,15 @@ export async function getPromoPointsDivisorData () {
 }
 
 export async function processCashinPoints (data) {
-  return await REWARDS_URL
+  await REWARDS_URL
     .post('userreward/process_cashin_points/', data)
+    .then(response => console.log(response.data))
+    .catch(error => console.error(error))
+}
+
+export async function processOnetimePoints (data) {
+  await REWARDS_URL
+    .post('userreward/process_onetime_points/', data)
     .then(response => console.log(response.data))
     .catch(error => console.error(error))
 }
