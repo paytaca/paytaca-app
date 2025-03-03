@@ -71,6 +71,7 @@ export async function sendUtxos (params) {
     network = Network.CHIPNET
   }
 
+  const outputTxList = []
   for (const addressPath in utxosByAddressPath) {
     const amount = sumUTXOs(utxosByAddressPath[addressPath])
     const wif = await getPrivateKeyWif(isChipnet, addressPath)
@@ -87,5 +88,24 @@ export async function sendUtxos (params) {
     const tx = buildTransaction(args)
     const txDetails = await tx.send()
     console.log(txDetails)
+    outputTxList.push(txDetails)
   }
+  return outputTxList
+}
+
+import BCHJS from '@psf/bch-js'
+const bchjs = new BCHJS()
+import { pubkeyToAddress } from 'src/utils/crypto'
+
+function getPubkeyAt (xpubkey) {
+  const mainNode = bchjs.HDNode.fromXPub(xpubkey)
+  const childNode = mainNode.derivePath(String(13))
+  return bchjs.HDNode.toPublicKey(childNode).toString('hex')
+}
+
+export async function generateAddressFromXPubKey (xpubkey) {
+  const pubkey = getPubkeyAt(xpubkey)
+  const address = pubkeyToAddress(pubkey)
+  console.log('pubkey', pubkey)
+  console.log('address:', address)
 }

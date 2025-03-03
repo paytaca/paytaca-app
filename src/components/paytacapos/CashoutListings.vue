@@ -73,79 +73,10 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
-  // watch: {
-  //   orderType (val) {
-  //     this.refetchListings()
-  //   }
-  // },
   emits: ['cashout-form'],
   async mounted () {
     this.isloading = true
     await this.refetchListings()
-
-    // // remove later
-
-    // this.unspentTxns = [
-    //   {
-    //     txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-    //     amount: 1e-05,
-    //     tx_timestamp: '2025-01-27T07:41:34Z',
-    //     fiat_price: {
-    //       initial: {
-    //         PHP: 2403.26
-    //       },
-    //       current: {
-    //         PHP: 2434.18
-    //       }
-    //     },
-    //     status: 'Status'
-    //   },
-    //   {
-    //     txid: 'd632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-    //     amount: 1e-05,
-    //     tx_timestamp: '2025-01-27T07:41:34Z',
-    //     fiat_price: {
-    //       initial: {
-    //         PHP: 2403.26
-    //       },
-    //       current: {
-    //         PHP: 2434.18
-    //       }
-    //     },
-    //     status: 'Status'
-    //   },
-    //   {
-    //     txid: 'e632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-    //     amount: 1e-05,
-    //     tx_timestamp: '2025-01-27T07:41:34Z',
-    //     fiat_price: {
-    //       initial: {
-    //         PHP: 2403.26
-    //       },
-    //       current: {
-    //         PHP: 2434.18
-    //       }
-    //     },
-    //     status: 'Status'
-    //   },
-    //   {
-    //     txid: 'g632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
-    //     amount: 1e-05,
-    //     tx_timestamp: '2025-01-27T07:41:34Z',
-    //     fiat_price: {
-    //       initial: {
-    //         PHP: 2403.26
-    //       },
-    //       current: {
-    //         PHP: 2434.18
-    //       }
-    //     },
-    //     status: 'Status'
-    //   }
-    // ]
-
-    // // remove later
-
     this.isloading = false
   },
   methods: {
