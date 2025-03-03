@@ -186,7 +186,9 @@ export default {
       vm.points = rfpData.points
       vm.redeemablePoints = rfpData.redeemable_points
       vm.referralCode = rfpData.referral_code
-      vm.referralsList = rfpData.rfp_referrals
+      vm.referralsList = rfpData.rfp_referrals.sort((a, b) => {
+        return new Date(b.date_created) - new Date(a.date_created)
+      })
       vm.pointsDivisor = 4
     }
 
