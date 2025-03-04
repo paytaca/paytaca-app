@@ -59,6 +59,18 @@ export function parseLocaleDate (date, isDayIncluded = true) {
 // functions with calls to engagement hub
 // ================================
 
+/**
+ * Process points depending on given url and data.
+ * @returns true if points were processed successfully;
+ * false otherwise
+ */
+async function processPoints (url, data) {
+  return await REWARDS_URL
+    .post(url, data)
+    .then(_response => { return true })
+    .catch(_error => { return false })
+}
+
 export async function getUserRewardsData (id) {
   return await REWARDS_URL
     .get(`userreward/${id}/`)
@@ -139,31 +151,13 @@ export async function getPromoPointsDivisorData () {
 }
 
 export async function processCashinPoints (data) {
-  return await REWARDS_URL
-    .post('userreward/process_cashin_points/', data)
-    .then(response => { return response.data })
-    .catch(error => {
-      console.error(error)
-      return null
-    })
+  return await processPoints('userreward/process_cashin_points/', data)
 }
 
 export async function processOnetimePoints (data) {
-  return await REWARDS_URL
-    .post('userreward/process_onetime_points/', data)
-    .then(response => { return response.data })
-    .catch(error => {
-      console.error(error)
-      return null
-    })
+  return await processPoints('userreward/process_onetime_points/', data)
 }
 
 export async function processContinuousPoints (data) {
-  return await REWARDS_URL
-    .post('userreward/process_continuous_points/', data)
-    .then(response => { return response.data })
-    .catch(error => {
-      console.error(error)
-      return null
-    })
+  return await processPoints('userreward/process_continuous_points/', data)
 }
