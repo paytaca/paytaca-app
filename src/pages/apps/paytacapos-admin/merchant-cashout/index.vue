@@ -29,7 +29,8 @@ export default {
     return {
       currency: { name: 'PHP', symbol: 'PHP' },
       state: 'list',
-      selectedTransactions: []
+      selectedTransactions: [],
+      merchant: null
     }
   },
   computed: {
@@ -41,9 +42,22 @@ export default {
     HeaderNav,
     CashoutListings
   },
+  mounted () {
+    this.loadMerchant(history.state.merchantId)
+  },
   methods: {
     getDarkModeClass,
     formatCurrency,
+    async loadMerchant (merchantId) {
+      await backend.get(`/paytacapos/merchants/${merchantId}/`)
+        .then(response => {
+          console.log(response.data)
+          this.merchant = response.data
+        })
+        .catch(error => {
+          console.error(error.response | error)
+        })
+    },
     async refreshData (done) {
       done()
     },

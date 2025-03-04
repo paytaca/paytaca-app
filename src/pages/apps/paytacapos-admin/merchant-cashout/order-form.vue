@@ -182,7 +182,7 @@ export default {
       paymentMethod: null,
       cashOutTotal: {},
       openPaymentMethod: false,
-      orderStatus: 'pending',
+      orderStatus: 'pending'
     }
   },
   computed: {
@@ -205,6 +205,9 @@ export default {
       } else {
         return 'Confirm Order'
       }
+    },
+    merchantName () {
+      return history.state.merchantName
     }
   },
   emits: ['select-payment-method'],
@@ -219,13 +222,6 @@ export default {
     this.transactions = JSON.parse(history.state.selectedTransactions)
     this.transactionList = this.transactions
     this.calculateCashOutTotal(this.transactions)
-    const walletIndex = this.$store.getters['global/getWalletIndex']
-    const mnemonic = await getMnemonic(walletIndex)
-    const wallet = new Wallet(mnemonic)
-    const xpubkey = await wallet.BCH.getXPubKey()
-    // generateAddressFromXPubKey(xpubkey)
-    const payoutAddress = await this.fetchPayoutAddress()
-    console.log('payoutAddress:', payoutAddress)
   },
   methods: {
     formatCurrency,
@@ -311,16 +307,30 @@ export default {
       const payoutAddress = await this.fetchPayoutAddress()
       const outputUtxos = await sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress })
       const order = await this.createCashoutOrder(payoutAddress)
-      for (const utxo of outputUtxos) {
-        console.log(utxo)
-      }
+
       const txids = outputUtxos.map(el => el.txid)
-      const body = {
-        order_id: order.id,
-        txids: txids
+      for (const txid of txids) {
+        await this.addCashoutAttributeTx(txid)
       }
-      const response = await backend.post('/paytacapos/cash-out/save_output_tx/', body, { authorize: true }).catch(error => { console.log(error.response || error) })
-      console.log(response.data)
+      await this.saveOutputTx({ order_id: order.id, txids: txids })
+    },
+    async saveOutputTx (payload) {
+      await backend.post('/paytacapos/cash-out/save_output_tx/', payload, { authorize: true })
+        .then(response => { console.log('saveOutputTx:', response.data) })
+        .catch(error => { console.error(error.response || error) })
+    },
+    async addCashoutAttributeTx (txid) {
+      /** Adds attribute to mark a transaction as a tx made for merchant_cashout
+       * Better to add this in backend.
+       */
+      const payload = {
+        txid: txid,
+        key: 'merchant_cashout',
+        value: this.merchantName
+      }
+      await backend.post('/transactions/attributes/', payload)
+        .then(response => { console.log('addCashoutAttributeTx: ', response.data) })
+        .catch(error => { console.error(error.response || error) })
     },
     async fetchPayoutAddress () {
       let payoutAddress = null
@@ -346,9 +356,6 @@ export default {
       body.txids = this.transactions.map(txn => {
         return txn.txid
       })
-
-      console.log('body:', body)
-
       const response = await backend.post(url, body, { authorize: true })
         .catch(error => {
           console.error(error.response || error)

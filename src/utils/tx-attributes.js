@@ -129,7 +129,7 @@ export function parseAttributeToBadge(attribute) {
       custom: true,
       text: 'Cash out',
       icon: icons.cashback,
-      description: description || `${value} Merchant Cash Out`
+      description: description || `Merchant cash-out for ${value}`
     }
   }
 

@@ -95,7 +95,11 @@ export default {
       await this.fetchUnspentTxns()
     },
     openOrderForm () {
-      this.$router.push({ name: 'app-pos-cashout-form', state: { selectedTransactions: JSON.stringify(this.selectedTransactions) } })
+      const state = {
+        selectedTransactions: JSON.stringify(this.selectedTransactions),
+        merchantName: this.$parent.merchant?.name
+      }
+      this.$router.push({ name: 'app-pos-cashout-form', state: state })
     },
     openCashoutOrderList () {
       this.$q.dialog({
