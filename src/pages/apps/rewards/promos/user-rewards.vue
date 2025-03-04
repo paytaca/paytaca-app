@@ -203,7 +203,7 @@ import {
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import RedeemPointsDialog from 'src/components/rewards/RedeemPointsDialog.vue'
+import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
 export default {
   name: 'UserRewards',

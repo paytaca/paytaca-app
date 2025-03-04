@@ -116,7 +116,7 @@ import {
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReferralQrDialog from 'src/components/rewards/ReferralQrDialog.vue'
-import RedeemPointsDialog from 'src/components/rewards/RedeemPointsDialog.vue'
+import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
 export default {
   name: 'RFPromo',
