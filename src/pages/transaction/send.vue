@@ -282,6 +282,7 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 import SendSuccessBlock from 'src/components/send-page/SendSuccessBlock.vue'
+import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 
@@ -1300,13 +1301,21 @@ export default {
         const cashinResp = await processCashinPoints({
           bch_address: sendPageUtils.getWallet('bch')?.lastAddress
         })
-        console.log(cashinResp)
         // api call for processing one-time user points
         const onetimePointsResp = await processOnetimePoints({
           bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
           ref_id: result.txid.substring(0, 6)
         })
-        console.log(onetimePointsResp)
+
+        if (cashinResp || onetimePointsResp) {
+          vm.$q.dialog({
+            component: PointsReceivedDialog,
+            componentProps: {
+              hasReceivedCashinPoints: cashinResp,
+              hasReceivedOneTimePoints: onetimePointsResp
+            }
+          })
+        }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
 
