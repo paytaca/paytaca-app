@@ -80,6 +80,7 @@
           class="button"
           :label="$t('Redeem')"
           :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
+          @click="executeSecurityChecking"
         />
       </div>
     </q-card>
@@ -90,15 +91,24 @@
       v-on:makeKeyAction="makeKeyAction"
     />
 
+    <pin-dialog
+      v-model:pin-dialog-action="pinDialogAction"
+      v-on:nextAction="onSecurityCheckSuccess"
+    />
+
+    <biometric-warning-attempt :warning-attempts="warningAttemptsStatus" />
   </q-dialog>
 </template>
 
 <script>
+import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { convertPoints } from 'src/utils/engagementhub-utils/rewards'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
 
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
+import PinDialog from 'src/components/pin/index.vue'
 
 export default {
   name: 'RedeemPointsDialog',
@@ -110,14 +120,19 @@ export default {
   },
 
   components: {
-    CustomKeyboard
+    CustomKeyboard,
+    BiometricWarningAttempt,
+    PinDialog
   },
 
   data () {
     return {
       pointsToRedeem: '0',
       customKeyboardState: 'dismiss',
-      pointsBalance: 0
+      pointsBalance: 0,
+      isSecurityCheckSuccess: false,
+      warningAttemptsStatus: 'dismiss',
+      pinDialogAction: ''
     }
   },
 
@@ -166,11 +181,50 @@ export default {
       } else if (action === 'delete') {
         vm.$refs['points-input'].nativeEl.focus({ focusVisible: true })
         vm.pointsToRedeem = '0'
-      } else {
-        vm.customKeyboardState = 'dismiss'
-      }
+      } else vm.customKeyboardState = 'dismiss'
 
       vm.computeBalance()
+    },
+    executeSecurityChecking () {
+      if (!this.isSecurityCheckSuccess) {
+        setTimeout(() => {
+          if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+            this.pinDialogAction = 'VERIFY'
+          } else this.verifyBiometric()
+        }, 500)
+      } else {
+        console.log('security check success yey') // call to engagement hub
+      }
+    },
+    verifyBiometric () {
+      const vm = this
+
+      NativeBiometric.verifyIdentity({
+        reason: vm.$t('NativeBiometricReason2'),
+        title: vm.$t('SecurityAuthentication'),
+        subtitle: vm.$t('NativeBiometricSubtitle'),
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          vm.customKeyboardState = 'dismiss'
+          setTimeout(() => {
+            vm.onSecurityCheckSuccess('proceed')
+          }, 1000)
+        })
+        .catch((error) => {
+          // Failed to authenticate
+          vm.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes(vm.$t('MaxAttempts'))) {
+            vm.warningAttemptsStatus = 'show'
+          } else if (error.message.includes(vm.$t('AuthenticationFailed'))) {
+            vm.verifyBiometric()
+          } else vm.isSecurityCheckSuccess = false
+        })
+    },
+    onSecurityCheckSuccess (action) {
+      this.pinDialogAction = ''
+      if (action === 'proceed') console.log('security check success yey') // call to engagement hub
     }
   }
 }
