@@ -1,38 +1,40 @@
 <template>
-  <div class="row justify-between q-mx-lg">
-    <div>
-      <q-btn icon="filter_list" flat outline color="primary" size="md">
-        <q-menu>
-          <q-list style="min-width: 100px">
-            <q-item v-for="(item, index) in filterOpts" :key="index" clickable @click="updateFilter()" v-close-popup>
-              <q-item-section>{{ item.fullText }}</q-item-section>
-            </q-item>
-          </q-list>
-        </q-menu>
-      </q-btn>
-    </div>
-    <div>
-      <q-btn icon="sym_o_receipt_long" flat outline color="primary" size="md" label="orders" class="q-px-sm q-mr-xs" @click="openCashoutOrderList(item)"/>
-    </div>
-  </div>
-  <!-- List -->
-  <div>
-    <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
-    <q-pull-to-refresh @refresh="refreshData" v-else>
-      <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;">
-        <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
-      </q-list>
-      <div v-if="unspentTxns.length === 0" class="text-center q-mt-lg">
-        <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-        <p :class="{ 'text-black': !darkMode }">{{ $t('No Transactions To Display') }}</p>
+  <q-pull-to-refresh @refresh="refreshData">
+    <div class="row justify-between q-mx-lg">
+      <div>
+        <q-btn icon="filter_list" flat outline color="primary" size="md">
+          <q-menu>
+            <q-list style="min-width: 100px">
+              <q-item v-for="(item, index) in filterOpts" :key="index" clickable @click="updateFilter()" v-close-popup>
+                <q-item-section>{{ item.fullText }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
-    </q-pull-to-refresh>
-  </div>
-  <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
-    <q-btn class="q-px-lg" @click="openOrderForm()" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
-  </div>
+      <div>
+        <q-btn icon="sym_o_receipt_long" flat outline color="primary" size="md" label="orders" class="q-px-sm q-mr-xs" @click="openCashoutOrderList(item)"/>
+      </div>
+    </div>
+    <!-- List -->
+    <div>
+      <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      </div>
+      <div v-else>
+        <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;">
+          <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
+        </q-list>
+        <div v-if="unspentTxns.length === 0" class="text-center q-mt-lg">
+          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+          <p :class="{ 'text-black': !darkMode }">{{ $t('No Transactions To Display') }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
+      <q-btn class="q-px-lg" @click="openOrderForm()" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
+    </div>
+  </q-pull-to-refresh>
 </template>
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
@@ -77,6 +79,84 @@ export default {
   async mounted () {
     this.isloading = true
     await this.refetchListings()
+
+    // remove later
+
+    this.unspentTxns = [
+      {
+        txid: 'c632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'd632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'e632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'f632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      },
+      {
+        txid: 'g632889bfa82aca8e4111633678d5bc68b911f8e2667f6a5d8cd068fa53d40c3',
+        amount: 1e-05,
+        tx_timestamp: '2025-01-27T07:41:34Z',
+        fiat_price: {
+          initial: {
+            PHP: 2403.26
+          },
+          current: {
+            PHP: 2434.18
+          }
+        },
+        status: 'Status'
+      }
+    ]
+
+    // remove later
+
     this.isloading = false
   },
   methods: {

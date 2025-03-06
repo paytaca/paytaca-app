@@ -8,64 +8,66 @@
         </div>
       </div>
 
-      <!-- order type tabs -->
-      <div
-        class="row q-mt-sm q-mx-lg br-15 text-center pt-card btn-transaction"
-        :class="getDarkModeClass(darkMode)"
-        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
-      >
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'ALL'}]"
-          @click="orderType = 'ALL'"
+      <q-pull-to-refresh @refresh="refreshData">
+        <!-- order type tabs -->
+        <div
+          class="row q-mt-sm q-mx-lg br-15 text-center pt-card btn-transaction"
+          :class="getDarkModeClass(darkMode)"
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
         >
-          {{ $t('All') }}
-        </button>
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'PENDING'}]"
-          @click="orderType = 'PENDING'"
-        >
-          {{ $t('Pending') }}
-        </button>
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'COMPLETED'}]"
-          @click="orderType = 'COMPLETED'"
-        >
-          {{ $t('Completed') }}
-        </button>
-      </div>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'ALL'}]"
+            @click="orderType = 'ALL'"
+          >
+            {{ $t('All') }}
+          </button>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'PENDING'}]"
+            @click="orderType = 'PENDING'"
+          >
+            {{ $t('Pending') }}
+          </button>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'COMPLETED'}]"
+            @click="orderType = 'COMPLETED'"
+          >
+            {{ $t('Completed') }}
+          </button>
+        </div>
 
-      <!-- Cashout Order List -->
-      <q-pull-to-refresh @refresh="refreshData" class="q-mx-lg q-pt-sm">
-        <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;" v-if="cashoutOrders.length > 0">
-          <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable class="">
-            <div class="full-width">
-              <div class="q-pl-sm q-pb-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <div class="sm-font-size text-grey-6">Cash out</div>
-                <div class="row" v-if="cashout?.transactions.length > 0">
-                  <div class="col ib-text">
-                    <div class="md-font-size text-bold">
-                      {{ formatCurrency(cashout?.transactions[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+        <!-- Cashout Order List -->
+        <div class="q-mx-lg q-pt-sm">
+          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;" v-if="cashoutOrders.length > 0">
+            <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable class="">
+              <div class="full-width">
+                <div class="q-pl-sm q-pb-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="sm-font-size text-grey-6">Cash out</div>
+                  <div class="row" v-if="cashout?.transactions.length > 0">
+                    <div class="col ib-text">
+                      <div class="md-font-size text-bold">
+                        {{ formatCurrency(cashout?.transactions[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                      </div>
+                      <div class="sm-font-size">
+                        {{ cashout?.transactions[0]?.wallet_history.amount }} BCH
+                      </div>
                     </div>
-                    <div class="sm-font-size">
-                      {{ cashout?.transactions[0]?.wallet_history.amount }} BCH
+                    <div class="col ib-text text-right q-pr-sm">
+                      <div class="text-grey-8 text-bold sm-font-size">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
+                      <div class="text-grey-6 md-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
                     </div>
-                  </div>
-                  <div class="col ib-text text-right q-pr-sm">
-                    <div class="text-grey-8 text-bold sm-font-size">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
-                    <div class="text-grey-6 md-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
                   </div>
                 </div>
               </div>
-            </div>
-          </q-item>
-        </q-list>
-        <div v-if="cashoutOrders.length === 0" class="text-center q-mt-lg">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('No Orders To Display') }}</p>
-      </div>
+            </q-item>
+          </q-list>
+          <div v-if="cashoutOrders.length === 0" class="text-center q-mt-lg">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">{{ $t('No Orders To Display') }}</p>
+          </div>
+        </div>
       </q-pull-to-refresh>
     </q-card>
   </q-dialog>
@@ -91,6 +93,117 @@ export default {
   },
   async mounted () {
     await this.fetchCashoutOrders()
+
+    // remove later
+
+    this.cashoutOrders = [
+      {
+        id: 31,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'fae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      },
+      {
+        id: 32,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'gae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      },
+      {
+        id: 33,
+        transactions: [
+          {
+            id: 18,
+            order: 31,
+            transaction: 208,
+            wallet_history: {
+              txid: 'hae191fc3a9cb8c67f69047e6f5d50ad8c865b57905c8146749c013427feb984',
+              amount: 9.86e-06,
+              tx_timestamp: '2025-01-27T04:30:32Z',
+              fiat_price: {
+                initial: {
+                  USD: 414.34,
+                  PHP: 24351.0
+                },
+                current: {
+                  USD: 430.35,
+                  PHP: 25144.0
+                }
+              },
+              status: 'PENDING'
+            },
+            created_at: '2025-01-31T05:22:45.819131Z',
+            initial_fiat_value: 0.24,
+            order_fiat_value: 0.25
+          }
+        ],
+        currency: 'PHP',
+        market_price: '25144.00',
+        status: 'PENDING',
+        created_at: '2025-01-31T05:22:45.784391Z'
+      }
+    ]
+
+    // remove later
+  },
+  watch: {
+    orderType (val) {
+      this.fetchCashoutOrders()
+    }
   },
   methods: {
     getDarkModeClass,
