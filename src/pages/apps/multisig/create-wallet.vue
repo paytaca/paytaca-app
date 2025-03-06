@@ -85,24 +85,16 @@ const cosigners = ref()
 const mOptionsComputed = computed(() => {
   return mOptions.value
 })
+
 const nOptionsComputed = computed(() => {
   return nOptions.value
 })
+
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-watch(() => m.value, (valueOfM) => {
-  if (n.value < valueOfM) {
-    n.value = valueOfM + 1
-  }
-})
-
-onMounted(() => {
-  m.value = 2
-  n.value = 3
-  mOptions.value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-  nOptions.value = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+const initCosigners = () => {
   cosigners.value = {
     1: '',
     2: '',
@@ -121,8 +113,29 @@ onMounted(() => {
     15: '',
     16: '',
     17: '',
-    19: ''
+    19: '',
+    20: ''
   }
+}
+
+const onReset = () => {
+  initCosigners()
+  m.value = 2
+  n.value = 3
+}
+
+watch(() => m.value, (valueOfM) => {
+  if (n.value < valueOfM) {
+    n.value = valueOfM + 1
+  }
+})
+
+onMounted(() => {
+  m.value = 2
+  n.value = 3
+  mOptions.value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+  nOptions.value = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  initCosigners()
 })
 </script>
 
