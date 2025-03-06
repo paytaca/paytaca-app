@@ -3,7 +3,7 @@
  * // Example usage:
  * const m = 2 // Cosigners to select
  * const n = 3 // Total cosigners
- * const combinations = generateCosignerCombinations(m, n)
+ * const combinations = groupCosigners(m, n)
  * // Output:
  * [
  *  [1, 2],
@@ -11,7 +11,7 @@
  *  [2, 3]
  * ]
  */
-export const generateCosignerCombinations = ({ m, n }) /*: str[][] */ => {
+export const groupCosigners = ({ m, n }) /*: str[][] */ => {
   const result = []
 
   const combine = (start, currentCombination) => {
