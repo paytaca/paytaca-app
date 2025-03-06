@@ -1,5 +1,5 @@
 
-import { generateCosignerCombinations } from './utils'
+import { groupCosigners } from './utils'
 
 const baseTemplate = {
   name: '',
@@ -52,21 +52,21 @@ export const createSigner = (
 /**
  * Generate checkbits required for schnorr signatures.
  */
-export const generateSchnorrCheckbits = (cosignerCombinations) /* : string  // example: <0b1010> */ => {
+export const generateSchnorrCheckbits = (cosignerGroups) /* : string  // example: <0b1010> */ => {
   const template = Array(24).fill('0')
-  for (const position of cosignerCombinations) {
-    template.splice(template.length - position, 1, '1')
+  for (const cosignerPosition of cosignerGroups) {
+    template.splice(template.length - cosignerPosition, 1, '1')
   }
   return `<0b${template.join('').replace(/^0+/, '')}>` // removed leading zeros
 }
 
 export const generateUnlockingScriptDummy = ({
-  cosignerCombination /* : int[] // example: [2, 4] */,
+  cosignerGroup /* : int[] // example: [2, 4] */,
   scheme /* ?: ecdsa | schnorr */
 }) => {
   const dummy = 'OP_0' // ecdsa
   if (scheme === 'schnorr') {
-    return generateSchnorrCheckbits(cosignerCombination)
+    return generateSchnorrCheckbits(cosignerGroup)
   }
 
   return dummy
@@ -87,15 +87,15 @@ export const generateLockScript = ({ m, n }) => {
 }
 
 export const generateScripts = ({ m, n, scheme /* ? 'ecdsa'|'schnorr' // signature scheme */ }) => {
-  const cosignerCombinations = generateCosignerCombinations({ m, n })
+  const cosignerGroups = groupCosigners({ m, n })
   const scripts = {}
 
-  for (const cosignerCombination of cosignerCombinations) {
-    const key = cosignerCombination.join('_and_')
-    const name = `Cosigner ${cosignerCombination.join(' & ')}`
-    const dummy = generateUnlockingScriptDummy({ cosignerCombination, scheme })
+  for (const cosignerGroup of cosignerGroups) {
+    const key = cosignerGroup.join('_and_')
+    const name = `Cosigner ${cosignerGroup.join(' & ')}`
+    const dummy = generateUnlockingScriptDummy({ cosignerGroup, scheme })
     let script = dummy
-    for (const cosignerPosition of cosignerCombination) {
+    for (const cosignerPosition of cosignerGroup) {
       script += `\n<key${cosignerPosition}.${scheme}_signature.all_outputs>`
     }
     scripts[key] = {
