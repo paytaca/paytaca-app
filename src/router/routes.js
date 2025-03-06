@@ -214,6 +214,15 @@ const routes = [
           }
         ]
       },
+      {
+        path: 'multisig',
+        // component: () => import('src/pages/apps/multisig/index.vue'),
+        component: () => import('src/layouts/Apps.vue'),
+        children: [
+          { path: '', component: () => import('src/pages/apps/multisig/index.vue'), name: 'app-multisig' },
+          { path: 'create', component: () => import('src/pages/apps/multisig/create-wallet.vue'), name: 'app-multisig-create-wallet' }
+        ]
+      }
     ]
   },
   // Always leave this as last one,
