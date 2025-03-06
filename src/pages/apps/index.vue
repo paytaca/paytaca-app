@@ -150,6 +150,14 @@ export default {
         //   smartBCHOnly: false
         // },
         {
+          name: this.$t('Multisig'),
+          iconName: 'info',
+          path: '/apps/multisig',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('WalletInfo'),
           iconName: 'info',
           path: '/apps/wallet-info',
