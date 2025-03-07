@@ -10,7 +10,11 @@
 // Added for Quasar v1 to v2 migration
 // const ESLintPlugin = require('eslint-webpack-plugin')
 
-module.exports = function (/* ctx */) {
+// Updated @quasar/app-webpack from 3.x.x to 4.x.x to support bex manifest v3
+// https://quasar.dev/quasar-cli-webpack/upgrade-guide
+const { defineConfig } = require('#q-app/wrappers')
+
+module.exports = defineConfig((/* ctx */) => {
   return {
     // https://quasar.dev/quasar-cli/supporting-ts
     supportTS: {
@@ -41,7 +45,7 @@ module.exports = function (/* ctx */) {
       'websocket',
       'walletconnect',
       'confetti',
-      'keyboard'
+      'keyboard',
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -94,6 +98,17 @@ module.exports = function (/* ctx */) {
 
       // Options below are automatically set depending on the env, set them if you want to override
       // extractCSS: false,
+
+      // Manually added
+      // https://quasar.dev/quasar-cli-webpack/upgrade-guide
+      typescript: {
+        strict: true, // (recommended) enables strict settings for TypeScript
+        vueShim: true, // required when using ESLint with type-checked rules, will generate a shim file for `*.vue` files
+        extendTsConfig (tsConfig) {
+          // You can use this hook to extend tsConfig dynamically
+          // For basic use cases, you can still update the usual tsconfig.json file to override some settings
+        },
+      },
 
       // https://quasar.dev/quasar-cli/handling-webpack
       extendWebpack (cfg) {
@@ -168,10 +183,10 @@ module.exports = function (/* ctx */) {
         //   .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
       },
 
-      uglifyOptions: {
-        compress: false,
-        mangle: false
-      }
+      // uglifyOptions: {
+      //   compress: false,
+      //   mangle: false
+      // }
     },
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
@@ -281,6 +296,11 @@ module.exports = function (/* ctx */) {
       backButtonExit: '/'
     },
 
+    // Manually added: https://quasar.dev/quasar-cli-webpack/upgrade-guide#the-quasar-config-file
+    bex: {
+      extraScripts: [],
+    },
+
     // Full list of options: https://quasar.dev/quasar-cli/developing-electron-apps/configuring-electron
     electron: {
       bundler: 'packager', // 'packager' or 'builder'
@@ -311,6 +331,11 @@ module.exports = function (/* ctx */) {
         // do something with Electron main process Webpack cfg
         // chainWebpack also available besides this extendWebpack
       }
+    },
+
+    // Manually added: https://quasar.dev/quasar-cli-webpack/upgrade-guide#the-quasar-config-file
+    sourceFiles: {
+      bexManifestFile: 'src-bex/manifest.json',
     }
   }
-}
+})
