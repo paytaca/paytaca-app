@@ -2,7 +2,7 @@ import { createRouter, createMemoryHistory, createWebHistory, createWebHashHisto
 import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../wallet'
 import routes from './routes'
-import Store from '../store'
+import useStore from '../store'
 
 import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
@@ -17,7 +17,8 @@ import { isValidWif, extractWifFromUrl } from 'src/wallet/sweep'
  * with the Router instance.
  */
 
-export default function ({ store }) {
+export default function () {
+  const store = useStore()
   const createHistory = process.env.SERVER
     ? createMemoryHistory
     : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
@@ -42,6 +43,7 @@ export default function ({ store }) {
       try {
         // Check if first mnemonic exists
         const currentWalletIndex = store.getters['global/getWalletIndex']
+        console.log({ currentWalletIndex })
         const mnemonic = await getMnemonic(currentWalletIndex)
 
         // if mnemonic does not exist but not first wallet,

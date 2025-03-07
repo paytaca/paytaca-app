@@ -9,9 +9,14 @@ import Watchtower from 'watchtower-cash-js';
 import { BigNumber } from 'ethers'
 import { Platform } from 'quasar'
 import axios from 'axios';
+import { Store } from 'src/store';
 
 
 const PushNotificationSettings = registerPlugin('PushNotificationSettings'); 
+const PluginAvailability = {
+  PushNotifications: Capacitor.isPluginAvailable('PushNotifications'),
+  PushNotificationSettings: Capacitor.isPluginAvailable('PushNotificationSettings'),
+}
 
 /**
  * This is a proxy events emitter for PushNotification plugin's events
@@ -53,6 +58,10 @@ class PushNotificationsEventEmitter {
   setupEventHandlers() {
     Object.getOwnPropertyNames(this.eventHandlers)
       .forEach(eventName => {
+        if (!PluginAvailability.PushNotifications) {
+          console.log('Push notifications not available, skipping addListener')
+          return
+        }
         PushNotifications.addListener(eventName, this.eventHandlers[eventName])
       })
   }
@@ -118,6 +127,7 @@ class PushNotificationsManager {
    * @returns {Promise<{ isEnabled:Boolean }>}
    */
   async isPushNotificationEnabled() {
+    if (!PluginAvailability.PushNotifications) return { isEnabled: null }
     return PushNotificationSettings.getNotificationStatus()
       .catch(error => {
         if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
@@ -155,6 +165,10 @@ class PushNotificationsManager {
    * @returns {Promise<{ resultCode:Number, isEnabled:Boolean, data:any } | null>}
    */
   async openPushNotificationsSettingsPrompt(opts) {
+    if (!PluginAvailability.PushNotificationSettings) {
+      return
+    }
+
     if (this._openSettingsPromptPromise) return this._openSettingsPromptPromise
     this._openSettingsPromptPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
     return this._openSettingsPromptPromise
@@ -172,6 +186,7 @@ class PushNotificationsManager {
   }
 
   checkPermissions() {
+    if (!PluginAvailability.PushNotifications) return Promise.resolve()
     return PushNotifications.checkPermissions()
       .then(response => {
         this.permissionStatus = response?.receive
@@ -180,6 +195,7 @@ class PushNotificationsManager {
   }
 
   requestPermission() {
+    if (!PluginAvailability.PushNotifications) return Promise.resolve()
     return PushNotifications.requestPermissions()
       .then(response => {
         this.permissionStatus = response?.receive
@@ -192,6 +208,7 @@ class PushNotificationsManager {
    * @param {Number} opts.timeout
    */
   fetchRegistrationToken(opts) {
+    if (!PluginAvailability.PushNotifications) return Promise.resolve()
     const manager = this
     return new Promise((resolve, reject) => {
       const registrationSuccessHandler = token => {
@@ -240,6 +257,7 @@ class PushNotificationsManager {
   async subscribe(walletHashes, multiWalletIndex, isCreateOrImport = false) {
     if (!this.deviceId) await this.fetchDeviceId()
     if (!this.registrationToken) await this.fetchRegistrationToken()
+
 
     // do not ask for permission to save device ID during wallet creation/import
     if (!isCreateOrImport) {
@@ -324,7 +342,8 @@ class PushNotificationsManager {
 
 export const pushNotificationsManager = new PushNotificationsManager()
 
-export default boot(({ app, store }) => {
+export default boot(({ app }) => {
+  const store = Store
 
   if (Platform.is.mobile) {
     const manager = reactive(

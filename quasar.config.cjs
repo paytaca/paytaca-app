@@ -32,6 +32,7 @@ module.exports = defineConfig((/* ctx */) => {
     // --> boot files are part of "main.js"
     // https://quasar.dev/quasar-cli/boot-files
     boot: [
+      'vuex', // import first
       'capacitor',
       'i18n',
       'axios',
