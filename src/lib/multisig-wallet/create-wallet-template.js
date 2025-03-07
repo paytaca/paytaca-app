@@ -1,53 +1,48 @@
 
-import { groupCosigners } from './utils'
-
 const baseTemplate = {
   name: '',
   $schema: 'https://libauth.org/schemas/wallet-template-v0.schema.json',
-  entities: {
-    //   signer_1: createSigner('Signer 1', '1', ['1_and_2', '1_and_3']),
-    //   signer_2: createSigner('Signer 2', '2', ['1_and_2', '2_and_3']),
-    //   signer_3: createSigner('Signer 3', '3', ['1_and_3', '2_and_3']),
-  },
-  scripts: {
-    //   '1_and_2': {
-    //     name: 'Cosigner 1 & 2',
-    //     script:
-    //       'OP_0\n<key1.ecdsa_signature.all_outputs>\n<key2.ecdsa_signature.all_outputs>',
-    //     unlocks: 'lock'
-    //   },
-    //   '1_and_3': {
-    //     name: 'Cosigner 1 & 3',
-    //     script:
-    //       'OP_0\n<key1.ecdsa_signature.all_outputs>\n<key3.ecdsa_signature.all_outputs>',
-    //     unlocks: 'lock'
-    //   },
-    //   '2_and_3': {
-    //     name: 'Cosigner 2 & 3',
-    //     script:
-    //       'OP_0\n<key2.ecdsa_signature.all_outputs>\n<key3.ecdsa_signature.all_outputs>',
-    //     unlocks: 'lock'
-    //   },
-    //   lock: {
-    //     lockingType: 'p2sh20',
-    //     name: '2-of-3 Vault',
-    //     script:
-    //       'OP_2\n<key1.public_key>\n<key2.public_key>\n<key3.public_key>\nOP_3\nOP_CHECKMULTISIG'
-    //   }
-  },
+  entities: { /* generate */ },
+  scripts: { /* generate */ },
   supported: ['BCH_2021_05', 'BCH_2022_05'],
   version: 0
 }
 
-export const createSigner = (
-  name /*: string */,
-  signerIndex/*: string */,
-  scripts/*: string[] */
-) /* WalletTemplateEntity */ => ({
-  name,
-  scripts: ['lock', ...scripts],
-  variables: { [`key${signerIndex}`]: { type: 'HdKey' } }
-})
+/**
+ * Util function for grouping every possible cosigner combinations.
+ *
+ * // Example usage:
+ * const m = 2 // Cosigners to select
+ * const n = 3 // Total cosigners
+ * const combinations = groupCosigners(m, n)
+ * // Output:
+ * [
+ *  [1, 2],
+ *  [1, 3],
+ *  [2, 3]
+ * ]
+ */
+export const groupCosigners = ({ m, n }) /*: str[][] */ => {
+  const result = []
+
+  const combine = (start, currentCombination) => {
+    // If the current combination has m elements, add it to the result
+    if (currentCombination.length === m) {
+      result.push([...currentCombination])
+      return
+    }
+
+    // Iterate over the remaining elements to form combinations
+    for (let i = start; i <= n; i++) {
+      currentCombination.push(i)
+      combine(i + 1, currentCombination)
+      currentCombination.pop()
+    }
+  }
+
+  combine(1, [])
+  return result
+}
 
 /**
  * Generate checkbits required for schnorr signatures.
@@ -108,14 +103,55 @@ export const generateScripts = ({ m, n, scheme /* ? 'ecdsa'|'schnorr' // signatu
   return scripts
 }
 
+export const generateEntity = ({
+  signer /*: number // signer position */,
+  scripts /* :Object // from generateScripts() */
+}) /* :BitauthTemplateEntity */ => {
+  let signerScriptNames = Object.entries(scripts)
+    .filter(([scriptName] /* ,scriptValue */) => {
+      return scriptName.includes(signer)
+    })
+    .map(([scriptName]) => {
+      return scriptName
+    })
+
+  // include 'lock'
+  signerScriptNames = ['lock', ...signerScriptNames]
+  const entityKey = `signer_${signer}`
+  const entityValue = {
+    description: '',
+    name: `Signer ${signer}`,
+    scripts: signerScriptNames,
+    variables: {
+      [`key${signer}`]: {
+        description: '',
+        name: `key${signer}`,
+        type: 'HdKey'
+      }
+    }
+  }
+  return [entityKey, entityValue]
+}
+
+export const generateEntities = ({ m, scripts /* from generateScripts */ }) /* :BitauthTemplateEntity */ => {
+  const entities = {}
+  for (let i = 0; i < m; i++) {
+    const [entityKey, entityValue] = generateEntity({ signer: i + 1, scripts })
+    entities[entityKey] = entityValue
+  }
+  return entities
+}
+
 /**
  * options?.$schema = 'https://libauth.org/schemas/wallet-template-v0.schema.json'
  * options?.name = 'm of n Multisig'
  * options.m
  * options.n
  */
-export const createWalletTemplate = ({ m, n, scheme }) => {
+export const createWalletTemplate = ({ m, n, scheme /*: 'ecdsa'|'schnorr' */, name /* ?: string */ }) => {
   const template = baseTemplate
+  template.name = name || `${m}-of-${n} Multisig`
   template.scripts = generateScripts({ m, n, scheme })
+  template.entities = generateEntities({ m, scripts: template.scripts })
   return template
 }
