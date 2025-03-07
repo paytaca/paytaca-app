@@ -53,11 +53,11 @@ export const createSigner = (
  * Generate checkbits required for schnorr signatures.
  */
 export const generateSchnorrCheckbits = (cosignerGroups) /* : string  // example: <0b1010> */ => {
-  const template = Array(24).fill('0')
+  let checkbit = 0
   for (const cosignerPosition of cosignerGroups) {
-    template.splice(template.length - cosignerPosition, 1, '1')
+    checkbit = checkbit | (1 << cosignerPosition - 1)
   }
-  return `<0b${template.join('').replace(/^0+/, '')}>` // removed leading zeros
+  return `<0b${checkbit.toString(2)}>`
 }
 
 export const generateUnlockingScriptDummy = ({
