@@ -35,38 +35,38 @@
                     <div v-if="cosigners" class="row">
                       <div class="col-12 q-px-m">
                         <q-form
-                        @submit="onSubmit"
-                        @reset="onReset"
-                        class="q-gutter-md"
-                        >
-                        <template v-for="i, index in Array(m)" :key="`cosigner-${index}`">
-                          <q-card >
-                            <q-card-section>Signer {{ index + 1 }}</q-card-section>
-                            <q-card-section class="q-pa-md q-gutter-y-sm">
-                              <q-input
-                            v-model="cosigners[index + 1].pubkey"
-                            :label="`Paste Cosigner ${index + 1}'s xPubkey`"
-                            style="color:black"
-                            outlined
+                          @submit="onSubmit"
+                          @reset="onReset"
+                          class="q-gutter-md"
                           >
-                          </q-input>
-                          <q-input
-                            v-if="cosigners[index + 1].pubkey"
-                            v-model="cosigners[index + 1].derivationPath"
-                            :key="`derivation-path-${index}`"
-                            :label="`Derivation Path`"
-                            style="color:black"
-                            outlined
-                          ></q-input>
-                            </q-card-section>
-                            
-                          </q-card>
-                        </template>
-                        <div>
-                            <q-btn label="Submit" type="submit" color="primary"/>
-                            <q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />
-                        </div>
-                    </q-form>
+                          <template v-for="i, index in Array(m)" :key="`cosigner-${index}`">
+                            <q-card >
+                              <q-card-section>Signer {{ index + 1 }}</q-card-section>
+                              <q-card-section class="q-pa-md q-gutter-y-sm">
+                                <q-input
+                              v-model="cosigners[index + 1].xPubKey"
+                              :label="`Paste Cosigner ${index + 1}'s xPubKey`"
+                              style="color:black"
+                              outlined
+                              :disable="index === 0"
+                            >
+                            </q-input>
+                            <q-input
+                              v-if="cosigners[index + 1].xPubKey"
+                              v-model="cosigners[index + 1].derivationPath"
+                              :key="`derivation-path-${index}`"
+                              :label="`Derivation Path`"
+                              style="color:black"
+                              outlined
+                            ></q-input>
+                              </q-card-section>
+                            </q-card>
+                          </template>
+                          <div>
+                              <q-btn label="Create" type="submit" color="primary"/>
+                              <q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />
+                          </div>
+                        </q-form>
                       </div>
                     </div>
                 </div>
@@ -110,7 +110,7 @@ const darkMode = computed(() => {
 const initCosigners = () => {
   cosigners.value = {}
   for (let i = 0; i < 20; i++) {
-    cosigners.value[i + 1] = { pubkey: '', derivationPath: 'm/44\'/145\'/0\'/0/0' }
+    cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'/0/0' }
   }
 }
 
@@ -132,6 +132,11 @@ onMounted(() => {
   mOptions.value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
   nOptions.value = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
   initCosigners()
+  const { xPubKey, derivationPath } = $store.getters['global/getWallet']('bch')
+  cosigners.value[1] = {
+    xPubKey,
+    derivationPath: derivationPath + '/0/0'
+  }
 })
 </script>
 
