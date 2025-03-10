@@ -87,7 +87,10 @@ export default {
     isNotDefaultTheme,
     formatCurrency,
     async refreshData (done) {
-      this.refetchListings()
+      this.isloading = true
+      await this.refetchListings()
+
+      this.isloading = false
       done()
     },
     updateFilter (info) { // update later

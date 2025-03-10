@@ -38,8 +38,11 @@
           </button>
         </div>
 
+        <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        </div>
         <!-- Cashout Order List -->
-        <div class="q-mx-lg q-pt-sm">
+        <div v-else class="q-mx-lg q-pt-sm">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;" v-if="cashoutOrders.length > 0">
             <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable class="">
               <div class="full-width">
@@ -76,10 +79,13 @@
 import { backend } from 'src/wallet/pos'
 import { formatCurrency } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import ProgressLoader from '../ProgressLoader.vue'
 
 export default {
   data () {
     return {
+      isloading: false,
+      theme: this.$store.getters['global/theme'],
       orderType: 'ALL',
       cashoutOrders: [],
       currency: this.$store.getters['market/selectedCurrency'],
@@ -91,8 +97,14 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  components: {
+    ProgressLoader
+  },
   async mounted () {
+    this.isloading = true
     await this.fetchCashoutOrders()
+
+    this.isloading = false
   },
   watch: {
     orderType (val) {
@@ -105,7 +117,10 @@ export default {
     formatCurrency,
     async refreshData (done) {
       // this.refetchListings()
+      this.isloading = true
       await this.fetchCashoutOrders()
+
+      this.isloading = false
       done()
     },
     async fetchCashoutOrders () {
