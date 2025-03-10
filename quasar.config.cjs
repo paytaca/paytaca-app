@@ -14,7 +14,7 @@
 // https://quasar.dev/quasar-cli-webpack/upgrade-guide
 const { defineConfig } = require('#q-app/wrappers')
 
-module.exports = defineConfig((/* ctx */) => {
+module.exports = defineConfig((ctx) => {
   return {
     // https://quasar.dev/quasar-cli/supporting-ts
     supportTS: {
@@ -120,6 +120,10 @@ module.exports = defineConfig((/* ctx */) => {
         //   exclude: /node_modules/
         // })
 
+        if (cfg?.output?.publicPath && !cfg?.output?.publicPath.endsWith('/')) {
+          cfg.output.publicPath += '/'
+        }
+
         cfg.module.rules.push({
           test: /\.cash$/, // Adjust the file extension as needed
           use: 'raw-loader'
@@ -153,6 +157,10 @@ module.exports = defineConfig((/* ctx */) => {
           topLevelAwait: true
         }
         // throw new Error(`MODE: ${cfg.mode}`)
+
+        if (ctx?.mode?.bex) {
+          cfg.devtool = 'source-map'
+        }
       },
 
       chainWebpack (chain) {
