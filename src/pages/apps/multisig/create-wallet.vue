@@ -86,6 +86,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted, watch } from 'vue'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { derivePubKeyFromXPubKey } from 'src/lib/multisig-wallet'
 
 const $store = useStore()
 const { t: $t } = useI18n()
@@ -110,7 +111,8 @@ const darkMode = computed(() => {
 const initCosigners = () => {
   cosigners.value = {}
   for (let i = 0; i < 20; i++) {
-    cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'/0/0' }
+    // cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'/0/0' }
+    cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
   }
 }
 
@@ -137,6 +139,7 @@ onMounted(() => {
     xPubKey,
     derivationPath: derivationPath + '/0/0'
   }
+  console.log('DERIVE', derivePubKeyFromXPubKey(xPubKey))
 })
 </script>
 
