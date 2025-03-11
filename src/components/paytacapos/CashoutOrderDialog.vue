@@ -48,18 +48,18 @@
               <div class="full-width">
                 <div class="q-pl-sm q-pb-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                   <div class="sm-font-size text-grey-6">Cash out</div>
-                  <div class="row" v-if="cashout?.transactions.length > 0">
+                  <div class="row" v-if="cashout?.transactions?.inputs?.length > 0">
                     <div class="col ib-text">
                       <div class="md-font-size text-bold">
-                        {{ formatCurrency(cashout?.transactions[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                        {{ formatCurrency(cashout?.transactions?.inputs[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
                       </div>
                       <div class="sm-font-size">
-                        {{ cashout?.transactions[0]?.wallet_history.amount }} BCH
+                        {{ cashout?.transactions?.inputs[0]?.wallet_history.amount }} BCH
                       </div>
                     </div>
                     <div class="col ib-text text-right q-pr-sm">
-                      <div class="text-grey-8 text-bold sm-font-size">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
-                      <div class="text-grey-6 md-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
+                      <div class="text-grey-8 text-bold sm-font-size">{{ cashout.transactions?.inputs[0].wallet_history.txid.substring(0,8) }}</div>
+                      <div class="text-grey-6 md-font-size">{{  cashout.status }}</div>
                     </div>
                   </div>
                 </div>
@@ -84,7 +84,7 @@ import ProgressLoader from '../ProgressLoader.vue'
 export default {
   data () {
     return {
-      isloading: false,
+      isloading: true,
       theme: this.$store.getters['global/theme'],
       orderType: 'ALL',
       cashoutOrders: [],
