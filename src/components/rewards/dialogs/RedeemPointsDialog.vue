@@ -67,21 +67,26 @@
       </div>
 
       <div class="row full-width justify-evenly">
-        <q-btn
-          rounded
-          outline
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-          :label="$t('Cancel')"
-          v-close-popup
-        />
-        <q-btn
-          rounded
-          class="button"
-          :label="$t('Redeem')"
-          :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
-          @click="executeSecurityChecking"
-        />
+        <template v-if="isSending">
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </template>
+        <template v-else>
+          <q-btn
+            rounded
+            outline
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('Cancel')"
+            v-close-popup
+          />
+          <q-btn
+            rounded
+            class="button"
+            :label="$t('Redeem')"
+            :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
+            @click="executeSecurityChecking"
+          />
+        </template>
       </div>
     </q-card>
 
@@ -102,13 +107,15 @@
 
 <script>
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { convertPoints } from 'src/utils/engagementhub-utils/rewards'
+import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { convertPoints, processPointsRedemption } from 'src/utils/engagementhub-utils/rewards'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
+import { raiseNotifyError } from 'src/utils/send-page-utils'
 
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import PinDialog from 'src/components/pin/index.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   name: 'RedeemPointsDialog',
@@ -116,13 +123,15 @@ export default {
   props: {
     points: { type: Number, default: 0 },
     pointsType: { type: String, default: '' },
-    pointsDivisor: { type: Number, default: 0 }
+    pointsDivisor: { type: Number, default: 0 },
+    promoId: { type: Number, default: -1 }
   },
 
   components: {
     CustomKeyboard,
     BiometricWarningAttempt,
-    PinDialog
+    PinDialog,
+    ProgressLoader
   },
 
   data () {
@@ -132,13 +141,17 @@ export default {
       pointsBalance: 0,
       isSecurityCheckSuccess: false,
       warningAttemptsStatus: 'dismiss',
-      pinDialogAction: ''
+      pinDialogAction: '',
+      isSending: false
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     },
     singlePointConversion () {
       return convertPoints(1, this.pointsDivisor)
@@ -154,6 +167,7 @@ export default {
 
   methods: {
     getDarkModeClass,
+    isNotDefaultTheme,
     computeBalance () {
       this.pointsBalance = this.points - Number(this.pointsToRedeem)
     },
@@ -186,14 +200,16 @@ export default {
       vm.computeBalance()
     },
     executeSecurityChecking () {
-      if (!this.isSecurityCheckSuccess) {
+      const vm = this
+
+      if (!vm.isSecurityCheckSuccess) {
         setTimeout(() => {
-          if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
-            this.pinDialogAction = 'VERIFY'
-          } else this.verifyBiometric()
+          if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+            vm.pinDialogAction = 'VERIFY'
+          } else vm.verifyBiometric()
         }, 500)
       } else {
-        console.log('security check success yey') // call to engagement hub
+        vm.redeemPoints()
       }
     },
     verifyBiometric () {
@@ -224,7 +240,33 @@ export default {
     },
     onSecurityCheckSuccess (action) {
       this.pinDialogAction = ''
-      if (action === 'proceed') console.log('security check success yey') // call to engagement hub
+      if (action === 'proceed') this.redeemPoints()
+    },
+    async redeemPoints () {
+      this.isSending = true
+
+      const data = {
+        bch_address: '',
+        amount_bch: 0,
+        amount_fiat: 0,
+        points: Number(this.pointsToRedeem),
+        promo: this.pointsType.toLowerCase(),
+        id: this.promoId
+      }
+      const isSuccessful = await processPointsRedemption(data)
+
+      if (isSuccessful) {
+        this.$q.notify({
+          type: 'positive',
+          timeout: 3000,
+          message: 'Points redemption processed successfully.'
+        })
+        this.$refs.dialogRef.hide()
+      } else {
+        raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
+      }
+
+      this.isSending = false
     }
   }
 }

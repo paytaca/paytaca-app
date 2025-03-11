@@ -161,3 +161,7 @@ export async function processOnetimePoints (data) {
 export async function processContinuousPoints (data) {
   return await processPoints('userreward/process_continuous_points/', data)
 }
+
+export async function processPointsRedemption (data) {
+  return await processPoints('userpromo/process_points_redemption/', data)
+}

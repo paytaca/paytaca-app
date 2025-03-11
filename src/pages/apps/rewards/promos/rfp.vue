@@ -221,7 +221,8 @@ export default {
         componentProps: {
           points: this.points,
           pointsType: 'RFP',
-          pointsDivisor: this.pointsDivisor
+          pointsDivisor: this.pointsDivisor,
+          promoId: this.rfpId
         }
       })
     }

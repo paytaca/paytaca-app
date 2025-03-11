@@ -324,7 +324,8 @@ export default {
         componentProps: {
           points: this.points,
           pointsType: 'UR',
-          pointsDivisor: this.pointsDivisor
+          pointsDivisor: this.pointsDivisor,
+          promoId: this.urId
         }
       })
     }
