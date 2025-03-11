@@ -56,7 +56,7 @@ export default function () {
        */
     },
     paymentMethod: {},
-    lastPaymentMethod: null
+    lastPaymentMethod: null,
+    cashoutMerchant: {}
   }
 }
-

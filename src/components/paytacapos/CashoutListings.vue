@@ -113,7 +113,7 @@ export default {
         this.selectedTransactions.push(transaction)
         this.unspentTxns[index].selected = true
       } else {
-        this.selectedTransactions = this.selectedTransactions.filter(tx => tx.txid !== transaction.txid)
+        this.selectedTransactions = this.selectedTransactions.filter(tx => tx?.transaction?.txid !== transaction?.transaction?.txid)
         this.unspentTxns[index].selected = false
       }
     },
@@ -147,7 +147,7 @@ export default {
       }
     },
     isTxnSelected (transaction) {
-      return this.selectedTransactions.some(txn => txn.txid === transaction.txid)
+      return this.selectedTransactions.some(txn => txn?.transaction?.txid === transaction?.transaction?.txid)
     }
   }
 }

@@ -1,29 +1,29 @@
 <template>
     <q-list :dark="darkMode">
-        <q-item v-for="(transaction, index) in transactions" :key="index" clickable @click="selectTransaction(transaction, index)">
+        <q-item v-for="(tx, index) in transactions" :key="index" clickable @click="selectTransaction(tx, index)">
           <q-item-section>
             <div class="q-mx-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
               <div class="sm-font-size text-grey-6 text-strike">
-                {{ formatCurrency(getFiatValue('initial', transaction), currency) }} {{ currency }}
+                {{ formatCurrency(getFiatValue('initial', tx), currency) }} {{ currency }}
               </div>
               <div class="row">
                 <div class="col ib-text">
-                  <div class="md-font-size text-bold" :class="getFiatValueColor(transaction)">
-                    {{ formatCurrency(getFiatValue('current', transaction), currency).replace(/[^\d.,-]/g, '') }} {{ currency }}
-                    <q-icon :name="getFiatValueIcon(transaction)"/>
+                  <div class="md-font-size text-bold" :class="getFiatValueColor(tx)">
+                    {{ formatCurrency(getFiatValue('current', tx), currency).replace(/[^\d.,-]/g, '') }} {{ currency }}
+                    <q-icon :name="getFiatValueIcon(tx)"/>
                   </div>
                   <div class="sm-font-size">
-                    {{ transaction.amount }} BCH
+                    {{ tx.amount }} BCH
                   </div>
                 </div>
                 <div class="col ib-text text-right q-pr-sm">
                   <div class="text-bold" :class="darkMode ? 'text-grey-' : 'text-grey-8'">
-                    <span>{{ transaction.txid.substring(0,8) }}</span>
-                    <q-icon color="primary" size="sm" name="o_check_box" v-if="transaction.selected"/>
+                    <span>{{ tx.transaction?.txid?.substring(0,8) }}</span>
+                    <q-icon color="primary" size="sm" name="o_check_box" v-if="tx.selected"/>
                   </div>
                   <div class="text-grey-6 sm-font-size">
                     <q-icon name="local_police" class="q-pa-xs"/>
-                    <span>{{ calcLossProtectionTimeLeft(transaction) }}</span>
+                    <span>{{ calcLossProtectionTimeLeft(tx) }}</span>
                   </div>
                 </div>
               </div>
@@ -102,8 +102,8 @@ export default {
       if (currentPrice < initialPrice) return 'trending_down'
       return ''
     },
-    isTxnSelected (transaction) {
-      return this.selectedTransactions.some(txn => txn.txid === transaction.txid)
+    isTxnSelected (tx) {
+      return this.selectedTransactions.some(txn => txn.transaction?.txid === tx.transaction?.txid)
     },
     selectTransaction (transaction, index) {
       this.$emit('select', transaction, index)

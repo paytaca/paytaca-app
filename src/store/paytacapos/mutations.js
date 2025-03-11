@@ -253,3 +253,8 @@ export function removeOldPaymentOTPCache(state, age=86400) {
     if (cutoffTimestamp > timestamp || !Number.isSafeInteger(timestamp)) delete state.paymentOTPCache?.[txid]
   }
 }
+
+export function updateCashoutMerchant (state, data) {
+  state.cashoutMerchant = data
+  console.log('cashoutMerchant:', state.cashoutMerchant)
+}

@@ -53,6 +53,7 @@ export default {
         .then(response => {
           console.log(response.data)
           this.merchant = response.data
+          this.$store.commit('paytacapos/updateCashoutMerchant', this.merchant)
         })
         .catch(error => {
           console.error(error.response | error)

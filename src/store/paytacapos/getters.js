@@ -50,3 +50,7 @@ export function paymentOTPCache(state) {
     }
   }
 }
+
+export function cashoutMerchant (state) {
+  return state.cashoutMerchant
+}

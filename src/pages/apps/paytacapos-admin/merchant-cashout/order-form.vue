@@ -18,30 +18,30 @@
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 170}px`" style="overflow:auto;">
             <!-- Cashout Order -->
             <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
-              <q-item v-for="(transaction, index) in transactionList" :key="index" clickable @click="selectTransaction(index)">
+              <q-item v-for="(tx, index) in transactionList" :key="index" clickable @click="selectTransaction(index)">
                 <q-item-section>
                   <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <div class="sm-font-size text-grey-6 text-strike">
-                      {{ formatCurrency(getInitialFiatAmount(transaction), currency.symbol) }} {{ currency.symbol }}
+                      {{ formatCurrency(getInitialFiatAmount(tx), currency.symbol) }} {{ currency.symbol }}
                     </div>
                     <div class="row">
                       <div class="col ib-text">
-                        <div class="md-font-size text-bold" :class="getFiatAmountColor(transaction)">
-                          {{ formatCurrency(getCurrentFiatAmount(transaction), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
-                          <q-icon :name="getTrendingIcon(transaction)"/>
+                        <div class="md-font-size text-bold" :class="getFiatAmountColor(tx)">
+                          {{ formatCurrency(getCurrentFiatAmount(tx), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                          <q-icon :name="getTrendingIcon(tx)"/>
                         </div>
                         <div class="sm-font-size">
-                          {{ transaction.amount }} BCH
+                          {{ tx.amount }} BCH
                         </div>
                       </div>
                       <div class="col ib-text text-right q-pr-sm">
                         <div class="text-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                          <span>{{ transaction.txid.substring(0,8) }}</span>
-                          <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(transaction)"/>
+                          <span>{{ tx.transaction?.txid?.substring(0,8) }}</span>
+                          <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(tx)"/>
                         </div>
                         <div class="text-grey-6 sm-font-size">
                           <q-icon name="local_police" class="q-pa-xs"/>
-                          <span>{{ lossProtection(transaction) }}</span>
+                          <span>{{ lossProtection(tx) }}</span>
                         </div>
                       </div>
                     </div>
@@ -164,10 +164,11 @@
 import { formatCurrency, formatNumber } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
-import { getUtxos, sendUtxos, generateAddressFromXPubKey } from 'src/merchant-cashout/cashout'
+import CashoutTransactionBuilder from 'src/merchant-cashout'
 import HeaderNav from 'src/components/header-nav.vue'
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
-import { getMnemonic, Wallet } from 'src/wallet'
+import { loadLibauthHdWallet } from 'src/wallet'
+import Watchtower from 'src/lib/watchtower'
 
 export default {
   data () {
@@ -182,7 +183,9 @@ export default {
       paymentMethod: null,
       cashOutTotal: {},
       openPaymentMethod: false,
-      orderStatus: 'pending'
+      orderStatus: 'pending',
+      wallet: null,
+      merchant: null
     }
   },
   computed: {
@@ -218,15 +221,23 @@ export default {
     data: Array
   },
   async mounted () {
+    await this.loadWallet()
     this.paymentMethod = this.lastPaymentMethod
     this.transactions = JSON.parse(history.state.selectedTransactions)
     this.transactionList = this.transactions
     this.calculateCashOutTotal(this.transactions)
+    this.merchant = this.$store.getters['paytacapos/cashoutMerchant']
   },
   methods: {
     formatCurrency,
     formatNumber,
     getDarkModeClass,
+    async loadWallet () {
+      const isChipnet = this.$store.getters['global/isChipnet']
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+      this.wallet = wallet
+    },
     calculateCashOutTotal (transactions) {
       let initialTotal = 0
       let currentTotal = 0
@@ -293,30 +304,29 @@ export default {
     },
     async cashOutUtxos () {
       const selectedUtxos = this.transactions
-      const utxosByAddressPath = {}
-      for (const utxo of selectedUtxos) {
-        const addressUtxos = await getUtxos(utxo.address.address)
-        const matchingUtxo = addressUtxos.find(element => { return element.txid === utxo.txid })
+      const txBuilder = new CashoutTransactionBuilder()
+      const utxos = selectedUtxos.map(el => el.transaction)
 
-        if (!utxosByAddressPath[utxo.address.address_path]) {
-          utxosByAddressPath[utxo.address.address_path] = []
-        }
-        utxosByAddressPath[utxo.address.address_path].push(matchingUtxo)
-      }
+      const result = await txBuilder.sendUtxos({
+        sender: this.wallet,
+        broadcast: true,
+        utxos: utxos
+      })
 
-      const payoutAddress = await this.fetchPayoutAddress()
-      const outputUtxos = await sendUtxos({ utxos: utxosByAddressPath, destinationAddress: payoutAddress })
-      const order = await this.createCashoutOrder(payoutAddress)
-
-      const txids = outputUtxos.map(el => el.txid)
-      for (const txid of txids) {
-        await this.addCashoutAttributeTx(txid)
-      }
-      await this.saveOutputTx({ order_id: order.id, txids: txids })
+      const outputTxid = result.txid
+      const txids = utxos.map(el => el.txid)
+      const order = await this.createCashoutOrder({ payoutAddress: result.payoutAddress, txids: txids })
+      await this.manualProcessTxn(outputTxid)
+      await this.addCashoutAttributeTx(result.txid)
+      await this.saveOutputTx({ order_id: order.id, txids: [outputTxid] })
     },
     async saveOutputTx (payload) {
       await backend.post('/paytacapos/cash-out/save_output_tx/', payload, { authorize: true })
-        .then(response => { console.log('saveOutputTx:', response.data) })
+        .catch(error => { console.error(error.response || error) })
+    },
+    async manualProcessTxn (txid) {
+      await backend.get('/stablehedge/test-utils/process_tx/', { params: { txid: txid } })
+        .then(response => { console.log(response.data) })
         .catch(error => { console.error(error.response || error) })
     },
     async addCashoutAttributeTx (txid) {
@@ -326,36 +336,23 @@ export default {
       const payload = {
         txid: txid,
         key: 'merchant_cashout',
-        value: this.merchantName
+        value: this.merchant.name
       }
-      await backend.post('/transactions/attributes/', payload)
-        .then(response => { console.log('addCashoutAttributeTx: ', response.data) })
+
+      const watchtower = new Watchtower()
+      await watchtower.BCH._api.post('/transactions/attributes/', payload)
         .catch(error => { console.error(error.response || error) })
     },
-    async fetchPayoutAddress () {
-      let payoutAddress = null
-      await backend.get('/paytacapos/cash-out/payout_address/')
-        .then(response => {
-          console.log(response)
-          payoutAddress = response.data?.payout_address
-        })
-        .catch(error => {
-          console.log(error.response || error)
-        })
-      return payoutAddress
-    },
-    async createCashoutOrder (payoutAddress) {
+    async createCashoutOrder ({ payoutAddress, txids }) {
       const url = '/paytacapos/cash-out/'
       const body = {
         payment_method_id: this.paymentMethod.id,
+        merchant_id: this.merchant.id,
         currency: this.currency.symbol,
-        payout_address: payoutAddress
+        payout_address: payoutAddress,
+        txids: txids
       }
 
-      // arrange txid
-      body.txids = this.transactions.map(txn => {
-        return txn.txid
-      })
       const response = await backend.post(url, body, { authorize: true })
         .catch(error => {
           console.error(error.response || error)
@@ -367,11 +364,11 @@ export default {
     },
     getInitialFiatAmount (transaction) {
       const marketPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
-      return transaction.amount * marketPrice
+      return transaction?.amount * marketPrice
     },
     getCurrentFiatAmount (transaction) {
       const marketPrice = transaction?.fiat_price?.current[this.currency?.symbol]
-      return transaction.amount * marketPrice
+      return transaction?.amount * marketPrice
     },
     getFiatAmountColor (transaction) {
       const currentFiatPrice = transaction?.fiat_price?.current[this.currency?.symbol]
