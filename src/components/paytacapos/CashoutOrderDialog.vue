@@ -51,17 +51,17 @@
                   <div class="row" v-if="cashout?.transactions?.inputs?.length > 0">
                     <div class="col ib-text">
                       <div class="md-font-size text-bold">
-                        {{ formatCurrency(cashout?.transactions?.inputs[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                        {{ formatCurrency(cashout?.payout_amount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
                       </div>
-                      <div class="sm-font-size">
-                        {{ cashout?.transactions?.inputs[0]?.wallet_history.amount }} BCH
+                      <div v-if="cashout.payout_details" class="sm-font-size">
+                        {{ cashout?.payout_details?.total_bch_amount }} BCH
                       </div>
                     </div>
                     <div class="col ib-text text-right q-pr-sm">
-                      <div class="text-grey-8 text-bold sm-font-size">{{ cashout.transactions?.inputs[0].wallet_history.txid.substring(0,8) }}</div>
                       <div class="text-grey-6 md-font-size">{{  cashout.status }}</div>
                     </div>
                   </div>
+                  <div class="sm-font-size text-grey-6">{{ formatDate(cashout.created_at, true) }}</div>
                 </div>
               </div>
             </q-item>
@@ -77,7 +77,7 @@
 </template>
 <script>
 import { backend } from 'src/wallet/pos'
-import { formatCurrency } from 'src/exchange'
+import { formatCurrency, formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from '../ProgressLoader.vue'
 
@@ -108,28 +108,30 @@ export default {
   },
   watch: {
     orderType (val) {
-      this.fetchCashoutOrders()
+      this.fetchCashoutOrders(val)
     }
   },
   methods: {
+    formatDate,
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
     async refreshData (done) {
-      // this.refetchListings()
       this.isloading = true
       await this.fetchCashoutOrders()
 
       this.isloading = false
       done()
     },
-    async fetchCashoutOrders () {
+    async fetchCashoutOrders (orderType = "ALL") {
       const vm = this
       const url = '/paytacapos/cash-out/'
+      const limit = 20
 
-      await backend.get(url)
+      /** sample fetch with pagination */
+      await backend.get(url, { params: { order_type: orderType, limit: limit, page: 1 }})
         .then(response => {
-          vm.cashoutOrders = response.data
+          vm.cashoutOrders = response.data?.orders
         })
         .catch(error => {
           console.log(error)

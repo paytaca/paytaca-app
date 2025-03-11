@@ -94,7 +94,6 @@ export default {
       done()
     },
     updateFilter (info) { // update later
-      // console.log('updating filter: ', info)
       this.refetchListings()
     },
     async refetchListings () {
@@ -126,15 +125,19 @@ export default {
     async fetchUnspentTxns () {
       const vm = this
       const url = '/paytacapos/cash-out/list_unspent_txns/'
+      const limit = 20
 
       await backend.get(url, {
         params: {
           currency: this.currency?.symbol,
-          merchant_ids: history.state.merchantId
+          merchant_ids: history.state.merchantId,
+          limit: limit,
+          page: 1
         }
       })
         .then(response => {
-          vm.unspentTxns = response.data
+          console.log(response)
+          vm.unspentTxns = response.data?.unspent_transactions
         })
         .catch(error => {
           console.error(error.response || error)
