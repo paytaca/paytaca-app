@@ -412,6 +412,7 @@ export default {
       })
         .onOk(method => {
           this.paymentMethod = method
+          this.$store.commit('paytacapos/updateLastPaymentMethod', method)
         })
     },
     copyToClipboard (value) {

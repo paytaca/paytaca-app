@@ -8,64 +8,69 @@
         </div>
       </div>
 
-      <!-- order type tabs -->
-      <div
-        class="row q-mt-sm q-mx-lg br-15 text-center pt-card btn-transaction"
-        :class="getDarkModeClass(darkMode)"
-        :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
-      >
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'ALL'}]"
-          @click="orderType = 'ALL'"
+      <q-pull-to-refresh @refresh="refreshData">
+        <!-- order type tabs -->
+        <div
+          class="row q-mt-sm q-mx-lg br-15 text-center pt-card btn-transaction"
+          :class="getDarkModeClass(darkMode)"
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
         >
-          {{ $t('All') }}
-        </button>
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'PENDING'}]"
-          @click="orderType = 'PENDING'"
-        >
-          {{ $t('Pending') }}
-        </button>
-        <button
-          class="col br-15 btn-custom fiat-tab q-mt-none"
-          :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'COMPLETED'}]"
-          @click="orderType = 'COMPLETED'"
-        >
-          {{ $t('Completed') }}
-        </button>
-      </div>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'ALL'}]"
+            @click="orderType = 'ALL'"
+          >
+            {{ $t('All') }}
+          </button>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'PENDING'}]"
+            @click="orderType = 'PENDING'"
+          >
+            {{ $t('Pending') }}
+          </button>
+          <button
+            class="col br-15 btn-custom fiat-tab q-mt-none"
+            :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'COMPLETED'}]"
+            @click="orderType = 'COMPLETED'"
+          >
+            {{ $t('Completed') }}
+          </button>
+        </div>
 
-      <!-- Cashout Order List -->
-      <q-pull-to-refresh @refresh="refreshData" class="q-mx-lg q-pt-sm">
-        <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;" v-if="cashoutOrders.length > 0">
-          <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable class="">
-            <div class="full-width">
-              <div class="q-pl-sm q-pb-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                <div class="sm-font-size text-grey-6">Cash out</div>
-                <div class="row" v-if="cashout?.transactions.length > 0">
-                  <div class="col ib-text">
-                    <div class="md-font-size text-bold">
-                      {{ formatCurrency(cashout?.transactions[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+        <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        </div>
+        <!-- Cashout Order List -->
+        <div v-else class="q-mx-lg q-pt-sm">
+          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;" v-if="cashoutOrders.length > 0">
+            <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable class="">
+              <div class="full-width">
+                <div class="q-pl-sm q-pb-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+                  <div class="sm-font-size text-grey-6">Cash out</div>
+                  <div class="row" v-if="cashout?.transactions.length > 0">
+                    <div class="col ib-text">
+                      <div class="md-font-size text-bold">
+                        {{ formatCurrency(cashout?.transactions[0]?.wallet_history.fiat_price.current[currency.symbol], currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
+                      </div>
+                      <div class="sm-font-size">
+                        {{ cashout?.transactions[0]?.wallet_history.amount }} BCH
+                      </div>
                     </div>
-                    <div class="sm-font-size">
-                      {{ cashout?.transactions[0]?.wallet_history.amount }} BCH
+                    <div class="col ib-text text-right q-pr-sm">
+                      <div class="text-grey-8 text-bold sm-font-size">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
+                      <div class="text-grey-6 md-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
                     </div>
-                  </div>
-                  <div class="col ib-text text-right q-pr-sm">
-                    <div class="text-grey-8 text-bold sm-font-size">{{ cashout.transactions[0].wallet_history.txid.substring(0,8) }}</div>
-                    <div class="text-grey-6 md-font-size">{{  cashout.transactions[0].wallet_history.status }}</div>
                   </div>
                 </div>
               </div>
-            </div>
-          </q-item>
-        </q-list>
-        <div v-if="cashoutOrders.length === 0" class="text-center q-mt-lg">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('No Orders To Display') }}</p>
-      </div>
+            </q-item>
+          </q-list>
+          <div v-if="cashoutOrders.length === 0" class="text-center q-mt-lg">
+            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+            <p :class="{ 'text-black': !darkMode }">{{ $t('No Orders To Display') }}</p>
+          </div>
+        </div>
       </q-pull-to-refresh>
     </q-card>
   </q-dialog>
@@ -74,10 +79,13 @@
 import { backend } from 'src/wallet/pos'
 import { formatCurrency } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import ProgressLoader from '../ProgressLoader.vue'
 
 export default {
   data () {
     return {
+      isloading: false,
+      theme: this.$store.getters['global/theme'],
       orderType: 'ALL',
       cashoutOrders: [],
       currency: this.$store.getters['market/selectedCurrency'],
@@ -89,8 +97,19 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     }
   },
+  components: {
+    ProgressLoader
+  },
   async mounted () {
+    this.isloading = true
     await this.fetchCashoutOrders()
+
+    this.isloading = false
+  },
+  watch: {
+    orderType (val) {
+      this.fetchCashoutOrders()
+    }
   },
   methods: {
     getDarkModeClass,
@@ -98,7 +117,10 @@ export default {
     formatCurrency,
     async refreshData (done) {
       // this.refetchListings()
+      this.isloading = true
       await this.fetchCashoutOrders()
+
+      this.isloading = false
       done()
     },
     async fetchCashoutOrders () {
