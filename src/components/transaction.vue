@@ -251,16 +251,13 @@
                         class="row col-12 q-gutter-x-sm q-mb-xs"
                         :key="index"
                       >
-                        <span class="col-1">#{{ index + 1 }}</span>
-                        <span class="col-5" style="overflow-wrap: anywhere;">{{ convertCashAddress(data[0], $store.getters['global/isChipnet'], true) }}</span>
-                        <span class="col-4">
-                          <template v-if="data[3]">
-                            {{ formatTokenAmount({amount: data[3], asset: transaction.asset}, absolute=true) }}
-                          </template>
-                          <template v-else>
-                            {{ formatTokenAmount(transaction, absolute=true) }}X
-                          </template>
-                        </span>
+                        <template v-if="data[3]">
+                          <span class="col-1">#{{ index + 1 }}</span>
+                          <span class="col-5" style="overflow-wrap: anywhere;">{{ convertCashAddress(data[0], $store.getters['global/isChipnet'], true) }}</span>
+                          <span class="col-4">
+                              {{ formatTokenAmount({amount: data[3], asset: transaction.asset}, absolute=true) }}
+                          </span>
+                        </template>
                       </div>
                       <span
                         v-if="transaction.recipients.length > 10"

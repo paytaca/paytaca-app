@@ -282,7 +282,7 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
       limit: 20,
       short_address: addressParam || '',
       funding: 'complete',
-      // settled: false,
+      settled: false,
     }
     const backend = getStablehedgeBackend(isChipnet.value)
     fetchingShortPositions.value = true

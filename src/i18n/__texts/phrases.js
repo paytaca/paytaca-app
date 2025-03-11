@@ -871,6 +871,8 @@ const phrases = {
       IUnderstandProceed: 'I understand, proceed',
       AppealType: 'Appeal Type',
       AppealForm: 'Appeal Form',
+      AppealFormReasonOpt1Seller: 'Unresponsive seller',
+      AppealFormReasonOpt1Buyer: 'Unresponsive buyer',
       AppealFormReasonOpt1: 'Unresponsive seller/buyer',
       AppealFormReasonOpt2: 'Payment failed',
       AppealFormReasonOpt3: 'I changed my mind',
@@ -1147,6 +1149,8 @@ const phrases = {
       ReserveSupply: "Reserve supply",
       TokenReserves: "Token reserves",
       EnableStablhedge: "Enable Stablehedge",
+      DepositWarningMessage: "Due to low liquidity, they may not be fully convertible back to BCH immediately.",
+      AvailableBchMessage: "Available BCH after deposit",
     },
     {
       StablehedgeIntroText: "Safeguard your funds from market volatility and access them whenever you need.",
@@ -1181,7 +1185,8 @@ const phrases = {
       TransactionDetails: 'Transaction Details',
       TotalAmountSent: 'Total amount sent',
       TimeSent: 'Time sent',
-      AuthenticationFailed: 'Authentication failed'
+      AuthenticationFailed: 'Authentication failed',
+      ExternalLinks: 'External Links'
     }
   ],
   dynamic: [

@@ -83,7 +83,7 @@
             @verifying-tx="onVerifyingTx"
           />
 
-          <div v-if="completedOrder" class="text-center q-pb-sm">
+          <div v-if="completedOrder" class="text-center q-mb-sm">
             <q-btn padding="none" flat no-caps color="primary" @click="openFeedback"> View my Feedback </q-btn>
           </div>
         </div>

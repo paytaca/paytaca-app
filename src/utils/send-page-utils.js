@@ -7,6 +7,7 @@ import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { isValidTokenAddress } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { CashAddressType, decodeCashAddress, decodeCashAddressFormatWithoutPrefix, encodeCashAddress } from '@bitauth/libauth'
 
 const { t: $t } = i18n.global
 
@@ -157,6 +158,27 @@ export function validateAddress (address, walletType, isCashToken) {
   return { valid: addressIsValid, address: formattedAddress }
 }
 
+/**
+ * Will parse address with or without prefix, returns address with the prefix if it was missing
+ * @param {String} prefixlessAddress 
+ * @returns 
+ */
+export function parseAddressWithoutPrefix(prefixlessAddress) {
+  if (typeof prefixlessAddress !== 'string') return {valid: false, error: 'Invalid address' }
+
+  const resultWPrefix = decodeCashAddress(prefixlessAddress)
+  if (typeof resultWPrefix !== 'string') return { valid: true, address: prefixlessAddress }
+
+  const result = decodeCashAddressFormatWithoutPrefix(prefixlessAddress)
+  if (typeof result === 'string') return { valid: false, error: result }
+
+  return {
+    valid: true,
+    address: `${result.prefix}:${prefixlessAddress}`,
+  }
+}
+
+
 export function raiseNotifyError (message) {
   Notify.create({
     type: 'negative',
@@ -166,13 +188,15 @@ export function raiseNotifyError (message) {
   })
 }
 
-export function paymentUriPromiseResponseHandler (error) {
+export function paymentUriPromiseResponseHandler (error, opts = { defaultError: '' }) {
   if (error?.message === 'PaymentRequestIsExpired') {
     raiseNotifyError($t(error.message))
   } else if (error?.message === 'InvalidOutputAddress' || error?.name === 'InvalidOutputAddress') {
     raiseNotifyError($t('InvalidAddressFormat'))
   } else if (error?.message === 'InvalidOutputCount' || error?.name === 'InvalidOutputCount') {
     raiseNotifyError($t('MultipleRecipientsUnsupported'))
+  } else if (opts?.defaultError) {
+    raiseNotifyError(opts?.defaultError)
   }
 }
 

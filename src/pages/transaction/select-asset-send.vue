@@ -113,6 +113,9 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
+    online () {
+      return this.$store.state.global.online
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -168,17 +171,28 @@ export default {
       }
     },
     redirectToSend (asset) {
-      const query = {
-        assetId: asset.id,
-        tokenType: 1,
-        network: this.selectedNetwork,
-        address: this.address,
-        backPath: this.backPath
+      if (this.online) {
+        const query = {
+          assetId: asset.id,
+          tokenType: 1,
+          network: this.selectedNetwork,
+          address: this.address,
+          backPath: this.backPath
+        }
+        this.$router.push({
+          name: 'transaction-send',
+          query
+        })
+      } else {
+        this.$q.dialog({
+          title: this.$t('Warning'),
+          message: this.$t('SendPageOffline'),
+          persistent: true,
+          seamless: true,
+          ok: true,
+          class: `pt-card no-click-outside text-bow ${this.getDarkModeClass(this.darkMode)}`
+        })
       }
-      this.$router.push({
-        name: 'transaction-send',
-        query
-      })
     }
   },
   async mounted () {

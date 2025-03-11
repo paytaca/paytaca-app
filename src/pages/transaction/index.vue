@@ -114,7 +114,7 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/>
+                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
                           <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{ bchBalanceText }}
                           </span>
@@ -171,7 +171,7 @@
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
-                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch-logo.png' : 'bch-logo.png'
+                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch.svg' : 'bch-logo.png'
                           "
                           alt=""
                           style="height: 75px;"
@@ -286,6 +286,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
@@ -305,6 +306,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
@@ -332,7 +334,7 @@
               <div v-if="txSearchActive" class="full-width">
                 <q-input
                   ref="tx-search"
-                  style="padding-bottom: 22px;"
+                  style="margin-left: -20px; padding-bottom: 22px;"
                   maxlength="6"
                   label="Search by Reference ID"
                   v-model="txSearchReference"
@@ -877,11 +879,13 @@ export default {
       if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
         const sectionHeight = vm.$refs.fixedSection.clientHeight
-        vm.$refs.transactionSection.setAttribute(
-          'style',
-          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out; ` +
-          `width: ${document.body.clientWidth}px;`
-        )
+        const clientWidth = document.body.clientWidth
+        const elem = vm.$refs.transactionSection
+        if (!elem?.style) return
+
+        elem.style.marginTop = `${sectionHeight - 24}px`;
+        elem.style.transition = `margin-top 0.25s ease-in-out`;
+        elem.style.width = `${clientWidth}px;`
       }, timeout)
     },
     changeNetwork (newNetwork = 'BCH', setAsset) {
@@ -986,7 +990,7 @@ export default {
       if (!assetExists) return
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
-      this.getBalance()
+      this.getBalance(asset.id)
       this.$nextTick(() => {
         this.$refs['transaction-list-component'].resetValues(null, null, asset)
         this.$refs['transaction-list-component'].getTransactions()
@@ -1514,10 +1518,14 @@ export default {
   async mounted () {
     const vm = this
     await this.checkVersionUpdate()
-    this.checkCashinAvailable()
-    this.setupCashinWebSocket()
-    this.resetCashinOrderPagination()
-    this.checkCashinAlert()
+    try {
+      this.checkCashinAvailable()
+      this.setupCashinWebSocket()
+      this.resetCashinOrderPagination()
+      this.checkCashinAlert()
+    } catch(error) {
+      console.error(error)
+    }
     stablehedgePriceTracker.subscribe('main-page')
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
@@ -1560,8 +1568,9 @@ export default {
       }
     }
     if (forceRecreate) {
-      await vm.$store.dispatch('global/updateOnboardingStep', 0)
-      vm.$router.push('/accounts?recreate=true')
+      this.securityOptionDialogStatus = 'show'
+      // await vm.$store.dispatch('global/updateOnboardingStep', 0)
+      // vm.$router.push('/accounts?recreate=true')
     }
 
     window.vm = this

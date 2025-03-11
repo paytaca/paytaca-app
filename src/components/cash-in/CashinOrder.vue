@@ -138,9 +138,8 @@ export default {
       countDown: null,
       selectedReasons: [],
       reasonOpts: [
-        this.$t('AppealFormReasonOpt1'),
-        this.$t('AppealFormReasonOpt2'),
-        this.$t('AppealFormReasonOpt3')
+        this.$t('AppealFormReasonOpt1Seller'),
+        this.$t('AppealFormReasonOpt2')
       ],
       loadConfirmAppeal: false,
       loadConfirmCancel: false,

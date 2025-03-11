@@ -54,6 +54,7 @@ export default {
     'hide-asset-info',
     'show-asset-info',
     'select-asset',
+    'removed-asset'
   ],
   props: {
     network: {
@@ -177,6 +178,7 @@ export default {
           vaultIndex: walletIndex,
           id: asset.id
         })
+        vm.$emit('removed-asset', asset)
       }).onCancel(() => {
       })
     },

@@ -113,6 +113,7 @@
     </div>
     <div class="row q-mt-sm q-pt-xs q-mx-lg">
       <q-btn
+        :loading="loadCancelButton"
         flat
         :disable="!showDragSlide"
         label="Cancel order"
@@ -167,7 +168,8 @@ export default {
       dragSlideKey: 0,
       escrowContract: null,
       escrowBalance: null,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      loadCancelButton: false
     }
   },
   emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending', 'cancel'],
@@ -245,6 +247,8 @@ export default {
           await vm.generateContractAddress()
         }
       }
+      // fetches the contract fees
+      await vm.fetchFees()
       // generates the contract object
       await vm.generateContract()
       // mark contract as pending for verification, if the contract is already funded
@@ -261,6 +265,11 @@ export default {
       await this.loadContract()
       const transferAmount = this.data.transferAmount
       this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
+
+      // if (this.order?.status?.value === 'CNF') {
+      //   this.$emit('refresh')
+      // }
+
       this.loading = false
     },
     async completePayment () {
@@ -431,15 +440,14 @@ export default {
     },
     async generateContract () {
       const vm = this
-      await vm.fetchFees()
       await vm.fetchContract(vm.order.id).then(contract => {
         if (vm.escrowContract || !contract) return
         const publicKeys = contract.pubkeys
         const addresses = contract.addresses
         const fees_ = {
-          arbitrationFee: vm.fees.breakdown?.arbitration_fee,
-          serviceFee: vm.fees.breakdown?.service_fee,
-          contractFee: vm.fees.breakdown?.contract_fee
+          arbitrationFee: vm.fees?.breakdown?.arbitration_fee,
+          serviceFee: vm.fees?.breakdown?.service_fee,
+          contractFee: vm.fees?.breakdown?.contract_fee
         }
         const timestamp = contract.timestamp
         const isChipnet = vm.$store.getters['global/isChipnet']

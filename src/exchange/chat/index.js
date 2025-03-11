@@ -5,15 +5,9 @@ import { backend } from '../backend'
 import { chatBackend } from './backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
-import { getAuthAbortController } from '../auth'
 
 export const chatIdentityManager = new ChatIdentityManager()
 export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
-  if (getAuthAbortController()?.signal?.aborted) {
-    console.log('loadChatIdentity aborted')
-    return
-  }
-
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) await loadRampWallet()
@@ -30,14 +24,8 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     identity = chatIdentityManager.setIdentity(identity)
   }
 
-  if (getAuthAbortController()?.signal?.aborted) {
-    console.log('_updateSignerData aborted')
-    return
-  }
-
   // update verifying and encryption keypairs
   await chatIdentityManager._updateSignerData() // (short-circuits when task is not necessary)
-  if (getAuthAbortController()?.signal?.aborted) { console.log('_updateEncryptionKeypair aborted'); return }
   await chatIdentityManager._updateEncryptionKeypair(!!identity) // (short-circuits when task is not necessary)
 
   // create identity if not existing
@@ -113,7 +101,7 @@ export async function createChatIdentity (payload) {
 
 export async function fetchChatIdentityByRef (ref) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/?ref=${ref}`, { signal: getAuthAbortController()?.signal })
+    chatBackend.get(`chat/identities/?ref=${ref}`)
       .then(response => {
         let identity = null
         if (response.data?.results?.length > 0) {
@@ -134,7 +122,7 @@ export async function fetchChatIdentityByRef (ref) {
 
 export async function fetchChatIdentityById (id) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/${id}/`, { signal: getAuthAbortController()?.signal })
+    chatBackend.get(`chat/identities/${id}/`)
       .then(response => {
         resolve(response.data)
       })
@@ -153,7 +141,7 @@ export async function updateChatIdentity (payload) {
   return new Promise((resolve, reject) => {
     chatBackend.post('chat/identities/', payload, { forceSign: true })
       .then(response => {
-        console.log('Updated chat identity:', response.data)
+        // console.log('Updated chat identity:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -176,7 +164,7 @@ export async function createChatSession (orderId, chatRef) {
     }
     chatBackend.post('chat/sessions/', payload, { forceSign: true })
       .then(response => {
-        console.log('Created chat session:', response.data)
+        // console.log('Created chat session:', response.data)
         resolve(response.data.ref)
       })
       .catch(error => {
@@ -194,7 +182,7 @@ export async function checkChatSessionAdmin (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/chat_member`, { forceSign: true })
       .then(response => {
-        console.log('Check chat admin:', response.data)
+        // console.log('Check chat admin:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -212,7 +200,7 @@ export async function fetchChatSession (chatRef) {
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
       .then(response => {
-        console.log('Chat session:', response.data)
+        // console.log('Chat session:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -231,7 +219,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
     }
     chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
       .then(response => {
-        console.log('Added chat members:', response)
+        // console.log('Added chat members:', response)
         resolve(response)
       })
       .catch(error => {
@@ -359,7 +347,6 @@ export async function updateOrCreateKeypair (update = true) {
   }
 
   if (update) {
-    console.log('Updating chat pubkey to server')
     await updatePubkey(keypair.pubkey)
       .catch(error => {
         console.error(error.response || error)
@@ -375,7 +362,6 @@ export async function updateOrCreateKeypair (update = true) {
 
   return keypair
 }
-
 export function generateChatRef (id, createdAt, members) {
   if (!members) throw Error('Missing required value: members')
   const hashVal = id + createdAt + members

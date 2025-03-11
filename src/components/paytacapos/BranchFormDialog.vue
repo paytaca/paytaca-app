@@ -414,7 +414,7 @@ function confirmDeleteBranch() {
     seamless: true,
     cancel: true,
     ok: true,
-    class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
   })
     .onOk(() => {
       $store.dispatch('paytacapos/deleteBranch', { branchId: branchInfo.value?.id, walletHash: branchInfo.value?.merchantWalletHash })
@@ -423,7 +423,7 @@ function confirmDeleteBranch() {
             message: $t('BranchRemoved', {}, 'Branch removed'),
             seamless: true,
             ok: true,
-            class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+            class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
           })
           onDialogCancel()
         })
@@ -434,7 +434,7 @@ function confirmDeleteBranch() {
           if (Array.isArray(data) && data?.length) errorMessage = data?.[0]
           $q.dialog({
             message: errorMessage || $t('FailedRemoveBranch', {}, 'Failed to remove branch'),
-            class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+            class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
             seamless: true,
             ok: true
           })

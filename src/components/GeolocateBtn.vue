@@ -103,7 +103,7 @@ function geolocate() {
     persistent: true,
     progress: true,
     ok: false,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
   const opts = {
