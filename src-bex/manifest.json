@@ -1,45 +1,54 @@
 {
-  "name": "Paytaca",
-  "description": "Secure and convenient Bitcoin Cash wallet app",
-  "version": "0.22.1",
-  "manifest_version": 2,
-  "icons": {
-    "16": "icons/icon-16x16.png",
-    "48": "icons/icon-48x48.png",
-    "128": "icons/icon-128x128.png"
-  },
-  "options_page": "www/index.html",
-  "browser_action": {
-    "default_title": "Paytaca",
-    "default_popup": "www/index.html",
-    "default": "www/index.html"
-  },
-  "background": {
-    "scripts": [
-      "www/bex-background.js",
-      "js/background.js"
+  "all": {
+    "name": "Paytaca",
+    "description": "Secure and convenient Bitcoin Cash wallet app",
+    "version": "0.22.1",
+    "manifest_version": 3,
+
+    "icons": {
+      "16": "icons/icon-16x16.png",
+      "48": "icons/icon-48x48.png",
+      "128": "icons/icon-128x128.png"
+    },
+
+    "permissions": [
+      "storage",
+      "tabs"
     ],
-    "persistent": true
-  },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": [
-      "www/bex-content-script.js",
-      "js/content-script.js"
+
+    "host_permissions": [ "*://*/*" ],
+    "content_security_policy": {
+      "extension_pages": "default-src 'self' localhost; connect-src *; script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' https://fonts.googleapis.com 'sha256-Qb9o8QXJZCIhmm0fr5pKC26u43jGxmhZFgc7Ho10KAU='; font-src 'self' https://fonts.gstatic.com data:; img-src *;"
+    },
+    "web_accessible_resources": [
+      {
+        "resources": [ "*" ],
+        "matches": [ "*://*/*" ]
+      }
     ],
-    "css": [
-      "css/content-css.css"
+
+    "action": {
+      "default_popup": "www/index.html"
+    },
+
+    "content_scripts": [
+      {
+        "matches": [ "<all_urls>" ],
+        "css": [ "assets/content.css" ],
+        "js": [ "my-content-script.ts" ]
+      }
     ]
-  }],
-  "permissions": [
-    "storage",
-    "activeTab"
-  ],
-  "web_accessible_resources": [
-    "www/*",
-    "js/*",
-    "css/*",
-    "<all_urls>"
-  ],
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
+  },
+
+  "chrome": {
+    "background": {
+      "service_worker": "background.ts"
+    }
+  },
+
+  "firefox": {
+    "background": {
+      "scripts": [ "background.ts" ]
+    }
+  }
 }

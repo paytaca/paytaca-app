@@ -879,11 +879,13 @@ export default {
       if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
         const sectionHeight = vm.$refs.fixedSection.clientHeight
-        vm.$refs.transactionSection.setAttribute(
-          'style',
-          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out; ` +
-          `width: ${document.body.clientWidth}px;`
-        )
+        const clientWidth = document.body.clientWidth
+        const elem = vm.$refs.transactionSection
+        if (!elem?.style) return
+
+        elem.style.marginTop = `${sectionHeight - 24}px`;
+        elem.style.transition = `margin-top 0.25s ease-in-out`;
+        elem.style.width = `${clientWidth}px;`
       }, timeout)
     },
     changeNetwork (newNetwork = 'BCH', setAsset) {
@@ -1516,10 +1518,14 @@ export default {
   async mounted () {
     const vm = this
     await this.checkVersionUpdate()
-    this.checkCashinAvailable()
-    this.setupCashinWebSocket()
-    this.resetCashinOrderPagination()
-    this.checkCashinAlert()
+    try {
+      this.checkCashinAvailable()
+      this.setupCashinWebSocket()
+      this.resetCashinOrderPagination()
+      this.checkCashinAlert()
+    } catch(error) {
+      console.error(error)
+    }
     stablehedgePriceTracker.subscribe('main-page')
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
