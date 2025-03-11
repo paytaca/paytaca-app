@@ -134,11 +134,10 @@ export default {
         }
       })
         .then(response => {
-          console.log('fetchUnspentTxns:', response.data)
           vm.unspentTxns = response.data
         })
         .catch(error => {
-          console.log(error)
+          console.error(error.response || error)
         })
     },
     preventPull (e) {
