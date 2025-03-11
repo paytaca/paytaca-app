@@ -26,7 +26,10 @@
             {{ promo.name }}
           </span><br/>
           <template v-if="isLoading">
-            <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+            <progress-loader
+              :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+              :isTight="true"
+            />
           </template>
           <span
             v-else
@@ -122,13 +125,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss">
-.lds-ellipsis {
-  height: 15px !important;
-
-  & div {
-    top: 10px !important;
-  }
-}
-</style>

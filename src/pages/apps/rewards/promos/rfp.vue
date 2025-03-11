@@ -14,7 +14,10 @@
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
         <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader
+            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            :isTight="true"
+          />
         </div>
         <template v-else>
           <span class="col-12 text-center text-h5 text-bold">{{ points }} RFP</span>
@@ -58,7 +61,10 @@
         </span>
 
         <div v-if="isLoading" class="row col-12 justify-center">
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader
+            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            :isTight="true"
+          />
         </div>
 
         <q-scroll-area ref="referrals_list" class="q-mx-sm">
@@ -229,13 +235,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss">
-.lds-ellipsis {
-  height: 20px !important;
-
-  & div {
-    top: 10px !important;
-  }
-}
-</style>

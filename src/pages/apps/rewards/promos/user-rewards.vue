@@ -14,7 +14,10 @@
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
         <span class="col-12 text-center text-subtitle1">You currently have</span>
         <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader
+            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            :isTight="true"
+          />
         </div>
         <template v-else>
           <span class="col-12 text-center text-h5 text-bold">{{ points }} UP</span>
@@ -42,7 +45,10 @@
         <span class="text-h6 q-mb-sm">Points Earned</span>
 
         <div v-if="isLoading" class="row col-12 justify-center">
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader
+            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            :isTight="true"
+          />
         </div>
 
         <template v-else>
@@ -336,12 +342,5 @@ export default {
 <style lang="scss">
 .q-tab-panels {
   background: transparent;
-}
-.lds-ellipsis {
-  height: 20px !important;
-
-  & div {
-    top: 10px !important;
-  }
 }
 </style>

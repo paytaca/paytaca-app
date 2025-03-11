@@ -68,7 +68,11 @@
 
       <div class="row full-width justify-evenly">
         <template v-if="isSending">
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader
+            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            :isTight="true"
+            class="q-mb-md"
+          />
         </template>
         <template v-else>
           <q-btn
