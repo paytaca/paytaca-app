@@ -25,7 +25,7 @@
         <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;">
           <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
           <div class="row justify-center">
-          <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+            <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
             <q-btn v-else-if="!loadingMoreData && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
           </div>
         </q-list>

@@ -65,6 +65,10 @@
                 </div>
               </div>
             </q-item>
+            <div class="row justify-center">
+              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+              <q-btn v-else-if="!loadingMoreData && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+            </div>
           </q-list>
           <div v-if="cashoutOrders.length === 0" class="text-center q-mt-lg">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
@@ -80,6 +84,7 @@ import { backend } from 'src/wallet/pos'
 import { formatCurrency, formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from '../ProgressLoader.vue'
+import { resetPagination } from 'src/store/ramp/mutations'
 
 export default {
   data () {
@@ -125,22 +130,46 @@ export default {
     async refreshData (done) {
       this.isloading = true
 
-      this.refetchListings()
+      this.resetPagination()
+      this.refetchListings(true)
       this.isloading = false
       done()
     },
-    async refetchListings () {
-      await this.fetchCashoutOrders()
+    async refetchListings (overwrite = false) {
+      this.incPage()
+      await this.fetchCashoutOrders('ALL', overwrite)
     },
-    async fetchCashoutOrders (orderType = "ALL") {
+      loadMoreData () {
+      if (!this.hasMoreData) {
+        return
+      }
+
+      this.loadingMoreData = true
+
+      if (this.pageNumber < this.totalPages) {
+        this.refetchListings()
+      }
+
+      this.loadingMoreData = false
+    },
+    incPage () {
+      this.pageNumber++
+    },
+    resetPagination () {
+      this.pageNumber = 0
+      this.totalPages = null
+    },
+    async fetchCashoutOrders (orderType = "ALL", overwrite = false) {
       const vm = this
       const url = '/paytacapos/cash-out/'
       const limit = 20
 
       /** sample fetch with pagination */
-      await backend.get(url, { params: { order_type: orderType, limit: limit, page: 1 }})
+      await backend.get(url, { params: { order_type: orderType, limit: limit, page: this.pageNumber }})
         .then(response => {
           vm.cashoutOrders = response.data?.orders
+
+          this.totalPages = response.data?.total_pages
         })
         .catch(error => {
           console.log(error)
