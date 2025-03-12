@@ -158,14 +158,15 @@ export default {
       const url = '/paytacapos/cash-out/list_unspent_txns/'
       const limit = 20
 
-      await backend.get(url, {
-        params: {
-          currency: this.currency?.symbol,
-          merchant_ids: history.state.merchantId,
-          limit: limit,
-          page: this.pageNumber
-        }
-      })
+      const params = {
+        currency: this.currency?.symbol,
+        merchant_ids: history.state.merchantId,
+        limit: limit,
+        page: this.pageNumber,
+        // status: 'expired' | 'not-expired' | null
+      }
+
+      await backend.get(url, { params: params })
         .then(response => {
           console.log(response)
           if (overwrite) {
