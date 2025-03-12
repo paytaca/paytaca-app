@@ -111,8 +111,8 @@ const darkMode = computed(() => {
 const initCosigners = () => {
   cosigners.value = {}
   for (let i = 0; i < 20; i++) {
-    // cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'/0/0' }
-    cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
+    cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'' }
+    // cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
   }
 }
 

@@ -14,7 +14,7 @@ const baseTemplate = {
  * // Example usage:
  * const m = 2 // Cosigners to select
  * const n = 3 // Total cosigners
- * const combinations = groupCosigners(m, n)
+ * const combinations = groupCosigners({m, n})
  * // Output:
  * [
  *  [1, 2],
@@ -57,10 +57,10 @@ export const generateSchnorrCheckbits = (cosignerGroups) /* : string  // example
 
 export const generateUnlockingScriptDummy = ({
   cosignerGroup /* : int[] // example: [2, 4] */,
-  scheme /* ?: ecdsa | schnorr */
+  signatureFormat /* ?: ecdsa | schnorr */
 }) => {
   const dummy = 'OP_0' // ecdsa
-  if (scheme === 'schnorr') {
+  if (signatureFormat === 'schnorr') {
     return generateSchnorrCheckbits(cosignerGroup)
   }
 
@@ -81,17 +81,17 @@ export const generateLockScript = ({ m, n }) => {
   }
 }
 
-export const generateScripts = ({ m, n, scheme /* ? 'ecdsa'|'schnorr' // signature scheme */ }) => {
+export const generateScripts = ({ m, n, signatureFormat /* ? 'ecdsa'|'schnorr' // signature signatureFormat */ }) => {
   const cosignerGroups = groupCosigners({ m, n })
   const scripts = {}
 
   for (const cosignerGroup of cosignerGroups) {
     const key = cosignerGroup.join('_and_')
     const name = `Cosigner ${cosignerGroup.join(' & ')}`
-    const dummy = generateUnlockingScriptDummy({ cosignerGroup, scheme })
+    const dummy = generateUnlockingScriptDummy({ cosignerGroup, signatureFormat })
     let script = dummy
     for (const cosignerPosition of cosignerGroup) {
-      script += `\n<key${cosignerPosition}.${scheme}_signature.all_outputs>`
+      script += `\n<key${cosignerPosition}.${signatureFormat}_signature.all_outputs>`
     }
     scripts[key] = {
       name,
@@ -148,10 +148,10 @@ export const generateEntities = ({ m, scripts /* from generateScripts */ }) /* :
  * options.m
  * options.n
  */
-export const createWalletTemplate = ({ m, n, scheme /*: 'ecdsa'|'schnorr' */, name /* ?: string */ }) => {
+export const createWalletTemplate = ({ name /* ?: string */, m, n, signatureFormat /*: 'ecdsa'|'schnorr' */, hdPublicKeyOwners /* string[] */ }) => {
   const template = baseTemplate
   template.name = name || `${m}-of-${n} Multisig`
-  template.scripts = generateScripts({ m, n, scheme })
+  template.scripts = generateScripts({ m, n, signatureFormat })
   template.entities = generateEntities({ m, scripts: template.scripts })
   return template
 }
