@@ -1,5 +1,4 @@
 import {
-  CashAddressNetworkPrefix,
   importWalletTemplate,
   lockingBytecodeToCashAddress,
   walletTemplateToCompilerBCH
