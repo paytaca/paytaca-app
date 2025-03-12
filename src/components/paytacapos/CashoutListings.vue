@@ -24,6 +24,10 @@
       <div v-else>
         <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;">
           <UnspentTransactionList :transactions="unspentTxns" :currency="currency.symbol" @select="selectTransaction"/>
+          <div class="row justify-center">
+          <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+            <q-btn v-else-if="!loadingMoreData && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+          </div>
         </q-list>
         <div v-if="unspentTxns.length === 0" class="text-center q-mt-lg">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
@@ -59,6 +63,9 @@ export default {
       selectedTransactions: [],
       unspentTxns: [],
       isloading: true,
+      loadingMoreData: false,
+      pageNumber: 0,
+      totalPages: null,
       filter: {},
       filterOpts: [
         {
@@ -73,7 +80,10 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    }
+    },
+    hasMoreData () {
+      return (this.pageNumber < this.totalPages)
+    },
   },
   emits: ['cashout-form'],
   async mounted () {
@@ -88,7 +98,8 @@ export default {
     formatCurrency,
     async refreshData (done) {
       this.isloading = true
-      await this.refetchListings()
+      this.resetPagination()
+      await this.refetchListings(true)
 
       this.isloading = false
       done()
@@ -96,8 +107,28 @@ export default {
     updateFilter (info) { // update later
       this.refetchListings()
     },
-    async refetchListings () {
-      await this.fetchUnspentTxns()
+    async refetchListings (overwrite = false) {
+      this.incPage()
+      await this.fetchUnspentTxns(overwrite)
+    },
+    resetPagination () {
+      this.pageNumber = 0
+      this.totalPages = null
+    },
+    incPage() {
+      this.pageNumber++
+    },
+    loadMoreData () {
+      if (!this.hasMoreData)  {
+        return
+      }
+      this.loadingMoreData = true
+
+      if (this.pageNumber < this.totalPages) {
+        this.refetchListings()
+      }
+
+      this.loadingMoreData = false
     },
     openOrderForm () {
       const state = {
@@ -122,7 +153,7 @@ export default {
         this.unspentTxns[index].selected = false
       }
     },
-    async fetchUnspentTxns () {
+    async fetchUnspentTxns (overwrite) {
       const vm = this
       const url = '/paytacapos/cash-out/list_unspent_txns/'
       const limit = 20
@@ -132,12 +163,18 @@ export default {
           currency: this.currency?.symbol,
           merchant_ids: history.state.merchantId,
           limit: limit,
-          page: 1
+          page: this.pageNumber
         }
       })
         .then(response => {
           console.log(response)
-          vm.unspentTxns = response.data?.unspent_transactions
+          if (overwrite) {
+            vm.unspentTxns = response.data?.unspent_transactions
+          } else {
+            this.unspentTxns.push(...response.data?.unspent_transactions)
+          }
+
+          this.totalPages = response.data?.total_pages
         })
         .catch(error => {
           console.error(error.response || error)

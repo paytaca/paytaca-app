@@ -85,6 +85,9 @@ export default {
   data () {
     return {
       isloading: true,
+      loadingMoreData: false,
+      pageNumber: 0,
+      totalPages: null,
       theme: this.$store.getters['global/theme'],
       orderType: 'ALL',
       cashoutOrders: [],
@@ -95,14 +98,17 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    }
+    },
+    hasMoreData () {
+      return (this.pageNumber < this.totalPages)
+    },
   },
   components: {
     ProgressLoader
   },
   async mounted () {
     this.isloading = true
-    await this.fetchCashoutOrders()
+    this.refetchListings()
 
     this.isloading = false
   },
@@ -118,10 +124,13 @@ export default {
     formatCurrency,
     async refreshData (done) {
       this.isloading = true
-      await this.fetchCashoutOrders()
 
+      this.refetchListings()
       this.isloading = false
       done()
+    },
+    async refetchListings () {
+      await this.fetchCashoutOrders()
     },
     async fetchCashoutOrders (orderType = "ALL") {
       const vm = this
