@@ -119,7 +119,13 @@ export default {
   },
   watch: {
     orderType (val) {
-      this.fetchCashoutOrders(val)
+      this.isloading = true
+
+      this.resetPagination()
+      this.incPage()
+      this.fetchCashoutOrders(true)
+
+      this.isloading = false
     }
   },
   methods: {
@@ -137,7 +143,7 @@ export default {
     },
     async refetchListings (overwrite = false) {
       this.incPage()
-      await this.fetchCashoutOrders('ALL', overwrite)
+      await this.fetchCashoutOrders(overwrite)
     },
       loadMoreData () {
       if (!this.hasMoreData) {
@@ -159,13 +165,13 @@ export default {
       this.pageNumber = 0
       this.totalPages = null
     },
-    async fetchCashoutOrders (orderType = "ALL", overwrite = false) {
+    async fetchCashoutOrders (overwrite = false) {
       const vm = this
       const url = '/paytacapos/cash-out/'
       const limit = 20
 
       /** sample fetch with pagination */
-      await backend.get(url, { params: { order_type: orderType, limit: limit, page: this.pageNumber }})
+      await backend.get(url, { params: { order_type: this.orderType, limit: limit, page: this.pageNumber }})
         .then(response => {
           vm.cashoutOrders = response.data?.orders
 

@@ -5,7 +5,7 @@
         <q-btn icon="filter_list" flat outline color="primary" size="md">
           <q-menu>
             <q-list style="min-width: 100px">
-              <q-item v-for="(item, index) in filterOpts" :key="index" clickable @click="updateFilter()" v-close-popup>
+              <q-item v-for="(item, index) in filterOpts" :key="index" clickable @click="updateFilter(item)" v-close-popup>
                 <q-item-section>{{ item.fullText }}</q-item-section>
               </q-item>
             </q-list>
@@ -69,12 +69,16 @@ export default {
       filter: {},
       filterOpts: [
         {
-          hasLossProtection: true, fullText: 'Within 30 Days'
+          value: null, fullText: 'All'
         },
         {
-          hasLossProtection: false, fullText: 'After 30 Days'
+          value: 'not-expired', fullText: 'Has Loss Protection'
+        },
+        {
+          value: 'expired', fullText: 'Expired Loss Protection'
         }
-      ]
+      ],
+      status: null
     }
   },
   computed: {
@@ -104,8 +108,14 @@ export default {
       this.isloading = false
       done()
     },
-    updateFilter (info) { // update later
-      this.refetchListings()
+    async updateFilter (item) {
+      this.isloading = true
+      this.status = item.value
+
+      this.resetPagination()
+      await this.refetchListings(true)
+
+      this.isloading = false
     },
     async refetchListings (overwrite = false) {
       this.incPage()
@@ -163,6 +173,7 @@ export default {
         merchant_ids: history.state.merchantId,
         limit: limit,
         page: this.pageNumber,
+        status: this.status
         // status: 'expired' | 'not-expired' | null
       }
 
