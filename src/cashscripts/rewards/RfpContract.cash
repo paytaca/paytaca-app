@@ -1,0 +1,8 @@
+pragma cashscript ^0.8.0;
+
+contract RfpContract(pubkey userTokenAddress) {
+
+    function transfer(sig userSig) {
+        require(checkSig(userSig, userTokenAddress));
+    }
+}
