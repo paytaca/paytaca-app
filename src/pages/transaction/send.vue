@@ -281,6 +281,7 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 import SendSuccessBlock from 'src/components/send-page/SendSuccessBlock.vue'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 
@@ -1310,9 +1311,14 @@ export default {
   },
 
   async beforeMount () {
+    const dialog = this.$q.dialog({
+      component: LoadingWalletDialog,
+      componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
+    })
     await this.$store.dispatch('global/loadWalletLastAddressIndex')
     await this.$store.dispatch('global/loadWalletAddresses')
     await this.$store.dispatch('global/loadWalletConnectedApps')
+    dialog.hide()
   },
 
   async mounted () {
