@@ -535,16 +535,14 @@ export default {
         await backend.post('/ramp-p2p/order/', body, { authorize: true })
           .then((response) => {
             vm.order = response.data.order
-            this.confirmOrder()
-              .then(() => {
-                vm.state = 'order-process'
-                vm.$emit('updatePageName', 'order-process')
-                vm.fetchOrderMembers(vm.order.id)
-                  .then(members => {
-                    vm.createGroupChat(vm.order.id, members, vm.order.created_at)
-                  })
-                vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
+
+            vm.state = 'order-process'
+            vm.$emit('updatePageName', 'order-process')
+            vm.fetchOrderMembers(vm.order.id)
+              .then(members => {
+                vm.createGroupChat(vm.order.id, members, vm.order.created_at)
               })
+            vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
           })
 
         // vm.order = response.data.order
