@@ -148,7 +148,7 @@ export const generateEntities = ({ m, scripts /* from generateScripts */ }) /* :
  * options.m
  * options.n
  */
-export const createWalletTemplate = ({ name /* ?: string */, m, n, signatureFormat /*: 'ecdsa'|'schnorr' */, hdPublicKeyOwners /* string[] */ }) => {
+export const createTemplate = ({ name /* ?: string */, m, n, signatureFormat /*: 'ecdsa'|'schnorr' */, hdPublicKeyOwners /* string[] */ }) => {
   const template = baseTemplate
   template.name = name || `${m}-of-${n} Multisig`
   template.scripts = generateScripts({ m, n, signatureFormat })
