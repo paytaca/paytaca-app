@@ -1,3 +1,3 @@
-export function getTemplateDraft (state) {
-  return state.templateDraft
+export function getWalletDraft (state) {
+  return state.walletDraft
 }

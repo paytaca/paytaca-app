@@ -1,7 +1,13 @@
 
 export default function () {
   return {
-    templateDraft: null /* bitauth template */,
-    templates: [] /* bitauth templates */
+    walletDraft: null,
+    // {
+    //   m: number,
+    //   n: number,
+    //   cosigners: /* { <position>: { xPubKey, derivationPath } } */,
+    //   template:  /* bitauth template */
+    // },
+    wallets: [] /* { address, lockingBytecode, cosigners, template}[] */
   }
 }
