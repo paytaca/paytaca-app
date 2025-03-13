@@ -145,7 +145,7 @@ const onCreateClicked = () => {
     cashAddressNetworkPrefix: cashAddressNetworkPrefix.value,
     template: template.value
   })
-  $store.getters['global/commitTemplateDraft']({ address, lockingBytecode, template: template.value })
+  $store.dispatch['global/commitTemplateDraft']({ address, lockingBytecode, template: template.value })
 }
 
 watch(() => m.value, (valueOfM) => {
