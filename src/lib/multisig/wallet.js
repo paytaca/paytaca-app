@@ -6,24 +6,25 @@ import {
   decodeHdPublicKey,
   publicKeyToP2pkhCashAddress,
   deriveHdPathRelative,
-  binToHex
+  binToHex,
+  CashAddressNetworkPrefix
 } from 'bitauth-libauth-v3'
 
 import { createTemplate } from './template'
 
-const getHdKeys = ({ hdPublicKeys /* string[] */, hdPublicKeyOwners /* ?: string[] */ }) => {
+const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publicKey: Uint8Array , signerName: string ...} } */ }) => {
   const hdKeys = {
     addressIndex: 0,
     hdPublicKeys: {}
   }
-  for (let i = 0; i < hdPublicKeys.length; i++) {
-    const name = hdPublicKeyOwners[i] || `signer_${i + 1}`
-    hdKeys.hdPublicKeys[name] = hdPublicKeys[i]
-  }
+  Object.entries(signers).forEach(([signerIndex, signer]) => {
+    const name = `signer_${signerIndex}`
+    hdKeys.hdPublicKeys[name] = signers[signerIndex].publicKey
+  })
   return hdKeys
 }
 
-export const derivePubKeyFromXPubKey = (xPubKey, addressIndex /* e.g. '0/0' */) => {
+export const derivePubKeyFromXPubKey = ({ xPubKey, addressIndex /* ?: e.g. '0/0' */ }) => {
   const { node } = assertSuccess(decodeHdPublicKey(xPubKey))
   const { publicKey } = deriveHdPathRelative(node, addressIndex || '0/0')
   const { address } = publicKeyToP2pkhCashAddress({ publicKey })
@@ -36,28 +37,36 @@ export const derivePubKeyFromXPubKey = (xPubKey, addressIndex /* e.g. '0/0' */) 
 /**
  * Mutates the argument, just adds new properties
  */
-const derivePubKeys = ({ xPubKeys /* { xPubKey: string, owner?: string } [] */ }) => {
-  for (const item of Object.values(xPubKeys)) {
-    const { publicKey, address } = derivePubKeyFromXPubKey(item.xPubKey)
-    item.publicKey = publicKey
-    item.address = address
+const derivePubKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, ... } } */ }) => {
+  for (const signerDetails of Object.values(signers)) {
+    const { publicKey, address } = derivePubKeyFromXPubKey({ xPubKey: signerDetails.xPubKey })
+    signerDetails.publicKey = publicKey
+    signerDetails.address = address
   }
-  return xPubKeys
+  return signers
 }
 
 /**
  * .xPubKeys { xPubKey:string, owner?: string } []
  */
-export const createWallet = ({ name, m, n, xPubKeys, cashAddressNetworkPrefix, /* ?: CashAddressNetworkPrefix */ template /* ?: bitauth template */ }) => {
-  const xPubKeysWithDerivedPubKeys = derivePubKeys(xPubKeys)
-  const hdPublicKeyOwners = xPubKeysWithDerivedPubKeys.map(item => item.owner)
-  const hdPublicKeys = xPubKeysWithDerivedPubKeys.map(item => item.publicKey)
+export const createWallet = ({
+  name, m, n,
+  signers, /* { [signerIndex: number]: { xPubKey: string, signerName: string, derivationPath: string } } */
+  cashAddressNetworkPrefix, /* ? CashAddressNetworkPrefix */
+  template /* ?: bitauth template */
+}) => {
+  const signersWithDerivedPubKeys = derivePubKeys({ signers })
+  // const signerNames = Object.entries(signersWithDerivedPubKeys).map(([signerIndex, signer]) => ({ [signerIndex]: signer.signerName }))
+  const signerNames = {}
+  Object.entries(signersWithDerivedPubKeys).forEach(([signerIndex, signer]) => {
+    signerNames[signerIndex] = signer.signerName
+  })
   const mofnWalletTemplate = template || createTemplate({
     name,
     m,
     n,
     signatureFormat: 'schnorr',
-    hdPublicKeyOwners
+    signerNames
   })
 
   const parsedTemplate = importWalletTemplate(mofnWalletTemplate)
@@ -65,7 +74,7 @@ export const createWallet = ({ name, m, n, xPubKeys, cashAddressNetworkPrefix, /
     throw new Error('Failed creating multisig wallet template.')
   }
   const lockingData /*: CompilationData<never> */ = {
-    hdKeys: getHdKeys({ hdPublicKeys, hdPublicKeyOwners })
+    hdKeys: getHdKeys({ signers })
   }
 
   const lockingScript = 'lock'
@@ -81,7 +90,7 @@ export const createWallet = ({ name, m, n, xPubKeys, cashAddressNetworkPrefix, /
 
   const address = lockingBytecodeToCashAddress({
     bytecode: lockingBytecode.bytecode,
-    prefix: cashAddressNetworkPrefix
+    prefix: cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet
   })
 
   return {

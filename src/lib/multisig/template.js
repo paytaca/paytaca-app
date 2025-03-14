@@ -104,12 +104,13 @@ export const generateScripts = ({ m, n, signatureFormat /* ? 'ecdsa'|'schnorr' /
 }
 
 export const generateEntity = ({
-  signer /*: number // signer position */,
-  scripts /* :Object // from generateScripts() */
+  signerIndex /*: number // signer position */,
+  scripts /* :Object // from generateScripts() */,
+  signerNames
 }) /* :BitauthTemplateEntity */ => {
   let signerScriptNames = Object.entries(scripts)
     .filter(([scriptName] /* ,scriptValue */) => {
-      return scriptName.includes(signer)
+      return scriptName.includes(signerIndex)
     })
     .map(([scriptName]) => {
       return scriptName
@@ -117,15 +118,15 @@ export const generateEntity = ({
 
   // include 'lock'
   signerScriptNames = ['lock', ...signerScriptNames]
-  const entityKey = `signer_${signer}`
+  const entityKey = `signer_${signerIndex}`
   const entityValue = {
     description: '',
-    name: `Signer ${signer}`,
+    name: signerNames?.[signerIndex] || `Signer ${signerIndex}`,
     scripts: signerScriptNames,
     variables: {
-      [`key${signer}`]: {
+      [`key${signerIndex}`]: {
         description: '',
-        name: `key${signer}`,
+        name: `key${signerIndex}`,
         type: 'HdKey'
       }
     }
@@ -133,10 +134,10 @@ export const generateEntity = ({
   return [entityKey, entityValue]
 }
 
-export const generateEntities = ({ m, scripts /* from generateScripts */ }) /* :BitauthTemplateEntity */ => {
+export const generateEntities = ({ m, scripts /* from generateScripts */ }, signerNames) /* :BitauthTemplateEntity */ => {
   const entities = {}
   for (let i = 0; i < m; i++) {
-    const [entityKey, entityValue] = generateEntity({ signer: i + 1, scripts })
+    const [entityKey, entityValue] = generateEntity({ signerIndex: i + 1, scripts, signerNames })
     entities[entityKey] = entityValue
   }
   return entities
@@ -148,10 +149,16 @@ export const generateEntities = ({ m, scripts /* from generateScripts */ }) /* :
  * options.m
  * options.n
  */
-export const createTemplate = ({ name /* ?: string */, m, n, signatureFormat /*: 'ecdsa'|'schnorr' */, hdPublicKeyOwners /* string[] */ }) => {
+export const createTemplate = ({
+  name /* ?: string */,
+  m, n,
+  signatureFormat, /*: 'ecdsa'|'schnorr' */ /* string[] */
+  signerNames /* ?: { [signerIndex: number]: string } */
+}) => {
+  // TODO: Use signerNames from args
   const template = baseTemplate
   template.name = name || `${m}-of-${n} Multisig`
   template.scripts = generateScripts({ m, n, signatureFormat })
-  template.entities = generateEntities({ m, scripts: template.scripts })
+  template.entities = generateEntities({ m, scripts: template.scripts, signerNames })
   return template
 }
