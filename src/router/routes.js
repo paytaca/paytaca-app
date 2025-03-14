@@ -220,8 +220,9 @@ const routes = [
         component: () => import('src/layouts/Apps.vue'),
         children: [
           { path: '', component: () => import('src/pages/apps/multisig/index.vue'), name: 'app-multisig' },
-          { path: 'create', component: () => import('src/pages/apps/multisig/create-wallet.vue'), name: 'app-multisig-create-wallet' },
-          { path: 'draft', component: () => import('src/pages/apps/multisig/view-draft.vue'), name: 'app-multisig-view-draft' }
+          { path: 'wallet/create', component: () => import('src/pages/apps/multisig/create-wallet.vue'), name: 'app-multisig-create-wallet' },
+          { path: 'wallet/draft', component: () => import('src/pages/apps/multisig/view-draft.vue'), name: 'app-multisig-view-wallet-draft' },
+          { path: 'wallet/view/:address', component: () => import('src/pages/apps/multisig/view-wallet.vue'), name: 'app-multisig-view-wallet' }
         ]
       }
     ]
