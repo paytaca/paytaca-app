@@ -304,19 +304,23 @@ export default {
     },
     async cashOutUtxos () {
       const selectedUtxos = this.transactions
-      const txBuilder = new CashoutTransactionBuilder()
       const utxos = selectedUtxos.map(el => el.transaction)
+      const txids = utxos.map(el => el.txid)
 
+      // create the cash out order
+      const order = await this.createCashoutOrder(txids)
+      const txBuilder = new CashoutTransactionBuilder()
+      const payoutAddress = await txBuilder.fetchPayoutAddress({ orderId: order.id })
       const result = await txBuilder.sendUtxos({
         sender: this.wallet,
+        payoutAddress: payoutAddress,
         broadcast: true,
         utxos: utxos
       })
 
       const outputTxid = result.txid
-      const txids = utxos.map(el => el.txid)
-      const order = await this.createCashoutOrder({ payoutAddress: result.payoutAddress, txids: txids })
-      await this.manualProcessTxn(outputTxid)
+      
+      await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
       await this.addCashoutAttributeTx(result.txid)
       await this.saveOutputTx({ order_id: order.id, txids: [outputTxid] })
     },
@@ -343,13 +347,12 @@ export default {
       await watchtower.BCH._api.post('/transactions/attributes/', payload)
         .catch(error => { console.error(error.response || error) })
     },
-    async createCashoutOrder ({ payoutAddress, txids }) {
+    async createCashoutOrder (txids) {
       const url = '/paytacapos/cash-out/'
       const body = {
         payment_method_id: this.paymentMethod.id,
         merchant_id: this.merchant.id,
         currency: this.currency.symbol,
-        payout_address: payoutAddress,
         txids: txids
       }
 

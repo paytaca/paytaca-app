@@ -54,8 +54,7 @@ export default class CashoutTransactionBuilder {
     return BigInt(Math.ceil(byteCount * feeRate))
   }
 
-  async sendUtxos ({ sender, broadcast, utxos }) {
-    const payoutAddress = await this.fetchPayoutAddress()
+  async sendUtxos ({ sender, payoutAddress, broadcast, utxos }) {
     const selectedUtxos = this.transformUtxos(utxos)
 
     const { totalInputValue, inputs } = this.buildInputUtxos({
@@ -94,9 +93,10 @@ export default class CashoutTransactionBuilder {
     return result
   }
 
-  async fetchPayoutAddress () {
+  async fetchPayoutAddress ({ orderId }) {
     try {
-      const response = await backend.get('/paytacapos/cash-out/payout_address/')
+      const response = await backend.get('/paytacapos/cash-out/payout_address/', { params: { order_id: orderId }})
+      console.log(response)
       return response.data?.payout_address
     } catch (error) {
       console.error(error.response || error)
