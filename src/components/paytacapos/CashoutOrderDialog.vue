@@ -65,6 +65,10 @@
                 </div>
               </div>
             </q-item>
+            <div class="row justify-center">
+              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
+              <q-btn v-else-if="!loadingMoreData && hasMoreData" flat dense @click="loadMoreData">view more</q-btn>
+            </div>
           </q-list>
           <div v-if="cashoutOrders.length === 0" class="text-center q-mt-lg">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
@@ -80,11 +84,15 @@ import { backend } from 'src/wallet/pos'
 import { formatCurrency, formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from '../ProgressLoader.vue'
+import { resetPagination } from 'src/store/ramp/mutations'
 
 export default {
   data () {
     return {
       isloading: true,
+      loadingMoreData: false,
+      pageNumber: 0,
+      totalPages: null,
       theme: this.$store.getters['global/theme'],
       orderType: 'ALL',
       cashoutOrders: [],
@@ -95,20 +103,29 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    }
+    },
+    hasMoreData () {
+      return (this.pageNumber < this.totalPages)
+    },
   },
   components: {
     ProgressLoader
   },
   async mounted () {
     this.isloading = true
-    await this.fetchCashoutOrders()
+    this.refetchListings()
 
     this.isloading = false
   },
   watch: {
     orderType (val) {
-      this.fetchCashoutOrders(val)
+      this.isloading = true
+
+      this.resetPagination()
+      this.incPage()
+      this.fetchCashoutOrders(true)
+
+      this.isloading = false
     }
   },
   methods: {
@@ -118,20 +135,47 @@ export default {
     formatCurrency,
     async refreshData (done) {
       this.isloading = true
-      await this.fetchCashoutOrders()
 
+      this.resetPagination()
+      this.refetchListings(true)
       this.isloading = false
       done()
     },
-    async fetchCashoutOrders (orderType = "ALL") {
+    async refetchListings (overwrite = false) {
+      this.incPage()
+      await this.fetchCashoutOrders(overwrite)
+    },
+      loadMoreData () {
+      if (!this.hasMoreData) {
+        return
+      }
+
+      this.loadingMoreData = true
+
+      if (this.pageNumber < this.totalPages) {
+        this.refetchListings()
+      }
+
+      this.loadingMoreData = false
+    },
+    incPage () {
+      this.pageNumber++
+    },
+    resetPagination () {
+      this.pageNumber = 0
+      this.totalPages = null
+    },
+    async fetchCashoutOrders (overwrite = false) {
       const vm = this
       const url = '/paytacapos/cash-out/'
       const limit = 20
 
       /** sample fetch with pagination */
-      await backend.get(url, { params: { order_type: orderType, limit: limit, page: 1 }})
+      await backend.get(url, { params: { order_type: this.orderType, limit: limit, page: this.pageNumber }})
         .then(response => {
           vm.cashoutOrders = response.data?.orders
+
+          this.totalPages = response.data?.total_pages
         })
         .catch(error => {
           console.log(error)
