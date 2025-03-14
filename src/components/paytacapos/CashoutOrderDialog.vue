@@ -165,7 +165,7 @@ export default {
       this.pageNumber = 0
       this.totalPages = null
     },
-    async fetchCashoutOrders (overwrite = false) {
+    async fetchCashoutOrders (overwrite) {
       const vm = this
       const url = '/paytacapos/cash-out/'
       const limit = 20
@@ -173,7 +173,11 @@ export default {
       /** sample fetch with pagination */
       await backend.get(url, { params: { order_type: this.orderType, limit: limit, page: this.pageNumber }})
         .then(response => {
-          vm.cashoutOrders = response.data?.orders
+          if (overwrite) {
+            vm.cashoutOrders = response.data?.orders
+          } else {
+            vm.cashoutOrders.push(...response.data?.orders)
+          }
 
           this.totalPages = response.data?.total_pages
         })
