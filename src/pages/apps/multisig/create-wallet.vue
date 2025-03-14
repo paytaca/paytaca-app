@@ -45,10 +45,16 @@
                           @reset="onResetClicked"
                           class="q-gutter-md"
                           >
-                          <template v-for="i, index in Array(m)" :key="`cosigner-${index}`">
+                          <template v-for="i, index in Array(n)" :key="`cosigner-${index}`">
                             <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                               <q-card-section>{{ index === 0 ? '( You )': '' }} Signer {{ index + 1 }} </q-card-section>
                               <q-card-section class="q-pa-md q-gutter-y-sm">
+                                <q-input
+                                  v-model="cosigners[index + 1].signerName"
+                                  label="Cosigners name"
+                                  style="color:black"
+                                  outlined
+                                ></q-input>
                                 <q-input
                                   v-model="cosigners[index + 1].xPubKey"
                                   :label="`Paste Cosigner ${index + 1}'s xPubKey`"
@@ -69,9 +75,19 @@
                             </q-card>
                           </template>
                           <div>
-                              <q-btn v-if="Object.keys(cosigners || {}).length === m" :to="{ path: 'draft' }" label="Preview" type="button" color="primary" flat class="q-ml-sm" />
-                              <q-btn @click.stop="onResetClicked" label="Reset" type="reset" color="primary" flat class="q-ml-sm" />
-                              <q-btn @click.stop="onCreateClicked" label="Create" type="button" color="primary"/>
+                              <q-btn
+                                v-if="Object.keys(cosigners || {}).length === n"
+                                :to="{ name: 'app-multisig-view-wallet-draft' }"
+                                label="Preview" type="button" color="primary" flat class="q-ml-sm" />
+                              <q-btn
+                                @click.stop="onResetClicked"
+                                label="Reset" type="reset" color="primary" flat class="q-ml-sm" />
+                              <q-btn
+                                @click.stop="onCreateClicked"
+                                :to="{ name: 'app-multisig-view-wallet', params: { address } }"
+                                label="Create" type="button" color="primary"
+                                :disabled="Object.keys(cosigners || {}).length === n"
+                              />
                           </div>
                         </q-form>
                       </div>
@@ -102,8 +118,14 @@ const { t: $t } = useI18n()
 const mOptions = ref()
 const nOptions = ref()
 
+/**
+ * Wallet
+ */
 const m = ref()
 const n = ref()
+/**
+ * <signer #>: { xPubKey: string, derivationPath: string, signerName?: string }
+ */
 const cosigners = ref()
 const template = ref()
 const address = ref()
@@ -130,19 +152,21 @@ const cashAddressNetworkPrefix = computed(() => {
 const initCosigners = ({ m }) => {
   const signers = {}
   for (let i = 0; i < m; i++) {
-    signers[i + 1] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'' }
+    const signerIndex = i + 1
+    signers[signerIndex] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'', signerName: `Signer ${signerIndex}` }
     // cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
   }
   const { xPubKey, derivationPath } = $store.getters['global/getWallet']('bch')
   signers[1] = {
+    ...signers[1],
     xPubKey,
     derivationPath: derivationPath
   }
   return signers
 }
 
-const newTemplate = ({ name, m, n }) => {
-  return createTemplate({ name, m, n })
+const newTemplate = ({ name, m, n, signers }) => {
+  return createTemplate({ name, m, n, signers })
 }
 
 const initWallet = () => {
@@ -160,7 +184,7 @@ const initWallet = () => {
   m.value = 2
   n.value = 3
   cosigners.value = initCosigners({ m: m.value })
-  template.value = newTemplate({ name: '', m: m.value, n: n.value })
+  template.value = newTemplate({ name: '', m: m.value, n: n.value, signers: cosigners.value })
   $store.dispatch('multisig/saveWalletDraft', {
     m: m.value, n: n.value, cosigners: cosigners.value, template: template.value
   })
@@ -178,11 +202,19 @@ const onCreateClicked = () => {
   const { address, lockingBytecode } = createWallet({
     m: m.value,
     n: n.value,
-    xPubKeys: cosigners.value.map(item => item.xPubKey),
+    // xPubKeys: Object.values(cosigners.value).map(item => item.xPubKey),
+    signers: cosigners.value,
     cashAddressNetworkPrefix: cashAddressNetworkPrefix.value,
     template: template.value
   })
-  $store.dispatch('multisig/commitWalletDraft', { m: m.value, n: n.value, address, lockingBytecode, cosigners: cosigners.value, template: template.value })
+  $store.dispatch('multisig/commitWalletDraft', {
+    m: m.value,
+    n: n.value,
+    address,
+    lockingBytecode,
+    cosigners: cosigners.value,
+    template: template.value
+  })
 }
 
 watch(() => m.value, (newM) => {
