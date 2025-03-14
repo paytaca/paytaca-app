@@ -38,7 +38,7 @@
                             </span>
                         </div>
                     </div>
-                    <div v-if="cosigners" class="row">
+                    <div v-if="Object.keys(signers || {}).length > 0" class="row">
                       <div class="col-12 q-px-m">
                         <q-form
                           @submit="onSubmit"
@@ -50,22 +50,22 @@
                               <q-card-section>{{ index === 0 ? '( You )': '' }} Signer {{ index + 1 }} </q-card-section>
                               <q-card-section class="q-pa-md q-gutter-y-sm">
                                 <q-input
-                                  v-model="cosigners[index + 1].signerName"
-                                  label="Cosigners name"
+                                  v-model="signers[index + 1].signerName"
+                                  :label="index + 1 === 1? 'Enter your name': 'Cosigner\'s name'"
                                   style="color:black"
                                   outlined
                                 ></q-input>
                                 <q-input
-                                  v-model="cosigners[index + 1].xPubKey"
-                                  :label="`Paste Cosigner ${index + 1}'s xPubKey`"
+                                  v-model="signers[index + 1].xPubKey"
+                                  :label="`Paste signers ${index + 1}'s xPubKey`"
                                   style="color:black"
                                   outlined
                                   :disable="index === 0"
                                 >
                                 </q-input>
                                 <q-input
-                                  v-if="cosigners[index + 1].xPubKey"
-                                  v-model="cosigners[index + 1].derivationPath"
+                                  v-if="signers[index + 1].xPubKey"
+                                  v-model="signers[index + 1].derivationPath"
                                   :key="`derivation-path-${index}`"
                                   :label="`Derivation Path`"
                                   style="color:black"
@@ -76,7 +76,7 @@
                           </template>
                           <div>
                               <q-btn
-                                v-if="Object.keys(cosigners || {}).length === n"
+                                v-if="Object.keys(signers || {}).length === n"
                                 :to="{ name: 'app-multisig-view-wallet-draft' }"
                                 label="Preview" type="button" color="primary" flat class="q-ml-sm" />
                               <q-btn
@@ -86,7 +86,7 @@
                                 @click.stop="onCreateClicked"
                                 :to="{ name: 'app-multisig-view-wallet', params: { address } }"
                                 label="Create" type="button" color="primary"
-                                :disabled="Object.keys(cosigners || {}).length === n"
+                                :disabled="Object.keys(signers || {}).length === n"
                               />
                           </div>
                         </q-form>
@@ -108,7 +108,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted, watch, onBeforeMount } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, stringify} from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { createTemplate, createWallet } from 'src/lib/multisig'
@@ -126,7 +126,7 @@ const n = ref()
 /**
  * <signer #>: { xPubKey: string, derivationPath: string, signerName?: string }
  */
-const cosigners = ref()
+const signers = ref()
 const template = ref()
 const address = ref()
 const lockingBytecode = ref()
@@ -149,16 +149,17 @@ const cashAddressNetworkPrefix = computed(() => {
     : CashAddressNetworkPrefix.mainnet
 })
 
-const initCosigners = ({ m }) => {
+const initSigners = ({ n }) => {
   const signers = {}
-  for (let i = 0; i < m; i++) {
+  for (let i = 0; i < n; i++) {
     const signerIndex = i + 1
     signers[signerIndex] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'', signerName: `Signer ${signerIndex}` }
-    // cosigners.value[i + 1] = { xPubKey: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
+    // signers.value[i + 1] = { xPubKey: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
   }
   const { xPubKey, derivationPath } = $store.getters['global/getWallet']('bch')
   signers[1] = {
     ...signers[1],
+    signerName: 'Signer 1',
     xPubKey,
     derivationPath: derivationPath
   }
@@ -171,22 +172,23 @@ const newTemplate = ({ name, m, n, signers }) => {
 
 const initWallet = () => {
   const walletDraft = $store.getters['multisig/getWalletDraft']
-  console.log('wallet draft', walletDraft)
   if (walletDraft) {
-    m.value = walletDraft.m || 2
-    n.value = walletDraft.n || 3
-    cosigners.value = JSON.parse(JSON.stringify(walletDraft.cosigners))
-    template.value = JSON.parse(JSON.stringify(walletDraft.template))
-    address.value = walletDraft.address
-    lockingBytecode.value = walletDraft.lockingBytecode
-    return
+    try {
+      signers.value = JSON.parse(JSON.stringify(walletDraft.signers))
+      template.value = JSON.parse(JSON.stringify(walletDraft.template))
+      m.value = walletDraft.m || 2
+      n.value = walletDraft.n || 3
+      address.value = walletDraft.address
+      lockingBytecode.value = walletDraft.lockingBytecode
+      return
+    } catch (error) { }
   }
   m.value = 2
   n.value = 3
-  cosigners.value = initCosigners({ m: m.value })
-  template.value = newTemplate({ name: '', m: m.value, n: n.value, signers: cosigners.value })
+  signers.value = initSigners({ n: n.value })
+  template.value = newTemplate({ name: '', m: m.value, n: n.value, signers: signers.value })
   $store.dispatch('multisig/saveWalletDraft', {
-    m: m.value, n: n.value, cosigners: cosigners.value, template: template.value
+    m: m.value, n: n.value, signers: signers.value, template: template.value
   })
 }
 
@@ -196,14 +198,14 @@ const onResetClicked = () => {
 }
 
 const onCreateClicked = () => {
-  if (!m.value || Object.keys(cosigners.value || {}).length !== m.value) {
+  if (!m.value || Object.keys(signers.value || {}).length !== m.value) {
     return
   }
   const { address, lockingBytecode } = createWallet({
     m: m.value,
     n: n.value,
-    // xPubKeys: Object.values(cosigners.value).map(item => item.xPubKey),
-    signers: cosigners.value,
+    // xPubKeys: Object.values(signers.value).map(item => item.xPubKey),
+    signers: signers.value,
     cashAddressNetworkPrefix: cashAddressNetworkPrefix.value,
     template: template.value
   })
@@ -212,7 +214,7 @@ const onCreateClicked = () => {
     n: n.value,
     address,
     lockingBytecode,
-    cosigners: cosigners.value,
+    signers: signers.value,
     template: template.value
   })
 }
@@ -222,15 +224,26 @@ watch(() => m.value, (newM) => {
     n.value = newM + 1
   }
   if (newM) {
-    const newCosigners = initCosigners({ m: newM })
-    cosigners.value = { ...newCosigners, ...cosigners.value }
+    const newCosigners = initSigners({ n: newM })
+    signers.value = { ...newCosigners, ...signers.value }
     template.value = newTemplate({ name: template.value?.name || '', m: newM, n: n.value })
+  }
+})
+
+watch(() => n.value, (newN) => {
+  if (newN && newN < m.value) {
+    n.value = m.value
+  }
+  if (newN) {
+    const newCosigners = initSigners({ n: newN })
+    signers.value = { ...newCosigners, ...signers.value }
+    template.value = newTemplate({ name: template.value?.name || '', m: m.value, n: newN })
   }
 })
 
 onBeforeRouteLeave(() => {
   $store.dispatch('multisig/saveWalletDraft', {
-    m: m.value, n: n.value, cosigners: cosigners.value, template: template.value
+    m: m.value, n: n.value, signers: signers.value, template: template.value
   })
 })
 
@@ -238,13 +251,6 @@ onBeforeMount(() => {
   mOptions.value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
   nOptions.value = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
   initWallet()
-})
-
-onMounted(() => {
-  console.log('m', m.value)
-  console.log('n', n.value)
-  console.log('cosigners', cosigners.value)
-  console.log('template', template.value)
 })
 
 </script>
