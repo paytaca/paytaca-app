@@ -6,8 +6,8 @@
           backnavpath="/apps"
           class="q-px-sm apps-header gift-app-header"
         />
-        <div class="row">
-            <div class="col-xs-12 text-right q-px-sm">
+        <div class="row q-gutter-y-sm">
+            <div class="col-xs-12 text-right q-px-sm q-gutter-x-sm">
                 <q-btn
                   no-caps
                   icon="add"
@@ -16,10 +16,20 @@
                   class="button"
                   :to="{ name: 'app-multisig-create-wallet'}"
                 />
+                <q-btn
+                  no-caps
+                  icon="qr_code_2"
+                  color="primary"
+                  :label="$t('QR Code')"
+                  class="button"
+                  :to="{ name: 'app-multisig-view-xpubkey-qrcode'}"
+                />
+            </div>
+            <div class="col-xs-12 q-px-sm q-gutter-x-sm">
+              {{ wallets }}
             </div>
         </div>
         <!-- display created wallets  -->
-
        </div>
       </div>
   </template>
@@ -36,6 +46,10 @@ const { t: $t } = useI18n()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
+})
+
+const wallets = computed(() => {
+  return $store.getters['multisig/getWallets']
 })
 
 </script>
