@@ -221,8 +221,9 @@ const routes = [
         children: [
           { path: '', component: () => import('src/pages/apps/multisig/index.vue'), name: 'app-multisig' },
           { path: 'wallet/create', component: () => import('src/pages/apps/multisig/create-wallet.vue'), name: 'app-multisig-create-wallet' },
-          { path: 'wallet/draft', component: () => import('src/pages/apps/multisig/view-draft.vue'), name: 'app-multisig-view-wallet-draft' },
-          { path: 'wallet/view/:address', component: () => import('src/pages/apps/multisig/view-wallet.vue'), name: 'app-multisig-view-wallet' }
+          { path: 'wallet/draft', component: () => import('src/pages/apps/multisig/view-wallet-draft.vue'), name: 'app-multisig-view-wallet-draft' },
+          { path: 'wallet/view/:address', component: () => import('src/pages/apps/multisig/view-wallet.vue'), name: 'app-multisig-view-wallet' },
+          { path: 'signer/xpubkey-qrcode', component: () => import('src/pages/apps/multisig/view-xpubkey-qrcode.vue'), name: 'app-multisig-view-xpubkey-qrcode' }
         ]
       }
     ]

@@ -6,11 +6,8 @@ import {
   decodeHdPublicKey,
   publicKeyToP2pkhCashAddress,
   deriveHdPathRelative,
-  binToHex,
   CashAddressNetworkPrefix
 } from 'bitauth-libauth-v3'
-
-import { createTemplate } from './template'
 
 const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publicKey: Uint8Array , signerName: string ...} } */ }) => {
   const hdKeys = {
@@ -19,64 +16,51 @@ const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publ
   }
   Object.entries(signers).forEach(([signerIndex, signer]) => {
     const name = `signer_${signerIndex}`
-    hdKeys.hdPublicKeys[name] = signers[signerIndex].publicKey
+    // hdKeys.hdPublicKeys[name] = signers[signerIndex].publicKey --> error
+    hdKeys.hdPublicKeys[name] = signers[signerIndex].xPubKey // we're supposed to provide the xPubKey to lockingData not public key derived from it
   })
   return hdKeys
 }
 
 export const derivePubKeyFromXPubKey = ({ xPubKey, addressIndex /* ?: e.g. '0/0' */ }) => {
+  // NOTE: We can get the fingerprint from node
   const { node } = assertSuccess(decodeHdPublicKey(xPubKey))
   const { publicKey } = deriveHdPathRelative(node, addressIndex || '0/0')
   const { address } = publicKeyToP2pkhCashAddress({ publicKey })
   return {
     publicKey,
-    address
+    address,
+    node
   }
-}
-
-/**
- * Mutates the argument, just adds new properties
- */
-const derivePubKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, ... } } */ }) => {
-  for (const signerDetails of Object.values(signers)) {
-    const { publicKey, address } = derivePubKeyFromXPubKey({ xPubKey: signerDetails.xPubKey })
-    signerDetails.publicKey = publicKey
-    signerDetails.address = address
-  }
-  return signers
 }
 
 /**
  * .xPubKeys { xPubKey:string, owner?: string } []
  */
 export const createWallet = ({
-  name, m, n,
   signers, /* { [signerIndex: number]: { xPubKey: string, signerName: string, derivationPath: string } } */
   cashAddressNetworkPrefix, /* ? CashAddressNetworkPrefix */
-  template /* ?: bitauth template */
+  template, /* ?: bitauth template */
+  jsonSafe /* ?: boolean convert Uint8Array to array, etc... */
 }) => {
-  const signersWithDerivedPubKeys = derivePubKeys({ signers })
-  // const signerNames = Object.entries(signersWithDerivedPubKeys).map(([signerIndex, signer]) => ({ [signerIndex]: signer.signerName }))
   const signerNames = {}
-  Object.entries(signersWithDerivedPubKeys).forEach(([signerIndex, signer]) => {
+  Object.entries(signers).forEach(([signerIndex, signer]) => {
     signerNames[signerIndex] = signer.signerName
-  })
-  const mofnWalletTemplate = template || createTemplate({
-    name,
-    m,
-    n,
-    signatureFormat: 'schnorr',
-    signerNames
+    // attach node for fingerprint
+    const { node } = assertSuccess(decodeHdPublicKey(signer.xPubKey))
+    signer.parentFingerprint = node.parentFingerprint
+    if (jsonSafe) {
+      signer.parentFingerprint = Array.from(signer.parentFingerprint)
+    }
   })
 
-  const parsedTemplate = importWalletTemplate(mofnWalletTemplate)
+  const parsedTemplate = importWalletTemplate(template)
   if (typeof parsedTemplate === 'string') {
     throw new Error('Failed creating multisig wallet template.')
   }
   const lockingData /*: CompilationData<never> */ = {
     hdKeys: getHdKeys({ signers })
   }
-
   const lockingScript = 'lock'
   const compiler = walletTemplateToCompilerBCH(parsedTemplate)
   const lockingBytecode = compiler.generateBytecode({
@@ -88,13 +72,18 @@ export const createWallet = ({
     throw new Error('Error generating locking bytecode')
   }
 
-  const address = lockingBytecodeToCashAddress({
+  const cashaddress = lockingBytecodeToCashAddress({
     bytecode: lockingBytecode.bytecode,
     prefix: cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet
   })
-
-  return {
-    lockingBytecode: binToHex(lockingBytecode.bytecode),
-    address
+  if (jsonSafe) {
+    lockingBytecode.bytecode = Array.from(lockingBytecode.bytecode)
   }
+  const multisigWallet = {
+    multisigWalletAddress: cashaddress.address,
+    lockingBytecode,
+    signers
+  }
+
+  return multisigWallet
 }
