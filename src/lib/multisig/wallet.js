@@ -68,8 +68,8 @@ export const createWallet = ({
     lockingBytecode.bytecode = Array.from(lockingBytecode.bytecode)
   }
   const multisigWallet = {
-    multisigWalletAddress: cashaddress.address,
-    lockingBytecode,
+    cashaddress: cashaddress.address,
+    lockingBytecode: lockingBytecode.bytecode,
     signers
   }
 
