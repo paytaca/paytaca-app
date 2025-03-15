@@ -6,18 +6,55 @@
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
               :title="$t('View Template')"
-              backnavpath="/apps/multisig/create"
+              backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
-            <div class="row q-mt-lg justify-center">
-                <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
-                  <div v-if="wallet">{{ wallet }}</div>
-                </div>
-            </div>
-            <!-- display created wallets  -->
             <div class="row q-mt-lg justify-right">
                 <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
-                    <q-btn :to="{ name: 'app-multisig-create-wallet' }">Ok</q-btn>
+                    <q-list bordered>
+                      <h6>Wallet Info</h6>
+                      <q-item>
+                        <q-item-section>
+                          Wallet Name
+                        </q-item-section>
+                        <q-item-section right>
+                          {{ wallet.template?.name }}
+                        </q-item-section>
+                      </q-item>
+                      <q-item>
+                        <q-item-section>
+                          Wallet Description
+                        </q-item-section>
+                        <q-item-section right>
+                          {{ wallet.template?.description }}
+                        </q-item-section>
+                      </q-item>
+                      <q-item>
+                        <q-item-section>
+                          Wallet Address
+                        </q-item-section>
+                        <q-item-section right>
+                          {{ wallet.cashaddress }}
+                        </q-item-section>
+                      </q-item>
+                      <h6>Signers</h6>
+                      <q-item>
+                        <q-item-section>
+                          Required Signers
+                        </q-item-section>
+                        <q-item-section right>
+                          {{ wallet.m }} of {{  wallet.n }}
+                        </q-item-section>
+                      </q-item>
+                      <q-item v-for="entity, i in wallet.template.entities" :key="i">
+                        <q-item-section>
+                          Signer's Name
+                        </q-item-section>
+                        <q-item-section right>
+                          {{ entity.name }}
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
                 </div>
             </div>
           </div>
@@ -45,8 +82,8 @@ const darkMode = computed(() => {
 })
 
 const wallet = computed(() => {
-  if (route.params?.address) {
-    return $store.getters['multisig/getWallet']({ address: route.params.address })
+  if (route.params?.cashaddress) {
+    return $store.getters['multisig/getWallet']({ cashaddress: route.params.cashaddress })
   }
   return null
 })

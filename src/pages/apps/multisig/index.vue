@@ -26,7 +26,18 @@
                 />
             </div>
             <div class="col-xs-12 q-px-sm q-gutter-x-sm">
-              {{ wallets }}
+              <q-list v-if="wallets" bordered>
+                <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ path: `wallet/view/${wallet.cashaddress}`}">
+                  <q-item-section>
+                    <q-item-label>{{ wallet.template.name }}</q-item-label>
+                    <q-item-label caption lines="2">
+                      <span v-for="signer, ii in Object.values(wallet.signers)" :key="`signer-${ii}`">
+                        {{ signer.signerName }},
+                      </span>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
             </div>
         </div>
         <!-- display created wallets  -->
