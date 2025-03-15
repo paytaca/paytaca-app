@@ -22,18 +22,6 @@ const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publ
   return hdKeys
 }
 
-export const derivePubKeyFromXPubKey = ({ xPubKey, addressIndex /* ?: e.g. '0/0' */ }) => {
-  // NOTE: We can get the fingerprint from node
-  const { node } = assertSuccess(decodeHdPublicKey(xPubKey))
-  const { publicKey } = deriveHdPathRelative(node, addressIndex || '0/0')
-  const { address } = publicKeyToP2pkhCashAddress({ publicKey })
-  return {
-    publicKey,
-    address,
-    node
-  }
-}
-
 /**
  * .xPubKeys { xPubKey:string, owner?: string } []
  */
