@@ -134,9 +134,9 @@ export const generateEntity = ({
   return [entityKey, entityValue]
 }
 
-export const generateEntities = ({ m, scripts /* from generateScripts */ }, signerNames) /* :BitauthTemplateEntity */ => {
+export const generateEntities = ({ n, scripts /* from generateScripts */, signerNames }) /* :BitauthTemplateEntity */ => {
   const entities = {}
-  for (let i = 0; i < m; i++) {
+  for (let i = 0; i < n; i++) {
     const [entityKey, entityValue] = generateEntity({ signerIndex: i + 1, scripts, signerNames })
     entities[entityKey] = entityValue
   }
@@ -158,7 +158,7 @@ export const createTemplate = ({
   // TODO: Use signerNames from args
   const template = baseTemplate
   template.name = name || `${m}-of-${n} Multisig`
-  template.scripts = generateScripts({ m, n, signatureFormat })
-  template.entities = generateEntities({ m, scripts: template.scripts, signerNames })
+  template.scripts = generateScripts({ m, n, signatureFormat: signatureFormat || 'schnorr' })
+  template.entities = generateEntities({ n, scripts: template.scripts, signerNames })
   return template
 }
