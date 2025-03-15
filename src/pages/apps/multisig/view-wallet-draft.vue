@@ -6,7 +6,7 @@
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
               :title="$t('View Template')"
-              backnavpath="/apps/multisig/create"
+              backnavpath="/apps/multisig/wallet/create"
               class="q-px-sm apps-header gift-app-header"
             />
             <div class="row q-mt-lg justify-center">
