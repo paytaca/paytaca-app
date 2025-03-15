@@ -63,20 +63,21 @@
                                   :disable="index === 0"
                                 >
                                 </q-input>
-                                <q-input
+                                <!-- <q-input
                                   v-if="signers[index + 1].xPubKey"
                                   v-model="signers[index + 1].derivationPath"
                                   :key="`derivation-path-${index}`"
                                   :label="`Derivation Path`"
                                   style="color:black"
                                   outlined
-                                ></q-input>
+                                ></q-input> -->
                               </q-card-section>
                             </q-card>
                           </template>
                           <div>
                               <q-btn
                                 v-if="Object.keys(signers || {}).length === n"
+                                @click.stop="onPreviewClicked"
                                 :to="{ name: 'app-multisig-view-wallet-draft' }"
                                 label="Preview" type="button" color="primary" flat class="q-ml-sm" />
                               <q-btn
@@ -86,7 +87,7 @@
                                 @click.stop="onCreateClicked"
                                 :to="{ name: 'app-multisig-view-wallet', params: { address } }"
                                 label="Create" type="button" color="primary"
-                                :disabled="Object.keys(signers || {}).length === n"
+                                :disabled="Object.keys(signers || {}).length !== n"
                               />
                           </div>
                         </q-form>
@@ -106,9 +107,9 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, ref, onMounted, watch, onBeforeMount } from 'vue'
+import { computed, ref, watch, onBeforeMount } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { CashAddressNetworkPrefix, stringify} from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { createTemplate, createWallet } from 'src/lib/multisig'
@@ -187,8 +188,15 @@ const initWallet = () => {
   n.value = 3
   signers.value = initSigners({ n: n.value })
   template.value = newTemplate({ name: '', m: m.value, n: n.value, signers: signers.value })
+}
+
+const onPreviewClicked = () => {
+  console.log('saving to draft')
   $store.dispatch('multisig/saveWalletDraft', {
-    m: m.value, n: n.value, signers: signers.value, template: template.value
+    m: m.value,
+    n: n.value,
+    template: template.value,
+    signers: signers.value
   })
 }
 
@@ -198,13 +206,10 @@ const onResetClicked = () => {
 }
 
 const onCreateClicked = () => {
-  if (!m.value || Object.keys(signers.value || {}).length !== m.value) {
+  if (!m.value || Object.keys(signers.value || {}).length !== n.value) {
     return
   }
-  const { address, lockingBytecode } = createWallet({
-    m: m.value,
-    n: n.value,
-    // xPubKeys: Object.values(signers.value).map(item => item.xPubKey),
+  const multisigWallet = createWallet({
     signers: signers.value,
     cashAddressNetworkPrefix: cashAddressNetworkPrefix.value,
     template: template.value
@@ -212,10 +217,10 @@ const onCreateClicked = () => {
   $store.dispatch('multisig/commitWalletDraft', {
     m: m.value,
     n: n.value,
-    address,
-    lockingBytecode,
-    signers: signers.value,
-    template: template.value
+    template: template.value,
+    signers: multisigWallet.signers,
+    cashaddress: multisigWallet.address,
+    lockingBytecode: multisigWallet.lockingBytecode
   })
 }
 
