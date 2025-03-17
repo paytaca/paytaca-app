@@ -59,7 +59,9 @@
             </div>
           </div>
         </div>
+        <FooterMenu v-if="wallet" :cashaddress="wallet.cashaddress"/>
       </q-page>
+
     </q-page-container>
   </q-layout>
 </template>
@@ -71,6 +73,7 @@ import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
+import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $store = useStore()

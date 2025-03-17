@@ -78,14 +78,12 @@
                               <q-btn
                                 v-if="Object.keys(signers || {}).length === n"
                                 @click.stop="onPreviewClicked"
-                                :to="{ name: 'app-multisig-view-wallet-draft' }"
                                 label="Preview" type="button" color="primary" flat class="q-ml-sm" />
                               <q-btn
                                 @click.stop="onResetClicked"
                                 label="Reset" type="reset" color="primary" flat class="q-ml-sm" />
                               <q-btn
-                                @click.stop="onCreateClicked"
-                                :to="{ name: 'app-multisig-view-wallet', params: { address } }"
+                                @click="onCreateClicked"
                                 label="Create" type="button" color="primary"
                                 :disabled="Object.keys(signers || {}).length !== n"
                               />
@@ -108,13 +106,14 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, watch, onBeforeMount } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { createTemplate, createWallet } from 'src/lib/multisig'
 
 const $store = useStore()
+const router = useRouter()
 const { t: $t } = useI18n()
 const mOptions = ref()
 const nOptions = ref()
@@ -129,7 +128,7 @@ const n = ref()
  */
 const signers = ref()
 const template = ref()
-const address = ref()
+const cashaddress = ref()
 const lockingBytecode = ref()
 
 const mOptionsComputed = computed(() => {
@@ -179,7 +178,7 @@ const initWallet = () => {
       template.value = JSON.parse(JSON.stringify(walletDraft.template))
       m.value = walletDraft.m || 2
       n.value = walletDraft.n || 3
-      address.value = walletDraft.address
+      cashaddress.value = walletDraft.cashaddress
       lockingBytecode.value = walletDraft.lockingBytecode
       return
     } catch (error) { }
@@ -198,6 +197,7 @@ const onPreviewClicked = () => {
     template: template.value,
     signers: signers.value
   })
+  router.push({ name: 'app-multisig-view-wallet-draft' })
 }
 
 const onResetClicked = () => {
@@ -219,9 +219,10 @@ const onCreateClicked = () => {
     n: n.value,
     template: template.value,
     signers: multisigWallet.signers,
-    cashaddress: multisigWallet.address,
+    cashaddress: multisigWallet.cashaddress,
     lockingBytecode: multisigWallet.lockingBytecode
   })
+  router.push({ name: 'app-multisig-view-wallet', params: { cashaddress: multisigWallet.cashaddress } })
 }
 
 watch(() => m.value, (newM) => {
