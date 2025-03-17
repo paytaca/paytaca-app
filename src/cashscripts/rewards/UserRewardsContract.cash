@@ -1,8 +1,8 @@
 pragma cashscript ^0.8.0;
 
-contract UserRewardsContract(pubkey userTokenAddress) {
+contract UserRewardsContract(pubkey userPubKey) {
 
     function transfer(sig userSig) {
-        require(checkSig(userSig, userTokenAddress));
+        require(checkSig(userSig, userPubKey));
     }
 }
