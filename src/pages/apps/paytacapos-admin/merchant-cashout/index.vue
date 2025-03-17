@@ -56,7 +56,7 @@ export default {
           this.$store.commit('paytacapos/updateCashoutMerchant', this.merchant)
         })
         .catch(error => {
-          console.error(error.response | error)
+          console.error(error.response || error)
         })
     },
     async refreshData (done) {

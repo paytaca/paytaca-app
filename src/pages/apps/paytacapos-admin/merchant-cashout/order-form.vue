@@ -322,7 +322,7 @@ export default {
       
       await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
       await this.addCashoutAttributeTx(result.txid)
-      await this.saveOutputTx({ order_id: order.id, txid: outputTxid })
+      await this.saveOutputTx({ order_id: order.id, txid: outputTxid, payout_address: payoutAddress })
     },
     async saveOutputTx (payload) {
       await backend.post('/paytacapos/cash-out/save_output_tx/', payload, { authorize: true })
