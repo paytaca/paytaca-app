@@ -11,7 +11,7 @@
             />
             <div class="row q-mt-lg justify-right">
                 <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
-                    <q-list bordered>
+                    <q-list v-if="wallet" bordered>
                       <h6>Wallet Info</h6>
                       <q-item>
                         <q-item-section>

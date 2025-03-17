@@ -1,8 +1,10 @@
-export function getWallet (state, { address }) {
-  const wallet = state.wallets.filter((wallet) => {
-    return wallet.address === address
-  })
-  return wallet
+export function getWallet (state) {
+  return ({ cashaddress }) => {
+    const wallet = state.wallets.filter((wallet) => {
+      return wallet.cashaddress === cashaddress
+    })
+    return wallet?.[0]
+  }
 }
 
 export function getWallets (state) {
