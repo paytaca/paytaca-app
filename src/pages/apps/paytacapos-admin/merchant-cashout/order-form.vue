@@ -405,7 +405,7 @@ export default {
       if (this.transactionList[index].selected) {
         this.transactions.push(this.transactionList[index])
       } else {
-        this.transactions = this.transactions.filter(tx => tx.txid !== this.transactionList[index].txid)
+        this.transactions = this.transactions.filter(tx => tx?.transaction?.txid !== this.transactionList[index]?.transaction?.txid)
       }
 
       this.calculateCashOutTotal(this.transactions)
