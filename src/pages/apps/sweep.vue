@@ -13,40 +13,74 @@
         :class="getDarkModeClass(darkMode)"
         :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}"
       >
-        <div class="text-center" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
+        <div class="text-center text-h6" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
           <p>{{ $t('Scanning') }}...</p>
           <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
         </div>
-        <q-form v-if="!submitted" class="text-center wide-margin-top">
-          <textarea
-            v-if="tokens.length === 0"
-            v-model="wif"
-            class="sweep-input"
-            rows="2"
-            :placeholder="$t('SweepInputPlaceholder')"
-          >
-          </textarea>
-          <br>
-          <template v-if="!wif">
-            <div class="text-uppercase or-label">
-              {{ $t('or') }}
-            </div>
-            <q-btn round size="lg" class="button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
-          </template>
-          <div style="margin-top: 20px; ">
-            <q-btn
-              class="button"
-              color="primary"
-              v-if="tokens.length === 0 && wif"
-              @click.prevent="getTokens"
+
+        <div class="text-center text-h6" v-if="isDecrypting" style="margin-top: 25px;">
+          <p>{{ 'Decrypting' }}...</p>
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </div>
+
+        <template v-if="!submitted">
+          <q-form v-if="bip38String === ''" class="text-center wide-margin-top">
+            <textarea
+              v-if="tokens.length === 0"
+              v-model="wif"
+              class="sweep-input"
+              rows="2"
+              :placeholder="$t('SweepInputPlaceholder')"
             >
-              {{ $t('Scan') }}
-            </q-btn>
-            <p v-if="wif && error" style="color: red;">
-              {{ error }}
-            </p>
+            </textarea>
+            <br>
+            <template v-if="!wif">
+              <div class="text-uppercase or-label">
+                {{ $t('or') }}
+              </div>
+              <q-btn round size="lg" class="button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
+            </template>
+            <div style="margin-top: 20px; ">
+              <q-btn
+                class="button"
+                color="primary"
+                v-if="tokens.length === 0 && wif"
+                @click.prevent="getTokens"
+              >
+                {{ $t('Scan') }}
+              </q-btn>
+              <p v-if="wif && error" style="color: red;">
+                {{ error }}
+              </p>
+            </div>
+          </q-form>
+
+          <div v-else class="flex flex-center text-center text-h6 q-mt-md">
+            <span class="q-mb-md">
+              Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.
+            </span>
+            <q-input
+              outlined
+              label-slot
+              autogrow
+              v-model="passPhrase"
+              class="full-width passphrase-input"
+              type="textarea"
+              :dark="darkMode"
+            >
+              <template v-slot:label>
+                {{ 'BIP38 wallet passphrase' }}
+              </template>
+            </q-input>
+            <q-btn
+              class="q-mt-md button passphrase-input"
+              label="Decrypt"
+              :disabled="passPhrase.length === 0"
+              @click.prevent="decryptEncryptedWallet"
+            />
           </div>
-        </q-form>
+        </template>
+
         <div v-else-if="emptyAssets && showSuccess" class="text-center wide-margin-top">
           <q-icon
             name="check_circle" size="150px"
@@ -255,6 +289,8 @@ import { getMnemonic, Wallet } from '../../wallet'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { CashNonFungibleToken } from 'src/wallet/cashtokens'
 import { convertCashAddress } from 'src/wallet/chipnet'
+import bip38 from 'bip38'
+import * as wifPackage from 'wif'
 
 export default {
   name: 'sweep',
@@ -265,6 +301,7 @@ export default {
   },
   props: {
     w: String,
+    bip38String: { type: String, default: '' }
   },
   data () {
     return {
@@ -305,6 +342,9 @@ export default {
       showSuccess: false,
       showQrScanner: false,
       error: null,
+      passPhrase: '',
+      isDecrypting: false,
+
       sweepTxidMap: {
         'bch': '',
         /** 'token-id-and-commitment': '', */
@@ -321,6 +361,11 @@ export default {
       if (value.length === 0) {
         this.error = null
       }
+    },
+    w() {
+      if (this.wif || this.sweeper) return
+      this.wif = extractWifFromUrl(this.w) || this.w
+      this.getTokens(true)
     }
   },
   computed: {
@@ -529,14 +574,22 @@ export default {
     onScannerDecode (content) {
       this.showQrScanner = false
       this.wif = content
-    }
-  },
-  watch: {
-    w() {
-      if (this.wif || this.sweeper) return
-      this.wif = extractWifFromUrl(this.w) || this.w
+    },
+    async decryptEncryptedWallet () {
+      this.isDecrypting = true
+      const decryptedKey = await bip38.decrypt(this.bip38String, this.passPhrase, (status) => {
+        this.isDecrypting = true
+        console.log(status)
+      })
+      const wifKey = await wifPackage.encode({
+        version: 0x80,
+        privateKey: decryptedKey.privateKey,
+        compressed: decryptedKey.compressed
+      })
+      this.isDecrypting = false
+      this.wif = wifKey
       this.getTokens(true)
-    }
+    },
   },
   mounted () {
     const vm = this
@@ -595,5 +648,9 @@ export default {
 
   .wide-margin-top {
     margin-top: 85px;
+  }
+
+  .passphrase-input {
+    font-size: 16px;
   }
 </style>

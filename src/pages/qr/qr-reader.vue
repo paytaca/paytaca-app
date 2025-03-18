@@ -80,6 +80,7 @@ import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
+import base58 from 'bs58'
 
 export default {
   name: 'QRReader',
@@ -284,6 +285,12 @@ export default {
             name: 'app-wallet-connect',
             query: { uri: value }
           })
+        } else if (vm.checkifBIP38(value)) {
+          // redirect to sweep page for passphrase input
+          vm.$router.push({
+            name: 'app-sweep',
+            query: { w: '', bip38String: value }
+          })
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
@@ -384,6 +391,17 @@ export default {
       } else return true
 
       return false
+    },
+    checkifBIP38(value) {
+      let isBase58 = false
+      try {
+        base58.decode(value)
+        isBase58 = true
+      } catch (_e) { return false }
+
+      return value.length === 58
+        && value.substring(0, 2) === '6P'
+        && isBase58
     },
 
     loadingDialog () {
