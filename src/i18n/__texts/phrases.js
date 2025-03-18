@@ -1186,7 +1186,8 @@ const phrases = {
       TotalAmountSent: 'Total amount sent',
       TimeSent: 'Time sent',
       AuthenticationFailed: 'Authentication failed',
-      ExternalLinks: 'External Links'
+      ExternalLinks: 'External Links',
+      ProcessingNecessaryDetails: 'Processing necessary details'
     }
   ],
   dynamic: [
