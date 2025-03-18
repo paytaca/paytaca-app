@@ -18,6 +18,14 @@
                 />
                 <q-btn
                   no-caps
+                  icon="add"
+                  color="primary"
+                  :label="$t('Delete All Wallets')"
+                  class="button"
+                  @click="deleteAllWallets"
+                />
+                <q-btn
+                  no-caps
                   icon="qr_code_2"
                   color="primary"
                   :label="$t('QR Code')"
@@ -27,14 +35,17 @@
             </div>
             <div class="col-xs-12 q-px-sm q-gutter-x-sm">
               <q-list v-if="wallets" bordered>
-                <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ path: `wallet/view/${wallet.cashaddress}`}">
+                <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-view-wallet', params: { cashaddress: wallet.cashaddress } }">
                   <q-item-section>
                     <q-item-label>{{ wallet.template.name }}</q-item-label>
                     <q-item-label caption lines="2">
                       <span v-for="signer, ii in Object.values(wallet.signers)" :key="`signer-${ii}`">
-                        {{ signer.signerName }},
+                        {{ signer.signerName }}
                       </span>
                     </q-item-label>
+                  </q-item-section>
+                  <q-item-section side top>
+                    <q-btn icon="delete" @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.cashaddress) }" color="secondary"></q-btn>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -62,5 +73,13 @@ const darkMode = computed(() => {
 const wallets = computed(() => {
   return $store.getters['multisig/getWallets']
 })
+
+const deleteWallet = (cashaddress) => {
+  $store.dispatch('multisig/deleteWallet', { cashaddress })
+}
+
+const deleteAllWallets = () => {
+  $store.dispatch('multisig/deleteAllWallets')
+}
 
 </script>
