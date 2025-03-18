@@ -256,11 +256,7 @@ export default {
 
         vm.paused = true
         // quick timeout to allow qrcode stream cache to reset after pausing
-        await new Promise((resolve) => {
-          window.setTimeout(resolve, 250)
-        })
-
-        const payProData = await parsePayPro(value)
+        await new Promise((resolve) => { window.setTimeout(resolve, 250) })
 
         if (value.includes('gifts.paytaca.com')) {
           // redirect to gifts page
@@ -278,76 +274,7 @@ export default {
             query: { w: extractWifFromUrl(value) }
           })
         } else if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
-          // redirect to send page
-          const loadingDialog = vm.loadingDialog()
-          setTimeout(() => {
-            loadingDialog.hide()
-          }, 700)
-
-          let query
-          if (value.includes('bitcoincash:q') || value.includes('bitcoincash:z') || value.includes('bitcoincash:p') || value.includes('bitcoincash:r') ||
-              value.includes('bchtest:q') || value.includes('bchtest:z') || value.includes('bchtest:p') || value.includes('bchtest:r')
-          ) {
-            let fallback = false
-            if (payProData.valid) {
-              query = {
-                network: 'BCH',
-                address: payProData.recipient
-              }
-              if (payProData.paypro.category) {
-                query.assetId = `ct/${payProData.paypro.category}`
-
-                if (payProData.paypro.fungible) {
-                  query.fungible = payProData.paypro.fungible
-                }
-                vm.$router.push({
-                  name: 'transaction-send',
-                  query
-                })
-              } else {
-                fallback = true
-              }
-            } else {
-              fallback = true
-            }
-
-            // Fallback to BCH
-            if (fallback) {
-              if (isTokenAddress(value)) {
-                vm.$router.push({
-                  name: 'transaction-send-select-asset',
-                  query: { address: value }
-                })
-              } else {
-                query = {
-                  assetId: vm.$store.getters['assets/getAssets'][0].id,
-                  network: 'BCH',
-                  address: value
-                }
-                vm.$router.push({
-                  name: 'transaction-send',
-                  query
-                })
-              }
-            }
-          } else if (value.includes('bitcoincash:?r')) {
-            query = {
-              assetId: vm.$store.getters['assets/getAssets'][0].id,
-              network: 'BCH',
-              paymentUrl: String(value)
-            }
-            vm.$router.push({
-              name: 'transaction-send',
-              query
-            })
-          } else {
-            vm.$q.notify({
-              message: vm.$t('UnidentifiedQRCode'),
-              timeout: 800,
-              color: 'red-9',
-              icon: 'mdi-qrcode-remove'
-            })
-          }
+          vm.processSendPageRedirection(value)
         } else if (parseWalletConnectUri(value)) {
           const loadingDialog = vm.loadingDialog()
           setTimeout(() => {
@@ -376,6 +303,89 @@ export default {
         })
       }
     },
+
+    async processSendPageRedirection (value) {
+      // redirect to send page
+      const vm = this
+      const payProData = await parsePayPro(value)
+      const loadingDialog = vm.loadingDialog()
+
+      setTimeout(() => { loadingDialog.hide() }, 700)
+
+      const prefixArray = [
+        'bitcoincash:q', 'bchtest:q',
+        'bitcoincash:z', 'bchtest:z',
+        'bitcoincash:p', 'bchtest:p',
+        'bitcoincash:r', 'bchtest:r',
+      ]
+      let query
+
+      if (prefixArray.findIndex(s => a.includes(s)) > -1) {
+        let fallback = vm.processPayProData(payProData)
+
+        // Fallback to BCH
+        if (fallback) {
+          if (isTokenAddress(value)) {
+            vm.$router.push({
+              name: 'transaction-send-select-asset',
+              query: { address: value }
+            })
+          } else {
+            query = {
+              assetId: vm.$store.getters['assets/getAssets'][0].id,
+              network: 'BCH',
+              address: value
+            }
+            vm.$router.push({
+              name: 'transaction-send',
+              query
+            })
+          }
+        }
+      } else if (value.includes('bitcoincash:?r')) {
+        query = {
+          assetId: vm.$store.getters['assets/getAssets'][0].id,
+          network: 'BCH',
+          paymentUrl: String(value)
+        }
+        vm.$router.push({
+          name: 'transaction-send',
+          query
+        })
+      } else {
+        vm.$q.notify({
+          message: vm.$t('UnidentifiedQRCode'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
+        })
+      }
+    },
+    processPayProData (payProData) {
+      let query
+
+      if (payProData.valid) {
+        query = {
+          network: 'BCH',
+          address: payProData.recipient
+        }
+
+        if (payProData.paypro.category) {
+          query.assetId = `ct/${payProData.paypro.category}`
+
+          if (payProData.paypro.fungible) {
+            query.fungible = payProData.paypro.fungible
+          }
+          vm.$router.push({
+            name: 'transaction-send',
+            query
+          })
+        } else return true
+      } else return true
+
+      return false
+    },
+
     loadingDialog () {
       return this.$q.dialog({
         component: LoadingWalletDialog,
