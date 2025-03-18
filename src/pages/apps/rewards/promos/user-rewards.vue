@@ -211,6 +211,8 @@ import StatusChip from 'src/components/rewards/StatusChip.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
+import UserRewardContract from 'src/utils/rewards-utils/contracts/UserRewardContract'
+
 export default {
   name: 'UserRewards',
 
@@ -302,6 +304,16 @@ export default {
     }
 
     vm.isLoading = false
+
+    const urContract = new UserRewardContract(
+      this.$store.getters['global/getWallet']('bch')?.xPubKey
+    )
+    await urContract.subscribeAddress()
+    console.log(urContract)
+    const balance = await urContract.getTokenBalance()
+    console.log('balance', balance)
+    // console.log(urContract.contract.address)
+    // console.log(urContract.contract.tokenAddress)
   },
 
   methods: {
