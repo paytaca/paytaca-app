@@ -3,7 +3,8 @@
         <q-item v-for="(tx, index) in transactions" :key="index" clickable @click="selectTransaction(tx, index)">
           <q-item-section>
             <div class="q-mx-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              <div class="sm-font-size text-grey-6 text-strike">
+              <div v-if="getFiatValue('initial', tx).toFixed(2) !== getFiatValue('current', tx).toFixed(2)"
+                class="sm-font-size text-grey-6 text-strike">
                 {{ formatCurrency(getFiatValue('initial', tx), currency) }} {{ currency }}
               </div>
               <div class="row">
@@ -89,17 +90,17 @@ export default {
       return transaction.amount * price
     },
     getFiatValueColor (transaction) {
-      const currentPrice = this.getMarketPrice('current', transaction, this.currency)
-      const initialPrice = this.getMarketPrice('initial', transaction, this.currency)
-      if (currentPrice < initialPrice) return 'text-red'
-      if (currentPrice > initialPrice) return 'text-green'
+      const initialVal = (this.getFiatValue ('initial', transaction)).toFixed(2)
+      const currentVal = (this.getFiatValue ('current', transaction)).toFixed(2)
+      if (currentVal < initialVal) return 'text-red'
+      if (currentVal > initialVal) return 'text-green'
       return 'text-blue'
     },
     getFiatValueIcon (transaction) {
-      const currentPrice = this.getMarketPrice('current', transaction, this.currency)
-      const initialPrice = this.getMarketPrice('initial', transaction, this.currency)
-      if (currentPrice > initialPrice) return 'trending_up'
-      if (currentPrice < initialPrice) return 'trending_down'
+      const initialVal = (this.getFiatValue ('initial', transaction)).toFixed(2)
+      const currentVal = (this.getFiatValue ('current', transaction)).toFixed(2)
+      if (currentVal > initialVal) return 'trending_up'
+      if (currentVal < initialVal) return 'trending_down'
       return ''
     },
     isTxnSelected (tx) {

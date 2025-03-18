@@ -21,7 +21,8 @@
               <q-item v-for="(tx, index) in transactionList" :key="index" clickable @click="selectTransaction(index)">
                 <q-item-section>
                   <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div class="sm-font-size text-grey-6 text-strike">
+                    <div v-if="getInitialFiatAmount(tx).toFixed(2) !== getCurrentFiatAmount(tx).toFixed(2)"
+                      class="sm-font-size text-grey-6 text-strike">
                       {{ formatCurrency(getInitialFiatAmount(tx), currency.symbol) }} {{ currency.symbol }}
                     </div>
                     <div class="row">
@@ -169,6 +170,8 @@ import HeaderNav from 'src/components/header-nav.vue'
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
 import { loadLibauthHdWallet } from 'src/wallet'
 import Watchtower from 'src/lib/watchtower'
+import { getMnemonic, Wallet } from 'src/wallet'
+import { markRaw } from 'vue'
 
 export default {
   data () {
@@ -260,7 +263,8 @@ export default {
         }
         totalBchAmount += tx.amount
       })
-      lossGain = currentTotal - initialTotal
+      lossCovered = lossCovered.toFixed(2)
+      lossGain = (currentTotal - initialTotal).toFixed(2)
       currentTotal += lossCovered
 
       this.cashOutTotal = {
@@ -309,20 +313,20 @@ export default {
 
       // create the cash out order
       const order = await this.createCashoutOrder(txids)
-      const txBuilder = new CashoutTransactionBuilder()
-      const payoutAddress = await txBuilder.fetchPayoutAddress({ orderId: order.id })
-      const result = await txBuilder.sendUtxos({
-        sender: this.wallet,
-        payoutAddress: payoutAddress,
-        broadcast: true,
-        utxos: utxos
-      })
+      // const txBuilder = new CashoutTransactionBuilder()
+      // const payoutAddress = await txBuilder.fetchPayoutAddress({ orderId: order.id })
+      // const result = await txBuilder.sendUtxos({
+      //   sender: this.wallet,
+      //   payoutAddress: payoutAddress,
+      //   broadcast: true,
+      //   utxos: utxos
+      // })
 
-      const outputTxid = result.txid
+      // const outputTxid = result.txid
       
-      await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
-      await this.addCashoutAttributeTx(result.txid)
-      await this.saveOutputTx({ order_id: order.id, txid: outputTxid, payout_address: payoutAddress })
+      // // await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
+      // await this.addCashoutAttributeTx(result.txid)
+      // await this.saveOutputTx({ order_id: order.id, txid: outputTxid, payout_address: payoutAddress })
     },
     async saveOutputTx (payload) {
       await backend.post('/paytacapos/cash-out/save_output_tx/', payload, { authorize: true })
@@ -361,6 +365,8 @@ export default {
           console.error(error.response || error)
         })
 
+      console.log(response.data)
+
       this.orderStatus = 'success'
       this.openDialog = true
       return response.data
@@ -374,17 +380,17 @@ export default {
       return transaction?.amount * marketPrice
     },
     getFiatAmountColor (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.current[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
-      if (currentFiatPrice < initialFiatPrice) return 'text-red'
-      if (currentFiatPrice > initialFiatPrice) return 'text-green'
+      const initialVal = (this.getInitialFiatAmount(transaction)).toFixed(2)
+      const currentVal = (this.getCurrentFiatAmount(transaction)).toFixed(2)
+      if (currentVal < initialVal) return 'text-red'
+      if (currentVal > initialVal) return 'text-green'
       return 'text-blue'
     },
     getTrendingIcon (transaction) {
-      const currentFiatPrice = transaction?.fiat_price?.current[this.currency?.symbol]
-      const initialFiatPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
-      if (currentFiatPrice > initialFiatPrice) return 'trending_up'
-      if (currentFiatPrice < initialFiatPrice) return 'trending_down'
+      const initialVal = (this.getInitialFiatAmount(transaction)).toFixed(2)
+      const currentVal = (this.getCurrentFiatAmount(transaction)).toFixed(2)
+      if (currentVal > initialVal) return 'trending_up'
+      if (currentVal < initialVal) return 'trending_down'
       return ''
     },
     isTxnSelected (transaction) {

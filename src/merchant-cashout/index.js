@@ -94,8 +94,12 @@ export default class CashoutTransactionBuilder {
   }
 
   async fetchPayoutAddress ({ orderId }) {
+    const params = {
+      order_id: orderId,
+      fixed: false
+    }
     try {
-      const response = await backend.get('/paytacapos/cash-out/payout_address/', { params: { order_id: orderId }})
+      const response = await backend.get('/paytacapos/cash-out/payout_address/', { params: params })
       console.log(response)
       return response.data?.payout_address
     } catch (error) {
