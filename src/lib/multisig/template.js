@@ -70,7 +70,7 @@ export const generateUnlockingScriptDummy = ({
 export const generateLockScript = ({ m, n }) => {
   let script = `OP_${m}\n<pubkeys>OP_${n}\nOP_CHECKMULTISIG`
   let pubkeys = ''
-  for (let i = 1; i < m + 1; i++) {
+  for (let i = 1; i < n + 1; i++) {
     pubkeys += `<key${i}.public_key>\n`
   }
   script = script.replace('<pubkeys>', pubkeys)
