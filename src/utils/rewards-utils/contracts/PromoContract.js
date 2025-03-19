@@ -4,26 +4,27 @@ import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
 import Watchtower from "watchtower-cash-js"
 
-import UserRewardsContract from 'src/cashscripts/rewards/UserRewardsContract.cash'
+import PromoContractCash from 'src/cashscripts/rewards/PromoContract.cash'
 
 const bchjs = new BCHJS()
 const watchtower = new Watchtower(false)
 const spiceDecimals = 8
 
-export default class UserRewardContract {
+export default class PromoContract {
 
-  constructor (xPubKey) {
+  constructor (xPubKey, promo) {
     this.xPubkey = xPubKey
+    this.promo = promo
 
-    this.initializeContract()
+    this.initializeContract(promo)
   }
 
   initializeContract () {
-    const artifact = compileString(UserRewardsContract)
+    const artifact = compileString(PromoContractCash)
     const provider = new ElectrumNetworkProvider(Network.MAINNET)
-
     const contractParams = [
-      CryptoJS.SHA256(this.getPubKeyHash(this.xPubkey)).toString()
+      CryptoJS.SHA256(this.getPubKeyHash(this.xPubkey)).toString(),
+      this.promo
     ]
 
     this.contract = new Contract(artifact, contractParams, { provider })
@@ -70,7 +71,7 @@ export default class UserRewardContract {
    * @param {string} pubKey - The public key to be hashed, in hexadecimal format.
    * @returns {Buffer} The generated hash as a Buffer.
    */
-  getPubKeyHash (pubKey) {
+  getPubKeyHash(pubKey) {
     return bchjs.Crypto.hash160(Buffer.from(pubKey, 'hex'))
   }
 }
