@@ -55,21 +55,17 @@
             </div>
           </q-form>
 
-          <div v-else class="flex flex-center text-center text-h6 q-mt-md">
+          <div v-else class="flex flex-center text-center text-h6 q-mt-lg">
             <span class="q-mb-md">{{ $t('BIP38WalletDetected') }}</span>
             <q-input
               outlined
-              label-slot
               autogrow
               v-model="passPhrase"
               class="full-width passphrase-input"
               type="textarea"
               :dark="darkMode"
-            >
-              <template v-slot:label>
-                {{ $t('BIP38WalletPassphrase') }}
-              </template>
-            </q-input>
+              :placeholder="$t('BIP38WalletPassphrase')"
+            />
             <q-btn
               class="q-mt-md button passphrase-input"
               :label="$t('Decrypt')"
@@ -465,10 +461,14 @@ export default {
       ])
 
       await this.sweeper.getBchBalance().then((data) => {
-        this.bchBalance = data.spendable || 0
-        this.fetching = false
-        this.sweeping = false
+        // add timeout to allow subscription to finish
+        setTimeout(() => {
+          this.bchBalance = data.spendable || 0
+          this.fetching = false
+          this.sweeping = false
+        }, 1000);
       })
+
     },
     sweepToken (token) {
       const vm = this
