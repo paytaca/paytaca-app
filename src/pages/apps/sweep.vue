@@ -575,20 +575,20 @@ export default {
       this.showQrScanner = false
       this.wif = content
     },
-    async decryptEncryptedWallet () {
+    decryptEncryptedWallet () {
       this.isDecrypting = true
-      const decryptedKey = await bip38.decrypt(this.bip38String, this.passPhrase, (status) => {
-        this.isDecrypting = true
-        console.log(status)
-      })
-      const wifKey = await wifPackage.encode({
-        version: 0x80,
-        privateKey: decryptedKey.privateKey,
-        compressed: decryptedKey.compressed
-      })
-      this.isDecrypting = false
-      this.wif = wifKey
-      this.getTokens(true)
+      this.submitted = true
+      setTimeout(() => {
+        const decryptedKey = bip38.decrypt(this.bip38String, this.passPhrase)
+        const wifKey = wifPackage.encode({
+          version: 0x80,
+          privateKey: decryptedKey.privateKey,
+          compressed: decryptedKey.compressed
+        })
+        this.isDecrypting = false
+        this.wif = wifKey
+        this.getTokens(true)
+      }, 1000);
     },
   },
   mounted () {
