@@ -61,6 +61,8 @@ import { createUserPromoData, getUserPromoData } from 'src/utils/engagementhub-u
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
+import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+
 export default {
   name: 'RewardsPage',
 
@@ -78,17 +80,19 @@ export default {
           name: 'User Rewards',
           id: null,
           points: 0,
-          path: 'user-rewards'
+          path: 'user-rewards',
+          shortName: 'ur'
         },
         {
           name: 'Refer-a-Friend (RF) Promo',
           id: null,
           points: 0,
-          path: 'rfp'
+          path: 'rfp',
+          shortName: 'rfp'
         } //,
-        // { name: 'Loyalty Promo', id: null, points: 0, path: '' },
-        // { name: 'Champion Promo', id: null, points: 0, path: '' },
-        // { name: 'Paytaca Partner Rewards (PPR) Promo', id: null, points: 0, path: '' }
+        // { name: 'Loyalty Promo', id: null, points: 0, path: '', shortName: 'lp' },
+        // { name: 'Champion Promo', id: null, points: 0, path: '', shortName: 'cp' },
+        // { name: 'Paytaca Partner Rewards (PPR) Promo', id: null, points: 0, path: '', shortName: 'pprp' }
       ]
     }
   },
@@ -107,12 +111,23 @@ export default {
 
     // retrieve points from engagement-hub
     vm.isLoading = true
+
     await getUserPromoData()
       .then(async data => {
         if (data) {
           for (let i = 0; i < vm.promos.length; i++) {
-            vm.promos[i].id = data[vm.pointsType[i]].id
-            vm.promos[i].points = data[vm.pointsType[i]].points
+            const promoId = data[vm.pointsType[i]].id
+            vm.promos[i].id = promoId
+
+            if (promoId) {
+              const contract = new PromoContract(
+                vm.$store.getters['global/getWallet']('bch')?.xPubKey,
+                vm.promos[i].shortName
+              )
+              console.log(contract)
+              await contract.subscribeAddress()
+              vm.promos[i].points = await contract.getTokenBalance()
+            } else vm.promos[i].points = 0
           }
         } else await createUserPromoData()
       })

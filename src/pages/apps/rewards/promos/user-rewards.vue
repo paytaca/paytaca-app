@@ -211,7 +211,7 @@ import StatusChip from 'src/components/rewards/StatusChip.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
-import UserRewardContract from 'src/utils/rewards-utils/contracts/UserRewardContract'
+import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
 export default {
   name: 'UserRewards',
@@ -238,6 +238,7 @@ export default {
       referralCompleteDate: null,
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
+      urContract: null,
 
       firstSevenTransactions: [],
       marketplaceTransactions: []
@@ -262,6 +263,11 @@ export default {
     vm.isLoading = true
     vm.adjustScrollAreaHeight()
 
+    vm.urContract = new PromoContract(
+      vm.$store.getters['global/getWallet']('bch')?.xPubKey,
+      'ur'
+    )
+
     let urData = null
     vm.urId = Number(vm.id)
     if (vm.urId > -1) {
@@ -270,6 +276,7 @@ export default {
       // create UserReward entry in engagement-hub
       urData = await createUserRewardsData()
       await updateUserPromoData({ ur_id: urData.id })
+      await vm.urContract.subscribeAddress()
     }
 
     if (urData) {
@@ -278,7 +285,7 @@ export default {
           vm.pointsDivisor = data.ur_divisor
         })
 
-      vm.points = urData.points
+      vm.points = await vm.urContract.getTokenBalance()
       vm.isReferralComplete = urData.is_referral_complete
       vm.isFirstSevenComplete = urData.is_first_seven_complete
       vm.referralCompleteDate = urData.referral_complete_date
@@ -304,16 +311,6 @@ export default {
     }
 
     vm.isLoading = false
-
-    const urContract = new UserRewardContract(
-      this.$store.getters['global/getWallet']('bch')?.xPubKey
-    )
-    await urContract.subscribeAddress()
-    console.log(urContract)
-    const balance = await urContract.getTokenBalance()
-    console.log('balance', balance)
-    // console.log(urContract.contract.address)
-    // console.log(urContract.contract.tokenAddress)
   },
 
   methods: {

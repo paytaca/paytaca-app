@@ -124,6 +124,8 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReferralQrDialog from 'src/components/rewards/ReferralQrDialog.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
+import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+
 export default {
   name: 'RFPromo',
 
@@ -144,6 +146,7 @@ export default {
       pointsDivisor: 0,
       redeemablePoints: 10000,
       referralCode: '',
+      rfpContract: null,
 
       referralsList: []
     }
@@ -174,6 +177,11 @@ export default {
       `height: ${scrollAreaHeight}px; width: 100vw;`
     )
 
+    vm.rfpContract = new PromoContract(
+      vm.$store.getters['global/getWallet']('bch')?.xPubKey,
+      'rfp'
+    )
+
     let rfpData = null
     vm.rfpId = Number(vm.id)
     if (vm.rfpId > -1) {
@@ -181,6 +189,7 @@ export default {
     } else {
       rfpData = await createRfPromoData()
       await updateUserPromoData({ rfp_id: rfpData.id })
+      await vm.rfpContract.subscribeAddress()
     }
 
     if (rfpData) {
@@ -189,7 +198,7 @@ export default {
           vm.pointsDivisor = data.rfp_divisor
         })
 
-      vm.points = rfpData.points
+      vm.points = await vm.rfpContract.getTokenBalance()
       vm.redeemablePoints = rfpData.redeemable_points
       vm.referralCode = rfpData.referral_code
       vm.referralsList = rfpData.rfp_referrals.sort((a, b) => {
