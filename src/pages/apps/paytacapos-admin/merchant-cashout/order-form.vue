@@ -313,20 +313,18 @@ export default {
 
       // create the cash out order
       const order = await this.createCashoutOrder(txids)
-      // const txBuilder = new CashoutTransactionBuilder()
-      // const payoutAddress = await txBuilder.fetchPayoutAddress({ orderId: order.id })
-      // const result = await txBuilder.sendUtxos({
-      //   sender: this.wallet,
-      //   payoutAddress: payoutAddress,
-      //   broadcast: true,
-      //   utxos: utxos
-      // })
+      const txBuilder = new CashoutTransactionBuilder()
+      const result = await txBuilder.sendUtxos({
+        sender: this.wallet,
+        payoutAddress: order.payout_address,
+        broadcast: true,
+        utxos: utxos
+      })
 
-      // const outputTxid = result.txid
-      
-      // // await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
-      // await this.addCashoutAttributeTx(result.txid)
-      // await this.saveOutputTx({ order_id: order.id, txid: outputTxid, payout_address: payoutAddress })
+      const outputTxid = result.txid
+      await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
+      await this.addCashoutAttributeTx(result.txid)
+      await this.saveOutputTx({ order_id: order.id, txid: outputTxid })
     },
     async saveOutputTx (payload) {
       await backend.post('/paytacapos/cash-out/save_output_tx/', payload, { authorize: true })
@@ -364,8 +362,6 @@ export default {
         .catch(error => {
           console.error(error.response || error)
         })
-
-      console.log(response.data)
 
       this.orderStatus = 'success'
       this.openDialog = true

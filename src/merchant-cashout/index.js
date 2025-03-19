@@ -93,20 +93,6 @@ export default class CashoutTransactionBuilder {
     return result
   }
 
-  async fetchPayoutAddress ({ orderId }) {
-    const params = {
-      order_id: orderId,
-      fixed: false
-    }
-    try {
-      const response = await backend.get('/paytacapos/cash-out/payout_address/', { params: params })
-      console.log(response)
-      return response.data?.payout_address
-    } catch (error) {
-      console.error(error.response || error)
-    }
-  }
-
   buildTemplate () {
     const template = importAuthenticationTemplate(
       authenticationTemplateP2pkhNonHd
