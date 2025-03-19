@@ -289,7 +289,7 @@ import { getMnemonic, Wallet } from '../../wallet'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { CashNonFungibleToken } from 'src/wallet/cashtokens'
 import { convertCashAddress } from 'src/wallet/chipnet'
-import bip38 from 'bip38'
+import bip38 from '@asoltys/bip38'
 import * as wifPackage from 'wif'
 
 export default {

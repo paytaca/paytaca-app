@@ -11,6 +11,7 @@
     "postinstall": "quasar prepare"
   },
   "dependencies": {
+    "@asoltys/bip38": "^4.0.3",
     "@bitauth/libauth": "2.0.0-alpha.8",
     "@capacitor-community/barcode-scanner": "^4.0.1",
     "@capacitor-community/native-audio": "^5.0.1",
@@ -45,7 +46,6 @@
     "autoprefixer": "^10.4.20",
     "axios": "^0.21.4",
     "axios-cache-interceptor": "^0.10.2",
-    "bip38": "^3.1.1",
     "bip39": "^3.0.4",
     "bitcoincashjs-lib": "^3.3.3",
     "bs58": "^5.0.0",
