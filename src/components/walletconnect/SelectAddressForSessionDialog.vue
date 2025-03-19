@@ -48,7 +48,36 @@
 
             <q-item-section side>
               <div class="row flex q-gutter-x-sm">
-                <q-badge 
+                <q-badge
+                  v-if="lastUsedWalletAddress?.wallet_address === item.address">
+                  Last Used
+                </q-badge>
+                <q-icon
+                  v-if="item.selected"
+                  name="check"
+                  color="primary"
+                  size="sm"
+                />
+              </div>
+            </q-item-section>
+          </q-item>
+        <q-sperator></q-sperator>
+        <div>Multisig Address</div>
+        <q-item
+          v-for="item in multisigAddressOptions"
+            :key="item.address"
+            clickable
+            @click="selectMultisigAddress(item.address)"
+            :active="item.selected"
+            :focused="item.selected"
+          >
+            <q-item-section>
+              <div class="text-caption" >{{ `${formatAddressForDisplay(item.label)}` }} </div>
+            </q-item-section>
+
+            <q-item-section side>
+              <div class="row flex q-gutter-x-sm">
+                <q-badge
                   v-if="lastUsedWalletAddress?.wallet_address === item.address">
                   Last Used
                 </q-badge>
@@ -62,7 +91,7 @@
             </q-item-section>
           </q-item>
         </q-list>
-        
+
       </q-card-section>
       <q-card-actions>
         <q-space />
@@ -114,12 +143,14 @@ const props = defineProps({
   peerId: String,
   sessionProposal: Object,
   darkMode: Boolean,
-  walletAddresses: Array,
-  lastUsedWalletAddress: null, /*{ wallet_address: string, app_url: string, app_icon: string }*/
+  walletAddresses: Array, /* walletObject[] */
+  multisigWalletAddresses: Array, /* multisigWallets[] */
+  lastUsedWalletAddress: null /* { wallet_address: string, app_url: string, app_icon: string } */
 })
 
-const addressSelected = ref /*<string>*/ ('')
-const addressOptions  = ref /*<{label: string, value: string }[]>*/ ([])
+const addressSelected = ref('') /* <string> */
+const addressOptions = ref([]) /* <{label: string, value: string, selected?: boolean }[]> */
+const multisigAddressOptions = ref([]) /* <{label: string, value: string, selected?: boolean }[]> */
 
 const onConnectClick = () => {
   onDialogOK(
@@ -133,11 +164,20 @@ const onCancelClick = () => {
 
 const selectAddress = (address) => {
   addressOptions.value.forEach(addressOption => {
-    addressOption.selected = (addressOption.address === address);
+    addressOption.selected = (addressOption.address === address)
     if (addressOption.selected) {
       addressSelected.value = address
     }
-  });
+  })
+}
+
+const selectMultisigAddress = (address) => {
+  multisigAddressOptions.value.forEach(addressOption => {
+    addressOption.selected = (addressOption.address === address)
+    if (addressOption.selected) {
+      addressSelected.value = address
+    }
+  })
 }
 
 onMounted(() => {
@@ -150,6 +190,8 @@ onMounted(() => {
   if (props.lastUsedWalletAddress?.wallet_address) {
     selectAddress(props.lastUsedWalletAddress?.wallet_address)
   }
+
+  multisigAddressOptions.value = props.multisigWalletAddresses?.map((item) => ({ label: item.template?.name, address: item.cashaddress }))
 })
 </script>
 

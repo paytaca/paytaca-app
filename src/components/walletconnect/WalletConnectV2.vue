@@ -256,6 +256,7 @@ const watchtower = ref()
 // const walletExternalAddresses = ref/* <string[]> */()
 
 const walletAddresses = ref([]) /* <{index: number, address: string, wif: string}[]> */ 
+const multisigWalletAddresses = ref([])
 /**
  * Mapping of session proposal pairing topic and the address approved 
  * for this proposal.
@@ -601,6 +602,7 @@ const openAddressSelectionDialog = async (sessionProposal) => {
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
           walletAddresses: walletAddresses.value,
+          multisigWalletAddresses: multisigWalletAddresses.value,
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
@@ -708,6 +710,8 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           })
         })
       }
+      console.log('TRANSACTION BEFORE SIGNING', sessionRequest.params.request.params.transaction)
+      return
       response.result = await signBchTransaction(
         sessionRequest.params.request.params.transaction, 
         sessionRequest.params.request.params.sourceOutputs, 
@@ -997,14 +1001,16 @@ onMounted(async () => {
     loadActiveSessions()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
-      await $store.dispatch('global/loadWalletLastAddressIndex')  
+      await $store.dispatch('global/loadWalletLastAddressIndex')
     }
     if (!$store.getters['global/walletConnectedApps']) {
       await $store.dispatch('global/loadWalletConnectedApps')
     }
     if (!$store.getters['global/walletAddresses']) {
-      await $store.dispatch('global/loadWalletAddresses')  
+      await $store.dispatch('global/loadWalletAddresses')
     }
+    multisigWalletAddresses.value = $store.getters['multisig/getWallets']
+
     walletAddresses.value = $store.getters['global/walletAddresses']
   } catch (error) {} finally { loading.value = undefined}
 })
