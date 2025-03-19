@@ -4,7 +4,7 @@ const baseTemplate = {
   $schema: 'https://libauth.org/schemas/wallet-template-v0.schema.json',
   entities: { /* generate */ },
   scripts: { /* generate */ },
-  supported: ['BCH_2021_05', 'BCH_2022_05'],
+  supported: ['BCH_2021_05', 'BCH_2022_05', 'BCH_2023_05'],
   version: 0
 }
 
