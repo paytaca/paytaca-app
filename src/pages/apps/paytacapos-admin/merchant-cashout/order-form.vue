@@ -67,8 +67,8 @@
               <div class="row">
                 <div class=" col-8 q-px-lg q-py-sm">
                   <span class="text-bold q-pl-sm">{{ paymentMethod.payment_type.full_name }}</span><br>
-                  <span class="q-px-md" :class="darkMode ? 'text-grey-5' : 'text-grey-8'" v-for="(item, index) in paymentMethod.values" :key="index" @click="copyToClipboard(item.value)">
-                    {{ item.value }} <q-icon size="xs" name="content_copy"/> <br>
+                  <span class="q-px-md" :class="darkMode ? 'text-grey-5' : 'text-grey-8'" v-for="(item, index) in paymentMethod.values" :key="index">
+                    {{ item.value }} <br>
                   </span>
                 </div>
                 <div class="col-4 q-py-sm">
@@ -155,7 +155,7 @@
         </q-card-actions>
 
         <q-card-actions class="text-center" align="center" v-if="orderStatus === 'success'">
-          <q-btn flat :label="$t('OK')" color="red-6" @click="$router.push({ name: 'app-pos-cashout' })" v-close-popup />
+          <q-btn flat :label="$t('OK')" color="red-6" @click="$router.back()" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -419,15 +419,6 @@ export default {
           this.paymentMethod = method
           this.$store.commit('paytacapos/updateLastPaymentMethod', method)
         })
-    },
-    copyToClipboard (value) {
-      this.$copyText(value)
-      this.$q.notify({
-        message: this.$t('CopiedToClipboard'),
-        timeout: 800,
-        color: 'blue-9',
-        icon: 'mdi-clipboard-check'
-      })
     },
     preventPull (e) {
       let parent = e.target
