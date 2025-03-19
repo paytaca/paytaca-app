@@ -19,7 +19,7 @@
         </div>
 
         <div class="text-center text-h6" v-if="isDecrypting" style="margin-top: 25px;">
-          <p>{{ 'Decrypting' }}...</p>
+          <p>{{ $t('Decrypting') }}...</p>
           <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
         </div>
 
@@ -56,9 +56,7 @@
           </q-form>
 
           <div v-else class="flex flex-center text-center text-h6 q-mt-md">
-            <span class="q-mb-md">
-              Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.
-            </span>
+            <span class="q-mb-md">{{ $t('BIP38WalletDetected') }}</span>
             <q-input
               outlined
               label-slot
@@ -69,12 +67,12 @@
               :dark="darkMode"
             >
               <template v-slot:label>
-                {{ 'BIP38 wallet passphrase' }}
+                {{ $t('BIP38WalletPassphrase') }}
               </template>
             </q-input>
             <q-btn
               class="q-mt-md button passphrase-input"
-              label="Decrypt"
+              :label="$t('Decrypt')"
               :disabled="passPhrase.length === 0"
               @click.prevent="decryptEncryptedWallet"
             />

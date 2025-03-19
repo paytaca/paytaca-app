@@ -1187,7 +1187,9 @@ const phrases = {
       TimeSent: 'Time sent',
       AuthenticationFailed: 'Authentication failed',
       ExternalLinks: 'External Links',
-      ProcessingNecessaryDetails: 'Processing necessary details'
+      ProcessingNecessaryDetails: 'Processing necessary details',
+      BIP38WalletPassphrase: 'BIP38 wallet passphrase',
+      BIP38WalletDetected: 'Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.'
     }
   ],
   dynamic: [
