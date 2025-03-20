@@ -59,6 +59,8 @@ export function parseLocaleDate (date, isDayIncluded = true) {
 // functions with calls to engagement hub
 // ================================
 
+// ========== reusable functions ==========
+
 /**
  * Process points depending on given url and data.
  * @returns true if points were processed successfully;
@@ -71,22 +73,76 @@ async function processPoints (url, data) {
     .catch(_error => { return false })
 }
 
-export async function getUserRewardsData (id) {
+async function getData (url) {
   return await REWARDS_URL
-    .get(`userreward/${id}/`)
+    .get(url)
     .then(response => { return response.data })
     .catch(_error => { return null })
 }
 
-export async function createUserRewardsData () {
+async function createData (url) {
   return await REWARDS_URL
-    .post('userreward/')
+    .post(url)
     .then(response => { return response.data })
     .catch(error => {
       console.error(error)
       return null
     })
 }
+
+async function updateData (url, data) {
+  await REWARDS_URL
+    .patch(url, data)
+    .then(_response => {})
+    .catch(error => { console.error(error) })
+}
+
+// ========== get functions ==========
+
+export async function getUserPromoData () {
+  return await getData(`userpromo/${getWalletHash()}/`)
+}
+
+export async function getUserRewardsData (id) {
+  return await getData(`userreward/${id}/`)
+}
+
+export async function getRfPromoData (id) {
+  return await getData(`rfpromo/${id}/`)
+}
+
+// ========== create functions ==========
+
+export async function createUserPromoData () {
+  await REWARDS_URL
+    .post('userpromo/', { wallet_hash: getWalletHash() })
+    .then(_response => { })
+    .catch(error => { console.error(error) })
+}
+
+export async function createUserRewardsData () {
+  return await createData('userreward/')
+}
+
+export async function createRfPromoData () {
+  return await createData('rfpromo/')
+}
+
+// ========== update functions ==========
+
+export async function updateUserPromoData (data) {
+  await updateData(`userpromo/${getWalletHash()}/`, data)
+}
+
+export async function updateUserRewardsData(id, data) {
+  await updateData(`userreward/${id}/`, data)
+}
+
+export async function updateRfPromoData (id, data) {
+  await updateData(`rfpromo/${id}/`, data)
+}
+
+// ========== other functions ==========
 
 export async function processReferralCode (data) {
   await REWARDS_URL
@@ -98,51 +154,13 @@ export async function processReferralCode (data) {
     })
 }
 
-export async function getUserPromoData () {
-  return await REWARDS_URL
-    .get(`userpromo/${getWalletHash()}/`)
-    .then(response => { return response.data })
-    .catch(_error => { return null })
-}
-
-export async function createUserPromoData () {
-  await REWARDS_URL
-    .post('userpromo/', { wallet_hash: getWalletHash() })
-    .then(_response => { })
-    .catch(error => { console.error(error) })
-}
-
-export async function updateUserPromoData (data) {
-  await REWARDS_URL
-    .patch(`userpromo/${getWalletHash()}/`, data)
-    .then(_response => { })
-    .catch(error => { console.error(error) })
-}
-
-export async function getRfPromoData (id) {
-  return await REWARDS_URL
-    .get(`rfpromo/${id}/`)
-    .then(response => { return response.data })
-    .catch(_error => { return null })
-}
-
-export async function createRfPromoData () {
-  return await REWARDS_URL
-    .post('rfpromo/')
-    .then(response => { return response.data })
-    .catch(error => {
-      console.error(error)
-      return null
-    })
-}
-
 export async function getPromoPointsDivisorData () {
   return await REWARDS_URL
     .get('promopointsdivisor/')
     .then(response => { return response.data })
     .catch(error => {
       console.error(error)
-      // return initial values set during marketing planning
+      // return initial values set during first marketing planning
       return {
         ur_divisor: 4,
         rfp_divisor: 4
