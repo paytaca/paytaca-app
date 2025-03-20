@@ -6,6 +6,14 @@ const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 
+export const Promos = {
+  USERREWARDS: 'ur',
+  RFPROMO: 'rfp' //,
+  // LOYALTYPROMO: 'lp',
+  // CHAMPIONPROMO: 'cp',
+  // PPRPROMO: 'pprp'
+}
+
 // ================================
 // local functions
 // ================================

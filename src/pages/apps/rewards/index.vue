@@ -56,7 +56,7 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { createUserPromoData, getUserPromoData } from 'src/utils/engagementhub-utils/rewards'
+import { createUserPromoData, getUserPromoData, Promos } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -81,14 +81,14 @@ export default {
           id: null,
           points: 0,
           path: 'user-rewards',
-          shortName: 'ur'
+          shortName: Promos.USERREWARDS
         },
         {
           name: 'Refer-a-Friend (RF) Promo',
           id: null,
           points: 0,
           path: 'rfp',
-          shortName: 'rfp'
+          shortName: Promos.RFPROMO
         } //,
         // { name: 'Loyalty Promo', id: null, points: 0, path: '', shortName: 'lp' },
         // { name: 'Champion Promo', id: null, points: 0, path: '', shortName: 'cp' },

@@ -204,7 +204,8 @@ import {
   getUserRewardsData,
   updateUserPromoData,
   getPromoPointsDivisorData,
-  updateUserRewardsData
+  updateUserRewardsData,
+  Promos
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -266,7 +267,7 @@ export default {
 
     vm.urContract = new PromoContract(
       vm.$store.getters['global/getWallet']('bch')?.xPubKey,
-      'ur'
+      Promos.USERREWARDS
     )
 
     let urData = null

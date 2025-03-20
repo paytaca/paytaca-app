@@ -117,7 +117,8 @@ import {
   updateUserPromoData,
   parseLocaleDate,
   getPromoPointsDivisorData,
-  updateRfPromoData
+  updateRfPromoData,
+  Promos
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -180,7 +181,7 @@ export default {
 
     vm.rfpContract = new PromoContract(
       vm.$store.getters['global/getWallet']('bch')?.xPubKey,
-      'rfp'
+      Promos.RFPROMO
     )
 
     let rfpData = null
