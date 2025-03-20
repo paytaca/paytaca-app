@@ -54,7 +54,7 @@
                         {{ formatCurrency(cashout?.payout_amount, currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
                       </div>
                       <div v-if="cashout.payout_details" class="sm-font-size">
-                        {{ cashout?.payout_details?.total_bch_amount }} BCH
+                        {{ Number(cashout?.payout_details?.total_bch_amount) }} BCH
                       </div>
                     </div>
                     <div class="col ib-text text-right q-pr-sm">
@@ -83,8 +83,7 @@
 import { backend } from 'src/wallet/pos'
 import { formatCurrency, formatDate } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import ProgressLoader from '../ProgressLoader.vue'
-import { resetPagination } from 'src/store/ramp/mutations'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   data () {
@@ -170,7 +169,6 @@ export default {
       const url = '/paytacapos/cash-out/'
       const limit = 20
 
-      /** sample fetch with pagination */
       await backend.get(url, { params: { order_type: this.orderType, limit: limit, page: this.pageNumber }})
         .then(response => {
           if (overwrite) {

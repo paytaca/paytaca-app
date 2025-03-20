@@ -1,13 +1,7 @@
 <template>
-  <div
-    id="app-container"
-    :class="getDarkModeClass(darkMode)"
-  >
-    <HeaderNav
-      :title="'Merchant Cash Out'"
-      class="header"
-    />
-    <CashoutListings v-if="state === 'list'" @cashout-form="openCashoutForm"/>
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <HeaderNav :title="'Merchant Cash Out'" class="header" />
+    <CashoutIndex v-if="state === 'list'" @cashout-form="openCashoutForm"/>
 </div>
 </template>
 <script>
@@ -16,7 +10,7 @@ import { formatCurrency } from 'src/exchange'
 import { backend } from 'src/wallet/pos'
 import { ref } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue';
-import CashoutListings from 'src/components/paytacapos/CashoutListings.vue';
+import CashoutIndex from 'src/components/paytacapos/merchant-cash-out/CashoutIndex.vue';
 
 export default {
   setup () {
@@ -24,6 +18,10 @@ export default {
     return {
       scrollTargetRef
     }
+  },
+  components: {
+    HeaderNav,
+    CashoutIndex
   },
   data () {
     return {
@@ -37,10 +35,6 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     }
-  },
-  components: {
-    HeaderNav,
-    CashoutListings
   },
   mounted () {
     this.loadMerchant(history.state.merchantId)

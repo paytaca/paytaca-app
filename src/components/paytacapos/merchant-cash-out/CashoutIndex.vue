@@ -44,9 +44,9 @@
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
 import { backend } from 'src/wallet/pos'
+import ProgressLoader from '../../ProgressLoader.vue'
 import UnspentTransactionList from './UnspentTransactionList.vue'
-import ProgressLoader from '../ProgressLoader.vue'
-import CashoutOrderDialog from './CashoutOrderDialog.vue'
+import CashoutOrderList from './CashoutOrderList.vue'
 
 export default {
   components: {
@@ -58,8 +58,6 @@ export default {
       theme: this.$store.getters['global/theme'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
       currency: this.$store.getters['market/selectedCurrency'],
-      // orderType: 'ALL',
-      // cashoutOrders: [],
       selectedTransactions: [],
       unspentTxns: [],
       isloading: true,
@@ -149,8 +147,7 @@ export default {
     },
     openCashoutOrderList () {
       this.$q.dialog({
-        component: CashoutOrderDialog,
-        // componentProps: {}
+        component: CashoutOrderList
       })
     },
     selectTransaction (transaction, index) {

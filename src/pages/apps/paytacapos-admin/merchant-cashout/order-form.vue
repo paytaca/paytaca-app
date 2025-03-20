@@ -1,57 +1,17 @@
 <template>
-  <q-pull-to-refresh
+  <div
     id="app-container"
-    :class="getDarkModeClass(darkMode)"
-    @refresh="refreshData"
-  >
-    <HeaderNav
-      :title="'Merchant Cash Out'"
-      class="header"
-    />
-
-    <!-- Transaction List -->
+    :class="getDarkModeClass(darkMode)">
+    <HeaderNav :title="'Merchant Cash Out'" class="header"/>
     <div>
-      <div v-if="status === 'confirm-transaction'">
-        <div class="text-center md-font-size text-bold">Cash Out Transactions</div>
-
-        <div>
-          <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 170}px`" style="overflow:auto;">
-            <!-- Cashout Order -->
-            <!-- <q-card flat class="q-mx-lg q-mt-sm"> -->
-              <q-item v-for="(tx, index) in transactionList" :key="index" clickable @click="selectTransaction(index)">
-                <q-item-section>
-                  <div class="q-px-sm q-mx-lg" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                    <div v-if="getInitialFiatAmount(tx).toFixed(2) !== getCurrentFiatAmount(tx).toFixed(2)"
-                      class="sm-font-size text-grey-6 text-strike">
-                      {{ formatCurrency(getInitialFiatAmount(tx), currency.symbol) }} {{ currency.symbol }}
-                    </div>
-                    <div class="row">
-                      <div class="col ib-text">
-                        <div class="md-font-size text-bold" :class="getFiatAmountColor(tx)">
-                          {{ formatCurrency(getCurrentFiatAmount(tx), currency.symbol).replace(/[^\d.,-]/g, '') }} {{ currency.symbol }}
-                          <q-icon :name="getTrendingIcon(tx)"/>
-                        </div>
-                        <div class="sm-font-size">
-                          {{ tx.amount }} BCH
-                        </div>
-                      </div>
-                      <div class="col ib-text text-right q-pr-sm">
-                        <div class="text-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                          <span>{{ tx.transaction?.txid?.substring(0,8) }}</span>
-                          <q-icon color="primary" size="sm" name="o_check_box" v-if="isTxnSelected(tx)"/>
-                        </div>
-                        <div class="text-grey-6 sm-font-size">
-                          <q-icon name="local_police" class="q-pa-xs"/>
-                          <span>{{ lossProtection(tx) }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </q-item-section>
-              </q-item>
-            <!-- </q-card> -->
-          </q-list>
-        </div>
+      <div v-if="status === 'confirm-transaction'"
+        class="q-mx-sm"
+        :style="`max-height: ${minHeight - 170}px; overflow:auto;`">
+        <SelectedTransactionsList 
+          :transactions="transactions" 
+          :currency="currency.symbol" 
+          @select="selectTransaction" 
+          @unselect="unselectTransaction" />
       </div>
 
       <!-- Footer order summary card -->
@@ -87,49 +47,15 @@
             </div>
           </q-card>
         </div>
-
-        <div class="q-mx-lg q-pt-xs">
-          <q-card class="full-width q-px-lg br-15 q-py-sm">
-            <div class="text-bold sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-              {{ transactions.length }} Transactions
-            </div>
-            <div class="row q-pt-sm sm-font-size q-pb-sm">
-              <div class="col-8 text-bold">
-                <span>Initial Total</span><br>
-                <span>Market Volatility Loss/Gain</span><br>
-                <span>Loss Covered</span>
-              </div>
-              <div class="col text-right">
-                <span>{{ cashOutTotal.initialTotal }} {{ currency.symbol }}</span><br>
-                <span :class="cashOutTotal.lossGain < 0 ? 'text-red' : 'text-green'">
-                  {{ cashOutTotal.lossGain }} {{ currency.symbol }}
-                </span><br>
-                <span>{{ cashOutTotal.lossCovered }} {{ currency.symbol }}</span>
-              </div>
-            </div>
-
-            <div v-if="cashOutTotal.initialTotal !== cashOutTotal.currentTotal"
-              class="text-strike text-right sm-font-size"
-              :class="darkMode ? 'text-white' : 'text-grey-6'">
-              {{ cashOutTotal.initialTotal }} {{ currency.symbol }}
-            </div>
-            <div class="row q-pb-sm md-font-size text-bold">
-              <div class="col">
-                <span>TOTAL</span>
-              </div>
-              <div class="text-right" >
-                <span>{{ cashOutTotal.currentTotal }} {{ currency.symbol }}</span>
-              </div>
-            </div>
-            <q-separator class="q-mb-sm"/>
-            <div class="text-right sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-              {{ cashOutTotal.totalBchAmount }} BCH
-            </div>
-          </q-card>
-        </div>
+        <OrderPayoutCard :key="orderPayoutCardKey" :transactions="transactions" :currency="currency?.symbol"/>
         <div class="full-width text-center q-px-lg q-py-sm">
-          <q-btn v-if="status === 'confirm-transaction'" label="Proceed" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true" :disable="!paymentMethod"/>
-          <!-- <q-btn v-if="status === 'confirm-payment-method'" label="Cash Out" class="full-width q-mx-lg" rounded color="primary" @click="openDialog = true"/> -->
+          <q-btn v-if="status === 'confirm-transaction'"
+            rounded
+            label="Proceed"
+            color="primary" 
+            class="full-width q-mx-lg"
+            :disable="!paymentMethod || transactions.length === 0"
+            @click="openDialog = true"/>
         </div>
       </div>
     </div>
@@ -159,7 +85,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-  </q-pull-to-refresh>
+  </div>
 </template>
 <script>
 import { formatCurrency, formatNumber } from 'src/exchange'
@@ -167,13 +93,18 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
 import CashoutTransactionBuilder from 'src/merchant-cashout'
 import HeaderNav from 'src/components/header-nav.vue'
-import CashoutPaymentMethodDialog from 'src/components/paytacapos/CashoutPaymentMethodDialog.vue'
+import CashoutPaymentMethodDialog from 'src/components/paytacapos/merchant-cash-out/CashoutPaymentMethodDialog.vue'
 import { loadLibauthHdWallet } from 'src/wallet'
 import Watchtower from 'src/lib/watchtower'
-import { getMnemonic, Wallet } from 'src/wallet'
-import { markRaw } from 'vue'
+import OrderPayoutCard from 'src/components/paytacapos/merchant-cash-out/OrderPayoutCard.vue'
+import SelectedTransactionsList from 'src/components/paytacapos/merchant-cash-out/SelectedTransactionsList.vue'
 
 export default {
+  components: {
+    HeaderNav,
+    OrderPayoutCard,
+    SelectedTransactionsList
+  },
   data () {
     return {
       transactions: [],
@@ -188,7 +119,8 @@ export default {
       openPaymentMethod: false,
       orderStatus: 'pending',
       wallet: null,
-      merchant: null
+      merchant: null,
+      orderPayoutCardKey: 0
     }
   },
   computed: {
@@ -216,10 +148,12 @@ export default {
       return history.state.merchantName
     }
   },
-  emits: ['select-payment-method'],
-  components: {
-    HeaderNav
+  watch: {
+    transactions () {
+      this.orderPayoutCardKey++
+    }
   },
+  emits: ['select-payment-method'],
   props: {
     data: Array
   },
@@ -395,15 +329,14 @@ export default {
     async refreshData (done) {
       done()
     },
-    selectTransaction (index) {
-      this.transactionList[index].selected = !this.transactionList[index].selected
-
-      if (this.transactionList[index].selected) {
-        this.transactions.push(this.transactionList[index])
-      } else {
-        this.transactions = this.transactions.filter(tx => tx?.transaction?.txid !== this.transactionList[index]?.transaction?.txid)
-      }
-
+    selectTransaction (tx) {
+      this.transactions.push(tx)
+      this.calculateCashOutTotal(this.transactions)
+    },
+    unselectTransaction (tx) {
+      this.transactions = this.transactions.filter(el => 
+        el.transaction?.txid !== tx.transaction?.txid
+      )
       this.calculateCashOutTotal(this.transactions)
     },
     openPaymentMethodDialog () {

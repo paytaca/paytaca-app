@@ -5,7 +5,7 @@
         <q-btn flat icon="close" color="red" @click="backBtn()"/>
       </div>
 
-      <!-- Selelct Payment Method -->
+      <!-- Select Payment Method -->
       <div v-if="status === 'payment-method-select'">
         <div class="text-center text-primary q-pb-sm text-bold md-font-size">
           Select Payment Methods
@@ -165,7 +165,7 @@
   </q-dialog>
 </template>
 <script>
-import ProgressLoader from '../ProgressLoader.vue';
+import ProgressLoader from '../../ProgressLoader.vue';
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
 import { bus } from 'src/wallet/event-bus'
