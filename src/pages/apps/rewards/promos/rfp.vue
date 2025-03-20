@@ -116,7 +116,8 @@ import {
   createRfPromoData,
   updateUserPromoData,
   parseLocaleDate,
-  getPromoPointsDivisorData
+  getPromoPointsDivisorData,
+  updateRfPromoData
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -189,8 +190,12 @@ export default {
     } else {
       rfpData = await createRfPromoData()
       await updateUserPromoData({ rfp_id: rfpData.id })
+      await updateRfPromoData(rfpData.id, {
+        contract_ct_address: vm.rfpContract.contract.tokenAddress
+      })
       await vm.rfpContract.subscribeAddress()
     }
+
 
     if (rfpData) {
       await getPromoPointsDivisorData()

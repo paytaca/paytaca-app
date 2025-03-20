@@ -203,7 +203,8 @@ import {
   createUserRewardsData,
   getUserRewardsData,
   updateUserPromoData,
-  getPromoPointsDivisorData
+  getPromoPointsDivisorData,
+  updateUserRewardsData
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -276,6 +277,9 @@ export default {
       // create UserReward entry in engagement-hub
       urData = await createUserRewardsData()
       await updateUserPromoData({ ur_id: urData.id })
+      await updateUserRewardsData(urData.id, {
+        contract_ct_address: vm.urContract.contract.tokenAddress
+      })
       await vm.urContract.subscribeAddress()
     }
 
