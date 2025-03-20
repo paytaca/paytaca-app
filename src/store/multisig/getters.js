@@ -10,3 +10,9 @@ export function getWallet (state) {
 export function getWallets (state) {
   return state.wallets
 }
+
+export function getSignatureRequest (state) {
+  return ({ address }) => {
+    return state.signatureRequest[address]
+  }
+}

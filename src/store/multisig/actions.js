@@ -22,3 +22,10 @@ export function deleteAllWallets ({ commit }) {
   commit('deleteAllWallets')
   // TODO: mutate watchtower
 }
+
+/**
+ * request is a wallet connect session request
+ */
+export function newSignatureRequest ({ commit }, { signatureRequest }) {
+  commit('signatureRequest', { signatureRequest })
+}
