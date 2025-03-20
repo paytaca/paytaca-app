@@ -237,7 +237,8 @@ import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
-
+import { loadLibauthHdWallet } from '../../wallet'
+import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 const $emit = defineEmits([
   'request-scanner'
 ])
@@ -275,7 +276,7 @@ const web3Wallet = ref()
 // const bchWallet = computed(() => $store.getters['global/getWallet']('bch'))
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
-
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
 const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
     setTimeout(() => { resolve() }, seconds * 1000)
@@ -288,16 +289,16 @@ const formatAddressForDisplay = (address, lockingBytecode = null) => {
     if (lockingBytecode) {
       const decodedAddress = decodeCashAddress(address)
       if (isPayToScriptHash20(lockingBytecode) || isPayToScriptHash32(lockingBytecode)) {
-        const prefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
+        const prefix = isChipnet.value ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
         const addressType = settings.value?.addressDisplayFormat === 'tokenaddr' ? CashAddressType.p2shWithTokens : CashAddressType.p2sh
         return shortenAddressForDisplay(encodeCashAddress(prefix, addressType, decodedAddress.payload))
       }
     }
 
     if (settings.value?.addressDisplayFormat === 'tokenaddr') {
-      return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
+      return shortenAddressForDisplay(convertCashAddress(address, isChipnet.value, true))
     }
-    return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], false))
+    return shortenAddressForDisplay(convertCashAddress(address, isChipnet.value, false))
   } catch (error) {
     // default
     return shortenAddressForDisplay(address)
@@ -332,7 +333,7 @@ const loadActiveSessions = async ({ showLoading } = { showLoading: true }) => {
   loading.value = showLoading && $t('CheckingForActiveConnections')
   try {
     if (web3Wallet.value) {
-      const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET : CHAINID_MAINNET
+      const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
       const sessions = await web3Wallet.value.getActiveSessions()
       activeSessions.value = Object.fromEntries(
         Object.entries(sessions).filter(([topicKey, sessionValue]) => {
@@ -354,7 +355,7 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
   try {
     if (web3Wallet.value) {
       const proposals = await web3Wallet.value.getPendingSessionProposals()
-      const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET : CHAINID_MAINNET
+      const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
       sessionProposals.value = proposals.filter((p) => {
         return p.requiredNamespaces?.bch?.chains?.includes(chainIdFilter)
       })
@@ -384,7 +385,7 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }, sess
         requests = await web3Wallet.value.getPendingSessionRequests()
       }
 
-      const chainIdFilter = $store.getters['global/isChipnet'] ? CHAINID_CHIPNET : CHAINID_MAINNET
+      const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
       sessionRequests.value = requests.filter((r) => {
         return r.params?.chainId == chainIdFilter
       })
@@ -442,22 +443,41 @@ const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWal
 }
 
 async function saveConnectedApp (session) {
-  console.log('🚀 ~ saveConnectedApp ~ session:', session)
-  return
   try {
-    session?.namespaces?.bch?.accounts?.forEach((account) => {
+    session?.namespaces?.bch?.accounts?.forEach(async (account) => {
       const accountWCPrefixRemoved = account.replace('bch:', '')
       const addressWithWif = walletAddresses.value.find((walletAddress) => {
+        // eslint-disable-next-line eqeqeq
         return walletAddress.address == accountWCPrefixRemoved
       })
       if (addressWithWif?.wif) {
         const decodedPrivkey = decodePrivateKeyWif(addressWithWif.wif)
-        watchtower.value.saveConnectedApp({
+        return watchtower.value.saveConnectedApp({
           address: accountWCPrefixRemoved,
           appName: session?.peer?.metadata?.name || session?.peer?.metadata?.url,
           appUrl: session?.peer?.metadata?.url,
           appIcon: session?.peer?.metadata?.icons?.[0],
           privateKey: decodedPrivkey.privateKey
+        })
+      }
+      // Try if it's a multisig wallet
+      const multisigAddress = multisigWalletAddresses.value.find((walletAddress) => {
+        // eslint-disable-next-line eqeqeq
+        return walletAddress.address == accountWCPrefixRemoved
+      })
+
+      if (multisigAddress) {
+        // We'll borrow the regular wallet 0's pk for signing the watchtower post message
+        const wallet = await loadLibauthHdWallet(0, isChipnet.value)
+        const wif = wallet.getPrivateKeyWifAt('0/0')
+        const decodedPrivkey = decodePrivateKeyWif(wif)
+        return watchtower.value.saveConnectedApp({
+          address: accountWCPrefixRemoved,
+          appName: session?.peer?.metadata?.name || session?.peer?.metadata?.url,
+          appUrl: session?.peer?.metadata?.url,
+          appIcon: session?.peer?.metadata?.icons?.[0],
+          privateKey: decodedPrivkey.privateKey,
+          addressIsMultisig: true
         })
       }
     })
@@ -1005,8 +1025,9 @@ onMounted(async () => {
       await $store.dispatch('global/loadWalletAddresses')
     }
     multisigWalletAddresses.value = $store.getters['multisig/getWallets']
-
+    // TODO: load multisig wallets from watchtower
     walletAddresses.value = $store.getters['global/walletAddresses']
+    console.log('WALLET ADDRESSES', walletAddresses.value)
   } catch (error) {} finally { loading.value = undefined }
 })
 

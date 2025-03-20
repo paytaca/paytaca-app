@@ -122,7 +122,7 @@ import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
-import { convertCashAddress } from 'src/wallet/chipnet'
+import { convertaddress } from 'src/wallet/chipnet'
 import PeerInfo from './PeerInfo.vue'
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -131,7 +131,7 @@ const settings = computed(() => $store.getters['walletconnect/settings'])
 
 const formatAddressForDisplay = (address) => {
   if (settings.value?.addressDisplayFormat === 'tokenaddr') {
-    return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
+    return shortenAddressForDisplay(convertaddress(address, $store.getters['global/isChipnet'], true))
   }
   return shortenAddressForDisplay(address)
 }
@@ -151,14 +151,14 @@ const addressOptions = ref([]) /* <{label: string, value: string, selected?: boo
 const multisigAddressOptions = ref([]) /* <{label: string, value: string, selected?: boolean }[]> */
 
 const onConnectClick = () => {
-  if (addressSelected.value.isMultisig) {
-    return onDialogOK(
-      props.multisigWalletAddresses.find((walletAddress) => walletAddress.cashaddress === addressSelected.value)
-    )
+  let selectedWalletAddress = props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
+  if (addressSelectedIsMultisig.value) {
+    selectedWalletAddress = props.multisigWalletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
   }
-  onDialogOK(
-    props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
-  )
+  onDialogOK({
+    selectedWalletAddress,
+    isMultisig: addressSelectedIsMultisig.value
+  })
 }
 const onCancelClick = () => {
   onDialogCancel()
@@ -183,14 +183,14 @@ const selectMultisigAddress = (address) => {
       addressSelectedIsMultisig.value = true
     }
   })
-  console.log(multisigAddressOptions.value)
-  console.log(addressSelected.value)
+  console.log('MULTISIG SELECTED', multisigAddressOptions.value)
+  console.log('ADDRESS SELECTED', addressSelected.value)
 }
 
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: item.address, address: item.address, index: item.address_index }))
-  multisigAddressOptions.value = props.multisigWalletAddresses?.map((item) => ({ label: item.template?.name, address: item.cashaddress }))
+  multisigAddressOptions.value = props.multisigWalletAddresses?.map((item) => ({ label: item.template?.name, address: item.address }))
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true

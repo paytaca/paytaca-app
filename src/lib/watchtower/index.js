@@ -20,7 +20,7 @@ class Watchtower extends WatchtowerSdk {
   /**
    * Returns list of external addresses
    */
-  async getWalletExternalAddresses (walletHash /*:string*/) /*: Promise<string[]>*/ {
+  async getWalletExternalAddresses (walletHash /*: string */) /*: Promise<string[]> */ {
     let addresses = []
     const response = await fetch(`${this._baseUrl}wallet-addresses/${walletHash}/?change_index=0`)
     if (response.ok) {
@@ -32,7 +32,7 @@ class Watchtower extends WatchtowerSdk {
   /**
    * Fetch wallet's last address index
    */
-  async getLastExternalAddressIndex (walletHash/*:string*/) /*: Promise<{ address:string; address_index: number } | null>*/ {
+  async getLastExternalAddressIndex (walletHash/*: string */) /*: Promise<{ address:string; address_index: number } | null> */ {
     const response = await fetch(`${this._baseUrl}last-address-index/wallet/${walletHash}/?exclude_pos=true`)
     let addressAndIndex = null
     if (response.ok) {
@@ -61,40 +61,40 @@ class Watchtower extends WatchtowerSdk {
    * E.g. address was connected to a (d)app
    */
   async saveConnectedApp ({
-      address/*:string*/,
-      appName/*:string*/,
-      appUrl/*:string*/,
-      appIcon/*?:string*/,
-      privateKey/*: Uint8Array*/ /* For signing */
-    })/*: Promise<boolean>*/ {
-
+    address/*: string */,
+    appName/*: string */,
+    appUrl/*: string */,
+    appIcon/* ?:string */,
+    privateKey/*: Uint8Array */ /* For signing */,
+    addressIsMultisig /* ?: boolean */
+  })/*: Promise<boolean> */ {
     if (!appName || !appUrl) return false
 
     const nonce = await this.getNonce()
     if (nonce) {
       const message = `${nonce}|${address}|${appName}|${appUrl}`
-      const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey) /*as Uint8Array*/
+      const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey) /* as Uint8Array */
       let pkToCashAddress = privateKeyToCashAddress(privateKey)
       if (this.isChipnet) {
         pkToCashAddress = toP2pkhTestAddress(pkToCashAddress)
       }
-      if (address !== pkToCashAddress) {
+      if (address !== pkToCashAddress && !addressIsMultisig) {
         throw new Error('Address isn\'t owned by the privateKey!')
       }
 
       const sha256 = (await instantiateSha256()).hash
       const hashedMessage = sha256(new TextEncoder().encode(message))
-      const derSignature = secp256k1.signMessageHashDER(privateKey, hashedMessage) /*as Uint8Array*/
+      const derSignature = secp256k1.signMessageHashDER(privateKey, hashedMessage) /* as Uint8Array */
       const derSignatureHex = binToHex(derSignature)
       const postData = {
         public_key: binToHex(publicKeyCompressed),
         signature: derSignatureHex,
         message: message,
         extra: {
-          app_icon: appIcon
+          app_icon: appIcon,
+          address_is_multisig: addressIsMultisig
         }
       }
-
       const postResponse = await fetch(`${this._baseUrl}wallet-address-app/`, {
         method: 'POST',
         headers: {
@@ -138,14 +138,12 @@ class Watchtower extends WatchtowerSdk {
     }
     return addressPeerAppList
   }
-  
 
   set isChipnet (yes) {
     if (yes) {
-      this._baseUrl = 'https://chipnet.watchtower.cash/api/';
-    }
-    else {
-        this._baseUrl = 'https://watchtower.cash/api/';
+      this._baseUrl = 'https://chipnet.watchtower.cash/api/'
+    } else {
+      this._baseUrl = 'https://watchtower.cash/api/'
     }
   }
 }
