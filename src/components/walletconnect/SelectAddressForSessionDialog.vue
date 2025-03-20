@@ -122,7 +122,7 @@ import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
-import { convertaddress } from 'src/wallet/chipnet'
+import { convertCashAddress } from 'src/wallet/chipnet'
 import PeerInfo from './PeerInfo.vue'
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -131,7 +131,7 @@ const settings = computed(() => $store.getters['walletconnect/settings'])
 
 const formatAddressForDisplay = (address) => {
   if (settings.value?.addressDisplayFormat === 'tokenaddr') {
-    return shortenAddressForDisplay(convertaddress(address, $store.getters['global/isChipnet'], true))
+    return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
   }
   return shortenAddressForDisplay(address)
 }
